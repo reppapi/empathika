@@ -1,0 +1,17 @@
+﻿import apiClient from "@/lib/axios"
+import type { LoginPayload, RegisterPayload, AuthResponse } from "@/types/auth.types"
+
+export const authService = {
+  login: (payload: LoginPayload) =>
+    apiClient.post<AuthResponse>("/auth/login", payload).then((r) => r.data),
+
+  register: (payload: RegisterPayload) =>
+    apiClient.post<AuthResponse>("/auth/register", payload).then((r) => r.data),
+
+  logout: () =>
+    apiClient.post("/auth/logout").then((r) => r.data),
+
+  refreshToken: () =>
+    apiClient.post<{ accessToken: string }>("/auth/refresh").then((r) => r.data),
+}
+

@@ -1,0 +1,280 @@
+﻿// This is your Prisma schema file
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================
+// USER
+// =====================================================================
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  role         Role     @default(CLIENT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bookings   Booking[]
+  transaksis Transaksi[]
+  hasilTes   HasilTes[]
+
+  @@map("users")
+}
+
+enum Role {
+  CLIENT
+  PSIKOLOG
+  ADMIN
+}
+
+// =====================================================================
+// PSIKOLOG
+// =====================================================================
+model Psikolog {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  photo          String?
+  bio            String
+  strNumber      String?  // Nomor STR
+  priceOnline    Int      // dalam Rupiah
+  priceOffline   Int
+  rating         Float    @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  specializations PsikologSpecialization[]
+  jadwals         Jadwal[]
+  bookings        Booking[]
+  layananPsikolog LayananPsikolog[]
+
+  @@map("psikologs")
+}
+
+model PsikologSpecialization {
+  id         String   @id @default(cuid())
+  psikologId String
+  name       String
+
+  psikolog Psikolog @relation(fields: [psikologId], references: [id], onDelete: Cascade)
+
+  @@map("psikolog_specializations")
+}
+
+model Jadwal {
+  id         String   @id @default(cuid())
+  psikologId String
+  tanggal    DateTime
+  waktuMulai String   // HH:MM
+  waktuSelesai String  // HH:MM
+  isBooked   Boolean  @default(false)
+
+  psikolog Psikolog  @relation(fields: [psikologId], references: [id], onDelete: Cascade)
+  booking  Booking?
+
+  @@map("jadwals")
+}
+
+// =====================================================================
+// LAYANAN
+// =====================================================================
+model Layanan {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  nama        String
+  deskripsi   String
+  tipe        LayananTipe
+  harga       Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  layananPsikolog LayananPsikolog[]
+
+  @@map("layanans")
+}
+
+enum LayananTipe {
+  INDIVIDU
+  PASANGAN
+  KORPORAT
+  WORKSHOP
+  SEMINAR
+  SCHOOL
+}
+
+model LayananPsikolog {
+  psikologId String
+  layananId  String
+
+  psikolog Psikolog @relation(fields: [psikologId], references: [id])
+  layanan  Layanan  @relation(fields: [layananId], references: [id])
+
+  @@id([psikologId, layananId])
+  @@map("layanan_psikologs")
+}
+
+// =====================================================================
+// BOOKING & TRANSAKSI
+// =====================================================================
+model Booking {
+  id         String        @id @default(cuid())
+  userId     String
+  psikologId String
+  jadwalId   String        @unique
+  metode     MetodeBooking
+  catatan    String?
+  status     BookingStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id])
+  psikolog  Psikolog   @relation(fields: [psikologId], references: [id])
+  jadwal    Jadwal     @relation(fields: [jadwalId], references: [id])
+  transaksi Transaksi?
+
+  @@map("bookings")
+}
+
+enum MetodeBooking {
+  ONLINE
+  OFFLINE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model Transaksi {
+  id            String          @id @default(cuid())
+  bookingId     String          @unique
+  userId        String
+  amount        Int
+  paymentMethod String
+  status        TransaksiStatus @default(PENDING)
+  paymentData   String?         // JSON string dari payment gateway
+  expiresAt     DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("transaksis")
+}
+
+enum TransaksiStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// =====================================================================
+// BLOG
+// =====================================================================
+model Blog {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  judul       String
+  konten      String
+  thumbnail   String?
+  isPublished Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("blogs")
+}
+
+// =====================================================================
+// PSIKOTES
+// =====================================================================
+model Psikotes {
+  id        String   @id @default(cuid())
+  nama      String
+  deskripsi String
+  durasi    Int      // menit
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  soals    Soal[]
+  hasilTes HasilTes[]
+
+  @@map("psikotes")
+}
+
+model Soal {
+  id         String   @id @default(cuid())
+  psikotesId String
+  teks       String
+  urutan     Int
+  pilihan    String   // JSON: [{value, label, skor}]
+
+  psikotes Psikotes @relation(fields: [psikotesId], references: [id], onDelete: Cascade)
+
+  @@map("soals")
+}
+
+model HasilTes {
+  id         String   @id @default(cuid())
+  userId     String
+  psikotesId String
+  jawaban    String   // JSON: {soalId: jawaban}
+  skor       Int
+  kategori   String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  psikotes Psikotes @relation(fields: [psikotesId], references: [id])
+
+  @@map("hasil_tes")
+}
+
+// =====================================================================
+// EVENT
+// =====================================================================
+model Event {
+  id          String   @id @default(cuid())
+  judul       String
+  slug        String   @unique
+  deskripsi   String
+  tanggal     DateTime
+  lokasi      String?
+  isOnline    Boolean  @default(false)
+  harga       Int      @default(0) // 0 = gratis
+  kapasitas   Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  registrations EventRegistration[]
+
+  @@map("events")
+}
+
+model EventRegistration {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String?
+  namaPeserta String
+  email     String
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@map("event_registrations")
+}
+

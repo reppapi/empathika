@@ -1,0 +1,41 @@
+﻿name: CI Backend
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - 'packages/**'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'packages/**'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: empathika_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter backend lint
+      - run: pnpm --filter backend typecheck
+      - run: pnpm --filter backend prisma:validate
+      - run: pnpm --filter backend test
+

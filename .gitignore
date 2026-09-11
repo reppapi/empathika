@@ -1,0 +1,31 @@
+﻿# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment variables - JANGAN pernah commit .env asli
+.env
+.env.*
+!.env.example
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.tsbuildinfo
