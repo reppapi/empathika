@@ -1,16 +1,19 @@
 import Image from "next/image"
 import Link from "next/link"
-import { PsikologUI } from "@/types/psikolog"
+import { Psikolog, PsikologUI } from "@/types/psikolog"
 import { Card } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 
 interface PsikologCardProps {
-  psikolog: PsikologUI
+  psikolog: Psikolog | PsikologUI
 }
 
 export function PsikologCard({ psikolog }: PsikologCardProps) {
   // Ambil nama spesialisasi dari relasi database Prisma
   const peran = psikolog.spesialisasi?.nama || "Psikolog"
+  const experience = ("experienceYears" in psikolog && psikolog.experienceYears) ? psikolog.experienceYears : "Pengalaman 2+ Thn"
+  const labelJadwal = ("labelJadwal" in psikolog && psikolog.labelJadwal) ? psikolog.labelJadwal : "Jadwal Terdekat"
+  const jadwalList = ("jadwalTersedia" in psikolog && psikolog.jadwalTersedia) ? psikolog.jadwalTersedia : []
 
   return (
     <Link href={`/psikolog/${psikolog.id}`} className="block group h-full">
@@ -40,7 +43,7 @@ export function PsikologCard({ psikolog }: PsikologCardProps) {
             </div>
           </div>
 
-          {/* Spesialisasi pakai komponen Badge mu */}
+          {/* Spesialisasi pakai komponen Badge */}
           <div className="flex flex-wrap gap-1.5 mt-3">
             {psikolog.spesialisasi?.nama && (
               <Badge variant="info">{psikolog.spesialisasi.nama}</Badge>
@@ -59,7 +62,7 @@ export function PsikologCard({ psikolog }: PsikologCardProps) {
               <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2h3a1 1 0 011 1v9a2 2 0 01-2 2H4a2 2 0 01-2-2V7a1 1 0 011-1h3V4zm2 2h8V4H6v2z" />
               </svg>
-              {psikolog.experienceYears}
+              {experience}
             </div>
           </div>
 
@@ -67,20 +70,24 @@ export function PsikologCard({ psikolog }: PsikologCardProps) {
 
           {/* Jadwal Terdekat */}
           <div>
-            <p className="text-sm text-gray-800 mb-3">{psikolog.labelJadwal}</p>
-            <div className="flex flex-wrap gap-2">
-              {psikolog.jadwalTersedia.map((jadwal, idx) => (
-                <span 
-                  key={idx} 
-                  className="bg-gray-100 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700"
-                >
-                  {jadwal.waktu}{" "}
-                  <span className={jadwal.tipe === "online" ? "text-[#007EA7]" : "text-red-600"}>
-                    ({jadwal.tipe})
+            <p className="text-sm text-gray-800 mb-3">{labelJadwal}</p>
+            {jadwalList && jadwalList.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {jadwalList.map((jadwal, idx) => (
+                  <span 
+                    key={idx} 
+                    className="bg-gray-100 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700"
+                  >
+                    {jadwal.waktu}{" "}
+                    <span className={jadwal.tipe === "online" ? "text-[#007EA7]" : "text-red-600"}>
+                      ({jadwal.tipe})
+                    </span>
                   </span>
-                </span>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs text-gray-400 italic">Lihat profil untuk detail jadwal</span>
+            )}
           </div>
         </div>
       </Card>

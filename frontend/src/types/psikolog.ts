@@ -52,9 +52,9 @@ export interface JadwalUI {
   tipe: 'online' | 'offline';
 }
 
-export interface PsikologUI extends Omit<Psikolog, 'jadwal_slot'> {
-  category: KategoriProfesional; // Ditambahkan di UI untuk keperluan filter tab
-  experienceYears: string;       // Contoh: "0 - 2 Tahun" (Belum ada di DB)
-  labelJadwal: string;           // Contoh: "Jadwal Terdekat Besok"
-  jadwalTersedia: JadwalUI[];    // Mapping jadwal untuk card putih
+export interface PsikologUI extends Psikolog {
+  category?: KategoriProfesional; // Opsional agar kompatibel dengan data API Prisma
+  experienceYears?: string;       // Opsional (fallback otomatis jika dari DB)
+  labelJadwal?: string;           // Opsional
+  jadwalTersedia?: JadwalUI[];    // Opsional
 }
