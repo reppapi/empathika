@@ -29,10 +29,10 @@ export class TransaksiService {
     const amount = 150000 // placeholder
 
     const transaksi = await this.repo.create({
-      bookingId: input.bookingId,
-      userId,
-      amount,
-      paymentMethod: input.paymentMethod,
+      id_booking: input.bookingId,
+      id_user: userId,
+      jumlah: amount,
+      metode_pembayaran: input.paymentMethod,
     })
 
     // Inisiasi payment ke payment gateway
