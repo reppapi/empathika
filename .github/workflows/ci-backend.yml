@@ -24,6 +24,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -37,5 +39,9 @@ jobs:
       - run: pnpm --filter backend lint
       - run: pnpm --filter backend typecheck
       - run: pnpm --filter backend prisma:validate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
       - run: pnpm --filter backend test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
 
