@@ -1,10 +1,14 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Poppins } from "next/font/google"
 import "./globals.css"
 import { QueryProvider } from "@/providers/QueryProvider"
 import { AuthProvider } from "@/providers/AuthProvider"
 
-const inter = Inter({ subsets: ["latin"] })
+const poppins = Poppins({ 
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
+})
 
 export const metadata: Metadata = {
   title: "Empathika - Platform Kesehatan Mental",
@@ -18,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body className={inter.className}>
+      <body className={`${poppins.className} ${poppins.variable} antialiased bg-gray-50`}>
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>
         </QueryProvider>
