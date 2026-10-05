@@ -1,4 +1,4 @@
-﻿export default function AdminPsikologPage() {
+export default function AdminPsikologPage() {
   return <div>Admin - psikolog</div>
 }
 

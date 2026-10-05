@@ -1,4 +1,4 @@
-﻿import { z } from "zod"
+import { z } from "zod"
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url("DATABASE_URL harus berupa URL valid"),

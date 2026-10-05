@@ -1,4 +1,4 @@
-﻿import type { PrismaClient } from "@prisma/client"
+import type { PrismaClient } from "@prisma/client"
 import type { RegisterInput } from "./auth.schema"
 
 export class AuthRepository {

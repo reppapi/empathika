@@ -1,4 +1,4 @@
-﻿import fp from "fastify-plugin"
+import fp from "fastify-plugin"
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient({

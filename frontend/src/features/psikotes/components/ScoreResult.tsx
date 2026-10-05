@@ -1,4 +1,4 @@
-﻿interface ScoreResultProps {
+interface ScoreResultProps {
   hasil: {
     skor: number
     kategori: string

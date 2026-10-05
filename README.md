@@ -1,4 +1,4 @@
-﻿# Empathika Web
+# Empathika Web
 
 Website CV Empathika - Platform psikologi untuk konsultasi, psikotes, dan layanan kesehatan mental.
 

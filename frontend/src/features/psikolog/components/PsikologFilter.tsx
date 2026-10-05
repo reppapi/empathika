@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useState } from "react"
 import { Input } from "@/components/ui/Input"

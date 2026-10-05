@@ -1,4 +1,4 @@
-﻿import fp from "fastify-plugin"
+import fp from "fastify-plugin"
 import cors from "@fastify/cors"
 import { env } from "../config/env"
 

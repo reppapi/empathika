@@ -1,4 +1,4 @@
-﻿# Arsitektur Empathika Web
+# Arsitektur Empathika Web
 
 ## Overview
 

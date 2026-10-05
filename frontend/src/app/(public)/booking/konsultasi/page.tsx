@@ -1,3 +1,3 @@
-﻿export default function BookingKonsultasiPage() {
+export default function BookingKonsultasiPage() {
   return <div>Booking Konsultasi</div>
 }

@@ -1,4 +1,4 @@
-﻿import type { Psikotes } from "@/types/psikotes.types"
+import type { Psikotes } from "@/types/psikotes.types"
 
 interface QuestionCardProps {
   question: Psikotes["soal"][0]

@@ -1,4 +1,4 @@
-﻿export function SidebarAdmin() {
+export function SidebarAdmin() {
   return (
     <aside className="w-64 border-r bg-gray-900 text-white min-h-screen p-4">
       <h2 className="mb-6 text-lg font-bold">Admin Panel</h2>

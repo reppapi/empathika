@@ -1,4 +1,4 @@
-﻿import type { FastifyInstance } from "fastify"
+import type { FastifyInstance } from "fastify"
 import { AuthController } from "./auth.controller"
 import { loginSchema, registerSchema } from "./auth.schema"
 import { authGuard } from "../../middlewares/auth-guard"

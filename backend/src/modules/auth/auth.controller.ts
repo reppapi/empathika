@@ -1,4 +1,4 @@
-﻿import type { FastifyRequest, FastifyReply } from "fastify"
+import type { FastifyRequest, FastifyReply } from "fastify"
 import { AuthService } from "./auth.service"
 import type { LoginInput, RegisterInput } from "./auth.schema"
 

@@ -1,4 +1,4 @@
-﻿import bcrypt from "bcrypt"
+import bcrypt from "bcrypt"
 import type { FastifyInstance } from "fastify"
 import { AuthRepository } from "./auth.repository"
 import type { LoginInput, RegisterInput } from "./auth.schema"
