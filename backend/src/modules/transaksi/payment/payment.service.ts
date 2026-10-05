@@ -12,7 +12,7 @@ export const paymentService = {
     // TODO: Implementasi Midtrans/Xendit SDK
     // Return URL redirect ke halaman pembayaran
     console.log('Initiating payment:', input)
-    return https://payment-gateway.example.com/pay/
+    return `https://payment-gateway.example.com/pay/${input.transaksiId}`
   },
 
   verifyWebhookSignature: (payload: unknown, signature: string): boolean => {
