@@ -1,4 +1,4 @@
-﻿import { create } from "zustand"
+import { create } from "zustand"
 
 type BookingStep = "pilih-psikolog" | "pilih-jadwal" | "pilih-metode" | "konfirmasi"
 

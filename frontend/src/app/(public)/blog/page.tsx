@@ -1,3 +1,3 @@
-﻿export default function BlogPage() {
+export default function BlogPage() {
   return <div>Blog Empathika</div>
 }

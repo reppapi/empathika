@@ -1,4 +1,4 @@
-﻿// Pasang @fastify/rate-limit plugin di app.ts kalau dibutuhkan
+// Pasang @fastify/rate-limit plugin di app.ts kalau dibutuhkan
 // Contoh konfigurasi:
 // fastify.register(rateLimit, {
 //   max: 100,

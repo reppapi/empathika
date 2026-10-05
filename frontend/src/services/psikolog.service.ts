@@ -1,4 +1,4 @@
-﻿import apiClient from "@/lib/axios"
+import apiClient from "@/lib/axios"
 import type { Psikolog, PsikologFilter } from "@/types/psikolog.types"
 
 export const psikologService = {

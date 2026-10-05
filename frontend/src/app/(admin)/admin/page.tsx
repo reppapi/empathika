@@ -1,3 +1,3 @@
-﻿export default function AdminDashboardPage() {
+export default function AdminDashboardPage() {
   return <div>Dashboard Admin - Ringkasan</div>
 }

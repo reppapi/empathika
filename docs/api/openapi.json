@@ -1,1 +1,1 @@
-﻿# OpenAPI Spec\n\nFile ini akan di-generate otomatis dari Fastify Swagger.\nJalankan: pnpm --filter backend generate:docs
+# OpenAPI Spec\n\nFile ini akan di-generate otomatis dari Fastify Swagger.\nJalankan: pnpm --filter backend generate:docs

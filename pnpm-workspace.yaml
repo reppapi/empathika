@@ -1,4 +1,11 @@
-﻿packages:
+packages:
   - 'frontend'
   - 'backend'
   - 'packages/*'
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  bcrypt: true
+  esbuild: true
+  prisma: true
+  unrs-resolver: true

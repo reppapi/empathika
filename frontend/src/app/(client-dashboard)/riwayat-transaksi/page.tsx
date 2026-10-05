@@ -1,3 +1,3 @@
-﻿export default function RiwayatTransaksiPage() {
+export default function RiwayatTransaksiPage() {
   return <div>Riwayat Transaksi</div>
 }
