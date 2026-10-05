@@ -1,4 +1,4 @@
-﻿import type { Config } from "tailwindcss"
+import type { Config } from "tailwindcss"
 
 const config: Config = {
   content: [
@@ -12,6 +12,9 @@ const config: Config = {
       colors: {
         primary: "#3B82F6",
         secondary: "#6366F1",
+      },
+      fontFamily: {
+        poppins: ["var(--font-poppins)"],
       },
     },
   },

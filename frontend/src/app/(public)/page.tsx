@@ -1,9 +1,7 @@
-﻿export default function LandingPage() {
+export default function LandingPage() {
   return (
-    <main>
-      <h1>Selamat datang di Empathika</h1>
-      <p>Platform kesehatan mental profesional.</p>
-    </main>
+    <div className="flex min-h-[80vh] items-center justify-center">
+      {/* Konten dikosongkan sesuai permintaan */}
+    </div>
   )
 }
-
