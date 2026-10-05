@@ -1,6 +1,16 @@
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: [],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
   experimental: {
     typedRoutes: true,
@@ -8,4 +18,3 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
-
