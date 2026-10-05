@@ -1,4 +1,4 @@
-﻿// Psikolog types
+// Psikolog types
 export interface Psikolog {
   id: string
   name: string

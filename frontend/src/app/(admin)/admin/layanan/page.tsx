@@ -1,4 +1,4 @@
-﻿export default function AdminLayananPage() {
+export default function AdminLayananPage() {
   return <div>Admin - layanan</div>
 }
 

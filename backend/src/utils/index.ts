@@ -17,5 +17,5 @@ export function paginate(page: number, limit: number) {
 }
 
 export function generateOrderId(): string {
-  return EMP--
+  return `EMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`
 }

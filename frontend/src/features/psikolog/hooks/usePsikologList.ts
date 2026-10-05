@@ -1,4 +1,4 @@
-﻿import { psikologService } from "@/services/psikolog.service"
+import { psikologService } from "@/services/psikolog.service"
 import { useQuery } from "@tanstack/react-query"
 import type { PsikologFilter } from "@/types/psikolog.types"
 

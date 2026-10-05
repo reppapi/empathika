@@ -1,4 +1,4 @@
-﻿// Auth types
+// Auth types
 export interface LoginPayload {
   email: string
   password: string

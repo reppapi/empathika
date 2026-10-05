@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation"
+import { redirect } from "next/navigation"
 
 // TODO: Ganti dengan pengecekan session nyata
 async function checkAdminAuth() {

@@ -1,4 +1,4 @@
-﻿import Fastify from "fastify"
+import Fastify from "fastify"
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod"
 
 // Plugins

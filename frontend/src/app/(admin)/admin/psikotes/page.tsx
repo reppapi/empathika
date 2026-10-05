@@ -1,4 +1,4 @@
-﻿export default function AdminPsikotesPage() {
+export default function AdminPsikotesPage() {
   return <div>Admin - psikotes</div>
 }
 

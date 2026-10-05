@@ -29,12 +29,12 @@ export const mailer = {
     return mailer.send({
       to,
       subject: 'Konfirmasi Booking Konsultasi - Empathika',
-      html: 
+      html: `
         <h2>Booking Dikonfirmasi</h2>
-        <p>Halo ,</p>
-        <p>Booking konsultasi Anda dengan <strong></strong> pada <strong></strong> telah dikonfirmasi.</p>
+        <p>Halo ${data.nama},</p>
+        <p>Booking konsultasi Anda dengan <strong>${data.psikolog}</strong> pada <strong>${data.tanggal}</strong> telah dikonfirmasi.</p>
         <p>Terima kasih telah menggunakan Empathika.</p>
-      ,
+      `,
     })
   },
 }

@@ -1,4 +1,4 @@
-﻿export default function LandingPage() {
+export default function LandingPage() {
   return (
     <main>
       <h1>Selamat datang di Empathika</h1>

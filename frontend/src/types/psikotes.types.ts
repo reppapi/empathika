@@ -1,4 +1,4 @@
-﻿export interface Psikotes {
+export interface Psikotes {
   id: string
   nama: string
   deskripsi: string

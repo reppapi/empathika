@@ -1,4 +1,4 @@
-﻿export default function AdminTransaksiPage() {
+export default function AdminTransaksiPage() {
   return <div>Admin - transaksi</div>
 }
 

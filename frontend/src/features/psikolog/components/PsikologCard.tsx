@@ -1,4 +1,4 @@
-﻿import type { Psikolog } from "@/types/psikolog.types"
+import type { Psikolog } from "@/types/psikolog.types"
 import { Card } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import Link from "next/link"

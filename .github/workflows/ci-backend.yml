@@ -1,4 +1,4 @@
-﻿name: CI Backend
+name: CI Backend
 
 on:
   push:
@@ -24,18 +24,27 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
+      - run: pnpm --filter backend prisma:generate
       - run: pnpm --filter backend lint
       - run: pnpm --filter backend typecheck
       - run: pnpm --filter backend prisma:validate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
       - run: pnpm --filter backend test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
+          JWT_SECRET: test-secret-key-minimum-32-characters-long
+          NODE_ENV: test
 
