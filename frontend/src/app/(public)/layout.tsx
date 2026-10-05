@@ -11,7 +11,7 @@ export default function PublicLayout({
       <Navbar />
       
       {/* Konten halamannya akan muncul di bawah Navbar */}
-      <main className="min-h-screen pt-24">
+      <main className="min-h-screen pt-36 lg:pt-24">
         {children}
       </main>
     </>
