@@ -36,6 +36,7 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install
+      - run: pnpm --filter backend prisma:generate
       - run: pnpm --filter backend lint
       - run: pnpm --filter backend typecheck
       - run: pnpm --filter backend prisma:validate
