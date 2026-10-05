@@ -1,5 +1,13 @@
 import { z } from "zod"
 
+if (typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile()
+  } catch {
+    // Ignore if .env doesn't exist
+  }
+}
+
 const envSchema = z.object({
   DATABASE_URL: z.string().url("DATABASE_URL harus berupa URL valid"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET minimal 32 karakter"),

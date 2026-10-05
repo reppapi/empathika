@@ -1,5 +1,4 @@
 import type { FastifyInstance } from "fastify"
-import "@fastify/sensible"
 import { AuthRepository } from "./auth.repository"
 
 export class AuthService {
