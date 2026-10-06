@@ -21,6 +21,16 @@ export function Navbar() {
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
 
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden"
@@ -31,14 +41,17 @@ export function Navbar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 w-full pt-4 px-4 font-poppins lg:bg-transparent bg-white/90 lg:backdrop-blur-none backdrop-blur-md pb-3 lg:pb-0 lg:pt-6">
+      <header className={`fixed top-0 left-0 right-0 z-[100] w-full px-4 py-4 lg:py-5 font-poppins transition-colors duration-200 ${isScrolled
+        ? "bg-white shadow-md"
+        : "bg-white/90 lg:bg-transparent backdrop-blur-md lg:backdrop-blur-none shadow-none"
+        }`}>
         <div className="mx-auto w-full max-w-[1400px]">
-          
+
           {/* ============================== */}
           {/* TAMPILAN DESKTOP / LAPTOP      */}
           {/* ============================== */}
           <div className="hidden lg:flex items-center justify-center gap-10 xl:gap-14">
-            <Link 
+            <Link
               href="/"
               className="flex items-center gap-3 transition-transform hover:scale-105"
               aria-label="Home"
@@ -56,11 +69,10 @@ export function Navbar() {
                   <Link
                     key={link.name}
                     href={link.path as any}
-                    className={`rounded-full px-5 py-2 text-[14px] font-normal lowercase tracking-wide transition-colors ${
-                      active 
-                        ? "bg-[#763E8B] text-white" 
-                        : "text-white hover:text-gray-200"
-                    }`}
+                    className={`rounded-full px-5 py-2 text-[14px] font-normal lowercase tracking-wide transition-colors ${active
+                      ? "bg-[#763E8B] text-white"
+                      : "text-white hover:text-gray-200"
+                      }`}
                   >
                     {link.name}
                   </Link>
@@ -68,7 +80,7 @@ export function Navbar() {
               })}
             </nav>
 
-            <Link 
+            <Link
               href={"/booking" as any}
               className="flex h-14 shrink-0 items-center justify-center rounded-full bg-[#561269] px-6 text-[14px] font-normal lowercase tracking-wide text-white transition-transform hover:scale-105"
             >
@@ -81,7 +93,7 @@ export function Navbar() {
           {/* ============================== */}
           <div className="flex w-full items-center justify-end lg:hidden">
             {/* Hamburger Button Only */}
-            <button 
+            <button
               onClick={toggleMenu}
               className="relative z-50 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#561269] text-white transition-transform active:scale-95"
               aria-label="Toggle Menu"
@@ -100,23 +112,21 @@ export function Navbar() {
       </header>
 
       {/* Overlay Gelap Sidebar Mobile */}
-      <div 
+      <div
         onClick={() => setIsMobileMenuOpen(false)}
-        className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
-          isMobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className={`fixed inset-0 z-[105] bg-black/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${isMobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
       />
 
       {/* ============================== */}
       {/* SIDEBAR MOBILE (Muncul dari Kiri) */}
       {/* ============================== */}
-      <div 
-        className={`fixed top-0 left-0 z-50 h-full w-[280px] overflow-hidden bg-[#561269] shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+      <div
+        className={`fixed top-0 left-0 z-[110] h-full w-[280px] overflow-hidden bg-[#561269] shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex min-h-full flex-col py-8">
-          
+
           {/* Header Sidebar: Profile & Empathika */}
           <div className="px-6">
             <div className="flex items-center gap-4">
@@ -127,7 +137,7 @@ export function Navbar() {
                 EMPATHIKA
               </span>
             </div>
-            
+
             {/* Garis Pemisah Putih Tipis */}
             <div className="mt-6 h-[1.5px] w-full bg-white/40"></div>
           </div>
@@ -141,11 +151,10 @@ export function Navbar() {
                   key={link.name}
                   href={link.path as any}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${
-                    active 
-                      ? "w-full bg-white/25 text-white shadow-sm" 
-                      : "text-white/90 hover:bg-white/10"
-                  }`}
+                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${active
+                    ? "w-full bg-white/25 text-white shadow-sm"
+                    : "text-white/90 hover:bg-white/10"
+                    }`}
                 >
                   {link.name}
                 </Link>
@@ -163,7 +172,7 @@ export function Navbar() {
               Booking sesi
             </Link>
           </div>
-          
+
         </div>
       </div>
     </>
