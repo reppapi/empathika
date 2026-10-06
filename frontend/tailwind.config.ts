@@ -13,6 +13,9 @@ const config: Config = {
         primary: "#3B82F6",
         secondary: "#6366F1",
       },
+      fontFamily: {
+        poppins: ["var(--font-poppins)"],
+      },
     },
   },
   plugins: [],
