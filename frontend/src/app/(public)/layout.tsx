@@ -7,13 +7,10 @@ export default function PublicLayout({
 }) {
   return (
     <>
-      {/* Navbar melayang yang tadi kita buat */}
       <Navbar />
-      
-      {/* Konten halamannya akan muncul di bawah Navbar */}
-      <main className="min-h-screen pt-36 lg:pt-24">
+      <div className="w-full min-h-screen">
         {children}
-      </main>
+      </div>
     </>
   )
 }

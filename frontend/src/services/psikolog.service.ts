@@ -1,5 +1,5 @@
 import apiClient from "@/lib/axios"
-import type { Psikolog, PsikologFilter } from "@/types/psikolog.types"
+import type { Psikolog, PsikologFilter } from "@/types/psikolog"
 
 export const psikologService = {
   getList: (filter?: PsikologFilter) =>

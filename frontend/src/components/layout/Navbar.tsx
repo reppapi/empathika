@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -6,6 +7,9 @@ import { usePathname } from "next/navigation"
 export function Navbar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Sembunyikan navbar jika sedang di halaman detail psikolog (/psikolog/1, /psikolog/2, dst)
+  const isDetailPsikolog = pathname?.startsWith("/psikolog/") && pathname !== "/psikolog"
 
   const isActive = (path: string) => pathname === path
 
@@ -29,9 +33,14 @@ export function Navbar() {
     }
   }, [isMobileMenuOpen])
 
+  // Jangan render navbar di halaman detail psikolog
+  if (isDetailPsikolog) {
+    return null
+  }
+
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 w-full pt-4 px-4 font-poppins lg:bg-transparent bg-white/90 lg:backdrop-blur-none backdrop-blur-md pb-3 lg:pb-0 lg:pt-6">
+      <header className="fixed top-0 left-0 right-0 z-40 w-full pt-4 px-4 font-poppins bg-transparent pb-3 lg:pb-0 lg:pt-6">
         <div className="mx-auto w-full max-w-[1400px]">
           
           {/* ============================== */}
@@ -49,7 +58,7 @@ export function Navbar() {
               </span>
             </Link>
 
-            <nav className="flex items-center rounded-full bg-[#561269] px-2 py-1.5">
+            <nav className="flex items-center rounded-full bg-[#561269] px-2 py-1.5 shadow-md">
               {navLinks.map((link) => {
                 const active = isActive(link.path)
                 return (
@@ -58,7 +67,7 @@ export function Navbar() {
                     href={link.path as any}
                     className={`rounded-full px-5 py-2 text-[14px] font-normal lowercase tracking-wide transition-colors ${
                       active 
-                        ? "bg-[#763E8B] text-white" 
+                        ? "bg-[#763E8B] text-white font-medium" 
                         : "text-white hover:text-gray-200"
                     }`}
                   >
@@ -70,7 +79,7 @@ export function Navbar() {
 
             <Link 
               href={"/booking" as any}
-              className="flex h-14 shrink-0 items-center justify-center rounded-full bg-[#561269] px-6 text-[14px] font-normal lowercase tracking-wide text-white transition-transform hover:scale-105"
+              className="flex h-14 shrink-0 items-center justify-center rounded-full bg-[#561269] px-6 text-[14px] font-normal lowercase tracking-wide text-white transition-transform hover:scale-105 shadow-md hover:bg-[#430b53]"
             >
               booking sesi
             </Link>
@@ -83,7 +92,7 @@ export function Navbar() {
             {/* Hamburger Button Only */}
             <button 
               onClick={toggleMenu}
-              className="relative z-50 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#561269] text-white transition-transform active:scale-95"
+              className="relative z-50 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#561269] text-white shadow-lg transition-transform active:scale-95"
               aria-label="Toggle Menu"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
@@ -120,15 +129,11 @@ export function Navbar() {
           {/* Header Sidebar: Profile & Empathika */}
           <div className="px-6">
             <div className="flex items-center gap-4">
-              {/* Lingkaran Profil */}
               <div className="h-12 w-12 shrink-0 rounded-full bg-gray-300"></div>
-              {/* Teks EMPATHIKA */}
               <span className="text-[26px] font-extrabold tracking-widest text-white uppercase">
                 EMPATHIKA
               </span>
             </div>
-            
-            {/* Garis Pemisah Putih Tipis */}
             <div className="mt-6 h-[1.5px] w-full bg-white/40"></div>
           </div>
 
@@ -143,7 +148,7 @@ export function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${
                     active 
-                      ? "w-full bg-white/25 text-white shadow-sm" 
+                      ? "w-full bg-white/25 text-white shadow-sm font-semibold" 
                       : "text-white/90 hover:bg-white/10"
                   }`}
                 >
@@ -158,7 +163,7 @@ export function Navbar() {
             <Link
               href={"/booking" as any}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="text-[15px] font-normal text-white hover:text-white/80"
+              className="inline-block w-full text-center bg-white/15 hover:bg-white/25 text-white font-medium py-3 rounded-full text-[15px] transition-colors"
             >
               Booking sesi
             </Link>
