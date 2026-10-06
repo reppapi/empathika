@@ -133,8 +133,8 @@ export default function LandingPage() {
   }
 
   return (
-    // Memberikan padding atas agar konten pas di bawah navbar fixed
-    <div className="w-full font-sans bg-[#f8f9fa] pb-16 lg:pb-24 pt-[72px] lg:pt-[88px]">
+    // Menghilangkan padding atas agar hero banner berada di bawah navbar (overlap) karena navbar transparent
+    <div className="w-full font-sans bg-[#f8f9fa] pb-16 lg:pb-24">
 
       {/* ======================================= */}
       {/* FULL WIDTH HERO CAROUSEL TEXT OVERLAY */}
