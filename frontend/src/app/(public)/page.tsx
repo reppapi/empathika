@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 
 import { useState, useEffect } from 'react'
 
@@ -132,8 +133,8 @@ export default function LandingPage() {
   }
 
   return (
-    // Margin atas ditarik negatif agar hero mentok ke atas di bawah navbar
-    <div className="w-full font-sans bg-[#f8f9fa] pb-16 lg:pb-24 -mt-36 lg:-mt-24">
+    // Memberikan padding atas agar konten pas di bawah navbar fixed
+    <div className="w-full font-sans bg-[#f8f9fa] pb-16 lg:pb-24 pt-[72px] lg:pt-[88px]">
 
       {/* ======================================= */}
       {/* FULL WIDTH HERO CAROUSEL TEXT OVERLAY */}
@@ -278,7 +279,7 @@ export default function LandingPage() {
           {/* Card 1 */}
           <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group">
             <div className="relative h-56 sm:h-auto sm:w-2/5 shrink-0 overflow-hidden">
-              <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Event" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <Image unoptimized src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Event" fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
               <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">Webinar</div>
             </div>
             <div className="p-5 md:p-6 flex flex-col flex-1">
@@ -296,7 +297,7 @@ export default function LandingPage() {
               </div>
 
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0"><img src="https://ui-avatars.com/api/?name=Sarah+M&background=561269&color=fff" alt="Speaker" /></div>
+                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0 relative"><Image unoptimized src="https://ui-avatars.com/api/?name=Sarah+M&background=561269&color=fff" alt="Speaker" fill className="object-cover" /></div>
                 <div className="text-sm">
                   <p className="font-bold text-gray-900">Sarah M., M.Psi</p>
                   <p className="text-xs text-gray-500">Psikolog Klinis</p>
@@ -316,7 +317,7 @@ export default function LandingPage() {
           {/* Card 2 */}
           <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group">
             <div className="relative h-56 sm:h-auto sm:w-2/5 shrink-0 overflow-hidden">
-              <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Event" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <Image unoptimized src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Event" fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
               <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#d97706] shadow-sm uppercase tracking-wider">Workshop</div>
             </div>
             <div className="p-5 md:p-6 flex flex-col flex-1">
@@ -334,7 +335,7 @@ export default function LandingPage() {
               </div>
 
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0"><img src="https://ui-avatars.com/api/?name=Dr+Andi&background=d97706&color=fff" alt="Speaker" /></div>
+                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0 relative"><Image unoptimized src="https://ui-avatars.com/api/?name=Dr+Andi&background=d97706&color=fff" alt="Speaker" fill className="object-cover" /></div>
                 <div className="text-sm">
                   <p className="font-bold text-gray-900">Dr. Andi Pratama</p>
                   <p className="text-xs text-gray-500">Pakar Mindfulness</p>
@@ -500,7 +501,7 @@ export default function LandingPage() {
                 onClick={() => scrollPsyTo(idx)}
               >
                 <div className="relative h-56 md:h-64 w-full overflow-hidden bg-gray-200">
-                  <img src={psy.image} alt={psy.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <Image unoptimized src={psy.image} alt={psy.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
                 </div>
                 <div className={`p-5 md:p-6 flex-1 flex flex-col transition-colors duration-500 border-x border-b border-gray-100/50 rounded-b-3xl ${isActive ? 'bg-[#f8f7f5]' : 'bg-white'}`}>
                   <h3 className="font-bold text-lg md:text-xl text-[#1c352d] mb-1">{psy.name}</h3>

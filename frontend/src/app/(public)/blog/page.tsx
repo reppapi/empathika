@@ -1,3 +1,11 @@
+import BlogListClient from '@/features/blog/components/BlogListClient';
+
+export const metadata = {
+  title: 'Sudut Refleksi – Blog Empathika',
+  description:
+    'Temukan cerita, wawasan, dan perspektif baru seputar kesehatan mental dari para psikolog profesional Empathika.',
+};
+
 export default function BlogPage() {
-  return <div>Blog Empathika</div>
+  return <BlogListClient />;
 }

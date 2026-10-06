@@ -1,0 +1,362 @@
+/* Blog List Styles */
+.blogHero {
+  width: 100%;
+  padding-top: 130px;
+  padding-bottom: 70px;
+  padding-left: 24px;
+  padding-right: 24px;
+  text-align: center;
+  background: linear-gradient(180deg, #8B3A9C 0%, #651877 50%, #400B4D 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.blogHero::before {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.07) 0%, transparent 70%);
+  top: -100px;
+  right: -100px;
+}
+
+.blogHero::after {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+  bottom: -60px;
+  left: -60px;
+}
+
+.heroInner {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.heroTitle {
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 900;
+  color: white;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 18px;
+  line-height: 1.1;
+}
+
+.heroSub {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.75;
+  margin: 0;
+}
+
+.blogBody {
+  background: #f8f5ff;
+  min-height: calc(100vh - 90px);
+  padding: 32px 24px 64px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .blogBody {
+    padding: 20px 12px 48px;
+  }
+}
+
+.searchRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 28px;
+  gap: 12px;
+}
+
+.searchInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1.5px solid #e9e0ff;
+  border-radius: 100px;
+  padding: 9px 18px;
+  flex: 1;
+  max-width: 380px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.searchInputWrap input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #1a0533;
+  flex: 1;
+  font-family: inherit;
+}
+
+.searchInputWrap input::placeholder {
+  color: #c4b5fd;
+}
+
+.searchBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.searchBtn:hover {
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.blogCardLink {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+}
+
+.blogCard {
+  display: flex;
+  width: 100%;
+  background: white;
+  border-radius: 0px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #651877;
+  transition: all 0.2s ease;
+}
+
+.blogCard:hover {
+  box-shadow: 0 6px 18px rgba(101, 24, 119, 0.08);
+  border-left-color: #8B3A9C;
+  border-color: #d1d5db;
+}
+
+.blogCardImg {
+  width: 240px;
+  min-height: 200px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+@media (max-width: 640px) {
+  .blogCard {
+    flex-direction: column;
+  }
+  .blogCardImg {
+    width: 100%;
+    height: 180px;
+    min-height: unset;
+  }
+}
+
+.cardImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.blogCard:hover .cardImg {
+  transform: scale(1.03);
+}
+
+.blogCardBody {
+  flex: 1;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cardAuthor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.categoryBadge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #651877;
+  background: #fbf5fc;
+  border: 1px solid #edd7f3;
+  padding: 3px 10px;
+  border-radius: 2px;
+}
+
+.authorAv {
+  width: 38px;
+  height: 38px;
+  border-radius: 0px;
+  background: linear-gradient(135deg, #8B3A9C, #561269);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  color: white;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.authorName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a0533;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.authorDate {
+  font-size: 12px;
+  color: #a09abd;
+  margin: 0;
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #12002a;
+  line-height: 1.35;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardExcerpt {
+  font-size: 13.5px;
+  color: #6b5b8d;
+  line-height: 1.7;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid #f5f0fb;
+  margin-top: auto;
+}
+
+.cardViews {
+  font-size: 12.5px;
+  color: #a09abd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.readTimeText {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-left: auto;
+  margin-right: 14px;
+}
+
+.cardLikeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #d8c8f0;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.15s, transform 0.15s;
+  line-height: 1;
+}
+
+.cardLikeBtn:hover {
+  color: #ec4899;
+  transform: scale(1.15);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 40px;
+}
+
+.pgBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid #ede9fe;
+  background: white;
+  color: #7c3aed;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.pgBtn:hover:not(:disabled):not(.active) {
+  background: #f5f0fb;
+  border-color: #c4b5fd;
+}
+
+.pgBtn.active {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: white;
+  box-shadow: 0 3px 12px rgba(124, 58, 237, 0.3);
+}
+
+.pgBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #a09abd;
+}
+
+.emptyState p {
+  margin: 12px 0 0;
+  font-size: 15px;
+}
