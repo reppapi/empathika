@@ -18,6 +18,7 @@ export function PsikologFilter({
     { label: "Semua", value: "semua" },
     { label: "Psikolog", value: "psikolog" },
     { label: "Konselor", value: "konselor" },
+    { label: "Peer Konselor", value: "peer-konselor" },
   ]
 
   return (
