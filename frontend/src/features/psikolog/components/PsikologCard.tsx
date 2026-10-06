@@ -31,7 +31,7 @@ export function PsikologCard({ psikolog, mode = "psikolog" }: PsikologCardProps)
   const initial = psikolog.nama_gelar ? psikolog.nama_gelar.charAt(0) : "P"
 
   const buttonText = mode === "konseling" ? "Daftar" : "Lihat Detail"
-  const buttonHref = mode === "konseling" ? `/booking?psikologId=${psikolog.id}` : `/psikolog/${psikolog.id}`
+  const buttonHref = `/psikolog/${psikolog.id}`
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_rgba(86,18,105,0.12)] transition-all duration-300 group hover:-translate-y-1 h-full justify-between">
