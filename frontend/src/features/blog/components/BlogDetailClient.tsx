@@ -47,15 +47,6 @@ export default function BlogDetailClient({ slug }: Props) {
     .map((w) => w[0])
     .join('');
 
-  const emojiMap: Record<string, string> = {
-    'Pemahaman Diri': '🪞',
-    'Kesehatan Mental': '🧘',
-    'Pemuda & Identitas': '🌱',
-    'Praktik Sehari-hari': '☀️',
-    'Hubungan': '💞',
-  };
-  const recentEmoji = (cat?: string) => emojiMap[cat ?? ''] ?? '🖼️';
-
   return (
     <div className={styles.detailPage}>
       <div className={styles.detailCol}>
@@ -74,8 +65,6 @@ export default function BlogDetailClient({ slug }: Props) {
               <strong>{post.author.name}</strong>
               {' · '}
               {post.date}
-              {' · '}
-              {post.readTime}
             </span>
           </div>
 
@@ -83,11 +72,15 @@ export default function BlogDetailClient({ slug }: Props) {
           <h1 className={styles.articleTitle}>{post.title}</h1>
 
           {/* Image */}
-          <div className={styles.articleImg}>
-            <div className={styles.articleImgIcon}>
-              {recentEmoji(post.category)}
+          {post.imageUrl && (
+            <div className={styles.articleImg}>
+              <img
+                src={post.imageUrl}
+                alt={post.title}
+                className={styles.articleCoverImg}
+              />
             </div>
-          </div>
+          )}
 
           {/* Body */}
           <div className={styles.articleBody}>
@@ -140,9 +133,11 @@ export default function BlogDetailClient({ slug }: Props) {
           <div className={styles.recentGrid}>
             {recentPosts.map((p) => (
               <Link key={p.slug} href={`/blog/${p.slug}`} className={styles.recentCard}>
-                <div className={styles.recentCardImg}>
-                  {recentEmoji(p.category)}
-                </div>
+                {p.imageUrl && (
+                  <div className={styles.recentCardImg}>
+                    <img src={p.imageUrl} alt={p.title} className={styles.recentThumb} />
+                  </div>
+                )}
                 <div className={styles.recentCardBody}>
                   <p className={styles.recentCardTitle}>{p.title}</p>
                   <div className={styles.recentCardMeta}>

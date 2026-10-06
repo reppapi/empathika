@@ -82,22 +82,19 @@ export default function BlogListClient() {
                 .map((w) => w[0])
                 .join('');
 
-              const emojiMap: Record<string, string> = {
-                'Pemahaman Diri': '🪞',
-                'Kesehatan Mental': '🧘',
-                'Pemuda & Identitas': '🌱',
-                'Praktik Sehari-hari': '☀️',
-                'Hubungan': '💞',
-              };
-              const emoji = emojiMap[post.category ?? ''] ?? '🖼️';
-
               return (
                 <Link key={post.slug} href={`/blog/${post.slug}`} className={styles.blogCardLink}>
                   <div className={styles.blogCard}>
-                    {/* Image */}
-                    <div className={styles.blogCardImg}>
-                      <div className={styles.imgFrame}>{emoji}</div>
-                    </div>
+                    {/* Real Article Photo (No Emoji) */}
+                    {post.imageUrl && (
+                      <div className={styles.blogCardImg}>
+                        <img
+                          src={post.imageUrl}
+                          alt={post.title}
+                          className={styles.cardImg}
+                        />
+                      </div>
+                    )}
 
                     {/* Text */}
                     <div className={styles.blogCardBody}>
@@ -107,6 +104,9 @@ export default function BlogListClient() {
                           <p className={styles.authorName}>{post.author.name}</p>
                           <p className={styles.authorDate}>{post.date}</p>
                         </div>
+                        {post.category && (
+                          <span className={styles.categoryBadge}>{post.category}</span>
+                        )}
                       </div>
 
                       <h2 className={styles.cardTitle}>{post.title}</h2>
@@ -118,7 +118,7 @@ export default function BlogListClient() {
                           {post.views} Tampilan
                         </span>
                         <button className={styles.cardLikeBtn} aria-label="Suka">
-                          <Heart size={20} />
+                          <Heart size={18} />
                         </button>
                       </div>
                     </div>
