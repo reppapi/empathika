@@ -57,4 +57,9 @@ export interface PsikologUI extends Psikolog {
   experienceYears?: string;       // Opsional (fallback otomatis jika dari DB)
   labelJadwal?: string;           // Opsional
   jadwalTersedia?: JadwalUI[];    // Opsional
+  quote?: string;                 // Quote / Prinsip / Fun fact tentang diri
+  instagram?: string;             // Username instagram
+  jenisKelamin?: string;          // Jenis kelamin
+  pendidikanText?: string;        // Institusi pendidikan
+  keahlian?: string[];            // Area keahlian / fokus topik konseling
 }

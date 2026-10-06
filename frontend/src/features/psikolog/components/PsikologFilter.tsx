@@ -21,9 +21,9 @@ export function PsikologFilter({
   ]
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-white/60 backdrop-blur-sm p-3 sm:p-4 rounded-2xl border border-gray-100 shadow-sm">
       {/* Tab Filter Kategori */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {categories.map((cat) => {
           const isActive = kategoriAktif === cat.value
           return (
@@ -31,10 +31,10 @@ export function PsikologFilter({
               key={cat.value}
               type="button"
               onClick={() => onKategoriChange(cat.value)}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 isActive
-                  ? "bg-[#561269] text-white shadow-sm"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-[#561269] text-white shadow-sm ring-2 ring-[#561269]/20"
+                  : "bg-gray-100/90 text-gray-700 hover:bg-gray-200"
               }`}
             >
               {cat.label}
@@ -44,11 +44,12 @@ export function PsikologFilter({
       </div>
 
       {/* Input Search */}
-      <div className="w-full sm:w-72">
+      <div className="w-full md:w-80 lg:w-96">
         <Input
-          placeholder="Cari psikolog atau spesialisasi..."
+          placeholder="Cari nama psikolog, spesialisasi..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
+          className="w-full text-sm"
         />
       </div>
     </div>
