@@ -2,6 +2,10 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
+import { DATA_PSIKOLOG_DUMMY } from "@/features/psikolog/dummy"
+import { Card } from "@/components/ui/Card"
+import { Badge } from "@/components/ui/Badge"
 
 const DAFTAR_HARGA = [
   {
@@ -27,23 +31,7 @@ const DAFTAR_HARGA = [
   },
 ]
 
-const ALL_PROFESSIONALS = [
-  ...Array(6).fill({
-    name: "Nama, M.Psi.,\nPsikolog",
-    sessions: "99+ sesi",
-    role: "Psikolog"
-  }),
-  ...Array(3).fill({
-    name: "Nama, M.Psi.,\nKonselor", 
-    sessions: "99+ sesi",
-    role: "Konselor"
-  }),
-  ...Array(3).fill({
-    name: "Nama,\nPeer Konselor", 
-    sessions: "50+ sesi",
-    role: "Peer Konselor"
-  })
-]
+
 
 export default function BookingPage() {
   const [openAccordion, setOpenAccordion] = useState<string | null>("konselor")
@@ -51,8 +39,13 @@ export default function BookingPage() {
 
   const filters = ["Psikolog", "Konselor", "Peer Konselor"]
 
-  const filteredProfessionals = ALL_PROFESSIONALS.filter(
-    (p) => p.role === activeFilter
+  const filteredProfessionals = DATA_PSIKOLOG_DUMMY.filter(
+    (p) => {
+      if (activeFilter === "Psikolog") return p.category === "psikolog";
+      if (activeFilter === "Konselor") return p.category === "konselor" && p.tarif_per_jam > 100000;
+      if (activeFilter === "Peer Konselor") return p.category === "konselor" && p.tarif_per_jam <= 100000;
+      return true;
+    }
   )
 
   const toggleAccordion = (id: string) => {
@@ -154,7 +147,7 @@ export default function BookingPage() {
         </div>
 
         {/* Dynamic Grid Professionals */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 min-h-[400px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 min-h-[400px]">
           {filteredProfessionals.map((doc, i) => (
             <DoctorCard key={i} doctor={doc} />
           ))}
@@ -166,28 +159,125 @@ export default function BookingPage() {
 }
 
 function DoctorCard({ doctor }: { doctor: any }) {
+  const peran = doctor.spesialisasi?.nama || (doctor.category === "konselor" ? "Konselor" : "Psikolog")
+  const labelJadwal = doctor.labelJadwal || "Jadwal Terdekat"
+  const jadwalList = doctor.jadwalTersedia || []
+  const keahlianList = doctor.keahlian || []
+  const initial = doctor.nama_gelar ? doctor.nama_gelar.charAt(0) : "P"
+
   return (
-    <div className="flex flex-col items-center bg-[#F9F4FA] rounded-[2rem] p-8 pb-6 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-md transition-shadow border border-[#f0e6f2]">
-      {/* Avatar Placeholder */}
-      <div className="h-[90px] w-[90px] rounded-full bg-[#D5BCE1] mb-5"></div>
-      
-      {/* Pill */}
-      <div className="bg-[#FCE163] text-black px-4 py-1 rounded-full text-[10px] font-bold mb-4 shadow-sm">
-        {doctor.sessions}
+    <Card className="p-5 sm:p-6 shadow-sm hover:shadow-xl hover:border-purple-200 transition-all duration-300 h-full flex flex-col justify-between border-gray-100 bg-white rounded-3xl group">
+      <div>
+        {/* Header Profil (Foto & Info Utama) */}
+        <div className="flex gap-4 items-start">
+          <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden shrink-0 border border-purple-100 bg-purple-50 shadow-sm">
+            {doctor.foto ? (
+              <Image 
+                src={doctor.foto} 
+                alt={doctor.nama_gelar} 
+                fill 
+                sizes="72px"
+                className="object-cover group-hover:scale-105 transition-transform duration-300" 
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#8B3A9C] to-[#561269] text-white flex items-center justify-center font-bold text-2xl select-none">
+                {initial}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-[#007EA7] text-xs sm:text-sm font-semibold tracking-wide uppercase truncate">
+              {peran}
+            </p>
+            <h3 className="text-gray-900 font-bold text-base sm:text-lg leading-snug group-hover:text-[#6B2FA0] transition-colors line-clamp-2">
+              {doctor.nama_gelar}
+            </h3>
+          </div>
+        </div>
+
+        {/* Spesialisasi & Pendidikan Badge */}
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {doctor.spesialisasi?.nama && (
+            <Badge variant="info" className="text-xs font-medium">
+              {doctor.spesialisasi.nama}
+            </Badge>
+          )}
+          {doctor.pendidikanText && (
+            <span className="inline-block px-2.5 py-0.5 text-[11px] font-medium text-purple-900 bg-purple-50 rounded-full border border-purple-100 truncate max-w-[210px]">
+              {doctor.pendidikanText}
+            </span>
+          )}
+        </div>
+
+        {/* Area Keahlian / Bidang */}
+        {keahlianList.length > 0 && (
+          <div className="mt-3.5 space-y-1.5">
+            <p className="text-[11px] font-bold text-[#561269] uppercase tracking-wider">
+              Fokus Keahlian
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {keahlianList.slice(0, 4).map((item: string, idx: number) => (
+                <span
+                  key={idx}
+                  className="inline-block bg-[#FAF5FD] hover:bg-[#F3E8FC] text-[#561269] text-xs font-medium px-2.5 py-1 rounded-lg border border-purple-100 transition-colors"
+                >
+                  {item}
+                </span>
+              ))}
+              {keahlianList.length > 4 && (
+                <span className="inline-block bg-gray-50 text-gray-500 text-xs font-medium px-2 py-1 rounded-lg border border-gray-100">
+                  +{keahlianList.length - 4} lainnya
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Sesi */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-4 text-xs sm:text-sm font-medium text-gray-700">
+          <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-lg">
+            <svg className="w-4 h-4 text-[#561269]" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+            </svg>
+            <span>{doctor.jumlah_sesi}+ Sesi</span>
+          </div>
+        </div>
+
+        <hr className="my-4 border-gray-100" />
+
+        {/* Jadwal Terdekat */}
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{labelJadwal}</p>
+          {jadwalList.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {jadwalList.map((jadwal: any, idx: number) => (
+                <span 
+                  key={idx} 
+                  className="bg-purple-50/70 border border-purple-100/60 px-2.5 py-1 rounded-full text-xs font-medium text-gray-700"
+                >
+                  {jadwal.waktu}{" "}
+                  <span className={jadwal.tipe === "online" ? "text-[#007EA7] font-semibold" : "text-rose-600 font-semibold"}>
+                    ({jadwal.tipe})
+                  </span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 italic">Jadwal belum tersedia</span>
+          )}
+        </div>
       </div>
-      
-      {/* Name */}
-      <div className="text-center text-[12px] font-bold text-black whitespace-pre-line mb-6 h-8 leading-relaxed">
-        {doctor.name}
+
+      {/* Footer Card: Aksi */}
+      <div className="mt-5 pt-4 border-t border-gray-100">
+        <Link 
+          href={`/psikolog/${doctor.id}`}
+          className="block w-full text-center bg-[#EAB308] text-black hover:bg-[#CA9A06] transition-colors px-6 py-2.5 rounded-full text-xs font-bold shadow-sm"
+        >
+          Daftar
+        </Link>
       </div>
-      
-      {/* Button */}
-      <Link 
-        href="/konseling/jadwal"
-        className="bg-[#FCE163] text-black hover:bg-[#FACC15] transition-colors px-8 py-1.5 rounded-full text-[11px] font-bold shadow-sm"
-      >
-        Daftar
-      </Link>
-    </div>
+    </Card>
   )
 }
