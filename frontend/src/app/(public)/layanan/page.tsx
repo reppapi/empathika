@@ -29,17 +29,26 @@ const KONSULTASI_SERVICES = [
   },
 ]
 
+// Mapping data layanan ke masing-masing kategori
+const SERVICES_DATA: Record<string, { title: string; description: string }[]> = {
+  "01": [], // Data Psikotes (tambahkan di sini)
+  "02": KONSULTASI_SERVICES,
+  "03": [], // Data Pelatihan (tambahkan di sini)
+  "04": [], // Data Event (tambahkan di sini)
+  "05": [], // Data Asesmen (tambahkan di sini)
+}
+
 export default function LayananPage() {
   const [activeCategory, setActiveCategory] = useState("02") // Default ke Konsultasi sesuai gambar
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-6 py-4 lg:h-[calc(100vh-6rem)] font-poppins overflow-hidden">
+    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[104px] lg:pb-8 lg:h-screen font-poppins overflow-hidden">
       
       {/* Container utama (Terbatas 1 layar) */}
       <div className="flex h-full flex-col gap-8 lg:flex-row lg:gap-16 items-start">
         
         {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL) */}
-        <div className="flex shrink-0 flex-col gap-4 lg:w-1/3 lg:gap-6">
+        <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.id
             return (
@@ -87,9 +96,9 @@ export default function LayananPage() {
             {/* Area Konten Scrollable */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
               {/* Grid Layanan Kecil */}
-              {activeCategory === "02" ? (
+              {SERVICES_DATA[activeCategory]?.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 pb-4">
-                  {KONSULTASI_SERVICES.map((service, idx) => (
+                  {SERVICES_DATA[activeCategory].map((service, idx) => (
                     <div 
                       key={idx}
                       className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
