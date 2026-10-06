@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 
 const CATEGORIES = [
   { id: "01", title: "Psikotes" },
@@ -43,10 +44,10 @@ export default function LayananPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[104px] lg:pb-8 lg:h-screen font-poppins overflow-hidden">
-      
+
       {/* Container utama (Terbatas 1 layar) */}
       <div className="flex h-full flex-col gap-8 lg:flex-row lg:gap-16 items-start">
-        
+
         {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL) */}
         <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5">
           {CATEGORIES.map((cat) => {
@@ -57,19 +58,17 @@ export default function LayananPage() {
                 onClick={() => setActiveCategory(cat.id)}
                 className="group flex flex-col items-start text-left transition-all"
               >
-                <span 
-                  className={`font-bold transition-all duration-300 ease-out ${
-                    isActive ? "text-[28px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
-                  }`}
+                <span
+                  className={`font-bold transition-all duration-300 ease-out ${isActive ? "text-[28px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
+                    }`}
                 >
                   {cat.id}
                 </span>
-                <span 
-                  className={`transition-all duration-300 ease-out ${
-                    isActive 
-                      ? "text-[34px] font-bold text-[#561269]" 
+                <span
+                  className={`transition-all duration-300 ease-out ${isActive
+                      ? "text-[34px] font-bold text-[#561269]"
                       : "text-[24px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
-                  }`}
+                    }`}
                 >
                   {cat.title}
                 </span>
@@ -82,7 +81,7 @@ export default function LayananPage() {
         <div className="flex h-full flex-1 w-full flex-col overflow-hidden">
           {/* Card Utama */}
           <div className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            
+
             {/* Header Card Utama */}
             <div className="mb-6 shrink-0">
               <h2 className="text-2xl font-bold text-[#561269] sm:text-3xl">
@@ -99,7 +98,7 @@ export default function LayananPage() {
               {SERVICES_DATA[activeCategory]?.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 pb-4">
                   {SERVICES_DATA[activeCategory].map((service, idx) => (
-                    <div 
+                    <div
                       key={idx}
                       className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
                     >
@@ -107,7 +106,7 @@ export default function LayananPage() {
                       <div className="h-40 w-full bg-gray-300 sm:h-44 p-4">
                         <div className="h-full w-full bg-gray-300"></div>
                       </div>
-                      
+
                       {/* Konten Text */}
                       <div className="flex flex-1 flex-col p-5">
                         <h3 className="mb-2 text-[15px] font-bold leading-snug text-black">
@@ -116,14 +115,18 @@ export default function LayananPage() {
                         <p className="mb-6 text-[11px] leading-relaxed text-gray-700">
                           {service.description}
                         </p>
-                        
+
                         {/* Tombol Kuning di bawah */}
                         <div className="mt-auto flex justify-center">
-                          <button className="flex h-8 w-3/4 items-center justify-center rounded-full bg-[#EAB308] text-white transition-transform hover:scale-105">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4">
+                          <Link
+                            href="/booking"
+                            className="flex h-9 w-[85%] items-center justify-center gap-3 rounded-full bg-[#EAB308] px-4 transition-transform hover:scale-105"
+                          >
+                            <span className="text-[12px] font-medium text-black">Booking Sesi</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-3.5 w-3.5 text-black">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                             </svg>
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     </div>

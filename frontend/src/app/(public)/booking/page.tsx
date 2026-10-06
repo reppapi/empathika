@@ -41,8 +41,8 @@ export default function BookingPage() {
   const filteredProfessionals = DATA_PSIKOLOG_DUMMY.filter(
     (p) => {
       if (activeFilter === "Psikolog") return p.category === "psikolog";
-      if (activeFilter === "Konselor") return p.category === "konselor" && p.tarif_per_jam > 100000;
-      if (activeFilter === "Peer Konselor") return p.category === "konselor" && p.tarif_per_jam <= 100000;
+      if (activeFilter === "Konselor") return p.category === "konselor";
+      if (activeFilter === "Peer Konselor") return p.category === "peer-konselor";
       return true;
     }
   )
