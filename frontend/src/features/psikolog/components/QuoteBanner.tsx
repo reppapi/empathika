@@ -1,27 +1,30 @@
 export function QuoteBanner() {
   return (
-    <div className="relative my-14 md:my-20 max-w-4xl mx-auto px-4">
-      {/* Top-Left Large Quote Icon */}
-      <span className="absolute -top-6 left-1 md:left-0 text-5xl md:text-6xl text-[#400B4D] font-serif select-none z-10 leading-none">
+    <div className="relative my-14 sm:my-20 w-full max-w-5xl mx-auto px-4 sm:px-6">
+      {/* Top-Left Quote Icon */}
+      <span className="absolute -top-6 sm:-top-8 left-2 sm:left-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none">
         “
       </span>
 
-      {/* Purple Banner Container */}
-      <div className="bg-[#8E44AD] text-white rounded-3xl p-6 md:p-8 shadow-md flex flex-col sm:flex-row items-center justify-center gap-6 relative">
-        <div className="text-xl md:text-2xl font-black tracking-widest uppercase">
-          TEXTTEXT
+      {/* Banner Container */}
+      <div className="bg-gradient-to-r from-[#8E44AD] via-[#7D3C98] to-[#6C3483] text-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        {/* Subtle Background Glow */}
+        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-wide uppercase text-center md:text-left shrink-0">
+          Ruang Cerita & Pendengar
         </div>
         
-        {/* Divider Line */}
-        <div className="hidden sm:block h-10 w-[1.5px] bg-white/50" />
+        {/* Divider Line on Desktop */}
+        <div className="hidden md:block h-12 w-[1.5px] bg-white/30" />
 
-        <div className="text-sm md:text-base text-white/90 font-medium text-center sm:text-left">
-          texttext
+        <div className="text-sm sm:text-base md:text-lg text-white/95 font-medium text-center md:text-left leading-relaxed flex-1">
+          Tidak perlu menghadapi semuanya sendirian. Langkah kecil untuk bercerita adalah awal dari pemulihan.
         </div>
       </div>
 
-      {/* Bottom-Right Large Quote Icon */}
-      <span className="absolute -bottom-8 right-1 md:right-0 text-5xl md:text-6xl text-[#400B4D] font-serif select-none z-10 leading-none">
+      {/* Bottom-Right Quote Icon */}
+      <span className="absolute -bottom-8 sm:-bottom-10 right-2 sm:right-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none">
         ”
       </span>
     </div>
