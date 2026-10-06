@@ -32,16 +32,11 @@ export default function PsikologPage() {
           onKategoriChange={setKategoriAktif}
         />
 
-        {/* List Psikolog Cards:
-            - Mobile: 1 kolom
-            - Tablet / Split Screen (50% layar laptop): 2 kolom
-            - Desktop standar (1024px+): 3 kolom
-            - Layar lebar / Fullscreen (1400px+): 4 kolom
-        */}
+        {/* List Psikolog Cards */}
         {dataTerfilter.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
             {dataTerfilter.map((psikolog) => (
-              <PsikologCard key={psikolog.id} psikolog={psikolog} />
+              <PsikologCard key={psikolog.id} psikolog={psikolog} mode="psikolog" />
             ))}
           </div>
         ) : (

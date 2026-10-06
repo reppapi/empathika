@@ -45,7 +45,7 @@ export interface PsikologFilter {
 // ==========================================
 // 2. TIPE KHUSUS UNTUK KEBUTUHAN UI FRONTEND
 // ==========================================
-export type KategoriProfesional = 'semua' | 'psikolog' | 'konselor';
+export type KategoriProfesional = 'semua' | 'psikolog' | 'konselor' | 'peer-konselor';
 
 // Karena DB tidak menyimpan info online/offline pada jadwal, kita buat struktur UI
 export interface JadwalUI {
