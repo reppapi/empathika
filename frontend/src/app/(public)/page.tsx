@@ -360,7 +360,7 @@ export default function LandingPage() {
       {/* ======================================= */}
       {/* OUR SERVICES SECTION */}
       {/* ======================================= */}
-      <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32 pb-10 lg:pb-12">
+      <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32 pb-24 lg:pb-32">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Jelajahi Layanan Kami</h2>
