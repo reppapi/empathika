@@ -20,7 +20,7 @@ export const BLOG_POSTS: BlogPost[] = [
     readTime: '4 menit baca',
     views: 1240,
     likes: 85,
-    imageUrl: undefined,
+    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=800',
   },
   {
     slug: 'burnout-vs-stres',
@@ -41,7 +41,7 @@ export const BLOG_POSTS: BlogPost[] = [
     readTime: '5 menit baca',
     views: 890,
     likes: 62,
-    imageUrl: undefined,
+    imageUrl: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&q=80&w=800',
   },
   {
     slug: 'quarter-life-crisis',
@@ -62,7 +62,7 @@ export const BLOG_POSTS: BlogPost[] = [
     readTime: '6 menit baca',
     views: 2150,
     likes: 140,
-    imageUrl: undefined,
+    imageUrl: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=800',
   },
   {
     slug: 'mindfulness-101',
@@ -83,7 +83,7 @@ export const BLOG_POSTS: BlogPost[] = [
     readTime: '3 menit baca',
     views: 670,
     likes: 45,
-    imageUrl: undefined,
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=800',
   },
   {
     slug: 'toxic-relationship',
@@ -104,7 +104,7 @@ export const BLOG_POSTS: BlogPost[] = [
     readTime: '5 menit baca',
     views: 3100,
     likes: 210,
-    imageUrl: undefined,
+    imageUrl: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&q=80&w=800',
   },
   {
     slug: 'tidur-berkualitas-mental-sehat',
@@ -125,7 +125,7 @@ export const BLOG_POSTS: BlogPost[] = [
     readTime: '4 menit baca',
     views: 1580,
     likes: 98,
-    imageUrl: undefined,
+    imageUrl: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&q=80&w=800',
   },
 ];
 

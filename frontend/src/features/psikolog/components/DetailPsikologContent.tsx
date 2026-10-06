@@ -78,9 +78,27 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                 {psikolog.nama_gelar}
               </h2>
               
-              <p className="text-gray-700 text-sm sm:text-base font-normal">
-                Jumlah sesi terlaksana : <span className="font-semibold text-gray-900">{psikolog.jumlah_sesi}+ Sesi</span>
-              </p>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-600">
+                <p>
+                  Jumlah sesi: <span className="font-semibold text-gray-900">{psikolog.jumlah_sesi}+ Sesi</span>
+                </p>
+                {psikolog.no_str && (
+                  <>
+                    <span className="hidden sm:inline text-gray-300">•</span>
+                    <p>
+                      No. STR: <span className="font-semibold text-[#561269] font-mono">{psikolog.no_str}</span>
+                    </p>
+                  </>
+                )}
+                {psikolog.no_sipp && (
+                  <>
+                    <span className="hidden sm:inline text-gray-300">•</span>
+                    <p>
+                      No. SIPP: <span className="font-semibold text-[#561269] font-mono">{psikolog.no_sipp}</span>
+                    </p>
+                  </>
+                )}
+              </div>
 
               {/* Quote / Prinsip Singkat Diri */}
               {psikolog.quote && (
@@ -170,14 +188,24 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
             )}
           </div>
 
-          {/* Pendidikan */}
-          {psikolog.pendidikan && psikolog.pendidikan.length > 0 && (
-            <div className="pt-2">
+          {/* Pendidikan & Lisensi */}
+          <div className="pt-2 space-y-2">
+            {psikolog.pendidikan && psikolog.pendidikan.length > 0 && (
               <p className="text-sm sm:text-base text-gray-600 font-semibold">
                 Pendidikan / Institusi: <span className="font-normal text-gray-800">{psikolog.pendidikan.join(', ')}</span>
               </p>
-            </div>
-          )}
+            )}
+            {(psikolog.no_str || psikolog.no_sipp) && (
+              <p className="text-sm sm:text-base text-gray-600 font-semibold">
+                Izin Praktik & STR:{' '}
+                <span className="font-normal text-gray-800">
+                  {psikolog.no_str && `STR: ${psikolog.no_str}`}
+                  {psikolog.no_str && psikolog.no_sipp && ' | '}
+                  {psikolog.no_sipp && `SIPP: ${psikolog.no_sipp}`}
+                </span>
+              </p>
+            )}
+          </div>
         </section>
 
         {/* 4. KEAHLIAN PSIKOLOG (Area of Expertise) */}

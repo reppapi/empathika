@@ -7,11 +7,24 @@ import { usePathname } from "next/navigation"
 export function Navbar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
 
   // Sembunyikan navbar jika sedang di halaman detail psikolog (/psikolog/1, /psikolog/2, dst)
   const isDetailPsikolog = pathname?.startsWith("/psikolog/") && pathname !== "/psikolog"
 
   const isActive = (path: string) => pathname === path
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true)
+      } else {
+        setIsScrolled(false)
+      }
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   const navLinks = [
     { name: "home", path: "/" },
@@ -40,7 +53,13 @@ export function Navbar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 w-full pt-4 px-4 font-poppins bg-transparent pb-3 lg:pb-0 lg:pt-6">
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 w-full px-4 font-poppins transition-all duration-300 ${
+          isScrolled
+            ? "bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 py-3 lg:py-3.5"
+            : "bg-transparent backdrop-blur-[2px] py-4 lg:py-6"
+        }`}
+      >
         <div className="mx-auto w-full max-w-[1400px]">
           
           {/* ============================== */}

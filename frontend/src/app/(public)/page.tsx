@@ -133,8 +133,8 @@ export default function LandingPage() {
   }
 
   return (
-    // Margin atas ditarik negatif agar hero mentok ke atas di bawah navbar
-    <div className="w-full font-sans bg-[#f8f9fa] pb-16 lg:pb-24 -mt-36 lg:-mt-24">
+    // Memberikan padding atas agar konten pas di bawah navbar fixed
+    <div className="w-full font-sans bg-[#f8f9fa] pb-16 lg:pb-24 pt-[72px] lg:pt-[88px]">
 
       {/* ======================================= */}
       {/* FULL WIDTH HERO CAROUSEL TEXT OVERLAY */}
