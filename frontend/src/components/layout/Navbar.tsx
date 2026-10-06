@@ -12,7 +12,10 @@ export function Navbar() {
   // Sembunyikan navbar jika sedang di halaman detail psikolog (/psikolog/1, /psikolog/2, dst)
   const isDetailPsikolog = pathname?.startsWith("/psikolog/") && pathname !== "/psikolog"
 
-  const isActive = (path: string) => pathname === path
+  const isActive = (path: string) => {
+    if (path === "/konseling" && pathname === "/booking") return true
+    return pathname === path
+  }
 
   useEffect(() => {
     const handleScroll = () => {
