@@ -135,12 +135,8 @@ export function PsikologCard({ psikolog }: PsikologCardProps) {
           </div>
         </div>
 
-        {/* Footer Card: Tarif & Aksi */}
-        <div className="mt-5 pt-3 border-t border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] text-gray-400">Mulai dari</p>
-            <p className="text-sm sm:text-base font-bold text-[#561269]">{formattedTarif} <span className="text-[11px] font-normal text-gray-500">/ jam</span></p>
-          </div>
+        {/* Footer Card: Aksi */}
+        <div className="mt-5 pt-3 border-t border-gray-100 flex items-center justify-end">
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#561269] group-hover:translate-x-1 transition-transform">
             Lihat Detail →
           </span>

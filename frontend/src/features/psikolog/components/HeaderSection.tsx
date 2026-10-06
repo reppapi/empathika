@@ -3,13 +3,13 @@ export function HeaderSection() {
     <div className="w-full overflow-hidden">
       {/* Curved Purple Hero Banner (Menyatu dari tepi atas 0px ke bawah arch) */}
       <div 
-        className="w-full pt-28 sm:pt-36 md:pt-40 lg:pt-44 pb-20 sm:pb-28 md:pb-32 lg:pb-36 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-xl text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_80px] [border-bottom-right-radius:50%_80px] sm:[border-bottom-left-radius:50%_120px] sm:[border-bottom-right-radius:50%_120px] md:[border-bottom-left-radius:50%_160px] md:[border-bottom-right-radius:50%_160px] lg:[border-bottom-left-radius:50%_200px] lg:[border-bottom-right-radius:50%_200px]"
+        className="w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
       >
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-wide drop-shadow-sm leading-tight">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wide drop-shadow-sm leading-tight">
             Psikolog kami
           </h1>
-          <p className="mt-3 text-purple-200 text-sm sm:text-base md:text-lg max-w-2xl mx-auto font-light">
+          <p className="mt-2 text-purple-200 text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light">
             Temukan tenaga profesional berlisensi yang siap mendengarkan dan mendampingi perjalanan kesehatan mental Anda.
           </p>
         </div>

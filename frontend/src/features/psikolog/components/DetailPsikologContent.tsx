@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { DetailPsikologUI } from '../data/detailDummy';
 
 interface DetailContentProps {
@@ -11,32 +12,40 @@ interface DetailContentProps {
 
 export function DetailPsikologContent({ psikolog }: DetailContentProps) {
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+  const router = useRouter();
   const initial = psikolog.nama_gelar ? psikolog.nama_gelar.charAt(0) : 'P';
   const peran = psikolog.spesialisasi?.nama || (psikolog.category === 'konselor' ? 'Konselor' : 'Psikolog');
 
   return (
     <main className="min-h-screen bg-white pb-0 w-full overflow-hidden">
       {/* 1. Curved Purple Hero Banner (Menyatu langsung dari top 0px ke bawah arch) */}
-      <div 
-        className="w-full pt-28 sm:pt-36 md:pt-40 lg:pt-44 pb-20 sm:pb-28 md:pb-32 lg:pb-36 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-xl text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_80px] [border-bottom-right-radius:50%_80px] sm:[border-bottom-left-radius:50%_120px] sm:[border-bottom-right-radius:50%_120px] md:[border-bottom-left-radius:50%_160px] md:[border-bottom-right-radius:50%_160px] lg:[border-bottom-left-radius:50%_200px] lg:[border-bottom-right-radius:50%_200px] relative"
-      >
-        {/* Tombol Navigasi Kembali */}
-        <div className="w-full max-w-[1400px] mx-auto mb-4 text-left">
-          <Link
-            href="/psikolog"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-purple-200 hover:text-white transition-colors"
-          >
-            ← Kembali ke Daftar Psikolog
-          </Link>
+      <div className="w-full overflow-hidden">
+        <div 
+          className="w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
+        >
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wide drop-shadow-sm leading-tight">
+              Psikolog kami
+            </h1>
+            <p className="mt-2 text-purple-200 text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light">
+              Kenali lebih dekat profesional yang akan mendampingi perjalanan kesehatan mental Anda.
+            </p>
+          </div>
         </div>
-
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-wide drop-shadow-sm">
-          Psikolog kami
-        </h1>
       </div>
 
       {/* 2. Main Content Container (Full-width fluid di Web Desktop, Adaptif & Lega) */}
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 mt-10 sm:mt-14 space-y-10 sm:space-y-12">
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 mt-8 sm:mt-10 space-y-10 sm:space-y-12">
+        {/* Tombol Navigasi Kembali */}
+        <div className="-mb-4 sm:-mb-6">
+          <button
+            type="button"
+            onClick={() => (window.history.length > 1 ? router.back() : router.push('/psikolog'))}
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors"
+          >
+            ← Kembali
+          </button>
+        </div>
         
         {/* Header Profil & Video Intro di Bagian Atas */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -78,9 +87,27 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                 {psikolog.nama_gelar}
               </h2>
               
-              <p className="text-gray-700 text-sm sm:text-base font-normal">
-                Jumlah sesi terlaksana : <span className="font-semibold text-gray-900">{psikolog.jumlah_sesi}+ Sesi</span>
-              </p>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-600">
+                <p>
+                  Jumlah sesi: <span className="font-semibold text-gray-900">{psikolog.jumlah_sesi}+ Sesi</span>
+                </p>
+                {psikolog.no_str && (
+                  <>
+                    <span className="hidden sm:inline text-gray-300">•</span>
+                    <p>
+                      No. STR: <span className="font-semibold text-[#561269] font-mono">{psikolog.no_str}</span>
+                    </p>
+                  </>
+                )}
+                {psikolog.no_sipp && (
+                  <>
+                    <span className="hidden sm:inline text-gray-300">•</span>
+                    <p>
+                      No. SIPP: <span className="font-semibold text-[#561269] font-mono">{psikolog.no_sipp}</span>
+                    </p>
+                  </>
+                )}
+              </div>
 
               {/* Quote / Prinsip Singkat Diri */}
               {psikolog.quote && (
@@ -170,14 +197,24 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
             )}
           </div>
 
-          {/* Pendidikan */}
-          {psikolog.pendidikan && psikolog.pendidikan.length > 0 && (
-            <div className="pt-2">
+          {/* Pendidikan & Lisensi */}
+          <div className="pt-2 space-y-2">
+            {psikolog.pendidikan && psikolog.pendidikan.length > 0 && (
               <p className="text-sm sm:text-base text-gray-600 font-semibold">
                 Pendidikan / Institusi: <span className="font-normal text-gray-800">{psikolog.pendidikan.join(', ')}</span>
               </p>
-            </div>
-          )}
+            )}
+            {(psikolog.no_str || psikolog.no_sipp) && (
+              <p className="text-sm sm:text-base text-gray-600 font-semibold">
+                Izin Praktik & STR:{' '}
+                <span className="font-normal text-gray-800">
+                  {psikolog.no_str && `STR: ${psikolog.no_str}`}
+                  {psikolog.no_str && psikolog.no_sipp && ' | '}
+                  {psikolog.no_sipp && `SIPP: ${psikolog.no_sipp}`}
+                </span>
+              </p>
+            )}
+          </div>
         </section>
 
         {/* 4. KEAHLIAN PSIKOLOG (Area of Expertise) */}
@@ -252,8 +289,8 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
 
           <div>
             <Link
-              href={`/booking?psikologId=${psikolog.id}` as any}
-              className="inline-block bg-[#F8F3FA] hover:bg-white text-[#561269] font-bold text-base sm:text-lg md:text-xl px-10 sm:px-14 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg border border-[#D9C2E3] transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+              href={`/konseling/jadwal?psikologId=${psikolog.id}` as any}
+              className="inline-block bg-[#EAB308] hover:bg-[#CA9A06] text-black font-bold text-base sm:text-lg md:text-xl px-10 sm:px-14 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Daftar Sesi
             </Link>
