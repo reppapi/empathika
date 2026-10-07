@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
+import { useState, useEffect } from "react"
 
 const CATEGORIES = [
   { id: "01", title: "Psikotes" },
@@ -91,8 +89,21 @@ const SERVICES_DATA: Record<string, any[]> = {
   "05": KONSULTASI_SERVICES, 
 }
 
-export default function LayananPage() {
-  const [activeCategory, setActiveCategory] = useState("02") // Default ke Konsultasi sesuai gambar
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
+
+function LayananContent() {
+  const searchParams = useSearchParams()
+  const categoryParam = searchParams.get("category")
+  
+  // Gunakan parameter category dari URL jika ada, jika tidak default ke "02" (Konsultasi)
+  const [activeCategory, setActiveCategory] = useState(categoryParam || "02")
+
+  useEffect(() => {
+    if (categoryParam) {
+      setActiveCategory(categoryParam)
+    }
+  }, [categoryParam])
 
   const renderServiceCard = (service: any, idx: number) => {
     return (
@@ -249,5 +260,17 @@ export default function LayananPage() {
 
       </div>
     </div>
+  )
+}
+
+export default function LayananPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[104px] lg:pb-8 lg:h-screen font-poppins flex items-center justify-center">
+        Memuat layanan...
+      </div>
+    }>
+      <LayananContent />
+    </Suspense>
   )
 }
