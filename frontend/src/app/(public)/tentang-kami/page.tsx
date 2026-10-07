@@ -1,4 +1,5 @@
 import React from 'react'
+import Link from 'next/link'
 import { CtaSection } from '@/features/psikolog/components/CtaSection'
 
 export default function TentangKamiPage() {
@@ -258,7 +259,7 @@ export default function TentangKamiPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1100px] mx-auto mt-10 md:mt-12">
             
             {/* 1. Konsultasi (Span 2) - Dark Theme */}
-            <div className="md:col-span-2 bg-[#491c68] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
+            <Link href="/layanan?category=02" className="md:col-span-2 bg-[#491c68] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group block">
               <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-white/10 backdrop-blur-md text-white flex items-center justify-center mb-6 border border-white/20 relative z-10 group-hover:scale-110 transition-transform">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path></svg>
@@ -267,10 +268,10 @@ export default function TentangKamiPage() {
                 <h3 className="font-extrabold text-3xl text-white mb-3 tracking-tight">Konsultasi</h3>
                 <p className="text-white/80 text-base md:text-lg leading-relaxed font-light max-w-lg">Ruang untuk berbicara bersama psikolog profesional mengenai berbagai hal yang sedang kamu hadapi dan menemukan langkah yang sesuai dengan kebutuhanmu.</p>
               </div>
-            </div>
+            </Link>
 
             {/* 2. Psikotes (Span 1) - Orange Glass Theme */}
-            <div className="md:col-span-1 lg:col-span-1 bg-gradient-to-br from-[#fff7f0] to-[#ffe8d6] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-orange-100">
+            <Link href="/layanan?category=01" className="md:col-span-1 lg:col-span-1 bg-gradient-to-br from-[#fff7f0] to-[#ffe8d6] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-orange-100 block">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-[#d97706]/10 text-[#d97706] flex items-center justify-center mb-auto border border-[#d97706]/20 group-hover:bg-[#d97706] group-hover:text-white transition-colors duration-300">
                 <svg className="w-7 h-7 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
               </div>
@@ -278,10 +279,10 @@ export default function TentangKamiPage() {
                 <h3 className="font-extrabold text-2xl text-[#d97706] mb-3 tracking-tight">Psikotes</h3>
                 <p className="text-gray-600 text-sm leading-relaxed font-light">Tes psikologi untuk membantu mengenali potensi, kepribadian, minat, dan aspek diri lainnya dengan cara yang praktis dan terarah.</p>
               </div>
-            </div>
+            </Link>
 
             {/* 3. Pelatihan Peer Helper (Span 1) - Soft Purple Theme */}
-            <div className="md:col-span-1 lg:col-span-1 bg-[#f9f5fa] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-[#cdb1db]/40">
+            <Link href="/layanan?category=03" className="md:col-span-1 lg:col-span-1 bg-[#f9f5fa] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-[#cdb1db]/40 block">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-[#8e4a9e]/10 text-[#8e4a9e] flex items-center justify-center mb-auto border border-[#8e4a9e]/20 group-hover:bg-[#8e4a9e] group-hover:text-white transition-colors duration-300">
                 <svg className="w-7 h-7 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
               </div>
@@ -289,10 +290,10 @@ export default function TentangKamiPage() {
                 <h3 className="font-extrabold text-2xl text-[#8e4a9e] mb-3 tracking-tight leading-tight">Pelatihan Peer Helper</h3>
                 <p className="text-gray-600 text-sm leading-relaxed font-light">Membekali individu dengan keterampilan mendengar aktif dan mendampingi orang di sekitarnya sebagai bentuk dukungan awal.</p>
               </div>
-            </div>
+            </Link>
 
             {/* 4. Asesmen (Span 1) - Dark Green Theme */}
-            <div className="md:col-span-1 lg:col-span-1 bg-[#1c352d] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative overflow-hidden">
+            <Link href="/layanan?category=05" className="md:col-span-1 lg:col-span-1 bg-[#1c352d] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative overflow-hidden block">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-white/10 text-white flex items-center justify-center mb-auto border border-white/20 group-hover:bg-white group-hover:text-[#1c352d] transition-colors duration-300 relative z-10">
                 <svg className="w-7 h-7 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
               </div>
@@ -300,10 +301,10 @@ export default function TentangKamiPage() {
                 <h3 className="font-extrabold text-2xl text-white mb-3 tracking-tight">Asesmen</h3>
                 <p className="text-white/80 text-sm leading-relaxed font-light">Proses evaluasi untuk memahami kondisi dan karakteristik psikologis sebagai dasar dalam menentukan langkah atau kebutuhan selanjutnya.</p>
               </div>
-            </div>
+            </Link>
 
             {/* 5. Workshop / Seminar (Span 1) - Clean White Theme */}
-            <div className="md:col-span-2 lg:col-span-1 bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-gray-100">
+            <Link href="/layanan?category=04" className="md:col-span-2 lg:col-span-1 bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-gray-100 block">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-gray-50 text-gray-800 flex items-center justify-center mb-auto border border-gray-100 group-hover:bg-gray-800 group-hover:text-white transition-colors duration-300">
                 <svg className="w-7 h-7 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
               </div>
@@ -311,7 +312,7 @@ export default function TentangKamiPage() {
                 <h3 className="font-extrabold text-2xl text-gray-800 mb-3 tracking-tight">Workshop</h3>
                 <p className="text-gray-500 text-sm leading-relaxed font-light">Ruang belajar interaktif untuk memahami berbagai isu kesehatan mental bersama psikolog dan tenaga profesional.</p>
               </div>
-            </div>
+            </Link>
 
           </div>
         </div>

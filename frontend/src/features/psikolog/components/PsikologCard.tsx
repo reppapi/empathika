@@ -5,9 +5,10 @@ import { Psikolog, PsikologUI } from "@/types/psikolog"
 interface PsikologCardProps {
   psikolog: Psikolog | PsikologUI
   mode?: "psikolog" | "konseling"
+  showJadwal?: boolean
 }
 
-export function PsikologCard({ psikolog, mode = "psikolog" }: PsikologCardProps) {
+export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }: PsikologCardProps) {
   const peran =
     psikolog.spesialisasi?.nama ||
     ("category" in psikolog && psikolog.category === "peer-konselor"
@@ -97,28 +98,30 @@ export function PsikologCard({ psikolog, mode = "psikolog" }: PsikologCardProps)
       {/* 3. Bottom Section: Jadwal & Tombol Kuning */}
       <div className="px-5 pb-5 pt-3 border-t border-gray-100 bg-gray-50/40 mt-auto space-y-3.5">
         {/* Jadwal di bawah */}
-        <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-            {labelJadwal}
-          </p>
-          {jadwalList.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {jadwalList.map((jadwal, idx) => (
-                <span
-                  key={idx}
-                  className="bg-white border border-purple-100 px-2.5 py-1 rounded-full text-[11px] font-medium text-gray-700 shadow-2xs"
-                >
-                  {jadwal.waktu}{" "}
-                  <span className="text-[#561269] font-semibold">
-                    ({formatTipeHari(jadwal)})
+        {showJadwal && (
+          <div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+              {labelJadwal}
+            </p>
+            {jadwalList.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {jadwalList.map((jadwal, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-white border border-purple-100 px-2.5 py-1 rounded-full text-[11px] font-medium text-gray-700 shadow-2xs"
+                  >
+                    {jadwal.waktu}{" "}
+                    <span className="text-[#561269] font-semibold">
+                      ({formatTipeHari(jadwal)})
+                    </span>
                   </span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span className="text-[11px] text-gray-400 italic">Jadwal tersedia di profil</span>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-[11px] text-gray-400 italic">Jadwal tersedia di profil</span>
+            )}
+          </div>
+        )}
 
         {/* Tombol Kuning: Daftar / Lihat Detail */}
         <Link
