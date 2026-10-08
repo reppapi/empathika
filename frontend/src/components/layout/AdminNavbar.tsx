@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { usePathname } from "next/navigation"
 
 interface AdminNavbarProps {
   title?: string
@@ -9,13 +10,31 @@ interface AdminNavbarProps {
   onToggleSidebar?: () => void
 }
 
+const PAGE_TITLES: Record<string, string> = {
+  "/admin": "Ringkasan Operasional",
+  "/admin/jadwal": "Kelola Jadwal & Sesi",
+  "/admin/event": "Kelola Event",
+  "/admin/transaksi": "Kelola Transaksi",
+  "/admin/psikolog": "Kelola Data Psikolog",
+  "/admin/psikotes": "Kelola Psikotes",
+  "/admin/pengaturan": "Pengaturan Biro",
+  "/admin/blog": "Kelola Blog",
+  "/admin/layanan": "Kelola Layanan Konsultasi",
+  "/admin/kerja-sama": "Kelola Kerja Sama",
+  "/admin/profile": "Pengaturan Profil Admin",
+}
+
 export function AdminNavbar({
-  title = "Kelola Layanan Konsultasi",
+  title,
   adminName = "Admin Empathika",
   subtitle = "texttext",
   onToggleSidebar,
 }: AdminNavbarProps) {
+  const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+
+  // Otomatis deteksi title berdasarkan route aktif
+  const currentTitle = title || (pathname && PAGE_TITLES[pathname]) || "Kelola Layanan Konsultasi"
 
   // Inisial avatar misalnya "AE" dari Admin Empathika
   const initials =
@@ -51,7 +70,7 @@ export function AdminNavbar({
 
         {/* Title Halaman */}
         <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-[#561269] tracking-tight truncate max-w-[200px] sm:max-w-md lg:max-w-none">
-          {title}
+          {currentTitle}
         </h1>
       </div>
 

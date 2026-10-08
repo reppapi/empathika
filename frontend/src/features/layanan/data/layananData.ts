@@ -6,6 +6,42 @@ export const CATEGORIES = [
   { id: "05", title: "Asesmen" },
 ]
 
+export const PSIKOTES_SERVICES = [
+  {
+    topTitle: "TES 16 KEPRIBADIAN",
+    topSubtitle: "(MBTI) Bahasa Indonesia",
+    bottomTitle: "Tes Online 16 Kepribadian (MBTI)...",
+    bottomDescription: "",
+    bgColor: "bg-[#f48520]",
+    titleColor: "text-white",
+    btnText: "Ikuti Tes",
+    shape: "circles",
+    href: "/psikotes/mbti",
+  },
+  {
+    topTitle: "TES ONLINE 16 KEPRIBADIAN",
+    topSubtitle: "(MBTI) Bahasa Indonesia",
+    bottomTitle: "Tes Online 16 Kepribadian (MBTI)...",
+    bottomDescription: "",
+    bgColor: "bg-[#f0d164]",
+    titleColor: "text-gray-900",
+    btnText: "Ikuti Tes",
+    shape: "circles-dark",
+    href: "/psikotes/mbti-2",
+  },
+  {
+    topTitle: "TES LOVE LANGUAGE",
+    topSubtitle: "",
+    bottomTitle: "Tes Love Language: 5 Tipe Bahasa Cinta...",
+    bottomDescription: "",
+    bgColor: "bg-[#e31e3d]",
+    titleColor: "text-white",
+    btnText: "Ikuti Tes",
+    shape: "heart",
+    href: "/psikotes/love-language",
+  },
+]
+
 export const KONSULTASI_SERVICES = [
   {
     topTitle: "KONSULTASI",
@@ -84,7 +120,7 @@ export const EVENTS_SERVICES = [
 
 // Mapping data layanan ke masing-masing kategori
 export const SERVICES_DATA: Record<string, any[]> = {
-  "01": KONSULTASI_SERVICES,
+  "01": PSIKOTES_SERVICES,
   "02": KONSULTASI_SERVICES,
   "03": KONSULTASI_SERVICES,
   "04": EVENTS_SERVICES,
