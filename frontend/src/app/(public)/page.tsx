@@ -233,10 +233,10 @@ export default function LandingPage() {
               Jangan lewatkan berbagai webinar dan kelas interaktif bersama psikolog ahli untuk mendukung kesehatan mentalmu.
             </p>
           </div>
-          <button className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
+          <Link href="/layanan?category=04" className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Event
             <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-          </button>
+          </Link>
         </div>
 
         {/* Event Cards Grid */}
@@ -275,7 +275,7 @@ export default function LandingPage() {
                   <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
                   <p className="text-lg font-black text-[#561269]">Rp 50.000</p>
                 </div>
-                <button className="bg-[#561269] hover:bg-[#763E8B] text-white text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0">Daftar</button>
+                <Link href="/event/checkout" className="bg-[#561269] hover:bg-[#763E8B] text-white text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0">Daftar</Link>
               </div>
             </div>
           </div>
@@ -313,7 +313,7 @@ export default function LandingPage() {
                   <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
                   <p className="text-lg font-black text-[#561269]">Rp 150.000</p>
                 </div>
-                <button className="bg-[#561269] hover:bg-[#763E8B] text-white text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0">Daftar</button>
+                <Link href="/event/checkout" className="bg-[#561269] hover:bg-[#763E8B] text-white text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0">Daftar</Link>
               </div>
             </div>
           </div>
