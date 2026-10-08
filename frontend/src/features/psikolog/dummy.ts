@@ -144,10 +144,10 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
     status: 'ACTIVE',
     jumlah_sesi: 85,
     tarif_per_jam: 100000,
-    spesialisasi: { id: 'spec-4', nama: 'Konselor Kesehatan Mental' },
-    category: 'konselor',
+    spesialisasi: { id: 'spec-4', nama: 'Peer Konselor Mahasiswa' },
+    category: 'peer-konselor',
     experienceYears: '2 - 4 Tahun',
-    labelJadwal: 'Jadwal Terdekat Lusa',
+    labelJadwal: 'Jadwal Terdekat Weekend',
     jadwalTersedia: [
       { waktu: '16:00 - 17:00', tipe: 'online' },
       { waktu: '19:00 - 20:00', tipe: 'online' },
