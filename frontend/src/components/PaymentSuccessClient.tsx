@@ -220,7 +220,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
           <div className="text-sm sm:text-[17px] font-bold text-black">{bottomTime}</div>
         </div>
         <Link
-          href={cfg.backHref}
+          href={cfg.backHref as any}
           className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
         >
           {cfg.backLabel}
