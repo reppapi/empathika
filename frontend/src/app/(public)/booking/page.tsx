@@ -53,10 +53,10 @@ export default function BookingPage() {
 
   return (
     <div className="relative min-h-screen w-full font-poppins pb-24 overflow-hidden">
-      
+
       {/* Background Shape & Hero Section (Lebih kecil dan proporsional) */}
       <div className="w-full overflow-hidden">
-        <div 
+        <div
           className="w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
         >
           <div className="max-w-4xl mx-auto">
@@ -72,7 +72,7 @@ export default function BookingPage() {
 
       {/* Main Content (Tanpa overlap, persis psikolog) */}
       <div className="mx-auto w-full max-w-[900px] px-6 mt-8 sm:mt-12 relative z-10">
-        
+
         {/* Title Daftar Harga */}
         <h2 className="text-left text-xl font-extrabold text-[#561269] mb-6 drop-shadow-sm">
           Daftar Harga
@@ -80,12 +80,12 @@ export default function BookingPage() {
 
         {/* Card Daftar Harga */}
         <div className="bg-white rounded-[1.5rem] shadow-sm p-6 sm:p-10 mb-16 border border-gray-100">
-          
+
           {/* Header */}
           <div className="grid grid-cols-3 text-center mb-4">
-            <div className="text-left font-extrabold text-[#561269] text-[17px]">Konsultasi</div>
-            <div className="font-extrabold text-[#561269] text-[17px]">Weekday</div>
-            <div className="font-extrabold text-[#561269] text-[17px]">Weekend</div>
+            <div className="text-left font-extrabold text-[#561269] text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">Konsultasi</div>
+            <div className="font-extrabold text-[#561269] text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">Weekday</div>
+            <div className="font-extrabold text-[#561269] text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">Weekend</div>
           </div>
 
           <hr className="border-t-2 border-[#DCD0E1]" />
@@ -96,31 +96,31 @@ export default function BookingPage() {
               const isOpen = openAccordion === item.id;
               return (
                 <div key={item.id} className="flex flex-col">
-                  <div 
+                  <div
                     className="grid grid-cols-3 items-center py-5 cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => toggleAccordion(item.id)}
                   >
                     <div className="flex items-center gap-2 font-bold text-[#561269] text-[15px]">
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" 
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor"
                         className={`h-3.5 w-3.5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                       </svg>
-                      {item.title}
+                      <span className="[text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">{item.title}</span>
                     </div>
-                    <div className="text-center font-bold text-[#561269] text-[14px]">{item.weekday}</div>
-                    <div className="text-center font-bold text-[#561269] text-[14px]">{item.weekend}</div>
+                    <div className="text-center font-bold text-[#561269] text-[14px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">{item.weekday}</div>
+                    <div className="text-center font-bold text-[#561269] text-[14px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">{item.weekend}</div>
                   </div>
-                  
+
                   {/* Accordion Content */}
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-20 opacity-100 pb-4' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-6 text-[11px] font-medium text-[#561269] pr-4 sm:w-1/2">
                       {item.description}
                     </div>
                   </div>
-                  
+
                   <hr className="border-t-2 border-[#DCD0E1]" />
                 </div>
               )
@@ -134,11 +134,10 @@ export default function BookingPage() {
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-6 py-2 rounded-full text-[13px] font-bold transition-all shadow-sm ${
-                activeFilter === f 
-                  ? "bg-[#561269] text-white" 
+              className={`px-6 py-2 rounded-full text-[13px] font-bold transition-all shadow-sm ${activeFilter === f
+                  ? "bg-[#561269] text-white"
                   : "bg-white text-[#561269] hover:bg-[#561269]/10"
-              }`}
+                }`}
             >
               {f}
             </button>
