@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
-
+import { useState, useEffect, Suspense } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 
 const CATEGORIES = [
   { id: "01", title: "Psikotes" },
@@ -90,8 +92,6 @@ const SERVICES_DATA: Record<string, any[]> = {
   "05": KONSULTASI_SERVICES, 
 }
 
-import { useSearchParams } from "next/navigation"
-import { Suspense } from "react"
 
 function LayananContent() {
   const searchParams = useSearchParams()
