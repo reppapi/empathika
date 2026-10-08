@@ -118,7 +118,7 @@ export default function PsikotesMulaiPage({ params }: { params: { testId: string
           <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-gray-100 mb-8 flex-1 flex flex-col justify-center transition-all duration-300">
             
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 leading-tight md:leading-[1.4] text-center mb-10 md:mb-14">
-              "{currentQuestion.text}"
+              &quot;{currentQuestion.text}&quot;
             </h2>
 
             {/* Options */}
