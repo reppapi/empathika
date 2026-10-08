@@ -88,8 +88,8 @@ export default function LayananClient() {
 
         {/* Kolom Kanan: Detail Layanan (BISA SCROLL INTERNAL) */}
         <div className="flex w-full flex-col overflow-visible py-3 lg:absolute lg:top-0 lg:right-0 lg:w-[62%] lg:h-full lg:py-0">
-          {/* Card Utama */}
-          <div className="flex h-full flex-col rounded-[2rem] border border-gray-100 bg-white shadow-sm p-6 sm:p-8">
+          {/* Card Utama (Sesuai Desain Mockup) */}
+          <div className="flex h-full flex-col rounded-2xl border border-gray-300 bg-white shadow-[0px_4px_16px_rgba(0,0,0,0.1)] p-6 sm:p-8">
 
             {/* Header Card Utama */}
             <div className="mb-6 shrink-0">
