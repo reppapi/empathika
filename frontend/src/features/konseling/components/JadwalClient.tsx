@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { Calendar } from "@/components/ui/calendar"
 
 // Helper function to get days in month
 function getDaysInMonth(year: number, month: number) {
@@ -24,28 +25,7 @@ export default function JadwalClient() {
   const [waktu, setWaktu] = useState("13:30")
 
   // Calendar state
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 7)) // Default Agustus 2026
-  const [selectedDate, setSelectedDate] = useState<number | null>(31)
-
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
-  }
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))
-  }
-
-  const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())
-  const firstDay = getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth())
-
-  // Generate days array
-  const days = []
-  for (let i = 0; i < firstDay; i++) {
-    days.push(null) // empty slots
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push(i)
-  }
+  const [date, setDate] = useState<Date | undefined>(new Date(2026, 7, 31))
 
   // Dummy slots
   const timeSlots = ["09:30", "10:00", "13:00", "13:30", "14:30"]
@@ -118,8 +98,8 @@ export default function JadwalClient() {
                 <button
                   onClick={() => setMetode("Online")}
                   className={`flex-1 py-3 text-xs sm:text-sm font-semibold rounded-lg border transition-all ${metode === "Online"
-                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                    ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
+                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                     }`}
                 >
                   Online
@@ -127,8 +107,8 @@ export default function JadwalClient() {
                 <button
                   onClick={() => setMetode("Offline")}
                   className={`flex-1 py-3 text-xs sm:text-sm font-semibold rounded-lg border transition-all ${metode === "Offline"
-                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                    ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
+                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                     }`}
                 >
                   Offline
@@ -138,58 +118,18 @@ export default function JadwalClient() {
 
             {/* Box 2: Pilih Tanggal */}
             <div className="flex-1 bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] min-h-[300px]">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">2</div>
-                  <h3 className="text-sm font-semibold text-gray-800">Pilih Tanggal</h3>
-                </div>
-                <div className="flex items-center gap-1 border border-gray-200 rounded-lg p-0.5">
-                  <button onClick={handlePrevMonth} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                    </svg>
-                  </button>
-                  <button onClick={handleNextMonth} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                    </svg>
-                  </button>
-                </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">2</div>
+                <h3 className="text-sm font-semibold text-gray-800">Pilih Tanggal</h3>
               </div>
 
-              <div className="text-center font-bold text-[15px] mb-4 text-black">
-                {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
-              </div>
-
-              <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-gray-500 mb-2">
-                <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
-              </div>
-
-              <div className="grid grid-cols-7 gap-y-2 gap-x-1 justify-items-center">
-                {days.map((day, idx) => {
-                  if (day === null) {
-                    return <div key={`empty-${idx}`} className="w-8 h-8"></div>
-                  }
-                  const isSelected = selectedDate === day && currentDate.getMonth() === 7 && currentDate.getFullYear() === 2026;
-                  return (
-                    <button
-                      key={`day-${day}`}
-                      onClick={() => {
-                        setSelectedDate(day)
-                        // In real app, you'd also track the month/year of the selection
-                        if (currentDate.getMonth() !== 7 || currentDate.getFullYear() !== 2026) {
-                          // For dummy purposes, we only really let them select the date if it's the current viewed month
-                        }
-                      }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${isSelected
-                          ? "bg-[#561269] text-white shadow-sm"
-                          : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                    >
-                      {day}
-                    </button>
-                  )
-                })}
+              <div className="flex justify-center w-full">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  className="w-full max-w-[350px]"
+                />
               </div>
             </div>
 
@@ -199,7 +139,7 @@ export default function JadwalClient() {
           <div className="flex flex-col gap-6">
 
             {/* Box 3: Pilih Layanan */}
-            <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+            <div className="bg-white rounded-2xl border border-gray-300 p-5 sm:p-6 shadow-[0px_4px_16px_rgba(0,0,0,0.1)]">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">3</div>
                 <h3 className="text-sm font-semibold text-gray-800">Pilih Layanan</h3>
@@ -284,8 +224,8 @@ export default function JadwalClient() {
                     key={slot}
                     onClick={() => setWaktu(slot)}
                     className={`py-2 text-xs font-semibold rounded-lg border transition-all ${waktu === slot
-                        ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
-                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
+                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                       }`}
                   >
                     {slot}
@@ -302,7 +242,7 @@ export default function JadwalClient() {
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] py-4 px-6 sm:px-10 lg:px-24 flex items-center justify-between z-40">
         <div>
           <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">
-            {selectedDate || "31"} {MONTHS[currentDate.getMonth()].substring(0, 3)} {currentDate.getFullYear()} (weekday)
+            {date ? `${date.getDate()} ${MONTHS[date.getMonth()].substring(0, 3)} ${date.getFullYear()}` : "Pilih Tanggal"} (weekday)
           </div>
           <div className="text-sm sm:text-[17px] font-bold text-black flex items-center gap-1">
             {waktu} WIB <span className="italic font-normal">({metode})</span>
