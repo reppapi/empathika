@@ -44,7 +44,7 @@ export default function KerjaSamaPage() {
           {/* NEW DESIGN CARD OPTIONS */}
           <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12">
             {collaborationLinks.map((link, idx) => (
-              <Link key={idx} href={link.href} className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 overflow-hidden flex flex-col items-center text-center">
+              <Link key={idx} href={link.href as any} className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 overflow-hidden flex flex-col items-center text-center">
                 <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${link.color} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
                 
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-gray-50 group-hover:bg-gradient-to-br ${link.color} transition-colors duration-300 shadow-inner`}>

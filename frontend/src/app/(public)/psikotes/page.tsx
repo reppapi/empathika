@@ -1,3 +1,5 @@
+import PsikotesListClient from "@/features/psikotes/components/PsikotesListClient"
+
 export default function PsikotesPage() {
-  return <div>Daftar Tes Psikologi</div>
+  return <PsikotesListClient />
 }
