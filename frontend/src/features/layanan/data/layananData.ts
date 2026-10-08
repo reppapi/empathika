@@ -51,28 +51,34 @@ export const KONSULTASI_SERVICES = [
 
 export const EVENTS_SERVICES = [
   {
-    title: "Overcoming Burnout: Mengelola Lelah Mental di Tempat Kerja",
-    type: "Webinar",
-    typeColor: "text-[#561269]",
-    date: "Sabtu, 24 Oktober 2026",
-    time: "19:00 - 21:00 WIB",
-    speakerName: "Sarah M., M.Psi",
-    speakerRole: "Psikolog Klinis",
-    price: "Rp 50.000",
-    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    speakerImg: "https://ui-avatars.com/api/?name=Sarah+M&background=561269&color=fff"
+    topTitle: "SEMINAR",
+    topSubtitle: "Berbagi Wawasan Edukatif",
+    bottomTitle: "Seminar Psikologi",
+    bottomDescription: "Sesi edukatif bersama para ahli untuk membahas topik-topik menarik seputar kesehatan mental dan psikologi di masyarakat.",
+    bgColor: "bg-[#e31e3d]",
+    titleColor: "text-white",
+    btnText: "Lihat Detail",
+    shape: "circles",
   },
   {
-    title: "Seni Mengenali Diri Sendiri & Self-Healing Therapy",
-    type: "Workshop",
-    typeColor: "text-[#d97706]",
-    date: "Minggu, 1 November 2026",
-    time: "10:00 - 14:00 WIB",
-    speakerName: "Dr. Andi Pratama",
-    speakerRole: "Pakar Mindfulness",
-    price: "Rp 150.000",
-    image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    speakerImg: "https://ui-avatars.com/api/?name=Dr+Andi&background=d97706&color=fff"
+    topTitle: "WORKSHOP",
+    topSubtitle: "Pelatihan Interaktif",
+    bottomTitle: "Workshop & Pelatihan",
+    bottomDescription: "Pelatihan mendalam dan interaktif yang dirancang khusus untuk membekali peserta dengan keterampilan praktis mengelola emosi.",
+    bgColor: "bg-[#561269]",
+    titleColor: "text-white",
+    btnText: "Lihat Detail",
+    shape: "circles-dark",
+  },
+  {
+    topTitle: "GOES TO SCHOOL",
+    topSubtitle: "Program Edukasi Sekolah",
+    bottomTitle: "Empathika Goes to School",
+    bottomDescription: "Program kunjungan ke sekolah untuk memberikan psikoedukasi kepada siswa dan guru terkait pentingnya kesehatan mental sejak dini.",
+    bgColor: "bg-[#f48520]",
+    titleColor: "text-white",
+    btnText: "Lihat Detail",
+    shape: "heart",
   }
 ]
 
