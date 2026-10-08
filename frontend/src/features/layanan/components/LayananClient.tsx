@@ -11,7 +11,7 @@ export default function LayananClient() {
   const renderServiceCard = (service: any, idx: number) => {
     return (
       <div key={idx} className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full">
-        <div className={`h-40 sm:h-48 w-full ${service.bgColor} overflow-hidden relative shrink-0`}>
+        <div className={`h-36 sm:h-44 w-full ${service.bgColor} overflow-hidden relative shrink-0`}>
           <div className="absolute inset-0 flex items-start p-6">
             <div className="text-left w-full">
               <h3 className={`${service.titleColor} font-extrabold text-[22px] sm:text-[28px] leading-[1.1] mb-2 drop-shadow-sm uppercase`}>{service.topTitle}</h3>
@@ -96,7 +96,7 @@ export default function LayananClient() {
     <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[104px] lg:pb-8 lg:h-screen lg:overflow-hidden font-poppins">
 
       {/* Container utama */}
-      <div className="relative flex flex-col gap-8 lg:block">
+      <div className="relative flex h-full flex-col gap-8 lg:block">
 
         {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL) */}
         <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5 lg:pb-2">
