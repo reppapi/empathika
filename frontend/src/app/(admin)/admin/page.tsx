@@ -1,3 +1,7 @@
+import DashboardAdmin from "@/features/dashboard/admin/DashboardAdmin"
+
+export default function AdminDashboardPage() {
+  return <DashboardAdmin />
 import { Calendar, ArrowUp, ChevronDown } from "lucide-react"
 
 export default function AdminDashboardPage() {

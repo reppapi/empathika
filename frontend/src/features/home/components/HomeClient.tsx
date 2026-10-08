@@ -69,12 +69,12 @@ export default function HomeClient() {
 
               {/* Dua Tombol (Solid Orange & Outlined Orange) */}
               <div className="flex flex-wrap items-center gap-3 lg:gap-4">
-                <button className="bg-[#d97706] hover:bg-[#b45309] text-white font-medium text-sm md:text-base py-3 px-8 rounded-full transition-colors shadow-lg">
+                <Link href="/konseling" className="bg-[#d97706] hover:bg-[#b45309] text-white font-medium text-sm md:text-base py-3 px-8 rounded-full transition-colors shadow-lg">
                   Booking Sesi
-                </button>
-                <button className="bg-transparent hover:bg-white/10 text-[#d97706] border border-[#d97706] font-medium text-sm md:text-base py-3 px-8 rounded-full transition-colors">
+                </Link>
+                <Link href="/psikotes" className="bg-transparent hover:bg-white/10 text-[#d97706] border border-[#d97706] font-medium text-sm md:text-base py-3 px-8 rounded-full transition-colors">
                   Tes Psikologis
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -204,7 +204,7 @@ export default function HomeClient() {
                   <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
                   <p className="text-lg font-black text-[#561269]">Rp 50.000</p>
                 </div>
-                <Link href="/event/checkout" className="bg-[#561269] hover:bg-[#763E8B] text-white text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0">Daftar</Link>
+                <Link href="/event/checkout" className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm">Daftar</Link>
               </div>
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function HomeClient() {
                   <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
                   <p className="text-lg font-black text-[#561269]">Rp 150.000</p>
                 </div>
-                <Link href="/event/checkout" className="bg-[#561269] hover:bg-[#763E8B] text-white text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0">Daftar</Link>
+                <Link href="/event/checkout" className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm">Daftar</Link>
               </div>
             </div>
           </div>
