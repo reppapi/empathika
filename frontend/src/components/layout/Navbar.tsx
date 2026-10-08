@@ -92,7 +92,7 @@ export function Navbar() {
             </nav>
 
             <Link 
-              href={"/booking" as any}
+              href={"/konseling" as any}
               className="flex h-14 shrink-0 items-center justify-center rounded-full bg-[#561269] px-6 text-[14px] font-normal lowercase tracking-wide text-white transition-transform hover:scale-105 shadow-md hover:bg-[#430b53]"
             >
               booking sesi
@@ -175,7 +175,7 @@ export function Navbar() {
           {/* Booking Sesi (Bawah) */}
           <div className="mt-8 px-6 pb-6">
             <Link
-              href={"/booking" as any}
+              href={"/konseling" as any}
               onClick={() => setIsMobileMenuOpen(false)}
               className="inline-block w-full text-center bg-white/15 hover:bg-white/25 text-white font-medium py-3 rounded-full text-[15px] transition-colors"
             >

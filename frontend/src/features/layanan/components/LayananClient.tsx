@@ -1,11 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useSearchParams, useRouter } from "next/navigation"
 import { CATEGORIES, SERVICES_DATA } from "../data/layananData"
 
 export default function LayananClient() {
-  const [activeCategory, setActiveCategory] = useState("02") // Default ke Konsultasi sesuai gambar
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const categoryQuery = searchParams.get("category")
+  const [activeCategory, setActiveCategory] = useState(categoryQuery || "02") // Default ke Konsultasi
+
+  useEffect(() => {
+    if (categoryQuery && categoryQuery !== activeCategory) {
+      setActiveCategory(categoryQuery)
+    }
+  }, [categoryQuery])
+
+  const handleCategoryChange = (id: string) => {
+    setActiveCategory(id)
+    router.replace(`/layanan?category=${id}`, { scroll: false })
+  }
 
   const renderServiceCard = (service: any, idx: number) => {
     return (
@@ -64,7 +79,7 @@ export default function LayananClient() {
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
                 className="group flex flex-col items-start text-left transition-all"
               >
                 <span
