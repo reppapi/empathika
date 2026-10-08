@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { CATEGORIES, SERVICES_DATA } from "../data/layananData"
 
 export default function LayananClient() {
@@ -51,46 +50,6 @@ export default function LayananClient() {
     );
   }
 
-  const renderEventCard = (event: any, idx: number) => {
-    return (
-      <div key={idx} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group h-full">
-        <div className="relative h-40 sm:h-48 w-full shrink-0 overflow-hidden">
-          <Image unoptimized src={event.image} alt="Event" fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
-          <div className={`absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-extrabold ${event.typeColor} shadow-sm uppercase tracking-wider`}>{event.type}</div>
-        </div>
-        <div className="p-4 sm:p-5 flex flex-col flex-1">
-          <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-2 line-clamp-2 leading-tight">{event.title}</h3>
-
-          <div className="space-y-1.5 mb-4">
-            <div className="flex items-center text-xs text-gray-500">
-              <svg className="w-4 h-4 mr-2 text-[#d97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-              {event.date}
-            </div>
-            <div className="flex items-center text-xs text-gray-500">
-              <svg className="w-4 h-4 mr-2 text-[#d97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              {event.time}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 overflow-hidden shrink-0 relative"><Image unoptimized src={event.speakerImg} alt="Speaker" fill className="object-cover" /></div>
-            <div className="text-[11px] sm:text-xs">
-              <p className="font-bold text-gray-900">{event.speakerName}</p>
-              <p className="text-gray-500">{event.speakerRole}</p>
-            </div>
-          </div>
-
-          <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
-              <p className="text-sm sm:text-base font-black text-[#561269]">{event.price}</p>
-            </div>
-            <button className="bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold py-2 px-4 sm:px-5 rounded-xl transition-colors shrink-0">Daftar</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[104px] lg:pb-8 lg:h-screen lg:overflow-hidden font-poppins">
@@ -146,9 +105,9 @@ export default function LayananClient() {
             <div className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar">
               {/* Grid Layanan Kecil */}
               {SERVICES_DATA[activeCategory]?.length > 0 ? (
-                <div className={`grid grid-cols-1 ${activeCategory === '04' ? 'lg:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-2'} gap-6`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
                   {SERVICES_DATA[activeCategory].map((item, idx) =>
-                    activeCategory === '04' ? renderEventCard(item, idx) : renderServiceCard(item, idx)
+                    renderServiceCard(item, idx)
                   )}
                 </div>
               ) : (
