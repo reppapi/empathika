@@ -9,9 +9,10 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("access_token")?.value
 
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r))
-  const isAdmin = adminRoutes.some((r) => pathname.startsWith(r))
+  // Bypass sementara untuk dev admin:
+  // const isAdmin = adminRoutes.some((r) => pathname.startsWith(r))
 
-  if ((isProtected || isAdmin) && !token) {
+  if (isProtected && !token) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
