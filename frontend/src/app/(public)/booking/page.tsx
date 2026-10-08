@@ -2,6 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
+import { DATA_PSIKOLOG_DUMMY } from "@/features/psikolog/dummy"
+import { PsikologCard } from "@/features/psikolog/components/PsikologCard"
 
 const DAFTAR_HARGA = [
   {
@@ -27,23 +30,7 @@ const DAFTAR_HARGA = [
   },
 ]
 
-const ALL_PROFESSIONALS = [
-  ...Array(6).fill({
-    name: "Nama, M.Psi.,\nPsikolog",
-    sessions: "99+ sesi",
-    role: "Psikolog"
-  }),
-  ...Array(3).fill({
-    name: "Nama, M.Psi.,\nKonselor", 
-    sessions: "99+ sesi",
-    role: "Konselor"
-  }),
-  ...Array(3).fill({
-    name: "Nama,\nPeer Konselor", 
-    sessions: "50+ sesi",
-    role: "Peer Konselor"
-  })
-]
+
 
 export default function BookingPage() {
   const [openAccordion, setOpenAccordion] = useState<string | null>("konselor")
@@ -51,8 +38,13 @@ export default function BookingPage() {
 
   const filters = ["Psikolog", "Konselor", "Peer Konselor"]
 
-  const filteredProfessionals = ALL_PROFESSIONALS.filter(
-    (p) => p.role === activeFilter
+  const filteredProfessionals = DATA_PSIKOLOG_DUMMY.filter(
+    (p) => {
+      if (activeFilter === "Psikolog") return p.category === "psikolog";
+      if (activeFilter === "Konselor") return p.category === "konselor";
+      if (activeFilter === "Peer Konselor") return p.category === "peer-konselor";
+      return true;
+    }
   )
 
   const toggleAccordion = (id: string) => {
@@ -154,9 +146,9 @@ export default function BookingPage() {
         </div>
 
         {/* Dynamic Grid Professionals */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 min-h-[400px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 min-h-[400px]">
           {filteredProfessionals.map((doc, i) => (
-            <DoctorCard key={i} doctor={doc} />
+            <PsikologCard key={i} psikolog={doc} mode="konseling" />
           ))}
         </div>
 
@@ -165,29 +157,4 @@ export default function BookingPage() {
   )
 }
 
-function DoctorCard({ doctor }: { doctor: any }) {
-  return (
-    <div className="flex flex-col items-center bg-[#F9F4FA] rounded-[2rem] p-8 pb-6 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-md transition-shadow border border-[#f0e6f2]">
-      {/* Avatar Placeholder */}
-      <div className="h-[90px] w-[90px] rounded-full bg-[#D5BCE1] mb-5"></div>
-      
-      {/* Pill */}
-      <div className="bg-[#FCE163] text-black px-4 py-1 rounded-full text-[10px] font-bold mb-4 shadow-sm">
-        {doctor.sessions}
-      </div>
-      
-      {/* Name */}
-      <div className="text-center text-[12px] font-bold text-black whitespace-pre-line mb-6 h-8 leading-relaxed">
-        {doctor.name}
-      </div>
-      
-      {/* Button */}
-      <Link 
-        href="/konseling/jadwal"
-        className="bg-[#FCE163] text-black hover:bg-[#FACC15] transition-colors px-8 py-1.5 rounded-full text-[11px] font-bold shadow-sm"
-      >
-        Daftar
-      </Link>
-    </div>
-  )
-}
+

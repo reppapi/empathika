@@ -1,7 +1,10 @@
 'use client'
 import Image from 'next/image'
+import Link from 'next/link'
 
 import { useState, useEffect } from 'react'
+import { DATA_PSIKOLOG_DUMMY } from '@/features/psikolog/dummy'
+import { PsikologCard } from '@/features/psikolog/components/PsikologCard'
 
 export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -42,44 +45,7 @@ export default function LandingPage() {
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1))
 
   // Data Psikolog
-  const psychologists = [
-    {
-      id: 1,
-      name: "Putri, M.Psi",
-      role: "Psikolog Klinis",
-      image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: 2,
-      name: "Raka Aditya, M.Psi",
-      role: "Psikolog Klinis",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: 3,
-      name: "Amara Putri, M.Psi",
-      role: "Psikolog Klinis",
-      image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: 4,
-      name: "Davin Pratama, M.Psi",
-      role: "Konselor",
-      image: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: 5,
-      name: "Salsabila Rahma, M.Psi",
-      role: "Psikolog Klinis",
-      image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      id: 6,
-      name: "Fadhil Satria, M.Psi",
-      role: "Konselor",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    }
-  ]
+  const psychologists = DATA_PSIKOLOG_DUMMY
 
   const [activePsyIndex, setActivePsyIndex] = useState(2)
 
@@ -133,8 +99,8 @@ export default function LandingPage() {
   }
 
   return (
-    // Memberikan padding atas agar konten pas di bawah navbar fixed
-    <div className="w-full font-sans bg-[#f8f9fa] pb-16 lg:pb-24 pt-[72px] lg:pt-[88px]">
+    // Menghapus padding atas agar hero section menempel ke atas halaman dan berada di bawah navbar transparent
+    <div className="w-full font-sans bg-[#f8f9fa] pb-16 lg:pb-24">
 
       {/* ======================================= */}
       {/* FULL WIDTH HERO CAROUSEL TEXT OVERLAY */}
@@ -262,7 +228,7 @@ export default function LandingPage() {
       <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Yuk, Ikuti Event Kami</h2>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#561269] mb-3">Yuk, Ikuti Event Kami</h2>
             <p className="text-gray-600 text-base max-w-2xl">
               Jangan lewatkan berbagai webinar dan kelas interaktif bersama psikolog ahli untuk mendukung kesehatan mentalmu.
             </p>
@@ -360,18 +326,18 @@ export default function LandingPage() {
       {/* ======================================= */}
       {/* OUR SERVICES SECTION */}
       {/* ======================================= */}
-      <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32 pb-10 lg:pb-12">
+      <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32 pb-24 lg:pb-32">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Jelajahi Layanan Kami</h2>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#561269] mb-3">Jelajahi Layanan Kami</h2>
             <p className="text-gray-600 text-base max-w-2xl">
               Pilih layanan psikologi dan konseling yang paling sesuai dengan kebutuhanmu saat ini. Kami siap mendengar dan membantu.
             </p>
           </div>
-          <button className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
+          <Link href="/layanan" className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Layanan
             <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-          </button>
+          </Link>
         </div>
 
         {/* Services Cards Grid */}
@@ -389,10 +355,10 @@ export default function LandingPage() {
             <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
               Dapatkan ruang aman untuk bercerita dan mencari solusi bersama tenaga ahli. Kami menyediakan konseling individu maupun kelompok sesuai dengan kebutuhan psikologis Anda.
             </p>
-            <button className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-              Pelajari Lebih Lanjut
+            <Link href="/layanan?category=02" className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+              Lihat Detail
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-            </button>
+            </Link>
           </div>
 
           {/* Service Card 2 */}
@@ -407,10 +373,10 @@ export default function LandingPage() {
             <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
               Program pelatihan khusus yang dirancang untuk membekali Anda dengan keterampilan dasar konseling, empati, dan cara tepat dalam mendampingi teman sebaya.
             </p>
-            <button className="text-[#561269] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-              Pelajari Lebih Lanjut
+            <Link href="/layanan?category=03" className="text-[#561269] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+              Lihat Detail
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-            </button>
+            </Link>
           </div>
 
           {/* Service Card 3 */}
@@ -425,10 +391,10 @@ export default function LandingPage() {
             <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
               Pemetaan kondisi psikologis secara komprehensif, mulai dari minat bakat, kepribadian, hingga evaluasi kesiapan kerja menggunakan alat ukur yang valid dan terpercaya.
             </p>
-            <button className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-              Pelajari Lebih Lanjut
+            <Link href="/layanan?category=05" className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+              Lihat Detail
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-            </button>
+            </Link>
           </div>
 
         </div>
@@ -440,7 +406,7 @@ export default function LandingPage() {
       <section className="w-full bg-[#f4f2ee] pt-8 lg:pt-12 pb-12 lg:pb-16 relative overflow-hidden">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center mb-4 md:mb-6">
           
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1c352d] mb-2 tracking-tight">Kenali Psikolog Kami</h2>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#561269] mb-2 tracking-tight">Kenali Psikolog Kami</h2>
           <p className="text-gray-500 text-base max-w-2xl mx-auto font-medium">
             Temukan psikolog yang siap mendengarkan, memahami,<br className="hidden md:block" /> dan mendampingi perjalananmu.
           </p>
@@ -451,7 +417,7 @@ export default function LandingPage() {
         <div 
           id="psy-scroll-container"
           onScroll={handlePsyScroll}
-          className="flex overflow-x-auto gap-2 md:gap-6 pb-16 pt-4 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] items-center"
+          className="flex overflow-x-auto -space-x-1 md:-space-x-3 pb-4 pt-4 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] items-center"
         >
           {/* Spacer untuk memastikan card pertama dan terakhir bisa berada di tengah */}
           <div className="shrink-0 w-[calc(50%-120px)] md:w-[calc(50%-140px)]" aria-hidden="true"></div>
@@ -461,29 +427,25 @@ export default function LandingPage() {
             const isActive = offset === 0;
             const isLeft = idx < activePsyIndex;
             
-            // Perhitungan fan-out effect (rotateZ) yang lebih halus (subtle)
+            // Layout math for coverflow-like design
             let scale = 1;
-            let rotate = 0;
-            let translateY = 0;
+            let filter = 'none';
             let opacity = 1;
             let zIndex = 30;
             
             if (offset === 1) {
-              scale = 0.95;
-              rotate = isLeft ? -3 : 3;
-              translateY = 8;
-              opacity = 0.95;
+              scale = 0.85;
+              filter = 'none';
+              opacity = 0.9;
               zIndex = 20;
             } else if (offset === 2) {
-              scale = 0.9;
-              rotate = isLeft ? -6 : 6;
-              translateY = 16;
-              opacity = 0.75;
+              scale = 0.75;
+              filter = 'none';
+              opacity = 0.7;
               zIndex = 10;
             } else if (offset > 2) {
-              scale = 0.85;
-              rotate = isLeft ? -9 : 9;
-              translateY = 24;
+              scale = 0.65;
+              filter = 'none';
               opacity = 0.4;
               zIndex = 0;
             }
@@ -491,33 +453,17 @@ export default function LandingPage() {
             return (
               <div 
                 key={psy.id}
-                className="psy-card snap-center shrink-0 w-[240px] md:w-[280px] rounded-3xl overflow-hidden shadow-xl group cursor-pointer transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col"
+                className="psy-card snap-center shrink-0 w-[240px] md:w-[280px] transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)]"
                 style={{ 
-                  transform: `translateY(${translateY}px) scale(${scale}) rotate(${rotate}deg)`,
+                  transform: `scale(${scale})`,
                   zIndex,
                   opacity,
-                  transformOrigin: 'bottom center'
+                  filter,
+                  transformOrigin: 'center center'
                 }}
                 onClick={() => scrollPsyTo(idx)}
               >
-                <div className="relative h-56 md:h-64 w-full overflow-hidden bg-gray-200">
-                  <Image unoptimized src={psy.image} alt={psy.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                </div>
-                <div className={`p-5 md:p-6 flex-1 flex flex-col transition-colors duration-500 border-x border-b border-gray-100/50 rounded-b-3xl ${isActive ? 'bg-[#f8f7f5]' : 'bg-white'}`}>
-                  <h3 className="font-bold text-lg md:text-xl text-[#1c352d] mb-1">{psy.name}</h3>
-                  <p className="text-gray-500 text-xs md:text-sm font-medium mb-6">{psy.role}</p>
-                  
-                  <div className="mt-auto">
-                    <button className={`w-full py-2.5 md:py-3 rounded-full text-xs md:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
-                      isActive 
-                        ? 'bg-[#2c4c41] text-white hover:bg-[#1c352d] shadow-md' 
-                        : 'bg-transparent text-[#2c4c41] border border-[#2c4c41]/20 hover:bg-[#2c4c41]/5'
-                    }`}>
-                      Lihat Profil
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                    </button>
-                  </div>
-                </div>
+                <PsikologCard psikolog={psy} showJadwal={false} />
               </div>
             );
           })}
@@ -527,7 +473,7 @@ export default function LandingPage() {
         </div>
 
         {/* Navigation Controls */}
-        <div className="flex items-center justify-center gap-6 mt-4">
+        <div className="flex items-center justify-center gap-6 mt-1">
           <button 
             onClick={prevPsy}
             disabled={activePsyIndex === 0}
@@ -565,13 +511,13 @@ export default function LandingPage() {
       {/* ======================================= */}
       <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
         <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
-          <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-semibold text-[#561269] tracking-tight">
             Kenali Dirimu dengan Psikotes <span className="font-bold">Empathika</span>
           </h2>
-          <a href="#" className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
+          <Link href="/layanan?category=01" className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Psikotes
             <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-          </a>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -593,9 +539,9 @@ export default function LandingPage() {
               <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
               
               <div className="mt-auto">
-                <button className="w-full py-3 rounded-[100px] border border-gray-400 text-gray-900 font-bold text-sm hover:bg-gray-100 transition-colors">
+                <Link href="/psikotes/mbti" className="w-full flex items-center justify-center py-3 rounded-[100px] border border-gray-400 text-gray-900 font-bold text-sm hover:bg-gray-100 transition-colors">
                   Ikuti Tes
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -617,9 +563,9 @@ export default function LandingPage() {
               <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
               
               <div className="mt-auto">
-                <button className="w-full py-3 rounded-[100px] border border-gray-400 text-gray-900 font-bold text-sm hover:bg-gray-100 transition-colors">
+                <Link href="/psikotes/mbti-2" className="w-full flex items-center justify-center py-3 rounded-[100px] border border-gray-400 text-gray-900 font-bold text-sm hover:bg-gray-100 transition-colors">
                   Ikuti Tes
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -640,9 +586,9 @@ export default function LandingPage() {
               <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Love Language: 5 Tipe Bahasa Cinta...</h3>
               
               <div className="mt-auto">
-                <button className="w-full py-3 rounded-[100px] border border-gray-400 text-gray-900 font-bold text-sm hover:bg-gray-100 transition-colors">
+                <Link href="/psikotes/love-language" className="w-full flex items-center justify-center py-3 rounded-[100px] border border-gray-400 text-gray-900 font-bold text-sm hover:bg-gray-100 transition-colors">
                   Ikuti Tes
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -655,7 +601,7 @@ export default function LandingPage() {
       <section className="w-full bg-[#f8f7f5] py-20 lg:py-28 border-t border-gray-200">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1c352d] mb-4 tracking-tight">Kunjungi Kami</h2>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#561269] mb-4 tracking-tight">Kunjungi Kami</h2>
             <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto">
               Layanan tatap muka tersedia di klinik utama kami. Mari bertemu dan berdiskusi secara langsung.
             </p>

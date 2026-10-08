@@ -2,52 +2,106 @@
 
 import Link from "next/link"
 
-const KONSELING_DATA = Array(9).fill({
-  title: "Konsultasi individu/kelompok",
-  description: "Lorem ipsum dolor sit amet, consectetur . Lorem ipsum dolor sit amet, consectetur",
+const KONSELING_STYLES = [
+  {
+    topTitle: "KONSULTASI",
+    topSubtitle: "Individu / Kelompok",
+    bottomTitle: "Konsultasi Individu atau Kelompok",
+    bottomDescription: "Dapatkan sesi konseling tatap muka atau online bersama psikolog profesional untuk membahas permasalahan pribadi secara intensif dan privat.",
+    bgColor: "bg-[#f48520]",
+    titleColor: "text-white",
+    btnText: "Booking Sesi",
+    shape: "circles",
+  },
+  {
+    topTitle: "PEER KONSELOR",
+    topSubtitle: "Layanan Teman Sebaya",
+    bottomTitle: "Sesi Bersama Peer Konselor",
+    bottomDescription: "Layanan pendampingan santai bersama teman sebaya (peer counselor) yang terlatih untuk mendengarkan keluh kesah Anda tanpa penghakiman.",
+    bgColor: "bg-[#f0d164]",
+    titleColor: "text-gray-900",
+    btnText: "Booking Sesi",
+    shape: "circles-dark",
+  },
+  {
+    topTitle: "HIPNOTERAPI",
+    topSubtitle: "Terapi Alam Bawah Sadar",
+    bottomTitle: "Layanan Hipnoterapi",
+    bottomDescription: "Terapi mendalam yang menyasar alam bawah sadar untuk membantu mengatasi trauma, kecemasan, fobia, hingga kebiasaan buruk yang sulit dihilangkan.",
+    bgColor: "bg-[#e31e3d]",
+    titleColor: "text-white",
+    btnText: "Booking Sesi",
+    shape: "heart",
+  },
+  {
+    topTitle: "HOME VISIT",
+    topSubtitle: "Layanan Kunjungan",
+    bottomTitle: "Layanan Home Visit",
+    bottomDescription: "Layanan spesial di mana psikolog kami akan langsung mengunjungi lokasi Anda demi kenyamanan, terutama bagi klien yang kesulitan mobilitas.",
+    bgColor: "bg-[#561269]",
+    titleColor: "text-white",
+    btnText: "Booking Sesi",
+    shape: "circles",
+  },
+]
+
+// Buat array isi 9 data, berputar secara bergantian mengambil style dari KONSELING_STYLES
+const KONSELING_DATA = Array.from({ length: 9 }).map((_, index) => {
+  return KONSELING_STYLES[index % KONSELING_STYLES.length]
 })
 
 export default function KonselingPage() {
   return (
     <div className="mx-auto w-full max-w-[1200px] px-6 pt-32 pb-12 lg:pt-36 lg:pb-20 font-poppins">
-      
+
       {/* Judul Utama */}
       <h1 className="mb-8 text-center text-2xl font-bold text-[#561269] sm:text-3xl lg:mb-12 lg:text-[32px]">
         Mulai jadwalkan konsultasi dengan kami!
       </h1>
 
       {/* Container Putih */}
-      <div className="rounded-[2rem] border border-gray-200 bg-white p-6 sm:p-8 lg:p-12 shadow-sm">
-        
+      <div className="rounded-[2rem] border border-gray-100 bg-white p-6 sm:p-8 lg:p-12 shadow-sm">
+
         {/* Grid Kartu */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
           {KONSELING_DATA.map((item, index) => (
-            <div 
-              key={index} 
-              className="flex flex-col rounded-[1.25rem] border border-gray-200 bg-white p-5 shadow-sm transition-all hover:shadow-md"
+            <div
+              key={index}
+              className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full"
             >
-              {/* Image Placeholder */}
-              <div className="mb-5 h-44 w-full bg-gray-300 rounded-md"></div>
-              
-              {/* Text Content */}
-              <div className="flex flex-1 flex-col">
-                <h3 className="mb-3 text-[15px] font-bold leading-snug text-black">
-                  {item.title}
-                </h3>
-                <p className="mb-8 text-[11px] leading-relaxed text-gray-800">
-                  {item.description}
-                </p>
+              <div className={`h-40 sm:h-48 w-full ${item.bgColor} overflow-hidden relative shrink-0`}>
+                <div className="absolute inset-0 flex items-start p-6">
+                  <div className="text-left w-full">
+                    <h3 className={`${item.titleColor} font-extrabold text-[22px] sm:text-[28px] leading-[1.1] mb-2 drop-shadow-sm uppercase`}>{item.topTitle}</h3>
+                    <p className={`${item.titleColor} text-xs sm:text-sm font-medium drop-shadow-sm opacity-90`}>{item.topSubtitle}</p>
+                  </div>
+                </div>
                 
-                {/* Button */}
-                <div className="mt-auto flex justify-center">
-                  <Link 
-                    href="/booking"
-                    className="flex h-9 w-[85%] items-center justify-center gap-3 rounded-full bg-[#EAB308] px-4 transition-transform hover:scale-105"
-                  >
-                    <span className="text-[12px] font-medium text-black">Booking Sesi</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-3.5 w-3.5 text-white">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </svg>
+                {/* Shapes */}
+                {item.shape === "circles" && (
+                  <div className="absolute -bottom-4 right-0 opacity-40 mix-blend-overlay">
+                     <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="white"/><circle cx="50" cy="120" r="50" fill="white"/></svg>
+                  </div>
+                )}
+                {item.shape === "circles-dark" && (
+                  <div className="absolute -bottom-4 right-0 opacity-20 mix-blend-overlay">
+                     <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="black"/><circle cx="50" cy="120" r="50" fill="black"/></svg>
+                  </div>
+                )}
+                {item.shape === "heart" && (
+                  <div className="absolute bottom-4 right-10">
+                     <svg className="w-16 h-16 text-pink-300 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-5 sm:p-6 flex flex-col flex-1">
+                <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">{item.bottomTitle}</h3>
+                <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6">{item.bottomDescription}</p>
+                
+                <div className="mt-auto pt-2">
+                  <Link href="/booking" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                    {item.btnText}
                   </Link>
                 </div>
               </div>
