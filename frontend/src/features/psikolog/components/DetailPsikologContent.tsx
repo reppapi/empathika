@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { DetailPsikologUI } from '../data/detailDummy';
 
 interface DetailContentProps {
@@ -12,7 +11,6 @@ interface DetailContentProps {
 
 export function DetailPsikologContent({ psikolog }: DetailContentProps) {
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
-  const router = useRouter();
   const initial = psikolog.nama_gelar ? psikolog.nama_gelar.charAt(0) : 'P';
   const peran = psikolog.spesialisasi?.nama || (psikolog.category === 'konselor' ? 'Konselor' : 'Psikolog');
 
@@ -36,17 +34,6 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
 
       {/* 2. Main Content Container (Full-width fluid di Web Desktop, Adaptif & Lega) */}
       <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 mt-8 sm:mt-10 space-y-10 sm:space-y-12">
-        {/* Tombol Navigasi Kembali */}
-        <div className="-mb-4 sm:-mb-6">
-          <button
-            type="button"
-            onClick={() => (window.history.length > 1 ? router.back() : router.push('/psikolog'))}
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors"
-          >
-            ← Kembali
-          </button>
-        </div>
-        
         {/* Header Profil & Video Intro di Bagian Atas */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           

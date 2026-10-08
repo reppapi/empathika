@@ -9,9 +9,6 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
-  // Sembunyikan navbar jika sedang di halaman detail psikolog (/psikolog/1, /psikolog/2, dst)
-  const isDetailPsikolog = pathname?.startsWith("/psikolog/") && pathname !== "/psikolog"
-
   const isActive = (path: string) => {
     if (path === "/konseling" && pathname === "/booking") return true
     return pathname === path
@@ -48,11 +45,6 @@ export function Navbar() {
       document.body.style.overflow = "unset"
     }
   }, [isMobileMenuOpen])
-
-  // Jangan render navbar di halaman detail psikolog
-  if (isDetailPsikolog) {
-    return null
-  }
 
   return (
     <>
