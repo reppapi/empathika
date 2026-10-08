@@ -1,8 +1,74 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function BayarClient() {
+  const router = useRouter()
+  const [nama, setNama] = useState("")
+  const [email, setEmail] = useState("")
+  const [whatsapp, setWhatsapp] = useState("")
+  const [deskripsi, setDeskripsi] = useState("")
+  const [metodePembayaran, setMetodePembayaran] = useState<string | null>(null)
+
+  const handleSubmit = () => {
+    if (!nama || !email || !whatsapp || !deskripsi) {
+      alert("Harap isi semua data peserta terlebih dahulu.")
+      return
+    }
+    if (!metodePembayaran) {
+      alert("Harap pilih metode pembayaran terlebih dahulu.")
+      return
+    }
+    const params = new URLSearchParams({
+      nama: nama.toUpperCase(),
+      orderId: "W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
+      tanggal: "31/08",
+      tahun: "2026",
+      waktu: "13:30",
+      judul: "Layanan Konsultasi",
+      subjudul: "Psikolog Profesional Empathika",
+      bottomDate: "31 Agu 2026",
+      bottomTime: "13:30 WIB (Online)",
+    })
+    router.push(`/konseling/success?${params.toString()}`)
+  }
+
+  const paymentOptions = [
+    {
+      id: "ewallet",
+      label: "E-Wallet",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-600">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
+        </svg>
+      ),
+      type: "dropdown",
+    },
+    {
+      id: "bank",
+      label: "Transfer Bank",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-600">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.315 48.315 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
+        </svg>
+      ),
+      type: "dropdown",
+    },
+    {
+      id: "qris",
+      label: "Qris",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-600">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+        </svg>
+      ),
+      type: "radio",
+    },
+  ]
+
   return (
     <div className="relative min-h-screen w-full font-poppins bg-[#FAFAFA] pb-32">
       
@@ -70,6 +136,8 @@ export default function BayarClient() {
                 type="text" 
                 placeholder="Masukkan nama lengkap" 
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder-gray-400"
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
               />
             </div>
             
@@ -81,6 +149,8 @@ export default function BayarClient() {
                   type="email" 
                   placeholder="user@gmail.com" 
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder-gray-400"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div>
@@ -89,6 +159,8 @@ export default function BayarClient() {
                   type="tel" 
                   placeholder="08xxxxxxxxx" 
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder-gray-400"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
                 />
               </div>
             </div>
@@ -100,6 +172,8 @@ export default function BayarClient() {
                 type="text" 
                 placeholder="saya sering merasa.." 
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder-gray-400"
+                value={deskripsi}
+                onChange={(e) => setDeskripsi(e.target.value)}
               />
             </div>
           </div>
@@ -165,49 +239,37 @@ export default function BayarClient() {
           </div>
 
           <div className="flex flex-col gap-3 mb-8">
-            {/* E-Wallet */}
-            <button className="w-full flex items-center justify-between p-4 rounded-2xl border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-600">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
-                  </svg>
+            {paymentOptions.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setMetodePembayaran(opt.id)}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                  metodePembayaran === opt.id
+                    ? "border-[#561269] bg-[#F8EFFF] ring-1 ring-[#561269]"
+                    : "border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                    {opt.icon}
+                  </div>
+                  <span className="text-sm font-bold text-gray-800">{opt.label}</span>
                 </div>
-                <span className="text-sm font-bold text-gray-800">E-Wallet</span>
-              </div>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-gray-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-
-            {/* Transfer Bank */}
-            <button className="w-full flex items-center justify-between p-4 rounded-2xl border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-600">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.315 48.315 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
+                {opt.type === "dropdown" ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-gray-400">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                   </svg>
-                </div>
-                <span className="text-sm font-bold text-gray-800">Transfer Bank</span>
-              </div>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-gray-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-
-            {/* Qris */}
-            <label className="w-full flex items-center justify-between p-4 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-600">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-bold text-gray-800">Qris</span>
-              </div>
-              <input type="radio" name="payment" defaultChecked className="w-5 h-5 text-gray-600 focus:ring-gray-600" />
-            </label>
+                ) : (
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    metodePembayaran === opt.id ? "border-[#561269]" : "border-gray-300"
+                  }`}>
+                    {metodePembayaran === opt.id && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#561269]" />
+                    )}
+                  </div>
+                )}
+              </button>
+            ))}
           </div>
 
           {/* Pricing Info */}
@@ -222,12 +284,12 @@ export default function BayarClient() {
             </div>
             
             {/* Submit Button */}
-            <Link 
-              href="/konseling/success"
+            <button
+              onClick={handleSubmit}
               className="w-full bg-[#EAB308] hover:bg-[#FACC15] text-black font-bold text-sm py-4 rounded-xl shadow-sm transition-colors flex justify-center items-center"
             >
               Bayar Sekarang
-            </Link>
+            </button>
           </div>
         </div>
 
