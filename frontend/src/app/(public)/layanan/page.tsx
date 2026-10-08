@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import Image from "next/image"
 
 const CATEGORIES = [
   { id: "01", title: "Psikotes" },
