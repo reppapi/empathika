@@ -92,6 +92,8 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
             <button
               type="button"
               onClick={() => {
+                // Hapus cookie simulasi saat logout
+                document.cookie = "access_token=; path=/; max-age=0;";
                 window.location.href = "/login"
               }}
               className="inline-block w-full text-left font-normal text-white/80 transition-colors hover:text-white py-3 text-[15px]"
