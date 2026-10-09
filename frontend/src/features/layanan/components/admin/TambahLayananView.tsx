@@ -81,7 +81,8 @@ export default function TambahLayananView() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nama Layanan <span className="text-red-500">*</span>
             </label>
-            <input
+            <inputfrontend/src/features/layanan/components/admin/TambahLayananView.tsx
+
               type="text"
               placeholder="Masukkan nama layanan"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
