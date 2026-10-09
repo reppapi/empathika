@@ -1,4 +1,4 @@
-import BayarClient from "@/features/konseling/components/BayarClient"
+import BayarClient from "@/features/konseling/components/client/BayarClient"
 
 export default function BookingBayarPage() {
   return <BayarClient />

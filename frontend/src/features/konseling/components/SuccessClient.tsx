@@ -1,7 +1,2 @@
-"use client"
-
-import PaymentSuccessClient from "@/components/PaymentSuccessClient"
-
-export default function SuccessClient() {
-  return <PaymentSuccessClient type="konseling" />
-}
+// PERHATIAN: File ini sudah dipindahkan ke folder client/
+// Hapus file ini secara manual karena sistem kami tidak memiliki akses.
