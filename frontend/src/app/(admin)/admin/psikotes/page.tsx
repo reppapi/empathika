@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
@@ -984,7 +985,7 @@ export default function AdminPsikotesPage() {
                   <div className="space-y-4">
                     <div className="p-4 rounded-lg bg-gray-50 border border-gray-100">
                       <p className="text-sm text-gray-700 leading-relaxed">
-                        Berdasarkan hasil pengerjaan tes, peserta menunjukkan kecenderungan yang sesuai dengan deskripsi singkat berikut. Kemampuan adaptasi dan konsentrasi berada pada tingkat yang diharapkan dari profil "{selectedPeserta.skor}".
+                        Berdasarkan hasil pengerjaan tes, peserta menunjukkan kecenderungan yang sesuai dengan deskripsi singkat berikut. Kemampuan adaptasi dan konsentrasi berada pada tingkat yang diharapkan dari profil &quot;{selectedPeserta.skor}&quot;.
                       </p>
                     </div>
                   </div>
