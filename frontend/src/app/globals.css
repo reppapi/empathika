@@ -7,3 +7,9 @@
   --background-rgb: 255, 255, 255;
 }
 
+/* Sembunyikan default indicator kalender browser agar tidak double icon */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
