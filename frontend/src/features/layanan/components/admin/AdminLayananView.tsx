@@ -89,7 +89,7 @@ export default function AdminLayananView() {
             <input 
               type="text" 
               placeholder="Cari Layanan" 
-              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#462270] focus:border-[#462270]" 
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]" 
             />
           </div>
           <button className="flex items-center gap-2 border border-gray-200 bg-white px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
@@ -129,7 +129,7 @@ export default function AdminLayananView() {
                   <td className="px-6 py-4 text-center relative">
                     <button 
                       onClick={() => toggleDropdown(index)}
-                      className="p-1 rounded-md text-gray-600 hover:text-[#462270] hover:bg-gray-100 transition-colors"
+                      className="p-1 rounded-md text-gray-600 hover:text-[#561269] hover:bg-gray-100 transition-colors"
                     >
                       <MoreVertical className="w-5 h-5" />
                     </button>

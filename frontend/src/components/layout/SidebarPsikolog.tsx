@@ -31,30 +31,29 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
         }`}
       />
 
-      {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col bg-gradient-to-b from-[#3d0c4d] to-[#7b2d93] py-8 font-poppins text-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col overflow-y-auto bg-[#561269] py-8 font-poppins text-white shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
         <div className="flex min-h-full flex-col">
           {/* Logo */}
-          <div className="px-5 mb-6">
+          <div className="px-5 sm:px-6">
             <Link
               href="/admin/psikolog-web"
               onClick={onClose}
-              className="flex items-center gap-2"
+              className="flex items-center gap-3 transition-transform hover:scale-105"
             >
-              <div className="h-6 w-6 shrink-0 rounded-full bg-white shadow-sm" />
-              <span className="text-sm font-bold tracking-wide text-white uppercase">
-                Empathika
+              <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm" />
+              <span className="text-[25px] font-extrabold tracking-wide text-white uppercase truncate">
+                EMPATHIKA
               </span>
             </Link>
-            <div className="mt-4 h-[1px] w-full bg-white/30" />
+            <div className="mt-6 h-[1.5px] w-full bg-white/40" />
           </div>
 
           {/* Menu */}
-          <div className="flex flex-1 flex-col gap-0.5 px-0">
+          <div className="mt-6 flex flex-1 flex-col gap-1">
             {navItems.map((item) => {
               const active = isActive(item.path)
               return (
@@ -62,10 +61,10 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
                   key={item.name}
                   href={item.path as any}
                   onClick={onClose}
-                  className={`px-5 py-3 text-sm font-medium tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${
+                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${
                     active
-                      ? "bg-white/20 text-white font-semibold"
-                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                      ? "w-full bg-white/25 text-white shadow-sm font-semibold"
+                      : "text-white/90 hover:bg-white/10"
                   }`}
                 >
                   {item.name}
@@ -75,13 +74,13 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
           </div>
 
           {/* Log out */}
-          <div className="px-5 pb-4 mt-8">
+          <div className="mt-8 px-6 pb-6">
             <button
               type="button"
               onClick={() => { window.location.href = "/login" }}
-              className="text-sm text-white/60 hover:text-white transition-colors"
+              className="inline-block w-full text-left font-normal text-white/80 transition-colors hover:text-white py-3 text-[15px]"
             >
-              log out
+              Log out
             </button>
           </div>
         </div>

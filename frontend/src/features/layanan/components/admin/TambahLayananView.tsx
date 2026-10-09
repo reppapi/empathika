@@ -84,7 +84,7 @@ export default function TambahLayananView() {
             <input
               type="text"
               placeholder="Masukkan nama layanan"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#462270] focus:border-[#462270]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
             />
           </div>
 
@@ -99,7 +99,7 @@ export default function TambahLayananView() {
                   type="radio"
                   name="metode"
                   value="online"
-                  className="w-4 h-4 text-[#462270] border-gray-300 focus:ring-[#462270]"
+                  className="w-4 h-4 text-[#561269] border-gray-300 focus:ring-[#561269]"
                 />
                 <span className="text-sm text-gray-700">Online</span>
               </label>
@@ -108,7 +108,7 @@ export default function TambahLayananView() {
                   type="radio"
                   name="metode"
                   value="offline"
-                  className="w-4 h-4 text-[#462270] border-gray-300 focus:ring-[#462270]"
+                  className="w-4 h-4 text-[#561269] border-gray-300 focus:ring-[#561269]"
                 />
                 <span className="text-sm text-gray-700">Offline</span>
               </label>
@@ -116,7 +116,7 @@ export default function TambahLayananView() {
           </div>
         </div>
 
-        {/* Deskripsi Layanan (First - Textarea) */}
+        {/* Deskripsi Layanan */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Deskripsi Layanan <span className="text-red-500">*</span>
@@ -124,15 +124,15 @@ export default function TambahLayananView() {
           <textarea
             placeholder="Masukkan deskripsi mengenai layanan ini"
             rows={5}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#462270] focus:border-[#462270] resize-y"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y"
           ></textarea>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Harga Layanan - Label says Deskripsi Layanan * in the mockup */}
+          {/* Harga Layanan */}
           <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700">
-              Deskripsi Layanan <span className="text-red-500">*</span>
+              Harga Layanan <span className="text-red-500">*</span>
             </label>
             
             {/* Weekday */}
@@ -145,7 +145,7 @@ export default function TambahLayananView() {
                 <input
                   type="text"
                   placeholder="Masukkan harga"
-                  className="flex-1 block w-full px-4 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#462270] focus:border-[#462270]"
+                  className="flex-1 block w-full px-4 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
                 />
               </div>
             </div>
@@ -160,7 +160,7 @@ export default function TambahLayananView() {
                 <input
                   type="text"
                   placeholder="Masukkan harga"
-                  className="flex-1 block w-full px-4 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#462270] focus:border-[#462270]"
+                  className="flex-1 block w-full px-4 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
                 />
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function TambahLayananView() {
           </Link>
           <button
             type="submit"
-            className="px-6 py-2 bg-[#462270] hover:bg-[#381a59] text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-6 py-2 bg-[#561269] hover:bg-[#430b53] text-white rounded-lg text-sm font-medium transition-colors"
           >
             Simpan
           </button>
