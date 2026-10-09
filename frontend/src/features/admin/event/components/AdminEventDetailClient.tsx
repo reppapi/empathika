@@ -1,7 +1,8 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { DUMMY_EVENTS } from "./AdminEventClient"
+import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../data/adminEventData"
 
 // Dummy data peserta per event
 const DUMMY_PESERTA: Record<
@@ -93,154 +94,261 @@ interface Props {
 
 export default function AdminEventDetailClient({ eventId }: Props) {
   const router = useRouter()
-  const event = DUMMY_EVENTS.find((e) => e.id === eventId)
-  const pesertaList = DUMMY_PESERTA[eventId] ?? []
+  const [event, setEvent] = useState<AdminEventData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let currentEvents: AdminEventData[] = INITIAL_ADMIN_EVENTS
+    const saved = localStorage.getItem("empathika_admin_events")
+    if (saved) {
+      try {
+        currentEvents = JSON.parse(saved)
+      } catch {
+        // fallback
+      }
+    }
+
+    const found = currentEvents.find((e) => e.id === eventId)
+    setEvent(found || null)
+    setLoading(false)
+  }, [eventId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px] text-gray-400 font-poppins text-sm">
+        Memuat detail event...
+      </div>
+    )
+  }
 
   if (!event) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-gray-400 font-poppins">
         <p className="text-lg font-bold">Event tidak ditemukan.</p>
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push("/admin/event")}
           className="mt-4 text-sm text-[#561269] font-semibold hover:underline"
         >
-          ← Kembali
+          ← Kembali ke Kelola Event
         </button>
       </div>
     )
   }
 
+  // Tandai event selesai dan langsung pindah ke filter selesai
+  const handleMarkAsCompleted = () => {
+    if (!event) return
+    const confirm = window.confirm(`Tandai event "${event.judul}" sebagai Selesai?`)
+    if (!confirm) return
+
+    let currentEvents: AdminEventData[] = INITIAL_ADMIN_EVENTS
+    const saved = localStorage.getItem("empathika_admin_events")
+    if (saved) {
+      try {
+        currentEvents = JSON.parse(saved)
+      } catch {
+        // fallback
+      }
+    }
+
+    const updated = currentEvents.map((e) =>
+      e.id === event.id ? { ...e, status: "Selesai" as const } : e
+    )
+    localStorage.setItem("empathika_admin_events", JSON.stringify(updated))
+    setEvent((prev) => (prev ? { ...prev, status: "Selesai" } : null))
+    router.push("/admin/event?tab=selesai")
+  }
+
+  const pesertaList = DUMMY_PESERTA[eventId] ?? []
+
   return (
-    <div className="flex flex-col gap-6 font-poppins pb-16">
-      {/* Kembali */}
-      <button
-        onClick={() => router.back()}
-        className="text-sm text-gray-600 hover:text-[#561269] font-semibold w-fit transition-colors"
-      >
-        ← Kembali
-      </button>
-
-      {/* Judul */}
-      <h2 className="text-2xl font-extrabold text-[#561269]">
-        Daftar Peserta Event
-      </h2>
-
-      {/* Info Card Event */}
-      <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        {/* Thumbnail */}
-        <div className="h-20 w-24 shrink-0 rounded-xl bg-gray-200 flex items-center justify-center text-gray-400">
+    <div className="flex flex-col gap-6 font-poppins pb-16 w-full">
+      {/* ── Top Bar: Kembali, Tombol Selesai & Tombol Edit ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => router.push("/admin/event")}
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#561269] font-semibold transition-colors"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
-            strokeWidth={1.5}
+            strokeWidth={2}
             stroke="currentColor"
-            className="w-8 h-8 opacity-40"
+            className="w-4 h-4"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
           </svg>
+          Kembali ke Event
+        </button>
+
+        <div className="flex items-center gap-2.5">
+          {/* Tombol Selesai (hanya jika belum selesai atau untuk mengubah status langsung) */}
+          <button
+            type="button"
+            onClick={handleMarkAsCompleted}
+            className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95 ${
+              event.status === "Selesai"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.2}
+              stroke="currentColor"
+              className="h-4 w-4"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            {event.status === "Selesai" ? "Event Telah Selesai" : "Selesai"}
+          </button>
+
+          {/* Tombol Edit Event */}
+          <button
+            type="button"
+            onClick={() => router.push(`/admin/event/edit/${event.id}`)}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#561269] hover:bg-[#6f1b87] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-4 w-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"
+              />
+            </svg>
+            Edit Event
+          </button>
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-extrabold text-[#561269]">
+        Detail & Daftar Peserta Event
+      </h2>
+
+      {/* ── Info Card Event (Full Width & Informatif) ── */}
+      <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col md:flex-row gap-6 items-start">
+        {/* Banner / Poster Thumbnail */}
+        <div className="w-full md:w-56 h-40 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden border border-gray-200">
+          {event.bannerUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.bannerUrl}
+              alt={event.judul}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-12 h-12 opacity-30"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+              />
+            </svg>
+          )}
         </div>
 
-        {/* Info */}
-        <div className="flex flex-col gap-2 flex-1">
-          <p className="text-base font-extrabold text-gray-900">{event.judul}</p>
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600 font-medium">
-            {/* Tanggal */}
-            <span className="flex items-center gap-1.5">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="h-3.5 w-3.5 text-gray-500"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
-                />
-              </svg>
-              {event.tanggal}
+        {/* Info Detail */}
+        <div className="flex flex-col gap-3 flex-1 w-full">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-block rounded-xl bg-purple-100 px-3 py-1 text-xs font-bold text-[#561269]">
+              {event.jenis}
             </span>
-            {/* Waktu */}
-            <span className="flex items-center gap-1.5">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="h-3.5 w-3.5 text-gray-500"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
-              {event.waktu} WIB
-            </span>
-            {/* Lokasi */}
-            <span className="flex items-center gap-1.5">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="h-3.5 w-3.5 text-gray-500"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
-                />
-              </svg>
-              Jica FPMIPA UPI
+            <span
+              className={`inline-block rounded-xl px-3 py-1 text-xs font-semibold ${
+                event.status === "Dipublikasi"
+                  ? "bg-green-100 text-green-700"
+                  : event.status === "Draft"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {event.status}
             </span>
           </div>
-          <div className="flex gap-4 text-xs font-medium text-gray-700 mt-1">
-            <span>
-              <span className="font-semibold text-gray-900">Kuota:</span>{" "}
-              {event.totalTiket} peserta
-            </span>
-            <span>
-              Terdaftar:{" "}
-              <span className="font-bold text-gray-900">
-                {pesertaList.length} peserta
+
+          <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-snug">
+            {event.judul}
+          </h3>
+
+          {event.deskripsi && (
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {event.deskripsi}
+            </p>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 text-xs text-gray-700">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 font-medium">Pembicara:</span>
+              <span className="font-semibold text-gray-900">{event.pembicara}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 font-medium">Jadwal:</span>
+              <span className="font-semibold text-gray-900">{event.tanggal} ({event.waktu})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 font-medium">Lokasi:</span>
+              <span className="font-semibold text-gray-900">{event.lokasi || "Jica FPMIPA UPI"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 font-medium">Kuota:</span>
+              <span className="font-semibold text-gray-900">{event.totalTiket} peserta</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 font-medium">Terdaftar:</span>
+              <span className="font-semibold text-[#561269]">{pesertaList.length} peserta</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 font-medium">Harga Tiket:</span>
+              <span className="font-semibold text-gray-900">
+                {event.harga && event.harga !== "0"
+                  ? `Rp ${parseInt(event.harga, 10).toLocaleString("id-ID")}`
+                  : "Gratis"}
               </span>
-            </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tabel Peserta */}
-      <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      {/* ── Tabel Peserta Event (Full Width) ── */}
+      <div className="w-full rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] overflow-hidden">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <h4 className="text-lg font-bold text-gray-900">Daftar Peserta Terdaftar</h4>
+          <span className="text-xs text-gray-500 font-medium">
+            Total {pesertaList.length} peserta
+          </span>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left border-collapse text-xs sm:text-sm">
-            {/* Head */}
+          <table className="w-full min-w-[700px] text-left border-collapse text-xs sm:text-sm">
             <thead>
               <tr className="bg-[#D3C4D8] text-gray-800 font-bold">
-                <th className="py-4 px-5 w-12">No</th>
-                <th className="py-4 px-4">Nama</th>
-                <th className="py-4 px-4">No WhatsApp</th>
-                <th className="py-4 px-4">Email</th>
-                <th className="py-4 px-4">Tanggal Daftar</th>
+                <th className="py-4 px-5 w-14">No</th>
+                <th className="py-4 px-5">Nama</th>
+                <th className="py-4 px-5">No WhatsApp</th>
+                <th className="py-4 px-5">Email</th>
+                <th className="py-4 px-5">Tanggal Daftar</th>
                 <th className="py-4 px-5 text-center">Status Pembayaran</th>
               </tr>
             </thead>
 
-            {/* Body */}
             <tbody className="divide-y divide-gray-200">
               {pesertaList.length === 0 ? (
                 <tr>
@@ -248,7 +356,7 @@ export default function AdminEventDetailClient({ eventId }: Props) {
                     colSpan={6}
                     className="py-14 text-center text-gray-400 font-medium"
                   >
-                    Belum ada peserta terdaftar.
+                    Belum ada peserta terdaftar untuk event ini.
                   </td>
                 </tr>
               ) : (
@@ -260,12 +368,12 @@ export default function AdminEventDetailClient({ eventId }: Props) {
                     <td className="py-4 px-5 text-gray-600 font-medium">
                       {peserta.no}
                     </td>
-                    <td className="py-4 px-4 font-semibold text-gray-900">
+                    <td className="py-4 px-5 font-bold text-gray-900">
                       {peserta.nama}
                     </td>
-                    <td className="py-4 px-4 text-gray-700">{peserta.noWa}</td>
-                    <td className="py-4 px-4 text-gray-700">{peserta.email}</td>
-                    <td className="py-4 px-4 text-gray-600 whitespace-pre-line leading-snug">
+                    <td className="py-4 px-5 text-gray-700">{peserta.noWa}</td>
+                    <td className="py-4 px-5 text-gray-700">{peserta.email}</td>
+                    <td className="py-4 px-5 text-gray-600 whitespace-pre-line leading-snug">
                       {peserta.tanggalDaftar}
                     </td>
                     <td className="py-4 px-5 text-center">
