@@ -15,7 +15,7 @@ export default function LayananClient() {
     if (categoryQuery && categoryQuery !== activeCategory) {
       setActiveCategory(categoryQuery)
     }
-  }, [categoryQuery])
+  }, [categoryQuery, activeCategory])
 
   const handleCategoryChange = (id: string) => {
     setActiveCategory(id)
