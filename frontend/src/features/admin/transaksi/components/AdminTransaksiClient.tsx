@@ -260,9 +260,9 @@ export default function AdminTransaksiClient() {
         {/* ── 3. Grid Konten Transaksi (Terbagi 2 Kolom: Kiri untuk List, Kanan untuk Detail) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* ════ Kolom Kiri: Daftar Transaksi (7 Kolom di lg) ════ */}
-          <div className="lg:col-span-7 flex flex-col rounded-3xl border border-gray-200/90 bg-white overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+          <div className="lg:col-span-7 flex flex-col rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] relative">
             {/* Header List (Background Ungu Muda) */}
-            <div className="bg-[#EFE8F3] px-5 py-3.5 flex items-center justify-between border-b border-purple-100">
+            <div className="bg-[#EFE8F3] px-5 py-3.5 flex items-center justify-between border-b border-purple-100 rounded-t-3xl">
               <div className="flex items-center gap-2">
                 {/* Button: Semua */}
                 <button
@@ -305,10 +305,10 @@ export default function AdminTransaksiClient() {
                 {isFilterOpen && (
                   <>
                     <div
-                      className="fixed inset-0 z-30"
+                      className="fixed inset-0 z-40"
                       onClick={() => setIsFilterOpen(false)}
                     />
-                    <div className="absolute right-0 top-12 z-40 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl ring-1 ring-black/5 text-left text-xs font-semibold">
+                    <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold">
                       <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400">
                         Filter Layanan
                       </p>
@@ -351,7 +351,7 @@ export default function AdminTransaksiClient() {
             </div>
 
             {/* List Item Transaksi */}
-            <div className="divide-y divide-gray-100 max-h-[680px] overflow-y-auto">
+            <div className="divide-y divide-gray-100 max-h-[680px] overflow-y-auto rounded-b-3xl">
               {filteredTransaksi.length === 0 ? (
                 <div className="p-12 text-center text-gray-400 text-sm">
                   Tidak ada transaksi yang cocok dengan filter.
