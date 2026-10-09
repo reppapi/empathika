@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
-import { CATEGORIES, SERVICES_DATA } from "../data/layananData"
+import { CATEGORIES, SERVICES_DATA } from "../../data/layananData"
 
 export default function LayananClient() {
   const searchParams = useSearchParams()

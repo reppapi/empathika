@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import LayananClient from "@/features/layanan/components/LayananClient"
+import LayananClient from "@/features/layanan/components/client/LayananClient"
 
 export default function LayananPage() {
   return (

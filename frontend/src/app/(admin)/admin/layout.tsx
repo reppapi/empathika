@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   else if (pathname?.startsWith("/admin/psikotes")) pageTitle = "Psikotes"
   else if (pathname?.startsWith("/admin/pengaturan")) pageTitle = "Pengaturan Biro"
   else if (pathname?.startsWith("/admin/blog")) pageTitle = "Kelola Blog Empathika"
-  else if (pathname?.startsWith("/admin/layanan")) pageTitle = "Layanan"
+  else if (pathname?.startsWith("/admin/layanan")) pageTitle = "Kelola Layanan Konsultasi"
   else if (pathname?.startsWith("/admin/kerja-sama")) pageTitle = "Kerja Sama"
 
   return (
