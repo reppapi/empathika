@@ -18,7 +18,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/admin/psikolog": "Kelola Data Psikolog",
   "/admin/psikotes": "Kelola Psikotes",
   "/admin/pengaturan": "Pengaturan Biro",
-  "/admin/blog": "Kelola Blog",
+  "/admin/blog": "Kelola Blog Empathika",
   "/admin/layanan": "Kelola Layanan Konsultasi",
   "/admin/kerja-sama": "Kelola Kerja Sama",
   "/admin/profile": "Pengaturan Profil Admin",
