@@ -1,160 +1,238 @@
 "use client"
 
-import { ChevronLeft } from "lucide-react"
+import { CloudUpload, X } from "lucide-react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 import { CATEGORIES } from "../../data/layananData"
 
 export default function TambahLayananView() {
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const defaultCategory = searchParams.get("category") || "02"
-  
-  // Hanya ambil kategori Asesmen (05), Konsultasi (02), Pelatihan Peer Helper (03)
-  const allowedCategories = ["05", "02", "03"]
-  
-  const [formData, setFormData] = useState({
-    kategori_layanan_id: defaultCategory,
-    nama_layanan: "",
-    metode_pelaksanaan: "Online/Offline",
-    harga_weekday: "",
-    harga_weekend: "",
-    deskripsi: ""
-  })
+  const initialCategory = searchParams.get("category") || ""
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Implementasi simpan data ke backend
-    console.log(formData)
-    router.push("/admin/layanan")
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (initialCategory && !selectedCategory) {
+      setSelectedCategory(initialCategory)
+    }
+  }, [initialCategory])
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Ukuran file maksimal 2MB")
+        return
+      }
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveImage = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto font-poppins pb-10">
-      
-      {/* Header with Back Button */}
-      <div className="flex items-center gap-4">
-        <Link href="/admin/layanan">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ChevronLeft className="w-5 h-5 text-gray-700" />
-          </button>
-        </Link>
+    <div className="bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 p-6 md:p-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-gray-800">Form Input Layanan</h1>
+        <p className="text-sm text-gray-500 mt-1">Isi data layanan dibawah ini dengan lengkap</p>
+      </div>
+
+      <div className="w-full h-px bg-gray-200 mb-6"></div>
+
+      <form className="space-y-6">
+        {/* Kategori Layanan */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tambah Layanan</h1>
-          <p className="text-sm text-gray-500 mt-1">Tambahkan layanan baru ke dalam sistem Empathika.</p>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Kategori Layanan <span className="text-red-500">*</span>
+          </label>
+          <select 
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white"
+          >
+            <option value="" disabled>Pilih kategori layanan</option>
+            {CATEGORIES.filter(cat => ["02", "03", "05"].includes(cat.id)).map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.title}</option>
+            ))}
+          </select>
         </div>
-      </div>
 
-      {/* Form Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          
-          {/* Kategori Layanan (Select) */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-gray-700">Kategori Layanan <span className="text-red-500">*</span></label>
-            <select 
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] transition-all bg-white"
-              value={formData.kategori_layanan_id}
-              onChange={(e) => setFormData({...formData, kategori_layanan_id: e.target.value})}
-              required
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Nama Layanan */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nama Layanan <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Masukkan nama layanan"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+            />
+          </div>
+
+          {/* Metode Pelaksanaan */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Metode pelaksanaan <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-6 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="metode"
+                  value="online"
+                  className="w-4 h-4 text-[#561269] border-gray-300 focus:ring-[#561269]"
+                />
+                <span className="text-sm text-gray-700">Online</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="metode"
+                  value="offline"
+                  className="w-4 h-4 text-[#561269] border-gray-300 focus:ring-[#561269]"
+                />
+                <span className="text-sm text-gray-700">Offline</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Deskripsi Layanan */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Deskripsi Layanan <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            placeholder="Masukkan deskripsi mengenai layanan ini"
+            rows={5}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y"
+          ></textarea>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Harga Layanan */}
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Harga Layanan <span className="text-red-500">*</span>
+            </label>
+            
+            {/* Weekday */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Weekday (Senin - Jumat)</label>
+              <div className="flex rounded-lg shadow-sm">
+                <span className="inline-flex items-center px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                  Rp
+                </span>
+                <input
+                  type="text"
+                  placeholder="Masukkan harga"
+                  className="flex-1 block w-full px-4 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+                />
+              </div>
+            </div>
+
+            {/* Weekend */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Weekend (Sabtu - Minggu)</label>
+              <div className="flex rounded-lg shadow-sm">
+                <span className="inline-flex items-center px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                  Rp
+                </span>
+                <input
+                  type="text"
+                  placeholder="Masukkan harga"
+                  className="flex-1 block w-full px-4 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Poster / Banner Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Poster / Banner Layanan <span className="text-red-500">*</span>
+            </label>
+            <div 
+              className={`mt-1 flex justify-center border-2 ${imagePreview ? 'border-solid border-gray-200 p-2' : 'border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100'} rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
+              onClick={handleImageClick}
+              style={{ minHeight: '160px' }}
             >
-              <option value="" disabled>Pilih Kategori Layanan</option>
-              {CATEGORIES.filter(c => allowedCategories.includes(c.id)).map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.title}</option>
-              ))}
-            </select>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Grid for Name & Metode */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">Nama Layanan <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                placeholder="Contoh: Konseling Individu" 
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] transition-all"
-                value={formData.nama_layanan}
-                onChange={(e) => setFormData({...formData, nama_layanan: e.target.value})}
-                required
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/jpeg, image/png"
+                className="hidden"
               />
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">Metode Pelaksanaan <span className="text-red-500">*</span></label>
-              <select 
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] transition-all bg-white"
-                value={formData.metode_pelaksanaan}
-                onChange={(e) => setFormData({...formData, metode_pelaksanaan: e.target.value})}
-                required
-              >
-                <option value="Online">Online</option>
-                <option value="Offline">Offline</option>
-                <option value="Online/Offline">Online & Offline</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Grid for Harga */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">Harga Weekday (Rp) <span className="text-red-500">*</span></label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">Rp</span>
-                <input 
-                  type="number" 
-                  placeholder="350000" 
-                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] transition-all"
-                  value={formData.harga_weekday}
-                  onChange={(e) => setFormData({...formData, harga_weekday: e.target.value})}
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">Harga Weekend (Rp)</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">Rp</span>
-                <input 
-                  type="number" 
-                  placeholder="450000" 
-                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] transition-all"
-                  value={formData.harga_weekend}
-                  onChange={(e) => setFormData({...formData, harga_weekend: e.target.value})}
-                />
-              </div>
+              
+              {imagePreview ? (
+                <div className="relative w-full h-full min-h-[200px] flex items-center justify-center bg-gray-100 rounded-md">
+                  <Image 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    fill
+                    className="object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2 text-center my-auto">
+                  <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
+                  <div className="text-sm text-gray-600">
+                    Upload gambar poster / banner
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Format: JPG, PNG (Max. 2MB)
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-gray-700">Deskripsi Layanan</label>
-            <textarea 
-              rows={4}
-              placeholder="Tuliskan deskripsi singkat mengenai layanan ini..."
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] transition-all resize-y"
-              value={formData.deskripsi}
-              onChange={(e) => setFormData({...formData, deskripsi: e.target.value})}
-            ></textarea>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
-            <Link href="/admin/layanan">
-              <button type="button" className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                Batal
-              </button>
-            </Link>
-            <button type="submit" className="px-6 py-2.5 bg-[#561269] text-white font-medium rounded-lg text-sm hover:bg-[#430b53] transition-colors shadow-sm">
-              Simpan Layanan
+        {/* Buttons */}
+        <div className="flex justify-end gap-3 pt-6">
+          <Link href="/admin/layanan">
+            <button
+              type="button"
+              className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Kembali
             </button>
-          </div>
-
-        </form>
-      </div>
-
+          </Link>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-[#561269] hover:bg-[#430b53] text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Simpan
+          </button>
+        </div>
+      </form>
     </div>
   )
 }
