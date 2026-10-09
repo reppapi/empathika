@@ -1,11 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useSearchParams, useRouter } from "next/navigation"
 import { CATEGORIES, SERVICES_DATA } from "../data/layananData"
 
 export default function LayananClient() {
-  const [activeCategory, setActiveCategory] = useState("02") // Default ke Konsultasi sesuai gambar
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const categoryQuery = searchParams.get("category")
+  const [activeCategory, setActiveCategory] = useState(categoryQuery || "02") // Default ke Konsultasi
+
+  useEffect(() => {
+    if (categoryQuery && categoryQuery !== activeCategory) {
+      setActiveCategory(categoryQuery)
+    }
+  }, [categoryQuery])
+
+  const handleCategoryChange = (id: string) => {
+    setActiveCategory(id)
+    router.replace(`/layanan?category=${id}`, { scroll: false })
+  }
 
   const renderServiceCard = (service: any, idx: number) => {
     return (
@@ -64,7 +79,7 @@ export default function LayananClient() {
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
                 className="group flex flex-col items-start text-left transition-all"
               >
                 <span
@@ -88,8 +103,8 @@ export default function LayananClient() {
 
         {/* Kolom Kanan: Detail Layanan (BISA SCROLL INTERNAL) */}
         <div className="flex w-full flex-col overflow-visible py-3 lg:absolute lg:top-0 lg:right-0 lg:w-[62%] lg:h-full lg:py-0">
-          {/* Card Utama */}
-          <div className="flex h-full flex-col rounded-[2rem] border border-gray-100 bg-white shadow-sm p-6 sm:p-8">
+          {/* Card Utama (Sesuai Desain Mockup) */}
+          <div className="flex h-full flex-col rounded-2xl border border-gray-300 bg-white shadow-[0px_4px_16px_rgba(0,0,0,0.1)] p-6 sm:p-8">
 
             {/* Header Card Utama */}
             <div className="mb-6 shrink-0">

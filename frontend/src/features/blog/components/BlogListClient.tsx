@@ -16,10 +16,10 @@ export default function BlogListClient() {
 
   const filtered = searchQuery.trim()
     ? BLOG_POSTS.filter(
-        (p) =>
-          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      (p) =>
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : BLOG_POSTS;
 
   const totalPages = Math.ceil(filtered.length / POSTS_PER_PAGE);
@@ -118,9 +118,13 @@ export default function BlogListClient() {
                           <Eye size={14} />
                           {post.views} Tampilan
                         </span>
-                        <button className={styles.cardLikeBtn} aria-label="Suka">
+                        <div 
+                          className={styles.cardLikeBtn} 
+                          aria-label="Suka" 
+                          onClick={(e) => e.preventDefault()}
+                        >
                           <Heart size={18} />
-                        </button>
+                        </div>
                       </div>
                     </div>
                   </div>

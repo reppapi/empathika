@@ -1,3 +1,5 @@
+import DashboardAdmin from "@/features/dashboard/admin/DashboardAdmin"
+
 export default function AdminDashboardPage() {
-  return <div>Dashboard Admin - Ringkasan</div>
+  return <DashboardAdmin />
 }
