@@ -3,4 +3,3 @@ import AdminLayananView from "@/features/layanan/components/admin/AdminLayananVi
 export default function AdminLayananPage() {
   return <AdminLayananView />
 }
-

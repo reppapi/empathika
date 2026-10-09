@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, Eye, Heart, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, Eye, Heart, ChevronLeft, ChevronRight, X, ArrowRight } from 'lucide-react';
 import { BLOG_POSTS } from '@/features/blog/data/blogData';
 import styles from './BlogList.module.css';
 
@@ -118,12 +118,18 @@ export default function BlogListClient() {
                           <Eye size={14} />
                           {post.views} Tampilan
                         </span>
-                        <div 
-                          className={styles.cardLikeBtn} 
-                          aria-label="Suka" 
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <Heart size={18} />
+                        <div className={styles.cardFooterRight}>
+                          <span className={styles.readMoreLink}>
+                            Lihat Selengkapnya
+                            <ArrowRight size={14} className={styles.readMoreArrow} />
+                          </span>
+                          <div 
+                            className={styles.cardLikeBtn} 
+                            aria-label="Suka" 
+                            onClick={(e) => e.preventDefault()}
+                          >
+                            <Heart size={18} />
+                          </div>
                         </div>
                       </div>
                     </div>

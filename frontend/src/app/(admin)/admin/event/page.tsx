@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import AdminEventClient from "@/features/admin/event/components/AdminEventClient"
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 }
 
 export default function AdminEventPage() {
-  return <AdminEventClient />
+  return (
+    <Suspense fallback={<div className="p-6 text-gray-400 font-poppins text-sm">Memuat daftar event...</div>}>
+      <AdminEventClient />
+    </Suspense>
+  )
 }
