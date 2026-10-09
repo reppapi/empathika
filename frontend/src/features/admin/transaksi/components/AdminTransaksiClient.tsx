@@ -24,9 +24,9 @@ export default function AdminTransaksiClient() {
   // Transaksi yang dipilih untuk ditampilkan di kolom kanan
   const [selectedItem, setSelectedItem] = useState<TransaksiItem>(DUMMY_TRANSAKSI[0])
 
-  // Filter Data
+  // Filter & Urutkan Data (dari tanggal/waktu yang lama ke terbaru)
   const filteredTransaksi = useMemo(() => {
-    return DUMMY_TRANSAKSI.filter((item) => {
+    const list = DUMMY_TRANSAKSI.filter((item) => {
       // 1. Filter Layanan
       if (selectedLayanan !== "semua" && item.jenisLayanan !== selectedLayanan) {
         return false
@@ -45,6 +45,11 @@ export default function AdminTransaksiClient() {
       }
 
       return true
+    })
+
+    // Urutkan dari yang lama sampai yang terbaru (Ascending)
+    return list.sort((a, b) => {
+      return a.tanggalTransaksi.localeCompare(b.tanggalTransaksi)
     })
   }, [selectedLayanan, selectedDate, selectedMonth])
 
@@ -148,9 +153,9 @@ export default function AdminTransaksiClient() {
               }}
               className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer appearance-none"
             >
+              <option value="2026-08">Agustus 2026</option>
               <option value="2026-09">September 2026</option>
               <option value="2026-10">Oktober 2026</option>
-              <option value="2026-08">Agustus 2026</option>
               <option value="">Semua Bulan</option>
             </select>
             <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -363,14 +368,15 @@ export default function AdminTransaksiClient() {
                     <div
                       key={item.id}
                       onClick={() => setSelectedItem(item)}
-                      className={`relative p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 border-l-[5px] ${isSelected
-                          ? "bg-[#F7F0FA] border-l-[#561269] shadow-[inset_4px_0_0_0_#561269]"
-                          : "border-l-transparent hover:bg-gray-50/90"
-                        }`}
+                      className={`relative p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "bg-[#F7F0FA]"
+                          : "hover:bg-gray-50/90"
+                      }`}
                     >
-                      {/* Indikator Garis Ungu di Pinggir Kiri (seperti Karen Sya) */}
+                      {/* Indikator Garis Ungu Tua Tipis di Pinggir Kiri (Penuh dari atas sampai bawah item tanpa jeda/batasan) */}
                       {isSelected && (
-                        <div className="absolute left-0 top-0 bottom-0 w-[5px] bg-[#561269] rounded-r-sm" />
+                        <div className="absolute inset-y-0 left-0 w-[5px] bg-[#561269]" />
                       )}
                       {/* Sisi Kiri Informasi */}
                       <div className="flex flex-col gap-1">
