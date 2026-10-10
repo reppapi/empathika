@@ -12,6 +12,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   let pageTitle = "Beranda"
   if (pathname === "/admin/psikolog-web") pageTitle = "Beranda"
   else if (pathname?.startsWith("/admin/psikolog-web/jadwal")) pageTitle = "Jadwal & Sesi"
+  else if (pathname?.startsWith("/admin/psikolog-web/profile")) pageTitle = "Profil Saya"
 
   return (
     <div className="min-h-screen bg-[#FBFBFC] font-poppins text-gray-800 flex">

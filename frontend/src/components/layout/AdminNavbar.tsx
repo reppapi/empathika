@@ -17,7 +17,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/admin/transaksi": "Riwayat Transaksi & Pembayaran",
   "/admin/psikolog": "Kelola Data Psikolog",
   "/admin/psikotes": "Kelola Psikotes",
-  "/admin/pengaturan": "Pengaturan Biro",
   "/admin/blog": "Kelola Blog Empathika",
   "/admin/layanan": "Kelola Layanan Konsultasi",
   "/admin/kerja-sama": "Kelola Kerja Sama",
@@ -114,7 +113,7 @@ export function AdminNavbar({
               <p className="text-[10px] text-gray-400">{subtitle}</p>
             </div>
             <a
-              href="/admin/profile"
+              href={pathname?.startsWith("/admin/psikolog-web") ? "/admin/psikolog-web/profile" : "/admin/profile"}
               onClick={() => setDropdownOpen(false)}
               className="block px-4 py-2 text-xs font-medium text-gray-700 hover:bg-purple-50 hover:text-[#561269]"
             >
