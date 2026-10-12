@@ -170,13 +170,15 @@ export default function TabHeroKontak({
               }
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs"
             />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Nomor ini digunakan untuk kontak web serta link chat langsung calon mitra Program Affiliate.
+            </p>
           </div>
         </div>
         <p className="text-[11px] text-gray-400 mt-3">
           💡{" "}
           <em>
-            Catatan: Seluruh link formulir kerja sama kini sudah terhubung otomatis ke sistem
-            formulir internal Empathika.
+            Catatan: Calon mitra Affiliate langsung diarahkan ke kontak WhatsApp di atas tanpa mengisi formulir web. Formulir web hanya berlaku untuk In House Training, Asesmen & Tes, serta Kerjasama Lainnya.
           </em>
         </p>
       </div>

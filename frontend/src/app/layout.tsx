@@ -21,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id">
-      <body className={`${poppins.className} ${poppins.variable} antialiased bg-gray-50`}>
+    <html lang="id" suppressHydrationWarning>
+      <body className={`${poppins.className} ${poppins.variable} antialiased bg-gray-50`} suppressHydrationWarning>
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>
         </QueryProvider>

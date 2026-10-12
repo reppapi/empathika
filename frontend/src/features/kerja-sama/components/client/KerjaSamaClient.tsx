@@ -7,8 +7,10 @@ import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
 export default function KerjaSamaClient() {
   const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS);
   const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     setItems(getKerjaSamaItems());
     setConfig(getKerjaSamaConfig());
   }, []);
@@ -36,8 +38,12 @@ export default function KerjaSamaClient() {
     },
   };
 
-  // Filter hanya program yang statusnya AKTIF (tombol Tampil menyala di admin)
-  const activeItems: KerjaSamaItem[] = items.filter((it) => it.status === "AKTIF");
+  // Hanya filter status aktif setelah mounted di client agar SSR & client initial render selalu identik
+  const activeItems: KerjaSamaItem[] = isMounted
+    ? items.filter((it) => it.status === "AKTIF")
+    : INITIAL_KERJASAMA_ITEMS;
+
+  const currentConfig: KerjaSamaPageConfig = isMounted ? config : INITIAL_KERJASAMA_CONFIG;
 
   const defaultIcon = {
     icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
@@ -55,20 +61,20 @@ export default function KerjaSamaClient() {
         <div className="flex flex-col items-center gap-6">
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#2a0835] text-center leading-[1.1] tracking-tight">
-            {config.heroTitle || "Bangun Kolaborasi"} <br />
+            {currentConfig.heroTitle || "Bangun Kolaborasi"} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#561269] to-[#8e4a9e]">
-              {config.heroHighlight || "Bersama Empathika!"}
+              {currentConfig.heroHighlight || "Bersama Empathika!"}
             </span>
           </h1>
           
           <p className="text-gray-800 text-sm md:text-base leading-relaxed text-center font-light">
-            {config.heroDescription1 || "Lorem ipsum dolor sit amet, consectetur adipiscing elit."}
+            {currentConfig.heroDescription1 || "Lorem ipsum dolor sit amet, consectetur adipiscing elit."}
           </p>
           
-          {config.heroBannerImage ? (
+          {currentConfig.heroBannerImage ? (
             <div className="w-full h-48 md:h-80 rounded-lg mt-4 mb-4 overflow-hidden relative shadow-sm border border-gray-100 bg-gray-100">
               <img
-                src={config.heroBannerImage}
+                src={currentConfig.heroBannerImage}
                 alt="Banner Kerja Sama Empathika"
                 className="w-full h-full object-cover"
               />
@@ -78,7 +84,7 @@ export default function KerjaSamaClient() {
           )}
           
           <p className="text-gray-800 text-sm md:text-base leading-relaxed text-center font-light mb-4">
-            {config.heroDescription2 || "Lorem ipsum dolor sit amet, consectetur adipiscing elit."}
+            {currentConfig.heroDescription2 || "Lorem ipsum dolor sit amet, consectetur adipiscing elit."}
           </p>
           
           <div className="w-full text-center mt-2 mb-2">
@@ -128,14 +134,22 @@ export default function KerjaSamaClient() {
             <ul className="text-sm md:text-base text-gray-800 space-y-1.5">
               <li>
                 Email:{" "}
-                <a href="mailto:partnership@empathika.com" className="text-[#561269] hover:underline font-medium">
-                  partnership@empathika.com
+                <a
+                  href={`mailto:${currentConfig.kontak?.email || "partnership@empathika.com"}`}
+                  className="text-[#561269] hover:underline font-medium"
+                >
+                  {currentConfig.kontak?.email || "partnership@empathika.com"}
                 </a>
               </li>
               <li>
                 Whatsapp:{" "}
-                <a href="https://wa.me/6282123456789" target="_blank" rel="noreferrer" className="text-[#561269] hover:underline font-medium">
-                  +62 821-2345-6789
+                <a
+                  href={`https://wa.me/${(currentConfig.kontak?.whatsapp || "6282123456789").replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#561269] hover:underline font-medium"
+                >
+                  {currentConfig.kontak?.whatsapp || "+62 821-2345-6789"}
                 </a>
               </li>
               <li>
@@ -151,10 +165,19 @@ export default function KerjaSamaClient() {
                 </Link>
               </li>
               <li>
-                <Link href="/kerja-sama/formulir/affiliate" className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1">
-                  <span>Formulir Affiliate: (Langsung ke kontak)</span>
-                  <span className="text-[#561269] underline font-medium">Isi Formulir</span>
-                </Link>
+                <a
+                  href={`https://wa.me/${(currentConfig.kontak?.whatsapp || "6282123456789").replace(/\D/g, "")}?text=${encodeURIComponent(
+                    "Halo Tim Partnership Empathika, saya tertarik untuk bermitra dan berdiskusi seputar Program Affiliate Empathika."
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1"
+                >
+                  <span>Affiliate: (Langsung Hubungi Kontak WhatsApp)</span>
+                  <span className="text-emerald-700 font-semibold underline inline-flex items-center gap-0.5">
+                    Chat WhatsApp
+                  </span>
+                </a>
               </li>
               <li>
                 <Link href="/kerja-sama/formulir/lainnya" className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1">
