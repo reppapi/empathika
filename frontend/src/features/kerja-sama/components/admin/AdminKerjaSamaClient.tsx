@@ -19,6 +19,7 @@ import {
   saveFormulirConfigs,
   INITIAL_KERJASAMA_ITEMS,
   INITIAL_KERJASAMA_CONFIG,
+  INITIAL_PENGAJUAN_KERJASAMA,
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 
@@ -45,12 +46,13 @@ export default function AdminKerjaSamaClient() {
   )
 
   // State data utama
-  const [items, setItems] = useState<KerjaSamaItem[]>([])
+  const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS)
   const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG)
-  const [leads, setLeads] = useState<PengajuanKerjaSama[]>([])
+  const [leads, setLeads] = useState<PengajuanKerjaSama[]>(INITIAL_PENGAJUAN_KERJASAMA)
   const [formConfigs, setFormConfigs] = useState<FormulirConfigItem[]>(INITIAL_FORMULIR_CONFIGS)
   const [selectedFormIndex, setSelectedFormIndex] = useState<number>(0)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
 
   // State Tambah Pertanyaan Baru Formulir
   const [isAddingQuestion, setIsAddingQuestion] = useState(false)
@@ -81,6 +83,7 @@ export default function AdminKerjaSamaClient() {
   const [selectedLead, setSelectedLead] = useState<PengajuanKerjaSama | null>(null)
 
   useEffect(() => {
+    setIsMounted(true)
     setItems(getKerjaSamaItems())
     setConfig(getKerjaSamaConfig())
     setLeads(getPengajuanKerjaSama())

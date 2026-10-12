@@ -51,7 +51,7 @@ export default function TabKelolaFormulir({
           Pilih salah satu formulir di bawah untuk mengubah judul, deskripsi, serta menambah atau
           menghapus butir pertanyaan.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {formConfigs.map((fc, idx) => (
             <button
               key={fc.id}
@@ -59,7 +59,7 @@ export default function TabKelolaFormulir({
                 setSelectedFormIndex(idx)
                 setIsAddingQuestion(false)
               }}
-              className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
+              className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
                 selectedFormIndex === idx
                   ? "border-[#561269] bg-purple-50/70 ring-2 ring-[#561269]/20"
                   : "border-gray-200 hover:border-gray-300 bg-white"
@@ -71,6 +71,15 @@ export default function TabKelolaFormulir({
               </span>
             </button>
           ))}
+        </div>
+
+        {/* Banner Info Khusus Affiliate */}
+        <div className="mt-4 p-3.5 rounded-xl bg-purple-50/70 border border-purple-100 flex items-start sm:items-center gap-3">
+          <span className="text-base sm:text-lg shrink-0">💬</span>
+          <div className="text-xs text-gray-700">
+            <span className="font-bold text-[#561269]">Program Affiliate: </span>
+            Calon mitra Affiliate tidak perlu mengisi formulir di web dan langsung diarahkan untuk menghubungi WhatsApp Official Empathika. Nomor kontak dapat disesuaikan di tab <strong>Pengaturan Teks & Kontak Web</strong>.
+          </div>
         </div>
       </div>
 

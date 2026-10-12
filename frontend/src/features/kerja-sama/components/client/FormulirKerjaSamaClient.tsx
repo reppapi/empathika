@@ -6,6 +6,7 @@ import {
   getPengajuanKerjaSama,
   savePengajuanKerjaSama,
   getFormulirConfigs,
+  getKerjaSamaConfig,
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
@@ -27,14 +28,22 @@ export default function FormulirKerjaSamaClient({
   formType = "asesmen",
 }: FormulirKerjaSamaClientProps) {
   const [allFormConfigs, setAllFormConfigs] = useState<FormulirConfigItem[]>(INITIAL_FORMULIR_CONFIGS)
+  const [waNumber, setWaNumber] = useState<string>("6282123456789")
+  const [isMounted, setIsMounted] = useState(false)
 
   React.useEffect(() => {
+    setIsMounted(true)
     setAllFormConfigs(getFormulirConfigs())
+    const cfg = getKerjaSamaConfig()
+    if (cfg?.kontak?.whatsapp) {
+      setWaNumber(cfg.kontak.whatsapp.replace(/\D/g, "") || "6282123456789")
+    }
   }, [])
 
+  const currentConfigs = isMounted ? allFormConfigs : INITIAL_FORMULIR_CONFIGS
   const formConfig =
-    allFormConfigs.find((f) => f.slug === formType) ||
-    allFormConfigs[0] ||
+    currentConfigs.find((f) => f.slug === formType) ||
+    currentConfigs[0] ||
     INITIAL_FORMULIR_CONFIGS[0]
 
   // State Biodata Dasar
@@ -127,7 +136,7 @@ export default function FormulirKerjaSamaClient({
   }
 
   // Generate WA URL jika klien ingin langsung menghubungi setelah submit
-  const waAdminUrl = `https://wa.me/6282123456789?text=${encodeURIComponent(
+  const waAdminUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(
     `Halo Admin Empathika, saya ${namaLengkap} dari ${namaInstitusi}. Saya baru saja mengisi ${formConfig.title} dan ingin konfirmasi lebih lanjut.`
   )}`
 
@@ -152,7 +161,50 @@ export default function FormulirKerjaSamaClient({
           </Link>
         </div>
 
-        {isSubmitted ? (
+        {/* Khusus Program Affiliate: Langsung Arahkan ke WhatsApp Tanpa Formulir */}
+        {formType === "affiliate" ? (
+          <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-100 text-center space-y-6 animate-fadeIn">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl font-bold">
+              📱
+            </div>
+
+            <div className="space-y-3">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#561269]">
+                Program Affiliate Empathika
+              </h1>
+              <p className="text-gray-600 text-sm leading-relaxed max-w-md mx-auto">
+                Untuk pendaftaran dan kemitraan Program Affiliate, Anda tidak perlu mengisi formulir panjang. Silakan langsung diskusikan dengan tim partnership kami via WhatsApp.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100 text-xs text-gray-700 max-w-md mx-auto space-y-1">
+              <div className="font-bold text-[#561269]">Benefit Program Affiliate:</div>
+              <p>• Komisi & revenue share menarik per rujukan klien / event</p>
+              <p>• Dukungan materi promosi & konsultasi bersama tim Empathika</p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
+                  "Halo Tim Partnership Empathika, saya tertarik untuk bermitra dan berdiskusi seputar Program Affiliate Empathika."
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto px-6 py-3 rounded-full text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <span>Hubungi via WhatsApp Sekarang</span>
+                <span className="text-sm">↗</span>
+              </a>
+
+              <Link
+                href="/kerja-sama"
+                className="w-full sm:w-auto px-5 py-3 rounded-full text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors inline-flex items-center justify-center"
+              >
+                Kembali ke Kerja Sama
+              </Link>
+            </div>
+          </div>
+        ) : isSubmitted ? (
           <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-100 text-center space-y-6 animate-fadeIn">
             <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl font-bold">
               ✓
