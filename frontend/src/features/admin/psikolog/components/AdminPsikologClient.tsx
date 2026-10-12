@@ -3,9 +3,19 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { TenagaAhli, KategoriTenaga, StatusAkses } from "../types"
+import { TenagaAhli, StatusAkses } from "../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../initialData"
 import { ActionButtonDetail, ActionButtonDelete } from "@/components/shared/TableActionButtons"
+import { AdminSummaryCard } from "@/components/shared/AdminSummaryCard"
+import { Users, CheckCircle2, Lock } from "lucide-react"
+import {
+  AdminDataTable,
+  AdminTableContainer,
+  AdminSearchInput,
+  AdminFilterTabItem,
+  AdminStatusBadge,
+  ColumnDef,
+} from "@/components/shared/AdminDataTable"
 
 export default function AdminPsikologClient() {
   const [dataList, setDataList] = useState<TenagaAhli[]>([])
@@ -70,6 +80,113 @@ export default function AdminPsikologClient() {
   const countTotal = dataList.length
   const countAktif = dataList.filter((d) => d.statusAkses === "AKTIF").length
 
+  const columns: ColumnDef<TenagaAhli>[] = [
+    {
+      key: "nama",
+      header: "Nama & Email",
+      render: (item: TenagaAhli) => (
+        <Link
+          href={`/admin/psikolog/${item.id}`}
+          className="flex items-center gap-3 group"
+        >
+          <div className="relative w-11 h-11 rounded-2xl overflow-hidden bg-purple-100 shrink-0 border border-purple-200 flex items-center justify-center">
+            {item.foto ? (
+              <Image src={item.foto} alt={item.nama} fill className="object-cover" />
+            ) : (
+              <span className="font-bold text-[#561269] text-sm">
+                {item.nama.slice(0, 2).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div>
+            <p className="font-extrabold text-gray-900 group-hover:text-[#561269] transition text-sm">
+              {item.nama}
+            </p>
+            <p className="text-xs text-gray-500">{item.spesialisasi}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{item.email}</p>
+          </div>
+        </Link>
+      ),
+    },
+    {
+      key: "kategori",
+      header: "Kategori",
+      render: (item: TenagaAhli) => (
+        <span className="inline-block rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-700 capitalize">
+          {item.kategori.replace("-", " ")}
+        </span>
+      ),
+    },
+    {
+      key: "legalitas",
+      header: "Legalitas (STR & SIPP)",
+      render: (item: TenagaAhli) => {
+        const isPsikolog = item.kategori === "psikolog"
+        return isPsikolog ? (
+          <div className="space-y-1 text-[11px]">
+            <p>
+              STR: <span className="font-mono text-gray-800 font-medium">{item.noStr || "-"}</span>
+            </p>
+            <p>
+              SIPP: <span className="font-mono text-gray-800 font-medium">{item.noSipp || "-"}</span>
+            </p>
+          </div>
+        ) : (
+          <span className="text-[11px] text-gray-400">Tidak Perlu STR/SIPP</span>
+        )
+      },
+    },
+    {
+      key: "telepon",
+      header: "No. Telepon",
+      render: (item: TenagaAhli) => <p className="text-gray-800 font-medium">{item.noTelepon}</p>,
+    },
+    {
+      key: "statusAkses",
+      header: "Hak Akses Web",
+      align: "center",
+      render: (item: TenagaAhli) => {
+        const isAktif = item.statusAkses === "AKTIF"
+        return (
+          <div className="flex flex-col items-center gap-1.5">
+            <AdminStatusBadge variant={isAktif ? "success" : "neutral"}>
+              {isAktif ? "Akses Aktif" : "Nonaktif"}
+            </AdminStatusBadge>
+
+            <button
+              type="button"
+              onClick={() => handleToggleAkses(item, isAktif ? "NONAKTIF" : "AKTIF")}
+              className={`text-[11px] font-medium px-3 py-1 rounded-xl transition cursor-pointer ${
+                isAktif
+                  ? "border border-red-200 text-red-600 hover:bg-red-50"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+              }`}
+            >
+              {isAktif ? "Hapus Akses" : "Beri Akses"}
+            </button>
+          </div>
+        )
+      },
+    },
+    {
+      key: "aksi",
+      header: "Aksi",
+      align: "center",
+      render: (item: TenagaAhli) => (
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+          <ActionButtonDetail
+            href={`/admin/psikolog/${item.id}`}
+            title="Lihat Detail"
+          />
+          <ActionButtonDelete
+            onClick={() => setDeleteConfirmItem(item)}
+            title="Hapus"
+          />
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
       {/* Notifikasi Singkat */}
@@ -79,7 +196,7 @@ export default function AdminPsikologClient() {
         </div>
       )}
 
-      {/* Header Halaman */}
+      {/* Header Halaman & Tombol Tambah */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -93,7 +210,7 @@ export default function AdminPsikologClient() {
         {/* Tombol ke Halaman Tambah Baru */}
         <Link
           href="/admin/psikolog/tambah"
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-semibold text-white shadow-sm transition active:scale-95 self-start sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95 self-start sm:self-auto"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -102,189 +219,69 @@ export default function AdminPsikologClient() {
         </Link>
       </div>
 
-      {/* Ringkasan Singkat */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500">Total Tenaga Terdaftar</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">{countTotal} Orang</p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500">Akses Web Aktif</p>
-          <p className="text-xl font-bold text-emerald-600 mt-1">{countAktif} Aktif</p>
-        </div>
-        <div className="col-span-2 sm:col-span-1 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500">Akses Dibatasi</p>
-          <p className="text-xl font-bold text-gray-600 mt-1">{countTotal - countAktif} Nonaktif</p>
-        </div>
+      {/* Ringkasan Singkat (Summary Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+        <AdminSummaryCard
+          label="Total Tenaga Terdaftar"
+          value={`${countTotal} Orang`}
+          icon={<Users className="w-6 h-6 text-blue-500" />}
+          iconBgColor="bg-blue-50 text-blue-500"
+        />
+
+        <AdminSummaryCard
+          label="Akses Web Aktif"
+          value={`${countAktif} Aktif`}
+          valueClassName="text-emerald-600"
+          icon={<CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+          iconBgColor="bg-emerald-50 text-emerald-500"
+        />
+
+        <AdminSummaryCard
+          label="Akses Dibatasi"
+          value={`${countTotal - countAktif} Nonaktif`}
+          valueClassName="text-gray-600"
+          icon={<Lock className="w-6 h-6 text-gray-500" />}
+          iconBgColor="bg-gray-100 text-gray-500"
+        />
       </div>
 
-      {/* Filter Tunggal & Pencarian */}
-      <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </span>
-          <input
-            type="text"
+      {/* Main Table Container */}
+      <AdminTableContainer>
+        {/* Header Bar: Filter Tabs & Search */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+          {/* Tabs */}
+          <div className="flex items-center gap-6 sm:gap-8 border-b border-transparent overflow-x-auto pb-1 text-sm">
+            {[
+              { id: "semua", label: "Semua" },
+              { id: "psikolog", label: "Psikolog" },
+              { id: "konselor", label: "Konselor" },
+              { id: "peer-konselor", label: "Peer Konselor" },
+            ].map((tab) => (
+              <AdminFilterTabItem
+                key={tab.id}
+                label={tab.label}
+                isActive={selectedKategoriFilter === tab.id}
+                onClick={() => setSelectedKategoriFilter(tab.id)}
+              />
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <AdminSearchInput
+            placeholder="Cari nama, email, atau spesialisasi..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari berdasarkan nama, email, atau bidang spesialisasi..."
-            className="w-full rounded-2xl border border-gray-200 bg-gray-50/50 pl-11 pr-4 py-2.5 text-xs sm:text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:bg-white focus:outline-none transition"
+            onChange={setSearchQuery}
           />
         </div>
 
-        {/* Filter Kategori Tunggal */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-100">
-          <span className="text-xs text-gray-500 font-medium mr-1">Kategori:</span>
-          {[
-            { id: "semua", label: "Semua" },
-            { id: "psikolog", label: "Psikolog" },
-            { id: "konselor", label: "Konselor" },
-            { id: "peer-konselor", label: "Peer Konselor" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setSelectedKategoriFilter(tab.id)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition ${
-                selectedKategoriFilter === tab.id
-                  ? "bg-[#561269] text-white shadow-sm font-semibold"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tabel Daftar Tenaga Ahli */}
-      <div className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50/60 text-xs font-semibold text-gray-600">
-                <th className="py-3.5 px-6">Nama & Email</th>
-                <th className="py-3.5 px-4">Kategori</th>
-                <th className="py-3.5 px-4">Legalitas (STR & SIPP)</th>
-                <th className="py-3.5 px-4">No. Telepon</th>
-                <th className="py-3.5 px-4 text-center">Hak Akses Web</th>
-                <th className="py-3.5 px-6 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
-              {filteredList.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-400">
-                    Tidak ditemukan data yang sesuai.
-                  </td>
-                </tr>
-              ) : (
-                filteredList.map((item) => {
-                  const isPsikolog = item.kategori === "psikolog"
-                  const isAktif = item.statusAkses === "AKTIF"
-
-                  return (
-                    <tr key={item.id} className="hover:bg-purple-50/20 transition">
-                      {/* Kolom 1: Profil (Bisa diklik menuju detail) */}
-                      <td className="py-4 px-6">
-                        <Link
-                          href={`/admin/psikolog/${item.id}`}
-                          className="flex items-center gap-3 group"
-                        >
-                          <div className="relative w-11 h-11 rounded-2xl overflow-hidden bg-purple-100 shrink-0 border border-purple-200 flex items-center justify-center">
-                            {item.foto ? (
-                              <Image src={item.foto} alt={item.nama} fill className="object-cover" />
-                            ) : (
-                              <span className="font-bold text-[#561269] text-sm">
-                                {item.nama.slice(0, 2).toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900 group-hover:text-[#561269] transition text-sm">
-                              {item.nama}
-                            </p>
-                            <p className="text-xs text-gray-500">{item.spesialisasi}</p>
-                            <p className="text-[11px] text-gray-400 mt-0.5">{item.email}</p>
-                          </div>
-                        </Link>
-                      </td>
-
-                      {/* Kolom 2: Kategori */}
-                      <td className="py-4 px-4">
-                        <span className="inline-block rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-700 capitalize">
-                          {item.kategori.replace("-", " ")}
-                        </span>
-                      </td>
-
-                      {/* Kolom 3: STR & SIPP */}
-                      <td className="py-4 px-4">
-                        {isPsikolog ? (
-                          <div className="space-y-1 text-[11px]">
-                            <p>STR: <span className="font-mono text-gray-800">{item.noStr || "-"}</span></p>
-                            <p>SIPP: <span className="font-mono text-gray-800">{item.noSipp || "-"}</span></p>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-gray-400">Tidak Perlu STR/SIPP</span>
-                        )}
-                      </td>
-
-                      {/* Kolom 4: Telepon */}
-                      <td className="py-4 px-4">
-                        <p className="text-gray-800">{item.noTelepon}</p>
-                      </td>
-
-                      {/* Kolom 5: Hak Akses Sederhana (Beri Akses / Hapus Akses) */}
-                      <td className="py-4 px-4 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <span
-                            className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                              isAktif
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {isAktif ? "Akses Aktif" : "Nonaktif"}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() => handleToggleAkses(item, isAktif ? "NONAKTIF" : "AKTIF")}
-                            className={`text-[11px] font-medium px-3 py-1 rounded-xl transition ${
-                              isAktif
-                                ? "border border-red-200 text-red-600 hover:bg-red-50"
-                                : "bg-emerald-600 text-white hover:bg-emerald-700"
-                            }`}
-                          >
-                            {isAktif ? "Hapus Akses" : "Beri Akses"}
-                          </button>
-                        </div>
-                      </td>
-
-                      {/* Kolom 6: Aksi */}
-                      <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
-                          <ActionButtonDetail
-                            href={`/admin/psikolog/${item.id}`}
-                            title="Lihat Detail"
-                          />
-                          <ActionButtonDelete
-                            onClick={() => setDeleteConfirmItem(item)}
-                            title="Hapus"
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        {/* Tabel Data Tenaga Ahli */}
+        <AdminDataTable
+          columns={columns}
+          data={filteredList}
+          keyExtractor={(item) => item.id}
+          emptyMessage="Tidak ditemukan data tenaga ahli yang sesuai."
+        />
+      </AdminTableContainer>
 
       {/* Modal Konfirmasi Hapus */}
       {deleteConfirmItem && (
@@ -300,14 +297,14 @@ export default function AdminPsikologClient() {
               <button
                 type="button"
                 onClick={() => setDeleteConfirmItem(null)}
-                className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleDeleteItem}
-                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
+                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 cursor-pointer"
               >
                 Hapus
               </button>

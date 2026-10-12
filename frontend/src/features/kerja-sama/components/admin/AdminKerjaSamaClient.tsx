@@ -28,6 +28,7 @@ import TabKelolaFormulir from "./TabKelolaFormulir"
 import TabPengajuanLeads from "./TabPengajuanLeads"
 import ModalProgramForm from "./ModalProgramForm"
 import ModalLeadDetail from "./ModalLeadDetail"
+import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 
 const COLOR_OPTIONS = [
   { label: "Ungu Indigo", value: "from-purple-500 to-indigo-600" },
@@ -326,53 +327,51 @@ export default function AdminKerjaSamaClient() {
 
       {/* ── Stats Summary Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-gray-500">Total Program Kolaborasi</p>
-            <h3 className="text-2xl font-extrabold text-gray-900 mt-0.5">{items.length}</h3>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
+        <AdminSummaryCard
+          title="Total Program Kolaborasi"
+          value={items.length}
+          iconBgColor="bg-purple-50 text-[#561269]"
+          icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-          </div>
-        </div>
+          }
+        />
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-gray-500">Aktif di Web Client</p>
-            <h3 className="text-2xl font-extrabold text-emerald-600 mt-0.5">{activeCount}</h3>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+        <AdminSummaryCard
+          title="Aktif di Web Client"
+          value={activeCount}
+          valueClassName="text-emerald-600"
+          iconBgColor="bg-emerald-50 text-emerald-600"
+          icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-          </div>
-        </div>
+          }
+        />
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-gray-500">Pengajuan Masuk (Leads)</p>
-            <h3 className="text-2xl font-extrabold text-gray-900 mt-0.5">{leads.length}</h3>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+        <AdminSummaryCard
+          title="Pengajuan Masuk (Leads)"
+          value={leads.length}
+          iconBgColor="bg-blue-50 text-blue-600"
+          icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-          </div>
-        </div>
+          }
+        />
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-gray-500">Menunggu Respon</p>
-            <h3 className="text-2xl font-extrabold text-amber-600 mt-0.5">{waitingLeads}</h3>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+        <AdminSummaryCard
+          title="Menunggu Respon"
+          value={waitingLeads}
+          valueClassName="text-amber-600"
+          iconBgColor="bg-amber-50 text-amber-600"
+          icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-          </div>
-        </div>
+          }
+        />
       </div>
 
       {/* ── Tab Switcher ── */}
