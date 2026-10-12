@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { HeaderSection } from "@/features/psikolog/components/HeaderSection"
 import { PsikologFilter } from "@/features/psikolog/components/PsikologFilter"
 import { PsikologCard } from "@/features/psikolog/components/PsikologCard"
@@ -7,15 +8,51 @@ import { QuoteBanner } from "@/features/psikolog/components/QuoteBanner"
 import { CtaSection } from "@/features/psikolog/components/CtaSection"
 import { useFilterPsikolog } from "@/features/psikolog/hooks/useFilterPsikolog"
 import { DATA_PSIKOLOG_DUMMY } from "@/features/psikolog/dummy"
+import { PsikologUI } from "@/types/psikolog"
 
 export default function PsikologPage() {
+  const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+      if (saved) {
+        const list = JSON.parse(saved)
+        // Hanya tampilkan yang telah diberi izin akses aktif oleh admin utama
+        const aktifOnly = list.filter((item: any) => item.statusAkses === "AKTIF")
+        if (aktifOnly.length > 0) {
+          const mapped: PsikologUI[] = aktifOnly.map((t: any) => ({
+            id: t.id,
+            id_spesialisasi: `spec-${t.id}`,
+            nama_gelar: t.nama,
+            email: t.email,
+            no_str: t.noStr || null,
+            no_sipp: t.noSipp || null,
+            foto: t.foto,
+            bio: t.bio,
+            quote: t.quote,
+            instagram: t.instagram,
+            status: "ACTIVE",
+            jumlah_sesi: t.jumlahSesi || 50,
+            tarif_per_jam: 0,
+            spesialisasi: { id: `spec-${t.id}`, nama: t.spesialisasi },
+            category: t.kategori,
+            keahlian: t.keahlian || [],
+            pendidikanText: t.pendidikanText,
+          }))
+          setDataPsikolog(mapped)
+        }
+      }
+    } catch {}
+  }, [])
+
   const {
     kategoriAktif,
     setKategoriAktif,
     search,
     setSearch,
     dataTerfilter,
-  } = useFilterPsikolog(DATA_PSIKOLOG_DUMMY)
+  } = useFilterPsikolog(dataPsikolog)
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-[#FCFAFD]">
