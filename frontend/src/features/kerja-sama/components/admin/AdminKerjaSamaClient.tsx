@@ -311,7 +311,7 @@ export default function AdminKerjaSamaClient() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6 w-full">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#561269]">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Kelola Kerja Sama & Kemitraan
             </h1>
             <span className="px-3 py-1 rounded-full bg-purple-100 text-[#561269] text-xs font-bold shrink-0">
