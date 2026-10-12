@@ -114,7 +114,13 @@ export function AdminNavbar({
               <p className="text-[10px] text-gray-400">{subtitle}</p>
             </div>
             <a
-              href={pathname?.startsWith("/admin/psikolog-web") ? "/admin/psikolog-web/profile" : "/admin/profile"}
+              href={
+                pathname?.startsWith("/admin/psikolog-web")
+                  ? "/admin/psikolog-web/profile"
+                  : pathname?.startsWith("/admin-biro")
+                  ? "/admin-biro/profile"
+                  : "/admin/profile"
+              }
               onClick={() => setDropdownOpen(false)}
               className="block px-4 py-2 text-xs font-medium text-gray-700 hover:bg-purple-50 hover:text-[#561269]"
             >

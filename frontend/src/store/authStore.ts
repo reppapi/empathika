@@ -5,7 +5,7 @@ interface User {
   id: string
   name: string
   email: string
-  role: "CLIENT" | "PSIKOLOG" | "ADMIN"
+  role: "CLIENT" | "PSIKOLOG" | "ADMIN" | "BIRO"
 }
 
 interface AuthStore {
