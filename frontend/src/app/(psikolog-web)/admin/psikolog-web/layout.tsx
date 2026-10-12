@@ -115,6 +115,12 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
             children
           )}
         </main>
+
+        {/* Footer Web Psikolog */}
+        <footer className="border-t border-gray-200/80 bg-white py-4 px-6 sm:px-8 text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-1">
+          <p>© 2026 Empathika. All rights reserved.</p>
+          <p className="text-gray-400 font-medium">Dashboard Management System</p>
+        </footer>
       </div>
     </div>
   )

@@ -486,22 +486,17 @@ export default function ProfileManagementClient({
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">
                     Klasifikasi Profesi
                   </label>
-                  <div className="relative">
-                    <select
-                      name="kategoriProfesi"
-                      value={form.kategoriProfesi || "konselor"}
-                      onChange={handleInputChange}
-                      className="w-full appearance-none rounded-2xl border border-purple-200 bg-white pl-4 pr-10 py-3 text-sm font-semibold text-[#561269] focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer"
-                    >
-                      <option value="psikolog">Psikolog (Perlu STR & SIPP)</option>
-                      <option value="konselor">Konselor (Tanpa STR/SIPP)</option>
-                      <option value="peer-konselor">Peer Konselor (Tanpa STR/SIPP)</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-500">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
+                  <div className="flex items-center justify-between rounded-2xl border border-purple-200 bg-purple-50/50 px-4 py-3 text-sm">
+                    <span className="font-bold text-[#561269] capitalize">
+                      {form.kategoriProfesi === "psikolog"
+                        ? "Psikolog Resmi"
+                        : form.kategoriProfesi === "peer-konselor"
+                        ? "Peer Konselor"
+                        : "Konselor"}
+                    </span>
+                    <span className="text-[11px] font-medium text-gray-400 bg-white border border-purple-100 rounded-lg px-2.5 py-0.5">
+                      Ditetapkan Admin Utama
+                    </span>
                   </div>
                 </div>
 

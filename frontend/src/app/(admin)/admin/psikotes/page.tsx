@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { Users, FileText, Database, Search, Filter, Eye, Download, Plus, Edit, Trash2, Settings, X, CheckCircle, Clock, ChevronLeft, Save, Upload, List, Hash, AlignLeft, BarChart2 } from "lucide-react";
+import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons";
 
 type SoalOption = { text: string; bobot: string };
 type Soal = { id: number; tipe: string; teks: string; pilihan: SoalOption[] };
@@ -363,13 +364,10 @@ export default function AdminPsikotesPage() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">{peserta.tanggal}</td>
                         <td className="px-6 py-4 text-center">
-                          <button 
+                          <ActionButtonDetail
                             onClick={() => setSelectedPeserta(peserta)}
-                            className="p-2 text-gray-400 hover:text-[#561269] hover:bg-[#561269]/10 rounded-lg transition-colors"
                             title="Lihat Detail"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                          />
                         </td>
                       </tr>
                     ))
@@ -442,9 +440,15 @@ export default function AdminPsikotesPage() {
                       <td className="px-6 py-4 text-sm font-medium text-emerald-600">{paket.harga}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 text-center">{paket.jumlahSoal}</td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => openForm(paket)} className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>
-                          <button onClick={() => handleDeletePaket(paket.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus"><Trash2 className="w-4 h-4" /></button>
+                        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                          <ActionButtonEdit
+                            onClick={() => openForm(paket)}
+                            title="Edit"
+                          />
+                          <ActionButtonDelete
+                            onClick={() => handleDeletePaket(paket.id)}
+                            title="Hapus"
+                          />
                         </div>
                       </td>
                     </tr>

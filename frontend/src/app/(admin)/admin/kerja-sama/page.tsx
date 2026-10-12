@@ -1,3 +1,5 @@
+import AdminKerjaSamaClient from "@/features/kerja-sama/components/admin/AdminKerjaSamaClient"
+
 export default function AdminKerjaSamaPage() {
-  return <div>Admin - Kerja Sama</div>
+  return <AdminKerjaSamaClient />
 }

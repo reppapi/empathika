@@ -19,7 +19,7 @@ export default function PsikologPage() {
       const saved = localStorage.getItem("empathika_tenaga_ahli_data")
       if (saved) {
         const list = JSON.parse(saved)
-        const updatedList = DATA_PSIKOLOG_DUMMY.map((item) => {
+        const updatedList: PsikologUI[] = DATA_PSIKOLOG_DUMMY.map((item) => {
           const edited = list.find((t: any) => t.id === item.id || t.email === item.email)
           if (edited) {
             return {
@@ -33,13 +33,18 @@ export default function PsikologPage() {
               no_sipp: edited.noSipp !== undefined ? edited.noSipp : item.no_sipp,
               keahlian: edited.keahlian || item.keahlian,
               pendidikanText: edited.pendidikanText || item.pendidikanText,
-              spesialisasi: edited.spesialisasi ? { ...item.spesialisasi, nama: edited.spesialisasi } : item.spesialisasi,
+              spesialisasi: edited.spesialisasi
+                ? {
+                    id: item.spesialisasi?.id || item.id_spesialisasi || "spesialisasi-1",
+                    nama: edited.spesialisasi,
+                  }
+                : item.spesialisasi,
               category: edited.kategori || item.category,
             }
           }
           return item
         })
-        setDataPsikolog(updatedList)
+        setDataPsikolog(updatedList as PsikologUI[])
       }
     } catch {}
   }, [])
