@@ -4,6 +4,7 @@ import { Plus, Search, Filter, MoreVertical, CalendarClock } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 import { CATEGORIES } from "../../data/layananData"
+import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
 
 export default function AdminLayananView() {
   const [openDropdown, setOpenDropdown] = useState<number | null>(null)
@@ -126,34 +127,25 @@ export default function AdminLayananView() {
                       {item.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-center relative">
-                    <button 
-                      onClick={() => toggleDropdown(index)}
-                      className="p-1 rounded-md text-gray-600 hover:text-[#561269] hover:bg-gray-100 transition-colors"
-                    >
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {openDropdown === index && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-10" 
-                          onClick={() => setOpenDropdown(null)}
-                        ></div>
-                        <div className="absolute right-8 top-10 w-36 bg-white rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-gray-100 z-20 py-2 text-left">
-                          <button className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left transition-colors">
-                            Lihat Detail
-                          </button>
-                          <button className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left transition-colors">
-                            Edit
-                          </button>
-                          <button className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left transition-colors">
-                            Hapus
-                          </button>
-                        </div>
-                      </>
-                    )}
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                      <ActionButtonDetail
+                        onClick={() => alert(`Detail layanan ${item.layanan}`)}
+                        title="Lihat Detail"
+                      />
+                      <ActionButtonEdit
+                        onClick={() => alert(`Edit layanan ${item.layanan}`)}
+                        title="Edit"
+                      />
+                      <ActionButtonDelete
+                        onClick={() => {
+                          if (confirm(`Apakah Anda yakin ingin menghapus layanan ${item.layanan}?`)) {
+                            alert(`Layanan ${item.layanan} berhasil dihapus.`);
+                          }
+                        }}
+                        title="Hapus"
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

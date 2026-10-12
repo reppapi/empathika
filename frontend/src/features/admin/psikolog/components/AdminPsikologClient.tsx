@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../initialData"
+import { ActionButtonDetail, ActionButtonDelete } from "@/components/shared/TableActionButtons"
 
 export default function AdminPsikologClient() {
   const [dataList, setDataList] = useState<TenagaAhli[]>([])
@@ -265,24 +266,15 @@ export default function AdminPsikologClient() {
 
                       {/* Kolom 6: Aksi */}
                       <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
+                        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                          <ActionButtonDetail
                             href={`/admin/psikolog/${item.id}`}
-                            className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-[#561269] hover:bg-purple-100 transition"
-                          >
-                            Detail
-                          </Link>
-
-                          <button
-                            type="button"
+                            title="Lihat Detail"
+                          />
+                          <ActionButtonDelete
                             onClick={() => setDeleteConfirmItem(item)}
-                            className="rounded-xl border border-gray-200 bg-white p-1.5 text-gray-500 hover:text-red-600 hover:border-red-200 transition"
                             title="Hapus"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                          />
                         </div>
                       </td>
                     </tr>
