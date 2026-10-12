@@ -14,34 +14,32 @@ export default function PsikologPage() {
   const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
 
   useEffect(() => {
+    // Sinkronkan data profil yang diedit dari admin/psikolog ke dalam list kartu klien tanpa menghapus psikolog lainnya
     try {
       const saved = localStorage.getItem("empathika_tenaga_ahli_data")
       if (saved) {
         const list = JSON.parse(saved)
-        // Hanya tampilkan yang telah diberi izin akses aktif oleh admin utama
-        const aktifOnly = list.filter((item: any) => item.statusAkses === "AKTIF")
-        if (aktifOnly.length > 0) {
-          const mapped: PsikologUI[] = aktifOnly.map((t: any) => ({
-            id: t.id,
-            id_spesialisasi: `spec-${t.id}`,
-            nama_gelar: t.nama,
-            email: t.email,
-            no_str: t.noStr || null,
-            no_sipp: t.noSipp || null,
-            foto: t.foto,
-            bio: t.bio,
-            quote: t.quote,
-            instagram: t.instagram,
-            status: "ACTIVE",
-            jumlah_sesi: t.jumlahSesi || 50,
-            tarif_per_jam: 0,
-            spesialisasi: { id: `spec-${t.id}`, nama: t.spesialisasi },
-            category: t.kategori,
-            keahlian: t.keahlian || [],
-            pendidikanText: t.pendidikanText,
-          }))
-          setDataPsikolog(mapped)
-        }
+        const updatedList = DATA_PSIKOLOG_DUMMY.map((item) => {
+          const edited = list.find((t: any) => t.id === item.id || t.email === item.email)
+          if (edited) {
+            return {
+              ...item,
+              nama_gelar: edited.nama || item.nama_gelar,
+              foto: edited.foto || item.foto,
+              bio: edited.bio || item.bio,
+              quote: edited.quote || item.quote,
+              instagram: edited.instagram || item.instagram,
+              no_str: edited.noStr !== undefined ? edited.noStr : item.no_str,
+              no_sipp: edited.noSipp !== undefined ? edited.noSipp : item.no_sipp,
+              keahlian: edited.keahlian || item.keahlian,
+              pendidikanText: edited.pendidikanText || item.pendidikanText,
+              spesialisasi: edited.spesialisasi ? { ...item.spesialisasi, nama: edited.spesialisasi } : item.spesialisasi,
+              category: edited.kategori || item.category,
+            }
+          }
+          return item
+        })
+        setDataPsikolog(updatedList)
       }
     } catch {}
   }, [])
