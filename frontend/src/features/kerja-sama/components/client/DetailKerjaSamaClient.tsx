@@ -1,22 +1,35 @@
-import React from 'react';
+"use client"
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-// Mock data untuk konten tiap kategori
-const categoryData: Record<string, { title: string }> = {
-  'mahasiswa': { title: 'Empathika untuk Mahasiswa' },
-  'sekolah': { title: 'Empathika untuk Sekolah' },
-  'komunitas': { title: 'Empathika untuk Komunitas' },
-  'perusahaan': { title: 'Empathika untuk Perusahaan' },
-  'pemerintah': { title: 'Empathika untuk Pemerintah' },
-  'rumah-sakit': { title: 'Empathika untuk Rumah Sakit' },
-};
+import { getKerjaSamaItems, getKerjaSamaConfig, INITIAL_KERJASAMA_ITEMS, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
+import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
 
 interface DetailKerjaSamaClientProps {
   category: string;
 }
 
 export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClientProps) {
-  const data = categoryData[category] || { title: 'Kerja Sama Empathika' };
+  const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS);
+  const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG);
+
+  useEffect(() => {
+    setItems(getKerjaSamaItems());
+    setConfig(getKerjaSamaConfig());
+  }, []);
+
+  // Temukan item berdasarkan slug category (misal: "mahasiswa", "sekolah", dll.)
+  const item = items.find((it) => it.slug === category);
+
+  // Jika item di-nonaktifkan atau tidak ditemukan, kita tampilkan fallback title
+  const title = item ? item.title : `Empathika untuk ${category}`;
+  const shortTitle = item?.shortName || title.replace('Empathika untuk ', '');
+  const description = item?.description || "Empathika membuka ruang sinergi dan kolaborasi profesional untuk menciptakan dampak nyata bagi kesehatan psikologis.";
+  const pelatihanTitle = item?.pelatihanTitle || `Pelatihan ${shortTitle}`;
+  const pelatihanDeskripsi = item?.pelatihanDeskripsi || "Membekali peserta dengan keterampilan kesehatan mental, resiliensi, dan pendampingan psikologis terstruktur.";
+  const pelatihanImage = item?.pelatihanImage;
+  const mitraTitle = item?.mitraTitle || "Empathika x Mitra";
+  const mitraDeskripsi = item?.mitraDeskripsi || "Sinergi berkelanjutan untuk mendukung ekosistem kesehatan mental dan program komprehensif.";
+  const mitraImage = item?.mitraImage;
 
   return (
     <div className="w-full min-h-screen bg-[#fbfbfb] font-sans pb-20 pt-32 lg:pt-40">
@@ -24,16 +37,19 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
         
         <div className="flex flex-col gap-6">
           
-          {/* Elegant & Clean Title Section */}
-          <div className="flex flex-col items-center justify-center mb-2 mt-4">
-            <h1 className="text-3xl md:text-5xl font-black text-[#561269] text-center tracking-tight leading-tight">
-              {data.title}
+          {/* Elegant & Clean Title Section with Gradient Accent */}
+          <div className="flex flex-col items-center justify-center mb-2 mt-4 text-center">
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+              <span className="text-[#561269]">Empathika untuk </span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#561269] via-[#8e4a9e] to-[#ba68c8]">
+                {shortTitle}
+              </span>
             </h1>
-            <div className="w-12 h-1.5 bg-[#561269] rounded-full mt-6 opacity-90"></div>
+            <div className="w-16 h-1.5 bg-gradient-to-r from-[#561269] via-[#8e4a9e] to-[#ba68c8] rounded-full mt-5"></div>
           </div>
           
           <p className="text-gray-800 text-sm md:text-base leading-relaxed text-center">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+            {description}
           </p>
           
           <h2 className="text-xl md:text-2xl font-bold text-[#561269] text-center mt-4">
@@ -41,10 +57,20 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
           </h2>
           
           <div>
-            <h3 className="text-lg font-semibold text-[#561269] mb-3">Pelatihan {data.title.replace('Empathika untuk ', '')}</h3>
-            <div className="w-full h-48 md:h-80 bg-gray-300 mb-4 rounded-xl shadow-sm border border-gray-100"></div>
+            <h3 className="text-lg font-semibold text-[#561269] mb-3">{pelatihanTitle}</h3>
+            {pelatihanImage ? (
+              <div className="w-full h-48 md:h-80 mb-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden bg-gray-100">
+                <img
+                  src={pelatihanImage}
+                  alt={pelatihanTitle}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-48 md:h-80 bg-gray-300 mb-4 rounded-xl shadow-sm border border-gray-100"></div>
+            )}
             <p className="text-gray-800 text-sm md:text-base leading-relaxed">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+              {pelatihanDeskripsi}
             </p>
           </div>
 
@@ -53,10 +79,20 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
           </h2>
           
           <div>
-            <h3 className="text-lg font-semibold text-[#561269] mb-3">Empathika x Unibi misalnya</h3>
-            <div className="w-full h-48 md:h-80 bg-gray-300 mb-4 rounded-xl shadow-sm border border-gray-100"></div>
+            <h3 className="text-lg font-semibold text-[#561269] mb-3">{mitraTitle}</h3>
+            {mitraImage ? (
+              <div className="w-full h-48 md:h-80 mb-4 rounded-xl shadow-sm border border-gray-100 overflow-hidden bg-gray-100">
+                <img
+                  src={mitraImage}
+                  alt={mitraTitle}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-48 md:h-80 bg-gray-300 mb-4 rounded-xl shadow-sm border border-gray-100"></div>
+            )}
             <p className="text-gray-800 text-sm md:text-base leading-relaxed">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+              {mitraDeskripsi}
             </p>
           </div>
           
@@ -68,13 +104,43 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
 
           <div className="mt-2">
             <h4 className="text-[#561269] font-bold mb-2">KONTAK KAMI:</h4>
-            <ul className="text-sm md:text-base text-gray-800 space-y-1">
-              <li>Email:</li>
-              <li>Whatsapp:</li>
-              <li>Formulir In House Training:</li>
-              <li>Formulir Kerjasama Asesmen dan Tes Psikologi:</li>
-              <li>Formulir Kerjasama Lainnya:</li>
-              <li>Formulir Affiliate: (Langsung ke WA)</li>
+            <ul className="text-sm md:text-base text-gray-800 space-y-1.5">
+              <li>
+                Email:{" "}
+                <a href="mailto:partnership@empathika.com" className="text-[#561269] hover:underline font-medium">
+                  partnership@empathika.com
+                </a>
+              </li>
+              <li>
+                Whatsapp:{" "}
+                <a href="https://wa.me/6282123456789" target="_blank" rel="noreferrer" className="text-[#561269] hover:underline font-medium">
+                  +62 821-2345-6789
+                </a>
+              </li>
+              <li>
+                <Link href="/kerja-sama/formulir/in-house-training" className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1">
+                  <span>Formulir In House Training:</span>
+                  <span className="text-[#561269] underline font-medium">Isi Formulir</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/kerja-sama/formulir/asesmen" className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1">
+                  <span>Formulir Kerjasama Asesmen dan Tes Psikologi:</span>
+                  <span className="text-[#561269] underline font-medium">Isi Formulir</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/kerja-sama/formulir/affiliate" className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1">
+                  <span>Formulir Affiliate: (Langsung ke WA)</span>
+                  <span className="text-[#561269] underline font-medium">Isi Formulir</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/kerja-sama/formulir/lainnya" className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1">
+                  <span>Formulir Kerjasama Lainnya:</span>
+                  <span className="text-[#561269] underline font-medium">Isi Formulir</span>
+                </Link>
+              </li>
             </ul>
           </div>
           
