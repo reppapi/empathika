@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, Mail, Lock, ArrowRight } from "lucide-react";
-import { DUMMY_ADMIN, DUMMY_PSIKOLOG } from "../config/dummyAuth";
+import { DUMMY_ADMIN, DUMMY_PSIKOLOG, DUMMY_BIRO } from "../config/dummyAuth";
 import { useAuthStore } from "@/store/authStore";
 
 export function LoginForm() {
@@ -32,7 +32,7 @@ export function LoginForm() {
     // Simulasi delay network
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Cek akun Admin
+    // Cek akun Admin Utama
     if (trimmedEmail === DUMMY_ADMIN.email && trimmedPassword === DUMMY_ADMIN.password) {
       document.cookie = "access_token=dummy-admin-token; path=/; max-age=86400";
       setAuth(
@@ -52,6 +52,18 @@ export function LoginForm() {
         "dummy-psikolog-token"
       );
       router.push("/admin/psikolog-web");
+      router.refresh();
+      return;
+    }
+
+    // Cek akun Admin Biro (Read-only mitra)
+    if (trimmedEmail === DUMMY_BIRO.email && trimmedPassword === DUMMY_BIRO.password) {
+      document.cookie = "access_token=dummy-biro-token; path=/; max-age=86400";
+      setAuth(
+        { id: "3", name: "Admin Biro Cendekia Muda", email: trimmedEmail, role: "BIRO" },
+        "dummy-biro-token"
+      );
+      router.push("/admin-biro/transaksi");
       router.refresh();
       return;
     }
