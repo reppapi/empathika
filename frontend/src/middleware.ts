@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 
 const protectedRoutes = ["/dashboard", "/riwayat-transaksi", "/hasil-tes"]
 // Rute admin dan psikolog-web juga dilindungi - membutuhkan cookie access_token
-const adminRoutes = ["/admin"]
+const adminRoutes = ["/admin", "/admin-biro"]
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // Jika akses /admin tanpa token, redirect ke login admin
+  // Jika akses /admin atau /admin-biro tanpa token, redirect ke login admin
   if (isAdmin && !token) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
@@ -25,6 +25,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/riwayat-transaksi/:path*", "/hasil-tes/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/admin-biro/:path*", "/riwayat-transaksi/:path*", "/hasil-tes/:path*"],
 }
 
