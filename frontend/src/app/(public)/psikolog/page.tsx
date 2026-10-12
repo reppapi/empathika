@@ -35,7 +35,7 @@ export default function PsikologPage() {
               pendidikanText: edited.pendidikanText || item.pendidikanText,
               spesialisasi: edited.spesialisasi
                 ? {
-                    id: item.spesialisasi?.id || item.id_spesialisasi || "sp_default",
+                    id: item.spesialisasi?.id || item.id_spesialisasi || "spesialisasi-1",
                     nama: edited.spesialisasi,
                   }
                 : item.spesialisasi,
