@@ -39,7 +39,7 @@ export default function PsikologPage() {
           }
           return item
         })
-        setDataPsikolog(updatedList)
+        setDataPsikolog(updatedList as PsikologUI[])
       }
     } catch {}
   }, [])
