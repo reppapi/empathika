@@ -17,10 +17,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   else if (pathname?.startsWith("/admin/transaksi")) pageTitle = "Riwayat Transaksi & Pembayaran"
   else if (pathname?.startsWith("/admin/psikolog") && !pathname?.startsWith("/admin/psikolog-web")) pageTitle = "Data Psikolog"
   else if (pathname?.startsWith("/admin/psikotes")) pageTitle = "Psikotes"
-  else if (pathname?.startsWith("/admin/pengaturan")) pageTitle = "Pengaturan Biro"
   else if (pathname?.startsWith("/admin/blog")) pageTitle = "Kelola Blog Empathika"
   else if (pathname?.startsWith("/admin/layanan")) pageTitle = "Kelola Layanan Konsultasi"
   else if (pathname?.startsWith("/admin/kerja-sama")) pageTitle = "Kerja Sama"
+  else if (pathname?.startsWith("/admin/profile")) pageTitle = "Pengaturan Profil"
 
   return (
     <div className="min-h-screen bg-[#FBFBFC] font-poppins text-gray-800 flex">
