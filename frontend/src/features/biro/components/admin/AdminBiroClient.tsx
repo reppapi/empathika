@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
-import { BiroKomunitas, StatusAktivasiBiro } from "../types"
-import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../initialData"
+import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
+import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
 import BiroFormModal from "./BiroFormModal"
 import BiroDetailModal from "./BiroDetailModal"
 import BiroDeleteModal from "./BiroDeleteModal"

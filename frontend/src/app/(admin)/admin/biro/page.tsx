@@ -1,4 +1,4 @@
-import AdminBiroClient from "@/features/admin/biro/components/AdminBiroClient"
+import AdminBiroClient from "@/features/biro/components/admin/AdminBiroClient"
 
 export const metadata = {
   title: "Pengaturan Biro & Komunitas - Admin Empathika",
