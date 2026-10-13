@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useRef } from "react"
-import { DUMMY_TRANSAKSI, JenisLayanan, TransaksiItem } from "../data/transaksiData"
+import { DUMMY_TRANSAKSI, JenisLayanan, TransaksiItem } from "../../data/transaksiData"
 
 const LAYANAN_OPTIONS: { id: JenisLayanan; label: string }[] = [
   { id: "semua", label: "Semua Layanan" },

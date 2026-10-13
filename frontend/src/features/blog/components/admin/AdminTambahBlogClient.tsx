@@ -1,82 +1,23 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { BlogPost } from "@/features/blog/types"
-import { INITIAL_ADMIN_BLOGS } from "../data/adminBlogData"
+import { INITIAL_ADMIN_BLOGS } from "../../data/adminBlogData"
 
-interface Props {
-  slug: string
-}
-
-export default function AdminEditBlogClient({ slug }: Props) {
+export default function AdminTambahBlogClient() {
   const router = useRouter()
   const dateInputRef = useRef<HTMLInputElement>(null)
-  const [blog, setBlog] = useState<BlogPost | null>(null)
-  const [loading, setLoading] = useState(true)
 
-  // Form states
+  // Form states (kosongan dengan default tanggal hari ini)
+  const todayStr = new Date().toISOString().split("T")[0]
   const [title, setTitle] = useState("")
-  const [date, setDate] = useState("")
+  const [date, setDate] = useState(todayStr)
   const [content, setContent] = useState("")
   const [blogUrl, setBlogUrl] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
-
-  useEffect(() => {
-    // Cari blog dari localStorage atau INITIAL_ADMIN_BLOGS
-    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
-    const saved = localStorage.getItem("empathika_admin_blogs")
-    if (saved) {
-      try {
-        currentBlogs = JSON.parse(saved)
-      } catch {
-        currentBlogs = INITIAL_ADMIN_BLOGS
-      }
-    }
-
-    const found = currentBlogs.find((b) => b.slug === slug)
-    if (found) {
-      setBlog(found)
-      setTitle(found.title)
-      // Konversi format tanggal ke YYYY-MM-DD jika formatnya teks seperti "12 Oktober 2026"
-      let dateValue = "2026-10-12"
-      if (found.date) {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(found.date)) {
-          dateValue = found.date
-        } else {
-          // Coba parse format teks atau DD/MM/YYYY
-          const parts = found.date.split(" ")
-          if (parts.length === 3) {
-            const months: Record<string, string> = {
-              Januari: "01",
-              Februari: "02",
-              Maret: "03",
-              April: "04",
-              Mei: "05",
-              Juni: "06",
-              Juli: "07",
-              Agustus: "08",
-              September: "09",
-              Oktober: "10",
-              November: "11",
-              Desember: "12",
-            }
-            const day = parts[0].padStart(2, "0")
-            const month = months[parts[1]] || "10"
-            const year = parts[2]
-            dateValue = `${year}-${month}-${day}`
-          }
-        }
-      }
-      setDate(dateValue)
-      setContent(Array.isArray(found.content) ? found.content.join("\n\n") : found.content)
-      setBlogUrl(`https://empathika.id/blog/${found.slug}`)
-      setImageUrl(found.imageUrl || "")
-    }
-    setLoading(false)
-  }, [slug])
 
   const handleImageUpload = (file: File) => {
     if (file) {
@@ -87,18 +28,6 @@ export default function AdminEditBlogClient({ slug }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!blog) return
-
-    // Update data di localStorage
-    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
-    const saved = localStorage.getItem("empathika_admin_blogs")
-    if (saved) {
-      try {
-        currentBlogs = JSON.parse(saved)
-      } catch {
-        currentBlogs = INITIAL_ADMIN_BLOGS
-      }
-    }
 
     // Format tanggal ke Bahasa Indonesia (cth: "12 Oktober 2026")
     let displayDate = date
@@ -121,43 +50,50 @@ export default function AdminEditBlogClient({ slug }: Props) {
       displayDate = `${parseInt(d, 10)} ${monthNames[parseInt(m, 10) - 1]} ${y}`
     }
 
-    const updatedBlogs = currentBlogs.map((b) => {
-      if (b.slug === slug) {
-        return {
-          ...b,
-          title,
-          date: displayDate,
-          content: content.split("\n\n").filter(Boolean),
-          imageUrl,
-        }
-      }
-      return b
-    })
+    // Buat slug dari judul atau url
+    const generatedSlug =
+      blogUrl
+        .trim()
+        .replace(/\/$/, "")
+        .split("/")
+        .pop() ||
+      title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "") ||
+      `blog-${Date.now()}`
 
+    const newBlog: BlogPost = {
+      slug: generatedSlug,
+      title,
+      excerpt: content.split("\n")[0]?.slice(0, 150) || title,
+      content: content.split("\n\n").filter(Boolean),
+      author: {
+        name: "Admin Empathika",
+      },
+      category: "Artikel",
+      tags: ["kesehatan mental", "empathika"],
+      date: displayDate,
+      readTime: "4 menit baca",
+      views: 0,
+      likes: 0,
+      imageUrl: imageUrl || "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=800",
+    }
+
+    // Ambil data dari localStorage
+    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
+    const saved = localStorage.getItem("empathika_admin_blogs")
+    if (saved) {
+      try {
+        currentBlogs = JSON.parse(saved)
+      } catch {
+        currentBlogs = INITIAL_ADMIN_BLOGS
+      }
+    }
+
+    const updatedBlogs = [newBlog, ...currentBlogs]
     localStorage.setItem("empathika_admin_blogs", JSON.stringify(updatedBlogs))
     router.push("/admin/blog")
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20 text-gray-400 font-poppins">
-        Memuat data blog...
-      </div>
-    )
-  }
-
-  if (!blog) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-gray-400 font-poppins">
-        <p className="text-lg font-bold">Blog tidak ditemukan.</p>
-        <button
-          onClick={() => router.push("/admin/blog")}
-          className="mt-4 text-sm text-[#561269] font-semibold hover:underline"
-        >
-          ← Kembali ke Daftar Blog
-        </button>
-      </div>
-    )
   }
 
   const inputClass =
@@ -171,36 +107,45 @@ export default function AdminEditBlogClient({ slug }: Props) {
       {/* ── Heading Form ── */}
       <div className="flex flex-col gap-1">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
-          {title || blog.title}
+          {title || "Tambah Blog Baru"}
         </h2>
       </div>
 
       {/* ── Container Form (Background putih, rounded corners, shadow tipis) ── */}
       <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* ── Baris 1 (2 Kolom): Ubah Judul Blog & Ubah Tanggal Publikasi ── */}
+          {/* ── Baris 1 (2 Kolom): Judul Blog & Tanggal Publikasi ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-            {/* Kiri: Ubah Judul Blog * */}
+            {/* Kiri: Judul Blog * */}
             <div>
               <label htmlFor="title" className={labelClass}>
-                Ubah Judul Blog <span className="text-red-500">*</span>
+                Judul Blog <span className="text-red-500">*</span>
               </label>
               <input
                 id="title"
                 type="text"
                 required
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value)
+                  if (!blogUrl) {
+                    const slug = e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/(^-|-$)+/g, "")
+                    setBlogUrl(slug ? `https://empathika.id/blog/${slug}` : "")
+                  }
+                }}
                 placeholder="Masukan judul blog baru"
                 className={inputClass}
               />
               <span className={helperClass}>Masukan judul blog baru</span>
             </div>
 
-            {/* Kanan: Ubah Tanggal Publikasi */}
+            {/* Kanan: Tanggal Publikasi */}
             <div>
               <label htmlFor="date" className={labelClass}>
-                Ubah Tanggal Publikasi
+                Tanggal Publikasi
               </label>
               <div className="relative">
                 <input
@@ -243,10 +188,10 @@ export default function AdminEditBlogClient({ slug }: Props) {
             </div>
           </div>
 
-          {/* ── Baris 2 (1 Kolom Penuh): Ubah Isi Blog ── */}
+          {/* ── Baris 2 (1 Kolom Penuh): Isi Blog ── */}
           <div>
             <label htmlFor="content" className={labelClass}>
-              Ubah Isi Blog
+              Isi Blog
             </label>
             <textarea
               id="content"
@@ -259,10 +204,10 @@ export default function AdminEditBlogClient({ slug }: Props) {
             <span className={helperClass}>Masukan isi blog baru</span>
           </div>
 
-          {/* ── Baris 3 (1 Kolom Penuh): Ubah URL blog * ── */}
+          {/* ── Baris 3 (1 Kolom Penuh): URL blog * ── */}
           <div>
             <label htmlFor="blogUrl" className={labelClass}>
-              Ubah URL blog <span className="text-red-500">*</span>
+              URL blog <span className="text-red-500">*</span>
             </label>
             <input
               id="blogUrl"
@@ -276,10 +221,10 @@ export default function AdminEditBlogClient({ slug }: Props) {
             <span className={helperClass}>Masukan URL blog baru</span>
           </div>
 
-          {/* ── Baris 4 (1 Kolom): Ubah Foto/Poster terkait blog * ── */}
+          {/* ── Baris 4 (1 Kolom): Foto/Poster terkait blog * ── */}
           <div>
             <label className={labelClass}>
-              Ubah Foto/Poster terkait blog <span className="text-red-500">*</span>
+              Foto/Poster terkait blog <span className="text-red-500">*</span>
             </label>
             <div
               onDragOver={(e) => {
@@ -301,7 +246,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
               }`}
             >
               <input
-                id="file-upload"
+                id="file-upload-tambah"
                 type="file"
                 accept="image/png, image/jpeg, image/jpg"
                 className="hidden"
@@ -324,7 +269,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
                     />
                   </div>
                   <label
-                    htmlFor="file-upload"
+                    htmlFor="file-upload-tambah"
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#561269] hover:underline cursor-pointer"
                   >
                     <svg
@@ -346,7 +291,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
                 </div>
               ) : (
                 <label
-                  htmlFor="file-upload"
+                  htmlFor="file-upload-tambah"
                   className="flex flex-col items-center gap-2 text-center cursor-pointer"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 text-[#561269]">

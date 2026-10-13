@@ -1,4 +1,4 @@
-import AdminTransaksiClient from "@/features/admin/transaksi/components/AdminTransaksiClient"
+import AdminTransaksiClient from "@/features/transaksi/components/admin/AdminTransaksiClient"
 
 export const metadata = {
   title: "Riwayat Transaksi & Pembayaran - Admin Empathika",

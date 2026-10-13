@@ -1,4 +1,4 @@
-import AdminEditBlogClient from "@/features/admin/blog/components/AdminEditBlogClient"
+import AdminEditBlogClient from "@/features/blog/components/admin/AdminEditBlogClient"
 
 interface Props {
   params: { slug: string }

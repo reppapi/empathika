@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import ProfileManagementClient from "@/features/admin/profile/components/ProfileManagementClient"
+import ProfileAdminClient from "@/features/profile/components/admin/ProfileAdminClient"
 
 export const metadata = {
   title: "Pengaturan Profil - Admin Empathika",
@@ -9,7 +9,7 @@ export const metadata = {
 export default function AdminProfilePage() {
   return (
     <Suspense fallback={<div className="p-6 text-gray-400 font-poppins text-sm">Memuat pengaturan profil...</div>}>
-      <ProfileManagementClient role="admin" />
+      <ProfileAdminClient role="admin" />
     </Suspense>
   )
 }

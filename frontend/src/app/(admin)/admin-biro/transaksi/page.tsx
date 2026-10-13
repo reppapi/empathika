@@ -1,4 +1,4 @@
-import AdminTransaksiClient from "@/features/admin/transaksi/components/AdminTransaksiClient"
+import AdminTransaksiBiroClient from "@/features/transaksi/components/admin-biro/AdminTransaksiBiroClient"
 
 export const metadata = {
   title: "Riwayat Transaksi - Admin Biro Empathika",
@@ -6,5 +6,5 @@ export const metadata = {
 }
 
 export default function AdminBiroTransaksiPage() {
-  return <AdminTransaksiClient />
+  return <AdminTransaksiBiroClient />
 }

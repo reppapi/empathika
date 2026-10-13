@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { TenagaAhli, KategoriTenaga, StatusAkses } from "../types"
-import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../initialData"
+import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
+import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 
 interface Props {
   psikologId: string
