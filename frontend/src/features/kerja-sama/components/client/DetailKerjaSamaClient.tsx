@@ -11,14 +11,19 @@ interface DetailKerjaSamaClientProps {
 export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClientProps) {
   const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS);
   const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     setItems(getKerjaSamaItems());
     setConfig(getKerjaSamaConfig());
   }, []);
 
+  const activeItems = isMounted ? items : INITIAL_KERJASAMA_ITEMS;
+  const currentConfig = isMounted ? config : INITIAL_KERJASAMA_CONFIG;
+
   // Temukan item berdasarkan slug category (misal: "mahasiswa", "sekolah", dll.)
-  const item = items.find((it) => it.slug === category);
+  const item = activeItems.find((it) => it.slug === category);
 
   // Jika item di-nonaktifkan atau tidak ditemukan, kita tampilkan fallback title
   const title = item ? item.title : `Empathika untuk ${category}`;
@@ -107,14 +112,22 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
             <ul className="text-sm md:text-base text-gray-800 space-y-1.5">
               <li>
                 Email:{" "}
-                <a href="mailto:partnership@empathika.com" className="text-[#561269] hover:underline font-medium">
-                  partnership@empathika.com
+                <a
+                  href={`mailto:${currentConfig.kontak?.email || "partnership@empathika.com"}`}
+                  className="text-[#561269] hover:underline font-medium"
+                >
+                  {currentConfig.kontak?.email || "partnership@empathika.com"}
                 </a>
               </li>
               <li>
                 Whatsapp:{" "}
-                <a href="https://wa.me/6282123456789" target="_blank" rel="noreferrer" className="text-[#561269] hover:underline font-medium">
-                  +62 821-2345-6789
+                <a
+                  href={`https://wa.me/${(currentConfig.kontak?.whatsapp || "6282123456789").replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#561269] hover:underline font-medium"
+                >
+                  {currentConfig.kontak?.whatsapp || "+62 821-2345-6789"}
                 </a>
               </li>
               <li>
@@ -130,10 +143,19 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
                 </Link>
               </li>
               <li>
-                <Link href="/kerja-sama/formulir/affiliate" className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1">
-                  <span>Formulir Affiliate: (Langsung ke WA)</span>
-                  <span className="text-[#561269] underline font-medium">Isi Formulir</span>
-                </Link>
+                <a
+                  href={`https://wa.me/${(currentConfig.kontak?.whatsapp || "6282123456789").replace(/\D/g, "")}?text=${encodeURIComponent(
+                    "Halo Tim Partnership Empathika, saya tertarik untuk bermitra dan berdiskusi seputar Program Affiliate Empathika."
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1"
+                >
+                  <span>Affiliate: (Langsung Hubungi Kontak WhatsApp)</span>
+                  <span className="text-emerald-700 font-semibold underline inline-flex items-center gap-0.5">
+                    Chat WhatsApp ↗
+                  </span>
+                </a>
               </li>
               <li>
                 <Link href="/kerja-sama/formulir/lainnya" className="hover:text-[#561269] hover:underline group inline-flex items-center gap-1">
