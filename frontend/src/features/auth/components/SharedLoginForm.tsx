@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, Mail, Lock, ArrowRight } from "lucide-react";
-import { DUMMY_ADMIN, DUMMY_PSIKOLOG, DUMMY_BIRO } from "../config/dummyAuth";
+import { DUMMY_ADMIN, DUMMY_PSIKOLOG, DUMMY_BIRO } from "../data/dummyAuth";
 import { useAuthStore } from "@/store/authStore";
 
 export function LoginForm() {

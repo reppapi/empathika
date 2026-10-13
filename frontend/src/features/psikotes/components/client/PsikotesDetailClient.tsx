@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { TEST_DATA } from "../data/psikotesData";
+import { TEST_DATA } from "../../data/psikotesData";
 
 export default function PsikotesDetailClient({ params }: { params: { testId: string } }) {
   // Gunakan fallback "mbti" jika testId tidak ada di mock data

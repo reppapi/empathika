@@ -4,9 +4,9 @@ import Link from 'next/link'
 
 import { DATA_PSIKOLOG_DUMMY } from '@/features/psikolog/dummy'
 import { PsikologCard } from '@/features/psikolog/components/client/PsikologCard'
-import { HERO_SLIDES } from '../data/homeData'
-import { useHomeSlider } from '../hooks/useHomeSlider'
-import { usePsikologSlider } from '../hooks/usePsikologSlider'
+import { HERO_SLIDES } from '../../data/homeData'
+import { useHomeSlider } from '../../hooks/useHomeSlider'
+import { usePsikologSlider } from '../../hooks/usePsikologSlider'
 
 export default function HomeClient() {
   const {
