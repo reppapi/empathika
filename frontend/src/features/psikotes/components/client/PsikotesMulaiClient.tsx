@@ -2,8 +2,8 @@
 
 
 
-import { MOCK_QUESTIONS } from "../data/psikotesData";
-import { usePsikotesTest } from "../hooks/usePsikotesTest";
+import { MOCK_QUESTIONS } from "../../data/psikotesData";
+import { usePsikotesTest } from "../../hooks/usePsikotesTest";
 
 export default function PsikotesMulaiClient({ params }: { params: { testId: string } }) {
   const totalQuestions = MOCK_QUESTIONS.length;

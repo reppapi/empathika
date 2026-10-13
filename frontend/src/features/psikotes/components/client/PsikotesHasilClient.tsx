@@ -6,7 +6,7 @@ import { ArrowRight, Calendar, Info, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { RESULT_DATA as resultData } from "../data/psikotesData";
+import { RESULT_DATA as resultData } from "../../data/psikotesData";
 
 export default function PsikotesHasilClient({ params }: { params: { testId: string } }) {
   const { result, interpretation, meaning, tips, recommendations, testName } = resultData;
