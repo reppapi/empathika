@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { DetailPsikologUI } from '../data/detailDummy';
+import { DetailPsikologUI } from '../../data/detailDummy';
 
 interface DetailContentProps {
   psikolog: DetailPsikologUI;
@@ -176,7 +176,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
           </h3>
           <div className="space-y-4 text-gray-800 text-sm sm:text-base md:text-lg leading-relaxed max-w-5xl">
             {psikolog.profilLengkap && psikolog.profilLengkap.length > 0 ? (
-              psikolog.profilLengkap.map((paragraf, idx) => (
+              psikolog.profilLengkap.map((paragraf: string, idx: number) => (
                 <p key={idx}>{paragraf}</p>
               ))
             ) : (
@@ -211,7 +211,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
           </h3>
           <ul className="space-y-3 text-gray-800 text-sm sm:text-base md:text-lg leading-relaxed max-w-5xl">
             {psikolog.keahlian && psikolog.keahlian.length > 0 ? (
-              psikolog.keahlian.map((item, idx) => (
+              psikolog.keahlian.map((item: string, idx: number) => (
                 <li key={idx} className="flex items-start gap-3">
                   <span className="text-gray-900 font-bold mt-0.5">•</span>
                   <span>{item}</span>
@@ -230,7 +230,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
               JADWAL PRAKTEK
             </h3>
             <div className="flex flex-wrap gap-3.5">
-              {(psikolog.jadwalAssociate || psikolog.jadwalTersedia?.map(j => ({ tipe: j.tipe === 'online' ? 'Online' : 'Offline', waktu: j.waktu })))?.map((jadwal, idx) => (
+              {(psikolog.jadwalAssociate || psikolog.jadwalTersedia?.map((j: { tipe: string; waktu: string }) => ({ tipe: j.tipe === 'online' ? 'Online' : 'Offline', waktu: j.waktu })))?.map((jadwal: { tipe: string; waktu: string }, idx: number) => (
                 <div 
                   key={idx}
                   className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800"
@@ -249,7 +249,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
               TESTIMONI
             </h3>
             <div className="space-y-4 max-w-5xl">
-              {psikolog.testimoni.map((testi, idx) => (
+              {psikolog.testimoni.map((testi: { kutipan: string; pemberi: string }, idx: number) => (
                 <div 
                   key={idx} 
                   className="border-l-[3px] border-[#561269] pl-4 sm:pl-6 py-1.5"
