@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import ProfileManagementClient from "@/features/admin/profile/components/ProfileManagementClient"
+import ProfilePsikologClient from "@/features/profile/components/psikolog/ProfilePsikologClient"
 
 export const metadata = {
   title: "Profil Saya - Psikolog Empathika",
@@ -9,7 +9,7 @@ export const metadata = {
 export default function PsikologWebProfilePage() {
   return (
     <Suspense fallback={<div className="p-6 text-gray-400 font-poppins text-sm">Memuat profil psikolog...</div>}>
-      <ProfileManagementClient role="psikolog" />
+      <ProfilePsikologClient role="psikolog" />
     </Suspense>
   )
 }
