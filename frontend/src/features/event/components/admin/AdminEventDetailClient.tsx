@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../data/adminEventData"
+import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
 
 // Dummy data peserta per event
 const DUMMY_PESERTA: Record<

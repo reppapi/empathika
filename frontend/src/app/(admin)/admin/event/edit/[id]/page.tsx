@@ -1,4 +1,4 @@
-import AdminEventFormClient from "@/features/admin/event/components/AdminEventFormClient"
+import AdminEventFormClient from "@/features/event/components/admin/AdminEventFormClient"
 
 interface Props {
   params: { id: string }

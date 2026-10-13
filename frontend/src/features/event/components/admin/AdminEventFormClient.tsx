@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../data/adminEventData"
+import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
 
 export type EventFormData = {
   judul: string
