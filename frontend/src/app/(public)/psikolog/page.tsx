@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { HeaderSection } from "@/features/psikolog/components/HeaderSection"
 import { PsikologFilter } from "@/features/psikolog/components/PsikologFilter"
 import { PsikologCard } from "@/features/psikolog/components/PsikologCard"
@@ -7,15 +8,54 @@ import { QuoteBanner } from "@/features/psikolog/components/QuoteBanner"
 import { CtaSection } from "@/features/psikolog/components/CtaSection"
 import { useFilterPsikolog } from "@/features/psikolog/hooks/useFilterPsikolog"
 import { DATA_PSIKOLOG_DUMMY } from "@/features/psikolog/dummy"
+import { PsikologUI } from "@/types/psikolog"
 
 export default function PsikologPage() {
+  const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
+
+  useEffect(() => {
+    // Sinkronkan data profil yang diedit dari admin/psikolog ke dalam list kartu klien tanpa menghapus psikolog lainnya
+    try {
+      const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+      if (saved) {
+        const list = JSON.parse(saved)
+        const updatedList: PsikologUI[] = DATA_PSIKOLOG_DUMMY.map((item) => {
+          const edited = list.find((t: any) => t.id === item.id || t.email === item.email)
+          if (edited) {
+            return {
+              ...item,
+              nama_gelar: edited.nama || item.nama_gelar,
+              foto: edited.foto || item.foto,
+              bio: edited.bio || item.bio,
+              quote: edited.quote || item.quote,
+              instagram: edited.instagram || item.instagram,
+              no_str: edited.noStr !== undefined ? edited.noStr : item.no_str,
+              no_sipp: edited.noSipp !== undefined ? edited.noSipp : item.no_sipp,
+              keahlian: edited.keahlian || item.keahlian,
+              pendidikanText: edited.pendidikanText || item.pendidikanText,
+              spesialisasi: edited.spesialisasi
+                ? {
+                    id: item.spesialisasi?.id || item.id_spesialisasi || "spesialisasi-1",
+                    nama: edited.spesialisasi,
+                  }
+                : item.spesialisasi,
+              category: edited.kategori || item.category,
+            }
+          }
+          return item
+        })
+        setDataPsikolog(updatedList as PsikologUI[])
+      }
+    } catch {}
+  }, [])
+
   const {
     kategoriAktif,
     setKategoriAktif,
     search,
     setSearch,
     dataTerfilter,
-  } = useFilterPsikolog(DATA_PSIKOLOG_DUMMY)
+  } = useFilterPsikolog(dataPsikolog)
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-[#FCFAFD]">

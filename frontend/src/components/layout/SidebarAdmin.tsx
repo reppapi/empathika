@@ -17,6 +17,7 @@ export const navItems: NavItem[] = [
   { name: "Psikotes", path: "/admin/psikotes" },
   { name: "Blog", path: "/admin/blog" },
   { name: "Layanan", path: "/admin/layanan" },
+  { name: "Pengaturan Biro", path: "/admin/biro" },
   { name: "Kerja Sama", path: "/admin/kerja-sama" },
 ]
 

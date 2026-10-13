@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 export type RoleType = "admin" | "psikolog"
@@ -12,6 +13,7 @@ export interface AdminProfileData {
   bio: string
   foto: string | null
   // Bidang khusus psikolog (sesuai POV klien / DetailPsikologUI)
+  kategoriProfesi?: "psikolog" | "konselor" | "peer-konselor"
   spesialisasi?: string
   noStr?: string
   noSipp?: string
@@ -24,7 +26,6 @@ export interface AdminProfileData {
   videoIntroUrl?: string
   videoThumbnail?: string
   videoDuration?: string
-  tarifPerJam?: number
 }
 
 const DEFAULT_ADMIN: AdminProfileData = {
@@ -41,6 +42,7 @@ const DEFAULT_PSIKOLOG: AdminProfileData = {
   noTelepon: "082198765432",
   bio: "Konselor yang memiliki ketertarikan pada bidang kesehatan mental dan pendampingan individu. Saya meyakini bahwa didengarkan dan dipahami merupakan bagian penting dari proses pemulihan dan pertumbuhan diri.",
   foto: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400",
+  kategoriProfesi: "konselor",
   spesialisasi: "Konselor Kesehatan Mental",
   noStr: "STR-8921-2023",
   noSipp: "SIPP-1049-2024",
@@ -48,7 +50,6 @@ const DEFAULT_PSIKOLOG: AdminProfileData = {
   quote: "Setiap manusia adalah cerita yang sedang bertumbuh, layak didengar, dihargai, dan ditemani.",
   instagram: "@putriqoida",
   jenisKelamin: "Perempuan",
-  tarifPerJam: 120000,
   videoIntroUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
   videoThumbnail: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800",
   videoDuration: "01:30",
@@ -73,6 +74,7 @@ interface ProfileClientProps {
 export default function ProfileManagementClient({
   role = "admin",
 }: ProfileClientProps) {
+  const router = useRouter()
   const [adminData, setAdminData] = useState<AdminProfileData>(DEFAULT_ADMIN)
   const [psikologData, setPsikologData] = useState<AdminProfileData>(DEFAULT_PSIKOLOG)
 
@@ -94,8 +96,44 @@ export default function ProfileManagementClient({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setForm(role === "admin" ? adminData : psikologData)
-  }, [role, adminData, psikologData])
+    if (role === "admin") {
+      setForm(adminData)
+    } else {
+      // Ambil data dari shared storage tenaga ahli
+      try {
+        const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+        if (saved) {
+          const list = JSON.parse(saved)
+          const found = list.find((d: any) => d.id === "1" || d.email === "putriqoida@empathika.com") || list[0]
+          if (found) {
+            const mapped: AdminProfileData = {
+              nama: found.nama,
+              email: found.email,
+              noTelepon: found.noTelepon,
+              bio: found.bio,
+              foto: found.foto,
+              kategoriProfesi: found.kategori,
+              spesialisasi: found.spesialisasi,
+              noStr: found.noStr,
+              noSipp: found.noSipp,
+              pendidikanText: found.pendidikanText,
+              quote: found.quote,
+              instagram: found.instagram,
+              keahlian: found.keahlian,
+              profilLengkap: DEFAULT_PSIKOLOG.profilLengkap,
+              videoIntroUrl: DEFAULT_PSIKOLOG.videoIntroUrl,
+              videoThumbnail: DEFAULT_PSIKOLOG.videoThumbnail,
+              videoDuration: DEFAULT_PSIKOLOG.videoDuration,
+            }
+            setPsikologData(mapped)
+            setForm(mapped)
+            return
+          }
+        }
+      } catch {}
+      setForm(psikologData)
+    }
+  }, [role, adminData])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -103,7 +141,7 @@ export default function ProfileManagementClient({
     const { name, value } = e.target
     setForm((prev) => ({
       ...prev,
-      [name]: name === "tarifPerJam" ? Number(value) || 0 : value,
+      [name]: value,
     }))
   }
 
@@ -166,6 +204,35 @@ export default function ProfileManagementClient({
       setAdminData(form)
     } else {
       setPsikologData(form)
+      // Sinkronkan ke shared storage tenaga ahli agar Admin Utama dan POV Klien langsung terupdate
+      try {
+        const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+        if (saved) {
+          const list = JSON.parse(saved)
+          const updated = list.map((item: any) => {
+            if (item.id === "1" || item.email === form.email) {
+              return {
+                ...item,
+                nama: form.nama,
+                email: form.email,
+                noTelepon: form.noTelepon,
+                bio: form.bio,
+                foto: form.foto,
+                kategori: form.kategoriProfesi || item.kategori,
+                spesialisasi: form.spesialisasi || item.spesialisasi,
+                noStr: form.noStr,
+                noSipp: form.noSipp,
+                pendidikanText: form.pendidikanText,
+                quote: form.quote,
+                instagram: form.instagram,
+                keahlian: form.keahlian,
+              }
+            }
+            return item
+          })
+          localStorage.setItem("empathika_tenaga_ahli_data", JSON.stringify(updated))
+        }
+      } catch {}
     }
     setToastMessage(`Profil ${role === "admin" ? "Admin" : "Psikolog"} berhasil diperbarui!`)
     setShowToast(true)
@@ -417,6 +484,24 @@ export default function ProfileManagementClient({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    Klasifikasi Profesi
+                  </label>
+                  <div className="flex items-center justify-between rounded-2xl border border-purple-200 bg-purple-50/50 px-4 py-3 text-sm">
+                    <span className="font-bold text-[#561269] capitalize">
+                      {form.kategoriProfesi === "psikolog"
+                        ? "Psikolog Resmi"
+                        : form.kategoriProfesi === "peer-konselor"
+                        ? "Peer Konselor"
+                        : "Konselor"}
+                    </span>
+                    <span className="text-[11px] font-medium text-gray-400 bg-white border border-purple-100 rounded-lg px-2.5 py-0.5">
+                      Ditetapkan Admin Utama
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
                     Spesialisasi Utama
                   </label>
                   <input
@@ -431,33 +516,58 @@ export default function ProfileManagementClient({
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Nomor STR (Surat Tanda Registrasi)
+                    Ubah Kata Sandi Akun
                   </label>
                   <input
-                    type="text"
-                    name="noStr"
-                    value={form.noStr || ""}
-                    onChange={handleInputChange}
-                    placeholder="Isi jika ada / Kosongkan jika konselor"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
+                    type="password"
+                    name="password"
+                    placeholder="Masukkan kata sandi baru (opsional)"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Nomor SIPP (Surat Izin Praktik)
-                  </label>
-                  <input
-                    type="text"
-                    name="noSipp"
-                    value={form.noSipp || ""}
-                    onChange={handleInputChange}
-                    placeholder="Isi nomor izin praktik resmi"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
-                  />
-                </div>
+                {form.kategoriProfesi === "psikolog" ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                        Nomor STR (Surat Tanda Registrasi) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="noStr"
+                        value={form.noStr || ""}
+                        onChange={handleInputChange}
+                        placeholder="Contoh: STR-8921-2023"
+                        className="w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
+                      />
+                    </div>
 
-                <div className="md:col-span-2">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                        Nomor SIPP (Surat Izin Praktik) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="noSipp"
+                        value={form.noSipp || ""}
+                        onChange={handleInputChange}
+                        placeholder="Contoh: SIPP-1049-2024"
+                        className="w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="md:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/50 p-3.5 text-xs text-blue-700 flex items-center gap-2.5">
+                    <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      Sebagai <strong>{form.kategoriProfesi === "peer-konselor" ? "Peer Konselor" : "Konselor"}</strong>, Anda tidak diwajibkan menyertakan nomor STR dan SIPP.
+                    </span>
+                  </div>
+                )}
+
+                <div className="md:col-span-2 lg:col-span-3">
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">
                     Pendidikan & Institusi
                   </label>
@@ -469,22 +579,6 @@ export default function ProfileManagementClient({
                     placeholder="Contoh: Sarjana Psikologi (S.Psi.) - Universitas Indonesia"
                     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Tarif Sesi Per Jam (Rp)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-3.5 text-xs font-bold text-gray-400">Rp</span>
-                    <input
-                      type="number"
-                      name="tarifPerJam"
-                      value={form.tarifPerJam || 0}
-                      onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-medium"
-                    />
-                  </div>
                 </div>
 
                 <div className="md:col-span-2 lg:col-span-3">
@@ -691,7 +785,11 @@ export default function ProfileManagementClient({
             <button
               type="button"
               onClick={() => {
-                setForm(role === "admin" ? adminData : psikologData)
+                if (role === "admin") {
+                  router.push("/admin")
+                } else {
+                  router.push("/admin/psikolog-web")
+                }
               }}
               className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-600 hover:bg-gray-50 transition active:scale-95"
             >
