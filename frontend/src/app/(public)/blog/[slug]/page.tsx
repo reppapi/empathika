@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { getBlogPost } from '@/features/blog/data/blogData';
-import BlogDetailClient from '@/features/blog/components/BlogDetailClient';
+import BlogDetailClient from '@/features/blog/components/client/BlogDetailClient';
 
 interface PageProps {
   params: { slug: string };

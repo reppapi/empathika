@@ -1,4 +1,4 @@
-import AdminTambahBlogClient from "@/features/admin/blog/components/AdminTambahBlogClient"
+import AdminTambahBlogClient from "@/features/blog/components/admin/AdminTambahBlogClient"
 
 export const metadata = {
   title: "Tambah Blog - Admin Empathika",
