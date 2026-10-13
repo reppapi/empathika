@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import React from 'react'
 import Link from 'next/link'
-import { CtaSection } from '@/features/psikolog/components/CtaSection'
+import { CtaSection } from '@/features/psikolog/components/client/CtaSection'
 
 export default function TentangKamiClient() {
   return (
