@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { getDetailPsikolog, DetailPsikologUI } from "@/features/psikolog/data/detailDummy"
-import { DetailPsikologContent } from "@/features/psikolog/components/DetailPsikologContent"
-import { INITIAL_TENAGA_AHLI } from "@/features/admin/psikolog/initialData"
+import { DetailPsikologContent } from "@/features/psikolog/components/client/DetailPsikologContent"
+import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 
 interface PageProps {
   params: { id: string }

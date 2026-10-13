@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { DATA_PSIKOLOG_DUMMY } from "@/features/psikolog/dummy"
-import { PsikologCard } from "@/features/psikolog/components/PsikologCard"
+import { PsikologCard } from "@/features/psikolog/components/client/PsikologCard"
 
 const DAFTAR_HARGA = [
   {
