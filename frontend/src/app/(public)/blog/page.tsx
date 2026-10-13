@@ -1,4 +1,4 @@
-import BlogListClient from '@/features/blog/components/BlogListClient';
+import BlogListClient from '@/features/blog/components/client/BlogListClient';
 
 export const metadata = {
   title: 'Sudut Refleksi – Blog Empathika',

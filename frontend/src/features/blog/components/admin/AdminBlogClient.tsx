@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { BlogPost } from "@/features/blog/types"
-import { INITIAL_ADMIN_BLOGS } from "../data/adminBlogData"
+import { INITIAL_ADMIN_BLOGS } from "../../data/adminBlogData"
 
 export default function AdminBlogClient() {
   const [blogs, setBlogs] = useState<BlogPost[]>([])
