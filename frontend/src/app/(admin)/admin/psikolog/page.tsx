@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import AdminPsikologClient from "@/features/admin/psikolog/components/AdminPsikologClient"
+import AdminPsikologClient from "@/features/psikolog/components/admin/AdminPsikologClient"
 
 export const metadata = {
   title: "Data Psikolog & Tenaga Ahli - Admin Empathika",

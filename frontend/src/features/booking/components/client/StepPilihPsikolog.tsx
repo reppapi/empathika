@@ -1,6 +1,6 @@
 import { useBookingFlowStore } from "@/store/bookingFlowStore"
 import { usePsikologList } from "@/features/psikolog/hooks/usePsikologList"
-import { PsikologCard } from "@/features/psikolog/components/PsikologCard"
+import { PsikologCard } from "@/features/psikolog/components/client/PsikologCard"
 
 export function StepPilihPsikolog() {
   const { data: psikologs, isLoading } = usePsikologList()

@@ -1,4 +1,4 @@
-import { TenagaAhli } from "./types"
+import { TenagaAhli } from "../types"
 
 export const INITIAL_TENAGA_AHLI: TenagaAhli[] = [
   {

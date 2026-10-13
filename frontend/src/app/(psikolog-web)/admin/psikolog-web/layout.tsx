@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import SidebarPsikolog from "@/components/layout/SidebarPsikolog"
 import AdminNavbar from "@/components/layout/AdminNavbar"
-import { LOCAL_STORAGE_KEY_TENAGA, INITIAL_TENAGA_AHLI } from "@/features/admin/psikolog/initialData"
-import { TenagaAhli } from "@/features/admin/psikolog/types"
+import { LOCAL_STORAGE_KEY_TENAGA, INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
+import { TenagaAhli } from "@/features/psikolog/types"
 
 export default function PsikologWebLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
