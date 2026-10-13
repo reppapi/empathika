@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import AdminEventClient from "@/features/admin/event/components/AdminEventClient"
+import AdminEventClient from "@/features/event/components/admin/AdminEventClient"
 
 export const metadata = {
   title: "Kelola Event - Admin Empathika",

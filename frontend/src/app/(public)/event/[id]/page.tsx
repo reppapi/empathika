@@ -1,6 +1,6 @@
-import EventDetailClient from "@/features/event/components/EventDetailClient"
-import WorkshopDetailClient from "@/features/event/components/WorkshopDetailClient"
-import GoesToSchoolDetailClient from "@/features/event/components/GoesToSchoolDetailClient"
+import EventDetailClient from "@/features/event/components/client/EventDetailClient"
+import WorkshopDetailClient from "@/features/event/components/client/WorkshopDetailClient"
+import GoesToSchoolDetailClient from "@/features/event/components/client/GoesToSchoolDetailClient"
 
 interface PageProps {
   params: { id: string }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../data/adminEventData"
+import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
 import { ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
 import { Calendar } from "lucide-react"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
@@ -109,7 +109,7 @@ export default function AdminEventClient() {
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
-      {/* ── Top Bar Action: Tombol Tambah Event (Pindah ke page baru) ── */}
+      {/* ΓöÇΓöÇ Top Bar Action: Tombol Tambah Event (Pindah ke page baru) ΓöÇΓöÇ */}
       <div className="flex justify-end">
         <button
           type="button"
@@ -130,7 +130,7 @@ export default function AdminEventClient() {
         </button>
       </div>
 
-      {/* ── Metric Card: Total Event Aktif ── */}
+      {/* ΓöÇΓöÇ Metric Card: Total Event Aktif ΓöÇΓöÇ */}
       <div className="w-full max-w-sm">
         <AdminSummaryCard
           label="Total Event Aktif"
@@ -140,7 +140,7 @@ export default function AdminEventClient() {
         />
       </div>
 
-      {/* ── Main Card Table Container ── */}
+      {/* ΓöÇΓöÇ Main Card Table Container ΓöÇΓöÇ */}
       <div className="w-full rounded-[1.5rem] border border-gray-200/90 bg-white p-6 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         {/* Header Bar: Filter Tabs & Search (Tanpa tombol filter) */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
@@ -233,7 +233,7 @@ export default function AdminEventClient() {
           </div>
         </div>
 
-        {/* ── Table Event ── */}
+        {/* ΓöÇΓöÇ Table Event ΓöÇΓöÇ */}
         <div
           className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
             filteredEvents.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
@@ -367,11 +367,11 @@ export default function AdminEventClient() {
                     >
                       <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                         <ActionButtonEdit
-                          onClick={(e) => handleEditEvent(item.id, e)}
+                          onClick={(e: React.MouseEvent) => handleEditEvent(item.id, e)}
                           title="Edit Event"
                         />
                         <ActionButtonDelete
-                          onClick={(e) => handleDeleteEvent(item.id, e)}
+                          onClick={(e: React.MouseEvent) => handleDeleteEvent(item.id, e)}
                           title="Hapus Event"
                         />
                       </div>
