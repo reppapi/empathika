@@ -408,7 +408,7 @@ export default function AdminDashboardClient() {
               {agendaList.map((item, index) => (
                 <Link
                   key={index}
-                  href={item.href}
+                  href={item.href as any}
                   className="flex items-start gap-3 p-3 rounded-xl border border-gray-100 hover:border-[#5D205E]/30 hover:bg-[#F9F5FA] transition-all group cursor-pointer"
                 >
                   <div className={`mt-1.5 w-2 h-2 rounded-full ${item.dotColor} shrink-0`}></div>
