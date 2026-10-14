@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { LOCAL_STORAGE_KEY_BIRO, INITIAL_BIRO_LIST } from "@/features/admin/biro/initialData"
-import { BiroKomunitas } from "@/features/admin/biro/types"
+import { LOCAL_STORAGE_KEY_BIRO, INITIAL_BIRO_LIST } from "@/features/biro/data/initialData"
+import { BiroKomunitas } from "@/features/biro/types"
 import { Building2, Mail, Phone, MapPin, Globe, Palette, ShieldCheck, Lock, CheckCircle2, AlertCircle } from "lucide-react"
 
 export default function ProfilBiroClient() {
