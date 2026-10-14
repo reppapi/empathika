@@ -194,50 +194,58 @@ export default function AdminDashboardClient() {
     }
   ]
 
+  // Tipe data sesi hari ini
+  interface TodaySessionItem {
+    waktu: string
+    klien: string
+    psikolog: string
+    layanan: string
+    metode: "Online" | "Offline"
+    status: "Selesai" | "Sedang Berjalan" | "Mendatang"
+  }
+
   // Sesi konseling hari ini (stateful)
-  const initialSessions = [
+  const initialSessions: TodaySessionItem[] = [
     {
       waktu: "09:00 - 10:00 WIB",
       klien: "Karen Sya",
       psikolog: "Sarah Amalia, M.Psi",
       layanan: "Konseling Dewasa",
-      metode: "Online" as const,
-      status: "Selesai" as const
+      metode: "Online",
+      status: "Selesai"
     },
     {
       waktu: "13:30 - 14:30 WIB",
       klien: "Budi Santoso",
       psikolog: "Dr. Dimas Prasetyo",
       layanan: "Konseling Karir & Stres",
-      metode: "Offline" as const,
-      status: "Sedang Berjalan" as const
+      metode: "Offline",
+      status: "Sedang Berjalan"
     },
     {
       waktu: "16:00 - 17:00 WIB",
       klien: "Anisa Rahma",
       psikolog: "Rizki Putri D., M.Psi",
       layanan: "Konseling Remaja",
-      metode: "Online" as const,
-      status: "Mendatang" as const
+      metode: "Online",
+      status: "Mendatang"
     }
   ]
 
-  const [sessions, setSessions] = useState(initialSessions)
+  const [sessions, setSessions] = useState<TodaySessionItem[]>(initialSessions)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
   const handleSessionSuccess = (newSession: NewSessionData) => {
-    setSessions((prev) => [
-      {
-        waktu: newSession.waktu,
-        klien: newSession.namaKlien,
-        psikolog: newSession.psikolog,
-        layanan: newSession.layanan,
-        metode: newSession.metode,
-        status: newSession.status,
-      },
-      ...prev,
-    ])
+    const item: TodaySessionItem = {
+      waktu: newSession.waktu,
+      klien: newSession.namaKlien,
+      psikolog: newSession.psikolog,
+      layanan: newSession.layanan,
+      metode: newSession.metode,
+      status: newSession.status,
+    }
+    setSessions((prev) => [item, ...prev])
     setNotification(`Sesi konseling baru untuk "${newSession.namaKlien}" berhasil dijadwalkan!`)
     setTimeout(() => setNotification(null), 4000)
   }
