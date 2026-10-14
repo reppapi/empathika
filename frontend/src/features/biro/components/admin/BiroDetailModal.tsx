@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { BiroKomunitas } from "../types"
+import { BiroKomunitas } from "../../types"
 
 interface BiroDetailModalProps {
   isOpen: boolean

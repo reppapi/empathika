@@ -1,6 +1,6 @@
 "use client"
 
-import { BiroKomunitas } from "../types"
+import { BiroKomunitas } from "../../types"
 
 interface BiroDeleteModalProps {
   isOpen: boolean
