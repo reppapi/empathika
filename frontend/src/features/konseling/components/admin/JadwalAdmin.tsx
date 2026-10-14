@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { Calendar } from "@/components/ui/calendar"
+import ModalTambahSesi, { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
 import { 
   Calendar as CalendarIcon, 
   ChevronDown, 
@@ -254,6 +255,23 @@ export default function JadwalAdmin() {
     setTimeout(() => setBookingSuccessMsg(null), 3500)
   }
 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleModalSuccess = (newSession: NewSessionData) => {
+    const newBooked: BookedAssessment = {
+      id: "ab_" + Date.now(),
+      date: newSession.tanggal,
+      waktu: newSession.waktu.replace(" WIB", ""),
+      layanan: newSession.layanan,
+      metode: newSession.metode,
+      namaKlien: newSession.namaKlien,
+      psikolog: newSession.psikolog,
+    }
+    setBookedSessions((prev) => [newBooked, ...prev])
+    setBookingSuccessMsg(`Sesi baru untuk ${newSession.namaKlien} (${newSession.waktu}) berhasil dijadwalkan!`)
+    setTimeout(() => setBookingSuccessMsg(null), 4000)
+  }
+
   return (
     <div className="w-full max-w-[1400px] mx-auto flex flex-col gap-8 font-poppins pb-10">
 
@@ -267,8 +285,12 @@ export default function JadwalAdmin() {
           {formattedDate}
           <CalendarIcon className="w-4 h-4 ml-1" />
         </button>
-        <button className="flex items-center gap-2 bg-[#561269] text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm hover:bg-[#430b53] transition-colors">
-          <Plus className="w-4 h-4" />
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-4 py-2.5 rounded-lg text-sm font-bold shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer"
+        >
+          <Plus className="w-4 h-4 stroke-[2.5]" />
           Sesi Baru
         </button>
       </div>
@@ -633,6 +655,12 @@ export default function JadwalAdmin() {
         </div>
       </div>
 
+      {/* Modal Tambah Sesi */}
+      <ModalTambahSesi
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   )
 }
