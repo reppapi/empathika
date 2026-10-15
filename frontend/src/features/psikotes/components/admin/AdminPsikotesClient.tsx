@@ -429,7 +429,7 @@ export default function AdminPsikotesClient() {
             <button
               type="button"
               onClick={() => openForm()}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
             >
               <Plus className="h-4 w-4" /> Tambah Paket
             </button>
@@ -594,8 +594,8 @@ export default function AdminPsikotesClient() {
                     if (confirm("Batal dan kembali ke daftar? Perubahan tidak akan disimpan.")) {
                       setActiveTab("paket");
                     }
-                  }} className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Batal</button>
-                  <button onClick={handleNextToSoal} className="px-6 py-2.5 text-sm font-medium text-white bg-[#561269] rounded-lg hover:bg-[#561269]/90 transition-colors shadow-sm">Berikutnya</button>
+                  }} className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-100 transition-all cursor-pointer">Batal</button>
+                  <button onClick={handleNextToSoal} className="px-6 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer">Berikutnya</button>
                 </div>
               </div>
             )}
@@ -658,11 +658,11 @@ export default function AdminPsikotesClient() {
 
                       <div className="pt-4 flex justify-between">
                         {soalList.find(s => s.id === currentSoal.id) ? (
-                          <button onClick={() => deleteSoal(currentSoal.id)} className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2">
+                          <button onClick={() => deleteSoal(currentSoal.id)} className="px-4 py-2 text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-full hover:bg-red-100 transition-all cursor-pointer flex items-center gap-2">
                             <Trash2 className="w-4 h-4" /> Hapus Soal
                           </button>
                         ) : <div></div>}
-                        <button onClick={handleSimpanSoal} className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 shadow-sm">
+                        <button onClick={handleSimpanSoal} className="px-5 py-2 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-2">
                           <Save className="w-4 h-4" /> Simpan Soal
                         </button>
                       </div>
@@ -709,8 +709,8 @@ export default function AdminPsikotesClient() {
                 </div>
 
                 <div className="flex justify-between items-center pt-6 border-t border-gray-100 mt-8">
-                  <button onClick={() => setFormTab("info")} className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Kembali</button>
-                  <button onClick={handleNextToPreview} className="px-6 py-2.5 text-sm font-medium text-white bg-[#561269] rounded-lg hover:bg-[#561269]/90 transition-colors shadow-sm">Berikutnya</button>
+                  <button onClick={() => setFormTab("info")} className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-100 transition-all cursor-pointer">Kembali</button>
+                  <button onClick={handleNextToPreview} className="px-6 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer">Berikutnya</button>
                 </div>
               </div>
             )}
@@ -767,8 +767,8 @@ export default function AdminPsikotesClient() {
                 </div>
 
                 <div className="flex justify-between items-center pt-6 border-t border-gray-100 mt-8 max-w-4xl mx-auto">
-                  <button onClick={() => setFormTab("soal")} className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Kembali</button>
-                  <button onClick={handleNextToInterpretasi} className="px-6 py-2.5 text-sm font-medium text-white bg-[#561269] rounded-lg hover:bg-[#561269]/90 transition-colors shadow-sm">Berikutnya</button>
+                  <button onClick={() => setFormTab("soal")} className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-100 transition-all cursor-pointer">Kembali</button>
+                  <button onClick={handleNextToInterpretasi} className="px-6 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer">Berikutnya</button>
                 </div>
               </div>
             )}
@@ -892,8 +892,8 @@ export default function AdminPsikotesClient() {
                 </div>
 
                 <div className="flex justify-between items-center pt-6 border-t border-gray-100 mt-8 max-w-4xl mx-auto">
-                  <button onClick={() => setFormTab("preview")} className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Kembali</button>
-                  <button onClick={simpanPaketLengkap} className="flex items-center gap-2 px-8 py-2.5 text-sm font-medium text-white bg-[#561269] rounded-lg hover:bg-[#561269]/90 transition-colors shadow-sm">
+                  <button onClick={() => setFormTab("preview")} className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-100 transition-all cursor-pointer">Kembali</button>
+                  <button onClick={simpanPaketLengkap} className="flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer">
                     <Save className="w-4 h-4" /> Simpan Paket Psikotes
                   </button>
                 </div>
@@ -982,12 +982,12 @@ export default function AdminPsikotesClient() {
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
               <button
                 onClick={() => setSelectedPeserta(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-100 transition-all cursor-pointer"
               >
                 Tutup
               </button>
               {selectedPeserta.status === "Selesai" && (
-                <button className="px-4 py-2 text-sm font-medium text-white bg-[#561269] rounded-lg hover:bg-[#561269]/90 transition-colors flex items-center gap-2">
+                <button className="px-6 py-2 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer">
                   <Download className="w-4 h-4" /> Unduh Laporan
                 </button>
               )}

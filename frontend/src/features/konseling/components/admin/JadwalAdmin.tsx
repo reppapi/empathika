@@ -277,18 +277,18 @@ export default function JadwalAdmin() {
 
       {/* Top Actions & Filters */}
       <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-3 border-t border-gray-200 pt-6">
-        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs">
           Semua Layanan
           <ChevronDown className="w-4 h-4 ml-2" />
         </button>
-        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs">
           {formattedDate}
           <CalendarIcon className="w-4 h-4 ml-1" />
         </button>
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-4 py-2.5 rounded-lg text-sm font-bold shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer"
+          className="flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-98 cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           Sesi Baru
@@ -526,10 +526,10 @@ export default function JadwalAdmin() {
                 type="button"
                 onClick={handleBooking}
                 disabled={!selectedTime}
-                className={`w-full font-bold py-3.5 rounded-xl shadow-sm transition-colors ${
+                className={`w-full font-bold py-3.5 rounded-full shadow-sm transition-all transform active:scale-98 ${
                   selectedTime 
-                    ? "bg-[#561269] hover:bg-[#6c1784] text-white cursor-pointer" 
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 cursor-pointer shadow-sm hover:shadow-md" 
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
               >
                 Pilih Jadwal ini

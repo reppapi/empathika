@@ -143,7 +143,7 @@ export default function BiroDetailModal({
                 onClose()
                 onEdit(biro)
               }}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold text-white bg-[#561269] hover:bg-[#6f1b87] shadow-sm transition active:scale-95 self-start sm:self-auto"
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -391,7 +391,7 @@ export default function BiroDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 rounded-2xl text-xs sm:text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition active:scale-95"
+            className="px-6 py-2 rounded-full text-xs sm:text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
             Tutup
           </button>
