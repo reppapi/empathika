@@ -14,11 +14,8 @@ export default function BiroDashboardAgenda({ agendaList }: BiroDashboardAgendaP
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-7 flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h3 className="font-bold text-gray-900 text-lg">Agenda & Peringatan</h3>
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          </div>
-          <span className="text-xs font-semibold text-gray-400">Hari ini & terdekat</span>
+          <h3 className="font-bold text-gray-900 text-lg">Agenda & Peringatan</h3>
+          <span className="text-xs font-semibold text-gray-400 shrink-0">Hari ini & terdekat</span>
         </div>
 
         <div className="flex flex-col gap-2.5 max-h-[340px] overflow-y-auto pr-1">
