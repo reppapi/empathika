@@ -11,6 +11,7 @@ enum Role {
   USER
   ADMIN
   PSIKOLOG
+  BIRO
 }
 
 enum StatusBiro {
@@ -83,6 +84,8 @@ model User {
   id               String   @id @default(uuid())
   id_biro          String?
   nama             String
+  email            String   @unique
+  password         String?
   no_telepon       String?
   deskripsi_trauma String?  @db.Text
   role             Role     @default(USER)
@@ -383,7 +386,8 @@ model ArtikelBlog {
   judul              String
   slug               String   @unique
   isi                String   @db.Text
-  waktu_baca_menit   Int
+  banner_url         String?
+  waktu_baca_menit   Int      @default(5)
   tanggal_terbit     DateTime @default(now())
   jumlah_dilihat     Int      @default(0)
 
