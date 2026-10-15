@@ -72,6 +72,16 @@ export default function EventCheckoutClient() {
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
 
   const handleSelectPayment = (id: string) => {
+    if (metodePembayaran === id) {
+      // Jika opsi yang sama diklik lagi, tutup dropdown/accordion-nya
+      setMetodePembayaran(null)
+      setSelectedBank(null)
+      setSelectedEwallet(null)
+      setBankOpen(false)
+      setEwalletOpen(false)
+      return
+    }
+
     setMetodePembayaran(id)
     if (id !== "bank")    { setSelectedBank(null);    setBankOpen(false) }
     if (id !== "ewallet") { setSelectedEwallet(null); setEwalletOpen(false) }

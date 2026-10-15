@@ -62,6 +62,14 @@ export default function BayarClient() {
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
 
   const handleSelectPayment = (id: string) => {
+    if (metodePembayaran === id) {
+      // Jika opsi yang sama diklik lagi, tutup dropdown/accordion-nya
+      setMetodePembayaran(null)
+      setSelectedBank(null)
+      setSelectedEwallet(null)
+      return
+    }
+
     setMetodePembayaran(id)
     if (id !== "bank")    { setSelectedBank(null) }
     if (id !== "ewallet") { setSelectedEwallet(null) }
