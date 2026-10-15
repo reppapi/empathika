@@ -220,14 +220,14 @@ export default function TambahLayananView() {
           <Link href="/admin/layanan">
             <button
               type="button"
-              className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-6 py-2.5 border border-gray-300 rounded-full text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
             >
               Kembali
             </button>
           </Link>
           <button
             type="submit"
-            className="px-6 py-2 bg-[#561269] hover:bg-[#430b53] text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-8 py-2.5 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
             Simpan
           </button>

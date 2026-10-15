@@ -188,7 +188,7 @@ export default function AdminEventDetailClient({ eventId }: Props) {
           <button
             type="button"
             onClick={handleMarkAsCompleted}
-            className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95 ${
+            className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer ${
               event.status === "Selesai"
                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
                 : "bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -211,7 +211,7 @@ export default function AdminEventDetailClient({ eventId }: Props) {
           <button
             type="button"
             onClick={() => router.push(`/admin/event/edit/${event.id}`)}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#561269] hover:bg-[#6f1b87] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+            className="inline-flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -99,7 +99,7 @@ export default function TabKelolaFormulir({
               <button
                 type="button"
                 onClick={handleSaveAllFormConfigs}
-                className="bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs transition self-start sm:self-auto cursor-pointer"
+                className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2.5 rounded-full text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
               >
                 Simpan Perubahan Formulir
               </button>
@@ -171,7 +171,7 @@ export default function TabKelolaFormulir({
                 <button
                   type="button"
                   onClick={() => setIsAddingQuestion(true)}
-                  className="px-3.5 py-2 rounded-xl bg-purple-50 text-[#561269] hover:bg-purple-100 font-bold text-xs border border-purple-200 transition cursor-pointer flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
                 >
                   <span>+ Tambah Pertanyaan</span>
                 </button>
@@ -232,13 +232,13 @@ export default function TabKelolaFormulir({
                   <button
                     type="button"
                     onClick={() => setIsAddingQuestion(false)}
-                    className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 cursor-pointer"
+                    className="px-4 py-1.5 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-bold transition-all cursor-pointer"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-4 py-1.5 rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                    className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                   >
                     Simpan Pertanyaan
                   </button>
@@ -281,7 +281,7 @@ export default function TabKelolaFormulir({
                       <button
                         type="button"
                         onClick={() => handleDeleteQuestion(q.id)}
-                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 text-red-600 hover:bg-red-50 rounded-full transition-all text-xs font-bold flex items-center gap-1 cursor-pointer"
                         title="Hapus Pertanyaan"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -267,7 +267,7 @@ export default function ProfilBiroClient() {
 
               <button
                 type="submit"
-                className="w-full mt-2 py-3 rounded-xl bg-[#561269] hover:bg-[#6c1784] text-white font-bold text-xs shadow-md transition-transform active:scale-98"
+                className="w-full mt-2 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 Simpan Kata Sandi
               </button>

@@ -328,13 +328,13 @@ export default function AdminTambahBlogClient() {
             <button
               type="button"
               onClick={() => router.push("/admin/blog")}
-              className="rounded-xl border border-gray-200 bg-white px-7 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              className="rounded-full border border-gray-300 bg-white px-7 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
             >
               Kembali
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-[#561269] hover:bg-[#6f1b87] px-8 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md transition-all active:scale-95"
+              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
             >
               Simpan
             </button>
