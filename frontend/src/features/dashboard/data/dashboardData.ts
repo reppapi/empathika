@@ -10,7 +10,7 @@ import {
 
 export const INITIAL_DASHBOARD_METRICS: MetricItem[] = [
   {
-    title: "Total Pendapatan Bulan Ini",
+    title: "Pendapatan Bulan Ini",
     value: "Rp 18.750.000",
     change: "+12.5% dari bulan lalu",
     icon: Wallet,
@@ -31,7 +31,7 @@ export const INITIAL_DASHBOARD_METRICS: MetricItem[] = [
     color: "#5D205E",
   },
   {
-    title: "Pendaftar Baru Workshop",
+    title: "Pendaftar Workshop",
     value: "18 Peserta",
     change: "Dari 2 event aktif",
     icon: Sparkles,
