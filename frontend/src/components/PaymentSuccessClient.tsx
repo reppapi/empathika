@@ -71,6 +71,16 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const subjudul = searchParams.get("subjudul") ?? (type === "konseling" ? "Psikolog Profesional Empathika" : "")
   const bottomDate = searchParams.get("bottomDate") ?? `${tanggal} ${tahun}`
   const bottomTime = searchParams.get("bottomTime") ?? `${waktu} WIB`
+  const metode = searchParams.get("metode") ?? "qris"
+  const bank = searchParams.get("bank")
+  const ewallet = searchParams.get("ewallet")
+
+  const metodeLabel =
+    metode === "bank"
+      ? `Virtual Account Bank ${bank?.toUpperCase() ?? ""}`
+      : metode === "ewallet"
+      ? `E-Wallet ${ewallet ?? ""}`
+      : "QRIS"
 
   const waMessage = `Halo Admin Empathika, saya baru saja melakukan pembayaran untuk ${judul}. Order ID: ${orderId} atas nama ${nama}`
 
@@ -165,8 +175,8 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                 </div>
               </div>
 
-              {/* Nama & Order ID */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Nama, Order ID, & Metode Pembayaran */}
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b border-dashed border-[#C3A4CE]">
                 <div>
                   <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">
                     NAMA PEMESAN
@@ -179,6 +189,21 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                   </div>
                   <div className="text-xs font-bold text-[#2F2F2F]">{orderId}</div>
                 </div>
+              </div>
+
+              {/* Keterangan Metode Pembayaran */}
+              <div className="pt-3 flex items-center justify-between">
+                <div>
+                  <div className="text-[9px] font-bold text-gray-500 mb-0.5 uppercase tracking-wider">
+                    METODE PEMBAYARAN
+                  </div>
+                  <div className="text-xs font-extrabold text-[#561269]">
+                    {metodeLabel}
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                  LUNAS
+                </span>
               </div>
             </div>
 
