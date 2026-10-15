@@ -30,7 +30,7 @@ export class TransaksiService {
 
     const transaksi = await this.repo.create({
       id_booking: input.bookingId,
-      id_user: userId,
+      id_client: userId,
       jumlah: amount,
       metode_pembayaran: input.paymentMethod,
     })
