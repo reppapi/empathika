@@ -4,6 +4,6 @@ export class AuthRepository {
   constructor(private prisma: PrismaClient) {}
 
   async findById(id: string) {
-    return this.prisma.user.findUnique({ where: { id } })
+    return (this.prisma as any).account.findUnique({ where: { id } })
   }
 }

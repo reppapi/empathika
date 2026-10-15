@@ -5,39 +5,62 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Start seeding...');
 
-  // 1. Create Users
-  const adminUser = await prisma.user.create({
+  // 1. Create Accounts (Admin & Biro Owner)
+  const adminAccount = await prisma.account.create({
     data: {
       nama: 'Admin Empathika',
+      email: 'admin@empathika.test',
+      password: 'AdminPasswordHashed123!',
       role: Role.ADMIN,
     },
   });
 
-  const biroOwner = await prisma.user.create({
+  const biroOwnerAccount = await prisma.account.create({
     data: {
-      nama: 'Biro Owner',
-      role: Role.USER,
+      nama: 'Admin Biro Cendekia Muda',
+      email: 'biro@cendekiamuda.org',
+      password: 'BiroPasswordHashed123!',
+      role: Role.BIRO,
       no_telepon: '081234567890',
     },
   });
 
-  console.log(`Created admin user: ${adminUser.nama}`);
-  console.log(`Created biro owner: ${biroOwner.nama}`);
+  console.log(`Created admin account: ${adminAccount.nama}`);
+  console.log(`Created biro owner account: ${biroOwnerAccount.nama}`);
 
   // 2. Create Biro
   const biro = await prisma.biro.create({
     data: {
-      nama_biro: 'Biro Psikologi Sejahtera',
-      slug: 'biro-psikologi-sejahtera',
-      id_user: biroOwner.id, // Set as Owner
-      alamat: 'Jl. Kesejahteraan No. 1, Jakarta',
+      nama_biro: 'Biro Konseling Cendekia Muda',
+      slug: 'cendekia-muda',
+      id_account: biroOwnerAccount.id, // Penanggung Jawab Biro
+      alamat: 'Jl. Kaliurang KM 5, Sleman, D.I. Yogyakarta',
       aktif: true,
     },
   });
 
+  // Hubungkan biroOwnerAccount dengan id_biro yang baru dibuat
+  await prisma.account.update({
+    where: { id: biroOwnerAccount.id },
+    data: { id_biro: biro.id },
+  });
+
   console.log(`Created biro: ${biro.nama_biro}`);
 
-  // 3. Create Spesialisasi
+  // 3. Create Sample Client (Tamu Pemesan Layanan)
+  const sampleClient = await prisma.client.create({
+    data: {
+      nama: 'Karen Sya',
+      no_telepon: '0812-0083-773',
+      email: 'karennsya@gmail.com',
+      deskripsi_trauma: 'Kecemasan akademik & regulasi stres skripsi',
+      id_biro: biro.id,
+    },
+  });
+
+  console.log(`Created sample client: ${sampleClient.nama}`);
+
+  // 4. Create Spesialisasi
   const spesialisasiKlinis = await prisma.spesialisasi.create({
     data: {
       nama: 'Psikolog Klinis Dewasa',
@@ -46,21 +69,31 @@ async function main() {
 
   console.log(`Created spesialisasi: ${spesialisasiKlinis.nama}`);
 
-  // 4. Create Psikolog
+  // 5. Create Akun Psikolog & Profil Klinis
+  const psikologAccount = await prisma.account.create({
+    data: {
+      nama: 'Dr. Jane Doe, M.Psi., Psikolog',
+      email: 'psikolog@empathika.test',
+      password: 'PsikologPasswordHashed123!',
+      role: Role.PSIKOLOG,
+      no_telepon: '081399887766',
+    },
+  });
+
   const psikolog = await prisma.psikolog.create({
     data: {
+      id_account: psikologAccount.id, // Relasi 1-to-1 ke Account
+      id_spesialisasi: spesialisasiKlinis.id,
       nama_gelar: 'Dr. Jane Doe, M.Psi., Psikolog',
-      email: 'janedoe@example.com',
       no_str: '123456789',
       bio: 'Berpengalaman dalam menangani kecemasan dan depresi.',
       tarif_per_jam: 150000.00,
-      id_spesialisasi: spesialisasiKlinis.id,
     },
   });
 
   console.log(`Created psikolog: ${psikolog.nama_gelar}`);
 
-  // 5. Create Layanan
+  // 6. Create Layanan
   const layananKonsultasi = await prisma.layanan.create({
     data: {
       nama: 'Konsultasi Individu (Online)',
@@ -74,7 +107,7 @@ async function main() {
 
   console.log(`Created layanan: ${layananKonsultasi.nama}`);
 
-  // 6. Create Paket Psikotes
+  // 7. Create Paket Psikotes
   const paketPsikotes = await prisma.paketPsikotes.create({
     data: {
       judul: 'Tes Kepribadian Dasar',

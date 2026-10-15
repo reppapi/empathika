@@ -10,12 +10,12 @@ export class TransaksiService {
     this.repo = new TransaksiRepository(fastify.prisma)
   }
 
-  async getAll(params?: { userId?: string }) {
+  async getAll(params?: { clientId?: string }) {
     return this.repo.findAll(params)
   }
 
-  async getMyTransaksi(userId: string) {
-    return this.repo.findByUserId(userId)
+  async getMyTransaksi(clientId: string) {
+    return this.repo.findByClientId(clientId)
   }
 
   async getById(id: string) {
@@ -24,13 +24,13 @@ export class TransaksiService {
     return transaksi
   }
 
-  async createPayment(input: CreateTransaksiInput, userId: string) {
+  async createPayment(input: CreateTransaksiInput, clientId: string) {
     // TODO: Get booking detail + price dari booking service
     const amount = 150000 // placeholder
 
     const transaksi = await this.repo.create({
       id_booking: input.bookingId,
-      id_user: userId,
+      id_client: clientId,
       jumlah: amount,
       metode_pembayaran: input.paymentMethod,
     })

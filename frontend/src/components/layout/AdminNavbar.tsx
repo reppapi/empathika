@@ -115,8 +115,12 @@ export function AdminNavbar({
             </div>
             <a
               href={
-                pathname?.startsWith("/admin/psikolog-web")
-                  ? "/admin/psikolog-web/profile"
+                pathname?.startsWith("/psikolog-web") ||
+                pathname?.startsWith("/admin/psikolog-web") ||
+                pathname === "/beranda" ||
+                pathname?.startsWith("/jadwal") ||
+                pathname?.startsWith("/profile")
+                  ? "/psikolog-web/profile"
                   : pathname?.startsWith("/admin-biro")
                   ? "/admin-biro/profile"
                   : "/admin/profile"
