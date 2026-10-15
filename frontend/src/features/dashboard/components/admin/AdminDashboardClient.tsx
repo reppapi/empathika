@@ -82,7 +82,7 @@ export default function AdminDashboardClient() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all transform active:scale-98 cursor-pointer w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Tambah Sesi</span>

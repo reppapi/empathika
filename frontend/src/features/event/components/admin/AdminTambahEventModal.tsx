@@ -347,13 +347,13 @@ export default function AdminTambahEventModal({ onClose, onSubmit }: Props) {
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl border border-gray-200 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                className="rounded-full border border-gray-300 bg-white px-6 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="rounded-xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all active:scale-95"
+                className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 Simpan Event
               </button>

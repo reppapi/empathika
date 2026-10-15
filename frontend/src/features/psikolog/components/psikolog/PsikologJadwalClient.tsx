@@ -262,9 +262,9 @@ export default function PsikologJadwalClient() {
                 type="button"
                 onClick={handleBooking}
                 disabled={!selectedTime}
-                className={`w-full font-bold py-3.5 rounded-lg text-[13px] transition-colors ${
+                className={`w-full font-bold py-3.5 rounded-full text-[13px] transition-all ${
                   selectedTime
-                    ? "bg-[#561269] hover:bg-[#6c1784] text-white cursor-pointer shadow-sm"
+                    ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 cursor-pointer shadow-sm hover:shadow-md active:scale-95"
                     : "bg-[#d6d6d6] text-gray-500 cursor-not-allowed"
                 }`}
               >
