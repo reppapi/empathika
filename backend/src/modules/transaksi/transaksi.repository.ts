@@ -26,7 +26,11 @@ export class TransaksiRepository {
   async updateStatus(id: string, status: string, paymentData?: Record<string, unknown>) {
     return this.prisma.transaksi.update({
       where: { id },
-      data: { status: status as any, ...(paymentData && { data_pembayaran: JSON.stringify(paymentData) }) } as any,
+      data: {
+        status_pembayaran: status as any,
+        ...(status === 'PAID' && { tanggal_bayar: new Date() }),
+        ...(paymentData && { data_pembayaran: JSON.stringify(paymentData) }),
+      } as any,
     })
   }
 }
