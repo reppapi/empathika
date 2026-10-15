@@ -140,14 +140,14 @@ export default function ModalLeadDetail({
               navigator.clipboard.writeText(ringkasan)
               onShowToast("Seluruh jawaban formulir berhasil disalin ke clipboard!")
             }}
-            className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold text-xs transition inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-100 text-gray-700 font-bold text-xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
           >
             <span>📋 Salin Ringkasan Jawaban</span>
           </button>
 
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 font-bold text-xs transition cursor-pointer shadow-xs"
+            className="px-5 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
             Tutup
           </button>

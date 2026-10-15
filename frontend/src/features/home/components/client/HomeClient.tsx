@@ -67,12 +67,18 @@ export default function HomeClient() {
                 {slide.subtitle}
               </p>
 
-              {/* Dua Tombol (Solid Orange & Outlined Orange) */}
+              {/* Dua Tombol (Solid Gold & Outlined Gold) */}
               <div className="flex flex-wrap items-center gap-3 lg:gap-4">
-                <Link href="/konseling" className="bg-[#d97706] hover:bg-[#b45309] text-white font-medium text-sm md:text-base py-3 px-8 rounded-full transition-colors shadow-lg">
+                <Link
+                  href="/konseling"
+                  className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm md:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                >
                   Booking Sesi
                 </Link>
-                <Link href="/psikotes" className="bg-transparent hover:bg-white/10 text-[#d97706] border border-[#d97706] font-medium text-sm md:text-base py-3 px-8 rounded-full transition-colors">
+                <Link
+                  href="/psikotes"
+                  className="bg-transparent hover:bg-white/10 text-[#EAB308] border-2 border-[#EAB308] font-bold text-sm md:text-base py-3 px-8 rounded-full transition-all active:scale-95 cursor-pointer"
+                >
                   Tes Psikologis
                 </Link>
               </div>
