@@ -254,6 +254,7 @@ model Transaksi {
   metode_pembayaran MetodePembayaran
   status_pembayaran StatusPembayaran @default(PENDING)
   tanggal_bayar     DateTime?
+  data_pembayaran   String?          @db.Text
 
   client Client @relation(fields: [id_client], references: [id])
 

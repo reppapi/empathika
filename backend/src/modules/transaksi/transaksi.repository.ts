@@ -44,9 +44,9 @@ export class TransaksiRepository {
       where: { id },
       data: {
         status_pembayaran: status as any,
-        tanggal_bayar: status === 'PAID' ? new Date() : undefined,
+        ...(status === 'PAID' && { tanggal_bayar: new Date() }),
         ...(paymentData && { data_pembayaran: JSON.stringify(paymentData) }),
-      },
+      } as any,
     })
   }
 }
