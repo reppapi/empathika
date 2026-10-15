@@ -51,7 +51,7 @@ export function LoginForm() {
         { id: "2", name: "Psikolog Empathika", email: trimmedEmail, role: "PSIKOLOG" },
         "dummy-psikolog-token"
       );
-      router.push("/admin/psikolog-web");
+      router.push("/psikolog-web/beranda" as any);
       router.refresh();
       return;
     }
