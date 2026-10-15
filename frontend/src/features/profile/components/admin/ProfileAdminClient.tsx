@@ -730,7 +730,7 @@ export default function ProfileAdminClient({
                 if (role === "admin") {
                   router.push("/admin")
                 } else {
-                  router.push("/admin/psikolog-web")
+                  router.push("/psikolog-web/beranda" as any)
                 }
               }}
               className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"

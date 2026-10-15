@@ -12,13 +12,13 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
   const pathname = usePathname()
 
   const isActive = (path: string) => {
-    if (path === "/admin/psikolog-web") return pathname === "/admin/psikolog-web"
+    if (path === "/psikolog-web/beranda") return pathname === "/psikolog-web/beranda" || pathname === "/beranda" || pathname === "/admin/psikolog-web"
     return pathname?.startsWith(path)
   }
 
   const navItems = [
-    { name: "Beranda", path: "/admin/psikolog-web" },
-    { name: "Jadwal & Sesi", path: "/admin/psikolog-web/jadwal" },
+    { name: "Beranda", path: "/psikolog-web/beranda" },
+    { name: "Jadwal & Sesi", path: "/psikolog-web/jadwal" },
   ]
 
   return (
@@ -40,7 +40,7 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
           {/* Logo */}
           <div className="px-5 sm:px-6">
             <Link
-              href="/admin/psikolog-web"
+              href={"/psikolog-web/beranda" as any}
               onClick={onClose}
               className="flex items-center gap-3 transition-transform hover:scale-105"
             >
