@@ -1,4 +1,4 @@
-﻿import { PrismaClient, Role, KategoriLayanan, JenisAksesPsikotes } from '@prisma/client';
+import { PrismaClient, Role, KategoriLayanan, JenisAksesPsikotes } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
