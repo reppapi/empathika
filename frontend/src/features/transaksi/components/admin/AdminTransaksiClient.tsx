@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from "react"
 import { DUMMY_TRANSAKSI, JenisLayanan, TransaksiItem } from "../../data/transaksiData"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 const LAYANAN_OPTIONS: { id: JenisLayanan; label: string }[] = [
   { id: "semua", label: "Semua Layanan" },
@@ -420,13 +421,13 @@ export default function AdminTransaksiClient() {
                       <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1">
                         {/* Kanan Atas: Badge Status */}
                         {item.status === "Lunas" ? (
-                          <span className="inline-flex items-center rounded-xl bg-[#A2DCA4] px-3 py-1 text-xs font-bold text-[#1C5E24]">
+                          <AdminStatusBadge variant="success" className="w-28">
                             Lunas
-                          </span>
+                          </AdminStatusBadge>
                         ) : (
-                          <span className="inline-flex items-center rounded-xl bg-[#F0C94D] px-3 py-1 text-xs font-bold text-[#5C4505]">
+                          <AdminStatusBadge variant="warning" className="w-28">
                             Menunggu
-                          </span>
+                          </AdminStatusBadge>
                         )}
 
                         {/* Kanan Bawah: Nominal */}

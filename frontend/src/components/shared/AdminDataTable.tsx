@@ -284,32 +284,7 @@ export function AdminFilterTabItem({
 
 /**
  * Shared Status Badge
- * Matches Daftar Event badge styling: rounded-xl px-4 py-1.5 text-xs font-semibold shadow-sm
+ * Re-exported from ./AdminStatusBadge
  */
-export type AdminStatusVariant = "success" | "warning" | "danger" | "neutral" | "info"
-
-export function AdminStatusBadge({
-  children,
-  variant = "neutral",
-  className = "",
-}: {
-  children: React.ReactNode
-  variant?: AdminStatusVariant
-  className?: string
-}) {
-  const variantStyles = {
-    success: "bg-[#A2DCA4] text-[#1C5E24]",
-    warning: "bg-[#F0C94D] text-[#5C4505]",
-    danger: "bg-[#E85656] text-white",
-    neutral: "bg-gray-100 text-gray-600",
-    info: "bg-[#E8D4F0] text-[#561269]",
-  }[variant]
-
-  return (
-    <span
-      className={`inline-flex items-center justify-center rounded-xl px-4 py-1.5 text-xs font-semibold shadow-sm ${variantStyles} ${className}`}
-    >
-      {children}
-    </span>
-  )
-}
+export { AdminStatusBadge } from "./AdminStatusBadge"
+export type { AdminStatusVariant, AdminStatusBadgeProps } from "./AdminStatusBadge"

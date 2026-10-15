@@ -102,7 +102,7 @@ export default function AdminLayananView() {
       header: "Status",
       align: "center",
       render: (item: LayananItem) => (
-        <AdminStatusBadge variant="success">
+        <AdminStatusBadge variant="success" className="w-28">
           {item.status}
         </AdminStatusBadge>
       ),

@@ -280,12 +280,12 @@ export default function AdminBiroClient() {
       align: "center",
       render: (biro: BiroKomunitas) => {
         if (biro.statusAktivasi === "Aktif") {
-          return <AdminStatusBadge variant="success">Aktif</AdminStatusBadge>
+          return <AdminStatusBadge variant="success" className="w-44">Aktif</AdminStatusBadge>
         }
         if (biro.statusAktivasi === "Menunggu Aktivasi") {
-          return <AdminStatusBadge variant="warning">Menunggu Aktivasi</AdminStatusBadge>
+          return <AdminStatusBadge variant="warning" className="w-44">Menunggu Aktivasi</AdminStatusBadge>
         }
-        return <AdminStatusBadge variant="neutral">Nonaktif</AdminStatusBadge>
+        return <AdminStatusBadge variant="neutral" className="w-44">Nonaktif</AdminStatusBadge>
       },
     },
     {
