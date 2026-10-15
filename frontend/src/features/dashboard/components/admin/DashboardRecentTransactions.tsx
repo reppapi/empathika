@@ -2,6 +2,7 @@ import React from "react"
 import Link from "next/link"
 import { ArrowRight, Wallet } from "lucide-react"
 import { RecentTransactionItem } from "../../types"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface DashboardRecentTransactionsProps {
   transactions: RecentTransactionItem[]
@@ -47,15 +48,12 @@ export default function DashboardRecentTransactions({ transactions }: DashboardR
 
             <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-1">
               <span className="text-xs font-extrabold text-gray-900">{trx.total}</span>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  trx.status === "Lunas"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-amber-100 text-amber-800"
-                }`}
+              <AdminStatusBadge
+                variant={trx.status === "Lunas" ? "success" : "warning"}
+                className="w-28"
               >
                 {trx.status}
-              </span>
+              </AdminStatusBadge>
             </div>
           </div>
         ))}

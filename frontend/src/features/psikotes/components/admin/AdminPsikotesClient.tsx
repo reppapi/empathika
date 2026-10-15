@@ -268,7 +268,7 @@ export default function AdminPsikotesClient() {
       key: "akses",
       header: "Akses",
       render: (peserta: AdminPsikotesPeserta) => (
-        <AdminStatusBadge variant={peserta.jenisAkses === "Gratis" ? "neutral" : "info"}>
+        <AdminStatusBadge variant={peserta.jenisAkses === "Gratis" ? "success" : "warning"} className="w-28">
           {peserta.jenisAkses}
         </AdminStatusBadge>
       ),
@@ -932,14 +932,18 @@ export default function AdminPsikotesClient() {
                     <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
                       {selectedPeserta.paket}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${selectedPeserta.jenisAkses === 'Gratis' ? 'bg-gray-50 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                      }`}>
+                    <AdminStatusBadge
+                      className="w-36"
+                      variant={selectedPeserta.jenisAkses === "Gratis" ? "success" : "warning"}
+                    >
                       Akses: {selectedPeserta.jenisAkses}
-                    </span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${selectedPeserta.status === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
+                    </AdminStatusBadge>
+                    <AdminStatusBadge
+                      className="w-36"
+                      variant={selectedPeserta.status === "Selesai" ? "success" : "warning"}
+                    >
                       Status: {selectedPeserta.status}
-                    </span>
+                    </AdminStatusBadge>
                   </div>
                 </div>
               </div>

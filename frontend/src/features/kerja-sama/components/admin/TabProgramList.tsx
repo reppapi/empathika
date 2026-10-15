@@ -3,6 +3,7 @@
 import React from "react"
 import Link from "next/link"
 import { KerjaSamaItem } from "../../types"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface TabProgramListProps {
   items: KerjaSamaItem[]
@@ -52,15 +53,9 @@ export default function TabProgramList({
               <div>
                 {/* Header Card */}
                 <div className="flex items-center justify-between mb-3">
-                  <span
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                      isAktif
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-gray-200 text-gray-600 border border-gray-300"
-                    }`}
-                  >
-                    {isAktif ? "● Aktif" : "○ Disembunyikan"}
-                  </span>
+                  <AdminStatusBadge variant={isAktif ? "success" : "neutral"} className="w-36">
+                    {isAktif ? "Aktif" : "Disembunyikan"}
+                  </AdminStatusBadge>
 
                   <div
                     className={`w-4 h-4 rounded-full ${

@@ -94,11 +94,11 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
 
   const initials = form.nama
     ? form.nama
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
     : "PS"
 
   return (
@@ -133,11 +133,10 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
 
         <div className="flex items-center gap-2">
           <span
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              form.statusAkses === "AKTIF"
+            className={`px-3 py-1 rounded-full text-xs font-semibold ${form.statusAkses === "AKTIF"
                 ? "bg-emerald-100 text-emerald-700"
                 : "bg-gray-100 text-gray-600"
-            }`}
+              }`}
           >
             {form.statusAkses === "AKTIF" ? "Akses Aktif" : "Nonaktif"}
           </span>

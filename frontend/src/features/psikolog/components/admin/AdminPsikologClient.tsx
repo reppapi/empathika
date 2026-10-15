@@ -149,7 +149,7 @@ export default function AdminPsikologClient() {
         const isAktif = item.statusAkses === "AKTIF"
         return (
           <div className="flex flex-col items-center gap-1.5">
-            <AdminStatusBadge variant={isAktif ? "success" : "neutral"}>
+            <AdminStatusBadge variant={isAktif ? "success" : "neutral"} className="w-28">
               {isAktif ? "Akses Aktif" : "Nonaktif"}
             </AdminStatusBadge>
 
@@ -159,7 +159,7 @@ export default function AdminPsikologClient() {
               className={`text-[11px] font-medium px-3 py-1 rounded-xl transition cursor-pointer ${
                 isAktif
                   ? "border border-red-200 text-red-600 hover:bg-red-50"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+                  : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold shadow-xs"
               }`}
             >
               {isAktif ? "Hapus Akses" : "Beri Akses"}

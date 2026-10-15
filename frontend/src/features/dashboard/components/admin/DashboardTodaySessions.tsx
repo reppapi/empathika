@@ -2,6 +2,7 @@ import React from "react"
 import Link from "next/link"
 import { ArrowRight, Video, MapPin } from "lucide-react"
 import { TodaySessionItem } from "../../types"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface DashboardTodaySessionsProps {
   sessions: TodaySessionItem[]
@@ -44,17 +45,18 @@ export default function DashboardTodaySessions({ sessions }: DashboardTodaySessi
 
             <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-1">
               <span className="text-xs font-semibold text-gray-800">{session.waktu}</span>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              <AdminStatusBadge
+                className="w-36"
+                variant={
                   session.status === "Selesai"
-                    ? "bg-emerald-100 text-emerald-800"
+                    ? "success"
                     : session.status === "Sedang Berjalan"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-amber-100 text-amber-800"
-                }`}
+                    ? "info"
+                    : "warning"
+                }
               >
                 {session.status}
-              </span>
+              </AdminStatusBadge>
             </div>
           </div>
         ))}
