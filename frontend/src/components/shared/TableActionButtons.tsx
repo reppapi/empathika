@@ -99,7 +99,7 @@ export function ActionButtonDetail({
   disabled = false,
 }: ActionButtonProps) {
   const baseClasses =
-    "p-2 text-gray-400 hover:text-[#561269] hover:bg-[#561269]/10 rounded-lg transition-colors inline-flex items-center justify-center shrink-0 disabled:opacity-40"
+    "p-2 text-gray-400 hover:text-[#561269] hover:bg-[#561269]/10 rounded-full transition-colors inline-flex items-center justify-center shrink-0 disabled:opacity-40 cursor-pointer"
 
   if (href) {
     return (
@@ -136,7 +136,7 @@ export function ActionButtonEdit({
   disabled = false,
 }: ActionButtonProps) {
   const baseClasses =
-    "p-2 text-gray-400 hover:text-[#561269] hover:bg-[#561269]/10 rounded-lg transition-colors inline-flex items-center justify-center shrink-0 disabled:opacity-40"
+    "p-2 text-gray-400 hover:text-[#561269] hover:bg-[#561269]/10 rounded-full transition-colors inline-flex items-center justify-center shrink-0 disabled:opacity-40 cursor-pointer"
 
   if (href) {
     return (
@@ -177,7 +177,7 @@ export function ActionButtonDelete({
       onClick={onClick}
       title={title}
       disabled={disabled}
-      className={`rounded-xl border border-gray-200 bg-white p-1.5 text-gray-500 hover:text-red-600 hover:border-red-200 transition inline-flex items-center justify-center shrink-0 disabled:opacity-40 ${className}`}
+      className={`rounded-full border border-gray-200 bg-white p-1.5 text-gray-500 hover:text-red-600 hover:border-red-200 transition-all inline-flex items-center justify-center shrink-0 disabled:opacity-40 cursor-pointer ${className}`}
       aria-label={title}
     >
       <DeleteIcon />

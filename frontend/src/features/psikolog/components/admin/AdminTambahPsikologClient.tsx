@@ -385,7 +385,7 @@ export default function AdminTambahPsikologClient() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-xl bg-[#561269] hover:bg-[#6f1b87] px-4 py-2 text-xs font-semibold text-white shadow-sm transition active:scale-95"
+                      className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm transition active:scale-95 cursor-pointer"
                     >
                       {foto ? "Ganti Foto" : "Pilih & Unggah Foto"}
                     </button>
@@ -393,7 +393,7 @@ export default function AdminTambahPsikologClient() {
                       <button
                         type="button"
                         onClick={() => setFoto(null)}
-                        className="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-medium text-gray-600 hover:text-red-600 transition"
+                        className="rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-600 hover:text-red-600 transition cursor-pointer"
                       >
                         Hapus
                       </button>
@@ -427,7 +427,7 @@ export default function AdminTambahPsikologClient() {
             <button
               type="button"
               onClick={handleAddSkill}
-              className="rounded-2xl bg-[#561269] px-5 py-2 text-xs font-semibold text-white hover:bg-[#6f1b87] transition"
+              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm transition active:scale-95 cursor-pointer"
             >
               Tambah
             </button>
@@ -456,13 +456,13 @@ export default function AdminTambahPsikologClient() {
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link
             href="/admin/psikolog"
-            className="rounded-2xl border border-gray-200 bg-white px-6 py-3 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition"
+            className="rounded-full border border-gray-300 bg-white px-6 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
           >
             Batal
           </Link>
           <button
             type="submit"
-            className="rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-8 py-3 text-xs font-semibold text-white shadow-md transition active:scale-95"
+            className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
             Simpan Tenaga Ahli
           </button>

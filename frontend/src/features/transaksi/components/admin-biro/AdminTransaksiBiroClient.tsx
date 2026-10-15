@@ -223,7 +223,7 @@ export default function AdminTransaksiBiroClient() {
             <button
               type="button"
               onClick={() => setSelectedDate("")}
-              className="text-xs text-[#561269] hover:underline font-semibold"
+              className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer shadow-xs"
             >
               Reset Tanggal
             </button>
@@ -276,7 +276,7 @@ export default function AdminTransaksiBiroClient() {
               <button
                 type="button"
                 onClick={() => setIsFilterOpen((prev) => !prev)}
-                className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] hover:text-[#561269] transition shadow-sm"
+                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] hover:text-[#561269] transition shadow-sm"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

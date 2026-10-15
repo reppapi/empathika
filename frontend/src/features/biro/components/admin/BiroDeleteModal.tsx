@@ -72,14 +72,14 @@ export default function BiroDeleteModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-100 transition active:scale-95"
+            className="px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 transition-all active:scale-95 cursor-pointer"
           >
             Batalkan
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="px-6 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold text-white bg-red-600 hover:bg-red-700 shadow-md transition active:scale-95"
+            className="px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all active:scale-95 cursor-pointer"
           >
             Ya, Hapus Sekarang
           </button>

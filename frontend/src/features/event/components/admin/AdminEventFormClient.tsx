@@ -269,14 +269,14 @@ export default function AdminEventFormClient({ eventId }: Props) {
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <label
                       htmlFor="banner-file-upload"
-                      className="cursor-pointer bg-white text-gray-800 px-4 py-2 rounded-xl text-xs font-semibold shadow hover:bg-gray-100 transition"
+                      className="cursor-pointer bg-white text-gray-800 px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-gray-100 transition"
                     >
                       Ganti Foto
                     </label>
                     <button
                       type="button"
                       onClick={() => setBannerUrl("")}
-                      className="bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow hover:bg-red-600 transition"
+                      className="bg-red-500 text-white px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-red-600 transition"
                     >
                       Hapus
                     </button>
@@ -549,13 +549,13 @@ export default function AdminEventFormClient({ eventId }: Props) {
             <button
               type="button"
               onClick={() => router.back()}
-              className="rounded-xl border border-gray-200 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              className="rounded-full border border-gray-300 bg-white px-6 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-[#561269] hover:bg-[#6f1b87] px-8 py-2.5 text-sm font-bold text-white shadow-md transition-all active:scale-95"
+              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
             >
               {isEditMode ? "Simpan Perubahan" : "Terbitkan Event"}
             </button>

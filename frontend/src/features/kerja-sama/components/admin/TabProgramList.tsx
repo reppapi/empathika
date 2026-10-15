@@ -31,7 +31,7 @@ export default function TabProgramList({
         </div>
         <button
           onClick={onOpenAddModal}
-          className="bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer self-start sm:self-auto"
+          className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto"
         >
           <span>+ Tambah Program</span>
         </button>

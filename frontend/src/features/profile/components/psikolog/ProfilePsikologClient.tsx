@@ -275,7 +275,7 @@ export default function ProfilePsikologClient({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#561269] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#6c1784] transition active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-4 py-2 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -287,7 +287,7 @@ export default function ProfilePsikologClient({
                     <button
                       type="button"
                       onClick={handleRemovePhoto}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/50 px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-100 transition active:scale-95"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-100 transition-all active:scale-95 cursor-pointer"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -305,7 +305,7 @@ export default function ProfilePsikologClient({
                 <button
                   type="button"
                   onClick={() => setPreviewModalOpen(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-purple-200 bg-purple-50/60 px-5 py-3 text-xs font-bold text-[#561269] hover:bg-purple-100/70 transition"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all shadow-sm cursor-pointer"
                 >
                   <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -626,7 +626,7 @@ export default function ProfilePsikologClient({
                   <button
                     type="button"
                     onClick={handleAddSkill}
-                    className="rounded-2xl bg-[#561269] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#6c1784] transition"
+                    className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-4 py-2.5 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                   >
                     Tambah
                   </button>
@@ -702,7 +702,7 @@ export default function ProfilePsikologClient({
                   <button
                     type="button"
                     onClick={handleAddParagraph}
-                    className="w-full rounded-2xl border border-purple-200 bg-purple-50 py-2 text-xs font-bold text-[#561269] hover:bg-purple-100 transition"
+                    className="w-full rounded-full border border-gray-300 bg-white py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all shadow-sm cursor-pointer"
                   >
                     + Tambah Paragraf ke Profil
                   </button>
@@ -733,13 +733,13 @@ export default function ProfilePsikologClient({
                   router.push("/admin/psikolog-web")
                 }
               }}
-              className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-600 hover:bg-gray-50 transition active:scale-95"
+              className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
             >
               Batalkan
             </button>
             <button
               type="submit"
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-2xl bg-[#561269] px-7 py-3 text-xs font-bold text-white shadow-lg hover:bg-[#6c1784] transition active:scale-95"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-7 py-2.5 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -930,7 +930,7 @@ export default function ProfilePsikologClient({
                   setPreviewModalOpen(false)
                   setIsPlayingVideoPreview(false)
                 }}
-                className="rounded-xl bg-[#561269] px-5 py-2 text-xs font-bold text-white hover:bg-[#6c1784] transition"
+                className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 Tutup Pratinjau
               </button>
