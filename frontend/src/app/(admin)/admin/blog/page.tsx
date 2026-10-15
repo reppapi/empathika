@@ -1,4 +1,4 @@
-import AdminBlogClient from "@/features/admin/blog/components/AdminBlogClient"
+import AdminBlogClient from "@/features/blog/components/admin/AdminBlogClient"
 
 export const metadata = {
   title: "Kelola Blog - Admin Empathika",

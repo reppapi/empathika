@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import ProfilBiroClient from "@/features/admin-biro/profile/components/ProfilBiroClient"
+import ProfilBiroClient from "@/features/profile/components/admin-biro/ProfilBiroClient"
 
 export const metadata = {
   title: "Pengaturan Profil Biro - Admin Biro Empathika",

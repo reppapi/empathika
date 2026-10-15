@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { Calendar } from "@/components/ui/calendar"
+import ModalTambahSesi, { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
 import { 
   Calendar as CalendarIcon, 
   ChevronDown, 
@@ -254,6 +255,23 @@ export default function JadwalAdmin() {
     setTimeout(() => setBookingSuccessMsg(null), 3500)
   }
 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleModalSuccess = (newSession: NewSessionData) => {
+    const newBooked: BookedAssessment = {
+      id: "ab_" + Date.now(),
+      date: newSession.tanggal,
+      waktu: newSession.waktu.replace(" WIB", ""),
+      layanan: newSession.layanan,
+      metode: newSession.metode,
+      namaKlien: newSession.namaKlien,
+      psikolog: newSession.psikolog,
+    }
+    setBookedSessions((prev) => [newBooked, ...prev])
+    setBookingSuccessMsg(`Sesi baru untuk ${newSession.namaKlien} (${newSession.waktu}) berhasil dijadwalkan!`)
+    setTimeout(() => setBookingSuccessMsg(null), 4000)
+  }
+
   return (
     <div className="w-full max-w-[1400px] mx-auto flex flex-col gap-8 font-poppins pb-10">
 
@@ -267,8 +285,12 @@ export default function JadwalAdmin() {
           {formattedDate}
           <CalendarIcon className="w-4 h-4 ml-1" />
         </button>
-        <button className="flex items-center gap-2 bg-[#561269] text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm hover:bg-[#430b53] transition-colors">
-          <Plus className="w-4 h-4" />
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-4 py-2.5 rounded-lg text-sm font-bold shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer"
+        >
+          <Plus className="w-4 h-4 stroke-[2.5]" />
           Sesi Baru
         </button>
       </div>
@@ -367,77 +389,79 @@ export default function JadwalAdmin() {
         </div>
 
         {/* Tabel Sesi Klien dalam Satu Hari */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto max-h-[420px] overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse relative">
-              <thead className="sticky top-0 z-10">
-                <tr className="bg-[#D9C6DF] text-[#561269] text-sm shadow-[0_1px_0_0_#e5e7eb]">
-                  <th className="py-4 px-6 font-semibold min-w-[140px]">Waktu Sesi</th>
-                  <th className="py-4 px-6 font-semibold">Nama Klien</th>
-                  <th className="py-4 px-6 font-semibold">Psikolog</th>
-                  <th className="py-4 px-6 font-semibold">Layanan</th>
-                  <th className="py-4 px-6 font-semibold">Tipe & Status</th>
-                  <th className="py-4 px-4 font-semibold text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {CLIENT_SESSIONS_TODAY.map((item) => {
-                  const isNearest = item.isUpcomingNearest
-                  return (
-                    <tr
-                      key={item.id}
-                      className={`border-b border-gray-100 transition-colors ${
-                        isNearest ? "bg-purple-50/50 hover:bg-purple-50/80" : "hover:bg-gray-50"
-                      }`}
-                    >
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          {isNearest && (
-                            <span className="w-2 h-2 rounded-full bg-[#561269] animate-ping" />
-                          )}
-                          <p className={`font-bold ${isNearest ? "text-[#561269]" : "text-gray-900"}`}>
-                            {item.waktu}
-                          </p>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5">Hari Ini</p>
-                      </td>
-                      <td className="py-4 px-6">
-                        <p className="font-bold text-gray-900">{item.namaKlien}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">ID: {item.klienId}</p>
-                      </td>
-                      <td className="py-4 px-6 font-medium text-gray-700">{item.psikolog}</td>
-                      <td className="py-4 px-6 text-gray-700 capitalize font-medium">{item.layanan}</td>
-                      <td className="py-4 px-6">
-                        <p className="text-gray-900 font-medium mb-1">{item.tipe}</p>
-                        {item.status === "Selesai" ? (
-                          <span className="inline-block bg-green-100 text-green-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                            Selesai
-                          </span>
-                        ) : item.status === "Segera Dimulai" ? (
-                          <span className="inline-block bg-purple-100 text-[#561269] text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-200">
-                            Terdekat • Segera Dimulai
-                          </span>
-                        ) : item.status === "Sedang Berlangsung" ? (
-                          <span className="inline-block bg-red-100 text-red-600 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                            Sedang Berlangsung
-                          </span>
-                        ) : (
-                          <span className="inline-block bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                            Menunggu Jadwal
-                          </span>
+        <div
+          className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
+            CLIENT_SESSIONS_TODAY.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
+          }`}
+        >
+          <table className="w-full text-left border-collapse min-w-[760px]">
+            <thead className="sticky top-0 z-10 bg-[#D3C4D8]">
+              <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold">
+                <th className="py-4 px-6 font-bold min-w-[140px] sticky top-0 bg-[#D3C4D8] z-10">Waktu Sesi</th>
+                <th className="py-4 px-6 font-bold sticky top-0 bg-[#D3C4D8] z-10">Nama Klien</th>
+                <th className="py-4 px-6 font-bold sticky top-0 bg-[#D3C4D8] z-10">Psikolog</th>
+                <th className="py-4 px-6 font-bold sticky top-0 bg-[#D3C4D8] z-10">Layanan</th>
+                <th className="py-4 px-6 font-bold sticky top-0 bg-[#D3C4D8] z-10">Tipe & Status</th>
+                <th className="py-4 px-4 font-bold text-center sticky top-0 bg-[#D3C4D8] z-10">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
+              {CLIENT_SESSIONS_TODAY.map((item) => {
+                const isNearest = item.isUpcomingNearest
+                return (
+                  <tr
+                    key={item.id}
+                    className={`transition-colors ${
+                      isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
+                    }`}
+                  >
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-2">
+                        {isNearest && (
+                          <span className="w-2 h-2 rounded-full bg-[#561269] animate-ping" />
                         )}
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <button className="text-gray-400 hover:text-gray-700 p-1">
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <p className={`font-bold ${isNearest ? "text-[#561269]" : "text-gray-900"}`}>
+                          {item.waktu}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">Hari Ini</p>
+                    </td>
+                    <td className="py-4 px-6">
+                      <p className="font-extrabold text-gray-900">{item.namaKlien}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">ID: {item.klienId}</p>
+                    </td>
+                    <td className="py-4 px-6 font-medium text-gray-700">{item.psikolog}</td>
+                    <td className="py-4 px-6 text-gray-700 capitalize font-medium">{item.layanan}</td>
+                    <td className="py-4 px-6">
+                      <p className="text-gray-900 font-medium mb-1">{item.tipe}</p>
+                      {item.status === "Selesai" ? (
+                        <span className="inline-block bg-[#A2DCA4] text-[#1C5E24] text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                          Selesai
+                        </span>
+                      ) : item.status === "Segera Dimulai" ? (
+                        <span className="inline-block bg-purple-100 text-[#561269] text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-200">
+                          Terdekat • Segera Dimulai
+                        </span>
+                      ) : item.status === "Sedang Berlangsung" ? (
+                        <span className="inline-block bg-[#E85656] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                          Sedang Berlangsung
+                        </span>
+                      ) : (
+                        <span className="inline-block bg-[#F0C94D] text-[#5C4505] text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                          Menunggu Jadwal
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <button className="text-gray-400 hover:text-[#561269] p-1.5 rounded-lg hover:bg-purple-100/50 transition-colors">
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -631,6 +655,12 @@ export default function JadwalAdmin() {
         </div>
       </div>
 
+      {/* Modal Tambah Sesi */}
+      <ModalTambahSesi
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   )
 }

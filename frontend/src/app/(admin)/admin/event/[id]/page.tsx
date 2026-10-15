@@ -1,4 +1,4 @@
-import AdminEventDetailClient from "@/features/admin/event/components/AdminEventDetailClient"
+import AdminEventDetailClient from "@/features/event/components/admin/AdminEventDetailClient"
 
 interface Props {
   params: { id: string }

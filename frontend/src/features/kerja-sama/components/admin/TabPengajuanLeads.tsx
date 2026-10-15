@@ -48,16 +48,20 @@ export default function TabPengajuanLeads({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div
+        className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
+          filteredLeads.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
+        }`}
+      >
         <table className="w-full text-left text-xs border-collapse">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-[#D9C6DF]">
             <tr className="bg-[#D9C6DF] text-[#561269] font-bold">
-              <th className="py-3 px-4 min-w-[100px]">Tanggal</th>
-              <th className="py-3 px-4 min-w-[150px]">Nama Instansi</th>
-              <th className="py-3 px-4 min-w-[170px]">Jenis Formulir</th>
-              <th className="py-3 px-4 min-w-[140px]">PIC & Kontak</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4 text-center min-w-[160px]">Aksi & Jawaban</th>
+              <th className="py-3 px-4 min-w-[100px] sticky top-0 bg-[#D9C6DF] z-10">Tanggal</th>
+              <th className="py-3 px-4 min-w-[150px] sticky top-0 bg-[#D9C6DF] z-10">Nama Instansi</th>
+              <th className="py-3 px-4 min-w-[170px] sticky top-0 bg-[#D9C6DF] z-10">Jenis Formulir</th>
+              <th className="py-3 px-4 min-w-[140px] sticky top-0 bg-[#D9C6DF] z-10">PIC & Kontak</th>
+              <th className="py-3 px-4 sticky top-0 bg-[#D9C6DF] z-10">Status</th>
+              <th className="py-3 px-4 text-center min-w-[160px] sticky top-0 bg-[#D9C6DF] z-10">Aksi & Jawaban</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

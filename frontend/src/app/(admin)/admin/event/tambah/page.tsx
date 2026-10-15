@@ -1,4 +1,4 @@
-import AdminEventFormClient from "@/features/admin/event/components/AdminEventFormClient"
+import AdminEventFormClient from "@/features/event/components/admin/AdminEventFormClient"
 
 export const metadata = {
   title: "Tambah Event - Admin Empathika",

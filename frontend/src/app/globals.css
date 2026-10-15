@@ -13,3 +13,29 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   -webkit-appearance: none;
 }
 
+/* Custom Scrollbar Cantik untuk Tabel Admin */
+.admin-table-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c4b0cb #f8fafc;
+}
+
+.admin-table-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-table-scrollbar::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 9999px;
+}
+
+.admin-table-scrollbar::-webkit-scrollbar-thumb {
+  background: #c4b0cb;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.admin-table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #561269;
+}
+

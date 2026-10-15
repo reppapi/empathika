@@ -1,30 +1,44 @@
 "use client"
 
-import { Plus, Search, Filter, MoreVertical, CalendarClock } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
+import { CalendarClock } from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
-import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
+import {
+  ActionButtonDetail,
+  ActionButtonEdit,
+  ActionButtonDelete,
+} from "@/components/shared/TableActionButtons"
+import { AdminSummaryCard } from "@/components/shared/AdminSummaryCard"
+import {
+  AdminDataTable,
+  AdminTableContainer,
+  AdminSearchInput,
+  AdminFilterTabItem,
+  AdminStatusBadge,
+  ColumnDef,
+} from "@/components/shared/AdminDataTable"
+
+interface LayananItem {
+  id: number
+  layanan: string
+  metode: string
+  weekday: string
+  weekend: string
+  status: string
+}
 
 export default function AdminLayananView() {
-  const [openDropdown, setOpenDropdown] = useState<number | null>(null)
-  
+  const [searchQuery, setSearchQuery] = useState("")
+
   // Hanya ambil kategori Konsultasi, Pelatihan peer helper, dan Asesmen
   const allowedCategories = ["02", "03", "05"]
-  const adminCategories = CATEGORIES.filter(cat => allowedCategories.includes(cat.id))
-  
+  const adminCategories = CATEGORIES.filter((cat) => allowedCategories.includes(cat.id))
+
   const [activeCategory, setActiveCategory] = useState(adminCategories[0]?.id || "")
 
-  const toggleDropdown = (index: number) => {
-    if (openDropdown === index) {
-      setOpenDropdown(null)
-    } else {
-      setOpenDropdown(index)
-    }
-  }
-
-  // Dummy data for now, ideally this would be fetched based on activeCategory
-  const layananData = [
+  // Data Layanan
+  const layananData: LayananItem[] = [
     {
       id: 1,
       layanan: "Psikolog",
@@ -43,116 +57,147 @@ export default function AdminLayananView() {
     },
   ]
 
-  return (
-    <div className="flex flex-col gap-6">
-      {/* Tabs Kategori (Paling Atas) */}
-      <div className="flex overflow-x-auto gap-2 border-b border-gray-200 hide-scrollbar">
-        {adminCategories.map(cat => (
-          <button 
-            key={cat.id} 
-            onClick={() => setActiveCategory(cat.id)}
-            className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              activeCategory === cat.id 
-                ? "border-[#561269] text-[#561269]" 
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            {cat.title}
-          </button>
-        ))}
-      </div>
+  const filteredLayanan = layananData.filter((item) => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return item.layanan.toLowerCase().includes(q) || item.metode.toLowerCase().includes(q)
+  })
 
-      {/* Tombol Tambah Layanan */}
-      <div className="flex justify-end mt-2">
-        <Link href={`/admin/layanan/tambah?category=${activeCategory}`}>
-          <button className="bg-[#561269] hover:bg-[#430b53] text-white px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm transition-colors">
-            <Plus className="w-4 h-4" /> Tambah Layanan
-          </button>
+  const columns: ColumnDef<LayananItem>[] = [
+    {
+      key: "no",
+      header: "No",
+      align: "center",
+      width: "70px",
+      render: (_: LayananItem, index: number) => (
+        <span className="font-semibold text-gray-500">{index + 1}</span>
+      ),
+    },
+    {
+      key: "layanan",
+      header: "Layanan",
+      render: (item: LayananItem) => (
+        <span className="font-extrabold text-gray-900 leading-tight">
+          {item.layanan}
+        </span>
+      ),
+    },
+    {
+      key: "metode",
+      header: "Metode Pelaksanaan",
+      render: (item: LayananItem) => <span className="text-gray-700 font-medium">{item.metode}</span>,
+    },
+    {
+      key: "weekday",
+      header: "Weekday",
+      render: (item: LayananItem) => <span className="text-gray-700 font-semibold">{item.weekday}</span>,
+    },
+    {
+      key: "weekend",
+      header: "Weekend",
+      render: (item: LayananItem) => <span className="text-gray-700 font-semibold">{item.weekend}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "center",
+      render: (item: LayananItem) => (
+        <AdminStatusBadge variant="success">
+          {item.status}
+        </AdminStatusBadge>
+      ),
+    },
+    {
+      key: "aksi",
+      header: "Aksi",
+      align: "center",
+      render: (item: LayananItem) => (
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+          <ActionButtonDetail
+            onClick={() => alert(`Detail layanan ${item.layanan}`)}
+            title="Lihat Detail"
+          />
+          <ActionButtonEdit
+            onClick={() => alert(`Edit layanan ${item.layanan}`)}
+            title="Edit"
+          />
+          <ActionButtonDelete
+            onClick={() => {
+              if (confirm(`Apakah Anda yakin ingin menghapus layanan ${item.layanan}?`)) {
+                alert(`Layanan ${item.layanan} berhasil dihapus.`)
+              }
+            }}
+            title="Hapus"
+          />
+        </div>
+      ),
+    },
+  ]
+
+  return (
+    <div className="flex flex-col gap-6 font-poppins pb-16">
+      {/* ── Top Bar Action: Tombol Tambah Layanan ── */}
+      <div className="flex justify-end">
+        <Link
+          href={`/admin/layanan/tambah?category=${activeCategory}`}
+          className="flex items-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2.5}
+            stroke="currentColor"
+            className="h-4 w-4"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Tambah Layanan
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mt-2">
-        {/* Card Total Layanan */}
-        <div className="bg-white rounded-xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-gray-100 flex items-center gap-4 min-w-[240px]">
-          <div className="bg-[#A4C4E7] p-3 rounded-full text-[#462270]">
-            <CalendarClock className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs text-gray-500 font-medium">Total Layanan</div>
-            <div className="text-lg font-bold text-gray-800">{layananData.length}</div>
-          </div>
-        </div>
-
-        {/* Search and Filter */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full md:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Cari Layanan" 
-              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]" 
-            />
-          </div>
-          <button className="flex items-center gap-2 border border-gray-200 bg-white px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
-            <Filter className="w-4 h-4" /> Filter
-          </button>
-        </div>
+      {/* ── Metric Card: Total Layanan ── */}
+      <div className="w-full max-w-sm">
+        <AdminSummaryCard
+          label="Total Layanan"
+          value={layananData.length}
+          icon={<CalendarClock className="w-6 h-6 text-[#561269]" />}
+          iconBgColor="bg-purple-50 text-[#561269]"
+        />
       </div>
 
-      {/* Tabel */}
-      <div className="bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 overflow-visible">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-[#D1C6E1] text-[#462270] font-semibold text-sm">
-              <tr>
-                <th className="px-6 py-4 rounded-tl-xl w-16">No</th>
-                <th className="px-6 py-4">Layanan</th>
-                <th className="px-6 py-4">Metode Pelaksanaan</th>
-                <th className="px-6 py-4">Weekday</th>
-                <th className="px-6 py-4">Weekend</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 rounded-tr-xl w-24 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {layananData.map((item, index) => (
-                <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 text-gray-800 font-medium">{index + 1}</td>
-                  <td className="px-6 py-4 text-gray-800">{item.layanan}</td>
-                  <td className="px-6 py-4 text-gray-600">{item.metode}</td>
-                  <td className="px-6 py-4 text-gray-600">{item.weekday}</td>
-                  <td className="px-6 py-4 text-gray-600">{item.weekend}</td>
-                  <td className="px-6 py-4">
-                    <span className="bg-[#BCE6C9] text-[#1c6c39] px-4 py-1.5 rounded-md text-xs font-semibold inline-block">
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                      <ActionButtonDetail
-                        onClick={() => alert(`Detail layanan ${item.layanan}`)}
-                        title="Lihat Detail"
-                      />
-                      <ActionButtonEdit
-                        onClick={() => alert(`Edit layanan ${item.layanan}`)}
-                        title="Edit"
-                      />
-                      <ActionButtonDelete
-                        onClick={() => {
-                          if (confirm(`Apakah Anda yakin ingin menghapus layanan ${item.layanan}?`)) {
-                            alert(`Layanan ${item.layanan} berhasil dihapus.`);
-                          }
-                        }}
-                        title="Hapus"
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* ── Main Card Table Container ── */}
+      <AdminTableContainer>
+        {/* Header Bar: Filter Tabs & Search */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+          {/* Tabs Kategori */}
+          <div className="flex items-center gap-6 sm:gap-8 border-b border-transparent overflow-x-auto pb-1 text-sm">
+            {adminCategories.map((cat) => (
+              <AdminFilterTabItem
+                key={cat.id}
+                label={cat.title}
+                isActive={activeCategory === cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+              />
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <AdminSearchInput
+            placeholder="Cari Layanan..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
         </div>
-      </div>
+
+        {/* Tabel Layanan */}
+        <AdminDataTable
+          columns={columns}
+          data={filteredLayanan}
+          keyExtractor={(item: LayananItem) => item.id}
+          emptyMessage="Tidak ada layanan yang ditemukan."
+        />
+      </AdminTableContainer>
     </div>
   )
 }

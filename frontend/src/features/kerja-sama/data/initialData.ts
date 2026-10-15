@@ -364,56 +364,6 @@ export const INITIAL_FORMULIR_CONFIGS: FormulirConfigItem[] = [
     ],
   },
   {
-    id: "f_affiliate",
-    slug: "affiliate",
-    title: "Formulir Program Affiliate Empathika",
-    categoryDefault: "Mahasiswa",
-    description:
-      "Bergabung menjadi mitra penyebar kepedulian kesehatan mental bersama Empathika. Dapatkan benefit komisi menarik, merchandise, dan jejaring psikologi.",
-    pertanyaanKhusus: [
-      {
-        id: "q1",
-        label: "Latar Belakang / Profil Anda",
-        key: "profilAfiliasi",
-        type: "radio",
-        options: [
-          "Mahasiswa / Pengurus Organisasi Kampus",
-          "Content Creator / Penggiat Media Sosial",
-          "Pengurus Komunitas / NGO",
-          "Praktisi HR / Konsultan",
-          "Individu / Pegiat Kesehatan Mental Lainnya",
-        ],
-      },
-      {
-        id: "q2",
-        label: "Saluran Utama Promosi / Komunitas Anda",
-        key: "saluranPromosi",
-        type: "radio",
-        options: [
-          "Instagram & TikTok",
-          "Grup WhatsApp / Telegram Komunitas",
-          "Jaringan Kampus & Himpunan Mahasiswa",
-          "Komunitas Kantor & Rekan Kerja",
-          "Website / Blog Pribadi",
-        ],
-      },
-      {
-        id: "q3",
-        label: "Estimasi Jangkauan / Followers / Anggota",
-        key: "jangkauanAudiens",
-        type: "radio",
-        options: ["< 1.000 Orang", "1.000 - 5.000 Orang", "5.000 - 20.000 Orang", "> 20.000 Orang"],
-      },
-      {
-        id: "q4",
-        label: "Tautan Akun Medsos / Komunitas (Opsional)",
-        key: "linkMedsos",
-        type: "text",
-        placeholder: "Contoh: @akun_instagram atau https://tiktok.com/@...",
-      },
-    ],
-  },
-  {
     id: "f_lainnya",
     slug: "lainnya",
     title: "Formulir Kerjasama Lainnya",
@@ -456,7 +406,10 @@ export function getFormulirConfigs(): FormulirConfigItem[] {
   if (typeof window === "undefined") return INITIAL_FORMULIR_CONFIGS
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_KERJASAMA_FORMS)
-    return saved ? JSON.parse(saved) : INITIAL_FORMULIR_CONFIGS
+    if (!saved) return INITIAL_FORMULIR_CONFIGS
+    const parsed: FormulirConfigItem[] = JSON.parse(saved)
+    const filtered = parsed.filter((item) => item.slug !== "affiliate")
+    return filtered.length > 0 ? filtered : INITIAL_FORMULIR_CONFIGS
   } catch {
     return INITIAL_FORMULIR_CONFIGS
   }
