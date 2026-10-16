@@ -393,6 +393,41 @@ export default function ProfileAdminClient({
               </div>
             )}
 
+            {role === "admin" && (
+              <>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    Alamat Fisik Klinik / Kantor
+                  </label>
+                  <input
+                    type="text"
+                    name="alamat"
+                    value={form.alamat || ""}
+                    onChange={handleInputChange}
+                    placeholder="Contoh: Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    Tautan Google Maps (Petunjuk Arah)
+                  </label>
+                  <input
+                    type="url"
+                    name="linkMaps"
+                    value={form.linkMaps || ""}
+                    onChange={handleInputChange}
+                    placeholder="Contoh: https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Tautan ini akan digunakan pada tombol &quot;Dapatkan Petunjuk Arah&quot; di bagian Kunjungi Kami pada halaman depan klien.
+                  </p>
+                </div>
+              </>
+            )}
+
             <div className="md:col-span-2">
               <label className="block text-xs font-bold text-gray-700 mb-1.5">
                 Bio Singkat

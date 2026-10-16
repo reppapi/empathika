@@ -6,6 +6,9 @@ export interface AdminProfileData {
   noTelepon: string
   bio: string
   foto: string | null
+  // Bidang profil instansi / admin
+  alamat?: string
+  linkMaps?: string
   // Bidang khusus psikolog (sesuai POV klien / DetailPsikologUI)
   kategoriProfesi?: "psikolog" | "konselor" | "peer-konselor"
   spesialisasi?: string

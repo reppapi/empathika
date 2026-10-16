@@ -6,6 +6,8 @@ export const DEFAULT_ADMIN: AdminProfileData = {
   noTelepon: "081234567890",
   bio: "Bertanggung jawab atas operasional biro, manajemen layanan, serta koordinasi psikolog dan jadwal klien di Empathika.",
   foto: null,
+  alamat: "Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 41024",
+  linkMaps: "https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw",
 }
 
 export const DEFAULT_PSIKOLOG: AdminProfileData = {
