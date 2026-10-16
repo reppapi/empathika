@@ -24,8 +24,9 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
    - Enum `MetodePembayaran` dibatasi hanya untuk: `TRANSFER_BANK`, `E_WALLET`, dan `QRIS` (tanpa kartu kredit).
    - Ditambahkan kolom `channel_pembayaran` untuk menyimpan kanal spesifik (contoh: `bca_va`, `mandiri_va`, `bni_va`, `gopay`, `ovo`, `dana`, `qris`).
 
-6. **Kategori Layanan Konseling Baru**
-   - Menambahkan jenis layanan nyata dari frontend ke dalam enum `KategoriLayanan`: `HIPNOTERAPI`, `HOME_VISIT`, dan `PEER_KONSELOR`.
+6. **Kategori Layanan & Metode Pelaksanaan pada Layanan Admin**
+   - Kolom `metode String @default("Online/Offline")` **ditambahkan pada model `Layanan`** untuk menyimpan metode pelaksanaan layanan (`Online`, `Offline`, atau `Online/Offline`) yang diinput oleh Admin pada form tambah/edit layanan dan ditampilkan pada tabel admin.
+   - Enum `KategoriLayanan` diselaraskan agar sinkron dengan 3 pilar kategori utama pada dashboard admin (`KONSULTASI`, `PELATIHAN_PEER_HELPER`, `ASESMEN`) serta jenis layanan spesifik (`HIPNOTERAPI`, `HOME_VISIT`, `PEER_KONSELOR`).
 
 7. **Slug URL untuk SEO**
    - Ditambahkan kolom `slug String @unique` pada model `Event` dan `PaketPsikotes` agar URL browser bersih dan ramah SEO (contoh: `/event/workshop-seft`, `/psikotes/tes/kepribadian`).
@@ -33,8 +34,8 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
 8. **Tabel Kemitraan B2B Baru**
    - Dibuatkan tabel baru `PengajuanKerjaSama` untuk menampung data formulir kemitraan instansi dari halaman `/kerja-sama` dan dashboard `/admin/kerja-sama`.
 
-9. **Peniadaan Fitur Suka / Likes pada Artikel Blog**
-   - Kolom `likes` / `jumlah_like` **TIDAK dibuat di database**, sehingga tabel `ArtikelBlog` hanya mencatat metadata konten, waktu baca, tanggal terbit, dan `jumlah_dilihat` (views).
+9. **Peniadaan Fitur Suka (Likes) & View Counter pada Artikel Blog**
+   - Kolom `likes` dan `jumlah_dilihat` **TIDAK dibuat di database**, sehingga tabel `ArtikelBlog` murni mencatat judul, slug, isi artikel, banner, waktu baca, dan tanggal terbit.
 
 10. **Peniadaan Estimasi Waktu pada Paket Psikotes**
    - Kolom `durasi_menit` **TIDAK diadakan di database**, pengerjaan tes psikotes bersifat fleksibel tanpa batasan waktu.
@@ -48,6 +49,26 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
 
 13. **Penyimpanan Total Pembayaran Transaksi (`total`)**
    - Kolom `total Decimal @db.Decimal(12, 2)` **resmi ditambahkan** ke tabel `Transaksi` untuk mencatat nominal final pembayaran (`subtotal + biaya_admin`). Hal ini penting untuk integritas snapshot finansial, sinkronisasi webhook Payment Gateway (Xendit `amount`), serta mempercepat agregasi pelaporan pendapatan admin tanpa kalkulasi runtime.
+
+14. **Pembeda Tipe Jadwal pada `JadwalSlot` (`tipe_jadwal`)**
+   - Kolom `tipe_jadwal String ("KONSULTASI" | "ASESMEN")` **ditambahkan** pada tabel `JadwalSlot`. Hal ini membedakan slot jadwal yang dibuka mandiri oleh Psikolog untuk sesi konsultasi (`KONSULTASI`) dengan slot jadwal yang diatur oleh Admin Utama untuk layanan asesmen Empathika (`ASESMEN`), sekaligus mencegah bentrok jam kerja psikolog yang sama.
+
+15. **Pemesanan Sesi Mandiri oleh Admin & Penyesuaian `BookingKonsultasi` (`id_transaksi` Nullable)**
+   - Pada dashboard jadwal admin (`/admin/jadwal` dan modal *Sesi Baru* `ModalTambahSesi`), Admin Utama dan Admin Biro dapat menjadwalkan sesi konsultasi/asesmen secara langsung ke kalender operasional (misalnya untuk pendaftaran klien *walk-in* langsung ke klinik, pemesanan via telepon/WhatsApp, atau sesi darurat).
+   - Sesi mandiri admin ini tidak melalui alur *checkout payment gateway* online Xendit. Agar tidak terjadi kegagalan *foreign key constraint*, kolom `id_transaksi` pada tabel `BookingKonsultasi` **diubah menjadi nullable (`String? @unique`)** (sejalan dengan `BookingPsikotes` pada tes gratis). Relasi transaksi ke booking konsultasi menjadi opsional (`Transaksi 0..1 ke 1 BookingKonsultasi`).
+
+16. **Dukungan Operasional WhatsApp & Kontak Klien pada Jadwal Sesi Hari Ini**
+   - Halaman pemantauan sesi harian admin dilengkapi tombol aksi cepat *Chat WA Klien* dan *Salin Pesan WA* untuk sesi aktif (`Segera Dimulai` dan `Menunggu Jadwal`). Fitur ini mengandalkan nomor kontak klien (`Client.no_telepon`) untuk menghasilkan pesan konfirmasi WhatsApp terstruktur otomatis lengkap dengan ID Klien, Layanan, Psikolog, Jam Sesi, dan Metode Pertemuan.
+   - Form input modal *Sesi Baru* di admin mewajibkan/menyediakan input `no_telepon` agar kontak klien selalu tersimpan di tabel `Client`.
+
+17. **Siklus Status Booking Operasional Admin & Peniadaan `link_meet` di Database**
+   - Pada tabel `BookingKonsultasi`, kolom `metode ("ONLINE" | "OFFLINE")` mencatat format pertemuan yang dipilih (Online atau Offline di Klinik).
+   - Kolom `link_meet` **TIDAK diadakan di database**, karena link pertemuan Zoom / Google Meet dibuat mandiri oleh Admin secara eksternal (di luar sistem web) dan dibagikan langsung oleh admin kepada klien (misalnya melalui chat WhatsApp menjelang sesi).
+   - Catatan keluhan awal yang diinput admin saat membuat sesi baru disimpan pada kolom `deskripsi_trauma`.
+   - Admin memiliki wewenang aksi langsung untuk mengubah status sesi menjadi Selesai (`COMPLETED`) atau membatalkan sesi (`CANCELLED`), yang dipetakan pada enum `StatusBooking` (`PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`).
+
+18. **Penyimpanan Skor pada Lembar Jawaban Psikotes (`JawabanPsikotes.skor`)**
+   - Kolom `skor Int` **resmi ditambahkan pada tabel `JawabanPsikotes`** untuk menyimpan snapshot nilai bobot dari opsi jawaban yang dipilih klien pada butir soal terkait saat tes dikerjakan. Hal ini memastikan integritas data (skor jawaban klien tidak berubah jika bobot master soal diedit di masa depan) serta mempercepat agregasi `total_skor` dan analisis per butir/dimensi tes tanpa query join berulang ke tabel `PilihanJawaban`.
 
 ---
 
@@ -75,6 +96,10 @@ classDiagram
         +string id_biro_FK
         +dateTime createdAt
         +dateTime updatedAt
+        +login() boolean
+        +logout()
+        +updateProfil()
+        +gantiPassword()
     }
 
     class Client {
@@ -116,6 +141,7 @@ classDiagram
         +string id_PK
         +string nama
         +string kategori
+        +string metode
         +string deskripsi
         +float harga_weekday
         +float harga_weekend
@@ -123,7 +149,9 @@ classDiagram
         +boolean aktif
         +dateTime createdAt
         +dateTime updatedAt
-        +hitungHarga()
+        +hitungHarga() float
+        +tambahLayanan()
+        +updateLayanan()
         +toggleAktif()
     }
 
@@ -156,11 +184,10 @@ classDiagram
     class Jadwal_Slot {
         +string id_PK
         +string id_psikolog_FK
+        +string tipe_jadwal
         +date tanggal
         +time jam_mulai
         +time jam_selesai
-        +string metode
-        +string lokasi_ruangan
         +string status
         +dateTime createdAt
         +dateTime updatedAt
@@ -216,9 +243,8 @@ classDiagram
         +string id_client_FK
         +string id_layanan_FK
         +string id_jadwal_FK
-        +string id_transaksi_FK
+        +string id_transaksi_FK_nullable
         +string metode
-        +string link_meet
         +string deskripsi_trauma
         +string status
         +dateTime createdAt
@@ -227,6 +253,9 @@ classDiagram
         +ajukanBooking()
         +approveBooking()
         +rejectBooking()
+        +tandaiSelesai()
+        +batalkanSesi()
+        +kirimPengingatWA()
     }
 
     %% ========================================================
@@ -279,7 +308,7 @@ classDiagram
         +string slug
         +string jenis_akses
         +float harga
-        +string bannerURL
+        +string banner_url
         +boolean is_active
         +string deskripsi
         +dateTime createdAt
@@ -305,7 +334,8 @@ classDiagram
         +string label
         +string teks_jawaban
         +int bobot
-        +ambilBobot()
+        +ambilBobot() int
+        +updatePilihan()
     }
 
     class Jawaban_Psikotes {
@@ -335,7 +365,7 @@ classDiagram
         +string id_booking_FK
         +string id_interpretasi_FK
         +int total_skor
-        +string detail_skor
+        +json detail_skor
         +dateTime tanggal_selesai
         +dateTime createdAt
         +hitungTotalSkor()
@@ -366,7 +396,6 @@ classDiagram
         +string banner_url
         +int waktu_baca_menit
         +dateTime tanggal_terbit
-        +int jumlah_dilihat
         +dateTime createdAt
         +dateTime updatedAt
         +publikasikan()
@@ -406,7 +435,7 @@ classDiagram
     Event "1" <-- "*" Booking_Event : event
 
     Jadwal_Slot "1" <--> "1" Booking_Konsultasi : jadwal
-    Transaksi "1" <--> "1" Booking_Konsultasi : invoice_konseling
+    Transaksi "0..1" <--> "1" Booking_Konsultasi : invoice_konseling
     Transaksi "1" <--> "1" Booking_Event : invoice_event
     Transaksi "0..1" <--> "1" Booking_Psikotes : invoice_psikotes
 
@@ -436,11 +465,15 @@ classDiagram
    - Mempertahankan enum `MetodePembayaran`: `TRANSFER_BANK`, `E_WALLET`, `QRIS` (tanpa kartu kredit).
    - Menambahkan kolom `channel_pembayaran String?` (contoh: `bca_va`, `mandiri_va`, `gopay`, `dana`, `qris`).
 2. **Model `Layanan`**:
-   - Memperluas enum `KategoriLayanan` dengan: `HIPNOTERAPI`, `HOME_VISIT`, dan `PEER_KONSELOR`.
+   - Menambahkan kolom `metode String @default("Online/Offline")` untuk mencatat metode pelaksanaan layanan (`Online`, `Offline`, atau `Online/Offline`) yang dipilih admin di form input dan ditampilkan di tabel `/admin/layanan`.
+   - Menyelaraskan enum `KategoriLayanan` dengan 3 pilar kategori utama pada dashboard admin: `KONSULTASI`, `PELATIHAN_PEER_HELPER`, dan `ASESMEN`, serta sub-kategori spesifik: `HIPNOTERAPI`, `HOME_VISIT`, dan `PEER_KONSELOR`.
 3. **Model `Event`**:
    - Menambahkan nilai `DRAFT` pada enum `StatusEvent`.
 4. **Model `Psikolog`**:
    - Menambahkan kolom `keahlian String?` untuk menampung multi-topik keahlian (*Quarter Life Crisis*, relasi, keluarga, dll).
+5. **Model `BookingKonsultasi`**:
+   - Mengubah kolom `id_transaksi` menjadi **nullable (`String? @unique`)** agar Admin Utama / Biro dapat menjadwalkan sesi klien baru secara mandiri via modal *Sesi Baru* (`ModalTambahSesi`) atau klien *walk-in* klinik tanpa transaksi payment gateway online.
+   - Memastikan `status StatusBooking` mendukung siklus operasional admin (`PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`).
 
 ### KATEGORI 2: PERLU DITAMBAHKAN
 1. **Tabel Baru `PengajuanKerjaSama`**:
@@ -449,23 +482,27 @@ classDiagram
    - `Account`: `alamat String?`, `link_maps String?` (khusus profil Admin Utama pengelola platform).
    - `Transaksi`: `kode_transaksi String? @unique`, `total Decimal @db.Decimal(12, 2)`, `channel_pembayaran String?`, `createdAt`, `updatedAt`.
    - `Event`: `slug String @unique`, `subjudul String?`, `createdAt`, `updatedAt`.
-   - `PaketPsikotes`: `slug String @unique`, `createdAt`, `updatedAt`.
-   - `BookingKonsultasi`: `metode String ("ONLINE" | "OFFLINE")`, `link_meet String?`, `createdAt`, `updatedAt`.
+   - `PaketPsikotes`: `slug String @unique`, `banner_url String?`, `createdAt`, `updatedAt`.
+   - `Layanan`: `metode String @default("Online/Offline")`, `createdAt`, `updatedAt`.
+   - `BookingKonsultasi`: `id_transaksi String? (nullable untuk sesi mandiri admin / walk-in)`, `metode String ("ONLINE" | "OFFLINE")`, `deskripsi_trauma String?` (menampung keluhan awal klien dari form klien maupun input catatan admin saat menjadwalkan sesi), `createdAt`, `updatedAt`.
    - `ArtikelBlog`: `banner_url String?`, `waktu_baca_menit Int @default(5)`, `createdAt`, `updatedAt`.
    - `BookingEvent`: `kode_tiket String @unique`, `status StatusBooking @default(PENDING)`, `createdAt`, `updatedAt`.
-   - `Client`: `usia Int?`, `jenis_kelamin String?`, `createdAt`, `updatedAt`.
+   - `Client`: `no_telepon String?` (data vital operasional admin untuk integrasi tombol *Chat WA Klien* dan *Salin Pesan WA* pada pemantauan sesi klien harian), `usia Int?`, `jenis_kelamin String?`, `createdAt`, `updatedAt`.
    - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `createdAt`, `updatedAt`.
-   - `JadwalSlot`: `metode String ("ONLINE" | "OFFLINE")`, `lokasi_ruangan String?`, `createdAt`, `updatedAt`.
+   - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")`, `createdAt`, `updatedAt`.
    - `Biro`: `deskripsi String? @db.Text`, `no_telepon String?`, `website_url String?`, `status` (`PENDING`), `createdAt`, `updatedAt`.
    - `InterpretasiPsikotes`: `makna String? @db.Text`, `tips Json?` (array objek: `[{title, desc}]`).
    - `HasilTes`: `detail_skor Json?`, `createdAt`.
    - `BookingPsikotes`: `id_transaksi String? (nullable untuk tes gratis)`, `createdAt`, `updatedAt`.
+   - `JawabanPsikotes`: `skor Int` (snapshot nilai bobot opsi jawaban yang dipilih klien pada butir soal).
    - `Testimoni`: `createdAt`.
 
 ### KATEGORI 3: PERLU DIHAPUS / DIBERSIHKAN
 1. **Kolom `aktif Boolean` pada `Biro`**: Dihapus, dipusatkan pada enum `status StatusBiro` (`ACTIVE, INACTIVE, SUSPENDED, PENDING`).
 2. **Kolom `deskripsi_trauma` pada `Client`**: Dihapus dari tabel `Client`, disimpan seutuhnya per sesi di tabel `BookingKonsultasi`.
-3. **Kolom `likes` pada `ArtikelBlog`**: Ditiadakan / tidak disimpan di database.
+3. **Kolom `likes` dan `jumlah_dilihat` pada `ArtikelBlog`**: Ditiadakan / tidak disimpan di database.
 4. **Kolom `durasi_menit` pada `PaketPsikotes`**: Ditiadakan dari database, pengerjaan psikotes bersifat fleksibel tanpa batasan waktu.
 5. **Kolom `status` pada `BookingPsikotes`**: Dihapus dari tabel `BookingPsikotes`, status hasil dipusatkan pada tabel `HasilTes`.
 6. **Kolom `kategori` pada `PaketPsikotes`**: Dihapus dari tabel `PaketPsikotes`.
+7. **Kolom `lokasi_ruangan` & `metode` pada `JadwalSlot`**: Ditiadakan dari database. `lokasi_ruangan` ditiadakan karena sesi offline langsung datang ke kantor fisik Empathika, sedangkan `metode` ("ONLINE" | "OFFLINE") dipusatkan pada tabel `BookingKonsultasi` karena ditentukan oleh pilihan klien saat pemesanan.
+8. **Kolom `link_meet` pada `BookingKonsultasi`**: Ditiadakan dari database, karena tautan meeting Zoom / Google Meet dibuat mandiri oleh admin secara eksternal di luar aplikasi web dan dikirimkan langsung ke klien via WhatsApp.

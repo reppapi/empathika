@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import ModalTambahSesi, { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
@@ -12,10 +12,19 @@ import {
   Users,
   CheckCircle2,
   CalendarClock,
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
-  Circle
+  Circle,
+  MoreVertical,
+  Eye,
+  XCircle,
+  X,
+  FileText,
+  AlertTriangle,
+  Phone,
+  MessageCircle,
+  ExternalLink,
+  Copy,
 } from "lucide-react"
 
 interface BookedAssessment {
@@ -90,66 +99,184 @@ interface ClientSessionToday {
   waktu: string
   namaKlien: string
   klienId: string
+  kontak?: string
   psikolog: string
   layanan: string
   tipe: string
-  status: "Selesai" | "Segera Dimulai" | "Menunggu Jadwal" | "Sedang Berlangsung"
+  catatan?: string
+  status: "Selesai" | "Segera Dimulai" | "Menunggu Jadwal" | "Sedang Berlangsung" | "Dibatalkan"
   isUpcomingNearest?: boolean
 }
 
-const CLIENT_SESSIONS_TODAY: ClientSessionToday[] = [
+const RAW_CLIENT_SESSIONS: Omit<ClientSessionToday, "status" | "isUpcomingNearest">[] = [
   {
     id: "cs1",
     waktu: "09:00 - 10:00",
     namaKlien: "Budi Santoso",
     klienId: "010195",
+    kontak: "0812-3456-7890",
     psikolog: "Dr. Dimas",
     layanan: "Konseling Individu",
     tipe: "Online [Zoom]",
-    status: "Selesai",
+    catatan: "Keluhan cemas dan stres pekerjaan berulang",
   },
   {
     id: "cs2",
     waktu: "10:30 - 11:30",
     namaKlien: "Karenn Sya",
     klienId: "010198",
+    kontak: "0813-8899-7711",
     psikolog: "Dr. Dimas",
     layanan: "Hipnoterapi",
     tipe: "Online [Zoom]",
-    status: "Selesai",
+    catatan: "Sesi relaksasi dan penanganan insomnia",
   },
   {
     id: "cs3",
     waktu: "13:00 - 14:00",
     namaKlien: "Karenn Sya",
     klienId: "010198",
+    kontak: "0813-8899-7711",
     psikolog: "Dr. Dimas",
     layanan: "Konseling Pribadi",
     tipe: "Online [Zoom]",
-    status: "Segera Dimulai",
-    isUpcomingNearest: true, // Sesi terdekat yang akan datang hari ini!
+    catatan: "Lanjutan evaluasi progres mingguan dan latihan pernapasan",
   },
   {
     id: "cs4",
     waktu: "15:00 - 16:00",
     namaKlien: "Dimas Pratama",
     klienId: "010204",
+    kontak: "0857-1122-3344",
     psikolog: "Dr. Dimas",
     layanan: "Home Visit",
     tipe: "Offline [Klinik]",
-    status: "Menunggu Jadwal",
+    catatan: "Pendampingan konseling keluarga tatap muka",
   },
   {
     id: "cs5",
     waktu: "16:30 - 17:30",
     namaKlien: "Sarah & David",
     klienId: "010211",
+    kontak: "0821-9988-7766",
     psikolog: "Dr. Dimas",
     layanan: "Konseling Pasangan",
     tipe: "Online [Zoom]",
-    status: "Menunggu Jadwal",
+    catatan: "Komunikasi dan resolusi konflik pranikah",
+  },
+  {
+    id: "cs6",
+    waktu: "18:30 - 19:30",
+    namaKlien: "Rian Hidayat",
+    klienId: "010219",
+    kontak: "0812-7788-9900",
+    psikolog: "Dr. Dimas",
+    layanan: "Konseling Karir",
+    tipe: "Online [Zoom]",
+    catatan: "Eksplorasi burnout dan evaluasi transisi karir profesional",
+  },
+  {
+    id: "cs7",
+    waktu: "20:00 - 21:00",
+    namaKlien: "Amanda Putri",
+    klienId: "010225",
+    kontak: "0858-6677-8899",
+    psikolog: "Dr. Dimas",
+    layanan: "Asesmen Klinis",
+    tipe: "Online [Zoom]",
+    catatan: "Asesmen lanjutan kecemasan akademik dan regulasi emosi",
+  },
+  {
+    id: "cs8",
+    waktu: "21:30 - 22:30",
+    namaKlien: "Kevin Sanjaya",
+    klienId: "010232",
+    kontak: "0819-3344-5566",
+    psikolog: "Dr. Dimas",
+    layanan: "Konseling Remaja",
+    tipe: "Online [Zoom]",
+    catatan: "Konseling manajemen waktu belajar dan relasi pertemanan",
   },
 ]
+
+function parseTimeRangeMinutes(timeStr: string) {
+  const parts = timeStr.split("-").map((s) => s.trim())
+  if (parts.length < 2) return { startMinutes: 0, endMinutes: 0 }
+  const [startH, startM] = parts[0].split(":").map(Number)
+  const [endH, endM] = parts[1].split(":").map(Number)
+  return {
+    startMinutes: (startH || 0) * 60 + (startM || 0),
+    endMinutes: (endH || 0) * 60 + (endM || 0),
+  }
+}
+
+function getInitialSessionsBasedOnTime(): ClientSessionToday[] {
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  let foundNearest = false
+
+  const list: ClientSessionToday[] = RAW_CLIENT_SESSIONS.map((item) => {
+    const { startMinutes, endMinutes } = parseTimeRangeMinutes(item.waktu)
+
+    // Kasus 1: Sesi sudah lewat dibanding jam sekarang
+    if (currentMinutes >= endMinutes) {
+      return {
+        ...item,
+        status: "Selesai" as const,
+        isUpcomingNearest: false,
+      }
+    }
+
+    // Kasus 2: Sesi sedang berlangsung di jam sekarang
+    if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+      const isNearest = !foundNearest
+      if (isNearest) foundNearest = true
+      return {
+        ...item,
+        status: "Sedang Berlangsung" as const,
+        isUpcomingNearest: isNearest,
+      }
+    }
+
+    // Kasus 3: Sesi di masa mendatang hari ini (currentMinutes < startMinutes)
+    if (!foundNearest) {
+      foundNearest = true
+      return {
+        ...item,
+        status: "Segera Dimulai" as const,
+        isUpcomingNearest: true,
+      }
+    }
+
+    // Sesi setelahnya berstatus Menunggu Jadwal
+    return {
+      ...item,
+      status: "Menunggu Jadwal" as const,
+      isUpcomingNearest: false,
+    }
+  })
+
+  // Jaga-jaga jika dibuka larut malam (> 22:30), tambahkan 1 slot aktif malam ini
+  if (!foundNearest) {
+    const currentH = now.getHours()
+    const nextH = (currentH + 1) % 24
+    list.push({
+      id: "cs_night",
+      waktu: `${String(currentH).padStart(2, "0")}:45 - ${String(nextH).padStart(2, "0")}:45`,
+      namaKlien: "Dina Mariana",
+      klienId: "010240",
+      kontak: "0813-2233-4455",
+      psikolog: "Dr. Dimas",
+      layanan: "Konseling Darurat",
+      tipe: "Online [Zoom]",
+      catatan: "Sesi konseling malam / evaluasi stres akut",
+      status: "Segera Dimulai",
+      isUpcomingNearest: true,
+    })
+  }
+
+  return list
+}
 
 function getMonday(d: Date): Date {
   const date = new Date(d)
@@ -165,12 +292,159 @@ function formatDateKey(d: Date): string {
   return `${year}-${month}-${day}`
 }
 
+function formatWhatsAppMessage(session: {
+  namaKlien: string
+  klienId: string
+  layanan: string
+  psikolog: string
+  waktu: string
+  tipe: string
+}): string {
+  return `Halo Kak ${session.namaKlien},
+
+Kami dari Tim Administrasi Empathika ingin mengonfirmasi jadwal sesi Anda hari ini:
+
+📋 *Detail Jadwal Konseling:*
+• *ID Klien:* ${session.klienId}
+• *Layanan:* ${session.layanan}
+• *Psikolog:* ${session.psikolog}
+• *Waktu Sesi:* ${session.waktu} WIB
+• *Metode:* ${session.tipe}
+
+Mohon dapat bersiap 10 menit sebelum sesi dimulai. Jika ada kendala atau pertanyaan yang ingin ditanyakan, silakan membalas pesan ini. Terima kasih! 🙏`
+}
+
+function getWhatsAppUrl(session: {
+  kontak?: string
+  namaKlien: string
+  klienId: string
+  layanan: string
+  psikolog: string
+  waktu: string
+  tipe: string
+}): string {
+  if (!session.kontak) return "#"
+  const clean = session.kontak.replace(/\D/g, "")
+  const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
+  const message = formatWhatsAppMessage(session)
+  return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+}
+
 export default function JadwalAdmin() {
   const [date, setDate] = useState<Date | undefined>(new Date(2026, 7, 4))
   const [selectedTime, setSelectedTime] = useState<string>("13:00 - 14:00")
   const [currentWeekMonday, setCurrentWeekMonday] = useState<Date>(() => getMonday(new Date(2026, 7, 4)))
   const [bookedSessions, setBookedSessions] = useState<BookedAssessment[]>(INITIAL_ADMIN_BOOKINGS)
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null)
+
+  // ── State Sesi Klien Hari Ini (Disesuaikan dengan Jam Sekarang) ──
+  const [todaySessions, setTodaySessions] = useState<ClientSessionToday[]>(() => getInitialSessionsBasedOnTime())
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
+  const [selectedDetailSession, setSelectedDetailSession] = useState<ClientSessionToday | null>(null)
+  const [sessionToCancel, setSessionToCancel] = useState<ClientSessionToday | null>(null)
+  const [actionToast, setActionToast] = useState<{ message: string; type: "success" | "danger" } | null>(null)
+
+  const triggerToast = (message: string, type: "success" | "danger" = "success") => {
+    setActionToast({ message, type })
+    setTimeout(() => setActionToast(null), 3500)
+  }
+
+  const handleCopyWhatsAppMessage = (session: ClientSessionToday) => {
+    const text = formatWhatsAppMessage(session)
+    navigator.clipboard.writeText(text)
+    triggerToast(`Pesan jadwal untuk ${session.namaKlien} berhasil disalin ke clipboard!`, "success")
+  }
+
+  const handleMarkCompleted = (id: string, namaKlien: string) => {
+    setTodaySessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: "Selesai", isUpcomingNearest: false } : s))
+    )
+    triggerToast(`Sesi ${namaKlien} berhasil ditandai Selesai!`, "success")
+  }
+
+  const handleCancelSession = (id: string, namaKlien: string) => {
+    setTodaySessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: "Dibatalkan", isUpcomingNearest: false } : s))
+    )
+    triggerToast(`Sesi ${namaKlien} telah dibatalkan.`, "danger")
+  }
+
+  // Ringkasan metrik sesi hari ini
+  const stats = useMemo(() => {
+    const total = todaySessions.length
+    const sedangBerlangsung = todaySessions.filter((s) => s.status === "Sedang Berlangsung").length
+    const selesai = todaySessions.filter((s) => s.status === "Selesai").length
+    const menunggu = todaySessions.filter(
+      (s) => s.status === "Menunggu Jadwal" || s.status === "Segera Dimulai"
+    ).length
+    return { total, sedangBerlangsung, selesai, menunggu }
+  }, [todaySessions])
+
+  // Sesi terdekat yang akan datang berdasarkan urutan jadwal dan status terkini
+  const nearestSession = useMemo(() => {
+    const active = todaySessions.filter(
+      (s) => s.status !== "Selesai" && s.status !== "Dibatalkan"
+    )
+    if (active.length === 0) return null
+
+    // 1. Sesi yang sedang berjalan atau segera dimulai / paling dekat
+    const urgent = active.find(
+      (s) => s.status === "Sedang Berlangsung" || s.status === "Segera Dimulai" || s.isUpcomingNearest
+    )
+    if (urgent) return urgent
+
+    // 2. Sesi pertama berikutnya yang masih aktif
+    return active[0]
+  }, [todaySessions])
+
+  // Update berkala status sesi seiring berjalannya jam riil
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date()
+      const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+      setTodaySessions((prev) => {
+        let foundNearest = false
+        return prev.map((item) => {
+          // Jangan reset sesi yang telah dibatalkan atau sengaja ditandai selesai oleh admin
+          if (item.status === "Dibatalkan" || item.status === "Selesai") return item
+
+          const { startMinutes, endMinutes } = parseTimeRangeMinutes(item.waktu)
+
+          if (currentMinutes >= endMinutes) {
+            return { ...item, status: "Selesai" as const, isUpcomingNearest: false }
+          }
+
+          if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+            const isNearest = !foundNearest
+            if (isNearest) foundNearest = true
+            return {
+              ...item,
+              status: "Sedang Berlangsung" as const,
+              isUpcomingNearest: isNearest,
+            }
+          }
+
+          if (!foundNearest) {
+            foundNearest = true
+            return {
+              ...item,
+              status: "Segera Dimulai" as const,
+              isUpcomingNearest: true,
+            }
+          }
+
+          return {
+            ...item,
+            status: "Menunggu Jadwal" as const,
+            isUpcomingNearest: false,
+          }
+        })
+      })
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   const timeSlots = [
     "09:00 - 10:00",
@@ -269,6 +543,25 @@ export default function JadwalAdmin() {
       psikolog: newSession.psikolog,
     }
     setBookedSessions((prev) => [newBooked, ...prev])
+
+    // Jika jadwal baru bertanggal hari ini, tambahkan juga ke tabel pemantauan hari ini
+    const todayKey = new Date().toISOString().split("T")[0]
+    if (newSession.tanggal === todayKey || newSession.tanggal === formatDateKey(new Date())) {
+      const newToday: ClientSessionToday = {
+        id: "cs_" + Date.now(),
+        waktu: newSession.waktu.replace(" WIB", ""),
+        namaKlien: newSession.namaKlien,
+        klienId: "010" + Math.floor(100 + Math.random() * 900),
+        kontak: newSession.kontak,
+        psikolog: newSession.psikolog,
+        layanan: newSession.layanan,
+        tipe: newSession.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
+        catatan: newSession.catatan || undefined,
+        status: "Menunggu Jadwal",
+      }
+      setTodaySessions((prev) => [newToday, ...prev])
+    }
+
     setBookingSuccessMsg(`Sesi baru untuk ${newSession.namaKlien} (${newSession.waktu}) berhasil dijadwalkan!`)
     setTimeout(() => setBookingSuccessMsg(null), 4000)
   }
@@ -305,7 +598,7 @@ export default function JadwalAdmin() {
           </div>
           <div className="flex flex-col">
             <p className="text-xs font-semibold text-gray-500">Total Sesi hari ini</p>
-            <p className="text-xl font-bold text-gray-900">12</p>
+            <p className="text-xl font-bold text-gray-900">{stats.total}</p>
           </div>
         </div>
 
@@ -316,7 +609,7 @@ export default function JadwalAdmin() {
           </div>
           <div className="flex flex-col">
             <p className="text-xs font-semibold text-gray-500">Sedang Berlangsung</p>
-            <p className="text-xl font-bold text-gray-900">1</p>
+            <p className="text-xl font-bold text-gray-900">{stats.sedangBerlangsung}</p>
           </div>
         </div>
 
@@ -327,7 +620,7 @@ export default function JadwalAdmin() {
           </div>
           <div className="flex flex-col">
             <p className="text-xs font-semibold text-gray-500">Sesi Selesai</p>
-            <p className="text-xl font-bold text-gray-900">4</p>
+            <p className="text-xl font-bold text-gray-900">{stats.selesai}</p>
           </div>
         </div>
 
@@ -338,7 +631,7 @@ export default function JadwalAdmin() {
           </div>
           <div className="flex flex-col">
             <p className="text-xs font-semibold text-gray-500">Menunggu Jadwal</p>
-            <p className="text-xl font-bold text-gray-900">7</p>
+            <p className="text-xl font-bold text-gray-900">{stats.menunggu}</p>
           </div>
         </div>
       </div>
@@ -359,42 +652,95 @@ export default function JadwalAdmin() {
         </div>
 
         {/* Card Highlight: Sesi Terdekat Berikutnya */}
-        <div className="bg-gradient-to-r from-purple-50 via-[#FAF4FC] to-purple-50 border-2 border-[#561269]/30 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#561269] text-white flex items-center justify-center shrink-0 shadow-md">
-              <Clock className="w-6 h-6 animate-pulse" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-[#561269] text-white text-[10px] font-bold uppercase tracking-wider">
-                  Sesi Terdekat Berikutnya
-                </span>
-                <span className="text-xs font-bold text-purple-900">
-                  13:00 - 14:00
-                </span>
+        {nearestSession ? (
+          <div className="bg-gradient-to-r from-purple-50 via-[#FAF4FC] to-purple-50 border-2 border-[#561269]/30 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-[#561269] text-white flex items-center justify-center shrink-0 shadow-md">
+                <Clock className="w-6 h-6 animate-pulse" />
               </div>
-              <h3 className="text-base font-bold text-gray-900 mt-1">
-                Karenn Sya <span className="text-xs font-normal text-gray-500">(ID: 010198)</span>
-              </h3>
-              <p className="text-xs text-gray-600">
-                Konseling Pribadi • Dr. Dimas • <span className="font-semibold text-[#561269]">Online [Zoom]</span>
-              </p>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-[#561269] text-white text-[10px] font-bold uppercase tracking-wider">
+                    Sesi Terdekat Berikutnya
+                  </span>
+                  <span className="text-xs font-bold text-purple-900">
+                    {nearestSession.waktu}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-gray-900 mt-1">
+                  {nearestSession.namaKlien}{" "}
+                  <span className="text-xs font-normal text-gray-500">(ID: {nearestSession.klienId})</span>
+                </h3>
+                <p className="text-xs text-gray-600">
+                  {nearestSession.layanan} • {nearestSession.psikolog} •{" "}
+                  <span className="font-semibold text-[#561269]">{nearestSession.tipe}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+              <AdminStatusBadge
+                variant={
+                  nearestSession.status === "Selesai"
+                    ? "success"
+                    : nearestSession.status === "Segera Dimulai"
+                    ? "info"
+                    : nearestSession.status === "Sedang Berlangsung"
+                    ? "danger"
+                    : nearestSession.status === "Dibatalkan"
+                    ? "neutral"
+                    : "warning"
+                }
+                className="w-44"
+              >
+                {nearestSession.status}
+              </AdminStatusBadge>
+              <button
+                type="button"
+                onClick={() => setSelectedDetailSession(nearestSession)}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-purple-200 text-[#561269] hover:bg-purple-100/60 transition cursor-pointer"
+              >
+                Detail
+              </button>
+              {nearestSession.kontak && (
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href={getWhatsAppUrl(nearestSession)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#20ba5a] text-white flex items-center gap-1.5 transition shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap"
+                    title="Hubungi klien via WhatsApp dengan rincian jadwal"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>Chat WA</span>
+                    <ExternalLink className="w-3 h-3 opacity-80" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyWhatsAppMessage(nearestSession)}
+                    className="p-1.5 rounded-lg border border-purple-200 text-gray-600 hover:text-[#561269] hover:bg-purple-100/60 transition cursor-pointer"
+                    title="Salin Pesan WA"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="flex items-center gap-2 self-end md:self-center shrink-0">
-            <AdminStatusBadge variant="info" className="w-44">
-              Segera Dimulai
-            </AdminStatusBadge>
+        ) : (
+          <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3 text-emerald-800 text-sm font-medium">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>Semua sesi klien untuk hari ini telah selesai atau belum ada jadwal mendesak lainnya.</span>
           </div>
-        </div>
+        )}
 
         {/* Tabel Sesi Klien dalam Satu Hari */}
         <div
-          className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${CLIENT_SESSIONS_TODAY.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
-            }`}
+          className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
+            todaySessions.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
+          }`}
         >
-          <table className="w-full text-left border-collapse min-w-[760px]">
+          <table className="w-full text-left border-collapse min-w-[820px]">
             <thead className="sticky top-0 z-10 bg-[#D3C4D8]">
               <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold">
                 <th className="py-4 px-6 font-bold min-w-[140px] sticky top-0 bg-[#D3C4D8] z-10">Waktu Sesi</th>
@@ -402,17 +748,18 @@ export default function JadwalAdmin() {
                 <th className="py-4 px-6 font-bold sticky top-0 bg-[#D3C4D8] z-10">Psikolog</th>
                 <th className="py-4 px-6 font-bold sticky top-0 bg-[#D3C4D8] z-10">Layanan</th>
                 <th className="py-4 px-6 font-bold sticky top-0 bg-[#D3C4D8] z-10">Tipe & Status</th>
-                <th className="py-4 px-4 font-bold text-center sticky top-0 bg-[#D3C4D8] z-10">Aksi</th>
+                <th className="py-4 px-4 font-bold text-center sticky top-0 bg-[#D3C4D8] z-10 w-24">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
-              {CLIENT_SESSIONS_TODAY.map((item) => {
-                const isNearest = item.isUpcomingNearest
+              {todaySessions.map((item, index) => {
+                const isNearest = nearestSession?.id === item.id
                 return (
                   <tr
                     key={item.id}
-                    className={`transition-colors ${isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
-                      }`}
+                    className={`transition-colors ${
+                      isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
+                    }`}
                   >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
@@ -441,6 +788,8 @@ export default function JadwalAdmin() {
                             ? "info"
                             : item.status === "Sedang Berlangsung"
                             ? "danger"
+                            : item.status === "Dibatalkan"
+                            ? "neutral"
                             : "warning"
                         }
                         className="w-44"
@@ -449,9 +798,97 @@ export default function JadwalAdmin() {
                       </AdminStatusBadge>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <button className="text-gray-400 hover:text-[#561269] p-1.5 rounded-lg hover:bg-purple-100/50 transition-colors">
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
+                      <div className="relative inline-block text-left">
+                        <button
+                          type="button"
+                          onClick={() => setActiveMenuId(activeMenuId === item.id ? null : item.id)}
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-[#561269] hover:bg-purple-100/60 transition-colors cursor-pointer"
+                          title="Pilihan Aksi"
+                        >
+                          <MoreVertical className="w-5 h-5" />
+                        </button>
+
+                        {activeMenuId === item.id && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-30"
+                              onClick={() => setActiveMenuId(null)}
+                            />
+                            <div
+                              className={`absolute right-0 w-48 rounded-2xl bg-white shadow-xl border border-gray-100 py-2 z-40 text-left transition-all ${
+                                index >= todaySessions.length - 2 ? "bottom-full mb-2" : "top-full mt-2"
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDetailSession(item)
+                                  setActiveMenuId(null)
+                                }}
+                                className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-purple-50 hover:text-[#561269] flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-4 h-4 text-purple-600 shrink-0" />
+                                Lihat Detail
+                              </button>
+
+                              {item.kontak && item.status !== "Selesai" && item.status !== "Dibatalkan" && (
+                                <>
+                                  <a
+                                    href={getWhatsAppUrl(item)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => setActiveMenuId(null)}
+                                    className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                  >
+                                    <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
+                                    <span>Chat WA Klien</span>
+                                    <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleCopyWhatsAppMessage(item)
+                                      setActiveMenuId(null)
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                  >
+                                    <Copy className="w-4 h-4 text-gray-500 shrink-0" />
+                                    <span>Salin Pesan WA</span>
+                                  </button>
+                                </>
+                              )}
+
+                              {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleMarkCompleted(item.id, item.namaKlien)
+                                    setActiveMenuId(null)
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                  Tandai Selesai
+                                </button>
+                              )}
+
+                              {item.status !== "Dibatalkan" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSessionToCancel(item)
+                                    setActiveMenuId(null)
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-gray-100"
+                                >
+                                  <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                  Batalkan Sesi
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
@@ -652,6 +1089,244 @@ export default function JadwalAdmin() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleModalSuccess}
       />
+
+      {/* ── Modal Detail Sesi Klien ── */}
+      {selectedDetailSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-7 flex flex-col justify-between">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">
+                    Detail Sesi Klien
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Informasi sesi konseling hari ini
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedDetailSession(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-4 text-xs sm:text-sm">
+              {/* Card Klien */}
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Klien</p>
+                    <p className="text-base font-extrabold text-gray-900 mt-0.5">
+                      {selectedDetailSession.namaKlien}
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-purple-100 text-[#561269] text-xs font-bold">
+                    ID: {selectedDetailSession.klienId}
+                  </span>
+                </div>
+
+                {selectedDetailSession.kontak && (
+                  <div className="pt-3 border-t border-gray-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#1C5E24] flex items-center justify-center shrink-0 border border-emerald-200">
+                        <Phone className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-medium text-gray-400 leading-none">
+                          No. WhatsApp / Kontak
+                        </span>
+                        <span className="text-xs sm:text-sm font-bold text-gray-900 mt-1 whitespace-nowrap tracking-wide">
+                          {selectedDetailSession.kontak}
+                        </span>
+                      </div>
+                    </div>
+
+                    {selectedDetailSession.status !== "Selesai" && selectedDetailSession.status !== "Dibatalkan" ? (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={getWhatsAppUrl(selectedDetailSession)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
+                          title="Buka WhatsApp Klien dengan rincian jadwal otomatis"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Chat WA</span>
+                          <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyWhatsAppMessage(selectedDetailSession)}
+                          className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer whitespace-nowrap"
+                          title="Salin Rincian Pesan WA ke Clipboard"
+                        >
+                          <Copy className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                          <span>Salin</span>
+                        </button>
+                      </div>
+                    ) : selectedDetailSession.status === "Selesai" ? (
+                      <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full whitespace-nowrap">
+                        Sesi telah selesai
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-medium text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full whitespace-nowrap">
+                        Sesi dibatalkan
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Grid Info Sesi */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+                  <p className="text-[11px] font-semibold text-gray-500">Layanan</p>
+                  <p className="font-bold text-gray-900 mt-1">{selectedDetailSession.layanan}</p>
+                </div>
+                <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+                  <p className="text-[11px] font-semibold text-gray-500">Psikolog Bertugas</p>
+                  <p className="font-bold text-gray-900 mt-1">{selectedDetailSession.psikolog}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="text-[11px] font-semibold text-gray-500">Waktu Sesi</p>
+                  <p className="font-bold text-gray-900 mt-1">{selectedDetailSession.waktu} WIB</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="text-[11px] font-semibold text-gray-500">Metode</p>
+                  <p className="font-bold text-[#561269] mt-1">{selectedDetailSession.tipe}</p>
+                </div>
+              </div>
+
+              {/* Catatan / Keluhan */}
+              {selectedDetailSession.catatan && (
+                <div className="p-3.5 bg-amber-50/40 rounded-xl border border-amber-200/60">
+                  <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-1">
+                    Catatan / Keluhan Awal
+                  </p>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {selectedDetailSession.catatan}
+                  </p>
+                </div>
+              )}
+
+              {/* Status Sesi */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="font-semibold text-gray-700">Status Saat Ini:</span>
+                <AdminStatusBadge
+                  variant={
+                    selectedDetailSession.status === "Selesai"
+                      ? "success"
+                      : selectedDetailSession.status === "Segera Dimulai"
+                      ? "info"
+                      : selectedDetailSession.status === "Sedang Berlangsung"
+                      ? "danger"
+                      : selectedDetailSession.status === "Dibatalkan"
+                      ? "neutral"
+                      : "warning"
+                  }
+                  className="w-40"
+                >
+                  {selectedDetailSession.status}
+                </AdminStatusBadge>
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div className="flex items-center justify-end gap-2.5 pt-5 mt-5 border-t border-gray-100">
+              {selectedDetailSession.status !== "Selesai" && selectedDetailSession.status !== "Dibatalkan" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const s = selectedDetailSession
+                      setSelectedDetailSession(null)
+                      setSessionToCancel(s)
+                    }}
+                    className="px-4 py-2 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition cursor-pointer"
+                  >
+                    Batalkan Sesi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleMarkCompleted(selectedDetailSession.id, selectedDetailSession.namaKlien)
+                      setSelectedDetailSession(null)
+                    }}
+                    className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                  >
+                    Tandai Selesai
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedDetailSession(null)}
+                className="px-5 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Konfirmasi Pembatalan ── */}
+      {sessionToCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">
+              Batalkan Sesi Klien?
+            </h3>
+            <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+              Apakah Anda yakin ingin membatalkan sesi untuk{" "}
+              <strong className="text-gray-800">{sessionToCancel.namaKlien}</strong> ({sessionToCancel.waktu})? Tindakan ini akan mengubah status sesi menjadi Dibatalkan.
+            </p>
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setSessionToCancel(null)}
+                className="flex-1 py-2.5 rounded-full border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-50 transition cursor-pointer"
+              >
+                Kembali
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleCancelSession(sessionToCancel.id, sessionToCancel.namaKlien)
+                  setSessionToCancel(null)
+                }}
+                className="flex-1 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                Ya, Batalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast Notifikasi Aksi ── */}
+      {actionToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-gray-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-gray-700 animate-in slide-in-from-bottom-5">
+          {actionToast.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          )}
+          <span>{actionToast.message}</span>
+        </div>
+      )}
     </div>
   )
 }
