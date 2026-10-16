@@ -14,11 +14,11 @@ const BANK_LIST = [
 ]
 
 const EWALLET_LIST = [
-  { id: "gopay",     name: "GoPay",     color: "#00AA13", nomor: "0812-3456-7890" },
-  { id: "ovo",       name: "OVO",       color: "#4C3494", nomor: "0813-2345-6789" },
-  { id: "dana",      name: "DANA",      color: "#118EEA", nomor: "0811-9876-5432" },
-  { id: "shopeepay", name: "ShopeePay", color: "#EE4D2D", nomor: "0815-6543-2109" },
-  { id: "linkaja",   name: "LinkAja",   color: "#E82529", nomor: "0819-1234-5678" },
+  { id: "gopay",     name: "GoPay",     color: "#00AA13" },
+  { id: "ovo",       name: "OVO",       color: "#4C3494" },
+  { id: "dana",      name: "DANA",      color: "#118EEA" },
+  { id: "shopeepay", name: "ShopeePay", color: "#EE4D2D" },
+  { id: "linkaja",   name: "LinkAja",   color: "#E82529" },
 ]
 
 // Chevron icon
@@ -297,15 +297,15 @@ export default function EventCheckoutClient() {
                                     </div>
                                   </button>
 
-                                  {/* Detail nomor langsung di bawah pilihan ini */}
+                                  {/* Petunjuk pembayaran via Xendit gateway */}
                                   {isSelected && (
-                                    <div className="border-t border-[#EDE0F2] bg-white px-4 py-3 flex flex-col gap-1 mx-2 mb-2 rounded-lg">
-                                      <p className="text-[11px] text-gray-500 font-medium">Nomor Tujuan Transfer {ew.name}</p>
-                                      <div className="flex items-center justify-between gap-2 mt-0.5">
-                                        <span className="text-base sm:text-lg font-extrabold text-[#561269] tracking-wider">{ew.nomor}</span>
-                                        <CopyButton text={ew.nomor} />
-                                      </div>
-                                      <p className="text-[10px] text-gray-400 mt-0.5">a.n. Empathika Indonesia</p>
+                                    <div className="border-t border-[#EDE0F2] bg-white px-4 py-2.5 flex items-center gap-2 mx-2 mb-2 rounded-lg text-xs text-gray-600">
+                                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="#561269" className="w-4 h-4 shrink-0">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3.75h3m-6-3.75h.008v.008H7.5v-.008Zm0 3.75h.008v.008H7.5v-.008Z" />
+                                      </svg>
+                                      <span className="text-[11px] leading-relaxed">
+                                        Kamu akan langsung diarahkan ke aplikasi <strong className="text-gray-900">{ew.name}</strong> atau barcode QRIS otomatis saat menekan tombol bayar.
+                                      </span>
                                     </div>
                                   )}
                                 </div>
