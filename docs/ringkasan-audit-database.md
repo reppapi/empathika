@@ -33,6 +33,19 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
 8. **Tabel Kemitraan B2B Baru**
    - Dibuatkan tabel baru `PengajuanKerjaSama` untuk menampung data formulir kemitraan instansi dari halaman `/kerja-sama` dan dashboard `/admin/kerja-sama`.
 
+9. **Peniadaan Fitur Suka / Likes pada Artikel Blog**
+   - Kolom `likes` / `jumlah_like` **TIDAK dibuat di database**, sehingga tabel `ArtikelBlog` hanya mencatat metadata konten, waktu baca, tanggal terbit, dan `jumlah_dilihat` (views).
+
+10. **Peniadaan Estimasi Waktu pada Paket Psikotes**
+   - Kolom `durasi_menit` **TIDAK diadakan di database**, pengerjaan tes psikotes bersifat fleksibel tanpa batasan waktu.
+
+11. **Kelengkapan Profil Admin Utama (`Account`) untuk Footer & Google Maps**
+   - Kolom `alamat String?` dan `link_maps String?` ditambahkan pada model `Account` (khusus akun `ADMIN` utama). Hal ini karena Admin Utama yang mengelola identitas platform Empathika, kontak footer (`email`, `no_telepon`, `alamat`), dan tautan navigasi Google Maps pada halaman beranda klien (*Kunjungi Kami*), bukan Admin Biro.
+
+12. **Penyesuaian `BookingPsikotes` (Free Assessment & Nullable Transaksi)**
+   - Kolom `status` pada tabel `BookingPsikotes` **dihapus**, karena status kelulusan/hasil tes dipusatkan pada `HasilTes`.
+   - Kolom `id_transaksi` pada tabel `BookingPsikotes` dijadikan **nullable (`String?`)**, untuk memfasilitasi paket psikotes gratis yang tidak memerlukan proses pembayaran.
+
 ---
 
 ## 2. Diagram UML Database (Mermaid Class Diagram)
@@ -53,6 +66,8 @@ classDiagram
         +string role
         +string no_telepon
         +string foto
+        +string alamat
+        +string link_maps
         +boolean aktif
         +string id_biro_FK
         +dateTime createdAt
@@ -258,10 +273,8 @@ classDiagram
         +string id_PK
         +string judul
         +string slug
-        +string kategori
         +string jenis_akses
         +float harga
-        +int durasi_menit
         +string bannerURL
         +boolean is_active
         +string deskripsi
@@ -309,7 +322,7 @@ classDiagram
         +string judul
         +string deskripsi
         +string makna
-        +string tips
+        +json tips
         +cocokanSkor()
     }
 
@@ -329,9 +342,8 @@ classDiagram
     class Booking_Psikotes {
         +string id_PK
         +string id_paket_FK
-        +string id_transaksi_FK
+        +string id_transaksi_FK_nullable
         +string id_client_FK
-        +string status
         +dateTime createdAt
         +dateTime updatedAt
         +buatBooking()
@@ -392,7 +404,7 @@ classDiagram
     Jadwal_Slot "1" <--> "1" Booking_Konsultasi : jadwal
     Transaksi "1" <--> "1" Booking_Konsultasi : invoice_konseling
     Transaksi "1" <--> "1" Booking_Event : invoice_event
-    Transaksi "1" <--> "1" Booking_Psikotes : invoice_psikotes
+    Transaksi "0..1" <--> "1" Booking_Psikotes : invoice_psikotes
 
     Psikolog "1" <-- "*" Jadwal_Slot : slot
     Psikolog "1" <-- "*" Testimoni : testimoni
@@ -430,9 +442,10 @@ classDiagram
 1. **Tabel Baru `PengajuanKerjaSama`**:
    - `id`, `nama_instansi`, `nama_pic`, `email`, `no_telepon`, `kategori`, `tipe_formulir`, `pesan`, `jawaban_detail`, `status`, `createdAt`, `updatedAt`.
 2. **Atribut Baru pada Tabel Eksisting**:
+   - `Account`: `alamat String?`, `link_maps String?` (khusus profil Admin Utama pengelola platform).
    - `Transaksi`: `kode_transaksi String? @unique`, `channel_pembayaran String?`, `createdAt`, `updatedAt`.
    - `Event`: `slug String @unique`, `subjudul String?`, `createdAt`, `updatedAt`.
-   - `PaketPsikotes`: `slug String @unique`, `durasi_menit Int @default(15)`, `createdAt`, `updatedAt`.
+   - `PaketPsikotes`: `slug String @unique`, `createdAt`, `updatedAt`.
    - `BookingKonsultasi`: `metode String ("ONLINE" | "OFFLINE")`, `link_meet String?`, `createdAt`, `updatedAt`.
    - `ArtikelBlog`: `banner_url String?`, `waktu_baca_menit Int @default(5)`, `createdAt`, `updatedAt`.
    - `BookingEvent`: `kode_tiket String @unique`, `status StatusBooking @default(PENDING)`, `createdAt`, `updatedAt`.
@@ -440,11 +453,15 @@ classDiagram
    - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `createdAt`, `updatedAt`.
    - `JadwalSlot`: `metode String ("ONLINE" | "OFFLINE")`, `lokasi_ruangan String?`, `createdAt`, `updatedAt`.
    - `Biro`: `deskripsi String? @db.Text`, `no_telepon String?`, `website_url String?`, `status` (`PENDING`), `createdAt`, `updatedAt`.
-   - `InterpretasiPsikotes`: `makna String? @db.Text`, `tips String? @db.Text`.
+   - `InterpretasiPsikotes`: `makna String? @db.Text`, `tips Json?` (array objek: `[{title, desc}]`).
    - `HasilTes`: `detail_skor Json?`, `createdAt`.
-   - `BookingPsikotes`: `status StatusBooking @default(PENDING)`, `updatedAt`.
+   - `BookingPsikotes`: `id_transaksi String? (nullable untuk tes gratis)`, `createdAt`, `updatedAt`.
    - `Testimoni`: `createdAt`.
 
 ### KATEGORI 3: PERLU DIHAPUS / DIBERSIHKAN
 1. **Kolom `aktif Boolean` pada `Biro`**: Dihapus, dipusatkan pada enum `status StatusBiro` (`ACTIVE, INACTIVE, SUSPENDED, PENDING`).
 2. **Kolom `deskripsi_trauma` pada `Client`**: Dihapus dari tabel `Client`, disimpan seutuhnya per sesi di tabel `BookingKonsultasi`.
+3. **Kolom `likes` pada `ArtikelBlog`**: Ditiadakan / tidak disimpan di database.
+4. **Kolom `durasi_menit` pada `PaketPsikotes`**: Ditiadakan dari database, pengerjaan psikotes bersifat fleksibel tanpa batasan waktu.
+5. **Kolom `status` pada `BookingPsikotes`**: Dihapus dari tabel `BookingPsikotes`, status hasil dipusatkan pada tabel `HasilTes`.
+6. **Kolom `kategori` pada `PaketPsikotes`**: Dihapus dari tabel `PaketPsikotes`.
