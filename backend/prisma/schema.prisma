@@ -382,23 +382,12 @@ model HasilTes {
 // ==========================================
 
 model ArtikelBlog {
-<<<<<<< Updated upstream
-  id                 String   @id @default(uuid())
-  judul              String
-  slug               String   @unique
-  isi                String   @db.Text
-  banner_url         String?
-  waktu_baca_menit   Int      @default(5)
-  tanggal_terbit     DateTime @default(now())
-  jumlah_dilihat     Int      @default(0)
-=======
-  id               String   @id @default(uuid())
-  judul            String
-  slug             String   @unique
-  isi              String   @db.Text
-  tanggal_terbit   DateTime @default(now())
-  jumlah_dilihat   Int      @default(0)
->>>>>>> Stashed changes
+  id             String   @id @default(uuid())
+  judul          String
+  slug           String   @unique
+  isi            String   @db.Text
+  tanggal_terbit DateTime @default(now())
+  jumlah_dilihat Int      @default(0)
 
   @@map("artikel_blogs")
 }
