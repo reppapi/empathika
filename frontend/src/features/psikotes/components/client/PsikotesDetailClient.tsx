@@ -101,16 +101,6 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-5 bg-[#f8f9fa] p-5 rounded-2xl">
                   <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-sm">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium mb-0.5">Estimasi Waktu</p>
-                    <p className="text-xl font-bold text-gray-900 tracking-tight">{data.duration}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-5 bg-[#f8f9fa] p-5 rounded-2xl">
-                  <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-sm">
                     <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                   </div>
                   <div>
@@ -119,6 +109,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                   </div>
                 </div>
               </div>
+
 
               <hr className="border-gray-100" />
 
