@@ -227,14 +227,12 @@ function getInitialSessionsBasedOnTime(): ClientSessionToday[] {
       }
     }
 
-    // Kasus 2: Sesi sedang berlangsung di jam sekarang
+    // Kasus 2: Sesi sedang berlangsung di jam sekarang (bukan sesi terdekat berikutnya)
     if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
-      const isNearest = !foundNearest
-      if (isNearest) foundNearest = true
       return {
         ...item,
         status: "Sedang Berlangsung" as const,
-        isUpcomingNearest: isNearest,
+        isUpcomingNearest: false,
       }
     }
 
@@ -380,21 +378,17 @@ export default function JadwalAdmin() {
     return { total, sedangBerlangsung, selesai, menunggu }
   }, [todaySessions])
 
-  // Sesi terdekat yang akan datang berdasarkan urutan jadwal dan status terkini
+  // Sesi terdekat yang akan datang (sesi berikutnya di masa depan yang aktif)
   const nearestSession = useMemo(() => {
-    const active = todaySessions.filter(
-      (s) => s.status !== "Selesai" && s.status !== "Dibatalkan"
-    )
-    if (active.length === 0) return null
+    // 1. Cari sesi yang berstatus 'Segera Dimulai'
+    const upcoming = todaySessions.find((s) => s.status === "Segera Dimulai")
+    if (upcoming) return upcoming
 
-    // 1. Sesi yang sedang berjalan atau segera dimulai / paling dekat
-    const urgent = active.find(
-      (s) => s.status === "Sedang Berlangsung" || s.status === "Segera Dimulai" || s.isUpcomingNearest
-    )
-    if (urgent) return urgent
+    // 2. Jika tidak ada yang 'Segera Dimulai', cari sesi pertama yang berstatus 'Menunggu Jadwal'
+    const waiting = todaySessions.find((s) => s.status === "Menunggu Jadwal")
+    if (waiting) return waiting
 
-    // 2. Sesi pertama berikutnya yang masih aktif
-    return active[0]
+    return null
   }, [todaySessions])
 
   // Update berkala status sesi seiring berjalannya jam riil
@@ -416,12 +410,10 @@ export default function JadwalAdmin() {
           }
 
           if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
-            const isNearest = !foundNearest
-            if (isNearest) foundNearest = true
             return {
               ...item,
               status: "Sedang Berlangsung" as const,
-              isUpcomingNearest: isNearest,
+              isUpcomingNearest: false,
             }
           }
 
