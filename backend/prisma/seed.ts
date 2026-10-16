@@ -6,179 +6,125 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Start seeding...');
 
-  // 1. Create Users dengan Email & Password Nyata
-  const adminPasswordHash = await bcrypt.hash('Admin123!', 10);
-  const psikologPasswordHash = await bcrypt.hash('Psikolog123!', 10);
-  const biroPasswordHash = await bcrypt.hash('Biro123!', 10);
+  // Hash password agar akun staf bisa langsung login di frontend/backend
+  const adminPassword = await bcrypt.hash('AdminPasswordHashed123!', 10);
+  const biroPassword = await bcrypt.hash('BiroPasswordHashed123!', 10);
+  const psikologPassword = await bcrypt.hash('PsikologPasswordHashed123!', 10);
 
-  // Admin Utama
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@empathika.test' },
-    update: {
-      password: adminPasswordHash,
-      role: Role.ADMIN,
-    },
-    create: {
+  // 1. Create Accounts (Admin & Biro Owner)
+  const adminAccount = await prisma.account.create({
+    data: {
+      nama: 'Admin Empathika',
       email: 'admin@empathika.test',
-      nama: 'Admin Utama Empathika',
-      password: adminPasswordHash,
+      password: adminPassword,
       role: Role.ADMIN,
-      no_telepon: '081299990001',
     },
   });
 
-  // Admin Psikolog
-  const psikologUser = await prisma.user.upsert({
-    where: { email: 'psikolog@empathika.test' },
-    update: {
-      password: psikologPasswordHash,
-      role: Role.PSIKOLOG,
-    },
-    create: {
-      email: 'psikolog@empathika.test',
-      nama: 'Psikolog Empathika',
-      password: psikologPasswordHash,
-      role: Role.PSIKOLOG,
-      no_telepon: '081299990002',
-    },
-  });
-
-  // Biro Owner (Role: BIRO)
-  const biroOwner = await prisma.user.upsert({
-    where: { email: 'biro@empathika.test' },
-    update: {
-      password: biroPasswordHash,
-      role: Role.BIRO,
-    },
-    create: {
-      email: 'biro@empathika.test',
-      nama: 'Biro Psikologi Partner',
-      password: biroPasswordHash,
+  const biroOwnerAccount = await prisma.account.create({
+    data: {
+      nama: 'Admin Biro Cendekia Muda',
+      email: 'biro@cendekiamuda.org',
+      password: biroPassword,
       role: Role.BIRO,
       no_telepon: '081234567890',
     },
   });
 
-  console.log(`Created/Updated admin user: ${adminUser.email}`);
-  console.log(`Created/Updated psikolog user: ${psikologUser.email}`);
-  console.log(`Created/Updated biro owner: ${biroOwner.email}`);
+  console.log(`Created admin account: ${adminAccount.nama}`);
+  console.log(`Created biro owner account: ${biroOwnerAccount.nama}`);
 
-  // 2. Create or find Biro
-  let biro = await prisma.biro.findUnique({
-    where: { slug: 'biro-psikologi-sejahtera' },
-  });
-
-  if (!biro) {
-    biro = await prisma.biro.create({
-      data: {
-        nama_biro: 'Biro Psikologi Sejahtera',
-        slug: 'biro-psikologi-sejahtera',
-        id_user: biroOwner.id,
-        alamat: 'Jl. Kesejahteraan No. 1, Jakarta',
-        aktif: true,
-      },
-    });
-    console.log(`Created biro: ${biro.nama_biro}`);
-  } else {
-    console.log(`Biro already exists: ${biro.nama_biro}`);
-  }
-
-  // 3. Create Spesialisasi
-  let spesialisasiKlinis = await prisma.spesialisasi.findFirst({
-    where: { nama: 'Psikolog Klinis Dewasa' },
-  });
-
-  if (!spesialisasiKlinis) {
-    spesialisasiKlinis = await prisma.spesialisasi.create({
-      data: {
-        nama: 'Psikolog Klinis Dewasa',
-      },
-    });
-    console.log(`Created spesialisasi: ${spesialisasiKlinis.nama}`);
-  }
-
-  // 4. Create Psikolog
-  let psikolog = await prisma.psikolog.findUnique({
-    where: { email: 'janedoe@example.com' },
-  });
-
-  if (!psikolog) {
-    psikolog = await prisma.psikolog.create({
-      data: {
-        nama_gelar: 'Dr. Jane Doe, M.Psi., Psikolog',
-        email: 'janedoe@example.com',
-        no_str: '123456789',
-        bio: 'Berpengalaman dalam menangani kecemasan dan depresi.',
-        tarif_per_jam: 150000.0,
-        id_spesialisasi: spesialisasiKlinis.id,
-      },
-    });
-    console.log(`Created psikolog: ${psikolog.nama_gelar}`);
-  }
-
-  // 5. Create Layanan
-  let layananKonsultasi = await prisma.layanan.findFirst({
-    where: { nama: 'Konsultasi Individu (Online)' },
-  });
-
-  if (!layananKonsultasi) {
-    layananKonsultasi = await prisma.layanan.create({
-      data: {
-        nama: 'Konsultasi Individu (Online)',
-        kategori: KategoriLayanan.KONSULTASI_INDIVIDU,
-        deskripsi: 'Sesi konsultasi 1 on 1 dengan psikolog klinis melalui video call.',
-        harga_weekday: 150000.00,
-        harga_weekend: 200000.00,
-        aktif: true,
-      },
-    });
-    console.log(`Created layanan: ${layananKonsultasi.nama}`);
-  }
-
-  // 6. Create Paket Psikotes
-  let paketPsikotes = await prisma.paketPsikotes.findFirst({
-    where: { judul: 'Tes Kepribadian Dasar' },
-  });
-
-  if (!paketPsikotes) {
-    paketPsikotes = await prisma.paketPsikotes.create({
-      data: {
-        judul: 'Tes Kepribadian Dasar',
-        kategori: 'Kepribadian',
-        jenis_akses: JenisAksesPsikotes.GRATIS,
-        harga: 0,
-        deskripsi: 'Tes untuk mengetahui tipe kepribadian dasar Anda.',
-      },
-    });
-    console.log(`Created paket psikotes: ${paketPsikotes.judul}`);
-  }
-
-  // 7. Create Artikel Blog
-  const artikel1 = await prisma.artikelBlog.upsert({
-    where: { slug: 'mengenal-inner-child' },
-    update: {},
-    create: {
-      judul: 'Mengenal Inner Child: Mengapa Luka Masa Lalu Mempengaruhi Masa Kini?',
-      slug: 'mengenal-inner-child',
-      isi: 'Pernahkah Anda bertanya-tanya mengapa Anda bereaksi sangat emosional terhadap hal-hal tertentu yang bagi orang lain mungkin tampak biasa saja? Dalam ilmu psikologi, fenomena ini sering dikaitkan dengan konsep "Inner Child" atau anak batin.',
-      waktu_baca_menit: 4,
-      jumlah_dilihat: 1240,
+  // 2. Create Biro
+  const biro = await prisma.biro.create({
+    data: {
+      nama_biro: 'Biro Konseling Cendekia Muda',
+      slug: 'cendekia-muda',
+      id_account: biroOwnerAccount.id, // Penanggung Jawab Biro
+      alamat: 'Jl. Kaliurang KM 5, Sleman, D.I. Yogyakarta',
+      aktif: true,
     },
   });
 
-  const artikel2 = await prisma.artikelBlog.upsert({
-    where: { slug: 'burnout-vs-stres' },
-    update: {},
-    create: {
-      judul: 'Burnout vs Stres Biasa: Kenali Perbedaannya Sebelum Terlambat',
-      slug: 'burnout-vs-stres',
-      isi: 'Di era produktivitas yang bergerak serba cepat, kata "burnout" sering kali dilontarkan saat seseorang merasa lelah bekerja. Namun, tahukah Anda bahwa stres biasa dan burnout adalah dua kondisi psikologis yang berbeda?',
-      waktu_baca_menit: 5,
-      jumlah_dilihat: 890,
+  // Hubungkan biroOwnerAccount dengan id_biro yang baru dibuat
+  await prisma.account.update({
+    where: { id: biroOwnerAccount.id },
+    data: { id_biro: biro.id },
+  });
+
+  console.log(`Created biro: ${biro.nama_biro}`);
+
+  // 3. Create Sample Client (Tamu Pemesan Layanan)
+  const sampleClient = await prisma.client.create({
+    data: {
+      nama: 'Karen Sya',
+      no_telepon: '0812-0083-773',
+      email: 'karennsya@gmail.com',
+      deskripsi_trauma: 'Kecemasan akademik & regulasi stres skripsi',
+      id_biro: biro.id,
     },
   });
 
-  console.log(`Created artikel: ${artikel1.judul}, ${artikel2.judul}`);
+  console.log(`Created sample client: ${sampleClient.nama}`);
+
+  // 4. Create Spesialisasi
+  const spesialisasiKlinis = await prisma.spesialisasi.create({
+    data: {
+      nama: 'Psikolog Klinis Dewasa',
+    },
+  });
+
+  console.log(`Created spesialisasi: ${spesialisasiKlinis.nama}`);
+
+  // 5. Create Akun Psikolog & Profil Klinis
+  const psikologAccount = await prisma.account.create({
+    data: {
+      nama: 'Dr. Jane Doe, M.Psi., Psikolog',
+      email: 'psikolog@empathika.test',
+      password: psikologPassword,
+      role: Role.PSIKOLOG,
+      no_telepon: '081399887766',
+    },
+  });
+
+  const psikolog = await prisma.psikolog.create({
+    data: {
+      id_account: psikologAccount.id, // Relasi 1-to-1 ke Account
+      id_spesialisasi: spesialisasiKlinis.id,
+      nama_gelar: 'Dr. Jane Doe, M.Psi., Psikolog',
+      no_str: '123456789',
+      bio: 'Berpengalaman dalam menangani kecemasan dan depresi.',
+      tarif_per_jam: 150000.00,
+    },
+  });
+
+  console.log(`Created psikolog: ${psikolog.nama_gelar}`);
+
+  // 6. Create Layanan
+  const layananKonsultasi = await prisma.layanan.create({
+    data: {
+      nama: 'Konsultasi Individu (Online)',
+      kategori: KategoriLayanan.KONSULTASI_INDIVIDU,
+      deskripsi: 'Sesi konsultasi 1 on 1 dengan psikolog klinis melalui video call.',
+      harga_weekday: 150000.00,
+      harga_weekend: 200000.00,
+      aktif: true,
+    },
+  });
+
+  console.log(`Created layanan: ${layananKonsultasi.nama}`);
+
+  // 7. Create Paket Psikotes
+  const paketPsikotes = await prisma.paketPsikotes.create({
+    data: {
+      judul: 'Tes Kepribadian Dasar',
+      kategori: 'Kepribadian',
+      jenis_akses: JenisAksesPsikotes.GRATIS,
+      harga: 0,
+      deskripsi: 'Tes untuk mengetahui tipe kepribadian dasar Anda.',
+    },
+  });
+
+  console.log(`Created paket psikotes: ${paketPsikotes.judul}`);
 
   console.log('Seeding finished successfully.');
 }
