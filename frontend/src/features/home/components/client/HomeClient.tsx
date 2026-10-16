@@ -1,4 +1,6 @@
 'use client'
+
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -9,6 +11,34 @@ import { useHomeSlider } from '../../hooks/useHomeSlider'
 import { usePsikologSlider } from '../../hooks/usePsikologSlider'
 
 export default function HomeClient() {
+  const [adminProfile, setAdminProfile] = useState<{
+    alamat: string
+    linkMaps: string
+    email: string
+    noTelepon: string
+  }>({
+    alamat: "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
+    linkMaps: "https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw",
+    email: "empathika889@gmail.com",
+    noTelepon: "0878-7878-5498",
+  })
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("empathika_admin_profile")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setAdminProfile((prev) => ({
+          ...prev,
+          alamat: parsed.alamat || prev.alamat,
+          linkMaps: parsed.linkMaps || prev.linkMaps,
+          email: parsed.email || prev.email,
+          noTelepon: parsed.noTelepon || prev.noTelepon,
+        }))
+      }
+    } catch {}
+  }, [])
+
   const {
     currentSlide,
     setCurrentSlide,
@@ -26,6 +56,7 @@ export default function HomeClient() {
     scrollPsyTo,
     handlePsyScroll,
   } = usePsikologSlider(psychologists.length);
+
 
   return (
     // Menghapus padding atas agar hero section menempel ke atas halaman dan berada di bawah navbar transparent
@@ -564,10 +595,8 @@ export default function HomeClient() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 mb-1">Alamat</p>
-                  <p className="text-gray-500 text-sm leading-relaxed">
-                    Jl. Cikutra No.312, Neglasari<br />
-                    Kec. Cibeunying Kaler, Kota Bandung<br />
-                    Jawa Barat 41024
+                  <p className="text-gray-500 text-sm leading-relaxed whitespace-pre-line">
+                    {adminProfile.alamat}
                   </p>
                 </div>
               </div>
@@ -580,19 +609,20 @@ export default function HomeClient() {
                   <p className="font-semibold text-gray-900 mb-1">Kontak</p>
                   <p className="text-gray-500 text-sm mb-1.5 flex items-center gap-2">
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                    empathika889@gmail.com
+                    {adminProfile.email}
                   </p>
                   <p className="text-gray-500 text-sm flex items-center gap-2">
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    0878-7878-5498
+                    {adminProfile.noTelepon}
                   </p>
                 </div>
               </div>
               
-              <a href="https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw" target="_blank" rel="noopener noreferrer" className="w-full bg-[#1c352d] text-white font-semibold py-3 rounded-xl hover:bg-[#2c4c41] transition-colors shadow-md flex items-center justify-center gap-2 mt-2">
+              <a href={adminProfile.linkMaps || "https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw"} target="_blank" rel="noopener noreferrer" className="w-full bg-[#1c352d] text-white font-semibold py-3 rounded-xl hover:bg-[#2c4c41] transition-colors shadow-md flex items-center justify-center gap-2 mt-2">
                 Dapatkan Petunjuk Arah
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
               </a>
+
             </div>
           </div>
         </div>

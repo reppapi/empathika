@@ -39,6 +39,15 @@ export default function ProfileAdminClient({
 
   useEffect(() => {
     if (role === "admin") {
+      try {
+        const savedAdmin = localStorage.getItem("empathika_admin_profile")
+        if (savedAdmin) {
+          const parsed = JSON.parse(savedAdmin)
+          setAdminData(parsed)
+          setForm(parsed)
+          return
+        }
+      } catch {}
       setForm(adminData)
     } else {
       // Ambil data dari shared storage tenaga ahli
@@ -144,6 +153,9 @@ export default function ProfileAdminClient({
     e.preventDefault()
     if (role === "admin") {
       setAdminData(form)
+      try {
+        localStorage.setItem("empathika_admin_profile", JSON.stringify(form))
+      } catch {}
     } else {
       setPsikologData(form)
       // Sinkronkan ke shared storage tenaga ahli agar Admin Utama dan POV Klien langsung terupdate
@@ -396,22 +408,32 @@ export default function ProfileAdminClient({
             {role === "admin" && (
               <>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Alamat Fisik Klinik / Kantor
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5">
+                    <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Alamat</span>
                   </label>
                   <input
                     type="text"
                     name="alamat"
                     value={form.alamat || ""}
                     onChange={handleInputChange}
-                    placeholder="Contoh: Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung"
+                    placeholder="Contoh: Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 41024"
                     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Alamat fisik kantor / klinik utama Empathika yang tampil pada informasi kontak & footer.
+                  </p>
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Tautan Google Maps (Petunjuk Arah)
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5">
+                    <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    <span>Link Maps</span>
                   </label>
                   <input
                     type="url"
@@ -422,11 +444,12 @@ export default function ProfileAdminClient({
                     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
                   />
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Tautan ini akan digunakan pada tombol &quot;Dapatkan Petunjuk Arah&quot; di bagian Kunjungi Kami pada halaman depan klien.
+                    Tautan Google Maps / petunjuk arah ke lokasi klinik Empathika (tombol &quot;Dapatkan Petunjuk Arah&quot; di beranda klien).
                   </p>
                 </div>
               </>
             )}
+
 
             <div className="md:col-span-2">
               <label className="block text-xs font-bold text-gray-700 mb-1.5">

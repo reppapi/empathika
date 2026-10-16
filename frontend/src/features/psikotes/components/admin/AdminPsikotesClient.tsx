@@ -504,30 +504,17 @@ export default function AdminPsikotesClient() {
               <div className="animate-in fade-in space-y-8">
                 <div className="space-y-6 max-w-4xl mx-auto">
                   <h3 className="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3">Informasi Dasar</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Nama/Judul Psikotes <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        value={paketData.nama}
-                        onChange={(e) => setPaketData(prev => ({ ...prev, nama: e.target.value }))}
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none transition-all"
-                        placeholder="Contoh: Tes Kepribadian (MBTI)"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Kategori <span className="text-red-500">*</span></label>
-                      <select
-                        value={paketData.kategori}
-                        onChange={(e) => setPaketData(prev => ({ ...prev, kategori: e.target.value }))}
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none transition-all"
-                      >
-                        <option>Kepribadian</option>
-                        <option>Karier</option>
-                        <option>Klinis</option>
-                      </select>
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Nama/Judul Psikotes <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={paketData.nama}
+                      onChange={(e) => setPaketData(prev => ({ ...prev, nama: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none transition-all"
+                      placeholder="Contoh: Tes Kepribadian (MBTI)"
+                    />
                   </div>
+
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Deskripsi Paket <span className="text-red-500">*</span></label>
