@@ -280,12 +280,12 @@ export default function AdminBiroClient() {
       align: "center",
       render: (biro: BiroKomunitas) => {
         if (biro.statusAktivasi === "Aktif") {
-          return <AdminStatusBadge variant="success">Aktif</AdminStatusBadge>
+          return <AdminStatusBadge variant="success" className="w-44">Aktif</AdminStatusBadge>
         }
         if (biro.statusAktivasi === "Menunggu Aktivasi") {
-          return <AdminStatusBadge variant="warning">Menunggu Aktivasi</AdminStatusBadge>
+          return <AdminStatusBadge variant="warning" className="w-44">Menunggu Aktivasi</AdminStatusBadge>
         }
-        return <AdminStatusBadge variant="neutral">Nonaktif</AdminStatusBadge>
+        return <AdminStatusBadge variant="neutral" className="w-44">Nonaktif</AdminStatusBadge>
       },
     },
     {
@@ -337,7 +337,7 @@ export default function AdminBiroClient() {
         <button
           type="button"
           onClick={handleOpenAdd}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

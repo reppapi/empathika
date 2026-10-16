@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from "react"
 import { DUMMY_TRANSAKSI, JenisLayanan, TransaksiItem } from "../../data/transaksiData"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 const LAYANAN_OPTIONS: { id: JenisLayanan; label: string }[] = [
   { id: "semua", label: "Semua Layanan" },
@@ -223,7 +224,7 @@ export default function AdminTransaksiBiroClient() {
             <button
               type="button"
               onClick={() => setSelectedDate("")}
-              className="text-xs text-[#561269] hover:underline font-semibold"
+              className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer shadow-xs"
             >
               Reset Tanggal
             </button>
@@ -276,7 +277,7 @@ export default function AdminTransaksiBiroClient() {
               <button
                 type="button"
                 onClick={() => setIsFilterOpen((prev) => !prev)}
-                className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] hover:text-[#561269] transition shadow-sm"
+                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] hover:text-[#561269] transition shadow-sm"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -370,12 +371,12 @@ export default function AdminTransaksiBiroClient() {
             filteredTransaksi.map((item) => {
               const isSelected = activeDetailItem?.id === item.id
 
-              let badgeBg = "bg-emerald-50 text-emerald-700 border-emerald-200"
-              if (item.status === "Menunggu Pembayaran") {
-                badgeBg = "bg-amber-50 text-amber-700 border-amber-200"
-              } else if (item.status === "Gagal") {
-                badgeBg = "bg-red-50 text-red-700 border-red-200"
-              }
+              const statusVariant =
+                item.status === "Lunas"
+                  ? "success"
+                  : item.status === "Menunggu Pembayaran"
+                  ? "warning"
+                  : "danger"
 
               return (
                 <div
@@ -411,11 +412,9 @@ export default function AdminTransaksiBiroClient() {
                     </div>
 
                     <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
-                      <span
-                        className={`rounded-full border px-3 py-1 text-[11px] font-bold ${badgeBg}`}
-                      >
+                      <AdminStatusBadge variant={statusVariant} className="w-[185px]">
                         {item.status}
-                      </span>
+                      </AdminStatusBadge>
                       <p className="text-sm sm:text-base font-extrabold text-[#561269]">
                         Rp. {item.totalBayar.toLocaleString("id-ID")}
                       </p>
@@ -458,17 +457,18 @@ export default function AdminTransaksiBiroClient() {
                       {activeDetailItem.orderDate}
                     </p>
                   </div>
-                  <span
-                    className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                  <AdminStatusBadge
+                    className="w-[185px]"
+                    variant={
                       activeDetailItem.status === "Lunas"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        ? "success"
                         : activeDetailItem.status === "Menunggu Pembayaran"
-                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                        : "bg-red-50 text-red-700 border-red-200"
-                    }`}
+                        ? "warning"
+                        : "danger"
+                    }
                   >
                     {activeDetailItem.status}
-                  </span>
+                  </AdminStatusBadge>
                 </div>
 
                 {/* Section 2: Informasi Klien */}

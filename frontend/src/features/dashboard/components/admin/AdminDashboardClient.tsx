@@ -9,6 +9,7 @@ import DashboardChart from "./DashboardChart"
 import DashboardAgenda from "./DashboardAgenda"
 import DashboardTodaySessions from "./DashboardTodaySessions"
 import DashboardRecentTransactions from "./DashboardRecentTransactions"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 import { TodaySessionItem } from "../../types"
 import {
@@ -61,9 +62,9 @@ export default function AdminDashboardClient() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
               Selamat Pagi, Admin!
             </h1>
-            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+            <AdminStatusBadge variant="success" className="hidden sm:inline-flex">
               Operasional Aktif
-            </span>
+            </AdminStatusBadge>
           </div>
           <p className="text-gray-500 text-sm mt-1">
             Berikut adalah ringkasan performa dan aktivitas layanan Empathika hari ini.
@@ -82,7 +83,7 @@ export default function AdminDashboardClient() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all transform active:scale-98 cursor-pointer w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Tambah Sesi</span>

@@ -8,10 +8,9 @@ datasource db {
 }
 
 enum Role {
-  USER
   ADMIN
-  PSIKOLOG
   BIRO
+  PSIKOLOG
 }
 
 enum StatusBiro {
@@ -49,7 +48,6 @@ enum StatusBooking {
 enum MetodePembayaran {
   TRANSFER_BANK
   E_WALLET
-  CREDIT_CARD
   QRIS
 }
 
@@ -77,44 +75,71 @@ enum StatusSlot {
 }
 
 // ==========================================
-// PENGGUNA & BIRO
+// AKUN STAF / LOGIN (ADMIN, BIRO, PSIKOLOG)
 // ==========================================
 
-model User {
+model Account {
+  id         String   @id @default(uuid())
+  nama       String
+  email      String   @unique
+  password   String   // Hash kata sandi
+  role       Role     @default(ADMIN)
+  no_telepon String?
+  foto       String?
+  aktif      Boolean  @default(true)
+  id_biro    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  biro       Biro?     @relation("BiroStaff", fields: [id_biro], references: [id])
+  owned_biro Biro[]    @relation("BiroOwner")
+  psikolog   Psikolog?
+
+  @@map("accounts")
+}
+
+// ==========================================
+// KLIEN / PASIEN TAMU (TANPA LOGIN / PASSWORD)
+// ==========================================
+
+model Client {
   id               String   @id @default(uuid())
   id_biro          String?
   nama             String
-  email            String   @unique
-  password         String?
   no_telepon       String?
+  email            String?  // Opsional (tidak unique, 1 email bisa dipakai booking berkali-kali)
   deskripsi_trauma String?  @db.Text
-  role             Role     @default(USER)
   createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  biro             Biro?    @relation("BiroStaff", fields: [id_biro], references: [id])
-  owned_biro       Biro[]   @relation("BiroOwner")
+  biro Biro? @relation(fields: [id_biro], references: [id])
 
   booking_konsultasi BookingKonsultasi[]
   booking_event      BookingEvent[]
   booking_psikotes   BookingPsikotes[]
   transaksi          Transaksi[]
-  
-  @@map("users")
+
+  @@map("clients")
 }
+
+// ==========================================
+// BIRO & KOMUNITAS MITRA (TENANT)
+// ==========================================
 
 model Biro {
   id         String     @id @default(uuid())
   nama_biro  String
   slug       String     @unique
-  id_user    String     // Owner
+  id_account String     // Penanggung jawab / Owner
   logoURI    String?
   warna_tema String?
   alamat     String?    @db.Text
   aktif      Boolean    @default(true)
   status     StatusBiro @default(ACTIVE)
 
-  owner User @relation("BiroOwner", fields: [id_user], references: [id])
-  staff User[] @relation("BiroStaff")
+  owner   Account   @relation("BiroOwner", fields: [id_account], references: [id])
+  staff   Account[] @relation("BiroStaff")
+  clients Client[]
 
   @@map("biros")
 }
@@ -173,9 +198,9 @@ model Spesialisasi {
 
 model Psikolog {
   id              String         @id @default(uuid())
+  id_account      String         @unique // Relasi 1-to-1 ke Account (Login)
   id_spesialisasi String
   nama_gelar      String
-  email           String         @unique
   no_str          String?
   foto            String?
   bio             String?        @db.Text
@@ -183,6 +208,7 @@ model Psikolog {
   jumlah_sesi     Int            @default(0)
   tarif_per_jam   Decimal        @db.Decimal(12, 2)
 
+  account      Account      @relation(fields: [id_account], references: [id], onDelete: Cascade)
   spesialisasi Spesialisasi @relation(fields: [id_spesialisasi], references: [id])
   jadwal_slot  JadwalSlot[]
   testimoni    Testimoni[]
@@ -191,12 +217,12 @@ model Psikolog {
 }
 
 model JadwalSlot {
-  id              String     @id @default(uuid())
-  id_psikolog     String
-  tanggal         DateTime   @db.Date
-  jam_mulai       DateTime   @db.Time()
-  jam_selesai     DateTime   @db.Time()
-  status          StatusSlot @default(TERSEDIA)
+  id          String     @id @default(uuid())
+  id_psikolog String
+  tanggal     DateTime   @db.Date
+  jam_mulai   DateTime   @db.Time()
+  jam_selesai DateTime   @db.Time()
+  status      StatusSlot @default(TERSEDIA)
 
   psikolog           Psikolog            @relation(fields: [id_psikolog], references: [id])
   booking_konsultasi BookingKonsultasi?
@@ -222,14 +248,15 @@ model Testimoni {
 
 model Transaksi {
   id                String           @id @default(uuid())
-  id_user           String
+  id_client         String
   subtotal          Decimal          @db.Decimal(12, 2)
   biaya_admin       Decimal          @db.Decimal(12, 2)
   metode_pembayaran MetodePembayaran
   status_pembayaran StatusPembayaran @default(PENDING)
   tanggal_bayar     DateTime?
+  data_pembayaran   String?          @db.Text
 
-  user User @relation(fields: [id_user], references: [id])
+  client Client @relation(fields: [id_client], references: [id])
 
   booking_konsultasi BookingKonsultasi?
   booking_event      BookingEvent?
@@ -241,14 +268,14 @@ model Transaksi {
 model BookingKonsultasi {
   id               String        @id @default(uuid())
   kode_pesanan     String        @unique
-  id_user          String
+  id_client        String
   id_layanan       String
   id_jadwal        String        @unique
   id_transaksi     String        @unique
   deskripsi_trauma String?       @db.Text
   status           StatusBooking @default(PENDING)
 
-  user      User       @relation(fields: [id_user], references: [id])
+  client    Client     @relation(fields: [id_client], references: [id])
   layanan   Layanan    @relation(fields: [id_layanan], references: [id])
   jadwal    JadwalSlot @relation(fields: [id_jadwal], references: [id])
   transaksi Transaksi  @relation(fields: [id_transaksi], references: [id])
@@ -259,13 +286,13 @@ model BookingKonsultasi {
 model BookingEvent {
   id           String @id @default(uuid())
   id_event     String
-  id_user      String
+  id_client    String
   id_transaksi String @unique
   nama_lengkap String
   no_hp        String
 
   event     Event     @relation(fields: [id_event], references: [id])
-  user      User      @relation(fields: [id_user], references: [id])
+  client    Client    @relation(fields: [id_client], references: [id])
   transaksi Transaksi @relation(fields: [id_transaksi], references: [id])
 
   @@map("booking_events")
@@ -298,8 +325,8 @@ model SoalPsikotes {
   urutan     Int
   pertanyaan String @db.Text
 
-  paket           PaketPsikotes    @relation(fields: [id_paket], references: [id], onDelete: Cascade)
-  pilihan_jawaban PilihanJawaban[]
+  paket            PaketPsikotes     @relation(fields: [id_paket], references: [id], onDelete: Cascade)
+  pilihan_jawaban  PilihanJawaban[]
   jawaban_psikotes JawabanPsikotes[]
 
   @@map("soal_psikotes")
@@ -312,7 +339,7 @@ model PilihanJawaban {
   teks_jawaban String @db.Text
   bobot        Int
 
-  soal            SoalPsikotes      @relation(fields: [id_soal], references: [id], onDelete: Cascade)
+  soal             SoalPsikotes      @relation(fields: [id_soal], references: [id], onDelete: Cascade)
   jawaban_psikotes JawabanPsikotes[]
 
   @@map("pilihan_jawabans")
@@ -327,7 +354,7 @@ model InterpretasiPsikotes {
   judul     String
   deskripsi String  @db.Text
 
-  paket PaketPsikotes @relation(fields: [id_paket], references: [id], onDelete: Cascade)
+  paket     PaketPsikotes @relation(fields: [id_paket], references: [id], onDelete: Cascade)
   hasil_tes HasilTes[]
 
   @@map("interpretasi_psikotes")
@@ -337,12 +364,12 @@ model BookingPsikotes {
   id           String   @id @default(uuid())
   id_paket     String
   id_transaksi String   @unique
-  id_user      String
+  id_client    String
   created_at   DateTime @default(now())
 
   paket     PaketPsikotes @relation(fields: [id_paket], references: [id])
   transaksi Transaksi     @relation(fields: [id_transaksi], references: [id])
-  user      User          @relation(fields: [id_user], references: [id])
+  client    Client        @relation(fields: [id_client], references: [id])
 
   jawaban_psikotes JawabanPsikotes[]
   hasil_tes        HasilTes?

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from "react"
 import { DUMMY_TRANSAKSI, JenisLayanan, TransaksiItem } from "../../data/transaksiData"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 const LAYANAN_OPTIONS: { id: JenisLayanan; label: string }[] = [
   { id: "semua", label: "Semua Layanan" },
@@ -273,7 +274,7 @@ export default function AdminTransaksiClient() {
                 <button
                   type="button"
                   onClick={() => setSelectedLayanan("semua")}
-                  className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all ${selectedLayanan === "semua"
+                  className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all ${selectedLayanan === "semua"
                       ? "bg-white text-[#561269]"
                       : "bg-white/70 text-gray-700 hover:bg-white"
                     }`}
@@ -287,7 +288,7 @@ export default function AdminTransaksiClient() {
                 <button
                   type="button"
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className="flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:bg-gray-50 transition-colors"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -420,13 +421,13 @@ export default function AdminTransaksiClient() {
                       <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1">
                         {/* Kanan Atas: Badge Status */}
                         {item.status === "Lunas" ? (
-                          <span className="inline-flex items-center rounded-xl bg-[#A2DCA4] px-3 py-1 text-xs font-bold text-[#1C5E24]">
+                          <AdminStatusBadge variant="success" className="w-28">
                             Lunas
-                          </span>
+                          </AdminStatusBadge>
                         ) : (
-                          <span className="inline-flex items-center rounded-xl bg-[#F0C94D] px-3 py-1 text-xs font-bold text-[#5C4505]">
+                          <AdminStatusBadge variant="warning" className="w-28">
                             Menunggu
-                          </span>
+                          </AdminStatusBadge>
                         )}
 
                         {/* Kanan Bawah: Nominal */}
@@ -577,7 +578,7 @@ export default function AdminTransaksiClient() {
                 <button
                   type="button"
                   onClick={() => handleSendInvoice(activeDetailItem)}
-                  className="mt-2 w-full rounded-2xl border-2 border-[#25D366] bg-transparent hover:bg-[#25D366]/10 px-4 py-3 text-xs sm:text-sm font-bold text-[#25D366] transition-all flex items-center justify-center gap-2 active:scale-98"
+                  className="mt-2 w-full rounded-full border-2 border-[#25D366] bg-transparent hover:bg-[#25D366]/10 px-4 py-3 text-xs sm:text-sm font-bold text-[#25D366] transition-all flex items-center justify-center gap-2 active:scale-98"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

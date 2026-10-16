@@ -253,13 +253,13 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-100 transition cursor-pointer"
+              className="px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 font-bold hover:bg-gray-100 transition-all cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer"
+              className="flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold px-6 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-98 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               Jadwalkan Sesi

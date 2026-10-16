@@ -149,7 +149,7 @@ export default function AdminPsikologClient() {
         const isAktif = item.statusAkses === "AKTIF"
         return (
           <div className="flex flex-col items-center gap-1.5">
-            <AdminStatusBadge variant={isAktif ? "success" : "neutral"}>
+            <AdminStatusBadge variant={isAktif ? "success" : "neutral"} className="w-28">
               {isAktif ? "Akses Aktif" : "Nonaktif"}
             </AdminStatusBadge>
 
@@ -159,7 +159,7 @@ export default function AdminPsikologClient() {
               className={`text-[11px] font-medium px-3 py-1 rounded-xl transition cursor-pointer ${
                 isAktif
                   ? "border border-red-200 text-red-600 hover:bg-red-50"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+                  : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold shadow-xs"
               }`}
             >
               {isAktif ? "Hapus Akses" : "Beri Akses"}
@@ -210,7 +210,7 @@ export default function AdminPsikologClient() {
         {/* Tombol ke Halaman Tambah Baru */}
         <Link
           href="/admin/psikolog/tambah"
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95 self-start sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -297,14 +297,14 @@ export default function AdminPsikologClient() {
               <button
                 type="button"
                 onClick={() => setDeleteConfirmItem(null)}
-                className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer"
+                className="rounded-full border border-gray-300 px-5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleDeleteItem}
-                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 cursor-pointer"
+                className="rounded-full bg-red-600 px-5 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-sm transition-all active:scale-95 cursor-pointer"
               >
                 Hapus
               </button>

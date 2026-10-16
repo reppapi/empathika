@@ -102,7 +102,7 @@ export default function AdminLayananView() {
       header: "Status",
       align: "center",
       render: (item: LayananItem) => (
-        <AdminStatusBadge variant="success">
+        <AdminStatusBadge variant="success" className="w-28">
           {item.status}
         </AdminStatusBadge>
       ),
@@ -140,7 +140,7 @@ export default function AdminLayananView() {
       <div className="flex justify-end">
         <Link
           href={`/admin/layanan/tambah?category=${activeCategory}`}
-          className="flex items-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95"
+          className="flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

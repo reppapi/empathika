@@ -1,0 +1,685 @@
+import { Wallet, Users, CheckCircle2, Clock, Sparkles, LucideIcon } from "lucide-react"
+import {
+  MetricItem,
+  AgendaItem,
+  RecentTransactionItem,
+  TodaySessionItem,
+  ChartBarItem,
+  ChartPeriod,
+} from "../types"
+
+export interface BiroClientProfile {
+  id: string
+  biroId: string
+  biroName: string
+  clientCode: string
+  nama: string
+  email: string
+  telepon: string
+  usia: number
+  status: "Aktif" | "Menunggu Pembayaran" | "Selesai"
+  fokusKonseling: string
+  totalSesi: number
+  sesiTerakhir: string
+  psikologPendamping: string
+  layanan: string
+  metode: "Online" | "Offline"
+  tanggalBergabung: string
+  catatanKhusus?: string
+}
+
+export interface BiroTenantData {
+  biroId: string
+  biroName: string
+  biroSlug: string
+  tagline: string
+  color: string
+  metrics: MetricItem[]
+  chartData: Record<ChartPeriod, ChartBarItem[]>
+  agendaList: AgendaItem[]
+  todaySessions: TodaySessionItem[]
+  recentTransactions: RecentTransactionItem[]
+  clients: BiroClientProfile[]
+}
+
+// ============================================================================
+// DATA MULTI-TENANT KHUSUS BIRO MITRA EMPATHIKA
+// ============================================================================
+
+export const BIRO_TENANT_DATA: Record<string, BiroTenantData> = {
+  // ── TENANT 1: BIRO KONSELING CENDEKIA MUDA (DEFAULT) ──
+  "biro-01": {
+    biroId: "biro-01",
+    biroName: "Biro Konseling Cendekia Muda",
+    biroSlug: "cendekia-muda",
+    tagline: "Layanan Konseling & Pendampingan Mental Mahasiswa",
+    color: "#561269",
+    metrics: [
+      {
+        title: "Pendapatan Bulan Ini",
+        value: "Rp 12.500.000",
+        change: "+14.2% dari bulan lalu",
+        icon: Wallet,
+        color: "#561269",
+      },
+      {
+        title: "Klien Aktif Biro",
+        value: "24 Klien",
+        change: "+4 klien baru minggu ini",
+        icon: Users,
+        color: "#561269",
+      },
+      {
+        title: "Sesi Konseling Selesai",
+        value: "28 Sesi",
+        change: "Bulan berjalan di biro",
+        icon: CheckCircle2,
+        color: "#561269",
+      },
+      {
+        title: "Pendaftar Layanan",
+        value: "14 Peserta",
+        change: "Dari 2 program aktif",
+        icon: Sparkles,
+        color: "#561269",
+      },
+      {
+        title: "Menunggu Pembayaran",
+        value: "2 Transaksi",
+        change: "Perlu konfirmasi biro",
+        icon: Clock,
+        color: "#D97706",
+      },
+    ],
+    chartData: {
+      minggu: [
+        { label: "Sen", value: 3, height: "45%" },
+        { label: "Sel", value: 7, height: "85%" },
+        { label: "Rab", value: 2, height: "30%" },
+        { label: "Kam", value: 5, height: "65%" },
+        { label: "Jum", value: 4, height: "55%" },
+        { label: "Sab", value: 6, height: "75%" },
+        { label: "Min", value: 1, height: "15%" },
+      ],
+      bulan: [
+        { label: "Mgg 1", value: 16, height: "60%" },
+        { label: "Mgg 2", value: 28, height: "95%" },
+        { label: "Mgg 3", value: 14, height: "50%" },
+        { label: "Mgg 4", value: 24, height: "80%" },
+      ],
+      bulan_lalu: [
+        { label: "Mgg 1", value: 12, height: "50%" },
+        { label: "Mgg 2", value: 20, height: "70%" },
+        { label: "Mgg 3", value: 22, height: "80%" },
+        { label: "Mgg 4", value: 15, height: "55%" },
+      ],
+    },
+    agendaList: [
+      {
+        title: "Konseling Klien: Karen Sya (Sesi Review)",
+        type: "Konseling",
+        time: "Hari Ini, 09:00 WIB",
+        href: "/admin-biro/transaksi",
+        badgeColor: "bg-[#F3E8F5] text-[#561269]",
+        dotColor: "bg-[#561269]",
+      },
+      {
+        title: "Batas Pembayaran Klien: Fajar Pratama (#TRX-8828)",
+        type: "Peringatan",
+        time: "Hari Ini, 16:00 WIB",
+        href: "/admin-biro/transaksi",
+        badgeColor: "bg-red-50 text-red-700",
+        dotColor: "bg-red-500",
+      },
+      {
+        title: "Konseling Klien: Nadia Utami (Persiapan Karir)",
+        type: "Konseling",
+        time: "Hari Ini, 14:00 WIB",
+        href: "/admin-biro/transaksi",
+        badgeColor: "bg-[#F3E8F5] text-[#561269]",
+        dotColor: "bg-[#BFA3C5]",
+      },
+      {
+        title: "Pelatihan Peer Helper Mahasiswa Batch 3",
+        type: "Event",
+        time: "Sabtu, 09:00 WIB",
+        href: "/admin-biro/transaksi",
+        badgeColor: "bg-[#561269] text-white",
+        dotColor: "bg-[#561269]",
+      },
+      {
+        title: "Evaluasi Laporan Bulanan Tenant Biro",
+        type: "Kemitraan",
+        time: "Jumat, 15:30 WIB",
+        href: "/admin-biro/profile",
+        badgeColor: "bg-blue-50 text-blue-700",
+        dotColor: "bg-blue-500",
+      },
+    ],
+    todaySessions: [
+      {
+        waktu: "09:00 - 10:00 WIB",
+        klien: "Karen Sya",
+        psikolog: "Sarah Amalia, M.Psi",
+        layanan: "Konseling Dewasa (Mahasiswa)",
+        metode: "Online",
+        status: "Selesai",
+      },
+      {
+        waktu: "11:00 - 12:00 WIB",
+        klien: "Farhan Ramadhan",
+        psikolog: "Dr. Dimas Prasetyo",
+        layanan: "Konseling Remaja & Peer Helper",
+        metode: "Offline",
+        status: "Sedang Berjalan",
+      },
+      {
+        waktu: "14:00 - 15:00 WIB",
+        klien: "Nadia Utami",
+        psikolog: "Sarah Amalia, M.Psi",
+        layanan: "Konseling Karir & Passion",
+        metode: "Online",
+        status: "Mendatang",
+      },
+      {
+        waktu: "16:30 - 17:30 WIB",
+        klien: "Fajar Pratama",
+        psikolog: "Rizki Putri D., M.Psi",
+        layanan: "Konseling Pranikah Mahasiswa",
+        metode: "Offline",
+        status: "Mendatang",
+      },
+    ],
+    recentTransactions: [
+      {
+        id: "TRX-8822",
+        client: "Nadia Utami",
+        layanan: "Konseling Karir & Passion (1 Sesi)",
+        kategori: "Konseling",
+        total: "Rp 252.500",
+        metode: "Transfer BCA",
+        status: "Lunas",
+      },
+      {
+        id: "TRX-8825",
+        client: "Karen Sya",
+        layanan: "Konseling Individu (1 Sesi)",
+        kategori: "Konseling",
+        total: "Rp 252.500",
+        metode: "Mandiri VA",
+        status: "Lunas",
+      },
+      {
+        id: "TRX-8826",
+        client: "Farhan Ramadhan",
+        layanan: "Pelatihan Peer Helper Tingkat Dasar",
+        kategori: "Pelatihan",
+        total: "Rp 150.000",
+        metode: "QRIS GoPay",
+        status: "Lunas",
+      },
+      {
+        id: "TRX-8828",
+        client: "Fajar Pratama",
+        layanan: "Konseling Pasangan / Pranikah",
+        kategori: "Konseling",
+        total: "Rp 352.500",
+        metode: "Transfer BRI",
+        status: "Menunggu Pembayaran",
+      },
+    ],
+    clients: [
+      {
+        id: "kln-01",
+        biroId: "biro-01",
+        biroName: "Biro Konseling Cendekia Muda",
+        clientCode: "KLN-CK-001",
+        nama: "Karen Sya",
+        email: "karennsya@gmail.com",
+        telepon: "0812-0083-773",
+        usia: 21,
+        status: "Aktif",
+        fokusKonseling: "Kecemasan Akademik & Manajemen Skripsi",
+        totalSesi: 5,
+        sesiTerakhir: "Hari ini, 09:00 WIB",
+        psikologPendamping: "Sarah Amalia, M.Psi",
+        layanan: "Konseling Dewasa (Mahasiswa)",
+        metode: "Online",
+        tanggalBergabung: "12 Agu 2026",
+        catatanKhusus: "Klien menunjukkan peningkatan regulasi emosi yang signifikan setelah sesi ke-4.",
+      },
+      {
+        id: "kln-02",
+        biroId: "biro-01",
+        biroName: "Biro Konseling Cendekia Muda",
+        clientCode: "KLN-CK-002",
+        nama: "Farhan Ramadhan",
+        email: "farhan.r@gmail.com",
+        telepon: "0857-1234-8899",
+        usia: 20,
+        status: "Aktif",
+        fokusKonseling: "Manajemen Emosi & Pelatihan Peer Helper",
+        totalSesi: 3,
+        sesiTerakhir: "Hari ini, 11:00 WIB",
+        psikologPendamping: "Dr. Dimas Prasetyo",
+        layanan: "Konseling Remaja & Peer Helper",
+        metode: "Offline",
+        tanggalBergabung: "18 Agu 2026",
+        catatanKhusus: "Klien aktif di BEM fakultas, sedang mengikuti program pendampingan konseling sebaya.",
+      },
+      {
+        id: "kln-03",
+        biroId: "biro-01",
+        biroName: "Biro Konseling Cendekia Muda",
+        clientCode: "KLN-CK-003",
+        nama: "Nadia Utami",
+        email: "nadia.u@gmail.com",
+        telepon: "0857-1122-3344",
+        usia: 22,
+        status: "Aktif",
+        fokusKonseling: "Arah Karir, Passion & Quarter-Life Crisis",
+        totalSesi: 4,
+        sesiTerakhir: "Hari ini, 14:00 WIB",
+        psikologPendamping: "Sarah Amalia, M.Psi",
+        layanan: "Konseling Karir & Passion",
+        metode: "Online",
+        tanggalBergabung: "22 Agu 2026",
+        catatanKhusus: "Menyiapkan portofolio kerja dan transisi dari dunia kampus ke dunia profesional.",
+      },
+      {
+        id: "kln-04",
+        biroId: "biro-01",
+        biroName: "Biro Konseling Cendekia Muda",
+        clientCode: "KLN-CK-004",
+        nama: "Fajar Pratama",
+        email: "fajar.p@gmail.com",
+        telepon: "0812-9900-1122",
+        usia: 24,
+        status: "Menunggu Pembayaran",
+        fokusKonseling: "Hubungan Interpersonal / Konseling Pranikah",
+        totalSesi: 1,
+        sesiTerakhir: "Hari ini, 16:30 WIB",
+        psikologPendamping: "Rizki Putri D., M.Psi",
+        layanan: "Konseling Pranikah Mahasiswa",
+        metode: "Offline",
+        tanggalBergabung: "28 Agu 2026",
+        catatanKhusus: "Menunggu bukti transfer pembayaran untuk konfirmasi invoice #TRX-8828.",
+      },
+      {
+        id: "kln-05",
+        biroId: "biro-01",
+        biroName: "Biro Konseling Cendekia Muda",
+        clientCode: "KLN-CK-005",
+        nama: "Amanda Putri",
+        email: "amanda.putri@gmail.com",
+        telepon: "0813-8822-1100",
+        usia: 19,
+        status: "Selesai",
+        fokusKonseling: "Penyesuaian Diri Mahasiswa Baru & Homesick",
+        totalSesi: 6,
+        sesiTerakhir: "10 Sep 2026",
+        psikologPendamping: "Sarah Amalia, M.Psi",
+        layanan: "Konseling Individu",
+        metode: "Online",
+        tanggalBergabung: "15 Agu 2026",
+        catatanKhusus: "Program 6 sesi konseling selesai dengan hasil evaluasi kemandirian sangat baik.",
+      },
+      {
+        id: "kln-06",
+        biroId: "biro-01",
+        biroName: "Biro Konseling Cendekia Muda",
+        clientCode: "KLN-CK-006",
+        nama: "Rian Hidayat",
+        email: "rian.h@gmail.com",
+        telepon: "0812-8899-0011",
+        usia: 22,
+        status: "Aktif",
+        fokusKonseling: "Workshop Resilience & Mindfulness Mahasiswa",
+        totalSesi: 2,
+        sesiTerakhir: "15 Sep 2026",
+        psikologPendamping: "Dr. Dimas & Sarah Amalia",
+        layanan: "Workshop & Event Mahasiswa",
+        metode: "Offline",
+        tanggalBergabung: "15 Agu 2026",
+        catatanKhusus: "Peserta aktif seminar mindfulness Empathika batch kampus.",
+      },
+    ],
+  },
+
+  // ── TENANT 2: KOMUNITAS JIWA SEHAT NUSANTARA ──
+  "biro-02": {
+    biroId: "biro-02",
+    biroName: "Komunitas Jiwa Sehat Nusantara",
+    biroSlug: "jiwa-sehat-nusantara",
+    tagline: "Edukasi Kesehatan Mental Inklusif & Komunitas Terbuka",
+    color: "#0D9488",
+    metrics: [
+      {
+        title: "Total Pendapatan Biro Bulan Ini",
+        value: "Rp 8.200.000",
+        change: "+9.8% dari bulan lalu",
+        icon: Wallet,
+        color: "#0D9488",
+      },
+      {
+        title: "Total Klien Aktif Biro",
+        value: "16 Klien",
+        change: "+3 anggota baru minggu ini",
+        icon: Users,
+        color: "#0D9488",
+      },
+      {
+        title: "Sesi Konseling Selesai",
+        value: "19 Sesi",
+        change: "Bulan berjalan di biro",
+        icon: CheckCircle2,
+        color: "#0D9488",
+      },
+      {
+        title: "Pendaftar Layanan Biro",
+        value: "25 Peserta",
+        change: "Support group komunitas",
+        icon: Sparkles,
+        color: "#0D9488",
+      },
+      {
+        title: "Menunggu Pembayaran",
+        value: "1 Transaksi",
+        change: "Perlu konfirmasi biro",
+        icon: Clock,
+        color: "#D97706",
+      },
+    ],
+    chartData: {
+      minggu: [
+        { label: "Sen", value: 2, height: "35%" },
+        { label: "Sel", value: 4, height: "60%" },
+        { label: "Rab", value: 3, height: "45%" },
+        { label: "Kam", value: 6, height: "85%" },
+        { label: "Jum", value: 5, height: "70%" },
+        { label: "Sab", value: 7, height: "95%" },
+        { label: "Min", value: 2, height: "35%" },
+      ],
+      bulan: [
+        { label: "Mgg 1", value: 12, height: "55%" },
+        { label: "Mgg 2", value: 20, height: "85%" },
+        { label: "Mgg 3", value: 11, height: "50%" },
+        { label: "Mgg 4", value: 18, height: "75%" },
+      ],
+      bulan_lalu: [
+        { label: "Mgg 1", value: 10, height: "45%" },
+        { label: "Mgg 2", value: 15, height: "65%" },
+        { label: "Mgg 3", value: 18, height: "75%" },
+        { label: "Mgg 4", value: 13, height: "55%" },
+      ],
+    },
+    agendaList: [
+      {
+        title: "Support Group Komunitas: Budi Santoso",
+        type: "Konseling",
+        time: "Hari Ini, 10:00 WIB",
+        href: "/admin-biro/transaksi",
+        badgeColor: "bg-teal-50 text-teal-800",
+        dotColor: "bg-[#0D9488]",
+      },
+      {
+        title: "Webinar Resilience & Kesehatan Mental Komunitas",
+        type: "Event",
+        time: "Kamis, 19:30 WIB",
+        href: "/admin-biro/transaksi",
+        badgeColor: "bg-[#0D9488] text-white",
+        dotColor: "bg-[#0D9488]",
+      },
+    ],
+    todaySessions: [
+      {
+        waktu: "10:00 - 11:00 WIB",
+        klien: "Budi Santoso",
+        psikolog: "Dr. Dimas Prasetyo",
+        layanan: "Konseling Stress & Burnout Pekerja",
+        metode: "Online",
+        status: "Sedang Berjalan",
+      },
+      {
+        waktu: "15:00 - 16:00 WIB",
+        klien: "Siti Rahma",
+        psikolog: "Sarah Amalia, M.Psi",
+        layanan: "Konseling Relawan Komunitas",
+        metode: "Online",
+        status: "Mendatang",
+      },
+    ],
+    recentTransactions: [
+      {
+        id: "TRX-JS-01",
+        client: "Budi Santoso",
+        layanan: "Workshop Mengenal Inner Child",
+        kategori: "Event",
+        total: "Rp 152.500",
+        metode: "QRIS GoPay",
+        status: "Lunas",
+      },
+      {
+        id: "TRX-JS-02",
+        client: "Siti Rahma",
+        layanan: "Konseling Komunitas Individu",
+        kategori: "Konseling",
+        total: "Rp 200.000",
+        metode: "Transfer BCA",
+        status: "Lunas",
+      },
+    ],
+    clients: [
+      {
+        id: "kln-js-01",
+        biroId: "biro-02",
+        biroName: "Komunitas Jiwa Sehat Nusantara",
+        clientCode: "KLN-JS-001",
+        nama: "Budi Santoso",
+        email: "budi.santoso@gmail.com",
+        telepon: "0856-7788-9900",
+        usia: 27,
+        status: "Aktif",
+        fokusKonseling: "Stress Kerja & Burnout Pekerja Kreatif",
+        totalSesi: 4,
+        sesiTerakhir: "Hari ini, 10:00 WIB",
+        psikologPendamping: "Dr. Dimas Prasetyo",
+        layanan: "Konseling Stress & Burnout Pekerja",
+        metode: "Online",
+        tanggalBergabung: "05 Sep 2026",
+        catatanKhusus: "Mengikuti program monitoring stres mingguan bersama tim psikolog.",
+      },
+      {
+        id: "kln-js-02",
+        biroId: "biro-02",
+        biroName: "Komunitas Jiwa Sehat Nusantara",
+        clientCode: "KLN-JS-002",
+        nama: "Siti Rahma",
+        email: "siti.rahma@gmail.com",
+        telepon: "0878-1122-3344",
+        usia: 26,
+        status: "Aktif",
+        fokusKonseling: "Kelelahan Emosional & Batasan Pribadi",
+        totalSesi: 3,
+        sesiTerakhir: "Hari ini, 15:00 WIB",
+        psikologPendamping: "Sarah Amalia, M.Psi",
+        layanan: "Konseling Relawan Komunitas",
+        metode: "Online",
+        tanggalBergabung: "03 Sep 2026",
+        catatanKhusus: "Guru muda yang membutuhkan ruang aman cerita dan mindfulness rutin.",
+      },
+    ],
+  },
+
+  // ── TENANT 3: LEMBAGA PSIKOLOGI HARMONI INSANI ──
+  "biro-03": {
+    biroId: "biro-03",
+    biroName: "Lembaga Psikologi Harmoni Insani",
+    biroSlug: "harmoni-insani",
+    tagline: "Asesmen Psikotes Profesional, Bakat Minat & Terapi Keluarga",
+    color: "#2563EB",
+    metrics: [
+      {
+        title: "Total Pendapatan Biro Bulan Ini",
+        value: "Rp 19.800.000",
+        change: "+16.5% dari bulan lalu",
+        icon: Wallet,
+        color: "#2563EB",
+      },
+      {
+        title: "Total Klien Aktif Biro",
+        value: "38 Klien",
+        change: "+6 klien korporat baru",
+        icon: Users,
+        color: "#2563EB",
+      },
+      {
+        title: "Sesi Konseling Selesai",
+        value: "45 Sesi",
+        change: "Bulan berjalan di biro",
+        icon: CheckCircle2,
+        color: "#2563EB",
+      },
+      {
+        title: "Pendaftar Layanan Biro",
+        value: "32 Peserta",
+        change: "Asesmen psikotes massal",
+        icon: Sparkles,
+        color: "#2563EB",
+      },
+      {
+        title: "Menunggu Pembayaran",
+        value: "3 Transaksi",
+        change: "Invoice korporat",
+        icon: Clock,
+        color: "#D97706",
+      },
+    ],
+    chartData: {
+      minggu: [
+        { label: "Sen", value: 6, height: "70%" },
+        { label: "Sel", value: 9, height: "95%" },
+        { label: "Rab", value: 5, height: "60%" },
+        { label: "Kam", value: 8, height: "85%" },
+        { label: "Jum", value: 7, height: "75%" },
+        { label: "Sab", value: 4, height: "50%" },
+        { label: "Min", value: 1, height: "20%" },
+      ],
+      bulan: [
+        { label: "Mgg 1", value: 25, height: "75%" },
+        { label: "Mgg 2", value: 36, height: "95%" },
+        { label: "Mgg 3", value: 22, height: "65%" },
+        { label: "Mgg 4", value: 30, height: "85%" },
+      ],
+      bulan_lalu: [
+        { label: "Mgg 1", value: 20, height: "65%" },
+        { label: "Mgg 2", value: 28, height: "80%" },
+        { label: "Mgg 3", value: 30, height: "85%" },
+        { label: "Mgg 4", value: 22, height: "70%" },
+      ],
+    },
+    agendaList: [
+      {
+        title: "Asesmen Psikotes Kerja: Ahmad Rizky",
+        type: "Psikotes",
+        time: "Hari Ini, 09:00 WIB",
+        href: "/admin-biro/transaksi",
+        badgeColor: "bg-blue-50 text-blue-800",
+        dotColor: "bg-[#2563EB]",
+      },
+      {
+        title: "Asesmen Kesiapan Mental Kerja: Dewi Lestari",
+        type: "Asesment",
+        time: "Hari Ini, 14:00 WIB",
+        href: "/admin-biro/transaksi",
+        badgeColor: "bg-purple-50 text-purple-800",
+        dotColor: "bg-[#2563EB]",
+      },
+    ],
+    todaySessions: [
+      {
+        waktu: "09:00 - 12:00 WIB",
+        klien: "Ahmad Rizky",
+        psikolog: "Sarah Amalia, M.Psi",
+        layanan: "Psikotes Minat & Bakat Karir",
+        metode: "Online",
+        status: "Selesai",
+      },
+      {
+        waktu: "14:00 - 15:30 WIB",
+        klien: "Dewi Lestari",
+        psikolog: "Nadira Larasati, M.Psi",
+        layanan: "Asesment Kesiapan Mental Kerja",
+        metode: "Offline",
+        status: "Sedang Berjalan",
+      },
+    ],
+    recentTransactions: [
+      {
+        id: "TRX-HI-01",
+        client: "Ahmad Rizky",
+        layanan: "Psikotes Minat & Bakat Karir",
+        kategori: "Psikotes",
+        total: "Rp 352.500",
+        metode: "Mandiri VA",
+        status: "Lunas",
+      },
+      {
+        id: "TRX-HI-02",
+        client: "Dewi Lestari",
+        layanan: "Asesment Kesiapan Mental Kerja",
+        kategori: "Asesment",
+        total: "Rp 402.500",
+        metode: "BCA VA",
+        status: "Lunas",
+      },
+    ],
+    clients: [
+      {
+        id: "kln-hi-01",
+        biroId: "biro-03",
+        biroName: "Lembaga Psikologi Harmoni Insani",
+        clientCode: "KLN-HI-001",
+        nama: "Ahmad Rizky",
+        email: "ahmad.rizky@gmail.com",
+        telepon: "0813-9988-2211",
+        usia: 28,
+        status: "Aktif",
+        fokusKonseling: "Pemetaan Karir & Analisis Kepribadian Kerja",
+        totalSesi: 2,
+        sesiTerakhir: "Hari ini, 09:00 WIB",
+        psikologPendamping: "Sarah Amalia, M.Psi",
+        layanan: "Psikotes Minat & Bakat Karir",
+        metode: "Online",
+        tanggalBergabung: "02 Sep 2026",
+        catatanKhusus: "Laporan hasil tes psikotes bakat minat sudah di-generate dalam PDF.",
+      },
+      {
+        id: "kln-hi-02",
+        biroId: "biro-03",
+        biroName: "Lembaga Psikologi Harmoni Insani",
+        clientCode: "KLN-HI-002",
+        nama: "Dewi Lestari",
+        email: "dewi.lestari@gmail.com",
+        telepon: "0812-3456-7890",
+        usia: 30,
+        status: "Aktif",
+        fokusKonseling: "Asesmen Kesiapan Promosi Jabatan & Leadership",
+        totalSesi: 3,
+        sesiTerakhir: "Hari ini, 14:00 WIB",
+        psikologPendamping: "Nadira Larasati, M.Psi",
+        layanan: "Asesment Kesiapan Mental Kerja",
+        metode: "Offline",
+        tanggalBergabung: "05 Sep 2026",
+        catatanKhusus: "Rekomendasi managerial siap diteruskan ke HR perusahaannya.",
+      },
+    ],
+  },
+}
+
+/**
+ * Mengambil data dashboard spesifik tenant biro
+ */
+export function getBiroTenantData(biroId: string = "biro-01"): BiroTenantData {
+  return BIRO_TENANT_DATA[biroId] || BIRO_TENANT_DATA["biro-01"]
+}

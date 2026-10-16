@@ -48,7 +48,7 @@ export default function AdminBlogClient() {
 
         <Link
           href="/admin/blog/tambah"
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95 self-start sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -251,14 +251,14 @@ export default function AdminBlogClient() {
                 <button
                   type="button"
                   onClick={() => setBlogToDelete(null)}
-                  className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="rounded-full border border-gray-300 bg-white px-6 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+                  className="rounded-full bg-red-600 hover:bg-red-700 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition-all active:scale-95 cursor-pointer"
                 >
                   Ya, Hapus
                 </button>

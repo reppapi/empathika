@@ -3,14 +3,15 @@
 import { useState, useMemo } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import ModalTambahSesi, { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
-import { 
-  Calendar as CalendarIcon, 
-  ChevronDown, 
-  Plus, 
-  Clock, 
-  Users, 
-  CheckCircle2, 
-  CalendarClock, 
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import {
+  Calendar as CalendarIcon,
+  ChevronDown,
+  Plus,
+  Clock,
+  Users,
+  CheckCircle2,
+  CalendarClock,
   MoreVertical,
   ChevronLeft,
   ChevronRight,
@@ -178,7 +179,7 @@ export default function JadwalAdmin() {
     "14:30 - 15:30",
     "15:30 - 16:30",
   ]
-  
+
   const today = new Date()
   const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`
 
@@ -277,18 +278,18 @@ export default function JadwalAdmin() {
 
       {/* Top Actions & Filters */}
       <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-3 border-t border-gray-200 pt-6">
-        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs">
           Semua Layanan
           <ChevronDown className="w-4 h-4 ml-2" />
         </button>
-        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs">
           {formattedDate}
           <CalendarIcon className="w-4 h-4 ml-1" />
         </button>
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-4 py-2.5 rounded-lg text-sm font-bold shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer"
+          className="flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-98 cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           Sesi Baru
@@ -307,7 +308,7 @@ export default function JadwalAdmin() {
             <p className="text-xl font-bold text-gray-900">12</p>
           </div>
         </div>
-        
+
         {/* Card 2 */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
@@ -382,17 +383,16 @@ export default function JadwalAdmin() {
           </div>
 
           <div className="flex items-center gap-2 self-end md:self-center shrink-0">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-purple-100 text-[#561269] text-xs font-bold border border-purple-200">
+            <AdminStatusBadge variant="info" className="w-44">
               Segera Dimulai
-            </span>
+            </AdminStatusBadge>
           </div>
         </div>
 
         {/* Tabel Sesi Klien dalam Satu Hari */}
         <div
-          className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
-            CLIENT_SESSIONS_TODAY.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
-          }`}
+          className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${CLIENT_SESSIONS_TODAY.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
+            }`}
         >
           <table className="w-full text-left border-collapse min-w-[760px]">
             <thead className="sticky top-0 z-10 bg-[#D3C4D8]">
@@ -411,9 +411,8 @@ export default function JadwalAdmin() {
                 return (
                   <tr
                     key={item.id}
-                    className={`transition-colors ${
-                      isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
-                    }`}
+                    className={`transition-colors ${isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
+                      }`}
                   >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
@@ -434,23 +433,20 @@ export default function JadwalAdmin() {
                     <td className="py-4 px-6 text-gray-700 capitalize font-medium">{item.layanan}</td>
                     <td className="py-4 px-6">
                       <p className="text-gray-900 font-medium mb-1">{item.tipe}</p>
-                      {item.status === "Selesai" ? (
-                        <span className="inline-block bg-[#A2DCA4] text-[#1C5E24] text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                          Selesai
-                        </span>
-                      ) : item.status === "Segera Dimulai" ? (
-                        <span className="inline-block bg-purple-100 text-[#561269] text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-200">
-                          Terdekat • Segera Dimulai
-                        </span>
-                      ) : item.status === "Sedang Berlangsung" ? (
-                        <span className="inline-block bg-[#E85656] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                          Sedang Berlangsung
-                        </span>
-                      ) : (
-                        <span className="inline-block bg-[#F0C94D] text-[#5C4505] text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                          Menunggu Jadwal
-                        </span>
-                      )}
+                      <AdminStatusBadge
+                        variant={
+                          item.status === "Selesai"
+                            ? "success"
+                            : item.status === "Segera Dimulai"
+                            ? "info"
+                            : item.status === "Sedang Berlangsung"
+                            ? "danger"
+                            : "warning"
+                        }
+                        className="w-44"
+                      >
+                        {item.status}
+                      </AdminStatusBadge>
                     </td>
                     <td className="py-4 px-4 text-center">
                       <button className="text-gray-400 hover:text-[#561269] p-1.5 rounded-lg hover:bg-purple-100/50 transition-colors">
@@ -469,7 +465,7 @@ export default function JadwalAdmin() {
       <div className="mt-8 bg-white border border-gray-100 shadow-sm rounded-2xl p-6 sm:p-8">
         <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Asesmen</h2>
         <p className="text-gray-500 text-sm mb-8">Atur jadwal Asesmen, Pilih tanggal dan waktu yang tersedia.</p>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 max-w-4xl">
           {/* Left: Date Picker Box */}
           <div className="border border-purple-200 rounded-2xl p-6 shadow-sm flex justify-center items-center">
@@ -488,20 +484,20 @@ export default function JadwalAdmin() {
               <h3 className="font-bold text-gray-900 mb-6 capitalize">
                 {date
                   ? date.toLocaleDateString("id-ID", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
                   : "Pilih Tanggal"}
               </h3>
-              
+
               <div className="flex flex-col gap-3">
                 {timeSlots.map((time, i) => {
                   const isActive = selectedTime === time;
                   return (
-                    <button 
-                      key={i} 
+                    <button
+                      key={i}
                       type="button"
                       onClick={() => setSelectedTime(time)}
                       className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-colors w-full text-left ${isActive ? 'border-[#561269] bg-purple-50/50' : 'border-gray-200 hover:border-gray-300'}`}
@@ -522,15 +518,14 @@ export default function JadwalAdmin() {
                   ✓ {bookingSuccessMsg}
                 </p>
               )}
-              <button 
+              <button
                 type="button"
                 onClick={handleBooking}
                 disabled={!selectedTime}
-                className={`w-full font-bold py-3.5 rounded-xl shadow-sm transition-colors ${
-                  selectedTime 
-                    ? "bg-[#561269] hover:bg-[#6c1784] text-white cursor-pointer" 
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
+                className={`w-full font-bold py-3.5 rounded-full shadow-sm transition-all transform active:scale-98 ${selectedTime
+                  ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 cursor-pointer shadow-sm hover:shadow-md"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
               >
                 Pilih Jadwal ini
               </button>
@@ -546,7 +541,7 @@ export default function JadwalAdmin() {
 
         {/* Week Selector */}
         <div className="flex items-center gap-3 text-[13px] font-bold text-gray-800 mb-4">
-          <button 
+          <button
             type="button"
             onClick={goToPrevWeek}
             aria-label="Minggu Sebelumnya"
@@ -555,7 +550,7 @@ export default function JadwalAdmin() {
             <ChevronLeft className="w-4 h-4" />
           </button>
           <span className="font-semibold text-gray-900 min-w-[160px] text-center">{weekRangeTitle}</span>
-          <button 
+          <button
             type="button"
             onClick={goToNextWeek}
             aria-label="Minggu Berikutnya"
@@ -573,21 +568,18 @@ export default function JadwalAdmin() {
               {weekDays.map((wd, i) => (
                 <div
                   key={i}
-                  className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 ${
-                    wd.isSameAsSelected ? "bg-purple-50/80" : ""
-                  }`}
+                  className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 ${wd.isSameAsSelected ? "bg-purple-50/80" : ""
+                    }`}
                 >
                   <span
-                    className={`text-[13px] font-bold ${
-                      wd.isSameAsSelected ? "text-[#561269]" : "text-gray-800"
-                    }`}
+                    className={`text-[13px] font-bold ${wd.isSameAsSelected ? "text-[#561269]" : "text-gray-800"
+                      }`}
                   >
                     {wd.dayName}
                   </span>
                   <span
-                    className={`text-[11px] ${
-                      wd.isSameAsSelected ? "text-[#561269] font-bold" : "text-gray-500"
-                    }`}
+                    className={`text-[11px] ${wd.isSameAsSelected ? "text-[#561269] font-bold" : "text-gray-500"
+                      }`}
                   >
                     {wd.dateLabel}
                   </span>
@@ -603,9 +595,8 @@ export default function JadwalAdmin() {
                 return (
                   <div
                     key={i}
-                    className={`p-2.5 flex flex-col gap-2.5 ${
-                      wd.isSameAsSelected ? "bg-purple-50/20" : "bg-white"
-                    }`}
+                    className={`p-2.5 flex flex-col gap-2.5 ${wd.isSameAsSelected ? "bg-purple-50/20" : "bg-white"
+                      }`}
                   >
                     {sessions.length > 0 ? (
                       sessions.map((item) => (

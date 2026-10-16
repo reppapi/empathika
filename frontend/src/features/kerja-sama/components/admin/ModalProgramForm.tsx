@@ -279,13 +279,13 @@ export default function ModalProgramForm({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition"
+              className="px-6 py-2.5 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 font-bold text-xs sm:text-sm transition-all cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-6 py-2 rounded-xl font-bold transition shadow-xs cursor-pointer"
+              className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-6 py-2.5 rounded-full font-bold text-xs sm:text-sm transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-95"
             >
               {editingItem ? "Simpan Perubahan" : "Tambahkan Program"}
             </button>

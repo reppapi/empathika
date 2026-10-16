@@ -6,6 +6,7 @@ import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
 import { ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
 import { Calendar } from "lucide-react"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 export type EventItem = AdminEventData
 
@@ -87,23 +88,11 @@ export default function AdminEventClient() {
   const getStatusBadge = (status: AdminEventData["status"]) => {
     switch (status) {
       case "Dipublikasi":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#A2DCA4] px-4 py-1.5 text-xs font-semibold text-[#1C5E24] shadow-sm">
-            Dipublikasi
-          </span>
-        )
+        return <AdminStatusBadge variant="success" className="w-32">Dipublikasi</AdminStatusBadge>
       case "Selesai":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#E85656] px-5 py-1.5 text-xs font-semibold text-white shadow-sm">
-            Selesai
-          </span>
-        )
+        return <AdminStatusBadge variant="danger" className="w-32">Selesai</AdminStatusBadge>
       case "Draft":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#F0C94D] px-6 py-1.5 text-xs font-semibold text-[#5C4505] shadow-sm">
-            Draft
-          </span>
-        )
+        return <AdminStatusBadge variant="warning" className="w-32">Draft</AdminStatusBadge>
     }
   }
 
@@ -114,7 +103,7 @@ export default function AdminEventClient() {
         <button
           type="button"
           onClick={() => router.push("/admin/event/tambah")}
-          className="flex items-center gap-2 rounded-2xl bg-[#561269] hover:bg-[#6f1b87] px-6 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95"
+          className="flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

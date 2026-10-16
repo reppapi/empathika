@@ -31,15 +31,15 @@ export default function TabPengajuanLeads({
         </div>
 
         {/* Filter buttons */}
-        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-full text-xs font-semibold self-start sm:self-auto">
           {["Semua", "Menunggu", "Dihubungi", "Disetujui"].map((status) => (
             <button
               key={status}
               onClick={() => setLeadFilter(status)}
-              className={`px-3 py-1.5 rounded-lg transition ${
+              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                 leadFilter === status
-                  ? "bg-white text-[#561269] shadow-xs"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-[#EAB308] text-gray-950 font-bold shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 font-medium"
               }`}
             >
               {status}
@@ -109,7 +109,7 @@ export default function TabPengajuanLeads({
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => onSelectLead(lead)}
-                        className="px-2.5 py-1 rounded-lg bg-purple-50 text-[#561269] hover:bg-purple-100 border border-purple-200 font-semibold text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
+                        className="px-3 py-1 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-[11px] inline-flex items-center gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
                       >
                         <svg
                           className="w-3.5 h-3.5"
@@ -136,7 +136,7 @@ export default function TabPengajuanLeads({
                         href={`https://wa.me/${lead.telepon.replace(/\D/g, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition"
+                        className="p-1.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-all cursor-pointer"
                         title="Hubungi via WhatsApp"
                       >
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
@@ -145,7 +145,7 @@ export default function TabPengajuanLeads({
                       </a>
                       <button
                         onClick={() => onDeleteLead(lead.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+                        className="p-1.5 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
                         title="Hapus"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

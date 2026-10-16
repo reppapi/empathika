@@ -7,6 +7,7 @@ import SidebarPsikolog from "@/components/layout/SidebarPsikolog"
 import AdminNavbar from "@/components/layout/AdminNavbar"
 import { LOCAL_STORAGE_KEY_TENAGA, INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import { TenagaAhli } from "@/features/psikolog/types"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 export default function PsikologWebLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -31,9 +32,13 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   }, [pathname])
 
   let pageTitle = "Beranda"
-  if (pathname === "/admin/psikolog-web") pageTitle = "Beranda"
-  else if (pathname?.startsWith("/admin/psikolog-web/jadwal")) pageTitle = "Jadwal & Sesi"
-  else if (pathname?.startsWith("/admin/psikolog-web/profile")) pageTitle = "Profil Saya"
+  if (pathname?.startsWith("/psikolog-web/jadwal") || pathname?.startsWith("/jadwal") || pathname?.startsWith("/admin/psikolog-web/jadwal")) {
+    pageTitle = "Jadwal & Sesi"
+  } else if (pathname?.startsWith("/psikolog-web/profile") || pathname?.startsWith("/profile") || pathname?.startsWith("/admin/psikolog-web/profile")) {
+    pageTitle = "Profil Saya"
+  } else {
+    pageTitle = "Beranda"
+  }
 
   const isAktif = currentPsikolog?.statusAkses === "AKTIF"
 
@@ -67,15 +72,9 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
           </p>
           <div className="flex items-center gap-2">
             <span className="text-gray-500">Izin Akses:</span>
-            {isAktif ? (
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-[11px] font-semibold text-emerald-700">
-                Akses Diberikan
-              </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-[11px] font-semibold text-red-700">
-                Akses Dibatasi
-              </span>
-            )}
+            <AdminStatusBadge variant={isAktif ? "success" : "danger"} className="w-36">
+              {isAktif ? "Akses Diberikan" : "Akses Dibatasi"}
+            </AdminStatusBadge>
           </div>
         </div>
 
@@ -99,13 +98,13 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
               <div className="flex items-center gap-3 pt-2">
                 <Link
                   href="/admin/psikolog"
-                  className="rounded-xl bg-[#561269] hover:bg-[#6f1b87] px-5 py-2 text-xs font-semibold text-white transition"
+                  className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   Buka Admin Utama
                 </Link>
                 <Link
                   href="/login"
-                  className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+                  className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
                 >
                   Kembali
                 </Link>

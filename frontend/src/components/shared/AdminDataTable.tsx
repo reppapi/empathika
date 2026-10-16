@@ -157,7 +157,7 @@ export function AdminDataTable<T>({
               type="button"
               onClick={() => pagination.onPageChange(Math.max(pagination.currentPage - 1, 1))}
               disabled={pagination.currentPage === 1}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer"
             >
               Sebelumnya
             </button>
@@ -167,10 +167,11 @@ export function AdminDataTable<T>({
                 key={pageNumber}
                 type="button"
                 onClick={() => pagination.onPageChange(pageNumber)}
-                className={`w-8 h-8 rounded-xl text-xs font-semibold transition cursor-pointer ${pagination.currentPage === pageNumber
-                    ? "bg-[#561269] text-white shadow-sm"
+                className={`w-8 h-8 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  pagination.currentPage === pageNumber
+                    ? "bg-[#EAB308] text-gray-950 shadow-sm"
                     : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                }`}
               >
                 {pageNumber}
               </button>
@@ -180,7 +181,7 @@ export function AdminDataTable<T>({
               type="button"
               onClick={() => pagination.onPageChange(Math.min(pagination.currentPage + 1, pagination.totalPages))}
               disabled={pagination.currentPage === pagination.totalPages}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-all cursor-pointer"
             >
               Selanjutnya
             </button>
@@ -283,32 +284,7 @@ export function AdminFilterTabItem({
 
 /**
  * Shared Status Badge
- * Matches Daftar Event badge styling: rounded-xl px-4 py-1.5 text-xs font-semibold shadow-sm
+ * Re-exported from ./AdminStatusBadge
  */
-export type AdminStatusVariant = "success" | "warning" | "danger" | "neutral" | "info"
-
-export function AdminStatusBadge({
-  children,
-  variant = "neutral",
-  className = "",
-}: {
-  children: React.ReactNode
-  variant?: AdminStatusVariant
-  className?: string
-}) {
-  const variantStyles = {
-    success: "bg-[#A2DCA4] text-[#1C5E24]",
-    warning: "bg-[#F0C94D] text-[#5C4505]",
-    danger: "bg-[#E85656] text-white",
-    neutral: "bg-gray-100 text-gray-600",
-    info: "bg-[#E8D4F0] text-[#561269]",
-  }[variant]
-
-  return (
-    <span
-      className={`inline-flex items-center justify-center rounded-xl px-4 py-1.5 text-xs font-semibold shadow-sm ${variantStyles} ${className}`}
-    >
-      {children}
-    </span>
-  )
-}
+export { AdminStatusBadge } from "./AdminStatusBadge"
+export type { AdminStatusVariant, AdminStatusBadgeProps } from "./AdminStatusBadge"

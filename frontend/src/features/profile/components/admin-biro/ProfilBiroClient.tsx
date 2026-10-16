@@ -7,7 +7,7 @@ import { Building2, Mail, Phone, MapPin, Globe, Palette, ShieldCheck, Lock, Chec
 
 export default function ProfilBiroClient() {
   const [biro, setBiro] = useState<BiroKomunitas>(INITIAL_BIRO_LIST[0])
-  
+
   // State untuk form ganti password / keamanan akun
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -24,7 +24,7 @@ export default function ProfilBiroClient() {
         const found = list.find((b) => b.id === "biro-01") || list[0]
         if (found) setBiro(found)
       }
-    } catch {}
+    } catch { }
   }, [])
 
   const handleUpdatePassword = (e: React.FormEvent) => {
@@ -63,11 +63,10 @@ export default function ProfilBiroClient() {
       {/* Toast Alert */}
       {toastMessage && (
         <div
-          className={`flex items-center gap-3 p-4 rounded-2xl border text-sm font-semibold transition-all ${
-            toastType === "success"
+          className={`flex items-center gap-3 p-4 rounded-2xl border text-sm font-semibold transition-all ${toastType === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
               : "bg-red-50 border-red-200 text-red-800"
-          }`}
+            }`}
         >
           {toastType === "success" ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -267,7 +266,7 @@ export default function ProfilBiroClient() {
 
               <button
                 type="submit"
-                className="w-full mt-2 py-3 rounded-xl bg-[#561269] hover:bg-[#6c1784] text-white font-bold text-xs shadow-md transition-transform active:scale-98"
+                className="w-full mt-2 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 Simpan Kata Sandi
               </button>

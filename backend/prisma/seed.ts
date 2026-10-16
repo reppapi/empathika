@@ -1,22 +1,16 @@
 import { PrismaClient, Role, KategoriLayanan, JenisAksesPsikotes } from '@prisma/client';
-import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Start seeding...');
 
-  // Hash password agar akun staf bisa langsung login di frontend/backend
-  const adminPassword = await bcrypt.hash('AdminPasswordHashed123!', 10);
-  const biroPassword = await bcrypt.hash('BiroPasswordHashed123!', 10);
-  const psikologPassword = await bcrypt.hash('PsikologPasswordHashed123!', 10);
-
   // 1. Create Accounts (Admin & Biro Owner)
   const adminAccount = await prisma.account.create({
     data: {
       nama: 'Admin Empathika',
       email: 'admin@empathika.test',
-      password: adminPassword,
+      password: 'AdminPasswordHashed123!',
       role: Role.ADMIN,
     },
   });
@@ -25,7 +19,7 @@ async function main() {
     data: {
       nama: 'Admin Biro Cendekia Muda',
       email: 'biro@cendekiamuda.org',
-      password: biroPassword,
+      password: 'BiroPasswordHashed123!',
       role: Role.BIRO,
       no_telepon: '081234567890',
     },
@@ -80,7 +74,7 @@ async function main() {
     data: {
       nama: 'Dr. Jane Doe, M.Psi., Psikolog',
       email: 'psikolog@empathika.test',
-      password: psikologPassword,
+      password: 'PsikologPasswordHashed123!',
       role: Role.PSIKOLOG,
       no_telepon: '081399887766',
     },

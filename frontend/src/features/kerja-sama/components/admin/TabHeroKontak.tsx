@@ -87,7 +87,7 @@ export default function TabHeroKontak({
             </div>
           )}
           <div className="flex-1">
-            <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-50 text-[#561269] hover:bg-purple-100 border border-purple-200 font-bold text-xs cursor-pointer transition shadow-2xs">
+            <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 font-bold text-xs cursor-pointer transition-all shadow-sm">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -186,7 +186,7 @@ export default function TabHeroKontak({
       <div className="flex justify-end pt-4">
         <button
           type="submit"
-          className="bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+          className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-6 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
         >
           Simpan Pengaturan Web Client
         </button>

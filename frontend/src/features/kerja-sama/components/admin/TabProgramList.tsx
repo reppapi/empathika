@@ -3,6 +3,7 @@
 import React from "react"
 import Link from "next/link"
 import { KerjaSamaItem } from "../../types"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface TabProgramListProps {
   items: KerjaSamaItem[]
@@ -31,7 +32,7 @@ export default function TabProgramList({
         </div>
         <button
           onClick={onOpenAddModal}
-          className="bg-[#E8C32A] hover:bg-[#d4b024] text-gray-900 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer self-start sm:self-auto"
+          className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto"
         >
           <span>+ Tambah Program</span>
         </button>
@@ -52,15 +53,9 @@ export default function TabProgramList({
               <div>
                 {/* Header Card */}
                 <div className="flex items-center justify-between mb-3">
-                  <span
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                      isAktif
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-gray-200 text-gray-600 border border-gray-300"
-                    }`}
-                  >
-                    {isAktif ? "● Aktif" : "○ Disembunyikan"}
-                  </span>
+                  <AdminStatusBadge variant={isAktif ? "success" : "neutral"} className="w-36">
+                    {isAktif ? "Aktif" : "Disembunyikan"}
+                  </AdminStatusBadge>
 
                   <div
                     className={`w-4 h-4 rounded-full ${

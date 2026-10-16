@@ -30,6 +30,7 @@ import TabPengajuanLeads from "./TabPengajuanLeads"
 import ModalProgramForm from "./ModalProgramForm"
 import ModalLeadDetail from "./ModalLeadDetail"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 const COLOR_OPTIONS = [
   { label: "Ungu Indigo", value: "from-purple-500 to-indigo-600" },
@@ -318,9 +319,9 @@ export default function AdminKerjaSamaClient() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Kelola Kerja Sama & Kemitraan
             </h1>
-            <span className="px-3 py-1 rounded-full bg-purple-100 text-[#561269] text-xs font-bold shrink-0">
+            <AdminStatusBadge variant="info" className="shrink-0">
               Web Client Connected
-            </span>
+            </AdminStatusBadge>
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Atur pilihan program kolaborasi, formulir, teks banner, dan pantau pengajuan mitra yang masuk.
