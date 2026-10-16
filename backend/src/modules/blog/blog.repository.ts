@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client'
 import type { CreateBlogInput, UpdateBlogInput, BlogQueryInput } from './blog.schema'
 
 export class BlogRepository {
-  constructor(private prisma: PrismaClient) { }
+  constructor(private prisma: PrismaClient) {}
 
   async findAll(query?: BlogQueryInput) {
     const page = query?.page ?? 1
@@ -11,11 +11,11 @@ export class BlogRepository {
 
     const where = query?.search
       ? {
-        OR: [
-          { judul: { contains: query.search, mode: 'insensitive' as const } },
-          { isi: { contains: query.search, mode: 'insensitive' as const } },
-        ],
-      }
+          OR: [
+            { judul: { contains: query.search, mode: 'insensitive' as const } },
+            { isi: { contains: query.search, mode: 'insensitive' as const } },
+          ],
+        }
       : {}
 
     const [items, total] = await Promise.all([
