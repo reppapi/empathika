@@ -46,6 +46,9 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
    - Kolom `status` pada tabel `BookingPsikotes` **dihapus**, karena status kelulusan/hasil tes dipusatkan pada `HasilTes`.
    - Kolom `id_transaksi` pada tabel `BookingPsikotes` dijadikan **nullable (`String?`)**, untuk memfasilitasi paket psikotes gratis yang tidak memerlukan proses pembayaran.
 
+13. **Penyimpanan Total Pembayaran Transaksi (`total`)**
+   - Kolom `total Decimal @db.Decimal(12, 2)` **resmi ditambahkan** ke tabel `Transaksi` untuk mencatat nominal final pembayaran (`subtotal + biaya_admin`). Hal ini penting untuk integritas snapshot finansial, sinkronisasi webhook Payment Gateway (Xendit `amount`), serta mempercepat agregasi pelaporan pendapatan admin tanpa kalkulasi runtime.
+
 ---
 
 ## 2. Diagram UML Database (Mermaid Class Diagram)
@@ -194,6 +197,7 @@ classDiagram
         +string kode_transaksi
         +float subtotal
         +float biaya_admin
+        +float total
         +string metode_pembayaran
         +string channel_pembayaran
         +string status_pembayaran
@@ -443,7 +447,7 @@ classDiagram
    - `id`, `nama_instansi`, `nama_pic`, `email`, `no_telepon`, `kategori`, `tipe_formulir`, `pesan`, `jawaban_detail`, `status`, `createdAt`, `updatedAt`.
 2. **Atribut Baru pada Tabel Eksisting**:
    - `Account`: `alamat String?`, `link_maps String?` (khusus profil Admin Utama pengelola platform).
-   - `Transaksi`: `kode_transaksi String? @unique`, `channel_pembayaran String?`, `createdAt`, `updatedAt`.
+   - `Transaksi`: `kode_transaksi String? @unique`, `total Decimal @db.Decimal(12, 2)`, `channel_pembayaran String?`, `createdAt`, `updatedAt`.
    - `Event`: `slug String @unique`, `subjudul String?`, `createdAt`, `updatedAt`.
    - `PaketPsikotes`: `slug String @unique`, `createdAt`, `updatedAt`.
    - `BookingKonsultasi`: `metode String ("ONLINE" | "OFFLINE")`, `link_meet String?`, `createdAt`, `updatedAt`.
