@@ -1,5 +1,6 @@
 export const TEST_DATA = {
   "mbti": {
+    id: "mbti",
     title: "Tes Online 16 Kepribadian (MBTI)",
     subtitle: "Pahami potensi diri, cara berpikir, dan preferensi lingkungan kerjamu.",
     image: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80",
@@ -19,9 +20,24 @@ export const TEST_DATA = {
       "Setelah selesai, kamu akan mendapatkan laporan hasil tes lengkap."
     ],
     duration: "15 Menit",
-    questions: "60 Pertanyaan"
+    questions: "60 Pertanyaan",
+    price: 50000,
+    formattedPrice: "Rp 50.000",
+    paidPackageName: "Paket Premium & Laporan Lengkap",
+    paidBenefits: [
+      "Laporan komprehensif 16 tipe kepribadian lengkap",
+      "Analisis mendalam fungsi kognitif & gaya kerja",
+      "Rekomendasi karir, jurusan & lingkungan kerja ideal",
+      "Panduan pengembangan diri & gaya komunikasi profesional"
+    ],
+    freeBenefits: [
+      "Pengerjaan 60 butir soal standar secara online",
+      "Ringkasan deskripsi tipe kepribadian utama",
+      "Akses tanpa batas waktu"
+    ]
   },
   "mbti-2": {
+    id: "mbti-2",
     title: "Tes Online 16 Kepribadian Lanjutan",
     subtitle: "Pahami secara mendalam potensi diri dan gaya kerjamu.",
     image: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80",
@@ -41,9 +57,24 @@ export const TEST_DATA = {
       "Setelah selesai, kamu akan mendapatkan laporan hasil tes lengkap."
     ],
     duration: "15 Menit",
-    questions: "60 Pertanyaan"
+    questions: "60 Pertanyaan",
+    price: 75000,
+    formattedPrice: "Rp 75.000",
+    paidPackageName: "Paket Analisis Lanjutan & Rekomendasi",
+    paidBenefits: [
+      "Pemetaan spektrum introvert vs ekstrovert terperinci",
+      "Panduan manajemen stres & regulasi emosi kerja",
+      "Rencana aksi pengembangan potensi personal",
+      "Analisis interaksi tim & dinamika interpersonal"
+    ],
+    freeBenefits: [
+      "Pengerjaan 60 butir soal lanjutan secara online",
+      "Skor ringkas orientasi kepribadian",
+      "Akses fleksibel tanpa biaya"
+    ]
   },
   "love-language": {
+    id: "love-language",
     title: "Tes Love Language: 5 Bahasa Cinta",
     subtitle: "Ketahui cara terbaikmu menerima dan mengekspresikan kasih sayang.",
     image: "https://images.unsplash.com/photo-1518199266791-5375a83164ba?auto=format&fit=crop&w=1200&q=80",
@@ -63,7 +94,21 @@ export const TEST_DATA = {
       "Setelah selesai, kamu akan mendapatkan laporan hasil tes lengkap."
     ],
     duration: "10 Menit",
-    questions: "30 Pertanyaan"
+    questions: "30 Pertanyaan",
+    price: 40000,
+    formattedPrice: "Rp 40.000",
+    paidPackageName: "Paket Hubungan & Panduan Relasi Lengkap",
+    paidBenefits: [
+      "Grafik persentase 5 bahasa cinta secara menyeluruh",
+      "Panduan komunikasi asertif dengan pasangan & keluarga",
+      "Lembar kerja relasi sehat dan resolusi konflik",
+      "Tips penerapan bahasa cinta dalam keseharian"
+    ],
+    freeBenefits: [
+      "Pengerjaan 30 butir soal love language",
+      "Identifikasi 1 bahasa cinta primer",
+      "Akses gratis tanpa registrasi rumit"
+    ]
   }
 };
 
