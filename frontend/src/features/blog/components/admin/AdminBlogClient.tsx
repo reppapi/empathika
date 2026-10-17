@@ -35,20 +35,11 @@ export default function AdminBlogClient() {
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
-      {/* ── Header Konten: Heading & Tombol [+ Tambah Blog] ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Daftar Blog
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Kelola dan pantau seluruh artikel blog Empathika
-          </p>
-        </div>
-
+      {/* ── Top Bar Action: Tombol Tambah Blog ── */}
+      <div className="flex justify-end">
         <Link
           href="/admin/blog/tambah"
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

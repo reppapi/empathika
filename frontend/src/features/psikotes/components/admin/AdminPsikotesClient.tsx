@@ -351,18 +351,6 @@ export default function AdminPsikotesClient() {
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
-      {/* Header */}
-      {activeTab !== "form-paket" && (
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-            Manajemen Psikotes
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Kelola data peserta, paket soal, dan bank soal psikotes.
-          </p>
-        </div>
-      )}
-
       {/* Cards Navigation (Summary Cards) */}
       {activeTab !== "form-paket" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">

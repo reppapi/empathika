@@ -5,27 +5,77 @@ import { usePathname } from "next/navigation"
 
 interface AdminNavbarProps {
   title?: string
+  description?: string
   adminName?: string
   subtitle?: string
   onToggleSidebar?: () => void
 }
 
-const PAGE_TITLES: Record<string, string> = {
-  "/admin": "Ringkasan Operasional",
-  "/admin/jadwal": "Kelola Jadwal & Sesi",
-  "/admin/event": "Kelola Event",
-  "/admin/transaksi": "Riwayat Transaksi & Pembayaran",
-  "/admin/psikolog": "Kelola Data Psikolog",
-  "/admin/psikotes": "Kelola Psikotes",
-  "/admin/blog": "Kelola Blog Empathika",
-  "/admin/layanan": "Kelola Layanan Konsultasi",
-  "/admin/biro": "Pengaturan Biro & Komunitas",
-  "/admin/kerja-sama": "Kelola Kerja Sama",
-  "/admin/profile": "Pengaturan Profil Admin",
-}
+const PAGE_CONFIG: {
+  match: (path: string) => boolean
+  title: string
+  description: string
+}[] = [
+  {
+    match: (p) => p === "/admin",
+    title: "Ringkasan Operasional",
+    description: "Pantau aktivitas, statistik, dan perkembangan operasional Empathika secara menyeluruh.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/jadwal"),
+    title: "Jadwal & Sesi",
+    description: "Kelola sesi konsultasi baru untuk client dan pantau daftar client yang melakukan booking konsultasi.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/event"),
+    title: "Manajemen Event",
+    description: "Kelola informasi event, jadwal pelaksanaan, pendaftaran peserta, dan publikasi kegiatan.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/transaksi"),
+    title: "Manajemen Transaksi",
+    description: "Pantau transaksi pembayaran dan status pembayaran dari berbagai layanan Empathika.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/psikolog"),
+    title: "Manajemen Psikolog",
+    description: "Kelola data psikolog, informasi profesional, spesialisasi, dan status keanggotaan.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/psikotes"),
+    title: "Manajemen Psikotes",
+    description: "Kelola paket psikotes, soal, interpretasi, dan hasil tes yang tersedia di Empathika.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/blog"),
+    title: "Manajemen Blog",
+    description: "Kelola artikel, dan publikasi konten edukasi di website Empathika.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/layanan"),
+    title: "Manajemen Layanan",
+    description: "Kelola informasi layanan, detail, harga, dan ketersediaan layanan Empathika.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/biro"),
+    title: "Pengaturan Biro & Komunitas",
+    description: "Kelola profil tenant mitra, registrasi biro, dan status aktivasi website multi-tenant.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/kerja-sama"),
+    title: "Manajemen Kerja Sama",
+    description: "Kelola data mitra, pengajuan kerja sama, dan status kolaborasi dengan Empathika.",
+  },
+  {
+    match: (p) => p.startsWith("/admin/profile"),
+    title: "Pengaturan Profil",
+    description: "Kelola informasi identitas, foto profil, dan kredensial akun administrator.",
+  },
+]
 
 export function AdminNavbar({
   title,
+  description,
   adminName = "Admin Empathika",
   subtitle = "texttext",
   onToggleSidebar,
@@ -33,8 +83,10 @@ export function AdminNavbar({
   const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
-  // Otomatis deteksi title berdasarkan route aktif
-  const currentTitle = title || (pathname && PAGE_TITLES[pathname]) || "Kelola Layanan Konsultasi"
+  // Otomatis deteksi konfigurasi route aktif
+  const matchedConfig = pathname ? PAGE_CONFIG.find((c) => c.match(pathname)) : undefined
+  const currentTitle = title || matchedConfig?.title || "Kelola Layanan Konsultasi"
+  const currentDescription = description || matchedConfig?.description || ""
 
   // Inisial avatar misalnya "AE" dari Admin Empathika
   const initials =
@@ -46,9 +98,9 @@ export function AdminNavbar({
       .toUpperCase() || "AE"
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-gray-200/80 bg-white px-4 sm:px-6 lg:px-8 font-poppins shadow-sm">
-      {/* Sisi Kiri: Tombol Burger (Mobile/Tablet) + Title Halaman */}
-      <div className="flex items-center gap-3 sm:gap-4">
+    <header className="sticky top-0 z-30 flex h-[101px] w-full items-center justify-between border-b border-gray-200/80 bg-white px-4 sm:px-6 lg:px-8 font-poppins shadow-sm">
+      {/* Sisi Kiri: Tombol Burger (Mobile/Tablet) + Title & Deskripsi Halaman */}
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0 pr-4">
         {/* Tombol Hamburger di Mobile/Tablet (< lg) sama seperti di navbar user */}
         <button
           type="button"
@@ -68,10 +120,17 @@ export function AdminNavbar({
           </svg>
         </button>
 
-        {/* Title Halaman */}
-        <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-[#561269] tracking-tight truncate max-w-[200px] sm:max-w-md lg:max-w-none">
-          {currentTitle}
-        </h1>
+        {/* Title & Deskripsi Halaman */}
+        <div className="flex flex-col justify-center min-w-0">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-[#561269] tracking-tight leading-tight truncate">
+            {currentTitle}
+          </h1>
+          {currentDescription && (
+            <p className="text-xs sm:text-sm text-gray-500 font-normal mt-0.5 sm:mt-1 truncate max-w-[260px] xs:max-w-xs sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-4xl">
+              {currentDescription}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Sisi Kanan: Profil Admin & Dropdown */}

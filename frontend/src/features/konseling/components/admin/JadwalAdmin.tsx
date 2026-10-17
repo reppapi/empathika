@@ -377,8 +377,7 @@ export default function JadwalAdmin() {
     <div className="w-full max-w-[1400px] mx-auto flex flex-col gap-8 font-poppins pb-10">
 
       {/* Top Actions & Filters */}
-      <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-3 border-t border-gray-200 pt-6">
-        
+      <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-3">
         {/* Dropdown Layanan */}
         <div className="relative">
           <button
