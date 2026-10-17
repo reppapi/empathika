@@ -12,4 +12,3 @@ export const DUMMY_BIRO = {
   email: "biro@empathika.test",
   password: "Biro123!"
 };
-``

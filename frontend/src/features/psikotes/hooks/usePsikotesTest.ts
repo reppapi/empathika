@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export function usePsikotesTest(totalQuestions: number, testId: string) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showError, setShowError] = useState(false);
@@ -27,8 +28,9 @@ export function usePsikotesTest(totalQuestions: number, testId: string) {
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      // Selesai, navigasi ke halaman hasil
-      router.push(`/psikotes/${testId}/hasil`);
+      // Selesai, navigasi ke halaman hasil (teruskan query jika ada, misal: paket=berbayar)
+      const queryStr = searchParams.toString();
+      router.push(`/psikotes/${testId}/hasil${queryStr ? `?${queryStr}` : ""}` as any);
     }
   };
 

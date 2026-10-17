@@ -1,12 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
-import { ActionButtonDetail, ActionButtonDelete } from "@/components/shared/TableActionButtons"
-import { AdminSummaryCard } from "@/components/shared/AdminSummaryCard"
+import {
+  ActionButtonDetail,
+  ActionButtonEdit,
+  ActionButtonDelete,
+} from "@/components/shared/TableActionButtons"
 import { Users, CheckCircle2, Lock } from "lucide-react"
 import {
   AdminDataTable,
@@ -16,13 +20,17 @@ import {
   AdminStatusBadge,
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
+import PsikologDetailModal from "./PsikologDetailModal"
 
 export default function AdminPsikologClient() {
+  const router = useRouter()
   const [dataList, setDataList] = useState<TenagaAhli[]>([])
   const [selectedKategoriFilter, setSelectedKategoriFilter] = useState<string>("semua")
   const [searchQuery, setSearchQuery] = useState("")
 
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<TenagaAhli | null>(null)
+  const [selectedDetailPsikolog, setSelectedDetailPsikolog] = useState<TenagaAhli | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
   useEffect(() => {
@@ -48,7 +56,7 @@ export default function AdminPsikologClient() {
     }
   }
 
-  // Hak Akses sederhana: Beri Akses ("AKTIF") atau Hapus Akses ("NONAKTIF")
+  // Hak Akses: Beri Akses ("AKTIF") atau Hapus Akses ("NONAKTIF")
   const handleToggleAkses = (item: TenagaAhli, newStatus: StatusAkses) => {
     const updated = dataList.map((d) => (d.id === item.id ? { ...d, statusAkses: newStatus } : d))
     const msg =
@@ -56,6 +64,18 @@ export default function AdminPsikologClient() {
         ? `Akses web untuk ${item.nama} berhasil diberikan.`
         : `Akses web untuk ${item.nama} telah dinonaktifkan.`
     persistData(updated, msg)
+    if (selectedDetailPsikolog && selectedDetailPsikolog.id === item.id) {
+      setSelectedDetailPsikolog({ ...selectedDetailPsikolog, statusAkses: newStatus })
+    }
+  }
+
+  const handleOpenDetail = (item: TenagaAhli) => {
+    setSelectedDetailPsikolog(item)
+    setIsDetailOpen(true)
+  }
+
+  const handleOpenEdit = (item: TenagaAhli) => {
+    router.push(`/admin/psikolog/edit/${item.id}`)
   }
 
   // Hapus Data
@@ -85,9 +105,10 @@ export default function AdminPsikologClient() {
       key: "nama",
       header: "Nama & Email",
       render: (item: TenagaAhli) => (
-        <Link
-          href={`/admin/psikolog/${item.id}`}
-          className="flex items-center gap-3 group"
+        <button
+          type="button"
+          onClick={() => handleOpenDetail(item)}
+          className="flex items-center gap-3 group text-left cursor-pointer"
         >
           <div className="relative w-11 h-11 rounded-2xl overflow-hidden bg-purple-100 shrink-0 border border-purple-200 flex items-center justify-center">
             {item.foto ? (
@@ -105,7 +126,7 @@ export default function AdminPsikologClient() {
             <p className="text-xs text-gray-500">{item.spesialisasi}</p>
             <p className="text-[11px] text-gray-400 mt-0.5">{item.email}</p>
           </div>
-        </Link>
+        </button>
       ),
     },
     {
@@ -148,23 +169,9 @@ export default function AdminPsikologClient() {
       render: (item: TenagaAhli) => {
         const isAktif = item.statusAkses === "AKTIF"
         return (
-          <div className="flex flex-col items-center gap-1.5">
-            <AdminStatusBadge variant={isAktif ? "success" : "neutral"}>
-              {isAktif ? "Akses Aktif" : "Nonaktif"}
-            </AdminStatusBadge>
-
-            <button
-              type="button"
-              onClick={() => handleToggleAkses(item, isAktif ? "NONAKTIF" : "AKTIF")}
-              className={`text-[11px] font-medium px-3 py-1 rounded-xl transition cursor-pointer ${
-                isAktif
-                  ? "border border-red-200 text-red-600 hover:bg-red-50"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
-              }`}
-            >
-              {isAktif ? "Hapus Akses" : "Beri Akses"}
-            </button>
-          </div>
+          <AdminStatusBadge variant={isAktif ? "success" : "neutral"} className="w-28">
+            {isAktif ? "Akses Aktif" : "Nonaktif"}
+          </AdminStatusBadge>
         )
       },
     },
@@ -175,8 +182,12 @@ export default function AdminPsikologClient() {
       render: (item: TenagaAhli) => (
         <div className="flex items-center justify-center gap-1.5 sm:gap-2">
           <ActionButtonDetail
-            href={`/admin/psikolog/${item.id}`}
+            onClick={() => handleOpenDetail(item)}
             title="Lihat Detail"
+          />
+          <ActionButtonEdit
+            onClick={() => handleOpenEdit(item)}
+            title="Edit Tenaga Ahli"
           />
           <ActionButtonDelete
             onClick={() => setDeleteConfirmItem(item)}
@@ -196,21 +207,45 @@ export default function AdminPsikologClient() {
         </div>
       )}
 
-      {/* Header Halaman & Tombol Tambah */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Data Psikolog & Tenaga Ahli
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Kelola profil, akun login, dan izin akses web psikolog Empathika.
-          </p>
+      {/* Top Bar: Summary Cards + Tombol Tambah sejajar */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Summary Cards — compact */}
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-3.5 bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-sm min-w-[170px]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 shrink-0">
+              <Users className="w-5 h-5 text-blue-500" />
+            </div>
+            <div className="leading-tight">
+              <p className="text-xs text-gray-400 font-medium">Total Terdaftar</p>
+              <p className="text-base font-extrabold text-gray-900">{countTotal} Orang</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-sm min-w-[160px]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="leading-tight">
+              <p className="text-xs text-gray-400 font-medium">Akses Aktif</p>
+              <p className="text-base font-extrabold text-emerald-600">{countAktif} Aktif</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-sm min-w-[160px]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 shrink-0">
+              <Lock className="w-5 h-5 text-gray-500" />
+            </div>
+            <div className="leading-tight">
+              <p className="text-xs text-gray-400 font-medium">Dibatasi</p>
+              <p className="text-base font-extrabold text-gray-600">{countTotal - countAktif} Nonaktif</p>
+            </div>
+          </div>
         </div>
 
-        {/* Tombol ke Halaman Tambah Baru */}
+        {/* Tombol Tambah */}
         <Link
           href="/admin/psikolog/tambah"
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -219,31 +254,6 @@ export default function AdminPsikologClient() {
         </Link>
       </div>
 
-      {/* Ringkasan Singkat (Summary Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-        <AdminSummaryCard
-          label="Total Tenaga Terdaftar"
-          value={`${countTotal} Orang`}
-          icon={<Users className="w-6 h-6 text-blue-500" />}
-          iconBgColor="bg-blue-50 text-blue-500"
-        />
-
-        <AdminSummaryCard
-          label="Akses Web Aktif"
-          value={`${countAktif} Aktif`}
-          valueClassName="text-emerald-600"
-          icon={<CheckCircle2 className="w-6 h-6 text-emerald-500" />}
-          iconBgColor="bg-emerald-50 text-emerald-500"
-        />
-
-        <AdminSummaryCard
-          label="Akses Dibatasi"
-          value={`${countTotal - countAktif} Nonaktif`}
-          valueClassName="text-gray-600"
-          icon={<Lock className="w-6 h-6 text-gray-500" />}
-          iconBgColor="bg-gray-100 text-gray-500"
-        />
-      </div>
 
       {/* Main Table Container */}
       <AdminTableContainer>
@@ -312,6 +322,17 @@ export default function AdminPsikologClient() {
           </div>
         </div>
       )}
+      {/* Modal Detail Tenaga Ahli */}
+      <PsikologDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => {
+          setIsDetailOpen(false)
+          setSelectedDetailPsikolog(null)
+        }}
+        psikolog={selectedDetailPsikolog}
+        onEdit={handleOpenEdit}
+        onToggleAkses={handleToggleAkses}
+      />
     </div>
   )
 }

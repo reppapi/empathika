@@ -1,25 +1,25 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
 // ── Dummy data ────────────────────────────────────────────────────────────────
 
 const BANK_LIST = [
-  { id: "bca",     name: "BCA",     va: "1234567890123" },
+  { id: "bca", name: "BCA", va: "1234567890123" },
   { id: "mandiri", name: "Mandiri", va: "8881234567890" },
-  { id: "bni",     name: "BNI",     va: "9876543210987" },
-  { id: "bri",     name: "BRI",     va: "7771234567890" },
-  { id: "bsi",     name: "BSI",     va: "4441234567890" },
+  { id: "bni", name: "BNI", va: "9876543210987" },
+  { id: "bri", name: "BRI", va: "7771234567890" },
+  { id: "bsi", name: "BSI", va: "4441234567890" },
 ]
 
 const EWALLET_LIST = [
-  { id: "gopay",     name: "GoPay",     color: "#00AA13", nomor: "0812-3456-7890" },
-  { id: "ovo",       name: "OVO",       color: "#4C3494", nomor: "0813-2345-6789" },
-  { id: "dana",      name: "DANA",      color: "#118EEA", nomor: "0811-9876-5432" },
-  { id: "shopeepay", name: "ShopeePay", color: "#EE4D2D", nomor: "0815-6543-2109" },
-  { id: "linkaja",   name: "LinkAja",   color: "#E82529", nomor: "0819-1234-5678" },
+  { id: "gopay", name: "GoPay", color: "#00AA13" },
+  { id: "ovo", name: "OVO", color: "#4C3494" },
+  { id: "dana", name: "DANA", color: "#118EEA" },
+  { id: "shopeepay", name: "ShopeePay", color: "#EE4D2D" },
+  { id: "linkaja", name: "LinkAja", color: "#E82529" },
 ]
 
 // Tombol salin dengan feedback "Tersalin!"
@@ -48,22 +48,53 @@ function CopyButton({ text }: { text: string }) {
 
 export default function BayarClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
-  const [nama, setNama]         = useState("")
-  const [email, setEmail]       = useState("")
+  const [nama, setNama] = useState("")
+  const [email, setEmail] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
 
   const [metodePembayaran, setMetodePembayaran] = useState<string | null>(null)
-  const [selectedBank, setSelectedBank]         = useState<string | null>(null)
-  const [selectedEwallet, setSelectedEwallet]   = useState<string | null>(null)
+  const [selectedBank, setSelectedBank] = useState<string | null>(null)
+  const [selectedEwallet, setSelectedEwallet] = useState<string | null>(null)
+  const [failedAlertDismissed, setFailedAlertDismissed] = useState(false)
 
-  const activeBank    = BANK_LIST.find((b) => b.id === selectedBank)
+  const isFailed = searchParams.get("status") === "failed" && !failedAlertDismissed
+  const failedReason = searchParams.get("reason") || "Pembayaran tidak dapat diproses atau waktu transaksi telah berakhir."
+
+  useEffect(() => {
+    const qNama = searchParams.get("nama")
+    const qEmail = searchParams.get("email")
+    const qWa = searchParams.get("whatsapp")
+    const qDeskripsi = searchParams.get("deskripsi")
+    const qMetode = searchParams.get("metode")
+    const qBank = searchParams.get("bank")
+    const qEwallet = searchParams.get("ewallet")
+
+    if (qNama) setNama(qNama)
+    if (qEmail) setEmail(qEmail)
+    if (qWa) setWhatsapp(qWa)
+    if (qDeskripsi) setDeskripsi(qDeskripsi)
+    if (qMetode) setMetodePembayaran(qMetode)
+    if (qBank) setSelectedBank(qBank)
+    if (qEwallet) setSelectedEwallet(qEwallet)
+  }, [searchParams])
+
+  const activeBank = BANK_LIST.find((b) => b.id === selectedBank)
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
 
   const handleSelectPayment = (id: string) => {
+    if (metodePembayaran === id) {
+      // Jika opsi yang sama diklik lagi, tutup dropdown/accordion-nya
+      setMetodePembayaran(null)
+      setSelectedBank(null)
+      setSelectedEwallet(null)
+      return
+    }
+
     setMetodePembayaran(id)
-    if (id !== "bank")    { setSelectedBank(null) }
+    if (id !== "bank") { setSelectedBank(null) }
     if (id !== "ewallet") { setSelectedEwallet(null) }
   }
 
@@ -78,6 +109,9 @@ export default function BayarClient() {
     }
     const params = new URLSearchParams({
       nama: nama.toUpperCase(),
+      email,
+      whatsapp,
+      deskripsi,
       orderId: "W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
       tanggal: "31/08",
       tahun: "2026",
@@ -87,7 +121,7 @@ export default function BayarClient() {
       bottomDate: "31 Agu 2026",
       bottomTime: "13:30 WIB (Online)",
       metode: metodePembayaran,
-      ...(selectedBank    && { bank: selectedBank }),
+      ...(selectedBank && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
     // Arahkan ke halaman pending dulu
@@ -164,6 +198,35 @@ export default function BayarClient() {
           </p>
         </div>
 
+        {/* ── Banner Notifikasi Pembayaran Gagal ── */}
+        {isFailed && (
+          <div className="w-full bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0 text-red-600 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 7.5h.008v.008H12v-.008Z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-sm font-bold text-red-900">Pembayaran Sebelumnya Gagal</h4>
+                <button
+                  type="button"
+                  onClick={() => setFailedAlertDismissed(true)}
+                  className="text-gray-400 hover:text-gray-600 p-1 -mr-1 rounded-lg"
+                  aria-label="Tutup"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                {failedReason} Silakan periksa kembali data diri Anda di bawah ini dan pilih ulang metode pembayaran untuk mencoba kembali.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── Box 1: Data Peserta ── */}
         <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
           <div className="flex items-center gap-3 mb-6">
@@ -219,7 +282,7 @@ export default function BayarClient() {
               <div className="w-[70px] h-[70px] rounded-full bg-[#E6D9E9] shrink-0" />
               <div className="text-center sm:text-left flex flex-col justify-center h-full pt-1">
                 <div className="text-[10px] text-gray-500 mb-1">Psikolog Anda</div>
-                <div className="text-sm font-extrabold text-[#561269]">nama, M.Psi.,<br/>Psikolog</div>
+                <div className="text-sm font-extrabold text-[#561269]">nama, M.Psi.,<br />Psikolog</div>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -295,11 +358,10 @@ export default function BayarClient() {
                               return (
                                 <div
                                   key={ew.id}
-                                  className={`rounded-xl border transition-all overflow-hidden ${
-                                    isSelected
+                                  className={`rounded-xl border transition-all overflow-hidden ${isSelected
                                       ? "border-[#561269] bg-[#FAF5FC] shadow-sm"
                                       : "border-gray-200 bg-white hover:bg-gray-50"
-                                  }`}
+                                    }`}
                                 >
                                   {/* Baris item */}
                                   <button
@@ -321,15 +383,15 @@ export default function BayarClient() {
                                     </div>
                                   </button>
 
-                                  {/* Detail nomor langsung di bawah pilihan ini */}
+                                  {/* Petunjuk pembayaran via Xendit gateway */}
                                   {isSelected && (
-                                    <div className="border-t border-[#EDE0F2] bg-white px-4 py-3 flex flex-col gap-1 mx-2 mb-2 rounded-lg">
-                                      <p className="text-[11px] text-gray-500 font-medium">Nomor Tujuan Transfer {ew.name}</p>
-                                      <div className="flex items-center justify-between gap-2 mt-0.5">
-                                        <span className="text-base sm:text-lg font-extrabold text-[#561269] tracking-wider">{ew.nomor}</span>
-                                        <CopyButton text={ew.nomor} />
-                                      </div>
-                                      <p className="text-[10px] text-gray-400 mt-0.5">a.n. Empathika Indonesia</p>
+                                    <div className="border-t border-[#EDE0F2] bg-white px-4 py-2.5 flex items-center gap-2 mx-2 mb-2 rounded-lg text-xs text-gray-600">
+                                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="#561269" className="w-4 h-4 shrink-0">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3.75h3m-6-3.75h.008v.008H7.5v-.008Zm0 3.75h.008v.008H7.5v-.008Z" />
+                                      </svg>
+                                      <span className="text-[11px] leading-relaxed">
+                                        Kamu akan langsung diarahkan ke aplikasi <strong className="text-gray-900">{ew.name}</strong> atau barcode QRIS otomatis saat menekan tombol bayar.
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -349,11 +411,10 @@ export default function BayarClient() {
                               return (
                                 <div
                                   key={bank.id}
-                                  className={`rounded-xl border transition-all overflow-hidden ${
-                                    isSelected
+                                  className={`rounded-xl border transition-all overflow-hidden ${isSelected
                                       ? "border-[#561269] bg-[#FAF5FC] shadow-sm"
                                       : "border-gray-200 bg-white hover:bg-gray-50"
-                                  }`}
+                                    }`}
                                 >
                                   {/* Baris item */}
                                   <button
@@ -403,28 +464,28 @@ export default function BayarClient() {
                           </p>
                           <div className="relative w-[168px] h-[168px] bg-white border-2 border-[#561269] rounded-xl p-3 flex items-center justify-center">
                             <svg viewBox="0 0 100 100" className="w-full h-full text-[#561269]" xmlns="http://www.w3.org/2000/svg">
-                              <rect x="5"  y="5"  width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="8"  y="8"  width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="13" y="13" width="12" height="12" rx="1" fill="currentColor"/>
-                              <rect x="67" y="5"  width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="70" y="8"  width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="75" y="13" width="12" height="12" rx="1" fill="currentColor"/>
-                              <rect x="5"  y="67" width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="8"  y="70" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="13" y="75" width="12" height="12" rx="1" fill="currentColor"/>
-                              {[38,43,48,53,58,63].map((x) =>
-                                [8,13,18,23,28,33,38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x + y) % 10 < 5 ? <rect key={`p1-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              <rect x="5" y="5" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="8" y="8" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="13" y="13" width="12" height="12" rx="1" fill="currentColor" />
+                              <rect x="67" y="5" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="70" y="8" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="75" y="13" width="12" height="12" rx="1" fill="currentColor" />
+                              <rect x="5" y="67" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="8" y="70" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="13" y="75" width="12" height="12" rx="1" fill="currentColor" />
+                              {[38, 43, 48, 53, 58, 63].map((x) =>
+                                [8, 13, 18, 23, 28, 33, 38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x + y) % 10 < 5 ? <rect key={`p1-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
-                              {[8,13,18,23,28,33].map((x) =>
-                                [38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x + y) % 8 < 4 ? <rect key={`p2-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              {[8, 13, 18, 23, 28, 33].map((x) =>
+                                [38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x + y) % 8 < 4 ? <rect key={`p2-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
-                              {[68,73,78,83,88].map((x) =>
-                                [38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x * y) % 7 < 3 ? <rect key={`p3-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              {[68, 73, 78, 83, 88].map((x) =>
+                                [38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x * y) % 7 < 3 ? <rect key={`p3-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
                             </svg>
@@ -439,7 +500,7 @@ export default function BayarClient() {
                             <p className="text-[10px] text-gray-400">Total: Rp 350.000</p>
                           </div>
                           <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-                            Berlaku untuk semua aplikasi pembayaran<br/>(GoPay, OVO, DANA, dll)
+                            Berlaku untuk semua aplikasi pembayaran<br />(GoPay, OVO, DANA, dll)
                           </p>
                         </div>
                       )}

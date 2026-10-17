@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
-import { ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
+import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
 import { Calendar } from "lucide-react"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import AdminEventDetailModal from "./AdminEventDetailModal"
 
 export type EventItem = AdminEventData
 
@@ -20,6 +22,7 @@ export default function AdminEventClient() {
   )
   const [searchQuery, setSearchQuery] = useState("")
   const [openActionId, setOpenActionId] = useState<string | null>(null)
+  const [selectedEventForModal, setSelectedEventForModal] = useState<AdminEventData | null>(null)
 
   useEffect(() => {
     if (tabParam && ["semua", "seminar", "workshop", "selesai"].includes(tabParam)) {
@@ -87,34 +90,30 @@ export default function AdminEventClient() {
   const getStatusBadge = (status: AdminEventData["status"]) => {
     switch (status) {
       case "Dipublikasi":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#A2DCA4] px-4 py-1.5 text-xs font-semibold text-[#1C5E24] shadow-sm">
-            Dipublikasi
-          </span>
-        )
+        return <AdminStatusBadge variant="success" className="w-32">Dipublikasi</AdminStatusBadge>
       case "Selesai":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#E85656] px-5 py-1.5 text-xs font-semibold text-white shadow-sm">
-            Selesai
-          </span>
-        )
+        return <AdminStatusBadge variant="danger" className="w-32">Selesai</AdminStatusBadge>
       case "Draft":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#F0C94D] px-6 py-1.5 text-xs font-semibold text-[#5C4505] shadow-sm">
-            Draft
-          </span>
-        )
+        return <AdminStatusBadge variant="warning" className="w-32">Draft</AdminStatusBadge>
     }
   }
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
-      {/* ΓöÇΓöÇ Top Bar Action: Tombol Tambah Event (Pindah ke page baru) ΓöÇΓöÇ */}
-      <div className="flex justify-end">
+      {/* Top Bar: Metric Card (Kiri) & Tombol Tambah Event (Kanan) Sejajar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="w-full sm:w-72 md:w-80">
+          <AdminSummaryCard
+            label="Total Event Aktif"
+            value={totalEventAktif}
+            icon={<Calendar className="w-6 h-6 text-blue-500" />}
+            iconBgColor="bg-blue-50 text-blue-500"
+          />
+        </div>
         <button
           type="button"
           onClick={() => router.push("/admin/event/tambah")}
-          className="flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer"
+          className="self-start sm:self-center flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -128,16 +127,6 @@ export default function AdminEventClient() {
           </svg>
           Tambah Event
         </button>
-      </div>
-
-      {/* ΓöÇΓöÇ Metric Card: Total Event Aktif ΓöÇΓöÇ */}
-      <div className="w-full max-w-sm">
-        <AdminSummaryCard
-          label="Total Event Aktif"
-          value={totalEventAktif}
-          icon={<Calendar className="w-6 h-6 text-blue-500" />}
-          iconBgColor="bg-blue-50 text-blue-500"
-        />
       </div>
 
       {/* ΓöÇΓöÇ Main Card Table Container ΓöÇΓöÇ */}
@@ -263,7 +252,7 @@ export default function AdminEventClient() {
                 filteredEvents.map((item) => (
                   <tr
                     key={item.id}
-                    onClick={() => router.push(`/admin/event/${item.id}`)}
+                    onClick={() => setSelectedEventForModal(item)}
                     className="hover:bg-purple-50/40 cursor-pointer transition-colors"
                   >
                     {/* Event (Thumbnail + Title) */}
@@ -360,12 +349,16 @@ export default function AdminEventClient() {
                       {getStatusBadge(item.status)}
                     </td>
 
-                    {/* Aksi (Edit & Hapus) */}
+                    {/* Aksi (Detail, Edit & Hapus) */}
                     <td
                       className="py-4 px-5 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                        <ActionButtonDetail
+                          onClick={() => setSelectedEventForModal(item)}
+                          title="Lihat Detail Event"
+                        />
                         <ActionButtonEdit
                           onClick={(e: React.MouseEvent) => handleEditEvent(item.id, e)}
                           title="Edit Event"
@@ -383,6 +376,21 @@ export default function AdminEventClient() {
           </table>
         </div>
       </div>
+
+      {/* Modal Detail Event (Mengambang / Popup) */}
+      <AdminEventDetailModal
+        isOpen={Boolean(selectedEventForModal)}
+        onClose={() => setSelectedEventForModal(null)}
+        event={selectedEventForModal}
+        onEdit={(id) => {
+          setSelectedEventForModal(null)
+          router.push(`/admin/event/edit/${id}`)
+        }}
+        onStatusChange={(updatedEvent) => {
+          setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)))
+          setSelectedEventForModal(updatedEvent)
+        }}
+      />
     </div>
   )
 }

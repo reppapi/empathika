@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
 // ── Dummy data ────────────────────────────────────────────────────────────────
 
@@ -14,11 +14,11 @@ const BANK_LIST = [
 ]
 
 const EWALLET_LIST = [
-  { id: "gopay",     name: "GoPay",     color: "#00AA13", nomor: "0812-3456-7890" },
-  { id: "ovo",       name: "OVO",       color: "#4C3494", nomor: "0813-2345-6789" },
-  { id: "dana",      name: "DANA",      color: "#118EEA", nomor: "0811-9876-5432" },
-  { id: "shopeepay", name: "ShopeePay", color: "#EE4D2D", nomor: "0815-6543-2109" },
-  { id: "linkaja",   name: "LinkAja",   color: "#E82529", nomor: "0819-1234-5678" },
+  { id: "gopay",     name: "GoPay",     color: "#00AA13" },
+  { id: "ovo",       name: "OVO",       color: "#4C3494" },
+  { id: "dana",      name: "DANA",      color: "#118EEA" },
+  { id: "shopeepay", name: "ShopeePay", color: "#EE4D2D" },
+  { id: "linkaja",   name: "LinkAja",   color: "#E82529" },
 ]
 
 // Chevron icon
@@ -57,6 +57,7 @@ function CopyButton({ text }: { text: string }) {
 
 export default function EventCheckoutClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [nama, setNama]         = useState("")
   const [email, setEmail]       = useState("")
@@ -67,11 +68,54 @@ export default function EventCheckoutClient() {
   const [selectedEwallet, setSelectedEwallet]   = useState<string | null>(null)
   const [bankOpen, setBankOpen]                 = useState(false)
   const [ewalletOpen, setEwalletOpen]           = useState(false)
+  const [failedAlertDismissed, setFailedAlertDismissed] = useState(false)
+
+  const isFailed = searchParams.get("status") === "failed" && !failedAlertDismissed
+  const failedReason = searchParams.get("reason") || "Pembayaran tidak dapat diproses atau waktu transaksi telah berakhir."
+
+  useEffect(() => {
+    const qNama = searchParams.get("nama")
+    const qEmail = searchParams.get("email")
+    const qWa = searchParams.get("whatsapp")
+    const qMetode = searchParams.get("metode")
+    const qBank = searchParams.get("bank")
+    const qEwallet = searchParams.get("ewallet")
+
+    if (qNama) setNama(qNama)
+    if (qEmail) setEmail(qEmail)
+    if (qWa) setWhatsapp(qWa)
+    if (qMetode) setMetodePembayaran(qMetode)
+    if (qBank) {
+      setSelectedBank(qBank)
+      setBankOpen(true)
+    }
+    if (qEwallet) {
+      setSelectedEwallet(qEwallet)
+      setEwalletOpen(true)
+    }
+  }, [searchParams])
 
   const activeBank    = BANK_LIST.find((b) => b.id === selectedBank)
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
 
+  const testIdParam   = searchParams.get("testId")
+  const judulParam    = searchParams.get("judul") || "Workshop SEFT"
+  const subjudulParam = searchParams.get("subjudul") || "Spiritual Emotional Freedom Technique — program workshop interaktif bersama para ahli."
+  const kategoriParam = searchParams.get("kategori") || "Seminar"
+  const hargaParam    = searchParams.get("harga") || "Rp 200.000"
+  const isPsikotes    = kategoriParam.toLowerCase().includes("psikotes")
+
   const handleSelectPayment = (id: string) => {
+    if (metodePembayaran === id) {
+      // Jika opsi yang sama diklik lagi, tutup dropdown/accordion-nya
+      setMetodePembayaran(null)
+      setSelectedBank(null)
+      setSelectedEwallet(null)
+      setBankOpen(false)
+      setEwalletOpen(false)
+      return
+    }
+
     setMetodePembayaran(id)
     if (id !== "bank")    { setSelectedBank(null);    setBankOpen(false) }
     if (id !== "ewallet") { setSelectedEwallet(null); setEwalletOpen(false) }
@@ -89,13 +133,18 @@ export default function EventCheckoutClient() {
 
     const params = new URLSearchParams({
       nama: nama.toUpperCase(),
-      orderId: "W-SEFT-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
+      email,
+      whatsapp,
+      orderId: (isPsikotes ? "PSI-" : "W-SEFT-") + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
       tanggal: "05/09",
       tahun: "2026",
       waktu: "09:00",
-      judul: "Workshop SEFT",
-      subjudul: "Spiritual Emotional Freedom Technique",
+      judul: judulParam,
+      subjudul: subjudulParam,
+      kategori: kategoriParam,
+      harga: hargaParam,
       metode: metodePembayaran,
+      ...(testIdParam     && { testId: testIdParam }),
       ...(selectedBank    && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
@@ -141,44 +190,102 @@ export default function EventCheckoutClient() {
         {/* Title */}
         <div className="mb-2 text-center">
           <h1 className="text-2xl sm:text-[28px] font-extrabold text-[#561269] mb-2">
-            Pendaftaran &amp; Pembayaran Tiket
+            {isPsikotes ? "Pendaftaran & Pembayaran Psikotes" : "Pendaftaran & Pembayaran Tiket"}
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto">
-            Isi data kamu dan pilih metode pembayaran untuk menyelesaikan pendaftaran event.
+            {isPsikotes
+              ? "Lengkapi data kamu dan selesaikan pembayaran untuk mendapatkan akses tes serta laporan analisis lengkap."
+              : "Isi data kamu dan pilih metode pembayaran untuk menyelesaikan pendaftaran event."}
           </p>
         </div>
 
-        {/* ── Box 1: Detail Event ── */}
+        {/* ── Banner Notifikasi Pembayaran Gagal ── */}
+        {isFailed && (
+          <div className="w-full bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0 text-red-600 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 7.5h.008v.008H12v-.008Z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-sm font-bold text-red-900">Pembayaran Sebelumnya Gagal</h4>
+                <button
+                  type="button"
+                  onClick={() => setFailedAlertDismissed(true)}
+                  className="text-gray-400 hover:text-gray-600 p-1 -mr-1 rounded-lg"
+                  aria-label="Tutup"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                {failedReason} Silakan periksa kembali data diri Anda di bawah ini dan pilih ulang metode pembayaran untuk mencoba kembali.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Box 1: Detail Item / Event ── */}
         <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">1</div>
-            <h3 className="text-sm font-bold text-gray-800">Detail Event</h3>
+            <h3 className="text-sm font-bold text-gray-800">{isPsikotes ? "Detail Layanan Psikotes" : "Detail Event"}</h3>
           </div>
           <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
             <div className="relative w-full sm:w-[200px] h-[120px] rounded-2xl bg-[#E6D9E9] overflow-hidden shrink-0 border border-gray-200 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="#9B59B6" className="w-12 h-12 opacity-40">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-              </svg>
+              {isPsikotes ? (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#561269" className="w-12 h-12 opacity-60">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="#9B59B6" className="w-12 h-12 opacity-40">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                </svg>
+              )}
             </div>
             <div className="flex flex-col w-full">
-              <div className="text-xs text-gray-500 mb-1">Seminar</div>
-              <div className="text-lg font-extrabold text-[#561269] mb-2">Workshop SEFT</div>
+              <div className="text-xs font-semibold text-purple-700 bg-purple-50 w-fit px-2.5 py-0.5 rounded-full mb-1">
+                {kategoriParam}
+              </div>
+              <div className="text-lg font-extrabold text-[#561269] mb-1">{judulParam}</div>
               <p className="text-xs text-gray-600 mb-4 line-clamp-2">
-                Spiritual Emotional Freedom Technique — program workshop interaktif bersama para ahli.
+                {subjudulParam}
               </p>
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Z" />
-                  </svg>
-                  <span className="text-xs font-medium text-gray-500">05 September 2026</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
-                  <span className="text-xs font-medium text-gray-500">09:00 - Selesai WIB</span>
-                </div>
+                {isPsikotes ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-[#561269]">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      <span className="text-xs font-medium text-gray-700">Akses Pengerjaan Online</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-[#561269]">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                      </svg>
+                      <span className="text-xs font-medium text-gray-700">Laporan Analisis Komprehensif</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Z" />
+                      </svg>
+                      <span className="text-xs font-medium text-gray-500">05 September 2026</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      <span className="text-xs font-medium text-gray-500">09:00 - Selesai WIB</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -287,15 +394,15 @@ export default function EventCheckoutClient() {
                                     </div>
                                   </button>
 
-                                  {/* Detail nomor langsung di bawah pilihan ini */}
+                                  {/* Petunjuk pembayaran via Xendit gateway */}
                                   {isSelected && (
-                                    <div className="border-t border-[#EDE0F2] bg-white px-4 py-3 flex flex-col gap-1 mx-2 mb-2 rounded-lg">
-                                      <p className="text-[11px] text-gray-500 font-medium">Nomor Tujuan Transfer {ew.name}</p>
-                                      <div className="flex items-center justify-between gap-2 mt-0.5">
-                                        <span className="text-base sm:text-lg font-extrabold text-[#561269] tracking-wider">{ew.nomor}</span>
-                                        <CopyButton text={ew.nomor} />
-                                      </div>
-                                      <p className="text-[10px] text-gray-400 mt-0.5">a.n. Empathika Indonesia</p>
+                                    <div className="border-t border-[#EDE0F2] bg-white px-4 py-2.5 flex items-center gap-2 mx-2 mb-2 rounded-lg text-xs text-gray-600">
+                                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="#561269" className="w-4 h-4 shrink-0">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3.75h3m-6-3.75h.008v.008H7.5v-.008Zm0 3.75h.008v.008H7.5v-.008Z" />
+                                      </svg>
+                                      <span className="text-[11px] leading-relaxed">
+                                        Kamu akan langsung diarahkan ke aplikasi <strong className="text-gray-900">{ew.name}</strong> atau barcode QRIS otomatis saat menekan tombol bayar.
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -403,7 +510,7 @@ export default function EventCheckoutClient() {
                           </div>
                           <div className="text-center">
                             <p className="text-xs font-bold text-[#561269]">Empathika Indonesia</p>
-                            <p className="text-[10px] text-gray-400">Total: Rp 200.000</p>
+                            <p className="text-[10px] text-gray-400">Total: {hargaParam}</p>
                           </div>
                           <p className="text-[10px] text-gray-400 text-center leading-relaxed">
                             Berlaku untuk semua aplikasi pembayaran<br/>(GoPay, OVO, DANA, dll)
@@ -421,12 +528,12 @@ export default function EventCheckoutClient() {
           {/* Pricing Info + CTA */}
           <div className="border-t border-gray-200 pt-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-500">Biaya Tiket</span>
-              <span className="text-xs font-medium text-gray-500">Rp 200.000</span>
+              <span className="text-xs text-gray-500">{isPsikotes ? "Biaya Paket Psikotes" : "Biaya Tiket"}</span>
+              <span className="text-xs font-semibold text-gray-700">{hargaParam}</span>
             </div>
             <div className="flex justify-between items-center mb-8">
               <span className="text-sm font-extrabold text-[#561269]">Total Bayar</span>
-              <span className="text-sm font-extrabold text-[#561269]">Rp 200.000</span>
+              <span className="text-base font-extrabold text-[#561269]">{hargaParam}</span>
             </div>
             <button
               onClick={handleSubmit}
@@ -442,8 +549,12 @@ export default function EventCheckoutClient() {
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] py-4 px-6 sm:px-10 lg:px-24 flex items-center justify-between z-40">
         <div>
-          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">05 Sep 2026</div>
-          <div className="text-sm sm:text-[17px] font-bold text-black">09:00 WIB</div>
+          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-0.5 line-clamp-1 max-w-[200px] sm:max-w-md">
+            {judulParam}
+          </div>
+          <div className="text-sm sm:text-[17px] font-extrabold text-[#561269]">
+            {hargaParam}
+          </div>
         </div>
         <button
           onClick={() => window.history.back()}

@@ -9,29 +9,38 @@ function PendingContent() {
   const searchParams = useSearchParams()
 
   const nama      = searchParams.get("nama")      ?? "PESERTA"
+  const email     = searchParams.get("email")     ?? ""
+  const whatsapp  = searchParams.get("whatsapp")  ?? ""
   const orderId   = searchParams.get("orderId")   ?? "W-EMP-0000"
   const tanggal   = searchParams.get("tanggal")   ?? "05/09"
   const tahun     = searchParams.get("tahun")     ?? "2026"
   const waktu     = searchParams.get("waktu")     ?? "09:00"
   const judul     = searchParams.get("judul")     ?? "Workshop SEFT"
   const subjudul  = searchParams.get("subjudul")  ?? "Spiritual Emotional Freedom Technique"
+  const testId    = searchParams.get("testId")
+  const kategori  = searchParams.get("kategori")  ?? "Seminar"
+  const harga     = searchParams.get("harga")     ?? "Rp 200.000"
   const metode    = searchParams.get("metode")    ?? "qris"
   const bank      = searchParams.get("bank")
   const ewallet   = searchParams.get("ewallet")
 
   // Timer mundur 5 menit (300 detik) — simulasi menunggu pembayaran
   const [seconds, setSeconds] = useState(300)
-  // Fase: "waiting" → "checking" → "confirmed"
-  const [phase, setPhase]     = useState<"waiting" | "checking" | "confirmed">("waiting")
+  // Fase: "waiting" → "checking" → "confirmed" | "failed"
+  const [phase, setPhase]     = useState<"waiting" | "checking" | "confirmed" | "failed">("waiting")
   // Dots animasi
   const [dots, setDots]       = useState(".")
 
   // Countdown
   useEffect(() => {
-    if (phase === "confirmed") return
+    if (phase === "confirmed" || phase === "failed") return
     const id = setInterval(() => {
       setSeconds((s) => {
-        if (s <= 1) { clearInterval(id); return 0 }
+        if (s <= 1) {
+          clearInterval(id)
+          setPhase("failed")
+          return 0
+        }
         return s - 1
       })
     }, 1000)
@@ -46,10 +55,18 @@ function PendingContent() {
 
   // Simulasi: setelah 8 detik masuk fase "checking", 5 detik kemudian "confirmed"
   useEffect(() => {
+    // Cek jika ada query param simulation 'sim=failed' untuk demo gagal otomatis
+    const sim = searchParams.get("sim")
+    if (sim === "failed") {
+      const t1 = setTimeout(() => setPhase("checking"), 3000)
+      const t2 = setTimeout(() => setPhase("failed"), 6000)
+      return () => { clearTimeout(t1); clearTimeout(t2) }
+    }
+
     const t1 = setTimeout(() => setPhase("checking"), 8000)
     const t2 = setTimeout(() => setPhase("confirmed"),  13000)
     return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [])
+  }, [searchParams])
 
   // Ketika confirmed → redirect ke success
   useEffect(() => {
@@ -63,7 +80,10 @@ function PendingContent() {
         waktu,
         judul,
         subjudul,
+        kategori,
+        harga,
         metode,
+        ...(testId  && { testId }),
         ...(bank && { bank }),
         ...(ewallet && { ewallet }),
       })
@@ -71,6 +91,25 @@ function PendingContent() {
     }, 2000)
     return () => clearTimeout(t)
   }, [phase])
+
+  const handleBackToPayment = (reason?: string) => {
+    const params = new URLSearchParams({
+      status: "failed",
+      reason: reason || "Pembayaran dibatalkan atau waktu pembayaran telah habis.",
+      ...(nama && { nama }),
+      ...(email && { email }),
+      ...(whatsapp && { whatsapp }),
+      ...(judul && { judul }),
+      ...(subjudul && { subjudul }),
+      ...(testId && { testId }),
+      ...(kategori && { kategori }),
+      ...(harga && { harga }),
+      ...(metode && { metode }),
+      ...(bank && { bank }),
+      ...(ewallet && { ewallet }),
+    })
+    router.push(`/event/checkout?${params.toString()}`)
+  }
 
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0")
   const ss = String(seconds % 60).padStart(2, "0")
@@ -192,6 +231,36 @@ function PendingContent() {
               </>
             )}
 
+            {/* ── Fase: Failed ── */}
+            {phase === "failed" && (
+              <>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-[#DC2626] mb-6">
+                  Pembayaran Gagal
+                </h2>
+
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-red-100 flex items-center justify-center mb-6 shadow-[0_4px_15px_rgba(239,68,68,0.2)]">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-12 h-12 text-[#DC2626]">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </div>
+
+                <div className="text-center mb-6 max-w-sm">
+                  <p className="text-sm font-semibold text-gray-800 mb-1.5">
+                    Transaksi Tidak Berhasil Diproses
+                  </p>
+                  <p className="text-xs text-gray-500 leading-relaxed mb-5">
+                    Waktu pembayaran telah berakhir atau transaksi ditolak. Tenang, data pemesanan tiket Anda tersimpan.
+                  </p>
+                  <button
+                    onClick={() => handleBackToPayment("Pembayaran tidak berhasil atau waktu telah habis. Silakan ulangi proses pembayaran.")}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-[#561269] hover:bg-[#6e1886] text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
+                  >
+                    Kembali &amp; Coba Bayar Lagi
+                  </button>
+                </div>
+              </>
+            )}
+
             {/* ── Ringkasan Tiket Pemesanan (Disamakan dengan layout tiket success) ── */}
             <div className="w-full max-w-md rounded-xl border border-dashed border-[#C3A4CE] bg-[#FCFAFD] p-6 mb-6">
               {/* Header Tiket */}
@@ -282,7 +351,7 @@ function PendingContent() {
                 </div>
 
                 <button
-                  onClick={() => router.back()}
+                  onClick={() => handleBackToPayment("Pembayaran dibatalkan oleh pengguna.")}
                   className="text-xs text-gray-400 hover:text-gray-600 underline transition-colors mt-2"
                 >
                   Batalkan &amp; kembali ke pembayaran

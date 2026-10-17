@@ -6,7 +6,14 @@ export interface TodaySessionItem {
   psikolog: string
   layanan: string
   metode: "Online" | "Offline"
-  status: "Selesai" | "Sedang Berjalan" | "Mendatang"
+  status:
+    | "Selesai"
+    | "Sedang Berjalan"
+    | "Sedang Berlangsung"
+    | "Segera Dimulai"
+    | "Menunggu Jadwal"
+    | "Mendatang"
+    | "Dibatalkan"
 }
 
 export interface MetricItem {

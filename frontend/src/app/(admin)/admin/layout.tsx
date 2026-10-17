@@ -9,19 +9,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
 
-  // Menentukan judul navbar berdasarkan URL
-  let pageTitle = "Kelola Layanan Konsultasi"
-  if (pathname === "/admin") pageTitle = "Ringkasan Operasional"
-  else if (pathname?.startsWith("/admin/jadwal")) pageTitle = "Jadwal & Sesi"
-  else if (pathname?.startsWith("/admin/event")) pageTitle = "Event"
-  else if (pathname?.startsWith("/admin/transaksi")) pageTitle = "Riwayat Transaksi & Pembayaran"
-  else if (pathname?.startsWith("/admin/psikolog")) pageTitle = "Data Psikolog"
-  else if (pathname?.startsWith("/admin/psikotes")) pageTitle = "Psikotes"
-  else if (pathname?.startsWith("/admin/blog")) pageTitle = "Kelola Blog Empathika"
-  else if (pathname?.startsWith("/admin/layanan")) pageTitle = "Kelola Layanan Konsultasi"
-  else if (pathname?.startsWith("/admin/biro")) pageTitle = "Pengaturan Biro & Komunitas"
-  else if (pathname?.startsWith("/admin/kerja-sama")) pageTitle = "Kerja Sama"
-  else if (pathname?.startsWith("/admin/profile")) pageTitle = "Pengaturan Profil"
+  // Menentukan judul dan deskripsi navbar berdasarkan URL
+  let pageTitle = "Ringkasan Operasional"
+  let pageDescription = "Pantau aktivitas, statistik, dan perkembangan operasional Empathika secara menyeluruh."
+
+  if (pathname === "/admin") {
+    pageTitle = "Ringkasan Operasional"
+    pageDescription = "Pantau aktivitas, statistik, dan perkembangan operasional Empathika secara menyeluruh."
+  } else if (pathname?.startsWith("/admin/jadwal")) {
+    pageTitle = "Jadwal & Sesi"
+    pageDescription = "Kelola sesi konsultasi baru untuk client dan pantau daftar client yang melakukan booking konsultasi."
+  } else if (pathname?.startsWith("/admin/event")) {
+    pageTitle = "Manajemen Event"
+    pageDescription = "Kelola informasi event, jadwal pelaksanaan, pendaftaran peserta, dan publikasi kegiatan."
+  } else if (pathname?.startsWith("/admin/transaksi")) {
+    pageTitle = "Manajemen Transaksi"
+    pageDescription = "Pantau transaksi pembayaran dan status pembayaran dari berbagai layanan Empathika."
+  } else if (pathname?.startsWith("/admin/psikolog")) {
+    pageTitle = "Manajemen Psikolog"
+    pageDescription = "Kelola data psikolog, informasi profesional, spesialisasi, dan status keanggotaan."
+  } else if (pathname?.startsWith("/admin/psikotes")) {
+    pageTitle = "Manajemen Psikotes"
+    pageDescription = "Kelola paket psikotes, soal, interpretasi, dan hasil tes yang tersedia di Empathika."
+  } else if (pathname?.startsWith("/admin/blog")) {
+    pageTitle = "Manajemen Blog"
+    pageDescription = "Kelola artikel, dan publikasi konten edukasi di website Empathika."
+  } else if (pathname?.startsWith("/admin/layanan")) {
+    pageTitle = "Manajemen Layanan"
+    pageDescription = "Kelola informasi layanan, detail, harga, dan ketersediaan layanan Empathika."
+  } else if (pathname?.startsWith("/admin/biro")) {
+    pageTitle = "Pengaturan Biro & Komunitas"
+    pageDescription = "Kelola profil tenant mitra, registrasi biro, dan status aktivasi website multi-tenant."
+  } else if (pathname?.startsWith("/admin/kerja-sama")) {
+    pageTitle = "Manajemen Kerja Sama"
+    pageDescription = "Kelola data mitra, pengajuan kerja sama, dan status kolaborasi dengan Empathika."
+  } else if (pathname?.startsWith("/admin/profile")) {
+    pageTitle = "Pengaturan Profil"
+    pageDescription = "Kelola informasi identitas, foto profil, dan kredensial akun administrator."
+  }
 
   return (
     <div className="min-h-screen bg-[#FBFBFC] font-poppins text-gray-800 flex">
@@ -36,6 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Top Header Navbar dengan tombol Burger responsif */}
         <AdminNavbar
           title={pageTitle}
+          description={pageDescription}
           onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         />
 

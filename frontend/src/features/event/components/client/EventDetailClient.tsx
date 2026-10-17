@@ -1,8 +1,21 @@
 "use client"
 
 import Image from "next/image"
+import { AdminEventData } from "@/features/event/data/adminEventData"
 
-export default function EventDetailClient() {
+interface Props {
+  id: string
+  event?: AdminEventData
+}
+
+export default function EventDetailClient({ id: _id, event }: Props) {
+  const judul = event?.judul ?? "Seminar Empathika"
+  const subjudul = event?.subjudul
+  const tanggal = event?.tanggal ?? "-"
+  const waktu = event?.waktu ?? "-"
+  const lokasi = event?.lokasi ?? "-"
+  const deskripsi = event?.deskripsi ?? ""
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#F3E8F5] to-[#B583C2] font-poppins pb-10">
       {/* Hero Section */}
@@ -26,18 +39,31 @@ export default function EventDetailClient() {
         
         <div className="relative z-10 text-center px-4 mt-8">
           <h1 className="text-4xl md:text-5xl lg:text-[64px] font-extrabold text-white drop-shadow-md">
-            Seminar Empathika
+            {judul}
           </h1>
+          {subjudul && (
+            <p className="mt-3 text-lg md:text-xl text-white/90 font-medium drop-shadow">{subjudul}</p>
+          )}
         </div>
       </div>
 
       {/* Middle Text Section */}
       <div className="w-full max-w-[900px] mx-auto px-6 py-12 md:py-20 text-center relative z-10">
-        <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor 
-          incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud 
-          exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-        </p>
+        {deskripsi ? (
+          <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium">{deskripsi}</p>
+        ) : (
+          <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor 
+            incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud 
+            exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+          </p>
+        )}
+        {/* Info pills */}
+        <div className="flex flex-wrap justify-center gap-3 mt-6">
+          <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{tanggal}</span>
+          <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{waktu}</span>
+          {lokasi && <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{lokasi}</span>}
+        </div>
       </div>
 
       {/* Split Section */}

@@ -1,14 +1,19 @@
+"use client"
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
 import { TEST_DATA } from "../../data/psikotesData";
+import { Check, ShieldCheck, FileQuestion, ArrowRight } from "lucide-react";
 
 export default function PsikotesDetailClient({ params }: { params: { testId: string } }) {
   // Gunakan fallback "mbti" jika testId tidak ada di mock data
   const data = TEST_DATA[params.testId as keyof typeof TEST_DATA] || TEST_DATA["mbti"];
+  const [selectedPlan, setSelectedPlan] = useState<"gratis" | "berbayar">("berbayar");
+
+  const checkoutUrl = `/event/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
 
   return (
-    // Kita meniadakan padding atas agar banner memenuhi ruang di bawah navbar yang transparan
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">
       
       {/* 1. HERO BANNER */}
@@ -25,7 +30,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
         
         <div className="absolute inset-0 flex flex-col justify-end pb-16 lg:pb-20 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 tracking-tight max-w-4xl leading-[1.1] drop-shadow-md">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 tracking-tight max-w-4xl leading-[1.1] drop-shadow-md">
             {data.title}
           </h1>
           <p className="text-gray-200 text-base md:text-xl font-light max-w-2xl drop-shadow-sm">
@@ -39,7 +44,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
           
           {/* Left Column: Description & Guidelines */}
-          <div className="lg:w-2/3 bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-100 flex flex-col gap-12">
+          <div className="lg:w-2/3 bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-100 flex flex-col gap-10">
             
             {/* Overview */}
             <div>
@@ -49,7 +54,118 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
               </p>
             </div>
 
-            {/* Benefits */}
+            {/* Perbandingan Pilihan Paket (Gratis vs Berbayar) */}
+            <div className="p-6 md:p-8 rounded-3xl bg-gray-50 border border-gray-200/80">
+              <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-[#561269]" />
+                Pilihan Akses Tes: Gratis &amp; Berbayar
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Kamu dapat memilih antara pengerjaan gratis untuk hasil ringkas atau paket berbayar untuk hasil analisis komprehensif.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Kartu Ringkasan Gratis */}
+                <div 
+                  onClick={() => setSelectedPlan("gratis")}
+                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    selectedPlan === "gratis" 
+                      ? "border-emerald-500 bg-white shadow-md ring-2 ring-emerald-500/10" 
+                      : "border-gray-200 bg-white/70 hover:border-gray-300"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                        Akses Gratis
+                      </span>
+                      {selectedPlan === "gratis" && (
+                        <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" /> Dipilih
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1.5 mb-2">
+                      <span className="text-2xl font-black text-gray-900">Rp 0</span>
+                      <span className="text-xs text-gray-400 font-semibold">/ Gratis</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-4">Cocok untuk pengenalan diri cepat tanpa biaya.</p>
+                    <ul className="space-y-2 text-xs text-gray-600 mb-4">
+                      {data.freeBenefits.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPlan("gratis");
+                    }}
+                    className={`w-full py-2 rounded-xl text-xs font-bold transition ${
+                      selectedPlan === "gratis" 
+                        ? "bg-emerald-600 text-white" 
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Pilih Paket Gratis
+                  </button>
+                </div>
+
+                {/* Kartu Ringkasan Berbayar */}
+                <div 
+                  onClick={() => setSelectedPlan("berbayar")}
+                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden ${
+                    selectedPlan === "berbayar" 
+                      ? "border-[#561269] bg-white shadow-md ring-2 ring-[#561269]/10" 
+                      : "border-gray-200 bg-white/70 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="absolute top-0 right-0 bg-[#EAB308] text-gray-950 font-extrabold text-[10px] px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+                    Rekomendasi
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#561269] bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">
+                        Paket Lengkap
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1.5 mb-2">
+                      <span className="text-2xl font-black text-[#561269]">{data.formattedPrice}</span>
+                      <span className="text-xs text-gray-400 font-semibold">/ satu kali tes</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-4">Laporan analisis lengkap &amp; komprehensif (PDF).</p>
+                    <ul className="space-y-2 text-xs text-gray-700 mb-4">
+                      {data.paidBenefits.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 text-[#561269] shrink-0 mt-0.5" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPlan("berbayar");
+                    }}
+                    className={`w-full py-2 rounded-xl text-xs font-bold transition ${
+                      selectedPlan === "berbayar" 
+                        ? "bg-[#561269] text-white" 
+                        : "bg-purple-50 text-[#561269] hover:bg-purple-100"
+                    }`}
+                  >
+                    Pilih Paket Berbayar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Benefits Umum */}
             <div>
               <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-6">Apa yang akan kamu dapatkan?</h2>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -93,48 +209,113 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
 
           </div>
 
-          {/* Right Column: Sticky Sidebar with CTA */}
+          {/* Right Column: Sticky Sidebar with Interactive CTA */}
           <div className="lg:w-1/3 w-full sticky top-[120px]">
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-lg border border-gray-100 flex flex-col gap-8">
+            <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-lg border border-gray-100 flex flex-col gap-6">
               
-              {/* Meta info */}
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-5 bg-[#f8f9fa] p-5 rounded-2xl">
-                  <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-sm">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium mb-0.5">Estimasi Waktu</p>
-                    <p className="text-xl font-bold text-gray-900 tracking-tight">{data.duration}</p>
-                  </div>
+              {/* Info Jumlah Soal */}
+              <div className="flex items-center gap-3.5 bg-[#f8f9fa] p-4 rounded-2xl border border-gray-100">
+                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
+                  <FileQuestion className="w-5 h-5" />
                 </div>
-                
-                <div className="flex items-center gap-5 bg-[#f8f9fa] p-5 rounded-2xl">
-                  <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-sm">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium mb-0.5">Jumlah Soal</p>
-                    <p className="text-xl font-bold text-gray-900 tracking-tight">{data.questions}</p>
-                  </div>
+                <div>
+                  <p className="text-[11px] text-gray-400 font-medium">Jumlah Soal</p>
+                  <p className="text-sm font-bold text-gray-900 leading-tight">{data.questions}</p>
                 </div>
               </div>
 
-              <hr className="border-gray-100" />
+              {/* Detail Plan Berbayar atau Gratis (Menyesuaikan otomatis dari klikan Pilihan Akses Tes) */}
 
-              {/* Pricing / Free info */}
-              <div className="text-center">
-                <span className="inline-block px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-widest mb-3">Akses Gratis</span>
-                <p className="text-sm text-gray-500 font-medium leading-relaxed">Tes ini dapat diakses dan diselesaikan secara gratis oleh seluruh pengguna Empathika.</p>
-              </div>
+              {/* Detail Plan Berbayar */}
+              {selectedPlan === "berbayar" ? (
+                <div className="flex flex-col gap-5 p-5 rounded-2xl bg-gradient-to-b from-purple-50/60 to-white border border-purple-100">
+                  <div>
+                    <div className="mb-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#561269] bg-purple-100 px-2.5 py-0.5 rounded-md">
+                        {data.paidPackageName}
+                      </span>
+                    </div>
 
-              {/* CTA Button */}
-              <Link 
-                href={`/psikotes/${params.testId}/mulai`}
-                className="w-full flex items-center justify-center py-5 rounded-[1.25rem] bg-[#561269] hover:bg-[#763E8B] text-white font-extrabold text-lg transition-all duration-300 shadow-md hover:shadow-[0_8px_20px_rgba(86,18,105,0.25)] hover:-translate-y-1"
-              >
-                Mulai Tes Sekarang
-              </Link>
+                    <div className="pt-2">
+                      <span className="text-[11px] text-gray-500 block">Total Biaya Akses</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl sm:text-4xl font-extrabold text-[#561269] tracking-tight">
+                          {data.formattedPrice}
+                        </span>
+                        <span className="text-xs text-gray-400 font-medium">/ 1x tes</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 border-t border-purple-100/80 pt-3 text-xs text-gray-700">
+                    <p className="font-bold text-gray-900">Termasuk dalam paket ini:</p>
+                    {data.paidBenefits.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#561269] shrink-0 mt-0.5" />
+                        <span className="leading-snug">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CTA Button Berbayar */}
+                  <Link 
+                    href={checkoutUrl as any}
+                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
+                  >
+                    <span>Lanjut ke Pembayaran</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+
+                  <p className="text-[11px] text-gray-400 text-center">
+                    Pembayaran aman via QRIS, Bank Transfer, dan E-Wallet resmi.
+                  </p>
+                </div>
+              ) : (
+                /* Detail Plan Gratis */
+                <div className="flex flex-col gap-5 p-5 rounded-2xl bg-emerald-50/40 border border-emerald-100">
+                  <div>
+                    <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-md mb-2">
+                      Akses Standar Empathika
+                    </span>
+                    <div>
+                      <span className="text-[11px] text-gray-500 block">Biaya Pengerjaan</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl sm:text-4xl font-extrabold text-emerald-700 tracking-tight">
+                          Rp 0
+                        </span>
+                        <span className="text-xs text-emerald-600 font-bold uppercase">Gratis</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 border-t border-emerald-100 pt-3 text-xs text-gray-700">
+                    <p className="font-bold text-gray-900">Fitur akses gratis:</p>
+                    {data.freeBenefits.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span className="leading-snug">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CTA Button Gratis */}
+                  <Link 
+                    href={`/psikotes/${params.testId}/mulai`}
+                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#561269] hover:bg-[#763E8B] text-white font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
+                  >
+                    <span>Mulai Tes Gratis</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPlan("berbayar")}
+                    className="text-xs text-[#561269] font-bold text-center hover:underline cursor-pointer"
+                  >
+                    Ingin laporan analisis lengkap? Pilih Paket Berbayar ({data.formattedPrice})
+                  </button>
+                </div>
+              )}
               
             </div>
           </div>
@@ -144,4 +325,3 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     </div>
   );
 }
-

@@ -7,7 +7,7 @@ import { Building2, Mail, Phone, MapPin, Globe, Palette, ShieldCheck, Lock, Chec
 
 export default function ProfilBiroClient() {
   const [biro, setBiro] = useState<BiroKomunitas>(INITIAL_BIRO_LIST[0])
-  
+
   // State untuk form ganti password / keamanan akun
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -24,7 +24,7 @@ export default function ProfilBiroClient() {
         const found = list.find((b) => b.id === "biro-01") || list[0]
         if (found) setBiro(found)
       }
-    } catch {}
+    } catch { }
   }, [])
 
   const handleUpdatePassword = (e: React.FormEvent) => {
@@ -63,11 +63,10 @@ export default function ProfilBiroClient() {
       {/* Toast Alert */}
       {toastMessage && (
         <div
-          className={`flex items-center gap-3 p-4 rounded-2xl border text-sm font-semibold transition-all ${
-            toastType === "success"
+          className={`flex items-center gap-3 p-4 rounded-2xl border text-sm font-semibold transition-all ${toastType === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
               : "bg-red-50 border-red-200 text-red-800"
-          }`}
+            }`}
         >
           {toastType === "success" ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />

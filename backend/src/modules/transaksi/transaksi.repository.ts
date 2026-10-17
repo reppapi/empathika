@@ -1,9 +1,9 @@
 import type { PrismaClient } from '@prisma/client'
 
 export class TransaksiRepository {
-  constructor(private prisma: PrismaClient) { }
+  constructor(private prisma: PrismaClient) {}
 
-  async findAll(_params?: { userId?: string; status?: string }) {
+  async findAll(_params?: { clientId?: string; status?: string }) {
     return this.prisma.transaksi.findMany()
   }
 
@@ -13,30 +13,29 @@ export class TransaksiRepository {
     })
   }
 
-  async findByUserId(id_user: string) {
-    return this.prisma.transaksi.findMany({
-      where: { id_client: id_user },
-    })
-  }
-
   async findByClientId(id_client: string) {
     return this.prisma.transaksi.findMany({
       where: { id_client },
     })
   }
 
-  async create(data: { id_booking?: string; id_user?: string; id_client?: string; jumlah: number; metode_pembayaran: string }) {
+  // Alias untuk kompatibilitas jika ada yang memanggil findByUserId
+  async findByUserId(id_client: string) {
+    return this.findByClientId(id_client)
+  }
+
+  async create(data: { id_booking?: string; id_client: string; jumlah: number; metode_pembayaran: string }) {
     return this.prisma.transaksi.create({
       data: {
-        id_client: data.id_client || data.id_user || '',
+        id_client: data.id_client,
         subtotal: data.jumlah,
         biaya_admin: 0,
         metode_pembayaran: (data.metode_pembayaran?.toUpperCase() === 'TRANSFER_BANK'
           ? 'TRANSFER_BANK'
           : data.metode_pembayaran?.toUpperCase() === 'E_WALLET'
-            ? 'E_WALLET'
-            : 'QRIS') as any,
-      } as any,
+          ? 'E_WALLET'
+          : 'QRIS') as any,
+      },
     })
   }
 
@@ -45,7 +44,7 @@ export class TransaksiRepository {
       where: { id },
       data: {
         status_pembayaran: status as any,
-        tanggal_bayar: status === 'PAID' ? new Date() : undefined,
+        ...(status === 'PAID' && { tanggal_bayar: new Date() }),
         ...(paymentData && { data_pembayaran: JSON.stringify(paymentData) }),
       } as any,
     })

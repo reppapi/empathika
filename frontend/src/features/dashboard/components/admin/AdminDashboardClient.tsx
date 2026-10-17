@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { Calendar, Plus, CheckCircle2 } from "lucide-react"
 
 import ModalTambahSesi, { NewSessionData } from "./ModalTambahSesi"
@@ -14,14 +14,49 @@ import { TodaySessionItem } from "../../types"
 import {
   INITIAL_DASHBOARD_METRICS,
   INITIAL_AGENDA_LIST,
-  INITIAL_RECENT_TRANSACTIONS,
-  INITIAL_TODAY_SESSIONS,
 } from "../../data/dashboardData"
+import {
+  TransaksiItem,
+  getTodayTransactions,
+  getTodayDateKey,
+} from "@/features/transaksi/data/transaksiData"
+import { getInitialSessionsBasedOnTime } from "@/features/konseling/components/admin/JadwalAdmin"
 
 export default function AdminDashboardClient() {
-  const [sessions, setSessions] = useState<TodaySessionItem[]>(INITIAL_TODAY_SESSIONS)
+  // 1. Ambil sesi konseling hari ini langsung dari Sesi & Jadwal (JadwalAdmin) bagian Sesi Klien Hari Ini
+  const [sessions, setSessions] = useState<TodaySessionItem[]>(() => {
+    return getInitialSessionsBasedOnTime().map((item) => ({
+      waktu: item.waktu.includes("WIB") ? item.waktu : `${item.waktu} WIB`,
+      klien: item.namaKlien,
+      psikolog: item.psikolog,
+      layanan: item.layanan,
+      metode: item.tipe.toLowerCase().includes("online") ? "Online" : "Offline",
+      status: item.status,
+    }))
+  })
+
+  // 2. Ambil transaksi pembayaran pada saat tanggal hari ini saja
+  const [transactions, setTransactions] = useState<TransaksiItem[]>(() => {
+    return getTodayTransactions()
+  })
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
+
+  // Reaktif terhadap jam berjalan agar status sesi konseling sinkron otomatis seperti di JadwalAdmin
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const liveSessions = getInitialSessionsBasedOnTime()
+      setSessions((prev) =>
+        prev.map((curr) => {
+          const match = liveSessions.find((s) => s.namaKlien === curr.klien)
+          return match ? { ...curr, status: match.status } : curr
+        })
+      )
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   const currentDate = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
@@ -31,6 +66,7 @@ export default function AdminDashboardClient() {
   }).format(new Date())
 
   const handleSessionSuccess = (newSession: NewSessionData) => {
+    // 1. Tambahkan ke Sesi Konseling Hari Ini
     const item: TodaySessionItem = {
       waktu: newSession.waktu,
       klien: newSession.namaKlien,
@@ -40,6 +76,29 @@ export default function AdminDashboardClient() {
       status: newSession.status,
     }
     setSessions((prev) => [item, ...prev])
+
+    // 2. Tambahkan transaksi pada tanggal hari ini
+    const newTrx: TransaksiItem = {
+      id: "trx_" + Date.now(),
+      orderId: "KL-0" + Math.floor(130 + Math.random() * 800),
+      orderDate: `Hari Ini, ${newSession.waktu.split(" - ")[0]} WIB`,
+      clientName: newSession.namaKlien,
+      clientEmail: `${newSession.namaKlien.toLowerCase().replace(/\s+/g, ".")}@gmail.com`,
+      clientPhone: newSession.kontak || "0812-0000-0000",
+      jenisLayanan: "konseling",
+      namaLayanan: newSession.layanan,
+      psikologOrFasilitator: newSession.psikolog,
+      jadwal: `Hari Ini, ${newSession.waktu}`,
+      status: "Menunggu Pembayaran",
+      subtotal: 250000,
+      biayaLayanan: 2500,
+      totalBayar: 252500,
+      metodePembayaran: "BCA Virtual Account",
+      waktuPembayaran: "-",
+      tanggalTransaksi: getTodayDateKey(),
+    }
+    setTransactions((prev) => [newTrx, ...prev])
+
     setNotification(`Sesi konseling baru untuk "${newSession.namaKlien}" berhasil dijadwalkan!`)
     setTimeout(() => setNotification(null), 4000)
   }
@@ -54,35 +113,27 @@ export default function AdminDashboardClient() {
         </div>
       )}
 
-      {/* 1. Header & Quick Actions */}
+      {/* 1. Welcome & Quick Actions Bar */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-              Selamat Pagi, Admin!
-            </h1>
-            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-              Operasional Aktif
-            </span>
-          </div>
-          <p className="text-gray-500 text-sm mt-1">
-            Berikut adalah ringkasan performa dan aktivitas layanan Empathika hari ini.
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+            Selamat Datang, Admin!
+          </h1>
         </div>
 
-        {/* Kolom Kanan: Disusun Vertikal (Atas: Tanggal, Bawah: Tombol Tambah Sesi) */}
-        <div className="flex flex-col items-start sm:items-end justify-center gap-2.5 shrink-0 w-full sm:w-auto">
-          {/* Atas: Tanggal Hari Ini */}
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200/90 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-gray-700 shadow-2xs">
+        {/* Kolom Kanan: Tanggal & Tombol Tambah Sesi */}
+        <div className="flex flex-wrap items-center gap-3 shrink-0 w-full sm:w-auto justify-start sm:justify-end">
+          {/* Tanggal Hari Ini */}
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200/90 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-700 shadow-2xs">
             <Calendar className="w-3.5 h-3.5 text-[#8a720d]" />
             <span>{currentDate}</span>
           </div>
 
-          {/* Bawah: Tombol Tambah Sesi */}
+          {/* Tombol Tambah Sesi */}
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all transform active:scale-98 cursor-pointer w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2 rounded-full text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all transform active:scale-98 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Tambah Sesi</span>
@@ -99,10 +150,10 @@ export default function AdminDashboardClient() {
         <DashboardAgenda agendaList={INITIAL_AGENDA_LIST} />
       </div>
 
-      {/* 4. Bagian Bawah: Jadwal Konseling Hari Ini & Transaksi Terbaru */}
+      {/* 4. Bagian Bawah: Jadwal Konseling Hari Ini & Transaksi Pembayaran Hari Ini */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DashboardTodaySessions sessions={sessions} />
-        <DashboardRecentTransactions transactions={INITIAL_RECENT_TRANSACTIONS} />
+        <DashboardRecentTransactions transactions={transactions} />
       </div>
 
       {/* Modal Tambah Sesi */}

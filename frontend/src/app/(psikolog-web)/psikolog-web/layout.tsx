@@ -7,6 +7,7 @@ import SidebarPsikolog from "@/components/layout/SidebarPsikolog"
 import AdminNavbar from "@/components/layout/AdminNavbar"
 import { LOCAL_STORAGE_KEY_TENAGA, INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import { TenagaAhli } from "@/features/psikolog/types"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 export default function PsikologWebLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -32,7 +33,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
 
   let pageTitle = "Beranda"
   if (pathname?.startsWith("/psikolog-web/jadwal") || pathname?.startsWith("/jadwal") || pathname?.startsWith("/admin/psikolog-web/jadwal")) {
-    pageTitle = "Jadwal & Sesi"
+    pageTitle = "Jadwal dan Sesi Psikolog"
   } else if (pathname?.startsWith("/psikolog-web/profile") || pathname?.startsWith("/profile") || pathname?.startsWith("/admin/psikolog-web/profile")) {
     pageTitle = "Profil Saya"
   } else {
@@ -71,15 +72,9 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
           </p>
           <div className="flex items-center gap-2">
             <span className="text-gray-500">Izin Akses:</span>
-            {isAktif ? (
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-[11px] font-semibold text-emerald-700">
-                Akses Diberikan
-              </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-[11px] font-semibold text-red-700">
-                Akses Dibatasi
-              </span>
-            )}
+            <AdminStatusBadge variant={isAktif ? "success" : "danger"} className="w-36">
+              {isAktif ? "Akses Diberikan" : "Akses Dibatasi"}
+            </AdminStatusBadge>
           </div>
         </div>
 

@@ -26,7 +26,109 @@ export interface TransaksiItem {
   tanggalTransaksi: string // YYYY-MM-DD
 }
 
+export const getTodayDateKey = (): string => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
 export const DUMMY_TRANSAKSI: TransaksiItem[] = [
+  // ── TRANSAKSI HARI INI (Sesuai Klien Sesi Konseling Hari Ini) ──
+  {
+    id: "today-1",
+    orderId: "KL-0120",
+    orderDate: "Hari Ini, 08:30 WIB",
+    clientName: "Budi Santoso",
+    clientEmail: "budi.santoso@gmail.com",
+    clientPhone: "0812-3456-7890",
+    jenisLayanan: "konseling",
+    namaLayanan: "Konseling Individu",
+    psikologOrFasilitator: "Dr. Dimas",
+    jadwal: "Hari Ini, 09:00 - 10:00 WIB",
+    status: "Lunas",
+    subtotal: 250000,
+    biayaLayanan: 2500,
+    totalBayar: 252500,
+    metodePembayaran: "BCA Virtual Account",
+    waktuPembayaran: "Hari Ini, 08:35 WIB",
+    tanggalTransaksi: getTodayDateKey(),
+  },
+  {
+    id: "today-2",
+    orderId: "KL-0121",
+    orderDate: "Hari Ini, 09:15 WIB",
+    clientName: "Karenn Sya",
+    clientEmail: "karennsya@gmail.com",
+    clientPhone: "0813-8899-7711",
+    jenisLayanan: "konseling",
+    namaLayanan: "Konseling Pribadi",
+    psikologOrFasilitator: "Dr. Dimas",
+    jadwal: "Hari Ini, 13:00 - 14:00 WIB",
+    status: "Lunas",
+    subtotal: 250000,
+    biayaLayanan: 2500,
+    totalBayar: 252500,
+    metodePembayaran: "BCA Virtual Account",
+    waktuPembayaran: "Hari Ini, 09:20 WIB",
+    tanggalTransaksi: getTodayDateKey(),
+  },
+  {
+    id: "today-3",
+    orderId: "KL-0122",
+    orderDate: "Hari Ini, 10:00 WIB",
+    clientName: "Sarah & David",
+    clientEmail: "sarah.david@gmail.com",
+    clientPhone: "0821-9988-7766",
+    jenisLayanan: "konseling",
+    namaLayanan: "Konseling Pasangan",
+    psikologOrFasilitator: "Dr. Dimas",
+    jadwal: "Hari Ini, 16:30 - 17:30 WIB",
+    status: "Lunas",
+    subtotal: 350000,
+    biayaLayanan: 2500,
+    totalBayar: 352500,
+    metodePembayaran: "Mandiri Virtual Account",
+    waktuPembayaran: "Hari Ini, 10:05 WIB",
+    tanggalTransaksi: getTodayDateKey(),
+  },
+  {
+    id: "today-4",
+    orderId: "KL-0123",
+    orderDate: "Hari Ini, 11:20 WIB",
+    clientName: "Dimas Pratama",
+    clientEmail: "dimas.pratama@gmail.com",
+    clientPhone: "0857-1122-3344",
+    jenisLayanan: "konseling",
+    namaLayanan: "Home Visit",
+    psikologOrFasilitator: "Dr. Dimas",
+    jadwal: "Hari Ini, 15:00 - 16:00 WIB",
+    status: "Menunggu Pembayaran",
+    subtotal: 400000,
+    biayaLayanan: 2500,
+    totalBayar: 402500,
+    metodePembayaran: "QRIS GoPay",
+    waktuPembayaran: "-",
+    tanggalTransaksi: getTodayDateKey(),
+  },
+  {
+    id: "today-5",
+    orderId: "AS-0050",
+    orderDate: "Hari Ini, 12:10 WIB",
+    clientName: "Amanda Putri",
+    clientEmail: "amanda.putri@gmail.com",
+    clientPhone: "0858-6677-8899",
+    jenisLayanan: "asesment",
+    namaLayanan: "Asesmen Klinis",
+    psikologOrFasilitator: "Dr. Dimas",
+    jadwal: "Hari Ini, 20:00 - 21:00 WIB",
+    status: "Lunas",
+    subtotal: 300000,
+    biayaLayanan: 2500,
+    totalBayar: 302500,
+    metodePembayaran: "BNI Virtual Account",
+    waktuPembayaran: "Hari Ini, 12:15 WIB",
+    tanggalTransaksi: getTodayDateKey(),
+  },
+
   // ── AGUSTUS 2026 (Urutan tanggal lama ke baru) ──
   {
     id: "aug-1",
@@ -261,3 +363,22 @@ export const DUMMY_TRANSAKSI: TransaksiItem[] = [
     tanggalTransaksi: "2026-10-10",
   },
 ]
+
+export const getLatestTransaksi = (limit = 4): TransaksiItem[] => {
+  return [...DUMMY_TRANSAKSI]
+    .sort((a, b) => b.tanggalTransaksi.localeCompare(a.tanggalTransaksi))
+    .slice(0, limit)
+}
+
+export const getDefaultTransaksi = (limit = 4): TransaksiItem[] => {
+  const sept = DUMMY_TRANSAKSI.filter((item) => item.tanggalTransaksi.startsWith("2026-09"))
+  return (sept.length > 0 ? sept : DUMMY_TRANSAKSI)
+    .sort((a, b) => a.tanggalTransaksi.localeCompare(b.tanggalTransaksi))
+    .slice(0, limit)
+}
+
+export const getTodayTransactions = (dateKey?: string): TransaksiItem[] => {
+  const targetDate = dateKey || getTodayDateKey()
+  const list = DUMMY_TRANSAKSI.filter((item) => item.tanggalTransaksi === targetDate)
+  return list
+}

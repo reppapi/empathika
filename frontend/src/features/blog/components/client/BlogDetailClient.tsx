@@ -42,11 +42,6 @@ export default function BlogDetailClient({ slug }: Props) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const initials = post.author.name
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('');
 
   return (
     <div className={styles.detailPage}>
@@ -59,14 +54,9 @@ export default function BlogDetailClient({ slug }: Props) {
 
         {/* Article */}
         <div className={styles.articleCard}>
-          {/* Author */}
+          {/* Date */}
           <div className={styles.authorRow}>
-            <div className={styles.authorAvD}>{initials}</div>
-            <span className={styles.authorMetaD}>
-              <strong>{post.author.name}</strong>
-              {' · '}
-              {post.date}
-            </span>
+            <span className={styles.authorMetaD}>{post.date}</span>
           </div>
 
           {/* Title */}

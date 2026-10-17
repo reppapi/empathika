@@ -39,6 +39,15 @@ export default function ProfileAdminClient({
 
   useEffect(() => {
     if (role === "admin") {
+      try {
+        const savedAdmin = localStorage.getItem("empathika_admin_profile")
+        if (savedAdmin) {
+          const parsed = JSON.parse(savedAdmin)
+          setAdminData(parsed)
+          setForm(parsed)
+          return
+        }
+      } catch {}
       setForm(adminData)
     } else {
       // Ambil data dari shared storage tenaga ahli
@@ -144,6 +153,9 @@ export default function ProfileAdminClient({
     e.preventDefault()
     if (role === "admin") {
       setAdminData(form)
+      try {
+        localStorage.setItem("empathika_admin_profile", JSON.stringify(form))
+      } catch {}
     } else {
       setPsikologData(form)
       // Sinkronkan ke shared storage tenaga ahli agar Admin Utama dan POV Klien langsung terupdate
@@ -207,17 +219,17 @@ export default function ProfileAdminClient({
         </div>
       )}
 
-      {/* Header Halaman */}
-      <div className="flex flex-col gap-2">
-        <h2 className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight">
-          {role === "admin" ? "Pengaturan Profil Admin Utama" : "Pengaturan Profil Psikolog"}
-        </h2>
-        <p className="text-xs sm:text-sm text-gray-500">
-          {role === "admin"
-            ? "Kelola identitas, foto profil, dan informasi kontak akun administrator Empathika."
-            : "Kelola profil profesional, foto profil, kredensial STR/SIPP, dan informasi yang tampil di halaman klien."}
-        </p>
-      </div>
+      {/* Header Halaman (Hanya ditampilkan jika bukan admin) */}
+      {role !== "admin" && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight">
+            Pengaturan Profil Psikolog
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500">
+            Kelola profil profesional, foto profil, kredensial STR/SIPP, dan informasi yang tampil di halaman klien.
+          </p>
+        </div>
+      )}
 
       {/* Form Utama */}
       <form onSubmit={handleSave} className="space-y-6">
@@ -392,6 +404,52 @@ export default function ProfileAdminClient({
                 />
               </div>
             )}
+
+            {role === "admin" && (
+              <>
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5">
+                    <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Alamat</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="alamat"
+                    value={form.alamat || ""}
+                    onChange={handleInputChange}
+                    placeholder="Contoh: Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 41024"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Alamat fisik kantor / klinik utama Empathika yang tampil pada informasi kontak & footer.
+                  </p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5">
+                    <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    <span>Link Maps</span>
+                  </label>
+                  <input
+                    type="url"
+                    name="linkMaps"
+                    value={form.linkMaps || ""}
+                    onChange={handleInputChange}
+                    placeholder="Contoh: https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Tautan Google Maps / petunjuk arah ke lokasi klinik Empathika (tombol &quot;Dapatkan Petunjuk Arah&quot; di beranda klien).
+                  </p>
+                </div>
+              </>
+            )}
+
 
             <div className="md:col-span-2">
               <label className="block text-xs font-bold text-gray-700 mb-1.5">
