@@ -67,7 +67,7 @@ export default function AdminKerjaSamaClient() {
     const basePath = pathname || "/admin/kerja-sama"
     const qs = params.toString()
     const targetUrl = qs ? `${basePath}?${qs}` : basePath
-    router.replace(targetUrl, { scroll: false })
+    router.replace(targetUrl as any, { scroll: false })
   }
 
   // State data utama
@@ -142,7 +142,7 @@ export default function AdminKerjaSamaClient() {
   }
 
   const handleOpenEditModal = (item: KerjaSamaItem) => {
-    router.push(`/admin/kerja-sama/edit/${item.id}`)
+    router.push(`/admin/kerja-sama/edit/${item.id}` as any)
   }
 
   const handleDeleteItem = (id: string, name: string) => {
