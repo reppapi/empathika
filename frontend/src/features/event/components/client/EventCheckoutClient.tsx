@@ -98,6 +98,7 @@ export default function EventCheckoutClient() {
   const activeBank    = BANK_LIST.find((b) => b.id === selectedBank)
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
 
+  const testIdParam   = searchParams.get("testId")
   const judulParam    = searchParams.get("judul") || "Workshop SEFT"
   const subjudulParam = searchParams.get("subjudul") || "Spiritual Emotional Freedom Technique — program workshop interaktif bersama para ahli."
   const kategoriParam = searchParams.get("kategori") || "Seminar"
@@ -143,6 +144,7 @@ export default function EventCheckoutClient() {
       kategori: kategoriParam,
       harga: hargaParam,
       metode: metodePembayaran,
+      ...(testIdParam     && { testId: testIdParam }),
       ...(selectedBank    && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })

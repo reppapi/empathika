@@ -76,15 +76,19 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const ewallet = searchParams.get("ewallet")
   const kategori = searchParams.get("kategori") ?? ""
 
+  const testId = searchParams.get("testId")
+
   const isPsikotes =
     type === "event" &&
-    (kategori.toLowerCase().includes("psikotes") ||
+    (Boolean(testId) ||
+      kategori.toLowerCase().includes("psikotes") ||
       judul.toLowerCase().includes("mbti") ||
       judul.toLowerCase().includes("love language") ||
       judul.toLowerCase().includes("kepribadian") ||
       orderId.startsWith("PSI-"))
 
   const getTestStartUrl = () => {
+    if (testId) return `/psikotes/${testId}/mulai?paket=berbayar`
     const j = judul.toLowerCase()
     if (j.includes("love")) return "/psikotes/love-language/mulai?paket=berbayar"
     if (j.includes("lanjutan") || j.includes("mbti-2")) return "/psikotes/mbti-2/mulai?paket=berbayar"

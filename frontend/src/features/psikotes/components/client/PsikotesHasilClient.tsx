@@ -19,14 +19,39 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { RESULT_DATA as resultData } from "../../data/psikotesData";
+import { RESULT_DATA as resultData, TEST_DATA } from "../../data/psikotesData";
 
 export default function PsikotesHasilClient({ params }: { params: { testId: string } }) {
   const searchParams = useSearchParams();
   const isPaid = searchParams.get("paket") === "berbayar" || searchParams.get("plan") === "berbayar" || searchParams.get("tipe") === "berbayar";
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const { result, interpretation, meaning, tips, recommendations, testName } = resultData;
+  const currentTest = TEST_DATA[params.testId as keyof typeof TEST_DATA];
+  const displayTestName = currentTest?.title || resultData.testName;
+
+  const dynamicResult = (() => {
+    if (params.testId === "mbti" || params.testId === "mbti-2") {
+      return {
+        prefix: "Tipe kepribadianmu adalah",
+        value: "ENFJ-A (Protagonist)",
+        color: "text-[#561269]",
+        bgColor: "bg-purple-50",
+        borderColor: "border-purple-200"
+      };
+    }
+    if (params.testId === "love-language") {
+      return {
+        prefix: "Bahasa cinta utamamu adalah",
+        value: "Words of Affirmation",
+        color: "text-[#561269]",
+        bgColor: "bg-pink-50",
+        borderColor: "border-pink-200"
+      };
+    }
+    return resultData.result;
+  })();
+
+  const { interpretation, meaning, tips, recommendations } = resultData;
 
   const handleDownloadPdf = () => {
     setIsDownloading(true);
@@ -66,18 +91,18 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               Hasil Psikotesmu
             </h2>
             <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              {testName}
+              {displayTestName}
             </h1>
           </div>
 
           {/* 1. Hasil Utama */}
           <section className="flex justify-center">
-            <div className={`w-full max-w-2xl rounded-3xl border ${result.borderColor} ${result.bgColor} p-8 sm:p-12 text-center shadow-sm`}>
-              {result.prefix && (
-                <p className="text-lg sm:text-xl font-medium text-gray-700 mb-3">{result.prefix}</p>
+            <div className={`w-full max-w-2xl rounded-3xl border ${dynamicResult.borderColor} ${dynamicResult.bgColor} p-8 sm:p-12 text-center shadow-sm`}>
+              {dynamicResult.prefix && (
+                <p className="text-lg sm:text-xl font-medium text-gray-700 mb-3">{dynamicResult.prefix}</p>
               )}
-              <h3 className={`text-4xl sm:text-5xl md:text-6xl font-black tracking-tight ${result.color}`}>
-                {result.value}
+              <h3 className={`text-4xl sm:text-5xl md:text-6xl font-black tracking-tight ${dynamicResult.color}`}>
+                {dynamicResult.value}
               </h3>
             </div>
           </section>
@@ -216,7 +241,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               Laporan Analisis Asesmen
             </p>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">
-              {testName}
+              {displayTestName}
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-xl">
               Evaluasi mendalam profil personal, gaya komunikasi, serta panduan pengembangan potensi dirimu.
@@ -240,11 +265,11 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           
           {/* 1. Hasil Utama (Clean & Modern Card) */}
           <section className="bg-white rounded-3xl border border-gray-200/80 p-8 sm:p-10 shadow-xs text-center">
-            {result.prefix && (
-              <p className="text-sm sm:text-base font-semibold text-gray-500 mb-2">{result.prefix}</p>
+            {dynamicResult.prefix && (
+              <p className="text-sm sm:text-base font-semibold text-gray-500 mb-2">{dynamicResult.prefix}</p>
             )}
             <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#561269] tracking-tight mb-4">
-              {result.value}
+              {dynamicResult.value}
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.
