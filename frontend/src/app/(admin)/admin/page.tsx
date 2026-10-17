@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import dynamic from "next/dynamic"
 
 export const metadata = {
@@ -11,5 +12,9 @@ const AdminDashboardClient = dynamic(
 )
 
 export default function AdminDashboardPage() {
-  return <AdminDashboardClient />
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-400 font-poppins">Memuat ringkasan operasional...</div>}>
+      <AdminDashboardClient />
+    </Suspense>
+  )
 }

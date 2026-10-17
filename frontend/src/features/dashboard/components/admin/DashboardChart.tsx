@@ -1,13 +1,50 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ChevronDown } from "lucide-react"
 import { ChartPeriod } from "../../types"
 import { DASHBOARD_CHART_DATA, PERIOD_LABELS } from "../../data/dashboardData"
 
+const VALID_PERIODS = ["minggu", "bulan", "bulan_lalu"] as const
+
 export default function DashboardChart() {
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("minggu")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const periodParam = searchParams ? (searchParams.get("period") || searchParams.get("periode")) : null
+  const initialPeriod: ChartPeriod =
+    periodParam && VALID_PERIODS.includes(periodParam as any)
+      ? (periodParam as ChartPeriod)
+      : "minggu"
+
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(initialPeriod)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
+  // Sinkronkan periode saat query param URL berubah (misal tombol Back / Forward browser)
+  useEffect(() => {
+    const p = searchParams ? (searchParams.get("period") || searchParams.get("periode")) : null
+    if (p && VALID_PERIODS.includes(p as any)) {
+      setChartPeriod(p as ChartPeriod)
+    } else if (!p) {
+      setChartPeriod("minggu")
+    }
+  }, [searchParams])
+
+  const handlePeriodChange = (newPeriod: ChartPeriod) => {
+    setChartPeriod(newPeriod)
+    setIsDropdownOpen(false)
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    if (newPeriod === "minggu") {
+      params.delete("period")
+      params.delete("periode")
+    } else {
+      params.set("period", newPeriod)
+    }
+    const qs = params.toString()
+    const targetUrl = qs ? `/admin?${qs}` : "/admin"
+    router.replace(targetUrl as any, { scroll: false })
+  }
 
   const activeChart = DASHBOARD_CHART_DATA[chartPeriod]
 
@@ -32,14 +69,11 @@ export default function DashboardChart() {
 
           {isDropdownOpen && (
             <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1 font-poppins text-xs">
-              {(["minggu", "bulan", "bulan_lalu"] as const).map((period) => (
+              {VALID_PERIODS.map((period) => (
                 <button
                   key={period}
                   type="button"
-                  onClick={() => {
-                    setChartPeriod(period)
-                    setIsDropdownOpen(false)
-                  }}
+                  onClick={() => handlePeriodChange(period)}
                   className={`w-full text-left px-3.5 py-2 hover:bg-[#F9F5FA] transition-colors cursor-pointer ${
                     chartPeriod === period ? "font-bold text-[#5D205E] bg-[#F9F5FA]" : "text-gray-700"
                   }`}

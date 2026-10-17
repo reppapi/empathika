@@ -70,6 +70,12 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
 18. **Penyimpanan Skor pada Lembar Jawaban Psikotes (`JawabanPsikotes.skor`)**
    - Kolom `skor Int` **resmi ditambahkan pada tabel `JawabanPsikotes`** untuk menyimpan snapshot nilai bobot dari opsi jawaban yang dipilih klien pada butir soal terkait saat tes dikerjakan. Hal ini memastikan integritas data (skor jawaban klien tidak berubah jika bobot master soal diedit di masa depan) serta mempercepat agregasi `total_skor` dan analisis per butir/dimensi tes tanpa query join berulang ke tabel `PilihanJawaban`.
 
+19. **Slug URL pada Program Kerja Sama (`ProgramKerjaSama.slug`)**
+   - Kolom `slug String @unique` **tetap wajib ada** pada model `ProgramKerjaSama` (Program Kolaborasi) untuk routing URL halaman program di sisi klien (`/kerja-sama/[category]`, seperti `/kerja-sama/mahasiswa`, `/kerja-sama/perusahaan`). Adapun tabel formulir pesan masuk instansi (`PengajuanKerjaSama`) murni mencatat data permohonan/leads (nama PIC, instansi, kontak WA) tanpa halaman publik sendiri.
+
+20. **Pola Filter Multi-Dimensi pada Jadwal & Sesi Operasional Admin**
+   - Pemfilteran "Semua Layanan" dan "Tanggal" pada kalender operasional admin (`/admin/jadwal`) sepenuhnya memanfaatkan relasi relasional yang sudah ada (`BookingKonsultasi.id_layanan` -> `Layanan` dan `BookingKonsultasi.id_jadwal` -> `JadwalSlot.tanggal`). Tidak diperlukan kolom redundan/denormalisasi tambahan pada skema database.
+
 ---
 
 ## 2. Diagram UML Database (Mermaid Class Diagram)
@@ -506,3 +512,4 @@ classDiagram
 6. **Kolom `kategori` pada `PaketPsikotes`**: Dihapus dari tabel `PaketPsikotes`.
 7. **Kolom `lokasi_ruangan` & `metode` pada `JadwalSlot`**: Ditiadakan dari database. `lokasi_ruangan` ditiadakan karena sesi offline langsung datang ke kantor fisik Empathika, sedangkan `metode` ("ONLINE" | "OFFLINE") dipusatkan pada tabel `BookingKonsultasi` karena ditentukan oleh pilihan klien saat pemesanan.
 8. **Kolom `link_meet` pada `BookingKonsultasi`**: Ditiadakan dari database, karena tautan meeting Zoom / Google Meet dibuat mandiri oleh admin secara eksternal di luar aplikasi web dan dikirimkan langsung ke klien via WhatsApp.
+
