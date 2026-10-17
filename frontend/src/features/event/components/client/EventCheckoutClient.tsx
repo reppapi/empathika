@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
 // ── Dummy data ────────────────────────────────────────────────────────────────
 
@@ -57,6 +57,7 @@ function CopyButton({ text }: { text: string }) {
 
 export default function EventCheckoutClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [nama, setNama]         = useState("")
   const [email, setEmail]       = useState("")
@@ -67,6 +68,32 @@ export default function EventCheckoutClient() {
   const [selectedEwallet, setSelectedEwallet]   = useState<string | null>(null)
   const [bankOpen, setBankOpen]                 = useState(false)
   const [ewalletOpen, setEwalletOpen]           = useState(false)
+  const [failedAlertDismissed, setFailedAlertDismissed] = useState(false)
+
+  const isFailed = searchParams.get("status") === "failed" && !failedAlertDismissed
+  const failedReason = searchParams.get("reason") || "Pembayaran tidak dapat diproses atau waktu transaksi telah berakhir."
+
+  useEffect(() => {
+    const qNama = searchParams.get("nama")
+    const qEmail = searchParams.get("email")
+    const qWa = searchParams.get("whatsapp")
+    const qMetode = searchParams.get("metode")
+    const qBank = searchParams.get("bank")
+    const qEwallet = searchParams.get("ewallet")
+
+    if (qNama) setNama(qNama)
+    if (qEmail) setEmail(qEmail)
+    if (qWa) setWhatsapp(qWa)
+    if (qMetode) setMetodePembayaran(qMetode)
+    if (qBank) {
+      setSelectedBank(qBank)
+      setBankOpen(true)
+    }
+    if (qEwallet) {
+      setSelectedEwallet(qEwallet)
+      setEwalletOpen(true)
+    }
+  }, [searchParams])
 
   const activeBank    = BANK_LIST.find((b) => b.id === selectedBank)
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
@@ -99,6 +126,8 @@ export default function EventCheckoutClient() {
 
     const params = new URLSearchParams({
       nama: nama.toUpperCase(),
+      email,
+      whatsapp,
       orderId: "W-SEFT-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
       tanggal: "05/09",
       tahun: "2026",
@@ -157,6 +186,35 @@ export default function EventCheckoutClient() {
             Isi data kamu dan pilih metode pembayaran untuk menyelesaikan pendaftaran event.
           </p>
         </div>
+
+        {/* ── Banner Notifikasi Pembayaran Gagal ── */}
+        {isFailed && (
+          <div className="w-full bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0 text-red-600 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 7.5h.008v.008H12v-.008Z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-sm font-bold text-red-900">Pembayaran Sebelumnya Gagal</h4>
+                <button
+                  type="button"
+                  onClick={() => setFailedAlertDismissed(true)}
+                  className="text-gray-400 hover:text-gray-600 p-1 -mr-1 rounded-lg"
+                  aria-label="Tutup"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                {failedReason} Silakan periksa kembali data diri Anda di bawah ini dan pilih ulang metode pembayaran untuk mencoba kembali.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Box 1: Detail Event ── */}
         <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
