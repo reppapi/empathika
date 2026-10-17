@@ -199,11 +199,20 @@ export default function AdminLayananView() {
         </div>
       )}
 
-      {/* ── Top Bar Action: Tombol Tambah Layanan ── */}
-      <div className="flex justify-end">
+      {/* ── Top Section: Metric Card & Tombol Tambah Layanan Sejajar ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="w-full max-w-sm">
+          <AdminSummaryCard
+            label="Total Layanan"
+            value={filteredLayanan.length}
+            icon={<CalendarClock className="w-6 h-6 text-[#561269]" />}
+            iconBgColor="bg-purple-50 text-[#561269]"
+          />
+        </div>
+
         <Link
           href={`/admin/layanan/tambah?category=${activeCategory}`}
-          className="flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+          className="self-end sm:self-auto flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -217,16 +226,6 @@ export default function AdminLayananView() {
           </svg>
           Tambah Layanan
         </Link>
-      </div>
-
-      {/* ── Metric Card: Total Layanan ── */}
-      <div className="w-full max-w-sm">
-        <AdminSummaryCard
-          label="Total Layanan"
-          value={filteredLayanan.length}
-          icon={<CalendarClock className="w-6 h-6 text-[#561269]" />}
-          iconBgColor="bg-purple-50 text-[#561269]"
-        />
       </div>
 
       {/* ── Main Card Table Container ── */}
