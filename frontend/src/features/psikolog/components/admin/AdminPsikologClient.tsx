@@ -11,7 +11,6 @@ import {
   ActionButtonEdit,
   ActionButtonDelete,
 } from "@/components/shared/TableActionButtons"
-import { AdminSummaryCard } from "@/components/shared/AdminSummaryCard"
 import { Users, CheckCircle2, Lock } from "lucide-react"
 import {
   AdminDataTable,
@@ -208,11 +207,45 @@ export default function AdminPsikologClient() {
         </div>
       )}
 
-      {/* Top Bar Action: Tombol Tambah Tenaga Ahli */}
-      <div className="flex justify-end">
+      {/* Top Bar: Summary Cards + Tombol Tambah sejajar */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Summary Cards — compact */}
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-3.5 bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-sm min-w-[170px]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 shrink-0">
+              <Users className="w-5 h-5 text-blue-500" />
+            </div>
+            <div className="leading-tight">
+              <p className="text-xs text-gray-400 font-medium">Total Terdaftar</p>
+              <p className="text-base font-extrabold text-gray-900">{countTotal} Orang</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-sm min-w-[160px]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="leading-tight">
+              <p className="text-xs text-gray-400 font-medium">Akses Aktif</p>
+              <p className="text-base font-extrabold text-emerald-600">{countAktif} Aktif</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-sm min-w-[160px]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 shrink-0">
+              <Lock className="w-5 h-5 text-gray-500" />
+            </div>
+            <div className="leading-tight">
+              <p className="text-xs text-gray-400 font-medium">Dibatasi</p>
+              <p className="text-base font-extrabold text-gray-600">{countTotal - countAktif} Nonaktif</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tombol Tambah */}
         <Link
           href="/admin/psikolog/tambah"
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -221,31 +254,6 @@ export default function AdminPsikologClient() {
         </Link>
       </div>
 
-      {/* Ringkasan Singkat (Summary Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-        <AdminSummaryCard
-          label="Total Tenaga Terdaftar"
-          value={`${countTotal} Orang`}
-          icon={<Users className="w-6 h-6 text-blue-500" />}
-          iconBgColor="bg-blue-50 text-blue-500"
-        />
-
-        <AdminSummaryCard
-          label="Akses Web Aktif"
-          value={`${countAktif} Aktif`}
-          valueClassName="text-emerald-600"
-          icon={<CheckCircle2 className="w-6 h-6 text-emerald-500" />}
-          iconBgColor="bg-emerald-50 text-emerald-500"
-        />
-
-        <AdminSummaryCard
-          label="Akses Dibatasi"
-          value={`${countTotal - countAktif} Nonaktif`}
-          valueClassName="text-gray-600"
-          icon={<Lock className="w-6 h-6 text-gray-500" />}
-          iconBgColor="bg-gray-100 text-gray-500"
-        />
-      </div>
 
       {/* Main Table Container */}
       <AdminTableContainer>
