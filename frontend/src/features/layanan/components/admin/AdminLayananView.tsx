@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2 } from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
 import {
@@ -27,17 +27,60 @@ import {
 
 export default function AdminLayananView() {
   const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
+  const searchParams = useSearchParams()
+
+  // Kategori yang diizinkan di admin
+  const allowedCategories = ["02", "03", "05"]
+  const adminCategories = CATEGORIES.filter((cat) => allowedCategories.includes(cat.id))
+
+  const categoryParam = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
+  const qParam = searchParams ? (searchParams.get("q") || searchParams.get("search")) : null
+
+  const [activeCategory, setActiveCategory] = useState(
+    categoryParam && allowedCategories.includes(categoryParam) ? categoryParam : adminCategories[0]?.id || "02"
+  )
+  const [searchQuery, setSearchQuery] = useState(qParam || "")
   const [layananList, setLayananList] = useState<AdminLayananItem[]>([])
 
   // Modal States
   const [selectedDetail, setSelectedDetail] = useState<AdminLayananItem | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
-  // Kategori yang diizinkan di admin
-  const allowedCategories = ["02", "03", "05"]
-  const adminCategories = CATEGORIES.filter((cat) => allowedCategories.includes(cat.id))
-  const [activeCategory, setActiveCategory] = useState(adminCategories[0]?.id || "02")
+  // Sinkronkan state saat URL query param berubah (misal tombol Back / Forward browser)
+  useEffect(() => {
+    const cp = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
+    if (cp && allowedCategories.includes(cp)) {
+      setActiveCategory(cp)
+    }
+    const qp = searchParams ? (searchParams.get("q") || searchParams.get("search")) : null
+    if (qp !== null && qp !== undefined) {
+      setSearchQuery(qp)
+    }
+  }, [searchParams])
+
+  // Ganti tab kategori sekaligus update URL query param tanpa reload halaman
+  const handleCategoryChange = (catId: string) => {
+    setActiveCategory(catId)
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    params.set("category", catId)
+    const qs = params.toString()
+    const targetUrl = qs ? `/admin/layanan?${qs}` : "/admin/layanan"
+    router.replace(targetUrl as any, { scroll: false })
+  }
+
+  // Update pencarian sekaligus sinkronkan param URL
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query)
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    if (!query.trim()) {
+      params.delete("q")
+    } else {
+      params.set("q", query)
+    }
+    const qs = params.toString()
+    const targetUrl = qs ? `/admin/layanan?${qs}` : "/admin/layanan"
+    router.replace(targetUrl as any, { scroll: false })
+  }
 
   // Load data from persistent storage
   useEffect(() => {
@@ -197,7 +240,7 @@ export default function AdminLayananView() {
                 key={cat.id}
                 label={cat.title}
                 isActive={activeCategory === cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
               />
             ))}
           </div>
@@ -206,7 +249,7 @@ export default function AdminLayananView() {
           <AdminSearchInput
             placeholder="Cari Layanan..."
             value={searchQuery}
-            onChange={setSearchQuery}
+            onChange={handleSearchChange}
           />
         </div>
 

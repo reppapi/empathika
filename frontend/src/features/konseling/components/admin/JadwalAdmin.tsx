@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import ModalTambahSesi, { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
 import { BookedAssessment, ClientSessionToday } from "@/features/konseling/types"
 import {
@@ -37,10 +38,25 @@ export type { BookedAssessment, ClientSessionToday } from "@/features/konseling/
 export { RAW_CLIENT_SESSIONS, getInitialSessionsBasedOnTime } from "@/features/konseling/data/jadwalAdminData"
 
 export default function JadwalAdmin() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const layananParam = searchParams ? (searchParams.get("layanan") || searchParams.get("filter")) : null
+  const statusParam = searchParams ? searchParams.get("status") : null
+  const dateParam = searchParams ? searchParams.get("date") : null
+
+  const getInitialDate = () => {
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const parsed = new Date(dateParam + "T00:00:00")
+      if (!isNaN(parsed.getTime())) return parsed
+    }
+    return new Date()
+  }
+
   // ── 1. State & Refs ──
-  const [date, setDate] = useState<Date | undefined>(() => new Date())
+  const [date, setDate] = useState<Date | undefined>(getInitialDate)
   const [selectedTime, setSelectedTime] = useState<string>("13:00 - 14:00")
-  const [currentWeekMonday, setCurrentWeekMonday] = useState<Date>(() => getMonday(new Date()))
+  const [currentWeekMonday, setCurrentWeekMonday] = useState<Date>(() => getMonday(getInitialDate()))
   const [bookedSessions, setBookedSessions] = useState<BookedAssessment[]>(() => getSampleUpcomingBookings())
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null)
 
@@ -54,10 +70,56 @@ export default function JadwalAdmin() {
   // State Modal Tambah Sesi
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // State Filter Layanan & Tanggal
-  const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan")
+  // State Filter Layanan, Status, & Tanggal
+  const [selectedLayanan, setSelectedLayanan] = useState<string>(layananParam || "Semua Layanan")
+  const [selectedStatus, setSelectedStatus] = useState<string>(statusParam || "semua")
   const [isLayananDropdownOpen, setIsLayananDropdownOpen] = useState(false)
   const dateInputRef = useRef<HTMLInputElement>(null)
+
+  // Sinkronkan state saat URL query param berubah (Back / Forward browser)
+  useEffect(() => {
+    const lp = searchParams ? (searchParams.get("layanan") || searchParams.get("filter")) : null
+    if (lp !== null && lp !== undefined) {
+      setSelectedLayanan(lp || "Semua Layanan")
+    }
+    const sp = searchParams ? searchParams.get("status") : null
+    if (sp !== null && sp !== undefined) {
+      setSelectedStatus(sp || "semua")
+    }
+    const dp = searchParams ? searchParams.get("date") : null
+    if (dp && /^\d{4}-\d{2}-\d{2}$/.test(dp)) {
+      const parsed = new Date(dp + "T00:00:00")
+      if (!isNaN(parsed.getTime())) {
+        setDate(parsed)
+        setCurrentWeekMonday(getMonday(parsed))
+      }
+    }
+  }, [searchParams])
+
+  // Helper update URL query param tanpa reload halaman
+  const updateUrlParams = (updates: Record<string, string | null | undefined>) => {
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    Object.entries(updates).forEach(([key, val]) => {
+      if (!val || val === "semua" || val === "Semua Layanan") {
+        params.delete(key)
+      } else {
+        params.set(key, val)
+      }
+    })
+    const qs = params.toString()
+    const targetUrl = qs ? `/admin/jadwal?${qs}` : "/admin/jadwal"
+    router.replace(targetUrl as any, { scroll: false })
+  }
+
+  const handleLayananChange = (newLayanan: string) => {
+    setSelectedLayanan(newLayanan)
+    updateUrlParams({ layanan: newLayanan })
+  }
+
+  const handleStatusChange = (newStatus: string) => {
+    setSelectedStatus(newStatus)
+    updateUrlParams({ status: newStatus })
+  }
 
   // ── 2. Toast Trigger & Action Handlers ──
   const triggerToast = (message: string, type: "success" | "danger" = "success") => {
@@ -127,18 +189,32 @@ export default function JadwalAdmin() {
   }
 
   const filteredTodaySessions = useMemo(() => {
-    return todaySessions.filter((s) => matchLayanan(s.layanan, selectedLayanan))
-  }, [todaySessions, selectedLayanan])
+    return todaySessions.filter((s) => {
+      const matchLay = matchLayanan(s.layanan, selectedLayanan)
+      if (!matchLay) return false
+      if (selectedStatus === "berlangsung") {
+        return s.status === "Sedang Berlangsung"
+      }
+      if (selectedStatus === "selesai") {
+        return s.status === "Selesai"
+      }
+      if (selectedStatus === "menunggu") {
+        return s.status === "Menunggu Jadwal" || s.status === "Segera Dimulai"
+      }
+      return true
+    })
+  }, [todaySessions, selectedLayanan, selectedStatus])
 
   const stats = useMemo(() => {
-    const total = filteredTodaySessions.length
-    const sedangBerlangsung = filteredTodaySessions.filter((s) => s.status === "Sedang Berlangsung").length
-    const selesai = filteredTodaySessions.filter((s) => s.status === "Selesai").length
-    const menunggu = filteredTodaySessions.filter(
+    const byLayanan = todaySessions.filter((s) => matchLayanan(s.layanan, selectedLayanan))
+    const total = byLayanan.length
+    const sedangBerlangsung = byLayanan.filter((s) => s.status === "Sedang Berlangsung").length
+    const selesai = byLayanan.filter((s) => s.status === "Selesai").length
+    const menunggu = byLayanan.filter(
       (s) => s.status === "Menunggu Jadwal" || s.status === "Segera Dimulai"
     ).length
     return { total, sedangBerlangsung, selesai, menunggu }
-  }, [filteredTodaySessions])
+  }, [todaySessions, selectedLayanan])
 
   const nearestSession = useMemo(() => {
     const upcoming = filteredTodaySessions.find((s) => s.status === "Segera Dimulai")
@@ -214,6 +290,12 @@ export default function JadwalAdmin() {
     setDate(newDate)
     if (newDate) {
       setCurrentWeekMonday(getMonday(newDate))
+      const y = newDate.getFullYear()
+      const m = String(newDate.getMonth() + 1).padStart(2, "0")
+      const day = String(newDate.getDate()).padStart(2, "0")
+      updateUrlParams({ date: `${y}-${m}-${day}` })
+    } else {
+      updateUrlParams({ date: null })
     }
   }
 
@@ -417,7 +499,7 @@ export default function JadwalAdmin() {
                         key={opt}
                         type="button"
                         onClick={() => {
-                          setSelectedLayanan(opt)
+                          handleLayananChange(opt)
                           setIsLayananDropdownOpen(false)
                         }}
                         className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${
@@ -439,7 +521,7 @@ export default function JadwalAdmin() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedLayanan("Semua Layanan")
+                        handleLayananChange("Semua Layanan")
                         setIsLayananDropdownOpen(false)
                       }}
                       className="w-full text-center py-1.5 text-xs text-[#561269] hover:bg-purple-50 rounded-lg font-medium transition-colors cursor-pointer"
@@ -496,7 +578,11 @@ export default function JadwalAdmin() {
       </div>
 
       {/* Summary Cards */}
-      <JadwalSummaryCards stats={stats} />
+      <JadwalSummaryCards
+        stats={stats}
+        activeStatus={selectedStatus}
+        onStatusChange={handleStatusChange}
+      />
 
       {/* Sesi Klien Hari Ini (Highlight & Table) */}
       <JadwalHariIniSection
@@ -511,7 +597,10 @@ export default function JadwalAdmin() {
         onSelectCancel={(session) => setSessionToCancel(session)}
         onMarkCompleted={handleMarkCompleted}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
-        onResetFilter={() => setSelectedLayanan("Semua Layanan")}
+        onResetFilter={() => {
+          handleLayananChange("Semua Layanan")
+          handleStatusChange("semua")
+        }}
       />
 
       {/* Jadwal Asesmen (Calendar & Time Slot Picker) */}
