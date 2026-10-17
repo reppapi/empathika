@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import {
   KerjaSamaItem,
   KerjaSamaPageConfig,
@@ -41,10 +42,42 @@ const COLOR_OPTIONS = [
   { label: "Pink Mawar", value: "from-pink-400 to-rose-500" },
 ]
 
+const VALID_TABS = ["program", "hero-kontak", "formulir", "pengajuan"] as const
+type TabType = (typeof VALID_TABS)[number]
+
 export default function AdminKerjaSamaClient() {
-  const [activeTab, setActiveTab] = useState<"program" | "hero-kontak" | "formulir" | "pengajuan">(
-    "program"
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // Ambil tab dari URL (?tab=pengajuan, ?tab=formulir, dll), default ke 'program'
+  const initialQueryTab = searchParams.get("tab") as TabType | null
+  const [activeTab, setActiveTab] = useState<TabType>(
+    initialQueryTab && VALID_TABS.includes(initialQueryTab) ? initialQueryTab : "program"
   )
+
+  // Sinkronkan tab saat query param URL berubah (misal tombol Back / Forward browser)
+  useEffect(() => {
+    const q = searchParams.get("tab") as TabType | null
+    if (q && VALID_TABS.includes(q)) {
+      setActiveTab(q)
+    } else if (!q) {
+      setActiveTab("program")
+    }
+  }, [searchParams])
+
+  // Ganti tab sekaligus update URL query param tanpa reload halaman
+  const handleTabChange = (newTab: TabType) => {
+    setActiveTab(newTab)
+    const params = new URLSearchParams(searchParams.toString())
+    if (newTab === "program") {
+      params.delete("tab")
+    } else {
+      params.set("tab", newTab)
+    }
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
 
   // State data utama
   const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS)
@@ -334,6 +367,8 @@ export default function AdminKerjaSamaClient() {
         <AdminSummaryCard
           title="Total Program Kolaborasi"
           value={items.length}
+          isActive={activeTab === "program"}
+          onClick={() => handleTabChange("program")}
           iconBgColor="bg-purple-50 text-[#561269]"
           icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -345,6 +380,8 @@ export default function AdminKerjaSamaClient() {
         <AdminSummaryCard
           title="Aktif di Web Client"
           value={activeCount}
+          isActive={activeTab === "program"}
+          onClick={() => handleTabChange("program")}
           valueClassName="text-emerald-600"
           iconBgColor="bg-emerald-50 text-emerald-600"
           icon={
@@ -357,6 +394,8 @@ export default function AdminKerjaSamaClient() {
         <AdminSummaryCard
           title="Pengajuan Masuk (Leads)"
           value={leads.length}
+          isActive={activeTab === "pengajuan"}
+          onClick={() => handleTabChange("pengajuan")}
           iconBgColor="bg-blue-50 text-blue-600"
           icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -368,6 +407,8 @@ export default function AdminKerjaSamaClient() {
         <AdminSummaryCard
           title="Menunggu Respon"
           value={waitingLeads}
+          isActive={activeTab === "pengajuan"}
+          onClick={() => handleTabChange("pengajuan")}
           valueClassName="text-amber-600"
           iconBgColor="bg-amber-50 text-amber-600"
           icon={
@@ -381,7 +422,8 @@ export default function AdminKerjaSamaClient() {
       {/* ── Tab Switcher ── */}
       <div className="flex border-b border-gray-200 text-sm font-semibold gap-2 sm:gap-6">
         <button
-          onClick={() => setActiveTab("program")}
+          type="button"
+          onClick={() => handleTabChange("program")}
           className={`pb-3 px-2 border-b-2 transition-colors cursor-pointer ${
             activeTab === "program"
               ? "border-[#561269] text-[#561269]"
@@ -391,7 +433,8 @@ export default function AdminKerjaSamaClient() {
           Program Kolaborasi ({items.length})
         </button>
         <button
-          onClick={() => setActiveTab("hero-kontak")}
+          type="button"
+          onClick={() => handleTabChange("hero-kontak")}
           className={`pb-3 px-2 border-b-2 transition-colors cursor-pointer ${
             activeTab === "hero-kontak"
               ? "border-[#561269] text-[#561269]"
@@ -401,7 +444,8 @@ export default function AdminKerjaSamaClient() {
           Pengaturan Teks & Kontak Web
         </button>
         <button
-          onClick={() => setActiveTab("formulir")}
+          type="button"
+          onClick={() => handleTabChange("formulir")}
           className={`pb-3 px-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
             activeTab === "formulir"
               ? "border-[#561269] text-[#561269]"
@@ -414,7 +458,8 @@ export default function AdminKerjaSamaClient() {
           </span>
         </button>
         <button
-          onClick={() => setActiveTab("pengajuan")}
+          type="button"
+          onClick={() => handleTabChange("pengajuan")}
           className={`pb-3 px-2 border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === "pengajuan"
               ? "border-[#561269] text-[#561269]"
