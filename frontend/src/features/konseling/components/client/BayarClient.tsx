@@ -98,6 +98,14 @@ export default function BayarClient() {
     if (id !== "ewallet") { setSelectedEwallet(null) }
   }
 
+  const qLayanan = searchParams.get("layanan")
+  const qPaket = searchParams.get("paket")
+  const qBiaya = searchParams.get("biaya") || "Rp 350.000"
+  const qWaktu = searchParams.get("waktu") || "13:30"
+  const qMetodeSesi = searchParams.get("metode") || "Online"
+  const qTanggal = searchParams.get("tanggal") || "31 Agu 2026"
+  const isAsesmen = qLayanan === "asesmen"
+
   const handleSubmit = () => {
     if (!nama || !email || !whatsapp || !deskripsi) {
       alert("Harap isi semua data peserta terlebih dahulu.")
@@ -115,17 +123,18 @@ export default function BayarClient() {
       orderId: "W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
       tanggal: "31/08",
       tahun: "2026",
-      waktu: "13:30",
-      judul: "Layanan Konsultasi",
-      subjudul: "Psikolog Profesional Empathika",
-      bottomDate: "31 Agu 2026",
-      bottomTime: "13:30 WIB (Online)",
+      waktu: qWaktu,
+      judul: isAsesmen ? (qPaket || "Layanan Asesmen") : "Layanan Konsultasi",
+      subjudul: isAsesmen ? "Asesor Psikolog Terstandar Empathika" : "Psikolog Profesional Empathika",
+      bottomDate: qTanggal,
+      bottomTime: `${qWaktu} WIB (${qMetodeSesi})`,
+      biaya: qBiaya,
       metode: metodePembayaran,
       ...(selectedBank    && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
     // Arahkan ke halaman pending dulu
-    router.push(`/konseling/pending?${params.toString()}`)
+    router.push(`/konseling/pending?${params.toString()}` as any)
   }
 
   const paymentOptions = [
@@ -499,7 +508,7 @@ export default function BayarClient() {
                           </div>
                           <div className="text-center">
                             <p className="text-xs font-bold text-[#561269]">Empathika Indonesia</p>
-                            <p className="text-[10px] text-gray-400">Total: Rp 350.000</p>
+                            <p className="text-[10px] text-gray-400">Total: {qBiaya}</p>
                           </div>
                           <p className="text-[10px] text-gray-400 text-center leading-relaxed">
                             Berlaku untuk semua aplikasi pembayaran<br/>(GoPay, OVO, DANA, dll)
@@ -517,12 +526,14 @@ export default function BayarClient() {
           {/* Pricing Info */}
           <div className="border-t border-gray-200 pt-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-500">Biaya Konsultasi</span>
-              <span className="text-xs font-medium text-gray-500">Rp 350.000</span>
+              <span className="text-xs text-gray-500">
+                {isAsesmen ? `Biaya Asesmen (${qPaket || "Paket"})` : "Biaya Konsultasi"}
+              </span>
+              <span className="text-xs font-medium text-gray-500">{qBiaya}</span>
             </div>
             <div className="flex justify-between items-center mb-8">
               <span className="text-sm font-extrabold text-[#561269]">Total Bayar</span>
-              <span className="text-sm font-extrabold text-[#561269]">Rp 350.000</span>
+              <span className="text-sm font-extrabold text-[#561269]">{qBiaya}</span>
             </div>
             <button
               onClick={handleSubmit}
@@ -538,13 +549,13 @@ export default function BayarClient() {
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] py-4 px-6 sm:px-10 lg:px-24 flex items-center justify-between z-40">
         <div>
-          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">31 Agu 2026</div>
+          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">{qTanggal}</div>
           <div className="text-sm sm:text-[17px] font-bold text-black flex items-center gap-1">
-            13:30 WIB <span className="italic font-normal">(Online)</span>
+            {qWaktu} WIB <span className="italic font-normal">({qMetodeSesi})</span>
           </div>
         </div>
         <Link
-          href="/konseling/jadwal"
+          href={(isAsesmen ? "/konseling/jadwal?layanan=asesmen" : "/konseling/jadwal") as any}
           className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
         >
           Kembali

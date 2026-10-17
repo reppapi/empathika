@@ -118,11 +118,48 @@ export const EVENTS_SERVICES = [
   }
 ]
 
+export const ASESMEN_SERVICES = [
+  {
+    topTitle: "ASESMEN",
+    topSubtitle: "Minat & Bakat Siswa / Karir",
+    bottomTitle: "Asesmen Minat Bakat",
+    bottomDescription: "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu secara terstandar.",
+    bgColor: "bg-[#561269]",
+    titleColor: "text-white",
+    btnText: "Pilih Asesmen",
+    shape: "circles",
+    href: "/booking?type=asesmen&paket=Asesmen+Minat+Bakat",
+  },
+  {
+    topTitle: "ASESMEN",
+    topSubtitle: "Kematangan Anak & Kognitif",
+    bottomTitle: "Asesmen Kesiapan Sekolah",
+    bottomDescription: "Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, dan emosional dalam memasuki jenjang sekolah formal.",
+    bgColor: "bg-[#f48520]",
+    titleColor: "text-white",
+    btnText: "Pilih Asesmen",
+    shape: "circles-dark",
+    href: "/booking?type=asesmen&paket=Asesmen+Kesiapan+Sekolah",
+  },
+  {
+    topTitle: "ASESMEN",
+    topSubtitle: "Diagnostik & Kesehatan Mental",
+    bottomTitle: "Asesmen Klinis",
+    bottomDescription: "Evaluasi psikologis mendalam untuk mengidentifikasi kondisi klinis, regulasi emosi, kecemasan, dan kesehatan mental secara menyeluruh.",
+    bgColor: "bg-[#e31e3d]",
+    titleColor: "text-white",
+    btnText: "Pilih Asesmen",
+    shape: "heart",
+    href: "/booking?type=asesmen&paket=Asesmen+Klinis",
+  },
+]
+
 // Mapping data layanan ke masing-masing kategori
 export const SERVICES_DATA: Record<string, any[]> = {
   "01": PSIKOTES_SERVICES,
   "02": KONSULTASI_SERVICES,
   "03": KONSULTASI_SERVICES,
   "04": EVENTS_SERVICES,
-  "05": KONSULTASI_SERVICES,
+  "05": ASESMEN_SERVICES,
 }
+
