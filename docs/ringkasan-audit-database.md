@@ -26,7 +26,7 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
 
 6. **Kategori Layanan & Metode Pelaksanaan pada Layanan Admin**
    - Kolom `metode String @default("Online/Offline")` **ditambahkan pada model `Layanan`** untuk menyimpan metode pelaksanaan layanan (`Online`, `Offline`, atau `Online/Offline`) yang diinput oleh Admin pada form tambah/edit layanan dan ditampilkan pada tabel admin.
-   - Enum `KategoriLayanan` diselaraskan agar sinkron dengan 3 pilar kategori utama pada dashboard admin (`KONSULTASI`, `PELATIHAN_PEER_HELPER`, `ASESMEN`) serta jenis layanan spesifik (`HIPNOTERAPI`, `HOME_VISIT`, `PEER_KONSELOR`).
+   - Enum `KategoriLayanan` diselaraskan agar sinkron 100% dengan 5 kategori layanan resmi platform Empathika (halaman `/layanan`): `PSIKOTES`, `KONSULTASI`, `PELATIHAN_PEER_HELPER`, `EVENT`, dan `ASESMEN`. (Adapun pada menu `/admin/layanan`, admin mengelola 3 kategori bertarif sesi: `KONSULTASI`, `PELATIHAN_PEER_HELPER`, dan `ASESMEN`, sedangkan `PSIKOTES` dan `EVENT` dikelola pada menu/tabel khususnya masing-masing). Jenis layanan seperti `Psikolog`, `Peer Konselor`, `Hipnoterapi`, dan `Home Visit` disimpan pada kolom `nama String` di bawah kategori `KONSULTASI`.
 
 7. **Slug URL untuk SEO**
    - Ditambahkan kolom `slug String @unique` pada model `Event` dan `PaketPsikotes` agar URL browser bersih dan ramah SEO (contoh: `/event/workshop-seft`, `/psikotes/tes/kepribadian`).
@@ -35,7 +35,7 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
    - Dibuatkan tabel baru `PengajuanKerjaSama` untuk menampung data formulir kemitraan instansi dari halaman `/kerja-sama` dan dashboard `/admin/kerja-sama`.
 
 9. **Peniadaan Fitur Suka (Likes) & View Counter pada Artikel Blog**
-   - Kolom `likes` dan `jumlah_dilihat` **TIDAK dibuat di database**, sehingga tabel `ArtikelBlog` murni mencatat judul, slug, isi artikel, banner, waktu baca, dan tanggal terbit.
+   - Kolom `likes` dan `jumlah_dilihat` **TIDAK dibuat di database**, sehingga tabel `ArtikelBlog` murni mencatat judul, slug, isi artikel, banner, penulis (`author`), kategori, waktu baca, dan tanggal terbit.
 
 10. **Peniadaan Estimasi Waktu pada Paket Psikotes**
    - Kolom `durasi_menit` **TIDAK diadakan di database**, pengerjaan tes psikotes bersifat fleksibel tanpa batasan waktu.
@@ -76,11 +76,47 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
 20. **Pola Filter Multi-Dimensi pada Jadwal & Sesi Operasional Admin**
    - Pemfilteran "Semua Layanan" dan "Tanggal" pada kalender operasional admin (`/admin/jadwal`) sepenuhnya memanfaatkan relasi relasional yang sudah ada (`BookingKonsultasi.id_layanan` -> `Layanan` dan `BookingKonsultasi.id_jadwal` -> `JadwalSlot.tanggal`). Tidak diperlukan kolom redundan/denormalisasi tambahan pada skema database.
 
+21. **Alur Pemesanan Khusus Layanan Asesmen (Guest Checkout Tanpa Pemilihan Psikolog)**
+   - Berbeda dengan sesi konsultasi di mana klien memilih profil psikolog terlebih dahulu, alur pemesanan Asesmen di sisi klien (`/asesmen` dan `/booking/asesmen`) menyajikan **tabel daftar harga paket asesmen terstandar** (Minat Bakat, Kesiapan Sekolah, dll.) dengan kolom Weekday dan Weekend tanpa menampilkan daftar psikolog.
+   - Klien memilih paket dan menekan tombol *Daftar Sesi* yang langsung mengarahkan ke kalender penjadwalan (`/konseling/jadwal?layanan=asesmen`). Klien hanya memilih tanggal dan jam dari slot asesmen yang tersedia.
+
+22. **Pengaturan Jadwal Asesmen via Kalender Admin (`/admin/jadwal`) & Penugasan Psikolog/Asesor Internal**
+   - Ketersediaan slot tanggal dan jam asesmen **sepenuhnya ditentukan dan dibuka oleh Admin Utama** melalui kalender pada menu *Sesi dan Jadwal* (`/admin/jadwal`) dengan penanda `JadwalSlot.tipe_jadwal = "ASESMEN"`.
+   - Penugasan psikolog/asesor pelaksana dilakukan **secara internal oleh Admin**:
+     - Saat Admin membuka slot asesmen di kalender, Admin mengaitkan psikolog/asesor yang bertugas (`JadwalSlot.id_psikolog`), atau
+     - Menetapkan psikolog dari tim penilai internal klinik Empathika saat booking masuk (`BookingKonsultasi`).
+   - Dengan skema ini, relasi database `BookingKonsultasi -> JadwalSlot -> Psikolog` tetap valid dan konsisten, tanpa membebani klien untuk memilih profil psikolog.
+
+23. **Standardisasi State URL SearchParams Lintas Modul Admin (Pusat & Biro)**
+   - Penerapan arsitektur *deep-linking* berbasis query parameters URL (`useSearchParams` + `router.replace`) pada seluruh modul operasional:
+     - Admin Layanan: `?category=...&q=...`
+     - Admin Jadwal & Sesi: `?layanan=...&status=...&date=...`
+     - Admin Ringkasan Operasional (Utama & Biro): `?period=...&modal=...`
+     - Admin Kerja Sama: `?tab=...`
+   - Memastikan state filter, pencarian, dan modal tersimpan di URL sehingga dapat di-*bookmark*, di-refresh tanpa kehilangan konteks, dan kompatibel dengan riwayat tombol Back/Forward browser.
+
+24. **Model Tabel `ProgramKerjaSama` untuk Katalog Kolaborasi Instansi**
+   - Dibuatkan tabel mandiri `ProgramKerjaSama` untuk menyimpan data program kolaborasi B2B yang dikelola melalui menu `/admin/kerja-sama` (tab *Pilihan Kolaborasi Web Client*, tombol *+ Tambah Program*, aksi edit/hapus/toggle status) serta ditampilkan di halaman publik `/kerja-sama` dan routing dinamis `/kerja-sama/[category]`.
+   - Menyimpan judul program, short name, deskripsi, informasi modul pelatihan (*pelatihanTitle*, *pelatihanDeskripsi*, *pelatihanImage*), informasi mitra instansi (*mitraTitle*, *mitraDeskripsi*, *mitraImage*), warna tema, urutan display, dan status aktif/disembunyikan.
+
+25. **Atribut Media & Profil Mendalam Psikolog (`video_intro_url`, `video_thumbnail`, `profil_lengkap`)**
+   - Kolom `video_intro_url String?`, `video_thumbnail String?`, dan `profil_lengkap String? @db.Text` ditambahkan pada model `Psikolog`.
+   - Data ini diinput oleh staf/psikolog melalui form pengaturan profil (`/admin/profile` atau `/psikolog-web/profile`) dan ditampilkan di halaman publik detail psikolog (`/psikolog/[id]`) untuk memfasilitasi fitur video greeting/sapaan psikolog serta narasi biografi lengkap sebelum klien memesan sesi.
+
+26. **Fleksibilitas Konfigurasi Pertanyaan Formulir Kemitraan Dinamis**
+   - Pada menu `/admin/kerja-sama` (tab *Kelola Formulir*), Admin Utama memiliki wewenang untuk menambah, mengubah, atau menghapus butir pertanyaan formulir untuk 4 tipe kemitraan (*Asesmen*, *In-House Training*, *Affiliate*, dan *Lainnya*).
+   - Jawaban dinamis dari perwakilan instansi yang mengisi formulir publik (`/kerja-sama/formulir/[type]`) disimpan secara terstruktur dan fleksibel pada kolom `PengajuanKerjaSama.jawaban_detail Json?` tanpa memerlukan alter skema tabel setiap kali pertanyaan diperbarui.
+
+27. **Fleksibilitas Kategori `PELATIHAN_PEER_HELPER` & Alur Pemesanan**
+   - Kategori `PELATIHAN_PEER_HELPER` resmi menjadi salah satu pilar layanan bertarif sesi yang ditampung dalam tabel `Layanan`.
+   - Mengingat variasi topik pelatihannya bersifat berkembang dan dinamis (contoh produk yang ada: *Pelatihan Konselor Sebaya Dasar*), jenis-jenis pelatihan **tidak dipecah menjadi enum sub-kategori kaku**, melainkan diinput sebagai master layanan baru melalui form `/admin/layanan/tambah?category=03`.
+   - Pemesanan sesi pelatihan perorangan/kelompok terdaftar terhubung ke relasi `BookingKonsultasi -> Layanan`, sedangkan pengajuan pelatihan massal berskala instansi/organisasi disalurkan melalui `PengajuanKerjaSama`.
+
 ---
 
 ## 2. Diagram UML Database (Mermaid Class Diagram)
 
-Berikut adalah diagram kelas UML database lengkap yang mencakup 21 tabel, atribut PK/FK, method bisnis, dan kardinalitas relasi:
+Berikut adalah diagram kelas UML database lengkap yang mencakup 22 tabel, atribut PK/FK, method bisnis, dan kardinalitas relasi:
 
 ```mermaid
 classDiagram
@@ -177,6 +213,9 @@ classDiagram
         +string jenis_kelamin
         +string foto
         +string bio
+        +string video_intro_url
+        +string video_thumbnail
+        +string profil_lengkap
         +string status
         +int jumlah_sesi
         +float tarif_per_jam
@@ -400,6 +439,8 @@ classDiagram
         +string slug
         +string isi
         +string banner_url
+        +string penulis
+        +string kategori
         +int waktu_baca_menit
         +dateTime tanggal_terbit
         +dateTime createdAt
@@ -422,6 +463,28 @@ classDiagram
         +dateTime updatedAt
         +ajukanKerjaSama()
         +updateStatus()
+    }
+
+    class Program_Kerja_Sama {
+        +string id_PK
+        +string slug
+        +string title
+        +string short_name
+        +string deskripsi
+        +string pelatihan_title
+        +string pelatihan_deskripsi
+        +string pelatihan_image
+        +string mitra_title
+        +string mitra_deskripsi
+        +string mitra_image
+        +string warna_tema
+        +string status
+        +int urutan
+        +dateTime createdAt
+        +dateTime updatedAt
+        +tambahProgram()
+        +updateProgram()
+        +toggleStatus()
     }
 
     %% ========================================================
@@ -472,7 +535,7 @@ classDiagram
    - Menambahkan kolom `channel_pembayaran String?` (contoh: `bca_va`, `mandiri_va`, `gopay`, `dana`, `qris`).
 2. **Model `Layanan`**:
    - Menambahkan kolom `metode String @default("Online/Offline")` untuk mencatat metode pelaksanaan layanan (`Online`, `Offline`, atau `Online/Offline`) yang dipilih admin di form input dan ditampilkan di tabel `/admin/layanan`.
-   - Menyelaraskan enum `KategoriLayanan` dengan 3 pilar kategori utama pada dashboard admin: `KONSULTASI`, `PELATIHAN_PEER_HELPER`, dan `ASESMEN`, serta sub-kategori spesifik: `HIPNOTERAPI`, `HOME_VISIT`, dan `PEER_KONSELOR`.
+   - Menyelaraskan enum `KategoriLayanan` dengan 5 kategori layanan platform Empathika: `PSIKOTES`, `KONSULTASI`, `PELATIHAN_PEER_HELPER`, `EVENT`, dan `ASESMEN`. Adapun jenis layanan seperti `Psikolog`, `Peer Konselor`, `Hipnoterapi`, dan `Home Visit` disimpan pada kolom `nama String` di bawah kategori `KONSULTASI`.
 3. **Model `Event`**:
    - Menambahkan nilai `DRAFT` pada enum `StatusEvent`.
 4. **Model `Psikolog`**:
@@ -482,20 +545,21 @@ classDiagram
    - Memastikan `status StatusBooking` mendukung siklus operasional admin (`PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`).
 
 ### KATEGORI 2: PERLU DITAMBAHKAN
-1. **Tabel Baru `PengajuanKerjaSama`**:
-   - `id`, `nama_instansi`, `nama_pic`, `email`, `no_telepon`, `kategori`, `tipe_formulir`, `pesan`, `jawaban_detail`, `status`, `createdAt`, `updatedAt`.
+1. **Tabel Baru `PengajuanKerjaSama` & `ProgramKerjaSama`**:
+   - `PengajuanKerjaSama`: `id`, `nama_instansi`, `nama_pic`, `email`, `no_telepon`, `kategori`, `tipe_formulir`, `pesan`, `jawaban_detail` (Json), `status`, `createdAt`, `updatedAt`.
+   - `ProgramKerjaSama`: `id`, `slug`, `title`, `short_name`, `deskripsi`, `pelatihan_title`, `pelatihan_deskripsi`, `pelatihan_image`, `mitra_title`, `mitra_deskripsi`, `mitra_image`, `warna_tema`, `status` ("AKTIF" | "NONAKTIF"), `urutan`, `createdAt`, `updatedAt`.
 2. **Atribut Baru pada Tabel Eksisting**:
    - `Account`: `alamat String?`, `link_maps String?` (khusus profil Admin Utama pengelola platform).
    - `Transaksi`: `kode_transaksi String? @unique`, `total Decimal @db.Decimal(12, 2)`, `channel_pembayaran String?`, `createdAt`, `updatedAt`.
    - `Event`: `slug String @unique`, `subjudul String?`, `createdAt`, `updatedAt`.
    - `PaketPsikotes`: `slug String @unique`, `banner_url String?`, `createdAt`, `updatedAt`.
    - `Layanan`: `metode String @default("Online/Offline")`, `createdAt`, `updatedAt`.
-   - `BookingKonsultasi`: `id_transaksi String? (nullable untuk sesi mandiri admin / walk-in)`, `metode String ("ONLINE" | "OFFLINE")`, `deskripsi_trauma String?` (menampung keluhan awal klien dari form klien maupun input catatan admin saat menjadwalkan sesi), `createdAt`, `updatedAt`.
-   - `ArtikelBlog`: `banner_url String?`, `waktu_baca_menit Int @default(5)`, `createdAt`, `updatedAt`.
+   - `BookingKonsultasi`: `id_transaksi String? (nullable untuk sesi mandiri admin / walk-in)`, `metode String ("ONLINE" | "OFFLINE")`, `deskripsi_trauma String?` (menampung keluhan awal konsultasi maupun catatan pengajuan asesmen terstandar tanpa pemilihan psikolog oleh klien), `createdAt`, `updatedAt`.
+   - `ArtikelBlog`: `banner_url String?`, `penulis String @default("Admin Empathika")`, `kategori String? @default("Artikel")`, `waktu_baca_menit Int @default(5)`, `createdAt`, `updatedAt`.
    - `BookingEvent`: `kode_tiket String @unique`, `status StatusBooking @default(PENDING)`, `createdAt`, `updatedAt`.
    - `Client`: `no_telepon String?` (data vital operasional admin untuk integrasi tombol *Chat WA Klien* dan *Salin Pesan WA* pada pemantauan sesi klien harian), `usia Int?`, `jenis_kelamin String?`, `createdAt`, `updatedAt`.
-   - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `createdAt`, `updatedAt`.
-   - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")`, `createdAt`, `updatedAt`.
+   - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `video_intro_url String?`, `video_thumbnail String?`, `profil_lengkap String? @db.Text`, `createdAt`, `updatedAt`.
+   - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")` (membedakan slot konsultasi mandiri psikolog dengan slot asesmen yang dibuka & ditugaskan psikolog/asesornya secara internal oleh Admin melalui kalender `/admin/jadwal`), `createdAt`, `updatedAt`.
    - `Biro`: `deskripsi String? @db.Text`, `no_telepon String?`, `website_url String?`, `status` (`PENDING`), `createdAt`, `updatedAt`.
    - `InterpretasiPsikotes`: `makna String? @db.Text`, `tips Json?` (array objek: `[{title, desc}]`).
    - `HasilTes`: `detail_skor Json?`, `createdAt`.
