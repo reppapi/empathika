@@ -23,25 +23,18 @@ import {
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 
+import { useRouter } from "next/navigation"
 import TabProgramList from "./TabProgramList"
 import TabHeroKontak from "./TabHeroKontak"
 import TabKelolaFormulir from "./TabKelolaFormulir"
 import TabPengajuanLeads from "./TabPengajuanLeads"
-import ModalProgramForm from "./ModalProgramForm"
 import ModalLeadDetail from "./ModalLeadDetail"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
-const COLOR_OPTIONS = [
-  { label: "Ungu Indigo", value: "from-purple-500 to-indigo-600" },
-  { label: "Biru Samudra", value: "from-blue-400 to-blue-600" },
-  { label: "Hijau Zamrud", value: "from-emerald-400 to-teal-500" },
-  { label: "Oranye Merah", value: "from-orange-400 to-red-500" },
-  { label: "Abu Netral", value: "from-gray-600 to-gray-800" },
-  { label: "Pink Mawar", value: "from-pink-400 to-rose-500" },
-]
 
 export default function AdminKerjaSamaClient() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<"program" | "hero-kontak" | "formulir" | "pengajuan">(
     "program"
   )
@@ -60,24 +53,6 @@ export default function AdminKerjaSamaClient() {
   const [newQuestionLabel, setNewQuestionLabel] = useState("")
   const [newQuestionType, setNewQuestionType] = useState<"radio" | "text">("radio")
   const [newQuestionOptions, setNewQuestionOptions] = useState<string>("Opsi 1, Opsi 2, Opsi 3")
-
-  // Modal State Program Kolaborasi
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<KerjaSamaItem | null>(null)
-  const [formData, setFormData] = useState<Partial<KerjaSamaItem>>({
-    title: "",
-    shortName: "",
-    slug: "",
-    description: "",
-    pelatihanTitle: "",
-    pelatihanDeskripsi: "",
-    pelatihanImage: "",
-    mitraTitle: "",
-    mitraDeskripsi: "",
-    mitraImage: "",
-    color: "from-purple-500 to-indigo-600",
-    status: "AKTIF",
-  })
 
   // Filter Leads
   const [leadFilter, setLeadFilter] = useState<string>("Semua")
@@ -132,71 +107,11 @@ export default function AdminKerjaSamaClient() {
   }
 
   const handleOpenAddModal = () => {
-    setEditingItem(null)
-    setFormData({
-      title: "Empathika untuk ",
-      shortName: "",
-      slug: "",
-      description: "",
-      pelatihanTitle: "",
-      pelatihanDeskripsi: "",
-      pelatihanImage:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800",
-      mitraTitle: "",
-      mitraDeskripsi: "",
-      mitraImage:
-        "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=800",
-      color: "from-purple-500 to-indigo-600",
-      status: "AKTIF",
-    })
-    setIsModalOpen(true)
+    router.push("/admin/kerja-sama/tambah")
   }
 
   const handleOpenEditModal = (item: KerjaSamaItem) => {
-    setEditingItem(item)
-    setFormData({ ...item })
-    setIsModalOpen(true)
-  }
-
-  const handleSaveItem = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.title || !formData.slug) return
-
-    if (editingItem) {
-      const updated = items.map((it) =>
-        it.id === editingItem.id ? ({ ...it, ...formData } as KerjaSamaItem) : it
-      )
-      setItems(updated)
-      saveKerjaSamaItems(updated)
-      showToast(`Program "${formData.title}" berhasil diperbarui!`)
-    } else {
-      const newItem: KerjaSamaItem = {
-        id: `ks_${Date.now()}`,
-        slug: formData.slug || "program-baru",
-        title: formData.title || "",
-        shortName: formData.shortName || formData.title?.replace("Empathika untuk ", "") || "",
-        description: formData.description || "",
-        pelatihanTitle: formData.pelatihanTitle || "",
-        pelatihanDeskripsi: formData.pelatihanDeskripsi || "",
-        pelatihanImage:
-          formData.pelatihanImage ||
-          "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800",
-        mitraTitle: formData.mitraTitle || "",
-        mitraDeskripsi: formData.mitraDeskripsi || "",
-        mitraImage:
-          formData.mitraImage ||
-          "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=800",
-        color: formData.color || "from-purple-500 to-indigo-600",
-        status: (formData.status as "AKTIF" | "NONAKTIF") || "AKTIF",
-        urutan: items.length + 1,
-      }
-      const updated = [...items, newItem]
-      setItems(updated)
-      saveKerjaSamaItems(updated)
-      showToast("Program kerja sama baru berhasil ditambahkan!")
-    }
-
-    setIsModalOpen(false)
+    router.push(`/admin/kerja-sama/edit/${item.id}`)
   }
 
   const handleDeleteItem = (id: string, name: string) => {
@@ -485,17 +400,6 @@ export default function AdminKerjaSamaClient() {
         />
       )}
 
-      {/* Modal Tambah/Edit Program */}
-      <ModalProgramForm
-        isOpen={isModalOpen}
-        editingItem={editingItem}
-        formData={formData}
-        setFormData={setFormData}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveItem}
-        onImageUpload={handleImageUpload}
-        colorOptions={COLOR_OPTIONS}
-      />
 
       {/* Modal Detail Jawaban Pengajuan Masuk */}
       <ModalLeadDetail
