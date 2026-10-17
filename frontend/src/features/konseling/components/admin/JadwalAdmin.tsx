@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import ModalTambahSesi, { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
@@ -367,29 +367,76 @@ export default function JadwalAdmin() {
     triggerToast(`Sesi ${namaKlien} telah dibatalkan.`, "danger")
   }
 
-  // Ringkasan metrik sesi hari ini
+  // ── State Filter Layanan & Tanggal ──
+  const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan")
+  const [isLayananDropdownOpen, setIsLayananDropdownOpen] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
+  // Options Layanan Dinamis
+  const layananOptions = useMemo(() => {
+    const defaultList = [
+      "Semua Layanan",
+      "Konseling",
+      "Konseling Individu",
+      "Konseling Pasangan",
+      "Konseling Remaja",
+      "Konseling Karir",
+      "Konseling Pribadi",
+      "Hipnoterapi",
+      "Home Visit",
+      "Asesmen",
+      "Asesmen Klinis",
+    ]
+    const set = new Set<string>(defaultList)
+    todaySessions.forEach((s) => {
+      if (s.layanan) set.add(s.layanan.trim())
+    })
+    bookedSessions.forEach((b) => {
+      if (b.layanan) set.add(b.layanan.trim())
+    })
+    return Array.from(set)
+  }, [todaySessions, bookedSessions])
+
+  // Helper Pencocokan Filter Layanan
+  const matchLayanan = (itemLayanan: string, filter: string) => {
+    if (filter === "Semua Layanan") return true
+    const itemNorm = (itemLayanan || "").trim().toLowerCase()
+    const filterNorm = (filter || "").trim().toLowerCase()
+    if (itemNorm === filterNorm) return true
+    if (filterNorm === "konseling" && itemNorm.includes("konseling")) return true
+    if (filterNorm === "asesmen" && itemNorm.includes("asesmen")) return true
+    if (filterNorm === "hipnoterapi" && itemNorm.includes("hipnoterapi")) return true
+    return false
+  }
+
+  // Sesi Hari Ini yang Terfilter
+  const filteredTodaySessions = useMemo(() => {
+    return todaySessions.filter((s) => matchLayanan(s.layanan, selectedLayanan))
+  }, [todaySessions, selectedLayanan])
+
+  // Ringkasan metrik sesi hari ini (mengikuti filter layanan yang aktif)
   const stats = useMemo(() => {
-    const total = todaySessions.length
-    const sedangBerlangsung = todaySessions.filter((s) => s.status === "Sedang Berlangsung").length
-    const selesai = todaySessions.filter((s) => s.status === "Selesai").length
-    const menunggu = todaySessions.filter(
+    const total = filteredTodaySessions.length
+    const sedangBerlangsung = filteredTodaySessions.filter((s) => s.status === "Sedang Berlangsung").length
+    const selesai = filteredTodaySessions.filter((s) => s.status === "Selesai").length
+    const menunggu = filteredTodaySessions.filter(
       (s) => s.status === "Menunggu Jadwal" || s.status === "Segera Dimulai"
     ).length
     return { total, sedangBerlangsung, selesai, menunggu }
-  }, [todaySessions])
+  }, [filteredTodaySessions])
 
   // Sesi terdekat yang akan datang (sesi berikutnya di masa depan yang aktif)
   const nearestSession = useMemo(() => {
     // 1. Cari sesi yang berstatus 'Segera Dimulai'
-    const upcoming = todaySessions.find((s) => s.status === "Segera Dimulai")
+    const upcoming = filteredTodaySessions.find((s) => s.status === "Segera Dimulai")
     if (upcoming) return upcoming
 
     // 2. Jika tidak ada yang 'Segera Dimulai', cari sesi pertama yang berstatus 'Menunggu Jadwal'
-    const waiting = todaySessions.find((s) => s.status === "Menunggu Jadwal")
+    const waiting = filteredTodaySessions.find((s) => s.status === "Menunggu Jadwal")
     if (waiting) return waiting
 
     return null
-  }, [todaySessions])
+  }, [filteredTodaySessions])
 
   // Update berkala status sesi seiring berjalannya jam riil
   useEffect(() => {
@@ -446,8 +493,20 @@ export default function JadwalAdmin() {
     "15:30 - 16:30",
   ]
 
-  const today = new Date()
-  const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`
+  const today = useMemo(() => new Date(), [])
+  const formattedSelectedDate = useMemo(() => {
+    const d = date || today
+    return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`
+  }, [date, today])
+  const formattedDate = formattedSelectedDate
+
+  const datePickerValue = useMemo(() => {
+    const d = date || today
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${y}-${m}-${day}`
+  }, [date, today])
 
   // Sinkronkan minggu saat tanggal di kalender dipilih
   const handleSelectDate = (newDate: Date | undefined) => {
@@ -563,14 +622,112 @@ export default function JadwalAdmin() {
 
       {/* Top Actions & Filters */}
       <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-3 border-t border-gray-200 pt-6">
-        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs">
-          Semua Layanan
-          <ChevronDown className="w-4 h-4 ml-2" />
-        </button>
-        <button className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs">
-          {formattedDate}
-          <CalendarIcon className="w-4 h-4 ml-1" />
-        </button>
+        {/* Dropdown Layanan */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsLayananDropdownOpen((prev) => !prev)}
+            className={`flex items-center gap-2 border px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-2xs cursor-pointer ${
+              selectedLayanan !== "Semua Layanan"
+                ? "border-[#561269] bg-purple-50 text-[#561269] font-semibold"
+                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            <span>{selectedLayanan}</span>
+            <ChevronDown
+              className={`w-4 h-4 ml-1 transition-transform duration-200 ${
+                isLayananDropdownOpen ? "rotate-180 text-[#561269]" : "text-gray-500"
+              }`}
+            />
+          </button>
+
+          {isLayananDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setIsLayananDropdownOpen(false)}
+              />
+              <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-xl border border-gray-100 py-2 z-40 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-1.5 border-b border-gray-100 mb-1">
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                    Filter Layanan
+                  </p>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {layananOptions.map((opt) => {
+                    const isSelected = selectedLayanan === opt
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setSelectedLayanan(opt)
+                          setIsLayananDropdownOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-50 text-[#561269] font-bold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className="truncate">{opt}</span>
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-[#561269] ml-2 shrink-0" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                {selectedLayanan !== "Semua Layanan" && (
+                  <div className="border-t border-gray-100 mt-1 pt-1 px-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedLayanan("Semua Layanan")
+                        setIsLayananDropdownOpen(false)
+                      }}
+                      className="w-full text-center py-1.5 text-xs text-[#561269] hover:bg-purple-50 rounded-lg font-medium transition-colors cursor-pointer"
+                    >
+                      Reset Filter
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Date Selector */}
+        <div className="relative">
+          <input
+            ref={dateInputRef}
+            type="date"
+            className="sr-only"
+            value={datePickerValue}
+            onChange={(e) => {
+              if (e.target.value) {
+                handleSelectDate(new Date(e.target.value + "T00:00:00"))
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (dateInputRef.current) {
+                try {
+                  dateInputRef.current.showPicker()
+                } catch {
+                  dateInputRef.current.focus()
+                }
+              }
+            }}
+            className="flex items-center gap-2 border border-gray-300 bg-white px-4 py-2.5 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+          >
+            {formattedSelectedDate}
+            <CalendarIcon className="w-4 h-4 ml-1 text-gray-500" />
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
@@ -744,147 +901,166 @@ export default function JadwalAdmin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
-              {todaySessions.map((item, index) => {
-                const isNearest = nearestSession?.id === item.id
-                return (
-                  <tr
-                    key={item.id}
-                    className={`transition-colors ${
-                      isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
-                    }`}
-                  >
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2">
-                        {isNearest && (
-                          <span className="w-2 h-2 rounded-full bg-[#561269] animate-ping" />
-                        )}
-                        <p className={`font-bold ${isNearest ? "text-[#561269]" : "text-gray-900"}`}>
-                          {item.waktu}
-                        </p>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">Hari Ini</p>
-                    </td>
-                    <td className="py-4 px-6">
-                      <p className="font-extrabold text-gray-900">{item.namaKlien}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">ID: {item.klienId}</p>
-                    </td>
-                    <td className="py-4 px-6 font-medium text-gray-700">{item.psikolog}</td>
-                    <td className="py-4 px-6 text-gray-700 capitalize font-medium">{item.layanan}</td>
-                    <td className="py-4 px-6">
-                      <p className="text-gray-900 font-medium mb-1">{item.tipe}</p>
-                      <AdminStatusBadge
-                        variant={
-                          item.status === "Selesai"
-                            ? "success"
-                            : item.status === "Segera Dimulai"
-                            ? "info"
-                            : item.status === "Sedang Berlangsung"
-                            ? "danger"
-                            : item.status === "Dibatalkan"
-                            ? "neutral"
-                            : "warning"
-                        }
-                        className="w-44"
-                      >
-                        {item.status}
-                      </AdminStatusBadge>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <div className="relative inline-block text-left">
-                        <button
-                          type="button"
-                          onClick={() => setActiveMenuId(activeMenuId === item.id ? null : item.id)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-[#561269] hover:bg-purple-100/60 transition-colors cursor-pointer"
-                          title="Pilihan Aksi"
+              {filteredTodaySessions.length > 0 ? (
+                filteredTodaySessions.map((item, index) => {
+                  const isNearest = nearestSession?.id === item.id
+                  return (
+                    <tr
+                      key={item.id}
+                      className={`transition-colors ${
+                        isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
+                      }`}
+                    >
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          {isNearest && (
+                            <span className="w-2 h-2 rounded-full bg-[#561269] animate-ping" />
+                          )}
+                          <p className={`font-bold ${isNearest ? "text-[#561269]" : "text-gray-900"}`}>
+                            {item.waktu}
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">Hari Ini</p>
+                      </td>
+                      <td className="py-4 px-6">
+                        <p className="font-extrabold text-gray-900">{item.namaKlien}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">ID: {item.klienId}</p>
+                      </td>
+                      <td className="py-4 px-6 font-medium text-gray-700">{item.psikolog}</td>
+                      <td className="py-4 px-6 text-gray-700 capitalize font-medium">{item.layanan}</td>
+                      <td className="py-4 px-6">
+                        <p className="text-gray-900 font-medium mb-1">{item.tipe}</p>
+                        <AdminStatusBadge
+                          variant={
+                            item.status === "Selesai"
+                              ? "success"
+                              : item.status === "Segera Dimulai"
+                              ? "info"
+                              : item.status === "Sedang Berlangsung"
+                              ? "danger"
+                              : item.status === "Dibatalkan"
+                              ? "neutral"
+                              : "warning"
+                          }
+                          className="w-44"
                         >
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
+                          {item.status}
+                        </AdminStatusBadge>
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <div className="relative inline-block text-left">
+                          <button
+                            type="button"
+                            onClick={() => setActiveMenuId(activeMenuId === item.id ? null : item.id)}
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-[#561269] hover:bg-purple-100/60 transition-colors cursor-pointer"
+                            title="Pilihan Aksi"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
 
-                        {activeMenuId === item.id && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-30"
-                              onClick={() => setActiveMenuId(null)}
-                            />
-                            <div
-                              className={`absolute right-0 w-48 rounded-2xl bg-white shadow-xl border border-gray-100 py-2 z-40 text-left transition-all ${
-                                index >= todaySessions.length - 2 ? "bottom-full mb-2" : "top-full mt-2"
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedDetailSession(item)
-                                  setActiveMenuId(null)
-                                }}
-                                className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-purple-50 hover:text-[#561269] flex items-center gap-2.5 transition-colors cursor-pointer"
+                          {activeMenuId === item.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-30"
+                                onClick={() => setActiveMenuId(null)}
+                              />
+                              <div
+                                className={`absolute right-0 w-48 rounded-2xl bg-white shadow-xl border border-gray-100 py-2 z-40 text-left transition-all ${
+                                  index >= filteredTodaySessions.length - 2 ? "bottom-full mb-2" : "top-full mt-2"
+                                }`}
                               >
-                                <Eye className="w-4 h-4 text-purple-600 shrink-0" />
-                                Lihat Detail
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedDetailSession(item)
+                                    setActiveMenuId(null)
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-purple-50 hover:text-[#561269] flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <Eye className="w-4 h-4 text-purple-600 shrink-0" />
+                                  Lihat Detail
+                                </button>
 
-                              {item.kontak && item.status !== "Selesai" && item.status !== "Dibatalkan" && (
-                                <>
-                                  <a
-                                    href={getWhatsAppUrl(item)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={() => setActiveMenuId(null)}
-                                    className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                  >
-                                    <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
-                                    <span>Chat WA Klien</span>
-                                    <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
-                                  </a>
+                                {item.kontak && item.status !== "Selesai" && item.status !== "Dibatalkan" && (
+                                  <>
+                                    <a
+                                      href={getWhatsAppUrl(item)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={() => setActiveMenuId(null)}
+                                      className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                    >
+                                      <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
+                                      <span>Chat WA Klien</span>
+                                      <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleCopyWhatsAppMessage(item)
+                                        setActiveMenuId(null)
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                    >
+                                      <Copy className="w-4 h-4 text-gray-500 shrink-0" />
+                                      <span>Salin Pesan WA</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      handleCopyWhatsAppMessage(item)
+                                      handleMarkCompleted(item.id, item.namaKlien)
                                       setActiveMenuId(null)
                                     }}
-                                    className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                    className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                   >
-                                    <Copy className="w-4 h-4 text-gray-500 shrink-0" />
-                                    <span>Salin Pesan WA</span>
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                    Tandai Selesai
                                   </button>
-                                </>
-                              )}
+                                )}
 
-                              {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleMarkCompleted(item.id, item.namaKlien)
-                                    setActiveMenuId(null)
-                                  }}
-                                  className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                                >
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                  Tandai Selesai
-                                </button>
-                              )}
-
-                              {item.status !== "Dibatalkan" && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSessionToCancel(item)
-                                    setActiveMenuId(null)
-                                  }}
-                                  className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-gray-100"
-                                >
-                                  <XCircle className="w-4 h-4 text-red-500 shrink-0" />
-                                  Batalkan Sesi
-                                </button>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+                                {item.status !== "Dibatalkan" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSessionToCancel(item)
+                                      setActiveMenuId(null)
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-gray-100"
+                                  >
+                                    <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                    Batalkan Sesi
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center">
+                    <p className="text-sm font-semibold text-gray-600">
+                      Tidak ada jadwal sesi hari ini untuk layanan &quot;{selectedLayanan}&quot;.
+                    </p>
+                    {selectedLayanan !== "Semua Layanan" && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLayanan("Semua Layanan")}
+                        className="mt-3 inline-flex items-center text-xs text-[#561269] font-bold hover:underline cursor-pointer"
+                      >
+                        Tampilkan semua layanan
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1019,7 +1195,9 @@ export default function JadwalAdmin() {
             {/* Grid Body */}
             <div className="grid grid-cols-6 min-h-[360px] divide-x divide-gray-200">
               {weekDays.map((wd, i) => {
-                const sessions = bookedSessions.filter((s) => s.date === wd.dateKey)
+                const sessions = bookedSessions.filter(
+                  (s) => s.date === wd.dateKey && matchLayanan(s.layanan, selectedLayanan)
+                )
 
                 return (
                   <div
