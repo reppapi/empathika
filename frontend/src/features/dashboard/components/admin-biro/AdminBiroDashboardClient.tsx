@@ -78,7 +78,7 @@ export default function AdminBiroDashboardClient() {
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-              Selamat Pagi, Admin Biro!
+              Selamat Datang, Admin Biro!
             </h1>
             <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
               Operasional Aktif
