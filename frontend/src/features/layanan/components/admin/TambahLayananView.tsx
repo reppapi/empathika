@@ -88,13 +88,39 @@ export default function TambahLayananView() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 p-6 md:p-8 font-poppins">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-800">Form Input Layanan</h1>
-        <p className="text-sm text-gray-500 mt-1">Isi data layanan di bawah ini dengan lengkap</p>
+    <div className="flex flex-col gap-6 font-poppins pb-16 w-full max-w-5xl mx-auto">
+      {/* ── Heading Form & Tombol Kembali (Desain Seragam dengan Edit Layanan) ── */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => router.push("/admin/layanan")}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#561269] transition-colors cursor-pointer"
+          aria-label="Kembali"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2.5}
+            stroke="currentColor"
+            className="h-5 w-5"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          </svg>
+        </button>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
+          Tambah Layanan Baru
+        </h2>
       </div>
 
-      <div className="w-full h-px bg-gray-200 mb-6" />
+      {/* ── Container Form ── */}
+      <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-gray-800">Form Input Layanan</h1>
+          <p className="text-sm text-gray-500 mt-1">Isi data layanan di bawah ini dengan lengkap</p>
+        </div>
+
+        <div className="w-full h-px bg-gray-200 mb-6" />
 
       {successMsg && (
         <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3 animate-fadeIn">
@@ -293,23 +319,23 @@ export default function TambahLayananView() {
         </div>
 
         {/* Buttons */}
-        <div className="flex justify-end gap-3 pt-6">
-          <Link href="/admin/layanan">
-            <button
-              type="button"
-              className="px-6 py-2.5 border border-gray-300 rounded-full text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
-            >
-              Kembali
-            </button>
-          </Link>
+        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={() => router.push("/admin/layanan")}
+            className="px-6 py-2.5 border border-gray-300 rounded-full text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
+          >
+            Batal
+          </button>
           <button
             type="submit"
-            className="px-8 py-2.5 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+            className="px-8 py-2.5 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 rounded-full text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
-            Simpan
+            Simpan Layanan
           </button>
         </div>
       </form>
     </div>
-  )
+  </div>
+)
 }
