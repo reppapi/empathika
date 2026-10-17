@@ -33,7 +33,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
 
   let pageTitle = "Beranda"
   if (pathname?.startsWith("/psikolog-web/jadwal") || pathname?.startsWith("/jadwal") || pathname?.startsWith("/admin/psikolog-web/jadwal")) {
-    pageTitle = "Jadwal & Sesi"
+    pageTitle = "Jadwal dan Sesi Psikolog"
   } else if (pathname?.startsWith("/psikolog-web/profile") || pathname?.startsWith("/profile") || pathname?.startsWith("/admin/psikolog-web/profile")) {
     pageTitle = "Profil Saya"
   } else {

@@ -194,11 +194,6 @@ export default function PsikologJadwalClient() {
 
   return (
     <div className="flex flex-col gap-6 font-sans text-gray-800 pb-16">
-      {/* Title */}
-      <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">
-        Jadwal & Sesi Psikolog
-      </h1>
-
       {/* Card 1: Jadwal Sesi */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Jadwal Sesi</h2>

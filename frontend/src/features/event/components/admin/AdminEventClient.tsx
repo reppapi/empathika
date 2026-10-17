@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
-import { ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
+import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
 import { Calendar } from "lucide-react"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import AdminEventDetailModal from "./AdminEventDetailModal"
 
 export type EventItem = AdminEventData
 
@@ -21,6 +22,7 @@ export default function AdminEventClient() {
   )
   const [searchQuery, setSearchQuery] = useState("")
   const [openActionId, setOpenActionId] = useState<string | null>(null)
+  const [selectedEventForModal, setSelectedEventForModal] = useState<AdminEventData | null>(null)
 
   useEffect(() => {
     if (tabParam && ["semua", "seminar", "workshop", "selesai"].includes(tabParam)) {
@@ -250,7 +252,7 @@ export default function AdminEventClient() {
                 filteredEvents.map((item) => (
                   <tr
                     key={item.id}
-                    onClick={() => router.push(`/admin/event/${item.id}`)}
+                    onClick={() => setSelectedEventForModal(item)}
                     className="hover:bg-purple-50/40 cursor-pointer transition-colors"
                   >
                     {/* Event (Thumbnail + Title) */}
@@ -347,12 +349,16 @@ export default function AdminEventClient() {
                       {getStatusBadge(item.status)}
                     </td>
 
-                    {/* Aksi (Edit & Hapus) */}
+                    {/* Aksi (Detail, Edit & Hapus) */}
                     <td
                       className="py-4 px-5 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                        <ActionButtonDetail
+                          onClick={() => setSelectedEventForModal(item)}
+                          title="Lihat Detail Event"
+                        />
                         <ActionButtonEdit
                           onClick={(e: React.MouseEvent) => handleEditEvent(item.id, e)}
                           title="Edit Event"
@@ -370,6 +376,21 @@ export default function AdminEventClient() {
           </table>
         </div>
       </div>
+
+      {/* Modal Detail Event (Mengambang / Popup) */}
+      <AdminEventDetailModal
+        isOpen={Boolean(selectedEventForModal)}
+        onClose={() => setSelectedEventForModal(null)}
+        event={selectedEventForModal}
+        onEdit={(id) => {
+          setSelectedEventForModal(null)
+          router.push(`/admin/event/edit/${id}`)
+        }}
+        onStatusChange={(updatedEvent) => {
+          setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)))
+          setSelectedEventForModal(updatedEvent)
+        }}
+      />
     </div>
   )
 }
