@@ -9,7 +9,6 @@ import DashboardChart from "./DashboardChart"
 import DashboardAgenda from "./DashboardAgenda"
 import DashboardTodaySessions from "./DashboardTodaySessions"
 import DashboardRecentTransactions from "./DashboardRecentTransactions"
-import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 import { TodaySessionItem } from "../../types"
 import {
@@ -116,13 +115,10 @@ export default function AdminDashboardClient() {
 
       {/* 1. Welcome & Quick Actions Bar */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-3">
+        <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
             Selamat Datang, Admin!
           </h1>
-          <AdminStatusBadge variant="success" className="hidden sm:inline-flex">
-            Operasional Aktif
-          </AdminStatusBadge>
         </div>
 
         {/* Kolom Kanan: Tanggal & Tombol Tambah Sesi */}

@@ -1,11 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
-import { ActionButtonDetail, ActionButtonDelete } from "@/components/shared/TableActionButtons"
+import {
+  ActionButtonDetail,
+  ActionButtonEdit,
+  ActionButtonDelete,
+} from "@/components/shared/TableActionButtons"
 import { AdminSummaryCard } from "@/components/shared/AdminSummaryCard"
 import { Users, CheckCircle2, Lock } from "lucide-react"
 import {
@@ -16,13 +21,17 @@ import {
   AdminStatusBadge,
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
+import PsikologDetailModal from "./PsikologDetailModal"
 
 export default function AdminPsikologClient() {
+  const router = useRouter()
   const [dataList, setDataList] = useState<TenagaAhli[]>([])
   const [selectedKategoriFilter, setSelectedKategoriFilter] = useState<string>("semua")
   const [searchQuery, setSearchQuery] = useState("")
 
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<TenagaAhli | null>(null)
+  const [selectedDetailPsikolog, setSelectedDetailPsikolog] = useState<TenagaAhli | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
   useEffect(() => {
@@ -48,7 +57,7 @@ export default function AdminPsikologClient() {
     }
   }
 
-  // Hak Akses sederhana: Beri Akses ("AKTIF") atau Hapus Akses ("NONAKTIF")
+  // Hak Akses: Beri Akses ("AKTIF") atau Hapus Akses ("NONAKTIF")
   const handleToggleAkses = (item: TenagaAhli, newStatus: StatusAkses) => {
     const updated = dataList.map((d) => (d.id === item.id ? { ...d, statusAkses: newStatus } : d))
     const msg =
@@ -56,6 +65,18 @@ export default function AdminPsikologClient() {
         ? `Akses web untuk ${item.nama} berhasil diberikan.`
         : `Akses web untuk ${item.nama} telah dinonaktifkan.`
     persistData(updated, msg)
+    if (selectedDetailPsikolog && selectedDetailPsikolog.id === item.id) {
+      setSelectedDetailPsikolog({ ...selectedDetailPsikolog, statusAkses: newStatus })
+    }
+  }
+
+  const handleOpenDetail = (item: TenagaAhli) => {
+    setSelectedDetailPsikolog(item)
+    setIsDetailOpen(true)
+  }
+
+  const handleOpenEdit = (item: TenagaAhli) => {
+    router.push(`/admin/psikolog/edit/${item.id}`)
   }
 
   // Hapus Data
@@ -85,9 +106,10 @@ export default function AdminPsikologClient() {
       key: "nama",
       header: "Nama & Email",
       render: (item: TenagaAhli) => (
-        <Link
-          href={`/admin/psikolog/${item.id}`}
-          className="flex items-center gap-3 group"
+        <button
+          type="button"
+          onClick={() => handleOpenDetail(item)}
+          className="flex items-center gap-3 group text-left cursor-pointer"
         >
           <div className="relative w-11 h-11 rounded-2xl overflow-hidden bg-purple-100 shrink-0 border border-purple-200 flex items-center justify-center">
             {item.foto ? (
@@ -105,7 +127,7 @@ export default function AdminPsikologClient() {
             <p className="text-xs text-gray-500">{item.spesialisasi}</p>
             <p className="text-[11px] text-gray-400 mt-0.5">{item.email}</p>
           </div>
-        </Link>
+        </button>
       ),
     },
     {
@@ -148,23 +170,9 @@ export default function AdminPsikologClient() {
       render: (item: TenagaAhli) => {
         const isAktif = item.statusAkses === "AKTIF"
         return (
-          <div className="flex flex-col items-center gap-1.5">
-            <AdminStatusBadge variant={isAktif ? "success" : "neutral"} className="w-28">
-              {isAktif ? "Akses Aktif" : "Nonaktif"}
-            </AdminStatusBadge>
-
-            <button
-              type="button"
-              onClick={() => handleToggleAkses(item, isAktif ? "NONAKTIF" : "AKTIF")}
-              className={`text-[11px] font-medium px-3 py-1 rounded-xl transition cursor-pointer ${
-                isAktif
-                  ? "border border-red-200 text-red-600 hover:bg-red-50"
-                  : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold shadow-xs"
-              }`}
-            >
-              {isAktif ? "Hapus Akses" : "Beri Akses"}
-            </button>
-          </div>
+          <AdminStatusBadge variant={isAktif ? "success" : "neutral"} className="w-28">
+            {isAktif ? "Akses Aktif" : "Nonaktif"}
+          </AdminStatusBadge>
         )
       },
     },
@@ -175,8 +183,12 @@ export default function AdminPsikologClient() {
       render: (item: TenagaAhli) => (
         <div className="flex items-center justify-center gap-1.5 sm:gap-2">
           <ActionButtonDetail
-            href={`/admin/psikolog/${item.id}`}
+            onClick={() => handleOpenDetail(item)}
             title="Lihat Detail"
+          />
+          <ActionButtonEdit
+            onClick={() => handleOpenEdit(item)}
+            title="Edit Tenaga Ahli"
           />
           <ActionButtonDelete
             onClick={() => setDeleteConfirmItem(item)}
@@ -302,6 +314,17 @@ export default function AdminPsikologClient() {
           </div>
         </div>
       )}
+      {/* Modal Detail Tenaga Ahli */}
+      <PsikologDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => {
+          setIsDetailOpen(false)
+          setSelectedDetailPsikolog(null)
+        }}
+        psikolog={selectedDetailPsikolog}
+        onEdit={handleOpenEdit}
+        onToggleAkses={handleToggleAkses}
+      />
     </div>
   )
 }
