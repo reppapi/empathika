@@ -46,28 +46,29 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
 
       {/* ── Sidebar Container ── */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col overflow-y-auto bg-[#561269] py-8 font-poppins text-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col bg-[#561269] font-poppins text-white shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        <div className="flex min-h-full flex-col">
-          {/* Header Sidebar: Profile & Empathika */}
-          <div className="px-5 sm:px-6">
-            <Link
-              href="/admin"
-              onClick={onClose}
-              className="flex items-center gap-3 transition-transform hover:scale-105"
-            >
-              <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm" />
-              <span className="text-[25px] font-extrabold tracking-wide text-white uppercase truncate">
-                EMPATHIKA
-              </span>
-            </Link>
-            <div className="mt-6 h-[1.5px] w-full bg-white/40" />
-          </div>
+        {/* Header Sidebar: Profile & Empathika (Tetap Diam di Atas, Tidak Ikut Ter-scroll) */}
+        <div className="shrink-0 px-5 pt-8 pb-2 sm:px-6">
+          <Link
+            href="/admin"
+            onClick={onClose}
+            className="flex items-center gap-3 transition-transform hover:scale-105"
+          >
+            <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm" />
+            <span className="text-[25px] font-extrabold tracking-wide text-white uppercase truncate">
+              EMPATHIKA
+            </span>
+          </Link>
+          <div className="mt-6 h-[1.5px] w-full bg-white/40" />
+        </div>
 
-          {/* List Menu */}
-          <div className="mt-6 flex flex-1 flex-col gap-1">
+        {/* ── Area Navigasi / Pilihan Menu (Scrollable) ── */}
+        <div className="flex-1 overflow-y-auto py-3 flex flex-col justify-between [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.25)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/40">
+          {/* List Menu Pilihan */}
+          <div className="flex flex-col gap-1">
             {navItems.map((item) => {
               const active = isActive(item.path)
               return (
