@@ -17,6 +17,8 @@ function PendingContent() {
   const waktu     = searchParams.get("waktu")     ?? "09:00"
   const judul     = searchParams.get("judul")     ?? "Workshop SEFT"
   const subjudul  = searchParams.get("subjudul")  ?? "Spiritual Emotional Freedom Technique"
+  const kategori  = searchParams.get("kategori")  ?? "Seminar"
+  const harga     = searchParams.get("harga")     ?? "Rp 200.000"
   const metode    = searchParams.get("metode")    ?? "qris"
   const bank      = searchParams.get("bank")
   const ewallet   = searchParams.get("ewallet")
@@ -77,6 +79,8 @@ function PendingContent() {
         waktu,
         judul,
         subjudul,
+        kategori,
+        harga,
         metode,
         ...(bank && { bank }),
         ...(ewallet && { ewallet }),
@@ -93,6 +97,10 @@ function PendingContent() {
       ...(nama && { nama }),
       ...(email && { email }),
       ...(whatsapp && { whatsapp }),
+      ...(judul && { judul }),
+      ...(subjudul && { subjudul }),
+      ...(kategori && { kategori }),
+      ...(harga && { harga }),
       ...(metode && { metode }),
       ...(bank && { bank }),
       ...(ewallet && { ewallet }),

@@ -98,6 +98,12 @@ export default function EventCheckoutClient() {
   const activeBank    = BANK_LIST.find((b) => b.id === selectedBank)
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
 
+  const judulParam    = searchParams.get("judul") || "Workshop SEFT"
+  const subjudulParam = searchParams.get("subjudul") || "Spiritual Emotional Freedom Technique — program workshop interaktif bersama para ahli."
+  const kategoriParam = searchParams.get("kategori") || "Seminar"
+  const hargaParam    = searchParams.get("harga") || "Rp 200.000"
+  const isPsikotes    = kategoriParam.toLowerCase().includes("psikotes")
+
   const handleSelectPayment = (id: string) => {
     if (metodePembayaran === id) {
       // Jika opsi yang sama diklik lagi, tutup dropdown/accordion-nya
@@ -128,12 +134,14 @@ export default function EventCheckoutClient() {
       nama: nama.toUpperCase(),
       email,
       whatsapp,
-      orderId: "W-SEFT-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
+      orderId: (isPsikotes ? "PSI-" : "W-SEFT-") + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
       tanggal: "05/09",
       tahun: "2026",
       waktu: "09:00",
-      judul: "Workshop SEFT",
-      subjudul: "Spiritual Emotional Freedom Technique",
+      judul: judulParam,
+      subjudul: subjudulParam,
+      kategori: kategoriParam,
+      harga: hargaParam,
       metode: metodePembayaran,
       ...(selectedBank    && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
@@ -180,10 +188,12 @@ export default function EventCheckoutClient() {
         {/* Title */}
         <div className="mb-2 text-center">
           <h1 className="text-2xl sm:text-[28px] font-extrabold text-[#561269] mb-2">
-            Pendaftaran &amp; Pembayaran Tiket
+            {isPsikotes ? "Pendaftaran & Pembayaran Psikotes" : "Pendaftaran & Pembayaran Tiket"}
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto">
-            Isi data kamu dan pilih metode pembayaran untuk menyelesaikan pendaftaran event.
+            {isPsikotes
+              ? "Lengkapi data kamu dan selesaikan pembayaran untuk mendapatkan akses tes serta laporan analisis lengkap."
+              : "Isi data kamu dan pilih metode pembayaran untuk menyelesaikan pendaftaran event."}
           </p>
         </div>
 
@@ -216,37 +226,64 @@ export default function EventCheckoutClient() {
           </div>
         )}
 
-        {/* ── Box 1: Detail Event ── */}
+        {/* ── Box 1: Detail Item / Event ── */}
         <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">1</div>
-            <h3 className="text-sm font-bold text-gray-800">Detail Event</h3>
+            <h3 className="text-sm font-bold text-gray-800">{isPsikotes ? "Detail Layanan Psikotes" : "Detail Event"}</h3>
           </div>
           <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
             <div className="relative w-full sm:w-[200px] h-[120px] rounded-2xl bg-[#E6D9E9] overflow-hidden shrink-0 border border-gray-200 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="#9B59B6" className="w-12 h-12 opacity-40">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-              </svg>
+              {isPsikotes ? (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#561269" className="w-12 h-12 opacity-60">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="#9B59B6" className="w-12 h-12 opacity-40">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                </svg>
+              )}
             </div>
             <div className="flex flex-col w-full">
-              <div className="text-xs text-gray-500 mb-1">Seminar</div>
-              <div className="text-lg font-extrabold text-[#561269] mb-2">Workshop SEFT</div>
+              <div className="text-xs font-semibold text-purple-700 bg-purple-50 w-fit px-2.5 py-0.5 rounded-full mb-1">
+                {kategoriParam}
+              </div>
+              <div className="text-lg font-extrabold text-[#561269] mb-1">{judulParam}</div>
               <p className="text-xs text-gray-600 mb-4 line-clamp-2">
-                Spiritual Emotional Freedom Technique — program workshop interaktif bersama para ahli.
+                {subjudulParam}
               </p>
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Z" />
-                  </svg>
-                  <span className="text-xs font-medium text-gray-500">05 September 2026</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
-                  <span className="text-xs font-medium text-gray-500">09:00 - Selesai WIB</span>
-                </div>
+                {isPsikotes ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-[#561269]">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      <span className="text-xs font-medium text-gray-700">Akses Pengerjaan Online</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-[#561269]">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                      </svg>
+                      <span className="text-xs font-medium text-gray-700">Laporan Analisis Komprehensif</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Z" />
+                      </svg>
+                      <span className="text-xs font-medium text-gray-500">05 September 2026</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      <span className="text-xs font-medium text-gray-500">09:00 - Selesai WIB</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -471,7 +508,7 @@ export default function EventCheckoutClient() {
                           </div>
                           <div className="text-center">
                             <p className="text-xs font-bold text-[#561269]">Empathika Indonesia</p>
-                            <p className="text-[10px] text-gray-400">Total: Rp 200.000</p>
+                            <p className="text-[10px] text-gray-400">Total: {hargaParam}</p>
                           </div>
                           <p className="text-[10px] text-gray-400 text-center leading-relaxed">
                             Berlaku untuk semua aplikasi pembayaran<br/>(GoPay, OVO, DANA, dll)
@@ -489,12 +526,12 @@ export default function EventCheckoutClient() {
           {/* Pricing Info + CTA */}
           <div className="border-t border-gray-200 pt-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-500">Biaya Tiket</span>
-              <span className="text-xs font-medium text-gray-500">Rp 200.000</span>
+              <span className="text-xs text-gray-500">{isPsikotes ? "Biaya Paket Psikotes" : "Biaya Tiket"}</span>
+              <span className="text-xs font-semibold text-gray-700">{hargaParam}</span>
             </div>
             <div className="flex justify-between items-center mb-8">
               <span className="text-sm font-extrabold text-[#561269]">Total Bayar</span>
-              <span className="text-sm font-extrabold text-[#561269]">Rp 200.000</span>
+              <span className="text-base font-extrabold text-[#561269]">{hargaParam}</span>
             </div>
             <button
               onClick={handleSubmit}
@@ -510,8 +547,12 @@ export default function EventCheckoutClient() {
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] py-4 px-6 sm:px-10 lg:px-24 flex items-center justify-between z-40">
         <div>
-          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">05 Sep 2026</div>
-          <div className="text-sm sm:text-[17px] font-bold text-black">09:00 WIB</div>
+          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-0.5 line-clamp-1 max-w-[200px] sm:max-w-md">
+            {judulParam}
+          </div>
+          <div className="text-sm sm:text-[17px] font-extrabold text-[#561269]">
+            {hargaParam}
+          </div>
         </div>
         <button
           onClick={() => window.history.back()}

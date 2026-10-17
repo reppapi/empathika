@@ -1,124 +1,501 @@
 "use client";
 
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Script from "next/script";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { ArrowRight, Calendar, Info, CheckCircle2 } from "lucide-react";
-import Image from "next/image";
+import { 
+  Calendar, 
+  Info, 
+  CheckCircle2, 
+  Download, 
+  Sparkles, 
+  Award, 
+  TrendingUp, 
+  Briefcase, 
+  HeartHandshake, 
+  ShieldCheck,
+  FileCheck
+} from "lucide-react";
 import Link from "next/link";
 
 import { RESULT_DATA as resultData } from "../../data/psikotesData";
 
 export default function PsikotesHasilClient({ params }: { params: { testId: string } }) {
+  const searchParams = useSearchParams();
+  const isPaid = searchParams.get("paket") === "berbayar" || searchParams.get("plan") === "berbayar" || searchParams.get("tipe") === "berbayar";
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const { result, interpretation, meaning, tips, recommendations, testName } = resultData;
 
-  return (
-    <div className="min-h-screen bg-gray-50 pt-28 pb-12 px-4 sm:px-6 lg:px-8 lg:pt-36">
-      <div className="max-w-4xl mx-auto space-y-12">
-        {/* Header Section */}
-        <div className="text-center space-y-4">
-          <h2 className="text-sm font-semibold tracking-wide text-primary uppercase">
-            Hasil Psikotesmu
-          </h2>
-          <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            {testName}
-          </h1>
-        </div>
+  const handleDownloadPdf = () => {
+    setIsDownloading(true);
+    const element = document.getElementById("laporan-berbayar-container");
 
-        {/* 1. Hasil Utama */}
-        <section className="flex justify-center">
-          <div className={`w-full max-w-2xl rounded-3xl border ${result.borderColor} ${result.bgColor} p-8 sm:p-12 text-center shadow-sm`}>
-            {result.prefix && (
-              <p className="text-lg sm:text-xl font-medium text-gray-700 mb-3">{result.prefix}</p>
-            )}
-            <h3 className={`text-4xl sm:text-5xl md:text-6xl font-black tracking-tight ${result.color}`}>
-              {result.value}
-            </h3>
+    if (element && (window as any).html2canvas) {
+      ;(window as any)
+        .html2canvas(element, { scale: 2, backgroundColor: "#FFFFFF" })
+        .then((canvas: HTMLCanvasElement) => {
+          const link = document.createElement("a");
+          link.download = `Laporan-Resmi-Psikotes-${params.testId.toUpperCase()}-Empathika.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+          setIsDownloading(false);
+        })
+        .catch(() => {
+          window.print();
+          setIsDownloading(false);
+        });
+    } else {
+      // Fallback native browser print dialog (Save as PDF)
+      window.print();
+      setIsDownloading(false);
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // JIKA PSIKOTES GRATIS: Pertahankan tampilan & fitur asli tanpa diubah
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (!isPaid) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-28 pb-12 px-4 sm:px-6 lg:px-8 lg:pt-36">
+        <div className="max-w-4xl mx-auto space-y-12">
+          {/* Header Section */}
+          <div className="text-center space-y-4">
+            <h2 className="text-sm font-semibold tracking-wide text-primary uppercase">
+              Hasil Psikotesmu
+            </h2>
+            <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+              {testName}
+            </h1>
           </div>
-        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
-          {/* Main Content Column */}
-          <div className="md:col-span-8 space-y-10">
-            {/* 2. Interpretasi Hasil */}
-            <section className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
-                  <Info className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">Interpretasi Hasil</h2>
-              </div>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                {interpretation}
-              </p>
-            </section>
+          {/* 1. Hasil Utama */}
+          <section className="flex justify-center">
+            <div className={`w-full max-w-2xl rounded-3xl border ${result.borderColor} ${result.bgColor} p-8 sm:p-12 text-center shadow-sm`}>
+              {result.prefix && (
+                <p className="text-lg sm:text-xl font-medium text-gray-700 mb-3">{result.prefix}</p>
+              )}
+              <h3 className={`text-4xl sm:text-5xl md:text-6xl font-black tracking-tight ${result.color}`}>
+                {result.value}
+              </h3>
+            </div>
+          </section>
 
-            <hr className="border-gray-200" />
-
-            {/* 3. Apa Artinya untukmu? */}
-            <section className="space-y-4">
-              <h2 className="text-2xl font-bold text-gray-900">Apa Artinya untukmu?</h2>
-              <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
-                <p className="text-gray-600 leading-relaxed text-lg">
-                  {meaning}
-                </p>
-              </div>
-            </section>
-
-            {/* 4. Tips atau Saran */}
-            <section className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">Tips untukmu</h2>
-              <div className="space-y-4">
-                {tips.map((tip, index) => (
-                  <div key={index} className="flex gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-gray-200 transition-colors">
-                    <div className="flex-shrink-0 mt-1">
-                      <CheckCircle2 className="w-6 h-6 text-green-500" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900">{tip.title}</h4>
-                      <p className="mt-1 text-gray-600 leading-relaxed">{tip.desc}</p>
-                    </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
+            {/* Main Content Column */}
+            <div className="md:col-span-8 space-y-10">
+              {/* 2. Interpretasi Hasil */}
+              <section className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                    <Info className="w-6 h-6" />
                   </div>
-                ))}
-              </div>
-            </section>
-          </div>
+                  <h2 className="text-2xl font-bold text-gray-900">Interpretasi Hasil</h2>
+                </div>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  {interpretation}
+                </p>
+              </section>
 
-          {/* Sidebar / CTA Column */}
-          <div className="md:col-span-4 space-y-6">
-            {/* 5. Ajakan untuk Konsultasi */}
-            <div className="bg-primary text-white rounded-3xl p-6 sm:p-8 shadow-lg sticky top-[120px]">
-              <h3 className="text-xl font-bold mb-3">Ingin memahami kondisimu lebih jauh?</h3>
-              <p className="text-primary-foreground/90 mb-6 text-sm leading-relaxed">
-                Hasil tes ini adalah langkah awal. Jangan ragu untuk berkonsultasi dengan psikolog profesional kami untuk mendapatkan panduan yang lebih personal.
-              </p>
-              <div className="space-y-3">
-                <Link href="/konseling" className="block w-full">
-                  <Button variant="secondary" className="w-full bg-white text-primary hover:bg-gray-50 flex items-center justify-center gap-2 font-semibold">
-                    <Calendar className="w-4 h-4" />
-                    Jadwalkan Konsultasi
-                  </Button>
-                </Link>
+              <hr className="border-gray-200" />
+
+              {/* 3. Apa Artinya untukmu? */}
+              <section className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-900">Apa Artinya untukmu?</h2>
+                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+                  <p className="text-gray-600 leading-relaxed text-lg">
+                    {meaning}
+                  </p>
+                </div>
+              </section>
+
+              {/* 4. Tips atau Saran */}
+              <section className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900">Tips untukmu</h2>
+                <div className="space-y-4">
+                  {tips.map((tip, index) => (
+                    <div key={index} className="flex gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-gray-200 transition-colors">
+                      <div className="flex-shrink-0 mt-1">
+                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">{tip.title}</h4>
+                        <p className="mt-1 text-gray-600 leading-relaxed">{tip.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            {/* Sidebar / CTA Column */}
+            <div className="md:col-span-4 space-y-6">
+              {/* 5. Ajakan untuk Konsultasi */}
+              <div className="bg-primary text-white rounded-3xl p-6 sm:p-8 shadow-lg sticky top-[120px]">
+                <h3 className="text-xl font-bold mb-3">Ingin memahami kondisimu lebih jauh?</h3>
+                <p className="text-primary-foreground/90 mb-6 text-sm leading-relaxed">
+                  Hasil tes ini adalah langkah awal. Jangan ragu untuk berkonsultasi dengan psikolog profesional kami untuk mendapatkan panduan yang lebih personal.
+                </p>
+                <div className="space-y-3">
+                  <Link href="/konseling" className="block w-full">
+                    <Button variant="secondary" className="w-full bg-white text-primary hover:bg-gray-50 flex items-center justify-center gap-2 font-semibold">
+                      <Calendar className="w-4 h-4" />
+                      Jadwalkan Konsultasi
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 6. Rekomendasi Tes untukmu */}
-        <section className="space-y-8 pt-12 border-t border-gray-200">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <h2 className="text-2xl font-bold text-gray-900">Rekomendasi Tes Lainnya</h2>
-            <p className="text-gray-600">
-              Kenali dirimu lebih dalam dengan berbagai tes psikologi yang telah kami sediakan khusus untukmu.
+          {/* 6. Rekomendasi Tes untukmu */}
+          <section className="space-y-8 pt-12 border-t border-gray-200">
+            <div className="text-center max-w-2xl mx-auto space-y-3">
+              <h2 className="text-2xl font-bold text-gray-900">Rekomendasi Tes Lainnya</h2>
+              <p className="text-gray-600">
+                Kenali dirimu lebih dalam dengan berbagai tes psikologi yang telah kami sediakan khusus untukmu.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
+              {recommendations.map((rec) => (
+                <div key={rec.id} className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
+                  <div className={`h-48 w-full ${rec.bgColor} overflow-hidden relative`}>
+                    <div className="absolute inset-0 flex items-start p-6">
+                      <div className="text-left w-full">
+                        <h3 className={`${rec.titleColor} font-bold text-[24px] leading-none mb-2 uppercase drop-shadow-sm`}>{rec.topTitle}</h3>
+                        <p className={`${rec.titleColor} text-sm font-medium drop-shadow-sm`}>{rec.topSubtitle}</p>
+                      </div>
+                    </div>
+                    {rec.shape === "circles" && (
+                      <div className="absolute -bottom-4 right-0 opacity-40 mix-blend-overlay">
+                        <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="white"/><circle cx="50" cy="120" r="50" fill="white"/></svg>
+                      </div>
+                    )}
+                    {rec.shape === "circles-dark" && (
+                      <div className="absolute -bottom-4 right-0 opacity-20 mix-blend-overlay">
+                        <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="black"/><circle cx="50" cy="120" r="50" fill="black"/></svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-6 flex flex-col flex-1">
+                    <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">{rec.bottomTitle}</h3>
+                    
+                    <div className="mt-auto">
+                      <Link href={`/psikotes/${rec.id}`} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                        Ikuti Tes Sekarang
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // JIKA PSIKOTES BERBAYAR: Tampilan Profesional Web dengan Download PDF
+  // ═══════════════════════════════════════════════════════════════════════════
+  return (
+    <div className="min-h-screen bg-[#FAFAFC] font-poppins pt-24 pb-20 px-4 sm:px-6 lg:px-8 lg:pt-32">
+      <Script
+        src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+        strategy="lazyOnload"
+      />
+
+      <div className="max-w-5xl mx-auto space-y-8">
+        
+        {/* Header Bersih & Profesional */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
+          <div>
+            <p className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-1.5">
+              Laporan Analisis Asesmen
+            </p>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">
+              {testName}
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-xl">
+              Evaluasi mendalam profil personal, gaya komunikasi, serta panduan pengembangan potensi dirimu.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
+
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isDownloading}
+              className="px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#6e1886] text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isDownloading ? "Menyiapkan PDF..." : "Download Laporan (PDF)"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ══ KONTEN UTAMA LAPORAN BERBAYAR ══ */}
+        <div id="laporan-berbayar-container" className="space-y-8">
+          
+          {/* 1. Hasil Utama (Clean & Modern Card) */}
+          <section className="bg-white rounded-3xl border border-gray-200/80 p-8 sm:p-10 shadow-xs text-center">
+            {result.prefix && (
+              <p className="text-sm sm:text-base font-semibold text-gray-500 mb-2">{result.prefix}</p>
+            )}
+            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#561269] tracking-tight mb-4">
+              {result.value}
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.
+            </p>
+          </section>
+
+          {/* 2. Grid Konten: Kolom Kiri (Analisis) & Kolom Kanan (Sidebar) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Kolom Kiri: Analisis Lengkap */}
+            <div className="lg:col-span-8 space-y-8">
+              
+              {/* Dimensi & Spektrum Karakter */}
+              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-[#561269]" />
+                    Dimensi &amp; Spektrum Karakter
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Pemetaan indikator psikologis berdasarkan respon pengerjaan kuesionermu:
+                  </p>
+                </div>
+
+                <div className="space-y-5">
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-bold mb-2">
+                      <span className="text-gray-700">Orientasi Energi Sosial</span>
+                      <span className="text-[#561269]">76% Ekstrovert · 24% Introvert</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#561269] rounded-full" style={{ width: "76%" }}></div>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                      Memperoleh stimulasi positif dan semangat tinggi melalui kolaborasi tim dan interaksi sosial.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-bold mb-2">
+                      <span className="text-gray-700">Pengambilan Keputusan</span>
+                      <span className="text-[#561269]">68% Nilai &amp; Empati · 32% Logika Kaku</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#EAB308] rounded-full" style={{ width: "68%" }}></div>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                      Mempertimbangkan dampak terhadap perasaan orang lain dan keharmonisan lingkungan sebelum mengambil keputusan.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-bold mb-2">
+                      <span className="text-gray-700">Pola Kerja &amp; Struktur</span>
+                      <span className="text-[#561269]">82% Terorganisir · 18% Spontan</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-600 rounded-full" style={{ width: "82%" }}></div>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                      Memiliki preferensi kuat terhadap perencanaan jadwal, tenggat waktu yang jelas, dan target terukur.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-bold mb-2">
+                      <span className="text-gray-700">Regulasi Stres &amp; Adaptabilitas</span>
+                      <span className="text-[#561269]">74% Stabil &amp; Adaptif</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-600 rounded-full" style={{ width: "74%" }}></div>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                      Mampu memulihkan fokus dengan cepat saat menghadapi dinamika situasi yang tidak terduga.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Interpretasi Hasil & Makna Strategis */}
+              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <Info className="w-5 h-5 text-[#561269]" />
+                    Interpretasi Analisis
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    {interpretation}
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2]">
+                  <h4 className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-2">
+                    Implikasi bagi Kehidupan Sehari-hari
+                  </h4>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                    {meaning}
+                  </p>
+                </div>
+              </section>
+
+              {/* Potensi Karir & Kekuatan Kunci */}
+              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-[#561269]" />
+                    Potensi Karir &amp; Kekuatan Kunci
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Kombinasi keunggulan utama dan lingkungan kerja yang paling mendukung potensimu:
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70">
+                    <span className="text-xs font-bold text-gray-900 uppercase tracking-wider block mb-3">
+                      Kekuatan Utama (Core Strengths)
+                    </span>
+                    <ul className="space-y-2.5 text-xs text-gray-700">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>Komunikasi persuasif yang berakar pada empati tulus.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>Kemampuan membangun keselarasan dan kohesi tim kerja.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>Ketajaman dalam merumuskan solusi berpusat pada manusia.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70">
+                    <span className="text-xs font-bold text-gray-900 uppercase tracking-wider block mb-3">
+                      Lingkungan Kerja Optimal
+                    </span>
+                    <ul className="space-y-2.5 text-xs text-gray-700">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>Industri edukasi, psikologi, human resource, dan konsultasi.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>Posisi strategis dengan ruang kolaborasi tim yang fleksibel.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>Budaya organisasi yang menghargai inovasi dan empati.</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              {/* Tips & Langkah Pengembangan Diri */}
+              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                    <HeartHandshake className="w-5 h-5 text-[#561269]" />
+                    Langkah Pengembangan Diri
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Saran praktis untuk memaksimalkan potensi dan menjaga keseimbangan energimu:
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {tips.map((tip, index) => (
+                    <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-5 h-5 text-[#561269]" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">{tip.title}</h4>
+                        <p className="mt-0.5 text-xs text-gray-600 leading-relaxed">{tip.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+            </div>
+
+            {/* Kolom Kanan: Sidebar Aksi & Konsultasi */}
+            <div className="lg:col-span-4 space-y-6 sticky top-[120px]">
+              
+              {/* Card Ringkasan Asesmen */}
+              <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4">
+                <h4 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">
+                  Informasi Asesmen
+                </h4>
+                <div className="space-y-3 text-xs">
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span>Status Tes</span>
+                    <span className="font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Selesai</span>
+                  </div>
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span>Cakupan Laporan</span>
+                    <span className="font-semibold text-[#561269]">Analisis Komprehensif</span>
+                  </div>
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span>Validitas Respon</span>
+                    <span className="font-semibold text-gray-900">Konsisten</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Ajakan Konsultasi */}
+              <div className="bg-gradient-to-br from-[#561269] to-[#763E8B] text-white rounded-3xl p-6 sm:p-7 shadow-md space-y-4">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#EAB308] block">
+                  Konsultasi Psikolog
+                </span>
+                <h4 className="text-lg font-bold leading-snug">
+                  Ingin Membahas Hasil Ini Secara Mendalam?
+                </h4>
+                <p className="text-xs text-purple-100 leading-relaxed">
+                  Konsultasikan hasil analisismu bersama psikolog berlisensi Empathika untuk panduan karir dan pengembangan diri yang personal.
+                </p>
+                <Link href="/konseling" className="block pt-1">
+                  <button className="w-full py-3 rounded-xl bg-[#EAB308] hover:bg-[#FACC15] text-black font-extrabold text-xs flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
+                    <Calendar className="w-4 h-4" />
+                    <span>Jadwalkan Sesi Konsultasi</span>
+                  </button>
+                </Link>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Rekomendasi Tes Lainnya (Bagian Bawah) */}
+        <section className="pt-10 border-t border-gray-200 space-y-6">
+          <div className="text-center max-w-xl mx-auto">
+            <h3 className="text-xl font-bold text-gray-900">Eksplorasi Asesmen Lainnya</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Lengkapi pemetaan potensimu dengan ragam tes psikologi Empathika.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {recommendations.map((rec) => (
               <div key={rec.id} className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
-                <div className={`h-48 w-full ${rec.bgColor} overflow-hidden relative`}>
+                <div className={`h-40 w-full ${rec.bgColor} overflow-hidden relative`}>
                   <div className="absolute inset-0 flex items-start p-6">
                     <div className="text-left w-full">
-                      <h3 className={`${rec.titleColor} font-bold text-[24px] leading-none mb-2 uppercase drop-shadow-sm`}>{rec.topTitle}</h3>
-                      <p className={`${rec.titleColor} text-sm font-medium drop-shadow-sm`}>{rec.topSubtitle}</p>
+                      <h4 className={`${rec.titleColor} font-bold text-[22px] leading-none mb-1.5 uppercase drop-shadow-sm`}>{rec.topTitle}</h4>
+                      <p className={`${rec.titleColor} text-xs font-medium drop-shadow-sm`}>{rec.topSubtitle}</p>
                     </div>
                   </div>
                   {rec.shape === "circles" && (
@@ -132,11 +509,10 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                     </div>
                   )}
                 </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">{rec.bottomTitle}</h3>
-                  
+                <div className="p-5 flex flex-col flex-1">
+                  <h4 className="font-bold text-lg text-gray-900 mb-4 leading-tight">{rec.bottomTitle}</h4>
                   <div className="mt-auto">
-                    <Link href={`/psikotes/${rec.id}`} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                    <Link href={`/psikotes/${rec.id}` as any} className="w-full flex items-center justify-center py-2.5 rounded-full bg-[#EAB308] text-black font-bold text-xs hover:bg-yellow-500 transition-colors shadow-sm">
                       Ikuti Tes
                     </Link>
                   </div>
@@ -145,8 +521,8 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
             ))}
           </div>
         </section>
+
       </div>
     </div>
   );
 }
-
