@@ -2,8 +2,20 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { AdminEventData } from "@/features/event/data/adminEventData"
 
-export default function WorkshopDetailClient() {
+interface Props {
+  id: string
+  event?: AdminEventData
+}
+
+export default function WorkshopDetailClient({ id: _id, event }: Props) {
+  const judul = event?.judul ?? "Workshop SEFT"
+  const subjudul = event?.subjudul
+  const tanggal = event?.tanggal ?? "-"
+  const waktu = event?.waktu ?? "-"
+  const lokasi = event?.lokasi ?? "-"
+
   return (
     <div className="min-h-screen bg-white font-poppins text-gray-800 overflow-x-hidden">
       
@@ -14,8 +26,9 @@ export default function WorkshopDetailClient() {
           {/* Mobile Text (Top) */}
           <div className="md:hidden w-full px-6 py-8 bg-gradient-to-b from-white to-[#F8EFFF]">
             <h1 className="text-4xl font-extrabold text-[#561269] mb-4 leading-tight">
-              Workshop <br /> SEFT
+              {judul}
             </h1>
+            {subjudul && <p className="text-sm font-semibold text-[#7B2D8B] mb-2">{subjudul}</p>}
             <p className="text-base text-gray-700 font-medium leading-relaxed">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
             </p>
@@ -37,9 +50,10 @@ export default function WorkshopDetailClient() {
             <div className="hidden md:flex absolute inset-0 items-center">
               <div className="w-full max-w-[1200px] mx-auto px-6">
                 <div className="w-1/2 pr-8">
-                  <h1 className="text-5xl lg:text-[4rem] xl:text-[5rem] font-extrabold text-[#561269] mb-6 leading-tight drop-shadow-sm">
-                    Workshop <br /> SEFT
+                  <h1 className="text-5xl lg:text-[4rem] xl:text-[5rem] font-extrabold text-[#561269] mb-3 leading-tight drop-shadow-sm">
+                    {judul}
                   </h1>
+                  {subjudul && <p className="text-base font-semibold text-[#7B2D8B] mb-4">{subjudul}</p>}
                   <p className="text-lg xl:text-xl text-gray-700 font-medium leading-relaxed max-w-lg">
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                   </p>
