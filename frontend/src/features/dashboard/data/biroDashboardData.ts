@@ -72,7 +72,7 @@ export const BIRO_TENANT_DATA: Record<string, BiroTenantData> = {
       {
         title: "Sesi Konseling Selesai",
         value: "28 Sesi",
-        change: "Bulan berjalan di biro",
+        change: "Akumulasi bulan ini",
         icon: CheckCircle2,
         color: "#561269",
       },
@@ -371,7 +371,7 @@ export const BIRO_TENANT_DATA: Record<string, BiroTenantData> = {
       {
         title: "Sesi Konseling Selesai",
         value: "19 Sesi",
-        change: "Bulan berjalan di biro",
+        change: "Akumulasi bulan ini",
         icon: CheckCircle2,
         color: "#0D9488",
       },
@@ -536,7 +536,7 @@ export const BIRO_TENANT_DATA: Record<string, BiroTenantData> = {
       {
         title: "Sesi Konseling Selesai",
         value: "45 Sesi",
-        change: "Bulan berjalan di biro",
+        change: "Akumulasi bulan ini",
         icon: CheckCircle2,
         color: "#2563EB",
       },

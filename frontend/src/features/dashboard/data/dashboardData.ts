@@ -28,7 +28,7 @@ export const INITIAL_DASHBOARD_METRICS: MetricItem[] = [
   {
     title: "Sesi Konseling Selesai",
     value: "42 Sesi",
-    change: "Bulan berjalan",
+    change: "Akumulasi bulan ini",
     icon: CheckCircle2,
     color: "#5D205E",
   },
