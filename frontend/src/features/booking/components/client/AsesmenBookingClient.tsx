@@ -74,24 +74,21 @@ export default function AsesmenBookingClient() {
       <div className="mx-auto w-full max-w-[900px] px-6 mt-8 sm:mt-12 relative z-10">
         {/* Title Daftar Harga */}
         <h2 className="text-left text-xl font-extrabold text-[#561269] mb-6 drop-shadow-sm">
-          Daftar Harga Asesmen
+          Daftar Harga
         </h2>
 
-        {/* Card Daftar Harga */}
-        <div className="bg-white rounded-[1.5rem] shadow-sm p-6 sm:p-10 mb-12 border border-gray-100">
+        {/* Card Daftar Harga (3 Kolom persis Konsultasi) */}
+        <div className="bg-white rounded-[1.5rem] shadow-sm p-6 sm:p-10 mb-16 border border-gray-100">
           {/* Header */}
-          <div className="grid grid-cols-12 text-center mb-4 items-center">
-            <div className="col-span-5 text-left font-extrabold text-[#561269] text-[15px] sm:text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
-              Layanan Asesmen
+          <div className="grid grid-cols-3 text-center mb-4">
+            <div className="text-left font-extrabold text-[#561269] text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
+              Asesmen
             </div>
-            <div className="col-span-2 font-extrabold text-[#561269] text-[14px] sm:text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
+            <div className="font-extrabold text-[#561269] text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
               Weekday
             </div>
-            <div className="col-span-2 font-extrabold text-[#561269] text-[14px] sm:text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
+            <div className="font-extrabold text-[#561269] text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
               Weekend
-            </div>
-            <div className="col-span-3 text-right pr-2 font-extrabold text-[#561269] text-[14px] sm:text-[17px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
-              Aksi
             </div>
           </div>
 
@@ -103,54 +100,30 @@ export default function AsesmenBookingClient() {
               const isOpen = openAccordion === item.id
               return (
                 <div key={item.id} className="flex flex-col">
-                  <div className="grid grid-cols-12 items-center py-5 gap-1">
-                    <div
-                      className="col-span-5 flex items-center gap-2 font-bold text-[#561269] text-[14px] sm:text-[15px] cursor-pointer"
-                      onClick={() => toggleAccordion(item.id)}
-                    >
+                  <div
+                    className="grid grid-cols-3 items-center py-5 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => toggleAccordion(item.id)}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-[#561269] text-[15px]">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
                         strokeWidth={3}
                         stroke="currentColor"
-                        className={`h-3.5 w-3.5 transition-transform duration-300 shrink-0 ${
+                        className={`h-3.5 w-3.5 transition-transform duration-300 ${
                           isOpen ? "rotate-180" : ""
                         }`}
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                       </svg>
-                      <span className="[text-shadow:2px_2px_4px_rgba(0,0,0,0.3)] leading-snug">
-                        {item.title}
-                      </span>
+                      <span className="[text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">{item.title}</span>
                     </div>
-                    <div className="col-span-2 text-center font-bold text-[#561269] text-[13px] sm:text-[14px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
+                    <div className="text-center font-bold text-[#561269] text-[14px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
                       {item.weekday}
                     </div>
-                    <div className="col-span-2 text-center font-bold text-[#561269] text-[13px] sm:text-[14px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
+                    <div className="text-center font-bold text-[#561269] text-[14px] [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
                       {item.weekend}
-                    </div>
-                    <div className="col-span-3 text-right">
-                      <Link
-                        href={
-                          `/konseling/jadwal?layanan=asesmen&paket=${encodeURIComponent(
-                            item.title
-                          )}` as any
-                        }
-                        className="inline-flex items-center justify-center gap-1.5 py-2 px-4 sm:px-6 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all transform active:scale-95"
-                      >
-                        <span>Daftar</span>
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2.5}
-                          stroke="currentColor"
-                          className="h-3.5 w-3.5"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                        </svg>
-                      </Link>
                     </div>
                   </div>
 
@@ -160,7 +133,7 @@ export default function AsesmenBookingClient() {
                       isOpen ? "max-h-24 opacity-100 pb-4" : "max-h-0 opacity-0"
                     }`}
                   >
-                    <div className="pl-6 text-[11px] sm:text-xs font-medium text-[#561269] pr-4 max-w-2xl leading-relaxed">
+                    <div className="pl-6 text-[11px] font-medium text-[#561269] pr-4 sm:w-2/3 leading-relaxed">
                       {item.description}
                     </div>
                   </div>
@@ -171,31 +144,27 @@ export default function AsesmenBookingClient() {
             })}
           </div>
         </div>
+      </div>
 
-        {/* Informasi Penugasan Asesor (Pengganti list psikolog) */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 sm:p-8 shadow-sm flex items-center gap-4 text-left">
-          <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
+      {/* Section Bawah / CTA (Persis seperti di bawah profil psikolog) */}
+      <section className="w-full bg-[#EAEAEA] py-16 sm:py-24 px-4 sm:px-6 mt-16 sm:mt-20 text-center">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#3B074B] leading-tight">
+            Satu cerita bisa menjadi awal dari perubahan.
+            <br />
+            Mulai konsultasimu hari ini.
+          </h2>
+
           <div>
-            <h4 className="font-bold text-sm sm:text-base text-[#561269]">
-              Asesor Psikolog Terverifikasi
-            </h4>
-            <p className="text-xs sm:text-sm text-gray-500 mt-0.5 leading-relaxed">
-              Untuk layanan Asesmen, psikolog / asesor terstandar akan ditugaskan langsung oleh Empathika sesuai dengan bidang kebutuhan asesmen yang Anda pilih pada tahap penjadwalan.
-            </p>
+            <Link
+              href={"/konseling/jadwal?layanan=asesmen" as any}
+              className="inline-block bg-[#EAB308] hover:bg-[#CA9A06] text-black font-bold text-base sm:text-lg md:text-xl px-10 sm:px-14 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              Daftar Sesi
+            </Link>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
