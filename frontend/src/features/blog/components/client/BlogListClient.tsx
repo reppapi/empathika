@@ -76,14 +76,7 @@ export default function BlogListClient() {
         {/* Card list */}
         {paginated.length > 0 ? (
           <div className={styles.cardList}>
-            {paginated.map((post) => {
-              const initials = post.author.name
-                .split(' ')
-                .slice(0, 2)
-                .map((w) => w[0])
-                .join('');
-
-              return (
+            {paginated.map((post) => (
                 <Link key={post.slug} href={`/blog/${post.slug}`} className={styles.blogCardLink}>
                   <div className={styles.blogCard}>
                     {/* Real Article Photo (No Emoji) */}
@@ -100,11 +93,7 @@ export default function BlogListClient() {
                     {/* Text */}
                     <div className={styles.blogCardBody}>
                       <div className={styles.cardAuthor}>
-                        <div className={styles.authorAv}>{initials}</div>
-                        <div>
-                          <p className={styles.authorName}>{post.author.name}</p>
-                          <p className={styles.authorDate}>{post.date}</p>
-                        </div>
+                        <p className={styles.authorDate}>{post.date}</p>
                         {post.category && (
                           <span className={styles.categoryBadge}>{post.category}</span>
                         )}
@@ -135,8 +124,7 @@ export default function BlogListClient() {
                     </div>
                   </div>
                 </Link>
-              );
-            })}
+            ))}
           </div>
         ) : (
           <div className={styles.emptyState}>

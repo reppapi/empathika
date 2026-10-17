@@ -115,21 +115,12 @@ export default function AdminBlogClient() {
               {/* Kanan: Informasi Blog */}
               <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
                 <div>
-                  {/* Header Card: Avatar bulat + Penulis + Tanggal */}
-                  <div className="flex items-center gap-2.5 text-xs text-gray-600 mb-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E8D4F0] font-bold text-[#561269] text-xs">
-                      {blog.author.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .join("")}
-                    </div>
-                    <span className="font-semibold text-gray-800">
-                      {blog.author.name}
-                    </span>
-                    <span className="text-gray-300">|</span>
-                    <span className="text-gray-500">{blog.date}</span>
+                  {/* Tanggal Artikel */}
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-3.5 w-3.5 text-gray-400 shrink-0">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                    </svg>
+                    <span>{blog.date}</span>
                   </div>
 
                   {/* Judul Blog (Bold) */}
