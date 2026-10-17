@@ -24,14 +24,12 @@ import {
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 
-import { useRouter } from "next/navigation"
 import TabProgramList from "./TabProgramList"
 import TabHeroKontak from "./TabHeroKontak"
 import TabKelolaFormulir from "./TabKelolaFormulir"
 import TabPengajuanLeads from "./TabPengajuanLeads"
 import ModalLeadDetail from "./ModalLeadDetail"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
-
 
 const VALID_TABS = ["program", "hero-kontak", "formulir", "pengajuan"] as const
 type TabType = (typeof VALID_TABS)[number]
@@ -42,14 +40,14 @@ export default function AdminKerjaSamaClient() {
   const pathname = usePathname()
 
   // Ambil tab dari URL (?tab=pengajuan, ?tab=formulir, dll), default ke 'program'
-  const initialQueryTab = searchParams.get("tab") as TabType | null
+  const initialQueryTab = searchParams ? (searchParams.get("tab") as TabType | null) : null
   const [activeTab, setActiveTab] = useState<TabType>(
     initialQueryTab && VALID_TABS.includes(initialQueryTab) ? initialQueryTab : "program"
   )
 
   // Sinkronkan tab saat query param URL berubah (misal tombol Back / Forward browser)
   useEffect(() => {
-    const q = searchParams.get("tab") as TabType | null
+    const q = searchParams ? (searchParams.get("tab") as TabType | null) : null
     if (q && VALID_TABS.includes(q)) {
       setActiveTab(q)
     } else if (!q) {
@@ -60,14 +58,16 @@ export default function AdminKerjaSamaClient() {
   // Ganti tab sekaligus update URL query param tanpa reload halaman
   const handleTabChange = (newTab: TabType) => {
     setActiveTab(newTab)
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
     if (newTab === "program") {
       params.delete("tab")
     } else {
       params.set("tab", newTab)
     }
+    const basePath = pathname || "/admin/kerja-sama"
     const qs = params.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    const targetUrl = qs ? `${basePath}?${qs}` : basePath
+    router.replace(targetUrl, { scroll: false })
   }
 
   // State data utama
