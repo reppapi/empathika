@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { MessageCircle, ExternalLink, Copy, X } from "lucide-react"
 import { PengajuanKerjaSama } from "../../types"
 
 interface ModalLeadDetailProps {
@@ -10,6 +11,29 @@ interface ModalLeadDetailProps {
   onShowToast: (msg: string) => void
 }
 
+function formatLeadWhatsAppMessage(lead: PengajuanKerjaSama): string {
+  return `Halo Kak ${lead.namaPIC} dari ${lead.namaInstansi},
+
+Kami dari Tim Administrasi & Kemitraan Empathika ingin menindaklanjuti formulir pengajuan kerja sama yang Anda kirimkan:
+
+📋 *Detail Pengajuan Kerja Sama:*
+• *Instansi/Organisasi:* ${lead.namaInstansi}
+• *Nama PIC:* ${lead.namaPIC}
+• *Layanan / Program:* ${lead.formTitle || `Kerja Sama ${lead.kategori}`}
+• *Kategori Mitra:* ${lead.kategori}
+• *Tanggal Pengajuan:* ${lead.tanggal}
+
+Apakah Kak ${lead.namaPIC} memiliki waktu luang agar kita dapat mendiskusikan rencana kerja sama ini lebih lanjut? Jika ada hal yang ingin ditanyakan, silakan membalas pesan ini. Terima kasih! 🙏`
+}
+
+function getLeadWhatsAppUrl(lead: PengajuanKerjaSama): string {
+  if (!lead.telepon) return "#"
+  const clean = lead.telepon.replace(/\D/g, "")
+  const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
+  const message = formatLeadWhatsAppMessage(lead)
+  return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+}
+
 export default function ModalLeadDetail({
   selectedLead,
   onClose,
@@ -17,6 +41,12 @@ export default function ModalLeadDetail({
   onShowToast,
 }: ModalLeadDetailProps) {
   if (!selectedLead) return null
+
+  const handleCopyWhatsAppMessage = () => {
+    const text = formatLeadWhatsAppMessage(selectedLead)
+    navigator.clipboard.writeText(text)
+    onShowToast(`Pesan WhatsApp untuk ${selectedLead.namaPIC} (${selectedLead.namaInstansi}) berhasil disalin ke clipboard!`)
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-fadeIn">
@@ -38,12 +68,12 @@ export default function ModalLeadDetail({
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition cursor-pointer"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Kontak PIC Box */}
-        <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 mb-5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
           <div className="space-y-1">
             <span className="font-bold text-gray-800 block text-sm">
               {selectedLead.namaPIC}
@@ -58,20 +88,20 @@ export default function ModalLeadDetail({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <select
               value={selectedLead.status}
               onChange={(e) =>
                 onUpdateStatus(selectedLead.id, e.target.value as PengajuanKerjaSama["status"])
               }
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold border ${
+              className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all cursor-pointer outline-none ${
                 selectedLead.status === "Menunggu"
-                  ? "bg-amber-50 text-amber-700 border-amber-300"
+                  ? "bg-amber-50 text-amber-700 border-amber-300 hover:border-amber-400"
                   : selectedLead.status === "Dihubungi"
-                  ? "bg-blue-50 text-blue-700 border-blue-300"
+                  ? "bg-blue-50 text-blue-700 border-blue-300 hover:border-blue-400"
                   : selectedLead.status === "Disetujui"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                  : "bg-red-50 text-red-700 border-red-300"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:border-emerald-400"
+                  : "bg-red-50 text-red-700 border-red-300 hover:border-red-400"
               }`}
             >
               <option value="Menunggu">Menunggu</option>
@@ -80,19 +110,27 @@ export default function ModalLeadDetail({
               <option value="Ditolak">Ditolak</option>
             </select>
 
-            <a
-              href={`https://wa.me/${selectedLead.telepon.replace(/\D/g, "")}?text=${encodeURIComponent(
-                `Halo ${selectedLead.namaPIC} dari ${selectedLead.namaInstansi}, kami dari tim Empathika telah menerima formulir pengajuan ${
-                  selectedLead.formTitle || selectedLead.kategori
-                }. Boleh kita diskusikan lebih lanjut?`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs"
-            >
-              <span>Chat WA</span>
-              <span>↗</span>
-            </a>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <a
+                href={getLeadWhatsAppUrl(selectedLead)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 px-3.5 text-xs font-bold rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white inline-flex items-center gap-1.5 transition shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap"
+                title="Hubungi PIC via WhatsApp"
+              >
+                <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>Chat WA</span>
+                <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
+              </a>
+              <button
+                type="button"
+                onClick={handleCopyWhatsAppMessage}
+                className="h-9 w-9 rounded-xl border border-purple-200 text-gray-600 hover:text-[#561269] hover:bg-purple-100/60 inline-flex items-center justify-center transition active:scale-95 cursor-pointer shrink-0"
+                title="Salin Pesan WA"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 

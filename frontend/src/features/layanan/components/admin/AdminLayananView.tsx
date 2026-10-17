@@ -1,15 +1,12 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { CalendarClock, X, Eye, Edit, Trash2, CloudUpload, CheckCircle2 } from "lucide-react"
+import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2 } from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
 import {
   getStoredLayanan,
-  saveStoredLayanan,
-  updateLayananById,
   deleteLayananById,
   AdminLayananItem,
 } from "../../data/adminLayananData"
@@ -35,19 +32,7 @@ export default function AdminLayananView() {
 
   // Modal States
   const [selectedDetail, setSelectedDetail] = useState<AdminLayananItem | null>(null)
-  const [editingItem, setEditingItem] = useState<AdminLayananItem | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
-
-  // Edit Form Fields State
-  const [editKategori, setEditKategori] = useState("02")
-  const [editNama, setEditNama] = useState("")
-  const [editMetode, setEditMetode] = useState("Online/Offline")
-  const [editStatus, setEditStatus] = useState<"Aktif" | "Nonaktif">("Aktif")
-  const [editDeskripsi, setEditDeskripsi] = useState("")
-  const [editWeekday, setEditWeekday] = useState("")
-  const [editWeekend, setEditWeekend] = useState("")
-  const [editBanner, setEditBanner] = useState<string | null>(null)
-  const editFileInputRef = useRef<HTMLInputElement>(null)
 
   // Kategori yang diizinkan di admin
   const allowedCategories = ["02", "03", "05"]
@@ -58,70 +43,6 @@ export default function AdminLayananView() {
   useEffect(() => {
     setLayananList(getStoredLayanan())
   }, [])
-
-  // Buka Modal Edit & Isi Data Form
-  const handleOpenEdit = (item: AdminLayananItem) => {
-    setEditingItem(item)
-    setEditKategori(item.kategoriId || "02")
-    setEditNama(item.layanan)
-    setEditMetode(item.metode || "Online/Offline")
-    setEditStatus(item.status)
-    setEditDeskripsi(item.deskripsi || "")
-    setEditWeekday(item.weekday.replace(/[^0-9]/g, ""))
-    setEditWeekend(item.weekend.replace(/[^0-9]/g, ""))
-    setEditBanner(item.bannerUrl || null)
-  }
-
-  // Handle Simpan Perubahan Edit Modal
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingItem) return
-
-    if (!editNama.trim()) {
-      alert("Nama layanan tidak boleh kosong.")
-      return
-    }
-
-    const formatRp = (val: string) => {
-      const num = parseInt(val.replace(/[^0-9]/g, "") || "0", 10)
-      return `Rp ${num.toLocaleString("id-ID")}`
-    }
-
-    const updatedData: Partial<AdminLayananItem> = {
-      layanan: editNama.trim(),
-      kategoriId: editKategori,
-      metode: editMetode,
-      status: editStatus,
-      deskripsi: editDeskripsi.trim(),
-      weekday: formatRp(editWeekday),
-      weekend: formatRp(editWeekend),
-      bannerUrl: editBanner || "",
-    }
-
-    updateLayananById(editingItem.id, updatedData)
-    const freshList = getStoredLayanan()
-    setLayananList(freshList)
-    setEditingItem(null)
-
-    setToastMsg(`Layanan "${editNama.trim()}" berhasil diperbarui!`)
-    setTimeout(() => setToastMsg(null), 3500)
-  }
-
-  // Handle Upload Image Preview
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Ukuran file banner maksimal 2MB")
-        return
-      }
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setEditBanner(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
 
   // Handle Hapus Layanan
   const handleDelete = (item: AdminLayananItem) => {
@@ -213,7 +134,7 @@ export default function AdminLayananView() {
             title="Lihat Detail"
           />
           <ActionButtonEdit
-            onClick={() => handleOpenEdit(item)}
+            onClick={() => router.push(`/admin/layanan/edit/${item.id}`)}
             title="Edit Layanan"
           />
           <ActionButtonDelete
@@ -298,269 +219,6 @@ export default function AdminLayananView() {
         />
       </AdminTableContainer>
 
-      {/* ── MODAL POP-UP EDIT LAYANAN (MUNCUL SAAT KLIK TOMBOL EDIT) ── */}
-      {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 md:p-8 shadow-2xl relative border border-gray-100 my-8 max-h-[90vh] overflow-y-auto admin-table-scrollbar">
-            {/* Tombol Close */}
-            <button
-              type="button"
-              onClick={() => setEditingItem(null)}
-              className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Header Modal */}
-            <div className="mb-5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-yellow-100 text-[#CA8A04] flex items-center justify-center font-bold">
-                <Edit className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Edit Layanan</h2>
-                <p className="text-xs text-gray-500">Perbarui data layanan &quot;{editingItem.layanan}&quot;</p>
-              </div>
-            </div>
-
-            <div className="w-full h-px bg-gray-200 mb-6" />
-
-            {/* Form Edit */}
-            <form onSubmit={handleSaveEdit} className="space-y-5 text-sm">
-              {/* Kategori & Status */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Kategori Layanan <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={editKategori}
-                    onChange={(e) => setEditKategori(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white cursor-pointer"
-                  >
-                    {CATEGORIES.filter((c) => ["02", "03", "05"].includes(c.id)).map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Status Layanan <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-5 mt-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editStatus"
-                        value="Aktif"
-                        checked={editStatus === "Aktif"}
-                        onChange={() => setEditStatus("Aktif")}
-                        className="w-4 h-4 text-[#561269] focus:ring-[#561269]"
-                      />
-                      <span className="text-sm text-gray-700 font-medium">Aktif</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editStatus"
-                        value="Nonaktif"
-                        checked={editStatus === "Nonaktif"}
-                        onChange={() => setEditStatus("Nonaktif")}
-                        className="w-4 h-4 text-[#561269] focus:ring-[#561269]"
-                      />
-                      <span className="text-sm text-gray-700 font-medium">Nonaktif</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Nama Layanan & Metode */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Nama Layanan <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={editNama}
-                    onChange={(e) => setEditNama(e.target.value)}
-                    placeholder="Contoh: Psikolog Klinis"
-                    required
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                    Metode Pelaksanaan <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex flex-wrap gap-4 mt-2">
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editMetode"
-                        value="Online"
-                        checked={editMetode === "Online"}
-                        onChange={() => setEditMetode("Online")}
-                        className="w-4 h-4 text-[#561269] focus:ring-[#561269]"
-                      />
-                      <span className="text-xs text-gray-700">Online</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editMetode"
-                        value="Offline"
-                        checked={editMetode === "Offline"}
-                        onChange={() => setEditMetode("Offline")}
-                        className="w-4 h-4 text-[#561269] focus:ring-[#561269]"
-                      />
-                      <span className="text-xs text-gray-700">Offline</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editMetode"
-                        value="Online/Offline"
-                        checked={editMetode === "Online/Offline"}
-                        onChange={() => setEditMetode("Online/Offline")}
-                        className="w-4 h-4 text-[#561269] focus:ring-[#561269]"
-                      />
-                      <span className="text-xs text-gray-700">Online/Offline</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Deskripsi */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Deskripsi Layanan <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={editDeskripsi}
-                  onChange={(e) => setEditDeskripsi(e.target.value)}
-                  placeholder="Jelaskan mengenai layanan ini..."
-                  rows={3}
-                  className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y"
-                />
-              </div>
-
-              {/* Tarif Weekday & Weekend */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Tarif Weekday (Senin - Jumat) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex rounded-lg shadow-2xs">
-                    <span className="inline-flex items-center px-3.5 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs font-bold">
-                      Rp
-                    </span>
-                    <input
-                      type="text"
-                      value={editWeekday}
-                      onChange={(e) => setEditWeekday(e.target.value.replace(/[^0-9]/g, ""))}
-                      placeholder="350000"
-                      required
-                      className="flex-1 block w-full px-3.5 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Tarif Weekend (Sabtu - Minggu) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex rounded-lg shadow-2xs">
-                    <span className="inline-flex items-center px-3.5 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs font-bold">
-                      Rp
-                    </span>
-                    <input
-                      type="text"
-                      value={editWeekend}
-                      onChange={(e) => setEditWeekend(e.target.value.replace(/[^0-9]/g, ""))}
-                      placeholder="450000"
-                      required
-                      className="flex-1 block w-full px-3.5 py-2 border border-gray-300 rounded-r-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Upload Banner */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Poster / Banner Layanan
-                </label>
-                <div
-                  onClick={() => editFileInputRef.current?.click()}
-                  className={`border-2 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                    editBanner
-                      ? "border-solid border-gray-200 bg-gray-50"
-                      : "border-dashed border-gray-300 hover:bg-gray-50"
-                  }`}
-                  style={{ minHeight: "110px" }}
-                >
-                  <input
-                    type="file"
-                    ref={editFileInputRef}
-                    onChange={handleImageChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  {editBanner ? (
-                    <div className="relative w-full h-24 flex items-center justify-center">
-                      <Image
-                        src={editBanner}
-                        alt="Banner"
-                        width={200}
-                        height={96}
-                        className="max-h-24 w-auto object-contain rounded-md"
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditBanner(null)
-                        }}
-                        className="absolute top-0 right-0 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-center space-y-1">
-                      <CloudUpload className="mx-auto w-6 h-6 text-gray-400" />
-                      <p className="text-xs text-gray-600">Klik untuk upload gambar banner</p>
-                      <p className="text-[10px] text-gray-400">JPG, PNG, WebP (Maks. 2MB)</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Tombol Aksi Modal */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setEditingItem(null)}
-                  className="px-5 py-2.5 border border-gray-300 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 rounded-full text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                >
-                  Simpan Perubahan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* ── DETAIL MODAL ── */}
       {selectedDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-fadeIn">
@@ -621,9 +279,9 @@ export default function AdminLayananView() {
               <button
                 type="button"
                 onClick={() => {
-                  const targetItem = selectedDetail
+                  const targetId = selectedDetail.id
                   setSelectedDetail(null)
-                  handleOpenEdit(targetItem)
+                  router.push(`/admin/layanan/edit/${targetId}`)
                 }}
                 className="px-5 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
               >

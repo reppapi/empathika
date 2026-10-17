@@ -7,6 +7,8 @@ import {
   ChartBarItem,
   ChartPeriod,
 } from "../types"
+import { getTodayTransactions } from "@/features/transaksi/data/transaksiData"
+import { RAW_CLIENT_SESSIONS } from "@/features/konseling/components/admin/JadwalAdmin"
 
 export const INITIAL_DASHBOARD_METRICS: MetricItem[] = [
   {
@@ -127,68 +129,23 @@ export const INITIAL_AGENDA_LIST: AgendaItem[] = [
   },
 ]
 
-export const INITIAL_RECENT_TRANSACTIONS: RecentTransactionItem[] = [
-  {
-    id: "TRX-8821",
-    client: "Rian Hidayat",
-    layanan: "Seminar Resilience & Mindfulness",
-    kategori: "Event",
-    total: "Rp 102.500",
-    metode: "QRIS",
-    status: "Lunas",
-  },
-  {
-    id: "TRX-8822",
-    client: "Nadia Utami",
-    layanan: "Konseling Individu (1 Sesi)",
-    kategori: "Konseling",
-    total: "Rp 250.000",
-    metode: "Transfer BCA",
-    status: "Lunas",
-  },
-  {
-    id: "TRX-8823",
-    client: "Dimas Wicaksono",
-    layanan: "Workshop SEFT Batch 4",
-    kategori: "Event",
-    total: "Rp 150.000",
-    metode: "Mandiri VA",
-    status: "Menunggu Pembayaran",
-  },
-  {
-    id: "TRX-8824",
-    client: "Farah Salsabila",
-    layanan: "Psikotes Minat & Bakat Karir",
-    kategori: "Psikotes",
-    total: "Rp 320.000",
-    metode: "GoPay",
-    status: "Lunas",
-  },
-]
+export const INITIAL_RECENT_TRANSACTIONS: RecentTransactionItem[] = getTodayTransactions().map(
+  (trx) => ({
+    id: trx.orderId,
+    client: trx.clientName,
+    layanan: trx.namaLayanan,
+    kategori: trx.jenisLayanan.charAt(0).toUpperCase() + trx.jenisLayanan.slice(1),
+    total: trx.totalBayar === 0 ? "Gratis" : `Rp. ${trx.totalBayar.toLocaleString("id-ID")}`,
+    metode: trx.metodePembayaran,
+    status: trx.status === "Lunas" ? "Lunas" : "Menunggu Pembayaran",
+  })
+)
 
-export const INITIAL_TODAY_SESSIONS: TodaySessionItem[] = [
-  {
-    waktu: "09:00 - 10:00 WIB",
-    klien: "Karen Sya",
-    psikolog: "Sarah Amalia, M.Psi",
-    layanan: "Konseling Dewasa",
-    metode: "Online",
-    status: "Selesai",
-  },
-  {
-    waktu: "13:30 - 14:30 WIB",
-    klien: "Budi Santoso",
-    psikolog: "Dr. Dimas Prasetyo",
-    layanan: "Konseling Karir & Stres",
-    metode: "Offline",
-    status: "Sedang Berjalan",
-  },
-  {
-    waktu: "16:00 - 17:00 WIB",
-    klien: "Anisa Rahma",
-    psikolog: "Rizki Putri D., M.Psi",
-    layanan: "Konseling Remaja",
-    metode: "Online",
-    status: "Mendatang",
-  },
-]
+export const INITIAL_TODAY_SESSIONS: TodaySessionItem[] = RAW_CLIENT_SESSIONS.map((item) => ({
+  waktu: `${item.waktu} WIB`,
+  klien: item.namaKlien,
+  psikolog: item.psikolog,
+  layanan: item.layanan,
+  metode: item.tipe.toLowerCase().includes("online") ? "Online" : "Offline",
+  status: "Menunggu Jadwal",
+}))
