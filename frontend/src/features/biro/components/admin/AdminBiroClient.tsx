@@ -265,21 +265,12 @@ export default function AdminBiroClient() {
         </div>
       )}
 
-      {/* Header Halaman & Tombol Tambah */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-            Pengaturan Biro & Komunitas
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Kelola profil tenant mitra, registrasi biro, dan alur aktivasi multi-tenant Empathika.
-          </p>
-        </div>
-
+      {/* Top Bar Action: Tombol Tambah Biro */}
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={handleOpenAdd}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
