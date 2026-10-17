@@ -94,7 +94,7 @@ const INITIAL_ADMIN_BOOKINGS: BookedAssessment[] = [
   },
 ]
 
-interface ClientSessionToday {
+export interface ClientSessionToday {
   id: string
   waktu: string
   namaKlien: string
@@ -108,7 +108,7 @@ interface ClientSessionToday {
   isUpcomingNearest?: boolean
 }
 
-const RAW_CLIENT_SESSIONS: Omit<ClientSessionToday, "status" | "isUpcomingNearest">[] = [
+export const RAW_CLIENT_SESSIONS: Omit<ClientSessionToday, "status" | "isUpcomingNearest">[] = [
   {
     id: "cs1",
     waktu: "09:00 - 10:00",
@@ -210,7 +210,7 @@ function parseTimeRangeMinutes(timeStr: string) {
   }
 }
 
-function getInitialSessionsBasedOnTime(): ClientSessionToday[] {
+export function getInitialSessionsBasedOnTime(): ClientSessionToday[] {
   const now = new Date()
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
   let foundNearest = false
