@@ -61,11 +61,14 @@ export default function LayananClient() {
                 activeCategory === "04"
                   ? `/event/${idx + 1}`
                   : activeCategory === "05"
-                  ? `/booking?type=asesmen&paket=${encodeURIComponent(service.bottomTitle)}`
+                  ? `/booking/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
                   : "/booking"
               )
               return (
-                <Link href={destinationHref as any} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                <Link
+                  href={destinationHref as any}
+                  className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
+                >
                   {service.btnText}
                 </Link>
               )

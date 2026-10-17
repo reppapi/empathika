@@ -128,7 +128,7 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "circles",
-    href: "/booking?type=asesmen&paket=Asesmen+Minat+Bakat",
+    href: "/booking/asesmen?paket=Asesmen+Minat+Bakat",
   },
   {
     topTitle: "ASESMEN",
@@ -139,7 +139,7 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "circles-dark",
-    href: "/booking?type=asesmen&paket=Asesmen+Kesiapan+Sekolah",
+    href: "/booking/asesmen?paket=Asesmen+Kesiapan+Sekolah",
   },
   {
     topTitle: "ASESMEN",
@@ -150,7 +150,7 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "heart",
-    href: "/booking?type=asesmen&paket=Asesmen+Klinis",
+    href: "/booking/asesmen?paket=Asesmen+Klinis",
   },
 ]
 

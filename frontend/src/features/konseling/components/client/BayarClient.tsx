@@ -7,19 +7,19 @@ import { useRouter, useSearchParams } from "next/navigation"
 // ── Dummy data ────────────────────────────────────────────────────────────────
 
 const BANK_LIST = [
-  { id: "bca",     name: "BCA",     va: "1234567890123" },
+  { id: "bca", name: "BCA", va: "1234567890123" },
   { id: "mandiri", name: "Mandiri", va: "8881234567890" },
-  { id: "bni",     name: "BNI",     va: "9876543210987" },
-  { id: "bri",     name: "BRI",     va: "7771234567890" },
-  { id: "bsi",     name: "BSI",     va: "4441234567890" },
+  { id: "bni", name: "BNI", va: "9876543210987" },
+  { id: "bri", name: "BRI", va: "7771234567890" },
+  { id: "bsi", name: "BSI", va: "4441234567890" },
 ]
 
 const EWALLET_LIST = [
-  { id: "gopay",     name: "GoPay",     color: "#00AA13" },
-  { id: "ovo",       name: "OVO",       color: "#4C3494" },
-  { id: "dana",      name: "DANA",      color: "#118EEA" },
+  { id: "gopay", name: "GoPay", color: "#00AA13" },
+  { id: "ovo", name: "OVO", color: "#4C3494" },
+  { id: "dana", name: "DANA", color: "#118EEA" },
   { id: "shopeepay", name: "ShopeePay", color: "#EE4D2D" },
-  { id: "linkaja",   name: "LinkAja",   color: "#E82529" },
+  { id: "linkaja", name: "LinkAja", color: "#E82529" },
 ]
 
 // Tombol salin dengan feedback "Tersalin!"
@@ -50,14 +50,14 @@ export default function BayarClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [nama, setNama]         = useState("")
-  const [email, setEmail]       = useState("")
+  const [nama, setNama] = useState("")
+  const [email, setEmail] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
 
   const [metodePembayaran, setMetodePembayaran] = useState<string | null>(null)
-  const [selectedBank, setSelectedBank]         = useState<string | null>(null)
-  const [selectedEwallet, setSelectedEwallet]   = useState<string | null>(null)
+  const [selectedBank, setSelectedBank] = useState<string | null>(null)
+  const [selectedEwallet, setSelectedEwallet] = useState<string | null>(null)
   const [failedAlertDismissed, setFailedAlertDismissed] = useState(false)
 
   const isFailed = searchParams.get("status") === "failed" && !failedAlertDismissed
@@ -81,7 +81,7 @@ export default function BayarClient() {
     if (qEwallet) setSelectedEwallet(qEwallet)
   }, [searchParams])
 
-  const activeBank    = BANK_LIST.find((b) => b.id === selectedBank)
+  const activeBank = BANK_LIST.find((b) => b.id === selectedBank)
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
 
   const handleSelectPayment = (id: string) => {
@@ -94,17 +94,9 @@ export default function BayarClient() {
     }
 
     setMetodePembayaran(id)
-    if (id !== "bank")    { setSelectedBank(null) }
+    if (id !== "bank") { setSelectedBank(null) }
     if (id !== "ewallet") { setSelectedEwallet(null) }
   }
-
-  const qLayanan = searchParams.get("layanan")
-  const qPaket = searchParams.get("paket")
-  const qBiaya = searchParams.get("biaya") || "Rp 350.000"
-  const qWaktu = searchParams.get("waktu") || "13:30"
-  const qMetodeSesi = searchParams.get("metode") || "Online"
-  const qTanggal = searchParams.get("tanggal") || "31 Agu 2026"
-  const isAsesmen = qLayanan === "asesmen"
 
   const handleSubmit = () => {
     if (!nama || !email || !whatsapp || !deskripsi) {
@@ -123,18 +115,17 @@ export default function BayarClient() {
       orderId: "W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
       tanggal: "31/08",
       tahun: "2026",
-      waktu: qWaktu,
-      judul: isAsesmen ? (qPaket || "Layanan Asesmen") : "Layanan Konsultasi",
-      subjudul: isAsesmen ? "Asesor Psikolog Terstandar Empathika" : "Psikolog Profesional Empathika",
-      bottomDate: qTanggal,
-      bottomTime: `${qWaktu} WIB (${qMetodeSesi})`,
-      biaya: qBiaya,
+      waktu: "13:30",
+      judul: "Layanan Konsultasi",
+      subjudul: "Psikolog Profesional Empathika",
+      bottomDate: "31 Agu 2026",
+      bottomTime: "13:30 WIB (Online)",
       metode: metodePembayaran,
-      ...(selectedBank    && { bank: selectedBank }),
+      ...(selectedBank && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
     // Arahkan ke halaman pending dulu
-    router.push(`/konseling/pending?${params.toString()}` as any)
+    router.push(`/konseling/pending?${params.toString()}`)
   }
 
   const paymentOptions = [
@@ -291,7 +282,7 @@ export default function BayarClient() {
               <div className="w-[70px] h-[70px] rounded-full bg-[#E6D9E9] shrink-0" />
               <div className="text-center sm:text-left flex flex-col justify-center h-full pt-1">
                 <div className="text-[10px] text-gray-500 mb-1">Psikolog Anda</div>
-                <div className="text-sm font-extrabold text-[#561269]">nama, M.Psi.,<br/>Psikolog</div>
+                <div className="text-sm font-extrabold text-[#561269]">nama, M.Psi.,<br />Psikolog</div>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -367,11 +358,10 @@ export default function BayarClient() {
                               return (
                                 <div
                                   key={ew.id}
-                                  className={`rounded-xl border transition-all overflow-hidden ${
-                                    isSelected
+                                  className={`rounded-xl border transition-all overflow-hidden ${isSelected
                                       ? "border-[#561269] bg-[#FAF5FC] shadow-sm"
                                       : "border-gray-200 bg-white hover:bg-gray-50"
-                                  }`}
+                                    }`}
                                 >
                                   {/* Baris item */}
                                   <button
@@ -421,11 +411,10 @@ export default function BayarClient() {
                               return (
                                 <div
                                   key={bank.id}
-                                  className={`rounded-xl border transition-all overflow-hidden ${
-                                    isSelected
+                                  className={`rounded-xl border transition-all overflow-hidden ${isSelected
                                       ? "border-[#561269] bg-[#FAF5FC] shadow-sm"
                                       : "border-gray-200 bg-white hover:bg-gray-50"
-                                  }`}
+                                    }`}
                                 >
                                   {/* Baris item */}
                                   <button
@@ -475,28 +464,28 @@ export default function BayarClient() {
                           </p>
                           <div className="relative w-[168px] h-[168px] bg-white border-2 border-[#561269] rounded-xl p-3 flex items-center justify-center">
                             <svg viewBox="0 0 100 100" className="w-full h-full text-[#561269]" xmlns="http://www.w3.org/2000/svg">
-                              <rect x="5"  y="5"  width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="8"  y="8"  width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="13" y="13" width="12" height="12" rx="1" fill="currentColor"/>
-                              <rect x="67" y="5"  width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="70" y="8"  width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="75" y="13" width="12" height="12" rx="1" fill="currentColor"/>
-                              <rect x="5"  y="67" width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="8"  y="70" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="13" y="75" width="12" height="12" rx="1" fill="currentColor"/>
-                              {[38,43,48,53,58,63].map((x) =>
-                                [8,13,18,23,28,33,38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x + y) % 10 < 5 ? <rect key={`p1-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              <rect x="5" y="5" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="8" y="8" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="13" y="13" width="12" height="12" rx="1" fill="currentColor" />
+                              <rect x="67" y="5" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="70" y="8" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="75" y="13" width="12" height="12" rx="1" fill="currentColor" />
+                              <rect x="5" y="67" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="8" y="70" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="13" y="75" width="12" height="12" rx="1" fill="currentColor" />
+                              {[38, 43, 48, 53, 58, 63].map((x) =>
+                                [8, 13, 18, 23, 28, 33, 38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x + y) % 10 < 5 ? <rect key={`p1-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
-                              {[8,13,18,23,28,33].map((x) =>
-                                [38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x + y) % 8 < 4 ? <rect key={`p2-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              {[8, 13, 18, 23, 28, 33].map((x) =>
+                                [38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x + y) % 8 < 4 ? <rect key={`p2-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
-                              {[68,73,78,83,88].map((x) =>
-                                [38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x * y) % 7 < 3 ? <rect key={`p3-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              {[68, 73, 78, 83, 88].map((x) =>
+                                [38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x * y) % 7 < 3 ? <rect key={`p3-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
                             </svg>
@@ -508,10 +497,10 @@ export default function BayarClient() {
                           </div>
                           <div className="text-center">
                             <p className="text-xs font-bold text-[#561269]">Empathika Indonesia</p>
-                            <p className="text-[10px] text-gray-400">Total: {qBiaya}</p>
+                            <p className="text-[10px] text-gray-400">Total: Rp 350.000</p>
                           </div>
                           <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-                            Berlaku untuk semua aplikasi pembayaran<br/>(GoPay, OVO, DANA, dll)
+                            Berlaku untuk semua aplikasi pembayaran<br />(GoPay, OVO, DANA, dll)
                           </p>
                         </div>
                       )}
@@ -526,14 +515,12 @@ export default function BayarClient() {
           {/* Pricing Info */}
           <div className="border-t border-gray-200 pt-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-500">
-                {isAsesmen ? `Biaya Asesmen (${qPaket || "Paket"})` : "Biaya Konsultasi"}
-              </span>
-              <span className="text-xs font-medium text-gray-500">{qBiaya}</span>
+              <span className="text-xs text-gray-500">Biaya Konsultasi</span>
+              <span className="text-xs font-medium text-gray-500">Rp 350.000</span>
             </div>
             <div className="flex justify-between items-center mb-8">
               <span className="text-sm font-extrabold text-[#561269]">Total Bayar</span>
-              <span className="text-sm font-extrabold text-[#561269]">{qBiaya}</span>
+              <span className="text-sm font-extrabold text-[#561269]">Rp 350.000</span>
             </div>
             <button
               onClick={handleSubmit}
@@ -549,13 +536,13 @@ export default function BayarClient() {
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] py-4 px-6 sm:px-10 lg:px-24 flex items-center justify-between z-40">
         <div>
-          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">{qTanggal}</div>
+          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">31 Agu 2026</div>
           <div className="text-sm sm:text-[17px] font-bold text-black flex items-center gap-1">
-            {qWaktu} WIB <span className="italic font-normal">({qMetodeSesi})</span>
+            13:30 WIB <span className="italic font-normal">(Online)</span>
           </div>
         </div>
         <Link
-          href={(isAsesmen ? "/konseling/jadwal?layanan=asesmen" : "/konseling/jadwal") as any}
+          href="/konseling/jadwal"
           className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
         >
           Kembali
