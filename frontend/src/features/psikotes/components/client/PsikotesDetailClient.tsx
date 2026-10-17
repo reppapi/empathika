@@ -11,7 +11,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
   const data = TEST_DATA[params.testId as keyof typeof TEST_DATA] || TEST_DATA["mbti"];
   const [selectedPlan, setSelectedPlan] = useState<"gratis" | "berbayar">("berbayar");
 
-  const checkoutUrl = `/event/checkout?judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
+  const checkoutUrl = `/event/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
 
   return (
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">
