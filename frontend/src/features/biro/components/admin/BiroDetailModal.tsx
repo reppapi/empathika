@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import { BiroKomunitas } from "../../types"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface BiroDetailModalProps {
   isOpen: boolean
@@ -105,24 +106,20 @@ export default function BiroDetailModal({
 
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  {biro.statusAktivasi === "Aktif" && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Aktif Beroperasi
-                    </span>
-                  )}
-                  {biro.statusAktivasi === "Menunggu Aktivasi" && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                      <span className="w-2 h-2 rounded-full bg-amber-500" />
-                      Menunggu Aktivasi
-                    </span>
-                  )}
-                  {biro.statusAktivasi === "Nonaktif" && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">
-                      <span className="w-2 h-2 rounded-full bg-gray-400" />
-                      Nonaktif
-                    </span>
-                  )}
+                  <AdminStatusBadge
+                    className="w-44"
+                    variant={
+                      biro.statusAktivasi === "Aktif"
+                        ? "success"
+                        : biro.statusAktivasi === "Menunggu Aktivasi"
+                        ? "warning"
+                        : "neutral"
+                    }
+                  >
+                    {biro.statusAktivasi === "Aktif"
+                      ? "Aktif Beroperasi"
+                      : biro.statusAktivasi}
+                  </AdminStatusBadge>
                 </div>
 
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 // Dummy data peserta per event
 const DUMMY_PESERTA: Record<
@@ -68,23 +69,11 @@ const DUMMY_PESERTA: Record<
 const getStatusBadge = (status: "Lunas" | "Menunggu" | "Gagal") => {
   switch (status) {
     case "Lunas":
-      return (
-        <span className="inline-flex items-center justify-center rounded-xl bg-[#A2DCA4] px-4 py-1.5 text-xs font-semibold text-[#1C5E24]">
-          Lunas
-        </span>
-      )
+      return <AdminStatusBadge variant="success" className="w-28">Lunas</AdminStatusBadge>
     case "Menunggu":
-      return (
-        <span className="inline-flex items-center justify-center rounded-xl bg-[#F0C94D] px-4 py-1.5 text-xs font-semibold text-[#5C4505]">
-          Menunggu
-        </span>
-      )
+      return <AdminStatusBadge variant="warning" className="w-28">Menunggu</AdminStatusBadge>
     case "Gagal":
-      return (
-        <span className="inline-flex items-center justify-center rounded-xl bg-[#E85656] px-4 py-1.5 text-xs font-semibold text-white">
-          Gagal
-        </span>
-      )
+      return <AdminStatusBadge variant="danger" className="w-28">Gagal</AdminStatusBadge>
   }
 }
 
@@ -271,17 +260,18 @@ export default function AdminEventDetailClient({ eventId }: Props) {
             <span className="inline-block rounded-xl bg-purple-100 px-3 py-1 text-xs font-bold text-[#561269]">
               {event.jenis}
             </span>
-            <span
-              className={`inline-block rounded-xl px-3 py-1 text-xs font-semibold ${
+            <AdminStatusBadge
+              className="w-32"
+              variant={
                 event.status === "Dipublikasi"
-                  ? "bg-green-100 text-green-700"
+                  ? "success"
                   : event.status === "Draft"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-red-100 text-red-700"
-              }`}
+                  ? "warning"
+                  : "danger"
+              }
             >
               {event.status}
-            </span>
+            </AdminStatusBadge>
           </div>
 
           <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-snug">

@@ -409,13 +409,12 @@ model HasilTes {
 // ==========================================
 
 model ArtikelBlog {
-  id               String   @id @default(uuid())
-  judul            String
-  slug             String   @unique
-  isi              String   @db.Text
-  waktu_baca_menit Int
-  tanggal_terbit   DateTime @default(now())
-  jumlah_dilihat   Int      @default(0)
+  id             String   @id @default(uuid())
+  judul          String
+  slug           String   @unique
+  isi            String   @db.Text
+  tanggal_terbit DateTime @default(now())
+  jumlah_dilihat Int      @default(0)
 
   @@map("artikel_blogs")
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import {
   KerjaSamaItem,
   KerjaSamaPageConfig,
@@ -27,23 +28,47 @@ import TabProgramList from "./TabProgramList"
 import TabHeroKontak from "./TabHeroKontak"
 import TabKelolaFormulir from "./TabKelolaFormulir"
 import TabPengajuanLeads from "./TabPengajuanLeads"
-import ModalProgramForm from "./ModalProgramForm"
 import ModalLeadDetail from "./ModalLeadDetail"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 
-const COLOR_OPTIONS = [
-  { label: "Ungu Indigo", value: "from-purple-500 to-indigo-600" },
-  { label: "Biru Samudra", value: "from-blue-400 to-blue-600" },
-  { label: "Hijau Zamrud", value: "from-emerald-400 to-teal-500" },
-  { label: "Oranye Merah", value: "from-orange-400 to-red-500" },
-  { label: "Abu Netral", value: "from-gray-600 to-gray-800" },
-  { label: "Pink Mawar", value: "from-pink-400 to-rose-500" },
-]
+const VALID_TABS = ["program", "hero-kontak", "formulir", "pengajuan"] as const
+type TabType = (typeof VALID_TABS)[number]
 
 export default function AdminKerjaSamaClient() {
-  const [activeTab, setActiveTab] = useState<"program" | "hero-kontak" | "formulir" | "pengajuan">(
-    "program"
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // Ambil tab dari URL (?tab=pengajuan, ?tab=formulir, dll), default ke 'program'
+  const initialQueryTab = searchParams ? (searchParams.get("tab") as TabType | null) : null
+  const [activeTab, setActiveTab] = useState<TabType>(
+    initialQueryTab && VALID_TABS.includes(initialQueryTab) ? initialQueryTab : "program"
   )
+
+  // Sinkronkan tab saat query param URL berubah (misal tombol Back / Forward browser)
+  useEffect(() => {
+    const q = searchParams ? (searchParams.get("tab") as TabType | null) : null
+    if (q && VALID_TABS.includes(q)) {
+      setActiveTab(q)
+    } else if (!q) {
+      setActiveTab("program")
+    }
+  }, [searchParams])
+
+  // Ganti tab sekaligus update URL query param tanpa reload halaman
+  const handleTabChange = (newTab: TabType) => {
+    setActiveTab(newTab)
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    if (newTab === "program") {
+      params.delete("tab")
+    } else {
+      params.set("tab", newTab)
+    }
+    const basePath = pathname || "/admin/kerja-sama"
+    const qs = params.toString()
+    const targetUrl = qs ? `${basePath}?${qs}` : basePath
+    router.replace(targetUrl as any, { scroll: false })
+  }
 
   // State data utama
   const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS)
@@ -59,24 +84,6 @@ export default function AdminKerjaSamaClient() {
   const [newQuestionLabel, setNewQuestionLabel] = useState("")
   const [newQuestionType, setNewQuestionType] = useState<"radio" | "text">("radio")
   const [newQuestionOptions, setNewQuestionOptions] = useState<string>("Opsi 1, Opsi 2, Opsi 3")
-
-  // Modal State Program Kolaborasi
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<KerjaSamaItem | null>(null)
-  const [formData, setFormData] = useState<Partial<KerjaSamaItem>>({
-    title: "",
-    shortName: "",
-    slug: "",
-    description: "",
-    pelatihanTitle: "",
-    pelatihanDeskripsi: "",
-    pelatihanImage: "",
-    mitraTitle: "",
-    mitraDeskripsi: "",
-    mitraImage: "",
-    color: "from-purple-500 to-indigo-600",
-    status: "AKTIF",
-  })
 
   // Filter Leads
   const [leadFilter, setLeadFilter] = useState<string>("Semua")
@@ -131,71 +138,11 @@ export default function AdminKerjaSamaClient() {
   }
 
   const handleOpenAddModal = () => {
-    setEditingItem(null)
-    setFormData({
-      title: "Empathika untuk ",
-      shortName: "",
-      slug: "",
-      description: "",
-      pelatihanTitle: "",
-      pelatihanDeskripsi: "",
-      pelatihanImage:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800",
-      mitraTitle: "",
-      mitraDeskripsi: "",
-      mitraImage:
-        "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=800",
-      color: "from-purple-500 to-indigo-600",
-      status: "AKTIF",
-    })
-    setIsModalOpen(true)
+    router.push("/admin/kerja-sama/tambah")
   }
 
   const handleOpenEditModal = (item: KerjaSamaItem) => {
-    setEditingItem(item)
-    setFormData({ ...item })
-    setIsModalOpen(true)
-  }
-
-  const handleSaveItem = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.title || !formData.slug) return
-
-    if (editingItem) {
-      const updated = items.map((it) =>
-        it.id === editingItem.id ? ({ ...it, ...formData } as KerjaSamaItem) : it
-      )
-      setItems(updated)
-      saveKerjaSamaItems(updated)
-      showToast(`Program "${formData.title}" berhasil diperbarui!`)
-    } else {
-      const newItem: KerjaSamaItem = {
-        id: `ks_${Date.now()}`,
-        slug: formData.slug || "program-baru",
-        title: formData.title || "",
-        shortName: formData.shortName || formData.title?.replace("Empathika untuk ", "") || "",
-        description: formData.description || "",
-        pelatihanTitle: formData.pelatihanTitle || "",
-        pelatihanDeskripsi: formData.pelatihanDeskripsi || "",
-        pelatihanImage:
-          formData.pelatihanImage ||
-          "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800",
-        mitraTitle: formData.mitraTitle || "",
-        mitraDeskripsi: formData.mitraDeskripsi || "",
-        mitraImage:
-          formData.mitraImage ||
-          "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=800",
-        color: formData.color || "from-purple-500 to-indigo-600",
-        status: (formData.status as "AKTIF" | "NONAKTIF") || "AKTIF",
-        urutan: items.length + 1,
-      }
-      const updated = [...items, newItem]
-      setItems(updated)
-      saveKerjaSamaItems(updated)
-      showToast("Program kerja sama baru berhasil ditambahkan!")
-    }
-
-    setIsModalOpen(false)
+    router.push(`/admin/kerja-sama/edit/${item.id}` as any)
   }
 
   const handleDeleteItem = (id: string, name: string) => {
@@ -311,28 +258,14 @@ export default function AdminKerjaSamaClient() {
         </div>
       )}
 
-      {/* ── Top Header & Actions ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6 w-full">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Kelola Kerja Sama & Kemitraan
-            </h1>
-            <span className="px-3 py-1 rounded-full bg-purple-100 text-[#561269] text-xs font-bold shrink-0">
-              Web Client Connected
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Atur pilihan program kolaborasi, formulir, teks banner, dan pantau pengajuan mitra yang masuk.
-          </p>
-        </div>
-      </div>
 
       {/* ── Stats Summary Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminSummaryCard
           title="Total Program Kolaborasi"
           value={items.length}
+          isActive={activeTab === "program"}
+          onClick={() => handleTabChange("program")}
           iconBgColor="bg-purple-50 text-[#561269]"
           icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -344,6 +277,8 @@ export default function AdminKerjaSamaClient() {
         <AdminSummaryCard
           title="Aktif di Web Client"
           value={activeCount}
+          isActive={activeTab === "program"}
+          onClick={() => handleTabChange("program")}
           valueClassName="text-emerald-600"
           iconBgColor="bg-emerald-50 text-emerald-600"
           icon={
@@ -356,6 +291,8 @@ export default function AdminKerjaSamaClient() {
         <AdminSummaryCard
           title="Pengajuan Masuk (Leads)"
           value={leads.length}
+          isActive={activeTab === "pengajuan"}
+          onClick={() => handleTabChange("pengajuan")}
           iconBgColor="bg-blue-50 text-blue-600"
           icon={
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -367,6 +304,8 @@ export default function AdminKerjaSamaClient() {
         <AdminSummaryCard
           title="Menunggu Respon"
           value={waitingLeads}
+          isActive={activeTab === "pengajuan"}
+          onClick={() => handleTabChange("pengajuan")}
           valueClassName="text-amber-600"
           iconBgColor="bg-amber-50 text-amber-600"
           icon={
@@ -380,7 +319,8 @@ export default function AdminKerjaSamaClient() {
       {/* ── Tab Switcher ── */}
       <div className="flex border-b border-gray-200 text-sm font-semibold gap-2 sm:gap-6">
         <button
-          onClick={() => setActiveTab("program")}
+          type="button"
+          onClick={() => handleTabChange("program")}
           className={`pb-3 px-2 border-b-2 transition-colors cursor-pointer ${
             activeTab === "program"
               ? "border-[#561269] text-[#561269]"
@@ -390,7 +330,8 @@ export default function AdminKerjaSamaClient() {
           Program Kolaborasi ({items.length})
         </button>
         <button
-          onClick={() => setActiveTab("hero-kontak")}
+          type="button"
+          onClick={() => handleTabChange("hero-kontak")}
           className={`pb-3 px-2 border-b-2 transition-colors cursor-pointer ${
             activeTab === "hero-kontak"
               ? "border-[#561269] text-[#561269]"
@@ -400,7 +341,8 @@ export default function AdminKerjaSamaClient() {
           Pengaturan Teks & Kontak Web
         </button>
         <button
-          onClick={() => setActiveTab("formulir")}
+          type="button"
+          onClick={() => handleTabChange("formulir")}
           className={`pb-3 px-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
             activeTab === "formulir"
               ? "border-[#561269] text-[#561269]"
@@ -413,7 +355,8 @@ export default function AdminKerjaSamaClient() {
           </span>
         </button>
         <button
-          onClick={() => setActiveTab("pengajuan")}
+          type="button"
+          onClick={() => handleTabChange("pengajuan")}
           className={`pb-3 px-2 border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === "pengajuan"
               ? "border-[#561269] text-[#561269]"
@@ -484,17 +427,6 @@ export default function AdminKerjaSamaClient() {
         />
       )}
 
-      {/* Modal Tambah/Edit Program */}
-      <ModalProgramForm
-        isOpen={isModalOpen}
-        editingItem={editingItem}
-        formData={formData}
-        setFormData={setFormData}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveItem}
-        onImageUpload={handleImageUpload}
-        colorOptions={COLOR_OPTIONS}
-      />
 
       {/* Modal Detail Jawaban Pengajuan Masuk */}
       <ModalLeadDetail

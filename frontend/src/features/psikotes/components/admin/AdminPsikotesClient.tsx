@@ -268,7 +268,7 @@ export default function AdminPsikotesClient() {
       key: "akses",
       header: "Akses",
       render: (peserta: AdminPsikotesPeserta) => (
-        <AdminStatusBadge variant={peserta.jenisAkses === "Gratis" ? "neutral" : "info"}>
+        <AdminStatusBadge variant={peserta.jenisAkses === "Gratis" ? "success" : "warning"} className="w-28">
           {peserta.jenisAkses}
         </AdminStatusBadge>
       ),
@@ -351,18 +351,6 @@ export default function AdminPsikotesClient() {
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
-      {/* Header */}
-      {activeTab !== "form-paket" && (
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-            Manajemen Psikotes
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Kelola data peserta, paket soal, dan bank soal psikotes.
-          </p>
-        </div>
-      )}
-
       {/* Cards Navigation (Summary Cards) */}
       {activeTab !== "form-paket" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
@@ -504,30 +492,17 @@ export default function AdminPsikotesClient() {
               <div className="animate-in fade-in space-y-8">
                 <div className="space-y-6 max-w-4xl mx-auto">
                   <h3 className="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3">Informasi Dasar</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Nama/Judul Psikotes <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        value={paketData.nama}
-                        onChange={(e) => setPaketData(prev => ({ ...prev, nama: e.target.value }))}
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none transition-all"
-                        placeholder="Contoh: Tes Kepribadian (MBTI)"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Kategori <span className="text-red-500">*</span></label>
-                      <select
-                        value={paketData.kategori}
-                        onChange={(e) => setPaketData(prev => ({ ...prev, kategori: e.target.value }))}
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none transition-all"
-                      >
-                        <option>Kepribadian</option>
-                        <option>Karier</option>
-                        <option>Klinis</option>
-                      </select>
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Nama/Judul Psikotes <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={paketData.nama}
+                      onChange={(e) => setPaketData(prev => ({ ...prev, nama: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none transition-all"
+                      placeholder="Contoh: Tes Kepribadian (MBTI)"
+                    />
                   </div>
+
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Deskripsi Paket <span className="text-red-500">*</span></label>
@@ -932,14 +907,18 @@ export default function AdminPsikotesClient() {
                     <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
                       {selectedPeserta.paket}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${selectedPeserta.jenisAkses === 'Gratis' ? 'bg-gray-50 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                      }`}>
+                    <AdminStatusBadge
+                      className="w-36"
+                      variant={selectedPeserta.jenisAkses === "Gratis" ? "success" : "warning"}
+                    >
                       Akses: {selectedPeserta.jenisAkses}
-                    </span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${selectedPeserta.status === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
+                    </AdminStatusBadge>
+                    <AdminStatusBadge
+                      className="w-36"
+                      variant={selectedPeserta.status === "Selesai" ? "success" : "warning"}
+                    >
                       Status: {selectedPeserta.status}
-                    </span>
+                    </AdminStatusBadge>
                   </div>
                 </div>
               </div>

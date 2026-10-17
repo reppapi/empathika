@@ -1,9 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { CalendarClock } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2 } from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
+import {
+  getStoredLayanan,
+  deleteLayananById,
+  AdminLayananItem,
+} from "../../data/adminLayananData"
 import {
   ActionButtonDetail,
   ActionButtonEdit,
@@ -19,64 +25,108 @@ import {
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
 
-interface LayananItem {
-  id: number
-  layanan: string
-  metode: string
-  weekday: string
-  weekend: string
-  status: string
-}
-
 export default function AdminLayananView() {
-  const [searchQuery, setSearchQuery] = useState("")
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-  // Hanya ambil kategori Konsultasi, Pelatihan peer helper, dan Asesmen
+  // Kategori yang diizinkan di admin
   const allowedCategories = ["02", "03", "05"]
   const adminCategories = CATEGORIES.filter((cat) => allowedCategories.includes(cat.id))
 
-  const [activeCategory, setActiveCategory] = useState(adminCategories[0]?.id || "")
+  const categoryParam = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
+  const qParam = searchParams ? (searchParams.get("q") || searchParams.get("search")) : null
 
-  // Data Layanan
-  const layananData: LayananItem[] = [
-    {
-      id: 1,
-      layanan: "Psikolog",
-      metode: "Online/Offline",
-      weekday: "Rp 350.000",
-      weekend: "Rp 450.000",
-      status: "Aktif",
-    },
-    {
-      id: 2,
-      layanan: "Peer Konselor",
-      metode: "Online/Offline",
-      weekday: "Rp 350.000",
-      weekend: "Rp 450.000",
-      status: "Aktif",
-    },
-  ]
+  const [activeCategory, setActiveCategory] = useState(
+    categoryParam && allowedCategories.includes(categoryParam) ? categoryParam : adminCategories[0]?.id || "02"
+  )
+  const [searchQuery, setSearchQuery] = useState(qParam || "")
+  const [layananList, setLayananList] = useState<AdminLayananItem[]>([])
 
-  const filteredLayanan = layananData.filter((item) => {
-    if (!searchQuery.trim()) return true
-    const q = searchQuery.toLowerCase()
-    return item.layanan.toLowerCase().includes(q) || item.metode.toLowerCase().includes(q)
-  })
+  // Modal States
+  const [selectedDetail, setSelectedDetail] = useState<AdminLayananItem | null>(null)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
 
-  const columns: ColumnDef<LayananItem>[] = [
+  // Sinkronkan state saat URL query param berubah (misal tombol Back / Forward browser)
+  useEffect(() => {
+    const cp = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
+    if (cp && allowedCategories.includes(cp)) {
+      setActiveCategory(cp)
+    }
+    const qp = searchParams ? (searchParams.get("q") || searchParams.get("search")) : null
+    if (qp !== null && qp !== undefined) {
+      setSearchQuery(qp)
+    }
+  }, [searchParams])
+
+  // Ganti tab kategori sekaligus update URL query param tanpa reload halaman
+  const handleCategoryChange = (catId: string) => {
+    setActiveCategory(catId)
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    params.set("category", catId)
+    const qs = params.toString()
+    const targetUrl = qs ? `/admin/layanan?${qs}` : "/admin/layanan"
+    router.replace(targetUrl as any, { scroll: false })
+  }
+
+  // Update pencarian sekaligus sinkronkan param URL
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query)
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    if (!query.trim()) {
+      params.delete("q")
+    } else {
+      params.set("q", query)
+    }
+    const qs = params.toString()
+    const targetUrl = qs ? `/admin/layanan?${qs}` : "/admin/layanan"
+    router.replace(targetUrl as any, { scroll: false })
+  }
+
+  // Load data from persistent storage
+  useEffect(() => {
+    setLayananList(getStoredLayanan())
+  }, [])
+
+  // Handle Hapus Layanan
+  const handleDelete = (item: AdminLayananItem) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus layanan "${item.layanan}"?`)) {
+      deleteLayananById(item.id)
+      setLayananList(getStoredLayanan())
+      setToastMsg(`Layanan "${item.layanan}" telah dihapus.`)
+      setTimeout(() => setToastMsg(null), 3000)
+    }
+  }
+
+  // Filter berdasarkan kategori tab & pencarian
+  const filteredLayanan = useMemo(() => {
+    return layananList.filter((item) => {
+      const matchCategory = item.kategoriId === activeCategory
+      if (!matchCategory) return false
+
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.toLowerCase()
+      return (
+        item.layanan.toLowerCase().includes(q) ||
+        item.metode.toLowerCase().includes(q) ||
+        (item.deskripsi && item.deskripsi.toLowerCase().includes(q))
+      )
+    })
+  }, [layananList, activeCategory, searchQuery])
+
+  const columns: ColumnDef<AdminLayananItem>[] = [
     {
       key: "no",
       header: "No",
       align: "center",
       width: "70px",
-      render: (_: LayananItem, index: number) => (
+      render: (_: AdminLayananItem, index: number) => (
         <span className="font-semibold text-gray-500">{index + 1}</span>
       ),
     },
     {
       key: "layanan",
       header: "Layanan",
-      render: (item: LayananItem) => (
+      render: (item: AdminLayananItem) => (
         <span className="font-extrabold text-gray-900 leading-tight">
           {item.layanan}
         </span>
@@ -85,24 +135,33 @@ export default function AdminLayananView() {
     {
       key: "metode",
       header: "Metode Pelaksanaan",
-      render: (item: LayananItem) => <span className="text-gray-700 font-medium">{item.metode}</span>,
+      render: (item: AdminLayananItem) => (
+        <span className="text-gray-700 font-medium">{item.metode}</span>
+      ),
     },
     {
       key: "weekday",
       header: "Weekday",
-      render: (item: LayananItem) => <span className="text-gray-700 font-semibold">{item.weekday}</span>,
+      render: (item: AdminLayananItem) => (
+        <span className="text-gray-700 font-semibold">{item.weekday}</span>
+      ),
     },
     {
       key: "weekend",
       header: "Weekend",
-      render: (item: LayananItem) => <span className="text-gray-700 font-semibold">{item.weekend}</span>,
+      render: (item: AdminLayananItem) => (
+        <span className="text-gray-700 font-semibold">{item.weekend}</span>
+      ),
     },
     {
       key: "status",
       header: "Status",
       align: "center",
-      render: (item: LayananItem) => (
-        <AdminStatusBadge variant="success">
+      render: (item: AdminLayananItem) => (
+        <AdminStatusBadge
+          variant={item.status === "Aktif" ? "success" : "neutral"}
+          className="w-28"
+        >
           {item.status}
         </AdminStatusBadge>
       ),
@@ -111,23 +170,19 @@ export default function AdminLayananView() {
       key: "aksi",
       header: "Aksi",
       align: "center",
-      render: (item: LayananItem) => (
+      render: (item: AdminLayananItem) => (
         <div className="flex items-center justify-center gap-1.5 sm:gap-2">
           <ActionButtonDetail
-            onClick={() => alert(`Detail layanan ${item.layanan}`)}
+            onClick={() => setSelectedDetail(item)}
             title="Lihat Detail"
           />
           <ActionButtonEdit
-            onClick={() => alert(`Edit layanan ${item.layanan}`)}
-            title="Edit"
+            onClick={() => router.push(`/admin/layanan/edit/${item.id}`)}
+            title="Edit Layanan"
           />
           <ActionButtonDelete
-            onClick={() => {
-              if (confirm(`Apakah Anda yakin ingin menghapus layanan ${item.layanan}?`)) {
-                alert(`Layanan ${item.layanan} berhasil dihapus.`)
-              }
-            }}
-            title="Hapus"
+            onClick={() => handleDelete(item)}
+            title="Hapus Layanan"
           />
         </div>
       ),
@@ -183,7 +238,7 @@ export default function AdminLayananView() {
                 key={cat.id}
                 label={cat.title}
                 isActive={activeCategory === cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
               />
             ))}
           </div>
@@ -192,7 +247,7 @@ export default function AdminLayananView() {
           <AdminSearchInput
             placeholder="Cari Layanan..."
             value={searchQuery}
-            onChange={setSearchQuery}
+            onChange={handleSearchChange}
           />
         </div>
 
@@ -200,10 +255,91 @@ export default function AdminLayananView() {
         <AdminDataTable
           columns={columns}
           data={filteredLayanan}
-          keyExtractor={(item: LayananItem) => item.id}
-          emptyMessage="Tidak ada layanan yang ditemukan."
+          keyExtractor={(item: AdminLayananItem) => item.id}
+          emptyMessage="Tidak ada layanan yang ditemukan dalam kategori ini."
         />
       </AdminTableContainer>
+
+      {/* ── DETAIL MODAL ── */}
+      {selectedDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative border border-gray-100">
+            <button
+              onClick={() => setSelectedDetail(null)}
+              className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
+                <Eye className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{selectedDetail.layanan}</h3>
+                <p className="text-xs text-gray-500">Detail Informasi Layanan</p>
+              </div>
+            </div>
+
+            <div className="space-y-3.5 text-sm">
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <span className="text-xs text-gray-500 font-medium block mb-1">Deskripsi</span>
+                <p className="text-gray-800 leading-relaxed text-xs">
+                  {selectedDetail.deskripsi || "Tidak ada deskripsi rinci untuk layanan ini."}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-xs text-gray-500 font-medium block">Metode Pelaksanaan</span>
+                  <span className="font-bold text-gray-900 mt-1 block">{selectedDetail.metode}</span>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <span className="text-xs text-gray-500 font-medium block">Status Layanan</span>
+                  <span className="font-bold text-emerald-600 mt-1 block">{selectedDetail.status}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl">
+                  <span className="text-xs text-purple-800 font-medium block">Tarif Weekday</span>
+                  <span className="font-bold text-[#561269] text-sm mt-1 block">
+                    {selectedDetail.weekday}
+                  </span>
+                </div>
+                <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl">
+                  <span className="text-xs text-purple-800 font-medium block">Tarif Weekend</span>
+                  <span className="font-bold text-[#561269] text-sm mt-1 block">
+                    {selectedDetail.weekend}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const targetId = selectedDetail.id
+                  setSelectedDetail(null)
+                  router.push(`/admin/layanan/edit/${targetId}`)
+                }}
+                className="px-5 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                Edit Layanan
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDetail(null)}
+                className="px-5 py-2 rounded-full border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

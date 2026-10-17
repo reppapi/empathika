@@ -6,6 +6,7 @@ import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
 import { ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
 import { Calendar } from "lucide-react"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 export type EventItem = AdminEventData
 
@@ -87,23 +88,11 @@ export default function AdminEventClient() {
   const getStatusBadge = (status: AdminEventData["status"]) => {
     switch (status) {
       case "Dipublikasi":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#A2DCA4] px-4 py-1.5 text-xs font-semibold text-[#1C5E24] shadow-sm">
-            Dipublikasi
-          </span>
-        )
+        return <AdminStatusBadge variant="success" className="w-32">Dipublikasi</AdminStatusBadge>
       case "Selesai":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#E85656] px-5 py-1.5 text-xs font-semibold text-white shadow-sm">
-            Selesai
-          </span>
-        )
+        return <AdminStatusBadge variant="danger" className="w-32">Selesai</AdminStatusBadge>
       case "Draft":
-        return (
-          <span className="inline-flex items-center justify-center rounded-xl bg-[#F0C94D] px-6 py-1.5 text-xs font-semibold text-[#5C4505] shadow-sm">
-            Draft
-          </span>
-        )
+        return <AdminStatusBadge variant="warning" className="w-32">Draft</AdminStatusBadge>
     }
   }
 

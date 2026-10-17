@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
 import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
-import BiroFormModal from "./BiroFormModal"
 import BiroDetailModal from "./BiroDetailModal"
 import BiroDeleteModal from "./BiroDeleteModal"
 import {
@@ -24,14 +24,12 @@ import {
 } from "@/components/shared/AdminDataTable"
 
 export default function AdminBiroClient() {
+  const router = useRouter()
   const [biroList, setBiroList] = useState<BiroKomunitas[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("semua")
 
   // Modal States
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingBiro, setEditingBiro] = useState<BiroKomunitas | null>(null)
-
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedDetailBiro, setSelectedDetailBiro] = useState<BiroKomunitas | null>(null)
 
@@ -90,13 +88,11 @@ export default function AdminBiroClient() {
 
   // Handlers CRUD
   const handleOpenAdd = () => {
-    setEditingBiro(null)
-    setIsFormOpen(true)
+    router.push("/admin/biro/tambah")
   }
 
   const handleOpenEdit = (biro: BiroKomunitas) => {
-    setEditingBiro(biro)
-    setIsFormOpen(true)
+    router.push(`/admin/biro/edit/${biro.id}`)
   }
 
   const handleOpenDetail = (biro: BiroKomunitas) => {
@@ -107,60 +103,6 @@ export default function AdminBiroClient() {
   const handleOpenDelete = (biro: BiroKomunitas) => {
     setDeletingBiro(biro)
     setIsDeleteOpen(true)
-  }
-
-  const handleSaveBiro = (formData: Partial<BiroKomunitas>) => {
-    if (editingBiro) {
-      // Edit
-      const updatedList = biroList.map((item) =>
-        item.id === editingBiro.id
-          ? {
-              ...item,
-              ...formData,
-            }
-          : item
-      )
-      persistData(updatedList, `Data biro "${formData.nama}" berhasil diperbarui.`)
-      // update detail modal jika sedang terbuka
-      if (selectedDetailBiro && selectedDetailBiro.id === editingBiro.id) {
-        setSelectedDetailBiro({ ...selectedDetailBiro, ...formData } as BiroKomunitas)
-      }
-    } else {
-      // Tambah Baru
-      const slug =
-        formData.slug?.trim() ||
-        (formData.nama || "biro")
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, "")
-
-      const newId = `biro-${Date.now().toString().slice(-4)}`
-      const today = new Date().toISOString().split("T")[0]
-      const randomToken = `act_${Math.random().toString(36).substring(2, 8)}`
-
-      const newBiro: BiroKomunitas = {
-        id: newId,
-        nama: formData.nama || "Biro Baru",
-        slug,
-        logo: formData.logo,
-        deskripsi: formData.deskripsi || "",
-        warnaIdentitas: formData.warnaIdentitas || "#561269",
-        emailAdmin: formData.emailAdmin || "",
-        telepon: formData.telepon || "",
-        alamat: formData.alamat || "",
-        tanggalDibuat: today,
-        statusAktivasi: "Menunggu Aktivasi",
-        websiteUrl: formData.websiteUrl || `https://${slug}.empathika.id`,
-        dashboardUrl: formData.dashboardUrl || `https://${slug}.empathika.id/admin`,
-        aktivasiToken: randomToken,
-      }
-
-      const updatedList = [newBiro, ...biroList]
-      persistData(
-        updatedList,
-        `Biro "${newBiro.nama}" berhasil ditambahkan dengan status Menunggu Aktivasi.`
-      )
-    }
   }
 
   const handleConfirmDelete = () => {
@@ -280,12 +222,12 @@ export default function AdminBiroClient() {
       align: "center",
       render: (biro: BiroKomunitas) => {
         if (biro.statusAktivasi === "Aktif") {
-          return <AdminStatusBadge variant="success">Aktif</AdminStatusBadge>
+          return <AdminStatusBadge variant="success" className="w-44">Aktif</AdminStatusBadge>
         }
         if (biro.statusAktivasi === "Menunggu Aktivasi") {
-          return <AdminStatusBadge variant="warning">Menunggu Aktivasi</AdminStatusBadge>
+          return <AdminStatusBadge variant="warning" className="w-44">Menunggu Aktivasi</AdminStatusBadge>
         }
-        return <AdminStatusBadge variant="neutral">Nonaktif</AdminStatusBadge>
+        return <AdminStatusBadge variant="neutral" className="w-44">Nonaktif</AdminStatusBadge>
       },
     },
     {
@@ -323,21 +265,12 @@ export default function AdminBiroClient() {
         </div>
       )}
 
-      {/* Header Halaman & Tombol Tambah */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-            Pengaturan Biro & Komunitas
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Kelola profil tenant mitra, registrasi biro, dan alur aktivasi multi-tenant Empathika.
-          </p>
-        </div>
-
+      {/* Top Bar Action: Tombol Tambah Biro */}
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={handleOpenAdd}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -419,15 +352,6 @@ export default function AdminBiroClient() {
       </AdminTableContainer>
 
       {/* Modals */}
-      <BiroFormModal
-        isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false)
-          setEditingBiro(null)
-        }}
-        onSave={handleSaveBiro}
-        initialData={editingBiro}
-      />
 
       <BiroDetailModal
         isOpen={isDetailOpen}

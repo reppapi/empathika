@@ -3,6 +3,7 @@
 import React from "react"
 import { X, User, Mail, Phone, Calendar, HeartHandshake, ShieldCheck, Clock, FileText, CheckCircle2 } from "lucide-react"
 import { BiroClientProfile } from "../../data/biroDashboardData"
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface BiroClientDetailModalProps {
   isOpen: boolean
@@ -52,17 +53,18 @@ export default function BiroClientDetailModal({ isOpen, onClose, client }: BiroC
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span className="font-semibold text-gray-700">Status Akun Klien:</span>
             </div>
-            <span
-              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+            <AdminStatusBadge
+              className="w-[185px]"
+              variant={
                 client.status === "Aktif"
-                  ? "bg-emerald-100 text-emerald-800"
+                  ? "success"
                   : client.status === "Menunggu Pembayaran"
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-blue-100 text-blue-800"
-              }`}
+                  ? "warning"
+                  : "info"
+              }
             >
               {client.status}
-            </span>
+            </AdminStatusBadge>
           </div>
 
           {/* Grid Informasi Kontak & Identitas */}
