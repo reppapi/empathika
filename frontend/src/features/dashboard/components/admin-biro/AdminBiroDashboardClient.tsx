@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Calendar, Users, Building2, CheckCircle2 } from "lucide-react"
 
 import DashboardStatCards from "../admin/DashboardStatCards"
@@ -19,6 +20,9 @@ import {
 } from "../../data/biroDashboardData"
 
 export default function AdminBiroDashboardClient() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   // Tenant Biro Aktif: Biro Konseling Cendekia Muda (id: biro-01)
   const currentTenant: BiroTenantData = useMemo(() => {
     return getBiroTenantData("biro-01")
@@ -28,9 +32,34 @@ export default function AdminBiroDashboardClient() {
   const clients = currentTenant.clients
 
   // Modals state
-  const [isClientListOpen, setIsClientListOpen] = useState(false)
+  const modalParam = searchParams ? searchParams.get("modal") : null
+  const [isClientListOpen, setIsClientListOpen] = useState(modalParam === "clients")
   const [isClientDetailOpen, setIsClientDetailOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<BiroClientProfile | null>(null)
+
+  // Sinkronkan modal saat query param URL berubah (misal tombol Back / Forward browser)
+  useEffect(() => {
+    const m = searchParams ? searchParams.get("modal") : null
+    setIsClientListOpen(m === "clients")
+  }, [searchParams])
+
+  const handleOpenClientList = () => {
+    setIsClientListOpen(true)
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    params.set("modal", "clients")
+    const qs = params.toString()
+    const targetUrl = qs ? `/admin-biro?${qs}` : "/admin-biro"
+    router.replace(targetUrl as any, { scroll: false })
+  }
+
+  const handleCloseClientList = () => {
+    setIsClientListOpen(false)
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+    params.delete("modal")
+    const qs = params.toString()
+    const targetUrl = qs ? `/admin-biro?${qs}` : "/admin-biro"
+    router.replace(targetUrl as any, { scroll: false })
+  }
 
   const currentDate = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
@@ -105,7 +134,7 @@ export default function AdminBiroDashboardClient() {
           {/* Bawah: Tombol Direktori Klien Biro */}
           <button
             type="button"
-            onClick={() => setIsClientListOpen(true)}
+            onClick={handleOpenClientList}
             className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#561269] hover:bg-[#430d52] text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all active:scale-98 cursor-pointer"
           >
             <Users className="w-4 h-4" />
@@ -132,7 +161,7 @@ export default function AdminBiroDashboardClient() {
           sessions={sessions}
           clients={clients}
           biroName={currentTenant.biroName}
-          onOpenClientList={() => setIsClientListOpen(true)}
+          onOpenClientList={handleOpenClientList}
           onSelectClientByName={handleSelectClientByName}
         />
         <BiroDashboardRecentTransactions
@@ -144,7 +173,7 @@ export default function AdminBiroDashboardClient() {
       {/* ── Modal Direktori Roster Klien Biro ── */}
       <BiroClientListModal
         isOpen={isClientListOpen}
-        onClose={() => setIsClientListOpen(false)}
+        onClose={handleCloseClientList}
         clients={clients}
         biroName={currentTenant.biroName}
         onSelectClient={(client) => {
