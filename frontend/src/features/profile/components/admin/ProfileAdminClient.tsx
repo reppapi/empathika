@@ -219,17 +219,17 @@ export default function ProfileAdminClient({
         </div>
       )}
 
-      {/* Header Halaman */}
-      <div className="flex flex-col gap-2">
-        <h2 className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight">
-          {role === "admin" ? "Pengaturan Profil Admin Utama" : "Pengaturan Profil Psikolog"}
-        </h2>
-        <p className="text-xs sm:text-sm text-gray-500">
-          {role === "admin"
-            ? "Kelola identitas, foto profil, dan informasi kontak akun administrator Empathika."
-            : "Kelola profil profesional, foto profil, kredensial STR/SIPP, dan informasi yang tampil di halaman klien."}
-        </p>
-      </div>
+      {/* Header Halaman (Hanya ditampilkan jika bukan admin) */}
+      {role !== "admin" && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight">
+            Pengaturan Profil Psikolog
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500">
+            Kelola profil profesional, foto profil, kredensial STR/SIPP, dan informasi yang tampil di halaman klien.
+          </p>
+        </div>
+      )}
 
       {/* Form Utama */}
       <form onSubmit={handleSave} className="space-y-6">

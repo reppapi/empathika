@@ -30,7 +30,6 @@ import TabKelolaFormulir from "./TabKelolaFormulir"
 import TabPengajuanLeads from "./TabPengajuanLeads"
 import ModalLeadDetail from "./ModalLeadDetail"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
-import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 
 export default function AdminKerjaSamaClient() {
@@ -227,22 +226,6 @@ export default function AdminKerjaSamaClient() {
         </div>
       )}
 
-      {/* ── Top Header & Actions ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6 w-full">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Kelola Kerja Sama & Kemitraan
-            </h1>
-            <AdminStatusBadge variant="info" className="shrink-0">
-              Web Client Connected
-            </AdminStatusBadge>
-          </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Atur pilihan program kolaborasi, formulir, teks banner, dan pantau pengajuan mitra yang masuk.
-          </p>
-        </div>
-      </div>
 
       {/* ── Stats Summary Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
