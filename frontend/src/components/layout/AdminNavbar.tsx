@@ -24,7 +24,7 @@ const PAGE_CONFIG: {
   {
     match: (p) => p.startsWith("/admin/jadwal"),
     title: "Jadwal & Sesi",
-    description: "Kelola jadwal layanan, sesi konsultasi, dan agenda yang berlangsung di Empathika.",
+    description: "Kelola sesi konsultasi baru untuk client dan pantau daftar client yang melakukan booking konsultasi.",
   },
   {
     match: (p) => p.startsWith("/admin/event"),
@@ -49,7 +49,7 @@ const PAGE_CONFIG: {
   {
     match: (p) => p.startsWith("/admin/blog"),
     title: "Manajemen Blog",
-    description: "Kelola artikel, kategori, dan publikasi konten edukasi di website Empathika.",
+    description: "Kelola artikel, dan publikasi konten edukasi di website Empathika.",
   },
   {
     match: (p) => p.startsWith("/admin/layanan"),

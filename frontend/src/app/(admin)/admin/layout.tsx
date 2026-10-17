@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     pageDescription = "Pantau aktivitas, statistik, dan perkembangan operasional Empathika secara menyeluruh."
   } else if (pathname?.startsWith("/admin/jadwal")) {
     pageTitle = "Jadwal & Sesi"
-    pageDescription = "Kelola jadwal layanan, sesi konsultasi, dan agenda yang berlangsung di Empathika."
+    pageDescription = "Kelola sesi konsultasi baru untuk client dan pantau daftar client yang melakukan booking konsultasi."
   } else if (pathname?.startsWith("/admin/event")) {
     pageTitle = "Manajemen Event"
     pageDescription = "Kelola informasi event, jadwal pelaksanaan, pendaftaran peserta, dan publikasi kegiatan."
@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     pageDescription = "Kelola paket psikotes, soal, interpretasi, dan hasil tes yang tersedia di Empathika."
   } else if (pathname?.startsWith("/admin/blog")) {
     pageTitle = "Manajemen Blog"
-    pageDescription = "Kelola artikel, kategori, dan publikasi konten edukasi di website Empathika."
+    pageDescription = "Kelola artikel, dan publikasi konten edukasi di website Empathika."
   } else if (pathname?.startsWith("/admin/layanan")) {
     pageTitle = "Manajemen Layanan"
     pageDescription = "Kelola informasi layanan, detail, harga, dan ketersediaan layanan Empathika."
