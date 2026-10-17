@@ -135,12 +135,34 @@ export default function AdminLayananView() {
   ]
 
   return (
+<<<<<<< Updated upstream
     <div className="flex flex-col gap-6 font-poppins pb-16">
       {/* ── Top Bar Action: Tombol Tambah Layanan ── */}
       <div className="flex justify-end">
+=======
+    <div className="flex flex-col gap-6 font-poppins pb-16 relative">
+      {/* ── Toast Notifikasi Sukses ── */}
+      {toastMsg && (
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-emerald-600 text-white shadow-xl flex items-center gap-3 animate-fadeIn">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <span className="text-sm font-semibold">{toastMsg}</span>
+        </div>
+      )}
+
+      {/* ── Top Bar: Metric Card (Kiri) & Tombol Tambah Layanan (Kanan) Sejajar ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="w-full sm:w-72 md:w-80">
+          <AdminSummaryCard
+            label="Total Layanan"
+            value={filteredLayanan.length}
+            icon={<CalendarClock className="w-6 h-6 text-[#561269]" />}
+            iconBgColor="bg-purple-50 text-[#561269]"
+          />
+        </div>
+>>>>>>> Stashed changes
         <Link
           href={`/admin/layanan/tambah?category=${activeCategory}`}
-          className="flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+          className="self-start sm:self-center flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -156,6 +178,7 @@ export default function AdminLayananView() {
         </Link>
       </div>
 
+<<<<<<< Updated upstream
       {/* ── Metric Card: Total Layanan ── */}
       <div className="w-full max-w-sm">
         <AdminSummaryCard
@@ -166,6 +189,8 @@ export default function AdminLayananView() {
         />
       </div>
 
+=======
+>>>>>>> Stashed changes
       {/* ── Main Card Table Container ── */}
       <AdminTableContainer>
         {/* Header Bar: Filter Tabs & Search */}
