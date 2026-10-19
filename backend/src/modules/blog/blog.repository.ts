@@ -45,46 +45,32 @@ export class BlogRepository {
     })
   }
 
-  async findBySlug(slug: string) {
-    return this.prisma.artikelBlog.findUnique({
-      where: { slug },
-    })
-  }
-
   async findByIdOrSlug(identifier: string) {
-    return this.prisma.artikelBlog.findFirst({
-      where: {
-        OR: [{ id: identifier }, { slug: identifier }],
-      },
-    })
+    return this.findById(identifier)
   }
 
-  async incrementViews(id: string) {
-    return this.prisma.artikelBlog.update({
-      where: { id },
-      data: {
-        jumlah_dilihat: { increment: 1 },
-      },
-    })
+  async incrementViews(_id: string) {
+    // Di skema revisi, jumlah_dilihat ditiadakan dari database
+    return null
   }
 
-  async create(data: { judul: string; slug: string; isi: string }) {
+  async create(data: { judul: string; isi: string; banner_url?: string | null }) {
     return this.prisma.artikelBlog.create({
       data: {
         judul: data.judul,
-        slug: data.slug,
         isi: data.isi,
+        ...(data.banner_url && { banner_url: data.banner_url }),
       },
     })
   }
 
-  async update(id: string, data: { judul?: string; slug?: string; isi?: string }) {
+  async update(id: string, data: { judul?: string; isi?: string; banner_url?: string | null }) {
     return this.prisma.artikelBlog.update({
       where: { id },
       data: {
         ...(data.judul && { judul: data.judul }),
-        ...(data.slug && { slug: data.slug }),
         ...(data.isi && { isi: data.isi }),
+        ...(data.banner_url !== undefined && { banner_url: data.banner_url }),
       },
     })
   }
