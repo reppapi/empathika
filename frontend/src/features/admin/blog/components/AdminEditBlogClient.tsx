@@ -20,7 +20,6 @@ export default function AdminEditBlogClient({ slug }: Props) {
   const [title, setTitle] = useState("")
   const [date, setDate] = useState("")
   const [content, setContent] = useState("")
-  const [blogUrl, setBlogUrl] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
 
@@ -72,7 +71,6 @@ export default function AdminEditBlogClient({ slug }: Props) {
       }
       setDate(dateValue)
       setContent(Array.isArray(found.content) ? found.content.join("\n\n") : found.content)
-      setBlogUrl(`https://empathika.id/blog/${found.slug}`)
       setImageUrl(found.imageUrl || "")
     }
     setLoading(false)
@@ -259,24 +257,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
             <span className={helperClass}>Masukan isi blog baru</span>
           </div>
 
-          {/* ── Baris 3 (1 Kolom Penuh): Ubah URL blog * ── */}
-          <div>
-            <label htmlFor="blogUrl" className={labelClass}>
-              Ubah URL blog <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="blogUrl"
-              type="text"
-              required
-              value={blogUrl}
-              onChange={(e) => setBlogUrl(e.target.value)}
-              placeholder="https://empathika.id/blog/..."
-              className={inputClass}
-            />
-            <span className={helperClass}>Masukan URL blog baru</span>
-          </div>
-
-          {/* ── Baris 4 (1 Kolom): Ubah Foto/Poster terkait blog * ── */}
+          {/* ── Baris 3 (1 Kolom): Ubah Foto/Poster terkait blog * ── */}
           <div>
             <label className={labelClass}>
               Ubah Foto/Poster terkait blog <span className="text-red-500">*</span>
