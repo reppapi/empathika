@@ -101,6 +101,10 @@ export default function EventCheckoutClient() {
   const testIdParam   = searchParams.get("testId")
   const judulParam    = searchParams.get("judul") || "Workshop SEFT"
   const subjudulParam = searchParams.get("subjudul") || "Spiritual Emotional Freedom Technique — program workshop interaktif bersama para ahli."
+  const pembicaraParam = searchParams.get("pembicara") || (judulParam.toLowerCase().includes("burnout") ? "Sarah M., M.Psi" : judulParam.toLowerCase().includes("mindfulness") || judulParam.toLowerCase().includes("self-healing") ? "Dr. Andi Pratama" : "Dian Kartika, M.Psi., Psikolog")
+  const lokasiParam   = searchParams.get("lokasi") || "Kantor Empathika Cikutra"
+  const tanggalParam  = searchParams.get("tanggal") || "24 Oktober 2026"
+  const waktuParam    = searchParams.get("waktu") || "19:00 - 21:00 WIB"
   const kategoriParam = searchParams.get("kategori") || "Seminar"
   const hargaParam    = searchParams.get("harga") || "Rp 200.000"
   const isPsikotes    = kategoriParam.toLowerCase().includes("psikotes")
@@ -247,10 +251,8 @@ export default function EventCheckoutClient() {
               )}
             </div>
             <div className="flex flex-col w-full">
-              <div className="text-xs font-semibold text-purple-700 bg-purple-50 w-fit px-2.5 py-0.5 rounded-full mb-1">
-                {kategoriParam}
-              </div>
-              <div className="text-lg font-extrabold text-[#561269] mb-1">{judulParam}</div>
+              <div className="text-xs text-gray-500 mb-1">{kategoriParam}</div>
+              <div className="text-lg font-extrabold text-[#561269] mb-2">{judulParam}</div>
               <p className="text-xs text-gray-600 mb-4 line-clamp-2">
                 {subjudulParam}
               </p>
@@ -271,20 +273,39 @@ export default function EventCheckoutClient() {
                     </div>
                   </>
                 ) : (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Z" />
-                      </svg>
-                      <span className="text-xs font-medium text-gray-500">05 September 2026</span>
+                    <div className="flex flex-col gap-2 w-full">
+                      {/* Baris 1: Tanggal & Waktu */}
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Z" />
+                          </svg>
+                          <span className="text-xs font-medium text-gray-700">{tanggalParam}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                          <span className="text-xs font-medium text-gray-700">{waktuParam}</span>
+                        </div>
+                      </div>
+
+                      {/* Baris 2: Pembicara & Tempat */}
+                      {(pembicaraParam || lokasiParam) && (
+                        <div className="flex flex-wrap items-center gap-4 pt-0.5">
+                          {pembicaraParam && (
+                            <span className="text-xs font-semibold text-[#561269]">
+                              Pembicara: {pembicaraParam}
+                            </span>
+                          )}
+                          {lokasiParam && (
+                            <span className="text-xs font-medium text-gray-700">
+                              Tempat: {lokasiParam}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                      </svg>
-                      <span className="text-xs font-medium text-gray-500">09:00 - Selesai WIB</span>
-                    </div>
-                  </>
                 )}
               </div>
             </div>
