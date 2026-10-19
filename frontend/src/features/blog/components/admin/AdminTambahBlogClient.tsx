@@ -92,17 +92,6 @@ export default function AdminTambahBlogClient() {
       imageUrl: imageUrl || "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=800",
     }
 
-    // Ambil data dari localStorage
-    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
-    const saved = localStorage.getItem("empathika_admin_blogs")
-    if (saved) {
-      try {
-        currentBlogs = JSON.parse(saved)
-      } catch {
-        currentBlogs = INITIAL_ADMIN_BLOGS
-      }
-    }
-
     const updatedBlogs = [newBlog, ...currentBlogs]
     localStorage.setItem("empathika_admin_blogs", JSON.stringify(updatedBlogs))
     router.push("/admin/blog")
