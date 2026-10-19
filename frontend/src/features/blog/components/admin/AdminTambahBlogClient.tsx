@@ -15,7 +15,6 @@ export default function AdminTambahBlogClient() {
   const [title, setTitle] = useState("")
   const [date, setDate] = useState(todayStr)
   const [content, setContent] = useState("")
-  const [blogUrl, setBlogUrl] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
 
@@ -50,18 +49,31 @@ export default function AdminTambahBlogClient() {
       displayDate = `${parseInt(d, 10)} ${monthNames[parseInt(m, 10) - 1]} ${y}`
     }
 
-    // Buat slug dari judul atau url
-    const generatedSlug =
-      blogUrl
-        .trim()
-        .replace(/\/$/, "")
-        .split("/")
-        .pop() ||
+    // Buat slug otomatis dari judul blog
+    const baseSlug =
       title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)+/g, "") ||
-      `blog-${Date.now()}`
+        .replace(/(^-|-$)+/g, "") || `blog-${Date.now()}`
+
+    // Ambil data dari localStorage untuk validasi keunikan
+    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
+    const saved = localStorage.getItem("empathika_admin_blogs")
+    if (saved) {
+      try {
+        currentBlogs = JSON.parse(saved)
+      } catch {
+        currentBlogs = INITIAL_ADMIN_BLOGS
+      }
+    }
+
+    // Pastikan slug unik (tambah -2, -3 dst jika ada judul serupa)
+    let generatedSlug = baseSlug
+    let counter = 1
+    while (currentBlogs.some((b) => b.slug === generatedSlug)) {
+      counter++
+      generatedSlug = `${baseSlug}-${counter}`
+    }
 
     const newBlog: BlogPost = {
       slug: generatedSlug,
@@ -78,17 +90,6 @@ export default function AdminTambahBlogClient() {
       views: 0,
       likes: 0,
       imageUrl: imageUrl || "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=800",
-    }
-
-    // Ambil data dari localStorage
-    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
-    const saved = localStorage.getItem("empathika_admin_blogs")
-    if (saved) {
-      try {
-        currentBlogs = JSON.parse(saved)
-      } catch {
-        currentBlogs = INITIAL_ADMIN_BLOGS
-      }
     }
 
     const updatedBlogs = [newBlog, ...currentBlogs]
@@ -126,16 +127,7 @@ export default function AdminTambahBlogClient() {
                 type="text"
                 required
                 value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value)
-                  if (!blogUrl) {
-                    const slug = e.target.value
-                      .toLowerCase()
-                      .replace(/[^a-z0-9]+/g, "-")
-                      .replace(/(^-|-$)+/g, "")
-                    setBlogUrl(slug ? `https://empathika.id/blog/${slug}` : "")
-                  }
-                }}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Masukan judul blog baru"
                 className={inputClass}
               />
@@ -202,23 +194,6 @@ export default function AdminTambahBlogClient() {
               className={`${inputClass} resize-y leading-relaxed font-normal`}
             />
             <span className={helperClass}>Masukan isi blog baru</span>
-          </div>
-
-          {/* ── Baris 3 (1 Kolom Penuh): URL blog * ── */}
-          <div>
-            <label htmlFor="blogUrl" className={labelClass}>
-              URL blog <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="blogUrl"
-              type="text"
-              required
-              value={blogUrl}
-              onChange={(e) => setBlogUrl(e.target.value)}
-              placeholder="https://empathika.id/blog/..."
-              className={inputClass}
-            />
-            <span className={helperClass}>Masukan URL blog baru</span>
           </div>
 
           {/* ── Baris 4 (1 Kolom): Foto/Poster terkait blog * ── */}
