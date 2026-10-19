@@ -473,7 +473,7 @@ ALTER TABLE "soal_psikotes" ADD CONSTRAINT "soal_psikotes_id_paket_fkey" FOREIGN
 ALTER TABLE "pilihan_jawabans" ADD CONSTRAINT "pilihan_jawabans_id_soal_fkey" FOREIGN KEY ("id_soal") REFERENCES "soal_psikotes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "jawaban_psikotes" ADD CONSTRAINT "jawaban_psikotes_id_booking_fkey" FOREIGN KEY ("id_booking") REFERENCES "booking_psikotes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "jawaban_psikotes" ADD CONSTRAINT "jawaban_psikotes_id_booking_fkey" FOREIGN KEY ("id_booking") REFERENCES "booking_psikotes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "jawaban_psikotes" ADD CONSTRAINT "jawaban_psikotes_id_soal_psikotes_fkey" FOREIGN KEY ("id_soal_psikotes") REFERENCES "soal_psikotes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -485,7 +485,7 @@ ALTER TABLE "jawaban_psikotes" ADD CONSTRAINT "jawaban_psikotes_id_pilihan_jawab
 ALTER TABLE "interpretasi_psikotes" ADD CONSTRAINT "interpretasi_psikotes_id_paket_fkey" FOREIGN KEY ("id_paket") REFERENCES "paket_psikotes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "hasil_tes" ADD CONSTRAINT "hasil_tes_id_booking_fkey" FOREIGN KEY ("id_booking") REFERENCES "booking_psikotes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "hasil_tes" ADD CONSTRAINT "hasil_tes_id_booking_fkey" FOREIGN KEY ("id_booking") REFERENCES "booking_psikotes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "hasil_tes" ADD CONSTRAINT "hasil_tes_id_interpretasi_fkey" FOREIGN KEY ("id_interpretasi") REFERENCES "interpretasi_psikotes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

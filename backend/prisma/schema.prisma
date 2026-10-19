@@ -115,7 +115,7 @@ model Account {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  biro       Biro?     @relation("BiroStaff", fields: [id_biro], references: [id])
+  biro       Biro?     @relation("BiroStaff", fields: [id_biro], references: [id], onDelete: SetNull)
   owned_biro Biro[]    @relation("BiroOwner")
   psikolog   Psikolog?
 
@@ -132,7 +132,7 @@ model Client {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  biro Biro? @relation(fields: [id_biro], references: [id])
+  biro Biro? @relation(fields: [id_biro], references: [id], onDelete: SetNull)
 
   booking_konsultasi BookingKonsultasi[]
   booking_event      BookingEvent[]
@@ -157,7 +157,7 @@ model Biro {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  owner   Account   @relation("BiroOwner", fields: [id_account], references: [id])
+  owner   Account   @relation("BiroOwner", fields: [id_account], references: [id], onDelete: Restrict)
   staff   Account[] @relation("BiroStaff")
   clients Client[]
 
@@ -222,7 +222,7 @@ model Psikolog {
   updatedAt         DateTime       @updatedAt
 
   account      Account      @relation(fields: [id_account], references: [id], onDelete: Cascade)
-  spesialisasi Spesialisasi @relation(fields: [id_spesialisasi], references: [id])
+  spesialisasi Spesialisasi @relation(fields: [id_spesialisasi], references: [id], onDelete: Restrict)
   jadwal_slot  JadwalSlot[]
 
   @@map("psikologs")
@@ -239,7 +239,7 @@ model JadwalSlot {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  psikolog           Psikolog            @relation(fields: [id_psikolog], references: [id])
+  psikolog           Psikolog            @relation(fields: [id_psikolog], references: [id], onDelete: Restrict)
   booking_konsultasi BookingKonsultasi?
 
   @@map("jadwal_slots")
@@ -250,22 +250,22 @@ model JadwalSlot {
 // ==========================================
 
 model Transaksi {
-  id                String           @id @default(uuid())
-  id_client         String
-  kode_transaksi    String?          @unique
-  tipe_transaksi    TipeTransaksi
-  subtotal          Decimal          @db.Decimal(12, 2)
-  biaya_admin       Decimal          @db.Decimal(12, 2)
-  total             Decimal          @db.Decimal(12, 2)
-  metode_pembayaran MetodePembayaran
+  id                 String           @id @default(uuid())
+  id_client          String
+  kode_transaksi     String?          @unique
+  tipe_transaksi     TipeTransaksi
+  subtotal           Decimal          @db.Decimal(12, 2)
+  biaya_admin        Decimal          @db.Decimal(12, 2)
+  total              Decimal          @db.Decimal(12, 2)
+  metode_pembayaran  MetodePembayaran
   channel_pembayaran String?
-  status_pembayaran StatusPembayaran @default(PENDING)
-  tanggal_bayar     DateTime?
-  data_pembayaran   String?          @db.Text
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  status_pembayaran  StatusPembayaran @default(PENDING)
+  tanggal_bayar      DateTime?
+  data_pembayaran    String?          @db.Text
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
-  client Client @relation(fields: [id_client], references: [id])
+  client Client @relation(fields: [id_client], references: [id], onDelete: Restrict)
 
   booking_konsultasi BookingKonsultasi?
   booking_event      BookingEvent?
@@ -287,10 +287,10 @@ model BookingKonsultasi {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  client    Client     @relation(fields: [id_client], references: [id])
-  layanan   Layanan    @relation(fields: [id_layanan], references: [id])
-  jadwal    JadwalSlot @relation(fields: [id_jadwal], references: [id])
-  transaksi Transaksi? @relation(fields: [id_transaksi], references: [id])
+  client    Client     @relation(fields: [id_client], references: [id], onDelete: Restrict)
+  layanan   Layanan    @relation(fields: [id_layanan], references: [id], onDelete: Restrict)
+  jadwal    JadwalSlot @relation(fields: [id_jadwal], references: [id], onDelete: Restrict)
+  transaksi Transaksi? @relation(fields: [id_transaksi], references: [id], onDelete: SetNull)
 
   @@map("booking_konsultasi")
 }
@@ -331,9 +331,9 @@ model BookingEvent {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  event     Event     @relation(fields: [id_event], references: [id])
-  client    Client    @relation(fields: [id_client], references: [id])
-  transaksi Transaksi @relation(fields: [id_transaksi], references: [id])
+  event     Event     @relation(fields: [id_event], references: [id], onDelete: Restrict)
+  client    Client    @relation(fields: [id_client], references: [id], onDelete: Restrict)
+  transaksi Transaksi @relation(fields: [id_transaksi], references: [id], onDelete: Restrict)
 
   @@map("booking_events")
 }
@@ -392,9 +392,9 @@ model JawabanPsikotes {
   id_pilihan_jawaban String
   skor               Int
 
-  booking         BookingPsikotes @relation(fields: [id_booking], references: [id])
-  soal_psikotes   SoalPsikotes    @relation(fields: [id_soal_psikotes], references: [id])
-  pilihan_jawaban PilihanJawaban  @relation(fields: [id_pilihan_jawaban], references: [id])
+  booking         BookingPsikotes @relation(fields: [id_booking], references: [id], onDelete: Cascade)
+  soal_psikotes   SoalPsikotes    @relation(fields: [id_soal_psikotes], references: [id], onDelete: Restrict)
+  pilihan_jawaban PilihanJawaban  @relation(fields: [id_pilihan_jawaban], references: [id], onDelete: Restrict)
 
   @@map("jawaban_psikotes")
 }
@@ -425,8 +425,8 @@ model HasilTes {
   tanggal_selesai DateTime @default(now())
   createdAt       DateTime @default(now())
 
-  booking      BookingPsikotes      @relation(fields: [id_booking], references: [id])
-  interpretasi InterpretasiPsikotes @relation(fields: [id_interpretasi], references: [id])
+  booking      BookingPsikotes      @relation(fields: [id_booking], references: [id], onDelete: Cascade)
+  interpretasi InterpretasiPsikotes @relation(fields: [id_interpretasi], references: [id], onDelete: Restrict)
 
   @@map("hasil_tes")
 }
@@ -439,9 +439,9 @@ model BookingPsikotes {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  paket     PaketPsikotes @relation(fields: [id_paket], references: [id])
-  transaksi Transaksi?    @relation(fields: [id_transaksi], references: [id])
-  client    Client        @relation(fields: [id_client], references: [id])
+  paket     PaketPsikotes @relation(fields: [id_paket], references: [id], onDelete: Restrict)
+  transaksi Transaksi?    @relation(fields: [id_transaksi], references: [id], onDelete: SetNull)
+  client    Client        @relation(fields: [id_client], references: [id], onDelete: Restrict)
 
   jawaban_psikotes JawabanPsikotes[]
   hasil_tes        HasilTes?
