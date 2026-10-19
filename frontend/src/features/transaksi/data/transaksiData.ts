@@ -325,25 +325,6 @@ export const DUMMY_TRANSAKSI: TransaksiItem[] = [
 
   // ── OKTOBER 2026 (Urutan tanggal lama ke baru) ──
   {
-    id: "oct-1",
-    orderId: "EV-0103",
-    orderDate: "5 Okt 2026, 11:00 WIB",
-    clientName: "Maya Indah",
-    clientEmail: "maya.indah@gmail.com",
-    clientPhone: "081900112233",
-    jenisLayanan: "event",
-    namaLayanan: "Empathika Goes To School - SMAN 1 Bandung",
-    psikologOrFasilitator: "Dr. Andi Pratama, M.Psi.",
-    jadwal: "15 Okt 2026, 09:00 - 11:30 WIB",
-    status: "Lunas",
-    subtotal: 0,
-    biayaLayanan: 0,
-    totalBayar: 0,
-    metodePembayaran: "Gratis / Sponsorship",
-    waktuPembayaran: "5 Okt 2026, 11:00 WIB",
-    tanggalTransaksi: "2026-10-05",
-  },
-  {
     id: "oct-2",
     orderId: "PT-0115",
     orderDate: "10 Okt 2026, 09:30 WIB",

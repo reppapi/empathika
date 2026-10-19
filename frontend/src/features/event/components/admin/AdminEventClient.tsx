@@ -35,7 +35,11 @@ export default function AdminEventClient() {
     const saved = localStorage.getItem("empathika_admin_events")
     if (saved) {
       try {
-        setEvents(JSON.parse(saved))
+        const parsed: AdminEventData[] = JSON.parse(saved)
+        // Bersihkan data lama jika pernah menyimpan Goes To School (id: 4)
+        const cleaned = parsed.filter((e) => e.id !== "4" && !e.judul.toLowerCase().includes("goes to school"))
+        setEvents(cleaned)
+        localStorage.setItem("empathika_admin_events", JSON.stringify(cleaned))
         return
       } catch {
         // fallback
