@@ -66,16 +66,6 @@ const DUMMY_PESERTA: Record<
     },
   ],
   "3": [],
-  "4": [
-    {
-      no: 1,
-      nama: "Mega Putri",
-      noWa: "087700112233",
-      email: "megaputri@gmail.com",
-      tanggalDaftar: "14 Okt 2026, 08:45",
-      statusPembayaran: "Lunas",
-    },
-  ],
 }
 
 const getPaymentStatusBadge = (status: "Lunas" | "Menunggu" | "Gagal") => {
