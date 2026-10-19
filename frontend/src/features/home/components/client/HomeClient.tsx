@@ -241,7 +241,12 @@ export default function HomeClient() {
                   <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
                   <p className="text-lg font-black text-[#561269]">Rp 50.000</p>
                 </div>
-                <Link href="/event/checkout" className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm">Daftar</Link>
+                <Link
+                  href="/event/checkout?judul=Overcoming%20Burnout%3A%20Mengelola%20Lelah%20Mental%20di%20Tempat%20Kerja&pembicara=Sarah%20M.%2C%20M.Psi&kategori=Webinar&harga=Rp%2050.000&lokasi=Kantor%20Empathika%20Cikutra&tanggal=24%20Oktober%202026&waktu=19%3A00%20-%2021%3A00%20WIB"
+                  className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
+                >
+                  Daftar
+                </Link>
               </div>
             </div>
           </div>
@@ -279,7 +284,12 @@ export default function HomeClient() {
                   <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
                   <p className="text-lg font-black text-[#561269]">Rp 150.000</p>
                 </div>
-                <Link href="/event/checkout" className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm">Daftar</Link>
+                <Link
+                  href="/event/checkout?judul=Seni%20Mengenali%20Diri%20Sendiri%20%26%20Self-Healing%20Therapy&pembicara=Dr.%20Andi%20Pratama&kategori=Workshop&harga=Rp%20150.000&lokasi=Auditorium%20UPI%20Bandung&tanggal=1%20November%202026&waktu=10%3A00%20-%2014%3A00%20WIB"
+                  className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
+                >
+                  Daftar
+                </Link>
               </div>
             </div>
           </div>
