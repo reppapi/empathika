@@ -2,10 +2,12 @@
 
 
 
-import { MOCK_QUESTIONS } from "../../data/psikotesData";
+import { MOCK_QUESTIONS, TEST_DATA } from "../../data/psikotesData";
 import { usePsikotesTest } from "../../hooks/usePsikotesTest";
 
 export default function PsikotesMulaiClient({ params }: { params: { testId: string } }) {
+  const currentTest = TEST_DATA[params.testId as keyof typeof TEST_DATA];
+  const testTitle = currentTest?.title || `Psikotes ${params.testId.replace('-', ' ')}`;
   const totalQuestions = MOCK_QUESTIONS.length;
   const {
     currentIndex,
@@ -42,8 +44,8 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         {/* Header / Progress */}
         <div className="mb-8 md:mb-12">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl md:text-2xl font-bold text-[#561269] tracking-tight capitalize">
-              Psikotes {params.testId.replace('-', ' ')}
+            <h1 className="text-xl md:text-2xl font-bold text-[#561269] tracking-tight">
+              {testTitle}
             </h1>
             <span className="text-sm font-bold text-gray-500 bg-gray-100 px-4 py-1.5 rounded-full">
               Pertanyaan {currentIndex + 1} dari {totalQuestions}

@@ -133,8 +133,8 @@ export default function BookingClient() {
               key={f}
               onClick={() => setActiveFilter(f)}
               className={`px-6 py-2 rounded-full text-[13px] font-bold transition-all shadow-sm ${activeFilter === f
-                  ? "bg-[#561269] text-white"
-                  : "bg-white text-[#561269] hover:bg-[#561269]/10"
+                ? "bg-[#561269] text-white"
+                : "bg-white text-[#561269] hover:bg-[#561269]/10"
                 }`}
             >
               {f}

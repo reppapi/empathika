@@ -7,19 +7,19 @@ import { useRouter, useSearchParams } from "next/navigation"
 // ── Dummy data ────────────────────────────────────────────────────────────────
 
 const BANK_LIST = [
-  { id: "bca",     name: "BCA",     va: "1234567890123" },
+  { id: "bca", name: "BCA", va: "1234567890123" },
   { id: "mandiri", name: "Mandiri", va: "8881234567890" },
-  { id: "bni",     name: "BNI",     va: "9876543210987" },
-  { id: "bri",     name: "BRI",     va: "7771234567890" },
-  { id: "bsi",     name: "BSI",     va: "4441234567890" },
+  { id: "bni", name: "BNI", va: "9876543210987" },
+  { id: "bri", name: "BRI", va: "7771234567890" },
+  { id: "bsi", name: "BSI", va: "4441234567890" },
 ]
 
 const EWALLET_LIST = [
-  { id: "gopay",     name: "GoPay",     color: "#00AA13" },
-  { id: "ovo",       name: "OVO",       color: "#4C3494" },
-  { id: "dana",      name: "DANA",      color: "#118EEA" },
+  { id: "gopay", name: "GoPay", color: "#00AA13" },
+  { id: "ovo", name: "OVO", color: "#4C3494" },
+  { id: "dana", name: "DANA", color: "#118EEA" },
   { id: "shopeepay", name: "ShopeePay", color: "#EE4D2D" },
-  { id: "linkaja",   name: "LinkAja",   color: "#E82529" },
+  { id: "linkaja", name: "LinkAja", color: "#E82529" },
 ]
 
 // Tombol salin dengan feedback "Tersalin!"
@@ -50,14 +50,14 @@ export default function BayarClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [nama, setNama]         = useState("")
-  const [email, setEmail]       = useState("")
+  const [nama, setNama] = useState("")
+  const [email, setEmail] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
 
   const [metodePembayaran, setMetodePembayaran] = useState<string | null>(null)
-  const [selectedBank, setSelectedBank]         = useState<string | null>(null)
-  const [selectedEwallet, setSelectedEwallet]   = useState<string | null>(null)
+  const [selectedBank, setSelectedBank] = useState<string | null>(null)
+  const [selectedEwallet, setSelectedEwallet] = useState<string | null>(null)
   const [failedAlertDismissed, setFailedAlertDismissed] = useState(false)
 
   const isFailed = searchParams.get("status") === "failed" && !failedAlertDismissed
@@ -81,7 +81,7 @@ export default function BayarClient() {
     if (qEwallet) setSelectedEwallet(qEwallet)
   }, [searchParams])
 
-  const activeBank    = BANK_LIST.find((b) => b.id === selectedBank)
+  const activeBank = BANK_LIST.find((b) => b.id === selectedBank)
   const activeEwallet = EWALLET_LIST.find((e) => e.id === selectedEwallet)
 
   const handleSelectPayment = (id: string) => {
@@ -94,7 +94,7 @@ export default function BayarClient() {
     }
 
     setMetodePembayaran(id)
-    if (id !== "bank")    { setSelectedBank(null) }
+    if (id !== "bank") { setSelectedBank(null) }
     if (id !== "ewallet") { setSelectedEwallet(null) }
   }
 
@@ -121,7 +121,7 @@ export default function BayarClient() {
       bottomDate: "31 Agu 2026",
       bottomTime: "13:30 WIB (Online)",
       metode: metodePembayaran,
-      ...(selectedBank    && { bank: selectedBank }),
+      ...(selectedBank && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
     // Arahkan ke halaman pending dulu
@@ -282,7 +282,7 @@ export default function BayarClient() {
               <div className="w-[70px] h-[70px] rounded-full bg-[#E6D9E9] shrink-0" />
               <div className="text-center sm:text-left flex flex-col justify-center h-full pt-1">
                 <div className="text-[10px] text-gray-500 mb-1">Psikolog Anda</div>
-                <div className="text-sm font-extrabold text-[#561269]">nama, M.Psi.,<br/>Psikolog</div>
+                <div className="text-sm font-extrabold text-[#561269]">nama, M.Psi.,<br />Psikolog</div>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -358,11 +358,10 @@ export default function BayarClient() {
                               return (
                                 <div
                                   key={ew.id}
-                                  className={`rounded-xl border transition-all overflow-hidden ${
-                                    isSelected
+                                  className={`rounded-xl border transition-all overflow-hidden ${isSelected
                                       ? "border-[#561269] bg-[#FAF5FC] shadow-sm"
                                       : "border-gray-200 bg-white hover:bg-gray-50"
-                                  }`}
+                                    }`}
                                 >
                                   {/* Baris item */}
                                   <button
@@ -412,11 +411,10 @@ export default function BayarClient() {
                               return (
                                 <div
                                   key={bank.id}
-                                  className={`rounded-xl border transition-all overflow-hidden ${
-                                    isSelected
+                                  className={`rounded-xl border transition-all overflow-hidden ${isSelected
                                       ? "border-[#561269] bg-[#FAF5FC] shadow-sm"
                                       : "border-gray-200 bg-white hover:bg-gray-50"
-                                  }`}
+                                    }`}
                                 >
                                   {/* Baris item */}
                                   <button
@@ -466,28 +464,28 @@ export default function BayarClient() {
                           </p>
                           <div className="relative w-[168px] h-[168px] bg-white border-2 border-[#561269] rounded-xl p-3 flex items-center justify-center">
                             <svg viewBox="0 0 100 100" className="w-full h-full text-[#561269]" xmlns="http://www.w3.org/2000/svg">
-                              <rect x="5"  y="5"  width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="8"  y="8"  width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="13" y="13" width="12" height="12" rx="1" fill="currentColor"/>
-                              <rect x="67" y="5"  width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="70" y="8"  width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="75" y="13" width="12" height="12" rx="1" fill="currentColor"/>
-                              <rect x="5"  y="67" width="28" height="28" rx="3" fill="currentColor" opacity="0.12"/>
-                              <rect x="8"  y="70" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3"/>
-                              <rect x="13" y="75" width="12" height="12" rx="1" fill="currentColor"/>
-                              {[38,43,48,53,58,63].map((x) =>
-                                [8,13,18,23,28,33,38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x + y) % 10 < 5 ? <rect key={`p1-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              <rect x="5" y="5" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="8" y="8" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="13" y="13" width="12" height="12" rx="1" fill="currentColor" />
+                              <rect x="67" y="5" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="70" y="8" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="75" y="13" width="12" height="12" rx="1" fill="currentColor" />
+                              <rect x="5" y="67" width="28" height="28" rx="3" fill="currentColor" opacity="0.12" />
+                              <rect x="8" y="70" width="22" height="22" rx="2" fill="none" stroke="currentColor" strokeWidth="3" />
+                              <rect x="13" y="75" width="12" height="12" rx="1" fill="currentColor" />
+                              {[38, 43, 48, 53, 58, 63].map((x) =>
+                                [8, 13, 18, 23, 28, 33, 38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x + y) % 10 < 5 ? <rect key={`p1-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
-                              {[8,13,18,23,28,33].map((x) =>
-                                [38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x + y) % 8 < 4 ? <rect key={`p2-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              {[8, 13, 18, 23, 28, 33].map((x) =>
+                                [38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x + y) % 8 < 4 ? <rect key={`p2-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
-                              {[68,73,78,83,88].map((x) =>
-                                [38,43,48,53,58,63,68,73,78,83,88].map((y) =>
-                                  (x * y) % 7 < 3 ? <rect key={`p3-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65"/> : null
+                              {[68, 73, 78, 83, 88].map((x) =>
+                                [38, 43, 48, 53, 58, 63, 68, 73, 78, 83, 88].map((y) =>
+                                  (x * y) % 7 < 3 ? <rect key={`p3-${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.5" fill="currentColor" opacity="0.65" /> : null
                                 )
                               )}
                             </svg>
@@ -502,7 +500,7 @@ export default function BayarClient() {
                             <p className="text-[10px] text-gray-400">Total: Rp 350.000</p>
                           </div>
                           <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-                            Berlaku untuk semua aplikasi pembayaran<br/>(GoPay, OVO, DANA, dll)
+                            Berlaku untuk semua aplikasi pembayaran<br />(GoPay, OVO, DANA, dll)
                           </p>
                         </div>
                       )}

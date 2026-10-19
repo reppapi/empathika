@@ -3,20 +3,33 @@ import Link from "next/link"
 import { ArrowUp, ArrowRight } from "lucide-react"
 import { MetricItem } from "../../types"
 
+import { usePathname } from "next/navigation"
+
 interface DashboardStatCardsProps {
   metrics: MetricItem[]
 }
 
-const getMetricLink = (title: string): string => {
-  if (title.includes("Pendapatan")) return "/admin/transaksi"
-  if (title.includes("Klien Aktif")) return "/admin/jadwal"
-  if (title.includes("Sesi Konseling")) return "/admin/jadwal?status=selesai"
-  if (title.includes("Workshop") || title.includes("Event")) return "/admin/event?tab=workshop"
-  if (title.includes("Menunggu Pembayaran")) return "/admin/transaksi?status=pending"
-  return "/admin"
-}
-
 export default function DashboardStatCards({ metrics }: DashboardStatCardsProps) {
+  const pathname = usePathname()
+  const isBiro = pathname?.startsWith("/admin-biro")
+
+  const getMetricLink = (title: string): string => {
+    if (isBiro) {
+      if (title.includes("Pendapatan")) return "/admin-biro/transaksi"
+      if (title.includes("Klien Aktif")) return "/admin-biro?modal=clients"
+      if (title.includes("Sesi Konseling")) return "/admin-biro?status=selesai"
+      if (title.includes("Menunggu Pembayaran")) return "/admin-biro/transaksi?status=pending"
+      if (title.includes("Pendaftar") || title.includes("Layanan")) return "/admin-biro/transaksi"
+      return "/admin-biro"
+    }
+
+    if (title.includes("Pendapatan")) return "/admin/transaksi"
+    if (title.includes("Klien Aktif")) return "/admin/jadwal"
+    if (title.includes("Sesi Konseling")) return "/admin/jadwal?status=selesai"
+    if (title.includes("Workshop") || title.includes("Event")) return "/admin/event?tab=workshop"
+    if (title.includes("Menunggu Pembayaran")) return "/admin/transaksi?status=pending"
+    return "/admin"
+  }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
       {metrics.map((item, idx) => {
