@@ -35,18 +35,10 @@ export class BlogService {
   }
 
   async create(data: CreateBlogInput) {
-    let slug = data.slug?.trim() ? generateSlug(data.slug) : generateSlug(data.judul)
-
-    // Cek apakah slug sudah ada, jika ada tambahkan random suffix
-    const existing = await this.repo.findBySlug(slug)
-    if (existing) {
-      slug = `${slug}-${Date.now().toString().slice(-4)}`
-    }
-
     return this.repo.create({
       judul: data.judul,
       isi: data.isi,
-      slug,
+      banner_url: data.banner_url,
     })
   }
 
@@ -56,19 +48,10 @@ export class BlogService {
       throw Object.assign(new Error('Artikel blog tidak ditemukan'), { statusCode: 404 })
     }
 
-    let slug = data.slug
-    if (slug) {
-      slug = generateSlug(slug)
-      const duplicate = await this.repo.findBySlug(slug)
-      if (duplicate && duplicate.id !== id) {
-        slug = `${slug}-${Date.now().toString().slice(-4)}`
-      }
-    }
-
     return this.repo.update(id, {
       ...(data.judul && { judul: data.judul }),
       ...(data.isi && { isi: data.isi }),
-      ...(slug && { slug }),
+      ...(data.banner_url !== undefined && { banner_url: data.banner_url }),
     })
   }
 
