@@ -41,7 +41,7 @@ async function main() {
       slug: 'cendekia-muda',
       id_account: biroOwnerAccount.id, // Penanggung Jawab Biro
       alamat: 'Jl. Kaliurang KM 5, Sleman, D.I. Yogyakarta',
-      aktif: true,
+      status: 'ACTIVE',
     },
   });
 
@@ -55,7 +55,7 @@ async function main() {
 
   // 3. Create Sample Client (Tamu Pemesan Layanan)
   let sampleClient = await prisma.client.findFirst({
-    where: { email: 'karennsya@gmail.com' },
+    where: { no_telepon: '0812-0083-773' },
   });
 
   if (!sampleClient) {
@@ -63,8 +63,8 @@ async function main() {
       data: {
         nama: 'Karen Sya',
         no_telepon: '0812-0083-773',
-        email: 'karennsya@gmail.com',
-        deskripsi_trauma: 'Kecemasan akademik & regulasi stres skripsi',
+        usia: 22,
+        jenis_kelamin: 'Perempuan',
         id_biro: biro.id,
       },
     });
@@ -106,6 +106,7 @@ async function main() {
     create: {
       id_account: psikologAccount.id, // Relasi 1-to-1 ke Account
       id_spesialisasi: spesialisasiKlinis.id,
+      kategori: 'Psikolog Klinis Dewasa',
       nama_gelar: 'Dr. Jane Doe, M.Psi., Psikolog',
       no_str: '123456789',
       bio: 'Berpengalaman dalam menangani kecemasan dan depresi.',
@@ -124,7 +125,7 @@ async function main() {
     layananKonsultasi = await prisma.layanan.create({
       data: {
         nama: 'Konsultasi Individu (Online)',
-        kategori: KategoriLayanan.KONSULTASI_INDIVIDU,
+        kategori: KategoriLayanan.KONSULTASI,
         deskripsi: 'Sesi konsultasi 1 on 1 dengan psikolog klinis melalui video call.',
         harga_weekday: 150000.00,
         harga_weekend: 200000.00,
@@ -144,7 +145,6 @@ async function main() {
     paketPsikotes = await prisma.paketPsikotes.create({
       data: {
         judul: 'Tes Kepribadian Dasar',
-        kategori: 'Kepribadian',
         jenis_akses: JenisAksesPsikotes.GRATIS,
         harga: 0,
         deskripsi: 'Tes untuk mengetahui tipe kepribadian dasar Anda.',
