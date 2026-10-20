@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
+import { mapApiToAdminEvent } from "../../data/adminEventData"
+import { eventService, CreateEventDto, UpdateEventDto } from "@/services/event.service"
+import { uploadService } from "@/services/upload.service"
 
 export type EventFormData = {
   judul: string
-  jenis: "Workshop" | "Seminar" | ""
+  jenis: "Workshop" | "Seminar" | "Webinar"
   tanggal: string
   waktuMulai: string
   waktuSelesai: string
@@ -15,7 +17,7 @@ export type EventFormData = {
   kuota: string
   harga: string
   deskripsi: string
-  status: "Draft" | "Dipublikasi" | "Selesai" | ""
+  status: "Draft" | "Dipublikasi" | "Selesai"
 }
 
 const INITIAL_FORM: EventFormData = {
@@ -43,48 +45,73 @@ export default function AdminEventFormClient({ eventId }: Props) {
   const isEditMode = Boolean(eventId)
   const [form, setForm] = useState<EventFormData>(INITIAL_FORM)
   const [bannerUrl, setBannerUrl] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [loading, setLoading] = useState(isEditMode)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!eventId) return
 
-    let currentEvents: AdminEventData[] = INITIAL_ADMIN_EVENTS
-    const saved = localStorage.getItem("empathika_admin_events")
-    if (saved) {
+    const loadEvent = async () => {
       try {
-        currentEvents = JSON.parse(saved)
-      } catch {
-        // fallback
+        const res = await eventService.getById(eventId)
+        if (res?.data) {
+          const item = res.data
+          // Format tanggal YYYY-MM-DD
+          let dateStr = new Date().toISOString().split("T")[0]
+          try {
+            const d = new Date(item.tanggal)
+            if (!isNaN(d.getTime())) {
+              dateStr = d.toISOString().split("T")[0]
+            }
+          } catch {}
+
+          // Format waktu
+          let waktuMulai = "09:00"
+          try {
+            const t = new Date(item.jam_mulai)
+            if (!isNaN(t.getTime())) {
+              const hh = String(t.getUTCHours()).padStart(2, "0")
+              const mm = String(t.getUTCMinutes()).padStart(2, "0")
+              waktuMulai = `${hh}:${mm}`
+            }
+          } catch {}
+
+          let jenis: "Workshop" | "Seminar" | "Webinar" = "Workshop"
+          if (item.jenis_event === "SEMINAR") jenis = "Seminar"
+          if (item.jenis_event === "WEBINAR") jenis = "Webinar"
+
+          let status: "Draft" | "Dipublikasi" | "Selesai" = "Dipublikasi"
+          if (item.status === "COMPLETED" || item.status === "CANCELLED") status = "Selesai"
+          if (item.status === "DRAFT") status = "Draft"
+
+          setForm({
+            judul: item.judul,
+            jenis,
+            tanggal: dateStr,
+            waktuMulai,
+            waktuSelesai: "12:00",
+            lokasi: item.lokasi || "",
+            pembicara: item.nama_pembicara,
+            kuota: String(item.kuota),
+            harga: String(item.harga),
+            deskripsi: item.deskripsi,
+            status,
+          })
+          if (item.banner_url) {
+            setBannerUrl(item.banner_url)
+          }
+        }
+      } catch (err) {
+        console.error("Gagal mengambil event:", err)
+        alert("Event tidak ditemukan atau gagal dimuat.")
+      } finally {
+        setLoading(false)
       }
     }
 
-    const found = currentEvents.find((e) => e.id === eventId)
-    if (found) {
-      // Parse tanggal ke YYYY-MM-DD jika format text
-      let dateValue = found.tanggal
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-        dateValue = new Date().toISOString().split("T")[0]
-      }
-
-      setForm({
-        judul: found.judul || "",
-        jenis: found.jenis || "Workshop",
-        tanggal: dateValue,
-        waktuMulai: found.waktuMulai || "09:00",
-        waktuSelesai: found.waktuSelesai || "12:00",
-        lokasi: found.lokasi || "",
-        pembicara: found.pembicara || "",
-        kuota: String(found.totalTiket || "100"),
-        harga: String(found.harga || "0"),
-        deskripsi: found.deskripsi || "",
-        status: found.status || "Dipublikasi",
-      })
-      if (found.bannerUrl) {
-        setBannerUrl(found.bannerUrl)
-      }
-    }
-    setLoading(false)
+    loadEvent()
   }, [eventId])
 
   const handleChange = (
@@ -98,85 +125,85 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
   const handleImageUpload = (file: File) => {
     if (file) {
+      setImageFile(file)
       const url = URL.createObjectURL(file)
       setBannerUrl(url)
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitting(true)
 
-    // Ambil list event dari localStorage
-    let currentEvents: AdminEventData[] = INITIAL_ADMIN_EVENTS
-    const saved = localStorage.getItem("empathika_admin_events")
-    if (saved) {
-      try {
-        currentEvents = JSON.parse(saved)
-      } catch {
-        // fallback
-      }
-    }
+    // Map jenis form ke backend enum
+    let jenisEvent: "WEBINAR" | "WORKSHOP" | "SEMINAR" = "WORKSHOP"
+    if (form.jenis === "Seminar") jenisEvent = "SEMINAR"
+    if (form.jenis === "Webinar") jenisEvent = "WEBINAR"
 
-    // Format tanggal tampilan e.g. "10 Okt 2026"
-    let displayTanggal = form.tanggal
-    if (/^\d{4}-\d{2}-\d{2}$/.test(form.tanggal)) {
-      const [y, m, d] = form.tanggal.split("-")
-      const monthNames = [
-        "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-        "Jul", "Agu", "Sept", "Okt", "Nov", "Des"
-      ]
-      displayTanggal = `${parseInt(d, 10)} ${monthNames[parseInt(m, 10) - 1]} ${y}`
-    }
+    // Map status form ke backend enum
+    let statusEvent: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT" = "UPCOMING"
+    if (form.status === "Draft") statusEvent = "DRAFT"
+    if (form.status === "Selesai") statusEvent = "COMPLETED"
 
-    if (isEditMode && eventId) {
-      // Mode Edit
-      const updatedList = currentEvents.map((item) => {
-        if (item.id === eventId) {
-          return {
-            ...item,
-            judul: form.judul,
-            jenis: (form.jenis || "Workshop") as "Workshop" | "Seminar",
-            pembicara: form.pembicara,
-            tanggal: displayTanggal,
-            waktuMulai: form.waktuMulai,
-            waktuSelesai: form.waktuSelesai,
-            waktu: `${form.waktuMulai} WIB`,
-            lokasi: form.lokasi,
-            totalTiket: parseInt(form.kuota, 10) || item.totalTiket,
-            harga: form.harga,
-            deskripsi: form.deskripsi,
-            status: (form.status || "Dipublikasi") as "Draft" | "Dipublikasi" | "Selesai",
-            bannerUrl: bannerUrl || item.bannerUrl,
-          }
+    try {
+      // 1. Upload file gambar jika user memilih file lokal baru
+      let finalBannerUrl: string | null = bannerUrl.startsWith("http") && !bannerUrl.startsWith("blob:") ? bannerUrl : null
+      if (imageFile) {
+        try {
+          finalBannerUrl = await uploadService.uploadImage(imageFile)
+        } catch (uploadErr) {
+          console.warn("Upload gambar gagal, melanjutkan tanpa gambar baru:", uploadErr)
         }
-        return item
-      })
-      localStorage.setItem("empathika_admin_events", JSON.stringify(updatedList))
-    } else {
-      // Mode Tambah Baru
-      const newEvent: AdminEventData = {
-        id: `ev-${Date.now()}`,
-        judul: form.judul,
-        subjudul: form.jenis === "Workshop" ? "Workshop Empathika" : "Seminar Empathika",
-        jenis: (form.jenis || "Workshop") as "Workshop" | "Seminar",
-        pembicara: form.pembicara,
-        tanggal: displayTanggal,
-        waktuMulai: form.waktuMulai,
-        waktuSelesai: form.waktuSelesai,
-        waktu: `${form.waktuMulai} WIB`,
-        lokasi: form.lokasi,
-        tiketTerjual: 0,
-        totalTiket: parseInt(form.kuota, 10) || 100,
-        harga: form.harga,
-        deskripsi: form.deskripsi,
-        status: (form.status || "Dipublikasi") as "Draft" | "Dipublikasi" | "Selesai",
-        bannerUrl: bannerUrl || undefined,
       }
-      const updatedList = [newEvent, ...currentEvents]
-      localStorage.setItem("empathika_admin_events", JSON.stringify(updatedList))
-    }
 
-    router.push("/admin/event")
+      if (isEditMode && eventId) {
+        const payload: UpdateEventDto = {
+          judul: form.judul,
+          jenis_event: jenisEvent,
+          deskripsi: form.deskripsi || "Deskripsi event Empathika",
+          tanggal: form.tanggal,
+          jam_mulai: form.waktuMulai,
+          durasi_menit: 120,
+          lokasi: form.lokasi || null,
+          kuota: parseInt(form.kuota, 10) || 100,
+          harga: parseFloat(form.harga) || 0,
+          banner_url: finalBannerUrl,
+          nama_pembicara: form.pembicara,
+          status: statusEvent,
+        }
+        await eventService.update(eventId, payload)
+      } else {
+        const payload: CreateEventDto = {
+          judul: form.judul,
+          jenis_event: jenisEvent,
+          deskripsi: form.deskripsi || "Deskripsi event Empathika",
+          tanggal: form.tanggal,
+          jam_mulai: form.waktuMulai,
+          durasi_menit: 120,
+          lokasi: form.lokasi || null,
+          kuota: parseInt(form.kuota, 10) || 100,
+          harga: parseFloat(form.harga) || 0,
+          banner_url: finalBannerUrl,
+          nama_pembicara: form.pembicara,
+          status: statusEvent,
+        }
+        await eventService.create(payload)
+      }
+
+      router.push("/admin/event")
+      router.refresh()
+    } catch (err: any) {
+      console.error("Gagal menyimpan event:", err)
+      const data = err.response?.data
+      let msg = data?.message || "Gagal menyimpan event. Silakan periksa kembali isian form."
+      if (data?.details) {
+        const fields = Object.entries(data.details).map(([k, v]) => `${k}: ${(v as any).join(", ")}`).join("\n")
+        msg += `\n\nDetail:\n${fields}`
+      }
+      alert(msg)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const inputClass =
@@ -195,7 +222,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16 w-full max-w-5xl mx-auto">
-      {/* ── Heading Form & Tombol Kembali ── */}
+      {/* Heading Form & Tombol Kembali */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -219,13 +246,13 @@ export default function AdminEventFormClient({ eventId }: Props) {
         </h2>
       </div>
 
-      {/* ── Container Form (Desain rapi & premium bergaya blog) ── */}
+      {/* Container Form */}
       <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* ── Baris 1: Banner / Poster Event ── */}
+          {/* Banner / Poster Event */}
           <div>
             <label className={labelClass}>
-              Banner / Poster Event <span className="text-red-500">*</span>
+              Banner / Poster Event
             </label>
             <div
               onDragOver={(e) => {
@@ -314,7 +341,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             <span className={helperClass}>Upload gambar poster atau banner untuk event ini</span>
           </div>
 
-          {/* ── Baris 2: Judul Event ── */}
+          {/* Judul Event */}
           <div>
             <label htmlFor="judul" className={labelClass}>
               Judul Event <span className="text-red-500">*</span>
@@ -332,7 +359,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             <span className={helperClass}>Contoh: AMTR : A Moment to Remember</span>
           </div>
 
-          {/* ── Baris 3: Jenis Event & Status Publikasi ── */}
+          {/* Jenis Event & Status Publikasi */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
             <div>
               <label htmlFor="jenis" className={labelClass}>
@@ -348,6 +375,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
               >
                 <option value="Workshop">Workshop</option>
                 <option value="Seminar">Seminar</option>
+                <option value="Webinar">Webinar</option>
               </select>
               <span className={helperClass}>Pilih kategori jenis event</span>
             </div>
@@ -371,7 +399,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             </div>
           </div>
 
-          {/* ── Baris 4: Tanggal Event ── */}
+          {/* Tanggal Event */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             <div>
               <label htmlFor="tanggal" className={labelClass}>
@@ -452,7 +480,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             </div>
           </div>
 
-          {/* ── Baris 5: Lokasi & Pembicara ── */}
+          {/* Lokasi & Pembicara */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             <div>
               <label htmlFor="lokasi" className={labelClass}>
@@ -489,7 +517,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             </div>
           </div>
 
-          {/* ── Baris 6: Kuota & Harga ── */}
+          {/* Kuota & Harga */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             <div>
               <label htmlFor="kuota" className={labelClass}>
@@ -527,7 +555,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             </div>
           </div>
 
-          {/* ── Baris 7: Deskripsi Event ── */}
+          {/* Deskripsi Event */}
           <div>
             <label htmlFor="deskripsi" className={labelClass}>
               Deskripsi Event
@@ -544,7 +572,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             <span className={helperClass}>Deskripsi detail yang akan dibaca oleh calon peserta</span>
           </div>
 
-          {/* ── Action Buttons ── */}
+          {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"
@@ -555,9 +583,10 @@ export default function AdminEventFormClient({ eventId }: Props) {
             </button>
             <button
               type="submit"
-              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+              disabled={submitting}
+              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
             >
-              {isEditMode ? "Simpan Perubahan" : "Terbitkan Event"}
+              {submitting ? "Menyimpan..." : isEditMode ? "Simpan Perubahan" : "Terbitkan Event"}
             </button>
           </div>
         </form>

@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
+import { AdminEventData, mapApiToAdminEvent } from "../../data/adminEventData"
+import { eventService } from "@/services/event.service"
 import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
-import { Calendar } from "lucide-react"
+import { Calendar, Loader2 } from "lucide-react"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import AdminEventDetailModal from "./AdminEventDetailModal"
@@ -17,11 +18,11 @@ export default function AdminEventClient() {
   const tabParam = searchParams.get("tab") as "semua" | "seminar" | "workshop" | "selesai" | null
 
   const [events, setEvents] = useState<AdminEventData[]>([])
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"semua" | "seminar" | "workshop" | "selesai">(
     tabParam === "selesai" || tabParam === "seminar" || tabParam === "workshop" ? tabParam : "semua"
   )
   const [searchQuery, setSearchQuery] = useState("")
-  const [openActionId, setOpenActionId] = useState<string | null>(null)
   const [selectedEventForModal, setSelectedEventForModal] = useState<AdminEventData | null>(null)
 
   useEffect(() => {
@@ -30,44 +31,50 @@ export default function AdminEventClient() {
     }
   }, [tabParam])
 
-  // Load from localStorage or initial
-  useEffect(() => {
-    const saved = localStorage.getItem("empathika_admin_events")
-    if (saved) {
-      try {
-        const parsed: AdminEventData[] = JSON.parse(saved)
-        // Bersihkan data lama jika pernah menyimpan Goes To School (id: 4)
-        const cleaned = parsed.filter((e) => e.id !== "4" && !e.judul.toLowerCase().includes("goes to school"))
-        setEvents(cleaned)
-        localStorage.setItem("empathika_admin_events", JSON.stringify(cleaned))
-        return
-      } catch {
-        // fallback
+  // Fetch data live dari Backend API
+  const fetchEvents = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await eventService.getList({ limit: 100 })
+      if (res && res.data) {
+        const mapped = res.data.map(mapApiToAdminEvent)
+        setEvents(mapped)
+      } else {
+        setEvents([])
       }
+    } catch (err) {
+      console.error("Gagal mengambil data event dari server:", err)
+      setEvents([])
+    } finally {
+      setLoading(false)
     }
-    setEvents(INITIAL_ADMIN_EVENTS)
-    localStorage.setItem("empathika_admin_events", JSON.stringify(INITIAL_ADMIN_EVENTS))
   }, [])
 
-  // Delete event
-  const handleDeleteEvent = (id: string, e: React.MouseEvent) => {
+  useEffect(() => {
+    fetchEvents()
+  }, [fetchEvents])
+
+  // Delete event via API Backend
+  const handleDeleteEvent = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     const target = events.find((ev) => ev.id === id)
     if (!target) return
 
     const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus event "${target.judul}"?`)
     if (confirmDelete) {
-      const updated = events.filter((ev) => ev.id !== id)
-      setEvents(updated)
-      localStorage.setItem("empathika_admin_events", JSON.stringify(updated))
-      setOpenActionId(null)
+      try {
+        await eventService.delete(id)
+        setEvents((prev) => prev.filter((ev) => ev.id !== id))
+      } catch (err: any) {
+        const msg = err.response?.data?.message || "Gagal menghapus event."
+        alert(msg)
+      }
     }
   }
 
   // Navigate to edit
   const handleEditEvent = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setOpenActionId(null)
     router.push(`/admin/event/edit/${id}`)
   }
 
@@ -133,9 +140,9 @@ export default function AdminEventClient() {
         </button>
       </div>
 
-      {/* ΓöÇΓöÇ Main Card Table Container ΓöÇΓöÇ */}
+      {/* Main Card Table Container */}
       <div className="w-full rounded-[1.5rem] border border-gray-200/90 bg-white p-6 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
-        {/* Header Bar: Filter Tabs & Search (Tanpa tombol filter) */}
+        {/* Header Bar: Filter Tabs & Search */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
           {/* Tabs */}
           <div className="flex items-center gap-6 sm:gap-8 border-b border-transparent overflow-x-auto pb-1 text-sm">
@@ -200,7 +207,7 @@ export default function AdminEventClient() {
             </button>
           </div>
 
-          {/* Search Input (Tanpa tombol filter) */}
+          {/* Search Input */}
           <div className="relative w-full lg:w-72">
             <input
               type="text"
@@ -226,7 +233,7 @@ export default function AdminEventClient() {
           </div>
         </div>
 
-        {/* ΓöÇΓöÇ Table Event ΓöÇΓöÇ */}
+        {/* Table Event */}
         <div
           className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
             filteredEvents.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
@@ -246,10 +253,19 @@ export default function AdminEventClient() {
             </thead>
 
             <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
-              {filteredEvents.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-14 text-center text-gray-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin text-[#561269]" />
+                      <span>Mengambil data event terkini dari server...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredEvents.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-gray-400">
-                    Tidak ada event ditemukan.
+                    Tidak ada event ditemukan di database.
                   </td>
                 </tr>
               ) : (
