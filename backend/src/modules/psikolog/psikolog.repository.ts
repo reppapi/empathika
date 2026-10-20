@@ -1,5 +1,5 @@
 import type { PrismaClient, Prisma } from '@prisma/client'
-import { parseDateString, timeStringToDate } from '../../utils/date-time'
+import { parseDateString } from '../../utils/date-time'
 
 export class PsikologRepository {
   constructor(private prisma: PrismaClient) {}

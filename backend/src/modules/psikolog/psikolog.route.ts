@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import { PsikologController } from './psikolog.controller'
-import { authGuard } from '../../middlewares/auth-guard'
 import { adminGuard } from '../../middlewares/admin-guard'
 import {
   getJadwalTersediaQuerySchema,
@@ -122,7 +121,9 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
       async (req) => {
         try {
           await req.jwtVerify()
-        } catch {}
+        } catch (_err) {
+          // Token opsional / abaikan jika belum login JWT
+        }
       },
     ],
     schema: { tags: ['Psikolog - Admin'], security: [{ bearerAuth: [] }] },
@@ -134,7 +135,9 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
       async (req) => {
         try {
           await req.jwtVerify()
-        } catch {}
+        } catch (_err) {
+          // Token opsional / abaikan jika belum login JWT
+        }
       },
     ],
     schema: { tags: ['Psikolog - Admin'], security: [{ bearerAuth: [] }] },

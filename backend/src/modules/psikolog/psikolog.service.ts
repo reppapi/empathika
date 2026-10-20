@@ -494,11 +494,15 @@ export class PsikologService {
                 tipe_jadwal: 'KONSULTASI',
                 status: 'TERSEDIA',
               },
-            }).catch(() => {})
+            }).catch((_err) => {
+              // Abaikan jika slot sudah ada
+            })
           }
         }
       }
-    } catch {}
+    } catch (slotErr) {
+      console.warn('Gagal generate slot default untuk psikolog baru:', slotErr)
+    }
 
     return psikolog
   }
