@@ -403,20 +403,25 @@ export default function JadwalAdmin() {
     setCurrentWeekMonday(next)
   }
 
-  const handleBooking = () => {
-    if (!date || !selectedTime) return
+  const handleBooking = (times: string[]) => {
+    if (!date || times.length === 0) return
     const dateKey = formatDateKey(date)
-    const newSession: BookedAssessment = {
-      id: "ab_" + Date.now(),
+    const newSessions: BookedAssessment[] = times.map((waktu, idx) => ({
+      id: "ab_" + Date.now() + "_" + idx,
       date: dateKey,
-      waktu: selectedTime,
+      waktu,
       layanan: "Asesmen",
       metode: "Online",
       namaKlien: "Klien Baru",
       psikolog: "Dr. Dimas",
-    }
-    setBookedSessions((prev) => [...prev, newSession])
-    setBookingSuccessMsg(`Jadwal ${selectedTime} berhasil disimpan ke Jadwal Mingguan!`)
+    }))
+
+    setBookedSessions((prev) => [...newSessions, ...prev])
+    setBookingSuccessMsg(
+      times.length === 1
+        ? `Jadwal ${times[0]} berhasil disimpan ke Jadwal Mingguan!`
+        : `${times.length} jadwal asesmen berhasil disimpan ke Jadwal Mingguan!`
+    )
     setTimeout(() => setBookingSuccessMsg(null), 3500)
   }
 
@@ -607,8 +612,7 @@ export default function JadwalAdmin() {
       <JadwalAsesmenPicker
         date={date}
         onSelectDate={handleSelectDate}
-        selectedTime={selectedTime}
-        onSelectTime={(time) => setSelectedTime(time)}
+        bookedSessions={bookedSessions}
         bookingSuccessMsg={bookingSuccessMsg}
         onBooking={handleBooking}
         timeSlots={TIME_SLOTS}
