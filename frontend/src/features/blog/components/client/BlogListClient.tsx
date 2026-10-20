@@ -1,10 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Eye, Heart, ChevronLeft, ChevronRight, X, ArrowRight } from 'lucide-react';
-import { BLOG_POSTS } from '@/features/blog/data/blogData';
+import { Search, ChevronLeft, ChevronRight, X, ArrowRight } from 'lucide-react';
+import { blogService } from '@/services/blog.service';
+import { BackendBlogItem } from '@/features/blog/types';
 import styles from './BlogList.module.css';
 
 const POSTS_PER_PAGE = 4;
@@ -13,17 +14,44 @@ export default function BlogListClient() {
   const [page, setPage] = useState(1);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [blogs, setBlogs] = useState<BackendBlogItem[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = searchQuery.trim()
-    ? BLOG_POSTS.filter(
-      (p) =>
-        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    : BLOG_POSTS;
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
 
-  const totalPages = Math.ceil(filtered.length / POSTS_PER_PAGE);
-  const paginated = filtered.slice((page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE);
+    blogService
+      .getList({
+        page,
+        limit: POSTS_PER_PAGE,
+        search: searchQuery.trim() || undefined,
+      })
+      .then((res) => {
+        if (!isMounted) return;
+        if (res?.success && Array.isArray(res.data)) {
+          setBlogs(res.data);
+          setTotalPages(res.meta?.totalPages || 1);
+        } else {
+          setBlogs([]);
+          setTotalPages(1);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setBlogs([]);
+          setTotalPages(1);
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [page, searchQuery]);
 
   return (
     <div className="w-full">
@@ -51,12 +79,19 @@ export default function BlogListClient() {
                   type="text"
                   placeholder="Cari artikel…"
                   value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setPage(1);
+                  }}
                 />
               </div>
               <button
                 className={styles.searchBtn}
-                onClick={() => { setSearchOpen(false); setSearchQuery(''); setPage(1); }}
+                onClick={() => {
+                  setSearchOpen(false);
+                  setSearchQuery('');
+                  setPage(1);
+                }}
                 aria-label="Tutup pencarian"
               >
                 <X size={18} />
@@ -73,68 +108,79 @@ export default function BlogListClient() {
           )}
         </div>
 
-        {/* Card list */}
-        {paginated.length > 0 ? (
+        {/* Loading State */}
+        {loading ? (
+          <div className="py-20 text-center text-purple-700 font-medium">
+            Memuat artikel...
+          </div>
+        ) : blogs.length > 0 ? (
           <div className={styles.cardList}>
-            {paginated.map((post) => (
-                <Link key={post.slug} href={`/blog/${post.slug}`} className={styles.blogCardLink}>
+            {blogs.map((post) => {
+              const formattedDate = new Date(post.tanggal_terbit).toLocaleDateString(
+                'id-ID',
+                {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                }
+              );
+              const excerpt =
+                post.isi.length > 150
+                  ? `${post.isi.substring(0, 150)}...`
+                  : post.isi;
+
+              return (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.id}`}
+                  className={styles.blogCardLink}
+                >
                   <div className={styles.blogCard}>
-                    {/* Real Article Photo (No Emoji) */}
-                    {post.imageUrl && (
+                    {post.banner_url && (
                       <div className={styles.blogCardImg}>
                         <img
-                          src={post.imageUrl}
-                          alt={post.title}
+                          src={post.banner_url}
+                          alt={post.judul}
                           className={styles.cardImg}
                         />
                       </div>
                     )}
 
-                    {/* Text */}
                     <div className={styles.blogCardBody}>
                       <div className={styles.cardAuthor}>
-                        <p className={styles.authorDate}>{post.date}</p>
-                        {post.category && (
-                          <span className={styles.categoryBadge}>{post.category}</span>
-                        )}
+                        <p className={styles.authorDate}>{formattedDate}</p>
                       </div>
 
-                      <h2 className={styles.cardTitle}>{post.title}</h2>
-                      <p className={styles.cardExcerpt}>{post.excerpt}</p>
+                      <h2 className={styles.cardTitle}>{post.judul}</h2>
+                      <p className={styles.cardExcerpt}>{excerpt}</p>
 
                       <div className={styles.cardFooter}>
-                        <span className={styles.cardViews}>
-                          <Eye size={14} />
-                          {post.views} Tampilan
-                        </span>
                         <div className={styles.cardFooterRight}>
                           <span className={styles.readMoreLink}>
                             Lihat Selengkapnya
                             <ArrowRight size={14} className={styles.readMoreArrow} />
                           </span>
-                          <div 
-                            className={styles.cardLikeBtn} 
-                            aria-label="Suka" 
-                            onClick={(e) => e.preventDefault()}
-                          >
-                            <Heart size={18} />
-                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </Link>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className={styles.emptyState}>
-            <div style={{ fontSize: 48 }}>🔍</div>
-            <p>Tidak ada artikel yang cocok dengan pencarian <strong>&ldquo;{searchQuery}&rdquo;</strong></p>
+            <div style={{ fontSize: 48 }}>📝</div>
+            <p>
+              {searchQuery
+                ? `Tidak ada artikel yang cocok dengan pencarian "${searchQuery}"`
+                : 'Belum ada artikel blog yang diterbitkan.'}
+            </p>
           </div>
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {!loading && totalPages > 1 && (
           <div className={styles.pagination}>
             <button
               className={styles.pgBtn}

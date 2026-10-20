@@ -1,10 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Eye, Heart, Link as LinkIcon, ChevronLeft } from 'lucide-react';
-import { getBlogPost, BLOG_POSTS } from '@/features/blog/data/blogData';
+import { Link as LinkIcon, ChevronLeft } from 'lucide-react';
+import { blogService } from '@/services/blog.service';
+import { BackendBlogItem } from '@/features/blog/types';
 import styles from './BlogDetail.module.css';
 
 interface Props {
@@ -12,11 +13,61 @@ interface Props {
 }
 
 export default function BlogDetailClient({ slug }: Props) {
-  const post = getBlogPost(slug);
-  const [liked, setLiked] = useState(false);
+  const [blog, setBlog] = useState<BackendBlogItem | null>(null);
+  const [recentPosts, setRecentPosts] = useState<BackendBlogItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  if (!post) {
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+
+    Promise.all([
+      blogService.getById(slug).catch(() => null),
+      blogService.getList({ page: 1, limit: 3 }).catch(() => null),
+    ])
+      .then(([detailRes, listRes]) => {
+        if (!isMounted) return;
+        if (detailRes?.success && detailRes.data) {
+          setBlog(detailRes.data);
+        } else {
+          setBlog(null);
+        }
+
+        if (listRes?.success && Array.isArray(listRes.data)) {
+          setRecentPosts(listRes.data.filter((p: BackendBlogItem) => p.id !== slug).slice(0, 3));
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  const handleCopy = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (loading) {
+    return (
+      <div style={{
+        paddingTop: 130, minHeight: '100vh', background: '#f8f5ff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', gap: 12, color: '#7c3aed', textAlign: 'center',
+      }}>
+        <p style={{ fontWeight: 600, fontSize: 16 }}>Memuat detail artikel...</p>
+      </div>
+    );
+  }
+
+  if (!blog) {
     return (
       <div style={{
         paddingTop: 130, minHeight: '100vh', background: '#f8f5ff',
@@ -32,16 +83,13 @@ export default function BlogDetailClient({ slug }: Props) {
     );
   }
 
-  const recentPosts = BLOG_POSTS.filter((p) => p.slug !== slug).slice(0, 3);
+  const formattedDate = new Date(blog.tanggal_terbit).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
-  const handleCopy = () => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href).catch(() => {});
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
+  const paragraphs = blog.isi.split('\n').filter((p) => p.trim() !== '');
 
   return (
     <div className={styles.detailPage}>
@@ -56,18 +104,18 @@ export default function BlogDetailClient({ slug }: Props) {
         <div className={styles.articleCard}>
           {/* Date */}
           <div className={styles.authorRow}>
-            <span className={styles.authorMetaD}>{post.date}</span>
+            <span className={styles.authorMetaD}>{formattedDate}</span>
           </div>
 
           {/* Title */}
-          <h1 className={styles.articleTitle}>{post.title}</h1>
+          <h1 className={styles.articleTitle}>{blog.judul}</h1>
 
           {/* Image */}
-          {post.imageUrl && (
+          {blog.banner_url && (
             <div className={styles.articleImg}>
               <img
-                src={post.imageUrl}
-                alt={post.title}
+                src={blog.banner_url}
+                alt={blog.judul}
                 className={styles.articleCoverImg}
               />
             </div>
@@ -75,7 +123,7 @@ export default function BlogDetailClient({ slug }: Props) {
 
           {/* Body */}
           <div className={styles.articleBody}>
-            {post.content.map((para, i) => (
+            {paragraphs.map((para, i) => (
               <p key={i}>{para}</p>
             ))}
           </div>
@@ -93,53 +141,31 @@ export default function BlogDetailClient({ slug }: Props) {
               {copied ? '✓ Tautan disalin!' : 'Salin tautan'}
             </button>
           </div>
-
-          <hr className={styles.divider} />
-
-          {/* Footer */}
-          <div className={styles.articleFooter}>
-            <span className={styles.viewsCount}>
-              <Eye size={14} />
-              {post.views} Tampilan
-            </span>
-            <button
-              className={`${styles.likeBtn}${liked ? ` ${styles.liked}` : ''}`}
-              onClick={() => setLiked((v) => !v)}
-              aria-label={liked ? 'Batalkan suka' : 'Suka artikel ini'}
-            >
-              <Heart
-                size={20}
-                fill={liked ? 'currentColor' : 'none'}
-              />
-            </button>
-          </div>
         </div>
 
         {/* Recent posts */}
-        <div className={styles.recentSection}>
-          <div className={styles.recentHeader}>
-            <h3>Postingan Terkhir</h3>
-            <Link href="/blog">Lihat Semua</Link>
-          </div>
-          <div className={styles.recentGrid}>
-            {recentPosts.map((p) => (
-              <Link key={p.slug} href={`/blog/${p.slug}`} className={styles.recentCard}>
-                {p.imageUrl && (
-                  <div className={styles.recentCardImg}>
-                    <img src={p.imageUrl} alt={p.title} className={styles.recentThumb} />
+        {recentPosts.length > 0 && (
+          <div className={styles.recentSection}>
+            <div className={styles.recentHeader}>
+              <h3>Postingan Terakhir</h3>
+              <Link href="/blog">Lihat Semua</Link>
+            </div>
+            <div className={styles.recentGrid}>
+              {recentPosts.map((p) => (
+                <Link key={p.id} href={`/blog/${p.id}`} className={styles.recentCard}>
+                  {p.banner_url && (
+                    <div className={styles.recentCardImg}>
+                      <img src={p.banner_url} alt={p.judul} className={styles.recentThumb} />
+                    </div>
+                  )}
+                  <div className={styles.recentCardBody}>
+                    <p className={styles.recentCardTitle}>{p.judul}</p>
                   </div>
-                )}
-                <div className={styles.recentCardBody}>
-                  <p className={styles.recentCardTitle}>{p.title}</p>
-                  <div className={styles.recentCardMeta}>
-                    <span><Eye size={11} /> {p.views}</span>
-                    <span><Heart size={11} /> {p.likes}</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

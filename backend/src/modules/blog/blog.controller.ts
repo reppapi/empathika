@@ -1,11 +1,16 @@
-import type { FastifyRequest, FastifyReply } from 'fastify'
+import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { BlogService } from './blog.service'
-import type { CreateBlogInput, UpdateBlogInput, BlogQueryInput } from './blog.schema'
+import type {
+  CreateBlogInput,
+  UpdateBlogInput,
+  BlogQueryInput,
+  BlogIdParamInput,
+} from './blog.schema'
 
 export class BlogController {
   private service: BlogService
 
-  constructor(fastify: any) {
+  constructor(fastify: FastifyInstance) {
     this.service = new BlogService(fastify)
   }
 
@@ -13,16 +18,25 @@ export class BlogController {
     request: FastifyRequest<{ Querystring: BlogQueryInput }>,
     reply: FastifyReply
   ) => {
-    const data = await this.service.getAll(request.query)
-    reply.send(data)
+    const result = await this.service.getAll(request.query)
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil mengambil daftar artikel blog',
+      data: result.items,
+      meta: result.meta,
+    })
   }
 
   getById = async (
-    request: FastifyRequest<{ Params: { id: string } }>,
+    request: FastifyRequest<{ Params: BlogIdParamInput }>,
     reply: FastifyReply
   ) => {
-    const data = await this.service.getByIdOrSlug(request.params.id)
-    reply.send(data)
+    const data = await this.service.getById(request.params.id)
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil mengambil detail artikel blog',
+      data,
+    })
   }
 
   create = async (
@@ -30,22 +44,34 @@ export class BlogController {
     reply: FastifyReply
   ) => {
     const data = await this.service.create(request.body)
-    reply.code(201).send(data)
+    return reply.code(201).send({
+      success: true,
+      message: 'Berhasil membuat artikel blog baru',
+      data,
+    })
   }
 
   update = async (
-    request: FastifyRequest<{ Params: { id: string }; Body: UpdateBlogInput }>,
+    request: FastifyRequest<{ Params: BlogIdParamInput; Body: UpdateBlogInput }>,
     reply: FastifyReply
   ) => {
     const data = await this.service.update(request.params.id, request.body)
-    reply.send(data)
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil memperbarui artikel blog',
+      data,
+    })
   }
 
   remove = async (
-    request: FastifyRequest<{ Params: { id: string } }>,
+    request: FastifyRequest<{ Params: BlogIdParamInput }>,
     reply: FastifyReply
   ) => {
     await this.service.delete(request.params.id)
-    reply.code(204).send()
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil menghapus artikel blog',
+      data: null,
+    })
   }
 }

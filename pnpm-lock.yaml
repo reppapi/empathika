@@ -23,6 +23,9 @@ importers:
       '@fastify/multipart':
         specifier: ^8.0.0
         version: 8.3.1
+      '@fastify/static':
+        specifier: ^7.0.4
+        version: 7.0.4
       '@fastify/swagger':
         specifier: ^8.14.0
         version: 8.15.0(supports-color@7.2.0)

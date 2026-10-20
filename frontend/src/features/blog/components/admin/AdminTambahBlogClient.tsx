@@ -3,98 +3,66 @@
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { BlogPost } from "@/features/blog/types"
-import { INITIAL_ADMIN_BLOGS } from "../../data/adminBlogData"
+import { blogService } from "@/services/blog.service"
+import { uploadService } from "@/services/upload.service"
 
 export default function AdminTambahBlogClient() {
   const router = useRouter()
   const dateInputRef = useRef<HTMLInputElement>(null)
 
-  // Form states (kosongan dengan default tanggal hari ini)
+  // Form states
   const todayStr = new Date().toISOString().split("T")[0]
   const [title, setTitle] = useState("")
   const [date, setDate] = useState(todayStr)
   const [content, setContent] = useState("")
-  const [imageUrl, setImageUrl] = useState("")
+
+  // Image states
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("")
+  const [isUploading, setIsUploading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
 
-  const handleImageUpload = (file: File) => {
+  const handleImageSelect = (file: File) => {
     if (file) {
-      const url = URL.createObjectURL(file)
-      setImageUrl(url)
+      setImageFile(file)
+      // Preview lokal saja — tidak disimpan ke DB
+      const localUrl = URL.createObjectURL(file)
+      setImagePreviewUrl(localUrl)
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSubmitting) return
+    setIsSubmitting(true)
 
-    // Format tanggal ke Bahasa Indonesia (cth: "12 Oktober 2026")
-    let displayDate = date
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      const [y, m, d] = date.split("-")
-      const monthNames = [
-        "Januari",
-        "Februari",
-        "Maret",
-        "April",
-        "Mei",
-        "Juni",
-        "Juli",
-        "Agustus",
-        "September",
-        "Oktober",
-        "November",
-        "Desember",
-      ]
-      displayDate = `${parseInt(d, 10)} ${monthNames[parseInt(m, 10) - 1]} ${y}`
-    }
+    try {
+      let finalBannerUrl: string | null = null
 
-    // Buat slug otomatis dari judul blog
-    const baseSlug =
-      title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)+/g, "") || `blog-${Date.now()}`
-
-    // Ambil data dari localStorage untuk validasi keunikan
-    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
-    const saved = localStorage.getItem("empathika_admin_blogs")
-    if (saved) {
-      try {
-        currentBlogs = JSON.parse(saved)
-      } catch {
-        currentBlogs = INITIAL_ADMIN_BLOGS
+      // Step 1: Upload gambar ke server kalau ada
+      if (imageFile) {
+        setIsUploading(true)
+        try {
+          finalBannerUrl = await uploadService.uploadImage(imageFile)
+        } finally {
+          setIsUploading(false)
+        }
       }
-    }
 
-    // Pastikan slug unik (tambah -2, -3 dst jika ada judul serupa)
-    let generatedSlug = baseSlug
-    let counter = 1
-    while (currentBlogs.some((b) => b.slug === generatedSlug)) {
-      counter++
-      generatedSlug = `${baseSlug}-${counter}`
-    }
+      // Step 2: Simpan blog ke database
+      await blogService.create({
+        judul: title,
+        isi: content,
+        banner_url: finalBannerUrl,
+      })
 
-    const newBlog: BlogPost = {
-      slug: generatedSlug,
-      title,
-      excerpt: content.split("\n")[0]?.slice(0, 150) || title,
-      content: content.split("\n\n").filter(Boolean),
-      author: {
-        name: "Admin Empathika",
-      },
-      category: "Artikel",
-      tags: ["kesehatan mental", "empathika"],
-      date: displayDate,
-      readTime: "4 menit baca",
-      views: 0,
-      likes: 0,
-      imageUrl: imageUrl || "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=800",
+      router.push("/admin/blog")
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || "Gagal menyimpan artikel blog")
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const updatedBlogs = [newBlog, ...currentBlogs]
-    localStorage.setItem("empathika_admin_blogs", JSON.stringify(updatedBlogs))
-    router.push("/admin/blog")
   }
 
   const inputClass =
@@ -112,12 +80,12 @@ export default function AdminTambahBlogClient() {
         </h2>
       </div>
 
-      {/* ── Container Form (Background putih, rounded corners, shadow tipis) ── */}
+      {/* ── Container Form ── */}
       <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* ── Baris 1 (2 Kolom): Judul Blog & Tanggal Publikasi ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-            {/* Kiri: Judul Blog * */}
+            {/* Kiri: Judul Blog */}
             <div>
               <label htmlFor="title" className={labelClass}>
                 Judul Blog <span className="text-red-500">*</span>
@@ -180,7 +148,7 @@ export default function AdminTambahBlogClient() {
             </div>
           </div>
 
-          {/* ── Baris 2 (1 Kolom Penuh): Isi Blog ── */}
+          {/* ── Baris 2: Isi Blog ── */}
           <div>
             <label htmlFor="content" className={labelClass}>
               Isi Blog
@@ -196,10 +164,10 @@ export default function AdminTambahBlogClient() {
             <span className={helperClass}>Masukan isi blog baru</span>
           </div>
 
-          {/* ── Baris 4 (1 Kolom): Foto/Poster terkait blog * ── */}
+          {/* ── Baris 3: Foto/Poster ── */}
           <div>
             <label className={labelClass}>
-              Foto/Poster terkait blog <span className="text-red-500">*</span>
+              Foto/Poster terkait blog
             </label>
             <div
               onDragOver={(e) => {
@@ -211,7 +179,7 @@ export default function AdminTambahBlogClient() {
                 e.preventDefault()
                 setIsDragOver(false)
                 if (e.dataTransfer.files?.[0]) {
-                  handleImageUpload(e.dataTransfer.files[0])
+                  handleImageSelect(e.dataTransfer.files[0])
                 }
               }}
               className={`relative flex flex-col items-center justify-center w-full min-h-[220px] rounded-2xl border-2 border-dashed transition-all cursor-pointer p-4 overflow-hidden ${
@@ -223,26 +191,29 @@ export default function AdminTambahBlogClient() {
               <input
                 id="file-upload-tambah"
                 type="file"
-                accept="image/png, image/jpeg, image/jpg"
+                accept="image/png, image/jpeg, image/jpg, image/webp"
                 className="hidden"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
-                    handleImageUpload(e.target.files[0])
+                    handleImageSelect(e.target.files[0])
                   }
                 }}
               />
 
-              {imageUrl ? (
+              {imagePreviewUrl ? (
                 <div className="flex flex-col items-center gap-3 w-full">
                   <div className="relative w-full max-w-sm h-48 rounded-xl overflow-hidden shadow-sm">
                     <Image
-                      src={imageUrl}
+                      src={imagePreviewUrl}
                       alt="Preview banner"
                       fill
                       className="object-cover"
                       unoptimized
                     />
                   </div>
+                  <p className="text-[11px] text-gray-400">
+                    {imageFile?.name} ({imageFile ? Math.round(imageFile.size / 1024) : 0} KB)
+                  </p>
                   <label
                     htmlFor="file-upload-tambah"
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#561269] hover:underline cursor-pointer"
@@ -290,7 +261,7 @@ export default function AdminTambahBlogClient() {
                       Upload gambar poster / banner
                     </span>
                     <span className="block text-[11px] text-gray-400 mt-0.5">
-                      Format: JPG, PNG (Max. 2MB)
+                      Format: JPG, PNG, WEBP (Max. 5MB)
                     </span>
                   </div>
                 </label>
@@ -298,20 +269,32 @@ export default function AdminTambahBlogClient() {
             </div>
           </div>
 
-          {/* ── Form Actions (Kanan Bawah): [Kembali] & [Simpan] ── */}
+          {/* ── Form Actions ── */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"
               onClick={() => router.push("/admin/blog")}
-              className="rounded-full border border-gray-300 bg-white px-7 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+              disabled={isSubmitting}
+              className="rounded-full border border-gray-300 bg-white px-7 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer disabled:opacity-50"
             >
               Kembali
             </button>
             <button
               type="submit"
-              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Simpan
+              {isSubmitting ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {isUploading ? "Mengupload gambar..." : "Menyimpan..."}
+                </>
+              ) : (
+                "Simpan"
+              )}
             </button>
           </div>
         </form>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, Mail, Lock, ArrowRight } from "lucide-react";
 import { DUMMY_ADMIN, DUMMY_BIRO } from "../data/dummyAuth";
+import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { psikologService } from "@/services/psikolog.service";
 
@@ -30,11 +31,55 @@ export function LoginForm() {
 
     setIsLoading(true);
 
-    // Simulasi delay sebentar
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // 1. Coba login melalui endpoint Auth Backend resmi jika format email
+    if (trimmedInput.includes("@")) {
+      try {
+        const response = await authService.login({
+          email: trimmedInput,
+          password: trimmedPass,
+        });
 
-    // 1. Cek Admin Utama
-    if (trimmedInput.toLowerCase() === DUMMY_ADMIN.email.toLowerCase() && trimmedPass === DUMMY_ADMIN.password) {
+        if (response.success && response.data?.accessToken) {
+          const { user, accessToken } = response.data;
+
+          document.cookie = `access_token=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+          localStorage.setItem("access_token", accessToken);
+
+          setAuth(
+            {
+              id: user.id,
+              name: user.nama,
+              email: user.email,
+              role: user.role as any,
+            },
+            accessToken
+          );
+
+          if (user.role === "PSIKOLOG") {
+            localStorage.setItem("active_psikolog_id", user.id);
+            localStorage.setItem("active_psikolog_name", user.nama);
+            router.push("/psikolog-web/jadwal" as any);
+          } else if (user.role === "ADMIN") {
+            router.push("/admin");
+          } else if (user.role === "BIRO") {
+            router.push("/admin-biro/transaksi");
+          } else {
+            router.push("/");
+          }
+
+          router.refresh();
+          return;
+        }
+      } catch (_authErr) {
+        // Lanjut ke fallback di bawah jika login API gagal
+      }
+    }
+
+    // 2. Cek Akun Admin Utama Dummy
+    if (
+      trimmedInput.toLowerCase() === DUMMY_ADMIN.email.toLowerCase() &&
+      trimmedPass === DUMMY_ADMIN.password
+    ) {
       document.cookie = "access_token=dummy-admin-token; path=/; max-age=86400";
       setAuth(
         { id: "1", name: "Admin Empathika", email: trimmedInput, role: "ADMIN" },
@@ -45,8 +90,11 @@ export function LoginForm() {
       return;
     }
 
-    // 2. Cek Admin Biro
-    if (trimmedInput.toLowerCase() === DUMMY_BIRO.email.toLowerCase() && trimmedPass === DUMMY_BIRO.password) {
+    // 3. Cek Akun Admin Biro Dummy
+    if (
+      trimmedInput.toLowerCase() === DUMMY_BIRO.email.toLowerCase() &&
+      trimmedPass === DUMMY_BIRO.password
+    ) {
       document.cookie = "access_token=dummy-biro-token; path=/; max-age=86400";
       setAuth(
         { id: "3", name: "Admin Biro Cendekia Muda", email: trimmedInput, role: "BIRO" },
@@ -57,7 +105,7 @@ export function LoginForm() {
       return;
     }
 
-    // 3. Cek Akun Psikolog dari Database (Bisa dengan Email ATAU Nama Psikolog)
+    // 4. Cek Akun Psikolog dari Database (Bisa dengan Email ATAU Nama Psikolog)
     try {
       const list = await psikologService.getList();
       if (list && list.length > 0) {
@@ -93,7 +141,6 @@ export function LoginForm() {
       console.warn("DB login check err:", err);
     }
 
-    // Jika tidak cocok
     setIsLoading(false);
     setError("Email/Nama akun atau password yang Anda masukkan tidak sesuai.");
   };
