@@ -34,7 +34,22 @@ export const updateBookingStatusSchema = z.object({
   status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']),
 })
 
+export const updateAdminProfileSchema = z.object({
+  nama: z.string().min(1, 'Nama lengkap wajib diisi').optional(),
+  email: z.string().email('Format email tidak valid').optional(),
+  no_telepon: z.string().nullable().optional(),
+  noTelepon: z.string().nullable().optional(),
+  alamat: z.string().nullable().optional(),
+  link_maps: z.string().nullable().optional(),
+  linkMaps: z.string().nullable().optional(),
+  bio: z.string().nullable().optional(),
+  foto: z.string().nullable().optional(),
+  password: z.string().min(6, 'Password baru minimal 6 karakter').optional(),
+})
+
 export type GetAdminJadwalQuery = z.infer<typeof getAdminJadwalQuerySchema>
 export type CreateAdminJadwalSlotInput = z.infer<typeof createAdminJadwalSlotSchema>
 export type CreateAdminSesiInput = z.infer<typeof createAdminSesiSchema>
 export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>
+export type UpdateAdminProfileInput = z.infer<typeof updateAdminProfileSchema>
+

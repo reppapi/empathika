@@ -56,7 +56,7 @@ export default function AdminPsikotesClient() {
   const [activeTab, setActiveTab] = useState<"peserta" | "paket" | "form-paket">("peserta");
   const [formTab, setFormTab] = useState<"info" | "soal" | "preview" | "interpretasi">("info");
   const [aksesFilter, setAksesFilter] = useState<"Semua" | "Gratis" | "Berbayar">("Semua");
-  const [paketFilter, setPaketFilter] = useState<"Semua" | "Dipublikasi" | "Draf">("Semua");
+  const [paketFilter, setPaketFilter] = useState<"Dipublikasi" | "Draf">("Dipublikasi");
   const [searchPaket, setSearchPaket] = useState("");
 
   // Modals
@@ -167,7 +167,6 @@ export default function AdminPsikotesClient() {
       item.kategori.toLowerCase().includes(searchPaket.toLowerCase());
     if (!matchesSearch) return false;
 
-    if (paketFilter === "Semua") return true;
     if (paketFilter === "Dipublikasi") {
       return item.paketList.some((p) => p.status === "Aktif");
     }
@@ -1091,15 +1090,6 @@ export default function AdminPsikotesClient() {
       ),
     },
     {
-      key: "kategori",
-      header: "Kategori",
-      render: (item: JudulPsikotesItem) => (
-        <span className="font-medium text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md text-xs">
-          {item.kategori}
-        </span>
-      ),
-    },
-    {
       key: "paketTersedia",
       header: "Paket & Akses",
       render: (item: JudulPsikotesItem) => {
@@ -1107,39 +1097,59 @@ export default function AdminPsikotesClient() {
         const berbayar = item.paketList.find((p) => p.jenisAkses === "Berbayar");
 
         return (
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {gratis && (
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${gratis.status === "Aktif"
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  gratis.status === "Aktif"
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                     : "bg-amber-50 text-amber-700 border border-amber-200"
-                  }`}
+                }`}
               >
-                Gratis {gratis.status === "Draf" && "(Draf)"}
+                <span className={`w-1.5 h-1.5 rounded-full ${gratis.status === "Aktif" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                Gratis
+                {gratis.status === "Draf" && (
+                  <span className="text-[10px] text-amber-600 font-medium">(Draf)</span>
+                )}
               </span>
             )}
             {berbayar && (
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${berbayar.status === "Aktif"
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  berbayar.status === "Aktif"
                     ? "bg-purple-50 text-[#561269] border border-purple-200"
                     : "bg-amber-50 text-amber-700 border border-amber-200"
-                  }`}
+                }`}
               >
-                Berbayar: {berbayar.harga} {berbayar.status === "Draf" && "(Draf)"}
+                <span className={`w-1.5 h-1.5 rounded-full ${berbayar.status === "Aktif" ? "bg-[#561269]" : "bg-amber-500"}`} />
+                Berbayar
+                {berbayar.status === "Draf" && (
+                  <span className="text-[10px] text-amber-600 font-medium">(Draf)</span>
+                )}
               </span>
             )}
-            {!gratis && (
-              <span className="text-[11px] text-gray-400 italic bg-gray-50 px-2 py-0.5 rounded border border-dashed border-gray-200">
-                + Gratis belum ada
-              </span>
-            )}
-            {!berbayar && (
-              <span className="text-[11px] text-gray-400 italic bg-gray-50 px-2 py-0.5 rounded border border-dashed border-gray-200">
-                + Berbayar belum ada
-              </span>
+            {!gratis && !berbayar && (
+              <span className="text-xs text-gray-400 italic">Belum ada paket</span>
             )}
           </div>
         );
+      },
+    },
+    {
+      key: "harga",
+      header: "Harga",
+      render: (item: JudulPsikotesItem) => {
+        const berbayar = item.paketList.find((p) => p.jenisAkses === "Berbayar");
+
+        if (berbayar && berbayar.harga) {
+          return (
+            <span className="text-sm font-semibold text-gray-900">
+              {berbayar.harga}
+            </span>
+          );
+        }
+
+        return <span className="text-sm text-gray-400 font-medium">—</span>;
       },
     },
     {
@@ -1288,15 +1298,13 @@ export default function AdminPsikotesClient() {
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4 sm:gap-6 border-b border-gray-100 overflow-x-auto pb-2 text-sm">
-                {(["Semua", "Dipublikasi", "Draf"] as const).map((filter) => (
+                {(["Dipublikasi", "Draf"] as const).map((filter) => (
                   <AdminFilterTabItem
                     key={filter}
                     label={
                       filter === "Draf"
-                        ? `Draf Tersimpan (${totalDraftCount})`
-                        : filter === "Dipublikasi"
-                          ? "Sudah Dipublikasi"
-                          : "Semua Psikotes"
+                        ? `Draft Tersimpan (${totalDraftCount})`
+                        : "Sudah Dipublikasi"
                     }
                     isActive={paketFilter === filter}
                     onClick={() => setPaketFilter(filter)}
@@ -1315,7 +1323,7 @@ export default function AdminPsikotesClient() {
 
             <div className="flex items-center justify-between gap-4 mt-2">
               <AdminSearchInput
-                placeholder="Cari judul psikotes atau kategori..."
+                placeholder="Cari judul psikotes..."
                 value={searchPaket}
                 onChange={setSearchPaket}
               />
@@ -1329,7 +1337,11 @@ export default function AdminPsikotesClient() {
             columns={judulColumns}
             data={filteredJudul}
             keyExtractor={(item) => item.id}
-            emptyMessage="Tidak ada paket psikotes yang cocok dengan filter atau pencarian."
+            emptyMessage={
+              paketFilter === "Draf"
+                ? "Tidak ada draf paket psikotes tersimpan."
+                : "Tidak ada paket psikotes yang cocok dengan filter atau pencarian."
+            }
           />
         </AdminTableContainer>
       )}

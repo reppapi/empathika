@@ -10,6 +10,7 @@ import { HERO_SLIDES } from '../../data/homeData'
 import { useHomeSlider } from '../../hooks/useHomeSlider'
 import { usePsikologSlider } from '../../hooks/usePsikologSlider'
 import { eventService, EventItemApi } from '@/services/event.service'
+import { adminService } from '@/services/admin.service'
 
 export default function HomeClient() {
   const [publishedEvents, setPublishedEvents] = useState<EventItemApi[]>([])
@@ -17,11 +18,13 @@ export default function HomeClient() {
   const [adminProfile, setAdminProfile] = useState<{
     alamat: string
     linkMaps: string
+    linkMapsEmbed: string
     email: string
     noTelepon: string
   }>({
     alamat: "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
     linkMaps: "https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw",
+    linkMapsEmbed: "https://www.google.com/maps?q=EMPATHIKA,+Layanan+Konsultasi+Psikologi,+Jl.+Cikutra+No.312,+Neglasari,+Kec.+Cibeunying+Kaler,+Kota+Bandung,+Jawa+Barat+41024&output=embed",
     email: "empathika889@gmail.com",
     noTelepon: "0878-7878-5498",
   })
@@ -55,12 +58,30 @@ export default function HomeClient() {
         setAdminProfile((prev) => ({
           ...prev,
           alamat: parsed.alamat || prev.alamat,
-          linkMaps: parsed.linkMaps || prev.linkMaps,
+          linkMaps: parsed.linkMaps || parsed.link_maps || prev.linkMaps,
+          linkMapsEmbed: parsed.linkMapsEmbed || parsed.link_maps_embed || prev.linkMapsEmbed,
           email: parsed.email || prev.email,
-          noTelepon: parsed.noTelepon || prev.noTelepon,
+          noTelepon: parsed.noTelepon || parsed.no_telepon || prev.noTelepon,
         }))
       }
     } catch {}
+
+    adminService
+      .getPublicProfile()
+      .then((res) => {
+        if (res?.data) {
+          const d = res.data
+          setAdminProfile((prev) => ({
+            ...prev,
+            alamat: d.alamat || prev.alamat,
+            linkMaps: d.link_maps || d.linkMaps || prev.linkMaps,
+            linkMapsEmbed: d.link_maps_embed || d.linkMapsEmbed || prev.linkMapsEmbed,
+            email: d.email || prev.email,
+            noTelepon: d.no_telepon || d.noTelepon || prev.noTelepon,
+          }))
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const {
@@ -641,7 +662,7 @@ export default function HomeClient() {
           <div className="bg-white p-4 md:p-6 rounded-3xl shadow-lg border border-gray-100 flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-2/3 h-[300px] md:h-[400px] rounded-2xl overflow-hidden bg-gray-200">
               <iframe 
-                src="https://www.google.com/maps?q=EMPATHIKA,+Layanan+Konsultasi+Psikologi,+Jl.+Cikutra+No.312,+Neglasari,+Kec.+Cibeunying+Kaler,+Kota+Bandung,+Jawa+Barat+41024&output=embed" 
+                src={adminProfile.linkMapsEmbed || `https://www.google.com/maps?q=${encodeURIComponent(adminProfile.alamat || "EMPATHIKA, Layanan Konsultasi Psikologi, Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 41024")}&output=embed`} 
                 width="100%" 
                 height="100%" 
                 style={{ border: 0 }} 

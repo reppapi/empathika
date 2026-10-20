@@ -7,7 +7,7 @@ import {
   X,
   Mail,
   Phone,
-  AtSign,
+  AtSign, 
   Award,
   BookOpen,
   Quote,
