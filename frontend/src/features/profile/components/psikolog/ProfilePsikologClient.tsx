@@ -46,7 +46,13 @@ export default function ProfilePsikologClient({
         const saved = localStorage.getItem("empathika_tenaga_ahli_data")
         if (saved) {
           const list = JSON.parse(saved)
-          const found = list.find((d: any) => d.id === "1" || d.email === "putriqoida@empathika.com") || list[0]
+          const savedId = localStorage.getItem("active_psikolog_id")
+          const savedName = localStorage.getItem("active_psikolog_name")
+          const found =
+            (savedId ? list.find((d: any) => d.id === savedId) : null) ||
+            (savedName ? list.find((d: any) => d.nama === savedName) : null) ||
+            list.find((d: any) => d.id === "1" || d.email === "putriqoida@empathika.com") ||
+            list[0]
           if (found) {
             const mapped: AdminProfileData = {
               nama: found.nama,

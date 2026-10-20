@@ -1,10 +1,40 @@
 import { z } from 'zod'
 
-export const createAdminSchema = z.object({
-  // TODO: Definisikan field schema sesuai domain
+export const getAdminJadwalQuerySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  layanan: z.string().optional(),
+  status: z.string().optional(),
 })
 
-export const updateAdminSchema = createAdminSchema.partial()
+export const createAdminJadwalSlotSchema = z.object({
+  id_psikolog: z.string().uuid(),
+  tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
+  jam_mulai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_mulai harus HH:mm'),
+  jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
+  tipe_jadwal: z.literal('ASESMEN').default('ASESMEN'), // Admin hanya membuka slot untuk ASESMEN
+})
 
-export type CreateAdminInput = z.infer<typeof createAdminSchema>
-export type UpdateAdminInput = z.infer<typeof updateAdminSchema>
+export const createAdminSesiSchema = z.object({
+  id_psikolog: z.string().uuid(),
+  id_layanan: z.string().uuid(),
+  tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
+  jam_mulai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_mulai harus HH:mm'),
+  jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
+  metode: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'),
+  deskripsi_trauma: z.string().optional(),
+  klien: z.object({
+    nama: z.string().min(1, 'Nama klien wajib diisi'),
+    no_telepon: z.string().min(8, 'Nomor telepon minimal 8 digit'),
+    usia: z.number().optional(),
+    jenis_kelamin: z.string().optional(),
+  }),
+})
+
+export const updateBookingStatusSchema = z.object({
+  status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']),
+})
+
+export type GetAdminJadwalQuery = z.infer<typeof getAdminJadwalQuerySchema>
+export type CreateAdminJadwalSlotInput = z.infer<typeof createAdminJadwalSlotSchema>
+export type CreateAdminSesiInput = z.infer<typeof createAdminSesiSchema>
+export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>

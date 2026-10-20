@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useAuthStore } from "@/store/authStore"
+import { psikologService } from "@/services/psikolog.service"
 
 const AGENDA_HARI_INI = [
   {
@@ -92,6 +94,49 @@ export default function PsikologBerandaClient() {
   const dateInputRef = useRef<HTMLInputElement>(null)
   const [selectedDate, setSelectedDate] = useState("2026-09-01")
 
+  const { user } = useAuthStore()
+  const [psikologName, setPsikologName] = useState<string>("Psikolog Empathika")
+
+  useEffect(() => {
+    const resolveName = () => {
+      const savedName = localStorage.getItem("active_psikolog_name")
+      if (savedName) {
+        setPsikologName(savedName)
+        return
+      }
+
+      if (user?.name) {
+        setPsikologName(user.name)
+        return
+      }
+
+      const savedId = localStorage.getItem("active_psikolog_id") || user?.id
+      psikologService
+        .getList()
+        .then((list: any[]) => {
+          if (list && list.length > 0) {
+            const matched =
+              (savedId ? list.find((p) => p.id === savedId || p.account?.id === savedId) : null) ||
+              list.find((p) => p.nama_gelar?.includes("Rizki") || p.account?.email?.includes("putriqoida")) ||
+              list[0]
+
+            if (matched) {
+              const name = matched.nama_gelar || matched.account?.nama || "Psikolog Empathika"
+              setPsikologName(name)
+              localStorage.setItem("active_psikolog_id", matched.id)
+              localStorage.setItem("active_psikolog_name", name)
+            }
+          }
+        })
+        .catch(() => {})
+    }
+
+    resolveName()
+
+    window.addEventListener("storage", resolveName)
+    return () => window.removeEventListener("storage", resolveName)
+  }, [user])
+
   const displayDate = selectedDate
     ? selectedDate.split("-").reverse().join("/")
     : ""
@@ -131,7 +176,9 @@ export default function PsikologBerandaClient() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-[#561269]">Selamat Datang!</p>
-            <h2 className="text-2xl font-bold text-gray-900 mt-0.5">Anindita Sari, M.Psi</h2>
+            <h2 suppressHydrationWarning className="text-2xl font-bold text-gray-900 mt-0.5">
+              {psikologName}
+            </h2>
           </div>
 
           {/* Card kecil Total Sesi Hari Ini */}

@@ -53,7 +53,10 @@ export default function KonselingClient() {
                 <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6">{item.bottomDescription}</p>
 
                 <div className="mt-auto pt-2">
-                  <Link href="/booking" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                  <Link
+                    href={`/booking?layanan=${encodeURIComponent(item.topTitle)}`}
+                    className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
+                  >
                     {item.btnText}
                   </Link>
                 </div>

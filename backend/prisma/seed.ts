@@ -39,13 +39,12 @@ async function main() {
     create: {
       nama_biro: 'Biro Konseling Cendekia Muda',
       slug: 'cendekia-muda',
-      id_account: biroOwnerAccount.id, // Penanggung Jawab Biro
+      id_account: biroOwnerAccount.id,
       alamat: 'Jl. Kaliurang KM 5, Sleman, D.I. Yogyakarta',
       status: 'ACTIVE',
     },
   });
 
-  // Hubungkan biroOwnerAccount dengan id_biro yang baru dibuat
   await prisma.account.update({
     where: { id: biroOwnerAccount.id },
     data: { id_biro: biro.id },
@@ -53,7 +52,7 @@ async function main() {
 
   console.log(`Created/found biro: ${biro.nama_biro}`);
 
-  // 3. Create Sample Client (Tamu Pemesan Layanan)
+  // 3. Create Sample Client
   let sampleClient = await prisma.client.findFirst({
     where: { no_telepon: '0812-0083-773' },
   });
@@ -72,49 +71,326 @@ async function main() {
 
   console.log(`Created/found sample client: ${sampleClient.nama}`);
 
-  // 4. Create Spesialisasi
-  let spesialisasiKlinis = await prisma.spesialisasi.findFirst({
-    where: { nama: 'Psikolog Klinis Dewasa' },
-  });
+  // 4. Create Spesialisasi Helper
+  const spesialisasiMap = new Map<string, string>();
+  const spesialisasiList = [
+    'Psikolog Klinis Dewasa',
+    'Psikolog Keluarga & Pasangan',
+    'Psikolog Perkembangan',
+    'Psikolog Klinis',
+    'Peer Konselor Mahasiswa',
+    'Psikolog Anak & Remaja',
+    'Konselor Kesehatan Mental',
+    'Konselor Karier & Kehidupan',
+    'Psikolog Klinis Umum',
+  ];
 
-  if (!spesialisasiKlinis) {
-    spesialisasiKlinis = await prisma.spesialisasi.create({
-      data: {
-        nama: 'Psikolog Klinis Dewasa',
+  for (const namaSpec of spesialisasiList) {
+    let spec = await prisma.spesialisasi.findFirst({ where: { nama: namaSpec } });
+    if (!spec) {
+      spec = await prisma.spesialisasi.create({ data: { nama: namaSpec } });
+    }
+    spesialisasiMap.set(namaSpec, spec.id);
+  }
+
+  // 5. Daftar Psikolog & Konselor Komprehensif
+  const dataTenagaAhli = [
+    {
+      email: 'psikolog@empathika.test',
+      nama: 'Dr. Jane Doe, M.Psi., Psikolog',
+      kategori: 'Psikolog',
+      spesialisasi: 'Psikolog Klinis Dewasa',
+      tarif: 150000,
+      no_str: '123456789',
+      no_sipp: 'SIPP-1234-JKT',
+      bio: 'Berpengalaman dalam menangani kecemasan, depresi, dan dinamika kesehatan mental dewasa.',
+      quote: 'Menerima kerentanan diri adalah langkah awal dari pemulihan sejati.',
+      instagram: '@drjanedoe.psi',
+      foto: 'https://images.unsplash.com/photo-1594824813589-3221bf3a5bb4?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Indonesia',
+      keahlian: 'Kecemasan, Depresi, Regulasi Emosi, CBT',
+      jumlah_sesi: 115,
+      jenis_kelamin: 'Perempuan',
+      pengalaman_tahun: '6 - 10 Tahun',
+    },
+    {
+      email: 'putriqoida@empathika.com',
+      nama: 'Rizki Putri Dzulqaidah, S.Psi.',
+      kategori: 'Konselor',
+      spesialisasi: 'Konselor Kesehatan Mental',
+      tarif: 120000,
+      no_str: null,
+      no_sipp: null,
+      bio: 'Konselor yang memiliki ketertarikan pada bidang kesehatan mental dan pendampingan individu. Saya meyakini bahwa didengarkan dan dipahami merupakan bagian penting dari proses pemulihan dan pertumbuhan diri.',
+      quote: 'Setiap manusia adalah cerita yang sedang bertumbuh, layak didengar, dihargai, dan ditemani.',
+      instagram: '@putriqoida',
+      foto: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'UIN Sunan Gunung Djati Bandung',
+      keahlian: 'Hubungan, Romantis, Keluarga, Self-Confidence, Pengembangan Diri, Quarter Life Crisis',
+      jumlah_sesi: 48,
+      jenis_kelamin: 'Perempuan',
+      pengalaman_tahun: '2 - 4 Tahun',
+    },
+    {
+      email: 'galuh@empathika.com',
+      nama: 'Galuh Kikiany S., M.Psi., Psikolog',
+      kategori: 'Psikolog',
+      spesialisasi: 'Psikolog Keluarga & Pasangan',
+      tarif: 200000,
+      no_str: '0987654321',
+      no_sipp: 'SIPP-5678-YOG',
+      bio: 'Fokus pada konseling hubungan romantis, bimbingan pranikah, dan dinamika keharmonisan keluarga.',
+      quote: 'Komunikasi yang sehat dan rasa saling menghargai adalah pondasi utama dari setiap hubungan yang kokoh.',
+      instagram: '@galuhkikiany',
+      foto: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Gadjah Mada',
+      keahlian: 'Konseling Pra-Nikah, Mediasi Konflik, Relasi Pasangan, Pengasuhan Keluarga',
+      jumlah_sesi: 120,
+      jenis_kelamin: 'Perempuan',
+      pengalaman_tahun: '5 - 10 Tahun',
+    },
+    {
+      email: 'dimas@empathika.com',
+      nama: 'Dimas Ardiansyah, M.Psi., Psikolog',
+      kategori: 'Psikolog',
+      spesialisasi: 'Psikolog Perkembangan',
+      tarif: 175000,
+      no_str: '1122334455',
+      no_sipp: 'SIPP-9911-JKT',
+      bio: 'Membantu remaja dan dewasa muda dalam menghadapi krisis identitas, burnout, dan arah tujuan hidup.',
+      quote: 'Menemukan arah hidup dimulai dari keberanian untuk jujur pada diri sendiri tentang apa yang kita rasakan.',
+      instagram: '@dimas.ardian',
+      foto: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Indonesia',
+      keahlian: 'Quarter Life Crisis, Arah Karier, Burnout & Stres, Pencarian Jati Diri',
+      jumlah_sesi: 99,
+      jenis_kelamin: 'Laki-laki',
+      pengalaman_tahun: '4 - 7 Tahun',
+    },
+    {
+      email: 'nadia@empathika.com',
+      nama: 'Nadia Safira, M.Psi., Psikolog',
+      kategori: 'Psikolog',
+      spesialisasi: 'Psikolog Klinis',
+      tarif: 180000,
+      no_str: '5566778899',
+      no_sipp: 'SIPP-3344-BDG',
+      bio: 'Pendekatan Cognitive Behavioral Therapy (CBT) untuk mengatasi depresi, trauma, dan regulasi emosi.',
+      quote: 'Pemulihan bukan tentang tidak pernah merasa terluka, melainkan belajar memeluk diri di setiap prosesnya.',
+      instagram: '@nadiasafira.psi',
+      foto: 'https://images.unsplash.com/photo-1594824813589-3221bf3a5bb4?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Padjadjaran',
+      keahlian: 'Depresi & Kecemasan, Trauma Healing, Regulasi Emosi, Terapi Kognitif (CBT)',
+      jumlah_sesi: 145,
+      jenis_kelamin: 'Perempuan',
+      pengalaman_tahun: '6 - 8 Tahun',
+    },
+    {
+      email: 'farhan@empathika.com',
+      nama: 'Farhan Maulana, S.Psi., C.Ht.',
+      kategori: 'Peer Konselor',
+      spesialisasi: 'Peer Konselor Mahasiswa',
+      tarif: 100000,
+      no_str: null,
+      no_sipp: null,
+      bio: 'Konselor sebaya untuk manajemen stres perkuliahan, relasi pertemanan, dan pengembangan diri.',
+      quote: 'Stres adalah bagian dari perjalanan belajar, yang terpenting adalah kita tahu kapan harus beristirahat.',
+      instagram: '@farhan.maulana',
+      foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Sebelas Maret',
+      keahlian: 'Stres Akademik & Kuliah, Manajemen Waktu, Pengembangan Diri, Konflik Pertemanan',
+      jumlah_sesi: 85,
+      jenis_kelamin: 'Laki-laki',
+      pengalaman_tahun: '2 - 4 Tahun',
+    },
+    {
+      email: 'anindya@empathika.com',
+      nama: 'Anindya Putri, M.Psi., Psikolog',
+      kategori: 'Psikolog',
+      spesialisasi: 'Psikolog Anak & Remaja',
+      tarif: 190000,
+      no_str: '9988776655',
+      no_sipp: 'SIPP-7788-SBY',
+      bio: 'Spesialis pengasuhan anak (parenting), tumbuh kembang anak, dan komunikasi keluarga.',
+      quote: 'Anak yang merasa didengar dan dicintai akan tumbuh menjadi pribadi yang percaya diri dan berdaya.',
+      instagram: '@anindyaputri.psi',
+      foto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Airlangga',
+      keahlian: 'Pola Asuh (Parenting), Tumbuh Kembang Anak, Emosi & Tantrum Anak, Komunikasi Keluarga',
+      jumlah_sesi: 99,
+      jenis_kelamin: 'Perempuan',
+      pengalaman_tahun: '5 - 9 Tahun',
+    },
+    {
+      email: 'rian@empathika.com',
+      nama: 'Rian Hidayat, M.Psi., Psikolog',
+      kategori: 'Psikolog',
+      spesialisasi: 'Psikolog Klinis Dewasa',
+      tarif: 160000,
+      no_str: '3344556677',
+      no_sipp: 'SIPP-1122-YOG',
+      bio: 'Fokus pada gangguan suasana hati (mood disorder), kecemasan sosial, dan trauma healing.',
+      quote: 'Menerima kerentanan diri bukanlah kelemahan, melainkan awal dari kekuatan sejati.',
+      instagram: '@rianhidayat.psi',
+      foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Gadjah Mada',
+      keahlian: 'Kecemasan Sosial, Mood & Suasana Hati, Mindfulness, Trauma Healing',
+      jumlah_sesi: 110,
+      jenis_kelamin: 'Laki-laki',
+      pengalaman_tahun: '4 - 6 Tahun',
+    },
+    {
+      email: 'citra@empathika.com',
+      nama: 'Citra Kirana, S.Psi., CPC',
+      kategori: 'Konselor',
+      spesialisasi: 'Konselor Karier & Kehidupan',
+      tarif: 120000,
+      no_str: null,
+      no_sipp: null,
+      bio: 'Life coach & Konselor karier, membantu menentukan arah karier dan work-life balance.',
+      quote: 'Karier yang bermakna adalah karier yang sejalan dengan nilai dan tujuan hidupmu.',
+      instagram: '@citrakirana.coach',
+      foto: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Padjadjaran',
+      keahlian: 'Perencanaan Karier, Imposter Syndrome, Work-Life Balance, Self-Confidence',
+      jumlah_sesi: 99,
+      jenis_kelamin: 'Perempuan',
+      pengalaman_tahun: '3 - 5 Tahun',
+    },
+    {
+      email: 'wahyu@empathika.com',
+      nama: 'Wahyu Pratama, M.Psi., Psikolog',
+      kategori: 'Psikolog',
+      spesialisasi: 'Psikolog Klinis Umum',
+      tarif: 175000,
+      no_str: '7788990011',
+      no_sipp: 'SIPP-4455-JKT',
+      bio: 'Konseling individual, resolusi konflik interpersonal, dan manajemen amarah (anger management).',
+      quote: 'Mengendalikan amarah adalah seni memahami pesan yang ingin disampaikan oleh emosi kita.',
+      instagram: '@wahyupratama.psi',
+      foto: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400',
+      pendidikan: 'Universitas Indonesia',
+      keahlian: 'Manajemen Amarah, Resolusi Konflik, Komunikasi Asertif, Konseling Dewasa',
+      jumlah_sesi: 130,
+      jenis_kelamin: 'Laki-laki',
+      pengalaman_tahun: '5 - 8 Tahun',
+    },
+  ];
+
+  const now = new Date();
+  const todayUtc = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0));
+  const tomorrowUtc = new Date(todayUtc);
+  tomorrowUtc.setUTCDate(todayUtc.getUTCDate() + 1);
+
+  const createdPsikologs = [];
+
+  for (const item of dataTenagaAhli) {
+    const acc = await prisma.account.upsert({
+      where: { email: item.email },
+      update: {
+        nama: item.nama,
+        foto: item.foto,
+        bio: item.bio,
+      },
+      create: {
+        nama: item.nama,
+        email: item.email,
+        password: 'PsikologPasswordHashed123!',
+        role: Role.PSIKOLOG,
+        no_telepon: '081234567890',
+        foto: item.foto,
+        bio: item.bio,
+      },
+    });
+
+    const specId = spesialisasiMap.get(item.spesialisasi) || spesialisasiMap.get('Psikolog Klinis Dewasa')!;
+
+    const psi = await prisma.psikolog.upsert({
+      where: { id_account: acc.id },
+      update: {
+        nama_gelar: item.nama,
+        kategori: item.kategori,
+        id_spesialisasi: specId,
+        tarif_per_jam: item.tarif,
+        bio: item.bio,
+        quote: item.quote,
+        instagram: item.instagram,
+        foto: item.foto,
+        pendidikan: item.pendidikan,
+        keahlian: item.keahlian,
+        jumlah_sesi: item.jumlah_sesi,
+        jenis_kelamin: item.jenis_kelamin,
+        pengalaman_tahun: item.pengalaman_tahun,
+        no_str: item.no_str,
+        no_sipp: item.no_sipp,
+      },
+      create: {
+        id_account: acc.id,
+        id_spesialisasi: specId,
+        kategori: item.kategori,
+        nama_gelar: item.nama,
+        tarif_per_jam: item.tarif,
+        bio: item.bio,
+        quote: item.quote,
+        instagram: item.instagram,
+        foto: item.foto,
+        pendidikan: item.pendidikan,
+        keahlian: item.keahlian,
+        jumlah_sesi: item.jumlah_sesi,
+        jenis_kelamin: item.jenis_kelamin,
+        pengalaman_tahun: item.pengalaman_tahun,
+        no_str: item.no_str,
+        no_sipp: item.no_sipp,
+      },
+    });
+
+    createdPsikologs.push(psi);
+
+    // Buat slot jadwal default hari ini dan besok
+    await prisma.jadwalSlot.upsert({
+      where: { id: `slot-${psi.id.slice(0, 8)}-1` },
+      update: { tanggal: todayUtc },
+      create: {
+        id: `slot-${psi.id.slice(0, 8)}-1`,
+        id_psikolog: psi.id,
+        tipe_jadwal: 'KONSULTASI',
+        tanggal: todayUtc,
+        jam_mulai: new Date(Date.UTC(1970, 0, 1, 9, 30, 0)),
+        jam_selesai: new Date(Date.UTC(1970, 0, 1, 10, 30, 0)),
+        status: 'TERSEDIA',
+      },
+    });
+
+    await prisma.jadwalSlot.upsert({
+      where: { id: `slot-${psi.id.slice(0, 8)}-2` },
+      update: { tanggal: todayUtc },
+      create: {
+        id: `slot-${psi.id.slice(0, 8)}-2`,
+        id_psikolog: psi.id,
+        tipe_jadwal: 'KONSULTASI',
+        tanggal: todayUtc,
+        jam_mulai: new Date(Date.UTC(1970, 0, 1, 14, 0, 0)),
+        jam_selesai: new Date(Date.UTC(1970, 0, 1, 15, 0, 0)),
+        status: 'TERSEDIA',
+      },
+    });
+
+    await prisma.jadwalSlot.upsert({
+      where: { id: `slot-${psi.id.slice(0, 8)}-3` },
+      update: { tanggal: tomorrowUtc },
+      create: {
+        id: `slot-${psi.id.slice(0, 8)}-3`,
+        id_psikolog: psi.id,
+        tipe_jadwal: 'KONSULTASI',
+        tanggal: tomorrowUtc,
+        jam_mulai: new Date(Date.UTC(1970, 0, 1, 16, 0, 0)),
+        jam_selesai: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)),
+        status: 'TERSEDIA',
       },
     });
   }
 
-  console.log(`Created/found spesialisasi: ${spesialisasiKlinis.nama}`);
-
-  // 5. Create Akun Psikolog & Profil Klinis
-  const psikologAccount = await prisma.account.upsert({
-    where: { email: 'psikolog@empathika.test' },
-    update: {},
-    create: {
-      nama: 'Dr. Jane Doe, M.Psi., Psikolog',
-      email: 'psikolog@empathika.test',
-      password: 'PsikologPasswordHashed123!',
-      role: Role.PSIKOLOG,
-      no_telepon: '081399887766',
-    },
-  });
-
-  const psikolog = await prisma.psikolog.upsert({
-    where: { id_account: psikologAccount.id },
-    update: {},
-    create: {
-      id_account: psikologAccount.id, // Relasi 1-to-1 ke Account
-      id_spesialisasi: spesialisasiKlinis.id,
-      kategori: 'Psikolog Klinis Dewasa',
-      nama_gelar: 'Dr. Jane Doe, M.Psi., Psikolog',
-      no_str: '123456789',
-      bio: 'Berpengalaman dalam menangani kecemasan dan depresi.',
-      tarif_per_jam: 150000.00,
-    },
-  });
-
-  console.log(`Created/found psikolog: ${psikolog.nama_gelar}`);
+  console.log(`Created/updated ${createdPsikologs.length} psikolog & konselor.`);
 
   // 6. Create Layanan
   let layananKonsultasi = await prisma.layanan.findFirst({
@@ -127,8 +403,8 @@ async function main() {
         nama: 'Konsultasi Individu (Online)',
         kategori: KategoriLayanan.KONSULTASI,
         deskripsi: 'Sesi konsultasi 1 on 1 dengan psikolog klinis melalui video call.',
-        harga_weekday: 150000.00,
-        harga_weekend: 200000.00,
+        harga_weekday: 150000.0,
+        harga_weekend: 200000.0,
         aktif: true,
       },
     });
@@ -154,14 +430,45 @@ async function main() {
 
   console.log(`Created/found paket psikotes: ${paketPsikotes.judul}`);
 
+  // 8. Create Sample Booking for the first psychologist
+  const firstPsi = createdPsikologs[0];
+  const bookedSlot = await prisma.jadwalSlot.upsert({
+    where: { id: 'slot-sample-booked-001' },
+    update: { tanggal: todayUtc },
+    create: {
+      id: 'slot-sample-booked-001',
+      id_psikolog: firstPsi.id,
+      tipe_jadwal: 'KONSULTASI',
+      tanggal: todayUtc,
+      jam_mulai: new Date(Date.UTC(1970, 0, 1, 19, 0, 0)),
+      jam_selesai: new Date(Date.UTC(1970, 0, 1, 20, 0, 0)),
+      status: 'SUDAH_DIBOOKING',
+    },
+  });
+
+  await prisma.bookingKonsultasi.upsert({
+    where: { kode_pesanan: 'EMP-KONS-SEED-01' },
+    update: {},
+    create: {
+      kode_pesanan: 'EMP-KONS-SEED-01',
+      id_client: sampleClient.id,
+      id_layanan: layananKonsultasi.id,
+      id_jadwal: bookedSlot.id,
+      metode: 'ONLINE',
+      deskripsi_trauma: 'Merasa cemas berlebih saat menghadapi situasi sosial.',
+      status: 'CONFIRMED',
+    },
+  });
+
   console.log('Seeding finished successfully.');
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    throw e;
   });
