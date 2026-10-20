@@ -494,7 +494,7 @@ export class PsikologService {
                 tipe_jadwal: 'KONSULTASI',
                 status: 'TERSEDIA',
               },
-            }).catch((_err) => {
+            }).catch((_err: unknown) => {
               // Abaikan jika slot sudah ada
             })
           }
