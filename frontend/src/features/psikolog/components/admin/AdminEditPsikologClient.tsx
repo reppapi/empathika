@@ -6,6 +6,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { psikologService } from "@/services/psikolog.service"
 
 interface Props {
   psikologId: string
@@ -17,6 +18,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form State
   const [nama, setNama] = useState("")
@@ -40,36 +42,63 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
   // Load existing data
   useEffect(() => {
+    let foundItem: TenagaAhli | null = null
+
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-      const found = list.find((d) => d.id === psikologId)
+      foundItem = list.find((d) => d.id === psikologId) || null
+    } catch {}
 
-      if (found) {
-        setNama(found.nama || "")
-        setEmail(found.email || "")
-        setPassword(found.password || "Psikolog123!")
-        setNoTelepon(found.noTelepon || "")
-        setKategori(found.kategori || "psikolog")
-        setStatusAkses(found.statusAkses || "AKTIF")
-        setSpesialisasi(found.spesialisasi || "")
-        setNoStr(found.noStr || "")
-        setNoSipp(found.noSipp || "")
-        setPendidikanText(found.pendidikanText || "")
-        setBio(found.bio || "")
-        setQuote(found.quote || "")
-        setInstagram(found.instagram || "")
-        setFoto(found.foto || null)
-        setKeahlian(found.keahlian || [])
-        setJumlahSesi(found.jumlahSesi || 0)
-        setTanggalBergabung(found.tanggalBergabung || "Terdaftar")
-      } else {
-        setNotFound(true)
-      }
-    } catch {
-      setNotFound(true)
-    } finally {
+    const applyData = (found: any) => {
+      setNama(found.nama || found.nama_gelar || "")
+      setEmail(found.email || found.account?.email || "")
+      setPassword(found.password || "Psikolog123!")
+      setNoTelepon(found.noTelepon || found.account?.no_telepon || "")
+      const kat = (found.kategori || "").toLowerCase()
+      setKategori(
+        kat.includes("peer")
+          ? "peer-konselor"
+          : kat.includes("konselor")
+          ? "konselor"
+          : "psikolog"
+      )
+      setStatusAkses(found.statusAkses || (found.status === "INACTIVE" ? "NONAKTIF" : "AKTIF"))
+      setSpesialisasi(found.spesialisasi?.nama || found.spesialisasi || "")
+      setNoStr(found.noStr || found.no_str || "")
+      setNoSipp(found.noSipp || found.no_sipp || "")
+      setPendidikanText(found.pendidikanText || found.pendidikan || "")
+      setBio(found.bio || "")
+      setQuote(found.quote || "")
+      setInstagram(found.instagram || "")
+      setFoto(found.foto || null)
+      setKeahlian(
+        Array.isArray(found.keahlian)
+          ? found.keahlian
+          : typeof found.keahlian === "string"
+          ? found.keahlian.split(",").map((s: string) => s.trim())
+          : []
+      )
+      setJumlahSesi(found.jumlahSesi || found.jumlah_sesi || 0)
+      setTanggalBergabung(found.tanggalBergabung || "Terdaftar di DB")
+    }
+
+    if (foundItem) {
+      applyData(foundItem)
       setLoading(false)
+    } else {
+      // Fallback: Fetch directly from backend DB by ID
+      psikologService
+        .getBySlug(psikologId)
+        .then((dbData: any) => {
+          if (dbData && (dbData.id || dbData.nama_gelar)) {
+            applyData(dbData)
+          } else {
+            setNotFound(true)
+          }
+        })
+        .catch(() => setNotFound(true))
+        .finally(() => setLoading(false))
     }
   }, [psikologId])
 
@@ -93,8 +122,9 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     setKeahlian(keahlian.filter((s) => s !== skill))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
     const isPsikolog = kategori === "psikolog"
     const updatedTenaga: TenagaAhli = {
@@ -125,12 +155,22 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     }
 
     try {
+      // 1. Simpan perubahan ke backend database
+      await psikologService.createPsikologBaru(updatedTenaga)
+    } catch (err) {
+      console.warn("Gagal update ke backend database:", err)
+    }
+
+    try {
+      // 2. Simpan juga ke cache lokal
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
       const updatedList = list.map((item) => (item.id === psikologId ? updatedTenaga : item))
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updatedList))
     } catch {
       // fallback
+    } finally {
+      setIsSubmitting(false)
     }
 
     router.push("/admin/psikolog")
@@ -547,9 +587,10 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
           </Link>
           <button
             type="submit"
-            className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+            disabled={isSubmitting}
+            className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] disabled:opacity-50 disabled:cursor-not-allowed px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
-            Simpan Perubahan
+            {isSubmitting ? "Menyimpan Perubahan..." : "Simpan Perubahan"}
           </button>
         </div>
       </form>

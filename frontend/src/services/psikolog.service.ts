@@ -44,4 +44,12 @@ export const psikologService = {
 
   deleteJadwalSlot: (slotId: string) =>
     apiClient.delete(`/psikolog/me/jadwal-slots/${slotId}`).then((r) => r.data),
+
+  createPsikologBaru: (payload: any) =>
+    apiClient.post("/psikolog/tambah", payload).then((r) => r.data),
+
+  deletePsikolog: (id: string) =>
+    apiClient.delete(`/psikolog/${id}`).then((r) => r.data),
 }
+
+

@@ -6,6 +6,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { psikologService } from "@/services/psikolog.service"
 
 interface Props {
   psikologId: string
@@ -19,21 +20,78 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
   const [form, setForm] = useState<TenagaAhli | null>(null)
   const [showNotification, setShowNotification] = useState(false)
   const [newSkill, setNewSkill] = useState("")
+  const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
+    let found: TenagaAhli | null = null
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-      const found = list.find((d) => d.id === psikologId) || list[0]
-      if (found) {
-        setItem(found)
-        setForm(found)
-      }
-    } catch {
-      setItem(INITIAL_TENAGA_AHLI[0])
-      setForm(INITIAL_TENAGA_AHLI[0])
+      found = list.find((d) => d.id === psikologId) || null
+    } catch {}
+
+    if (found) {
+      setItem(found)
+      setForm(found)
+    } else {
+      psikologService
+        .getBySlug(psikologId)
+        .then((dbData: any) => {
+          if (dbData && (dbData.id || dbData.nama_gelar)) {
+            const kat = (dbData.kategori || "").toLowerCase()
+            const mapped: TenagaAhli = {
+              id: dbData.id,
+              nama: dbData.nama_gelar || dbData.account?.nama || "Tenaga Ahli",
+              email: dbData.account?.email || "",
+              noTelepon: dbData.account?.no_telepon || "",
+              kategori: kat.includes("peer")
+                ? "peer-konselor"
+                : kat.includes("konselor")
+                ? "konselor"
+                : "psikolog",
+              statusAkses: dbData.status === "INACTIVE" ? "NONAKTIF" : "AKTIF",
+              spesialisasi: dbData.spesialisasi?.nama || "Psikologi Klinis",
+              noStr: dbData.no_str || undefined,
+              noSipp: dbData.no_sipp || undefined,
+              pendidikanText: dbData.pendidikan || "",
+              jumlahSesi: dbData.jumlah_sesi || 0,
+              bio: dbData.bio || "",
+              quote: dbData.quote || "",
+              instagram: dbData.instagram || "",
+              foto: dbData.foto || null,
+              keahlian: Array.isArray(dbData.keahlian)
+                ? dbData.keahlian
+                : typeof dbData.keahlian === "string"
+                ? dbData.keahlian.split(",").map((s: string) => s.trim())
+                : [],
+              tanggalBergabung: "Terdaftar di DB",
+            }
+            setItem(mapped)
+            setForm(mapped)
+          } else {
+            setNotFound(true)
+          }
+        })
+        .catch(() => {
+          setNotFound(true)
+        })
     }
   }, [psikologId])
+
+  if (notFound) {
+    return (
+      <div className="p-12 text-center text-sm text-gray-500 font-poppins bg-white rounded-3xl border border-gray-100">
+        <p className="text-base font-bold text-gray-800 mb-2">Data Tenaga Ahli Tidak Ditemukan</p>
+        <p className="text-xs text-gray-500 mb-4">Tenaga ahli dengan ID tersebut belum terdaftar di database.</p>
+        <Link
+          href="/admin/psikolog"
+          className="inline-block px-5 py-2 rounded-full bg-[#561269] text-white text-xs font-semibold"
+        >
+          Kembali ke Daftar Tenaga Ahli
+        </Link>
+      </div>
+    )
+  }
 
   if (!form || !item) {
     return (

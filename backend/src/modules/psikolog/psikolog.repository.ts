@@ -24,6 +24,16 @@ export class PsikologRepository {
       where,
       include: {
         spesialisasi: true,
+        account: {
+          select: {
+            id: true,
+            nama: true,
+            email: true,
+            no_telepon: true,
+            foto: true,
+            role: true,
+          },
+        },
       },
       orderBy: {
         nama_gelar: 'asc',

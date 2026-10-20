@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { DATA_PSIKOLOG_DUMMY } from "@/features/psikolog/dummy"
 import { PsikologCard } from "@/features/psikolog/components/client/PsikologCard"
 import { psikologService } from "@/services/psikolog.service"
 import { mapDbPsikologToUI } from "@/features/psikolog/utils/mapPsikolog"
@@ -47,6 +46,7 @@ export default function BookingClient() {
   })
 
   const [dbProfessionals, setDbProfessionals] = useState<PsikologUI[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     psikologService
@@ -60,21 +60,21 @@ export default function BookingClient() {
       .catch((err) => {
         console.error("Gagal mengambil data tenaga profesional:", err)
       })
+      .finally(() => {
+        setIsLoading(false)
+      })
   }, [])
 
   const filters = ["Psikolog", "Konselor", "Peer Konselor"]
 
-  const allProfessionals = useMemo(() => {
-    if (dbProfessionals.length > 0) return dbProfessionals
-    return DATA_PSIKOLOG_DUMMY
-  }, [dbProfessionals])
-
-  const filteredProfessionals = allProfessionals.filter((p) => {
-    if (activeFilter === "Psikolog") return p.category === "psikolog"
-    if (activeFilter === "Konselor") return p.category === "konselor"
-    if (activeFilter === "Peer Konselor") return p.category === "peer-konselor"
-    return true
-  })
+  const filteredProfessionals = useMemo(() => {
+    return dbProfessionals.filter((p) => {
+      if (activeFilter === "Psikolog") return p.category === "psikolog"
+      if (activeFilter === "Konselor") return p.category === "konselor"
+      if (activeFilter === "Peer Konselor") return p.category === "peer-konselor"
+      return true
+    })
+  }, [dbProfessionals, activeFilter])
 
   const toggleAccordion = (id: string) => {
     setOpenAccordion(openAccordion === id ? null : id)
@@ -174,11 +174,27 @@ export default function BookingClient() {
         </div>
 
         {/* Dynamic Grid Professionals */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 min-h-[400px]">
-          {filteredProfessionals.map((doc, i) => (
-            <PsikologCard key={i} psikolog={doc} mode="konseling" />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
+            <div className="w-8 h-8 border-3 border-[#561269] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-gray-500">Memuat data tenaga ahli...</p>
+          </div>
+        ) : filteredProfessionals.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 min-h-[400px]">
+            {filteredProfessionals.map((doc, i) => (
+              <PsikologCard key={doc.id || i} psikolog={doc} mode="konseling" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+            <p className="text-sm font-semibold text-gray-600">
+              Belum ada tenaga profesional yang terdaftar untuk kategori {activeFilter}.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Silakan pilih kategori lain atau periksa kembali nanti.
+            </p>
+          </div>
+        )}
 
       </div>
     </div>

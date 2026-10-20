@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { PsikologRepository } from './psikolog.repository'
+import bcrypt from 'bcrypt'
 import type {
   GetJadwalTersediaQuery,
   GetJadwalPsikologMeQuery,
@@ -16,9 +17,11 @@ import {
 
 export class PsikologService {
   private repo: PsikologRepository
+  private prisma: any
 
   constructor(fastify: FastifyInstance) {
     this.repo = new PsikologRepository(fastify.prisma)
+    this.prisma = fastify.prisma
   }
 
   async getAll(params?: { kategori?: string; search?: string }) {
@@ -211,4 +214,171 @@ export class PsikologService {
   async delete(id: string) {
     return this.repo.delete(id)
   }
+
+  /**
+   * Menambahkan atau memperbarui tenaga ahli baru dari dashboard admin
+   * Membuat Akun login, Profil Tenaga Ahli, Spesialisasi, dan Slot Jadwal default di database
+   */
+  async registerPsikologBaru(body: any) {
+    const passwordToHash = body.password || 'Psikolog123!'
+    const hashedPassword = await bcrypt.hash(passwordToHash, 10)
+
+    // 1. Cek apakah ada account yang cocok dengan email ini
+    let account = await this.prisma.account.findUnique({
+      where: { email: body.email },
+    })
+
+    if (account) {
+      account = await this.prisma.account.update({
+        where: { id: account.id },
+        data: {
+          nama: body.nama,
+          no_telepon: body.noTelepon || account.no_telepon,
+          foto: body.foto || account.foto,
+          bio: body.bio || account.bio,
+          role: 'PSIKOLOG',
+          aktif: body.statusAkses !== 'NONAKTIF',
+        },
+      })
+    } else {
+      account = await this.prisma.account.create({
+        data: {
+          nama: body.nama,
+          email: body.email,
+          password: hashedPassword,
+          role: 'PSIKOLOG',
+          no_telepon: body.noTelepon || null,
+          foto: body.foto || null,
+          bio: body.bio || null,
+          aktif: body.statusAkses !== 'NONAKTIF',
+        },
+      })
+    }
+
+    // 2. Cari atau buat Spesialisasi
+    const spesialisasiNama = body.spesialisasi || 'Psikologi Umum'
+    let spesialisasi = await this.prisma.spesialisasi.findFirst({
+      where: { nama: { equals: spesialisasiNama, mode: 'insensitive' } },
+    })
+    if (!spesialisasi) {
+      spesialisasi = await this.prisma.spesialisasi.create({
+        data: { nama: spesialisasiNama },
+      })
+    }
+
+    // 3. Format kategori & keahlian
+    const kat = (body.kategori || '').toLowerCase()
+    const kategoriFormatted = kat.includes('peer')
+      ? 'Peer Konselor'
+      : kat.includes('konselor')
+      ? 'Konselor'
+      : 'Psikolog Klinis'
+
+    const keahlianStr = Array.isArray(body.keahlian)
+      ? body.keahlian.join(', ')
+      : typeof body.keahlian === 'string'
+      ? body.keahlian
+      : null
+
+    const tarif =
+      body.tarif_per_jam ||
+      (kat.includes('peer') ? 50000 : kat.includes('konselor') ? 100000 : 150000)
+
+    // 4. Upsert Psikolog berdasarkan id_account
+    let psikolog = await this.prisma.psikolog.findUnique({
+      where: { id_account: account.id },
+    })
+
+    if (psikolog) {
+      psikolog = await this.prisma.psikolog.update({
+        where: { id: psikolog.id },
+        data: {
+          id_spesialisasi: spesialisasi.id,
+          kategori: kategoriFormatted,
+          nama_gelar: body.nama,
+          no_str: body.noStr || null,
+          no_sipp: body.noSipp || null,
+          pendidikan: body.pendidikanText || body.pendidikan || null,
+          quote: body.quote || null,
+          instagram: body.instagram || null,
+          keahlian: keahlianStr,
+          foto: body.foto || null,
+          bio: body.bio || null,
+          status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+          tarif_per_jam: tarif,
+        },
+        include: {
+          spesialisasi: true,
+          account: true,
+        },
+      })
+    } else {
+      psikolog = await this.prisma.psikolog.create({
+        data: {
+          id_account: account.id,
+          id_spesialisasi: spesialisasi.id,
+          kategori: kategoriFormatted,
+          nama_gelar: body.nama,
+          no_str: body.noStr || null,
+          no_sipp: body.noSipp || null,
+          pendidikan: body.pendidikanText || body.pendidikan || null,
+          quote: body.quote || null,
+          instagram: body.instagram || null,
+          keahlian: keahlianStr,
+          foto: body.foto || null,
+          bio: body.bio || null,
+          status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+          tarif_per_jam: tarif,
+        },
+        include: {
+          spesialisasi: true,
+          account: true,
+        },
+      })
+    }
+
+    // 5. Generate slot ketersediaan default jika belum ada slot
+    try {
+      const existingSlots = await this.prisma.jadwalSlot.count({
+        where: { id_psikolog: psikolog.id },
+      })
+
+      if (existingSlots === 0) {
+        const today = new Date()
+        const defaultHours = [
+          { start: '09:00', end: '10:00' },
+          { start: '10:00', end: '11:00' },
+          { start: '13:00', end: '14:00' },
+          { start: '14:00', end: '15:00' },
+          { start: '15:00', end: '16:00' },
+        ]
+
+        for (let i = 0; i < 3; i++) {
+          const slotDate = new Date(today)
+          slotDate.setDate(today.getDate() + i)
+          const slotDateOnly = new Date(
+            Date.UTC(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate())
+          )
+
+          for (const h of defaultHours) {
+            const startDateTime = new Date(`1970-01-01T${h.start}:00Z`)
+            const endDateTime = new Date(`1970-01-01T${h.end}:00Z`)
+            await this.prisma.jadwalSlot.create({
+              data: {
+                id_psikolog: psikolog.id,
+                tanggal: slotDateOnly,
+                jam_mulai: startDateTime,
+                jam_selesai: endDateTime,
+                tipe_jadwal: 'KONSULTASI',
+                status: 'TERSEDIA',
+              },
+            }).catch(() => {})
+          }
+        }
+      }
+    } catch {}
+
+    return psikolog
+  }
 }
+

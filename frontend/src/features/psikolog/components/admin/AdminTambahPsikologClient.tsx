@@ -6,10 +6,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { psikologService } from "@/services/psikolog.service"
 
 export default function AdminTambahPsikologClient() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form State
   const [nama, setNama] = useState("")
@@ -49,38 +51,58 @@ export default function AdminTambahPsikologClient() {
     setKeahlian(keahlian.filter((s) => s !== skill))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
     const isPsikolog = kategori === "psikolog"
     const newTenaga: TenagaAhli = {
       id: Date.now().toString(),
-      nama,
-      email,
-      password,
-      noTelepon,
+      nama: nama.trim(),
+      email: email.trim(),
+      password: password.trim(),
+      noTelepon: noTelepon.trim(),
       kategori,
       statusAkses,
-      spesialisasi: spesialisasi || (isPsikolog ? "Psikolog Klinis" : kategori === "konselor" ? "Konselor Kesehatan Mental" : "Peer Konselor"),
-      noStr: isPsikolog ? noStr : undefined,
-      noSipp: isPsikolog ? noSipp : undefined,
-      pendidikanText,
+      spesialisasi:
+        spesialisasi.trim() ||
+        (isPsikolog
+          ? "Psikolog Klinis"
+          : kategori === "konselor"
+          ? "Konselor Kesehatan Mental"
+          : "Peer Konselor"),
+      noStr: isPsikolog ? noStr.trim() : undefined,
+      noSipp: isPsikolog ? noSipp.trim() : undefined,
+      pendidikanText: pendidikanText.trim(),
       jumlahSesi: 0,
-      bio,
-      quote,
-      instagram,
+      bio: bio.trim(),
+      quote: quote.trim(),
+      instagram: instagram.trim(),
       foto,
       keahlian,
       tanggalBergabung: "Baru terdaftar",
     }
 
     try {
+      // 1. Simpan langsung ke database PostgreSQL melalui backend
+      const result = await psikologService.createPsikologBaru(newTenaga)
+      if (result && result.id) {
+        newTenaga.id = result.id
+      }
+    } catch (err) {
+      console.warn("Gagal menyimpan ke DB backend, data tetap disimpan lokal:", err)
+    }
+
+    try {
+      // 2. Simpan juga ke cache lokal
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
       const updated = [newTenaga, ...list]
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updated))
     } catch {
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify([newTenaga]))
+    } finally {
+      setIsSubmitting(false)
     }
 
     router.push("/admin/psikolog")
@@ -462,9 +484,10 @@ export default function AdminTambahPsikologClient() {
           </Link>
           <button
             type="submit"
-            className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+            disabled={isSubmitting}
+            className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] disabled:opacity-50 disabled:cursor-not-allowed px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
-            Simpan Tenaga Ahli
+            {isSubmitting ? "Menyimpan ke Database..." : "Simpan Tenaga Ahli"}
           </button>
         </div>
       </form>
