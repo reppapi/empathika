@@ -7,6 +7,14 @@ import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
+import {
+  validateEmail,
+  validateNoTelepon,
+  validateNoStr,
+  validateNoSipp,
+  validateTenagaAhliForm,
+  TouchedFields,
+} from "../../utils/tenagaAhliValidation"
 
 export default function AdminTambahPsikologClient() {
   const router = useRouter()
@@ -31,6 +39,16 @@ export default function AdminTambahPsikologClient() {
   const [keahlian, setKeahlian] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
 
+  // Validation States
+  const [touched, setTouched] = useState<TouchedFields>({})
+  const [formErrorAlert, setFormErrorAlert] = useState<string | null>(null)
+
+  // Derived error messages
+  const emailError = touched.email ? validateEmail(email) : null
+  const noTeleponError = touched.noTelepon ? validateNoTelepon(noTelepon) : null
+  const noStrError = touched.noStr ? validateNoStr(noStr, kategori) : null
+  const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori) : null
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -53,6 +71,29 @@ export default function AdminTambahPsikologClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validasi form tenaga ahli
+    const formErrors = validateTenagaAhliForm({
+      email,
+      noTelepon,
+      noStr,
+      noSipp,
+      kategori,
+    })
+
+    if (Object.keys(formErrors).length > 0) {
+      setTouched({
+        email: true,
+        noTelepon: true,
+        noStr: true,
+        noSipp: true,
+      })
+      setFormErrorAlert("Format data belum sesuai. Silakan periksa kolom yang bertanda merah di bawah.")
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
+    setFormErrorAlert(null)
     setIsSubmitting(true)
 
     const isPsikolog = kategori === "psikolog"
@@ -133,6 +174,19 @@ export default function AdminTambahPsikologClient() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Banner Alert jika ada error validasi */}
+        {formErrorAlert && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 flex items-start gap-3 text-red-700 shadow-sm animate-fadeIn">
+            <svg className="w-5 h-5 shrink-0 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-sm font-bold text-red-800">Periksa Kembali Data Anda</p>
+              <p className="text-xs text-red-600 mt-0.5">{formErrorAlert}</p>
+            </div>
+          </div>
+        )}
+
         {/* KARTU 1: PENGATURAN AKUN LOGIN & HAK AKSES */}
         <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-5">
           <div className="border-b border-gray-100 pb-3">
@@ -153,10 +207,30 @@ export default function AdminTambahPsikologClient() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@empathika.com"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#561269] focus:outline-none"
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (formErrorAlert) setFormErrorAlert(null)
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+                placeholder="contoh: psikolog@gmail.com"
+                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
+                  emailError
+                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                    : "border-gray-200 focus:border-[#561269]"
+                }`}
               />
+              {emailError ? (
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{emailError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Wajib menggunakan email akun Gmail (harus mengandung @gmail.com).
+                </p>
+              )}
             </div>
 
             <div>
@@ -242,10 +316,30 @@ export default function AdminTambahPsikologClient() {
                   type="text"
                   required={kategori === "psikolog"}
                   value={noStr}
-                  onChange={(e) => setNoStr(e.target.value)}
+                  onChange={(e) => {
+                    setNoStr(e.target.value)
+                    if (formErrorAlert) setFormErrorAlert(null)
+                  }}
+                  onBlur={() => setTouched((prev) => ({ ...prev, noStr: true }))}
                   placeholder="Contoh: STR-8921-2023"
-                  className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 focus:border-[#561269] focus:outline-none"
+                  className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${
+                    noStrError
+                      ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                      : "border-gray-300 focus:border-[#561269]"
+                  }`}
                 />
+                {noStrError ? (
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                    <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{noStrError}</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-purple-600/70 mt-1">
+                    Format resmi wajib diawali dengan &apos;STR&apos; (contoh: STR-8921-2023).
+                  </p>
+                )}
               </div>
 
               <div>
@@ -256,10 +350,30 @@ export default function AdminTambahPsikologClient() {
                   type="text"
                   required={kategori === "psikolog"}
                   value={noSipp}
-                  onChange={(e) => setNoSipp(e.target.value)}
+                  onChange={(e) => {
+                    setNoSipp(e.target.value)
+                    if (formErrorAlert) setFormErrorAlert(null)
+                  }}
+                  onBlur={() => setTouched((prev) => ({ ...prev, noSipp: true }))}
                   placeholder="Contoh: SIPP-1049-2024"
-                  className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 focus:border-[#561269] focus:outline-none"
+                  className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${
+                    noSippError
+                      ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                      : "border-gray-300 focus:border-[#561269]"
+                  }`}
                 />
+                {noSippError ? (
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                    <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{noSippError}</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-purple-600/70 mt-1">
+                    Format resmi wajib diawali dengan &apos;SIPP&apos; (contoh: SIPP-1049-2024).
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -299,10 +413,30 @@ export default function AdminTambahPsikologClient() {
                 type="text"
                 required
                 value={noTelepon}
-                onChange={(e) => setNoTelepon(e.target.value)}
+                onChange={(e) => {
+                  setNoTelepon(e.target.value)
+                  if (formErrorAlert) setFormErrorAlert(null)
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
                 placeholder="081234567890"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#561269] focus:outline-none"
+                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
+                  noTeleponError
+                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                    : "border-gray-200 focus:border-[#561269]"
+                }`}
               />
+              {noTeleponError ? (
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{noTeleponError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Wajib diawali dengan 08 (contoh: 081234567890, 10-14 digit angka).
+                </p>
+              )}
             </div>
 
             <div>
