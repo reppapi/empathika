@@ -36,7 +36,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
           } else if (typeof data.keahlian === "string" && data.keahlian.trim()) {
             keahlianList = data.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
           } else {
-            keahlianList = ["Konseling Umum", "Manajemen Stres", "Pengembangan Diri"]
+            keahlianList = []
           }
 
           let jadwalTersedia: { waktu: string; tipe: "online" | "offline" }[] = []

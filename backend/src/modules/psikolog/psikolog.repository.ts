@@ -1,5 +1,5 @@
 import type { PrismaClient, Prisma } from '@prisma/client'
-import { parseDateString, timeStringToDate } from '../../utils/date-time'
+import { parseDateString } from '../../utils/date-time'
 
 export class PsikologRepository {
   constructor(private prisma: PrismaClient) {}
@@ -24,6 +24,16 @@ export class PsikologRepository {
       where,
       include: {
         spesialisasi: true,
+        account: {
+          select: {
+            id: true,
+            nama: true,
+            email: true,
+            no_telepon: true,
+            foto: true,
+            role: true,
+          },
+        },
       },
       orderBy: {
         nama_gelar: 'asc',

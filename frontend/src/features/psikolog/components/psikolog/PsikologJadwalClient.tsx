@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
+import { useAuthStore } from "@/store/authStore"
 
 interface BookedSession {
   id: string
@@ -124,6 +125,8 @@ export default function PsikologJadwalClient() {
     return d
   }, [])
 
+  const { user } = useAuthStore()
+
   // State daftar dan profil psikolog aktif yang diambil dari Database
   const [psikologList, setPsikologList] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any }[]>([])
   const [activePsikolog, setActivePsikolog] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any } | null>(null)
@@ -166,17 +169,19 @@ export default function PsikologJadwalClient() {
     "15:30 - 16:30",
   ])
 
-  // 1. Ambil data profil psikolog dari Database Backend PostgreSQL
+  // 1. Ambil data profil psikolog dari Database Backend PostgreSQL (Sesuai sesi login psikolog)
   useEffect(() => {
     psikologService
       .getList()
       .then((list: any[]) => {
         if (list && list.length > 0) {
           setPsikologList(list)
-          // Prioritaskan psikolog yang dipilih di localStorage atau default akun Rizki Putri
+          // Prioritaskan psikolog yang sesuai dengan akun login auth store
           const savedId = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_id") : null
           const savedName = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") : null
           const found =
+            (user?.id ? list.find((p) => p.account?.id === user.id || p.id === user.id || p.account?.email === user.email) : null) ||
+            (user?.email ? list.find((p) => p.account?.email === user.email) : null) ||
             (savedId ? list.find((p) => p.id === savedId) : null) ||
             (savedName ? list.find((p) => p.nama_gelar === savedName) : null) ||
             list.find((p) => p.nama_gelar?.includes("Rizki") || p.account?.email?.includes("putriqoida")) ||
@@ -192,39 +197,49 @@ export default function PsikologJadwalClient() {
       .catch(() => {
         // Fallback jika API backend offline
         const fallback = {
-          id: "psikolog-default-id",
-          nama_gelar: "Rizki Putri Dzulqaidah, S.Psi.",
+          id: user?.id || "psikolog-default-id",
+          nama_gelar: user?.name || "Rizki Putri Dzulqaidah, S.Psi.",
           kategori: "Konselor",
         }
         setPsikologList([fallback])
         setActivePsikolog(fallback)
       })
-  }, [])
+  }, [user])
 
   // 2. Sinkronkan jadwal dari Database dan LocalStorage
   const loadScheduleFromBackend = async () => {
     try {
       const res: any = await psikologService.getJadwalSaya()
-      if (res && res.slots) {
-        const mappedFromDb: BookedSession[] = res.slots.map((s: any) => ({
-          id: s.id,
-          date: s.date,
-          waktu: s.waktu,
-          layanan: s.booking?.layanan || "Konsultasi Psikologi",
-          metode: s.booking?.metode === "OFFLINE" ? "Offline" : "Online",
-          namaKlien: s.booking?.nama_klien || "Tersedia",
-          id_psikolog: res.psikolog?.id,
-          namaPsikolog: res.psikolog?.nama_gelar,
-          isAvailableSlot: s.status === "TERSEDIA",
-        }))
+      if (res) {
+        if (res.psikolog) {
+          setActivePsikolog((prev) => ({
+            ...prev,
+            id: res.psikolog.id,
+            nama_gelar: res.psikolog.nama_gelar,
+            kategori: res.psikolog.kategori,
+          }))
+        }
+        if (res.slots) {
+          const mappedFromDb: BookedSession[] = res.slots.map((s: any) => ({
+            id: s.id,
+            date: s.date,
+            waktu: s.waktu,
+            layanan: s.booking?.layanan || "Konsultasi Psikologi",
+            metode: s.booking?.metode === "OFFLINE" ? "Offline" : "Online",
+            namaKlien: s.booking?.nama_klien || "Tersedia",
+            id_psikolog: res.psikolog?.id,
+            namaPsikolog: res.psikolog?.nama_gelar,
+            isAvailableSlot: s.status === "TERSEDIA",
+          }))
 
-        // Gabungkan dengan state awal
-        setBookedSessions((prev) => {
-          const map = new Map<string, BookedSession>()
-          prev.forEach((item) => map.set(`${item.date}_${item.waktu}`, item))
-          mappedFromDb.forEach((item) => map.set(`${item.date}_${item.waktu}`, item))
-          return Array.from(map.values())
-        })
+          // Gabungkan dengan state awal
+          setBookedSessions((prev) => {
+            const map = new Map<string, BookedSession>()
+            prev.forEach((item) => map.set(`${item.date}_${item.waktu}`, item))
+            mappedFromDb.forEach((item) => map.set(`${item.date}_${item.waktu}`, item))
+            return Array.from(map.values())
+          })
+        }
       }
     } catch {}
 
@@ -451,31 +466,6 @@ export default function PsikologJadwalClient() {
               Atur jadwal sesi konseling Anda dengan mudah. Pilih tanggal dan waktu yang tersedia sesuai dengan preferensi Anda.
             </p>
           </div>
-
-          {/* Pemilihan Psikolog dari Database */}
-          {psikologList.length > 0 && (
-            <div className="flex items-center gap-2 self-start sm:self-auto bg-purple-50/70 border border-purple-200/80 px-3.5 py-2 rounded-xl shrink-0">
-              <span className="text-xs font-semibold text-gray-600">Psikolog:</span>
-              <select
-                value={activePsikolog?.id || ""}
-                onChange={(e) => {
-                  const sel = psikologList.find((p) => p.id === e.target.value)
-                  if (sel) {
-                    setActivePsikolog(sel)
-                    localStorage.setItem("active_psikolog_id", sel.id)
-                    localStorage.setItem("active_psikolog_name", sel.nama_gelar || sel.account?.nama)
-                  }
-                }}
-                className="text-xs font-bold text-[#561269] bg-transparent border-none focus:outline-none cursor-pointer"
-              >
-                {psikologList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nama_gelar || p.account?.nama}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">

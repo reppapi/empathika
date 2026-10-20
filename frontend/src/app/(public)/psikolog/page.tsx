@@ -7,20 +7,19 @@ import { PsikologCard } from "@/features/psikolog/components/client/PsikologCard
 import { QuoteBanner } from "@/features/psikolog/components/client/QuoteBanner"
 import { CtaSection } from "@/features/psikolog/components/client/CtaSection"
 import { useFilterPsikolog } from "@/features/psikolog/hooks/useFilterPsikolog"
-import { DATA_PSIKOLOG_DUMMY } from "@/features/psikolog/dummy"
 import { PsikologUI } from "@/types/psikolog"
 import { psikologService } from "@/services/psikolog.service"
 import { mapDbPsikologToUI } from "@/features/psikolog/utils/mapPsikolog"
 
 export default function PsikologPage() {
-  const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
+  const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    // Ambil data psikolog langsung dari database
+  const fetchPsychologists = () => {
     psikologService
       .getList()
       .then((dbList: any[]) => {
-        if (dbList && dbList.length > 0) {
+        if (Array.isArray(dbList)) {
           const mapped = dbList.map(mapDbPsikologToUI)
           setDataPsikolog(mapped)
         }
@@ -28,6 +27,21 @@ export default function PsikologPage() {
       .catch((err) => {
         console.error("Gagal mengambil data psikolog dari database:", err)
       })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }
+
+  useEffect(() => {
+    fetchPsychologists()
+
+    window.addEventListener("storage", fetchPsychologists)
+    window.addEventListener("focus", fetchPsychologists)
+
+    return () => {
+      window.removeEventListener("storage", fetchPsychologists)
+      window.removeEventListener("focus", fetchPsychologists)
+    }
   }, [])
 
   const {
@@ -54,7 +68,12 @@ export default function PsikologPage() {
         />
 
         {/* List Psikolog Cards */}
-        {dataTerfilter.length > 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-8 h-8 border-3 border-[#561269] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-gray-500">Memuat direktori psikolog...</p>
+          </div>
+        ) : dataTerfilter.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
             {dataTerfilter.map((psikolog) => (
               <PsikologCard key={psikolog.id} psikolog={psikolog} mode="psikolog" />

@@ -1,5 +1,5 @@
 import type { PrismaClient, Prisma, StatusBooking } from '@prisma/client'
-import { parseDateString, timeStringToDate } from '../../utils/date-time'
+import { parseDateString } from '../../utils/date-time'
 import { generateOrderId } from '../../utils'
 
 export class AdminRepository {

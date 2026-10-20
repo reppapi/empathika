@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { PsikologRepository } from './psikolog.repository'
+import bcrypt from 'bcrypt'
 import type {
   GetJadwalTersediaQuery,
   GetJadwalPsikologMeQuery,
@@ -16,9 +17,11 @@ import {
 
 export class PsikologService {
   private repo: PsikologRepository
+  private prisma: any
 
   constructor(fastify: FastifyInstance) {
     this.repo = new PsikologRepository(fastify.prisma)
+    this.prisma = fastify.prisma
   }
 
   async getAll(params?: { kategori?: string; search?: string }) {
@@ -209,6 +212,299 @@ export class PsikologService {
   }
 
   async delete(id: string) {
-    return this.repo.delete(id)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    let psikolog = null
+    if (isUuid) {
+      psikolog = await this.prisma.psikolog.findFirst({
+        where: {
+          OR: [{ id }, { id_account: id }],
+        },
+      })
+    }
+
+    if (!psikolog) {
+      psikolog = await this.prisma.psikolog.findFirst({
+        where: {
+          OR: [
+            { nama_gelar: { equals: id, mode: 'insensitive' } },
+            { account: { email: { equals: id, mode: 'insensitive' } } },
+          ],
+        },
+      })
+    }
+
+    if (!psikolog) {
+      return { success: true, message: 'Data tidak ditemukan atau sudah terhapus' }
+    }
+
+    // 1. Cek apakah psikolog ini memiliki data booking konsultasi dari klien
+    const existingBooking = await this.prisma.bookingKonsultasi.findFirst({
+      where: {
+        jadwal: {
+          id_psikolog: psikolog.id,
+        },
+      },
+      include: {
+        client: true,
+      },
+    })
+
+    if (existingBooking) {
+      const clientName = existingBooking.client?.nama ? `klien "${existingBooking.client.nama}"` : 'klien'
+      throw new Error(
+        `Psikolog ${psikolog.nama_gelar} tidak dapat dihapus karena sudah memiliki riwayat booking konsultasi dari ${clientName}. Anda dapat mengubah status hak aksesnya menjadi NONAKTIF.`
+      )
+    }
+
+    // 2. Jika tidak ada booking dari klien, bersihkan slot jadwal ketersediaan kosong yang belum dibooking
+    await this.prisma.jadwalSlot
+      .deleteMany({
+        where: { id_psikolog: psikolog.id },
+      })
+      .catch(() => {})
+
+    // 3. Hapus data profil psikolog
+    const accountId = psikolog.id_account
+    await this.prisma.psikolog.delete({
+      where: { id: psikolog.id },
+    })
+
+    // 4. Hapus juga akun login terkait
+    if (accountId) {
+      await this.prisma.account
+        .delete({
+          where: { id: accountId },
+        })
+        .catch(() => {})
+    }
+
+    return { success: true, message: 'Psikolog berhasil dihapus dari database' }
+  }
+
+  /**
+   * Menambahkan atau memperbarui tenaga ahli baru dari dashboard admin
+   * Membuat Akun login, Profil Tenaga Ahli, Spesialisasi, dan Slot Jadwal default di database
+   */
+  async registerPsikologBaru(body: any) {
+    const passwordToHash = body.password || 'Psikolog123!'
+    const hashedPassword = await bcrypt.hash(passwordToHash, 10)
+
+    // Cari atau buat Spesialisasi
+    const spesialisasiNama = body.spesialisasi || 'Psikologi Umum'
+    let spesialisasi = await this.prisma.spesialisasi.findFirst({
+      where: { nama: { equals: spesialisasiNama, mode: 'insensitive' } },
+    })
+    if (!spesialisasi) {
+      spesialisasi = await this.prisma.spesialisasi.create({
+        data: { nama: spesialisasiNama },
+      })
+    }
+
+    // Format kategori & keahlian
+    const kat = (body.kategori || '').toLowerCase()
+    const kategoriFormatted = kat.includes('peer')
+      ? 'Peer Konselor'
+      : kat.includes('konselor')
+      ? 'Konselor'
+      : 'Psikolog Klinis'
+
+    const keahlianStr =
+      Array.isArray(body.keahlian) && body.keahlian.length > 0
+        ? body.keahlian.join(', ')
+        : typeof body.keahlian === 'string' && body.keahlian.trim()
+        ? body.keahlian.trim()
+        : null
+
+    const tarif =
+      body.tarif_per_jam ||
+      (kat.includes('peer') ? 50000 : kat.includes('konselor') ? 100000 : 150000)
+
+    // 1. Cek apakah ada data psikolog yang diedit berdasarkan body.id
+    const isUuid =
+      body.id &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.id)
+    let existingPsikolog = null
+    if (isUuid) {
+      existingPsikolog = await this.prisma.psikolog.findFirst({
+        where: {
+          OR: [{ id: body.id }, { id_account: body.id }],
+        },
+        include: { account: true },
+      })
+    }
+
+    let account = null
+    let psikolog = null
+
+    if (existingPsikolog) {
+      // MODE EDIT: Update akun dan profil psikolog yang sudah ada
+      account = await this.prisma.account.update({
+        where: { id: existingPsikolog.id_account },
+        data: {
+          nama: body.nama,
+          email: body.email || existingPsikolog.account?.email,
+          no_telepon: body.noTelepon || existingPsikolog.account?.no_telepon,
+          foto: body.foto || existingPsikolog.account?.foto,
+          bio: body.bio || existingPsikolog.account?.bio,
+          role: 'PSIKOLOG',
+          aktif: body.statusAkses !== 'NONAKTIF',
+        },
+      })
+
+      psikolog = await this.prisma.psikolog.update({
+        where: { id: existingPsikolog.id },
+        data: {
+          id_spesialisasi: spesialisasi.id,
+          kategori: kategoriFormatted,
+          nama_gelar: body.nama,
+          no_str: body.noStr || null,
+          no_sipp: body.noSipp || null,
+          pendidikan: body.pendidikanText || body.pendidikan || null,
+          quote: body.quote || null,
+          instagram: body.instagram || null,
+          keahlian: keahlianStr,
+          foto: body.foto || null,
+          bio: body.bio || null,
+          status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+          tarif_per_jam: tarif,
+        },
+        include: {
+          spesialisasi: true,
+          account: true,
+        },
+      })
+    } else {
+      // MODE CREATE / UPSERT: Cek berdasarkan email
+      account = await this.prisma.account.findUnique({
+        where: { email: body.email },
+      })
+
+      if (account) {
+        account = await this.prisma.account.update({
+          where: { id: account.id },
+          data: {
+            nama: body.nama,
+            no_telepon: body.noTelepon || account.no_telepon,
+            foto: body.foto || account.foto,
+            bio: body.bio || account.bio,
+            role: 'PSIKOLOG',
+            aktif: body.statusAkses !== 'NONAKTIF',
+          },
+        })
+      } else {
+        account = await this.prisma.account.create({
+          data: {
+            nama: body.nama,
+            email: body.email,
+            password: hashedPassword,
+            role: 'PSIKOLOG',
+            no_telepon: body.noTelepon || null,
+            foto: body.foto || null,
+            bio: body.bio || null,
+            aktif: body.statusAkses !== 'NONAKTIF',
+          },
+        })
+      }
+
+      psikolog = await this.prisma.psikolog.findUnique({
+        where: { id_account: account.id },
+      })
+
+      if (psikolog) {
+        psikolog = await this.prisma.psikolog.update({
+          where: { id: psikolog.id },
+          data: {
+            id_spesialisasi: spesialisasi.id,
+            kategori: kategoriFormatted,
+            nama_gelar: body.nama,
+            no_str: body.noStr || null,
+            no_sipp: body.noSipp || null,
+            pendidikan: body.pendidikanText || body.pendidikan || null,
+            quote: body.quote || null,
+            instagram: body.instagram || null,
+            keahlian: keahlianStr,
+            foto: body.foto || null,
+            bio: body.bio || null,
+            status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+            tarif_per_jam: tarif,
+          },
+          include: {
+            spesialisasi: true,
+            account: true,
+          },
+        })
+      } else {
+        psikolog = await this.prisma.psikolog.create({
+          data: {
+            id_account: account.id,
+            id_spesialisasi: spesialisasi.id,
+            kategori: kategoriFormatted,
+            nama_gelar: body.nama,
+            no_str: body.noStr || null,
+            no_sipp: body.noSipp || null,
+            pendidikan: body.pendidikanText || body.pendidikan || null,
+            quote: body.quote || null,
+            instagram: body.instagram || null,
+            keahlian: keahlianStr,
+            foto: body.foto || null,
+            bio: body.bio || null,
+            status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+            tarif_per_jam: tarif,
+          },
+          include: {
+            spesialisasi: true,
+            account: true,
+          },
+        })
+      }
+    }
+
+    // 5. Generate slot ketersediaan default jika belum ada slot
+    try {
+      const existingSlots = await this.prisma.jadwalSlot.count({
+        where: { id_psikolog: psikolog.id },
+      })
+
+      if (existingSlots === 0) {
+        const today = new Date()
+        const defaultHours = [
+          { start: '09:00', end: '10:00' },
+          { start: '10:00', end: '11:00' },
+          { start: '13:00', end: '14:00' },
+          { start: '14:00', end: '15:00' },
+          { start: '15:00', end: '16:00' },
+        ]
+
+        for (let i = 0; i < 3; i++) {
+          const slotDate = new Date(today)
+          slotDate.setDate(today.getDate() + i)
+          const slotDateOnly = new Date(
+            Date.UTC(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate())
+          )
+
+          for (const h of defaultHours) {
+            const startDateTime = new Date(`1970-01-01T${h.start}:00Z`)
+            const endDateTime = new Date(`1970-01-01T${h.end}:00Z`)
+            await this.prisma.jadwalSlot.create({
+              data: {
+                id_psikolog: psikolog.id,
+                tanggal: slotDateOnly,
+                jam_mulai: startDateTime,
+                jam_selesai: endDateTime,
+                tipe_jadwal: 'KONSULTASI',
+                status: 'TERSEDIA',
+              },
+            }).catch((_err: unknown) => {
+              // Abaikan jika slot sudah ada
+            })
+          }
+        }
+      }
+    } catch (slotErr) {
+      console.warn('Gagal generate slot default untuk psikolog baru:', slotErr)
+    }
+
+    return psikolog
   }
 }
+

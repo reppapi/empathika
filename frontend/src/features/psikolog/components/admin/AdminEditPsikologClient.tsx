@@ -6,6 +6,15 @@ import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { psikologService } from "@/services/psikolog.service"
+import {
+  validateEmail,
+  validateNoTelepon,
+  validateNoStr,
+  validateNoSipp,
+  validateTenagaAhliForm,
+  TouchedFields,
+} from "../../utils/tenagaAhliValidation"
 
 interface Props {
   psikologId: string
@@ -17,6 +26,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form State
   const [nama, setNama] = useState("")
@@ -38,38 +48,75 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
   const [jumlahSesi, setJumlahSesi] = useState(0)
   const [tanggalBergabung, setTanggalBergabung] = useState("")
 
+  // Validation States
+  const [touched, setTouched] = useState<TouchedFields>({})
+  const [formErrorAlert, setFormErrorAlert] = useState<string | null>(null)
+
+  // Derived error messages
+  const emailError = touched.email ? validateEmail(email) : null
+  const noTeleponError = touched.noTelepon ? validateNoTelepon(noTelepon) : null
+  const noStrError = touched.noStr ? validateNoStr(noStr, kategori) : null
+  const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori) : null
+
   // Load existing data
   useEffect(() => {
+    let foundItem: TenagaAhli | null = null
+
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-      const found = list.find((d) => d.id === psikologId)
+      foundItem = list.find((d) => d.id === psikologId) || null
+    } catch {}
 
-      if (found) {
-        setNama(found.nama || "")
-        setEmail(found.email || "")
-        setPassword(found.password || "Psikolog123!")
-        setNoTelepon(found.noTelepon || "")
-        setKategori(found.kategori || "psikolog")
-        setStatusAkses(found.statusAkses || "AKTIF")
-        setSpesialisasi(found.spesialisasi || "")
-        setNoStr(found.noStr || "")
-        setNoSipp(found.noSipp || "")
-        setPendidikanText(found.pendidikanText || "")
-        setBio(found.bio || "")
-        setQuote(found.quote || "")
-        setInstagram(found.instagram || "")
-        setFoto(found.foto || null)
-        setKeahlian(found.keahlian || [])
-        setJumlahSesi(found.jumlahSesi || 0)
-        setTanggalBergabung(found.tanggalBergabung || "Terdaftar")
-      } else {
-        setNotFound(true)
-      }
-    } catch {
-      setNotFound(true)
-    } finally {
+    const applyData = (found: any) => {
+      setNama(found.nama || found.nama_gelar || "")
+      setEmail(found.email || found.account?.email || "")
+      setPassword(found.password || "Psikolog123!")
+      setNoTelepon(found.noTelepon || found.account?.no_telepon || "")
+      const kat = (found.kategori || "").toLowerCase()
+      setKategori(
+        kat.includes("peer")
+          ? "peer-konselor"
+          : kat.includes("konselor")
+          ? "konselor"
+          : "psikolog"
+      )
+      setStatusAkses(found.statusAkses || (found.status === "INACTIVE" ? "NONAKTIF" : "AKTIF"))
+      setSpesialisasi(found.spesialisasi?.nama || found.spesialisasi || "")
+      setNoStr(found.noStr || found.no_str || "")
+      setNoSipp(found.noSipp || found.no_sipp || "")
+      setPendidikanText(found.pendidikanText || found.pendidikan || "")
+      setBio(found.bio || "")
+      setQuote(found.quote || "")
+      setInstagram(found.instagram || "")
+      setFoto(found.foto || null)
+      setKeahlian(
+        Array.isArray(found.keahlian)
+          ? found.keahlian
+          : typeof found.keahlian === "string"
+          ? found.keahlian.split(",").map((s: string) => s.trim())
+          : []
+      )
+      setJumlahSesi(found.jumlahSesi || found.jumlah_sesi || 0)
+      setTanggalBergabung(found.tanggalBergabung || "Terdaftar di DB")
+    }
+
+    if (foundItem) {
+      applyData(foundItem)
       setLoading(false)
+    } else {
+      // Fallback: Fetch directly from backend DB by ID
+      psikologService
+        .getBySlug(psikologId)
+        .then((dbData: any) => {
+          if (dbData && (dbData.id || dbData.nama_gelar)) {
+            applyData(dbData)
+          } else {
+            setNotFound(true)
+          }
+        })
+        .catch(() => setNotFound(true))
+        .finally(() => setLoading(false))
     }
   }, [psikologId])
 
@@ -93,8 +140,32 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     setKeahlian(keahlian.filter((s) => s !== skill))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validasi form tenaga ahli
+    const formErrors = validateTenagaAhliForm({
+      email,
+      noTelepon,
+      noStr,
+      noSipp,
+      kategori,
+    })
+
+    if (Object.keys(formErrors).length > 0) {
+      setTouched({
+        email: true,
+        noTelepon: true,
+        noStr: true,
+        noSipp: true,
+      })
+      setFormErrorAlert("Format data belum sesuai. Silakan periksa kolom yang bertanda merah di bawah.")
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
+    setFormErrorAlert(null)
+    setIsSubmitting(true)
 
     const isPsikolog = kategori === "psikolog"
     const updatedTenaga: TenagaAhli = {
@@ -125,12 +196,25 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     }
 
     try {
+      // 1. Simpan perubahan ke backend database
+      await psikologService.createPsikologBaru(updatedTenaga)
+    } catch (err) {
+      console.warn("Gagal update ke backend database:", err)
+    }
+
+    try {
+      // 2. Simpan juga ke cache lokal
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
       const updatedList = list.map((item) => (item.id === psikologId ? updatedTenaga : item))
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updatedList))
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("storage"))
+      }
     } catch {
       // fallback
+    } finally {
+      setIsSubmitting(false)
     }
 
     router.push("/admin/psikolog")
@@ -191,6 +275,19 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Banner Alert jika ada error validasi */}
+        {formErrorAlert && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 flex items-start gap-3 text-red-700 shadow-sm animate-fadeIn">
+            <svg className="w-5 h-5 shrink-0 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-sm font-bold text-red-800">Periksa Kembali Data Anda</p>
+              <p className="text-xs text-red-600 mt-0.5">{formErrorAlert}</p>
+            </div>
+          </div>
+        )}
+
         {/* KARTU 1: PENGATURAN AKUN LOGIN & HAK AKSES */}
         <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-5">
           <div className="border-b border-gray-100 pb-3">
@@ -210,11 +307,31 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (formErrorAlert) setFormErrorAlert(null)
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
                 required
-                placeholder="contoh: psikolog@empathika.com"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none"
+                placeholder="contoh: psikolog@gmail.com"
+                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
+                  emailError
+                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                    : "border-gray-200 focus:border-[#561269]"
+                }`}
               />
+              {emailError ? (
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{emailError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Wajib menggunakan email akun Gmail (harus mengandung @gmail.com).
+                </p>
+              )}
             </div>
 
             <div>
@@ -330,11 +447,31 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
               <input
                 type="text"
                 value={noTelepon}
-                onChange={(e) => setNoTelepon(e.target.value)}
+                onChange={(e) => {
+                  setNoTelepon(e.target.value)
+                  if (formErrorAlert) setFormErrorAlert(null)
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
                 required
                 placeholder="contoh: 081234567890"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none"
+                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
+                  noTeleponError
+                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                    : "border-gray-200 focus:border-[#561269]"
+                }`}
               />
+              {noTeleponError ? (
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{noTeleponError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Wajib diawali dengan 08 (contoh: 081234567890, 10-14 digit angka).
+                </p>
+              )}
             </div>
 
             <div>
@@ -388,30 +525,70 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Nomor STR (Surat Tanda Registrasi)
+                Nomor STR (Surat Tanda Registrasi) {kategori === "psikolog" && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
                 value={noStr}
-                onChange={(e) => setNoStr(e.target.value)}
+                onChange={(e) => {
+                  setNoStr(e.target.value)
+                  if (formErrorAlert) setFormErrorAlert(null)
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, noStr: true }))}
                 disabled={kategori !== "psikolog"}
-                placeholder={kategori === "psikolog" ? "contoh: STR-1234-5678" : "Hanya untuk psikolog"}
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-400 focus:border-[#561269] focus:outline-none"
+                placeholder={kategori === "psikolog" ? "contoh: STR-8921-2023" : "Hanya untuk psikolog"}
+                className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none disabled:bg-gray-50 disabled:text-gray-400 ${
+                  noStrError
+                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                    : "border-gray-200 focus:border-[#561269]"
+                }`}
               />
+              {noStrError ? (
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{noStrError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Format resmi wajib diawali dengan &apos;STR&apos; (contoh: STR-8921-2023).
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Nomor SIPP (Surat Izin Praktik Psikologi)
+                Nomor SIPP (Surat Izin Praktik Psikologi) {kategori === "psikolog" && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
                 value={noSipp}
-                onChange={(e) => setNoSipp(e.target.value)}
+                onChange={(e) => {
+                  setNoSipp(e.target.value)
+                  if (formErrorAlert) setFormErrorAlert(null)
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, noSipp: true }))}
                 disabled={kategori !== "psikolog"}
-                placeholder={kategori === "psikolog" ? "contoh: SIPP-9876-5432" : "Hanya untuk psikolog"}
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-400 focus:border-[#561269] focus:outline-none"
+                placeholder={kategori === "psikolog" ? "contoh: SIPP-1049-2024" : "Hanya untuk psikolog"}
+                className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none disabled:bg-gray-50 disabled:text-gray-400 ${
+                  noSippError
+                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
+                    : "border-gray-200 focus:border-[#561269]"
+                }`}
               />
+              {noSippError ? (
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{noSippError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Format resmi wajib diawali dengan &apos;SIPP&apos; (contoh: SIPP-1049-2024).
+                </p>
+              )}
             </div>
 
             <div className="sm:col-span-2">
@@ -547,9 +724,10 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
           </Link>
           <button
             type="submit"
-            className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+            disabled={isSubmitting}
+            className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] disabled:opacity-50 disabled:cursor-not-allowed px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
-            Simpan Perubahan
+            {isSubmitting ? "Menyimpan Perubahan..." : "Simpan Perubahan"}
           </button>
         </div>
       </form>

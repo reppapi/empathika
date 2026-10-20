@@ -137,4 +137,16 @@ export class PsikologController {
       reply.code(400).send({ error: 'Bad Request', message: err.message })
     }
   }
+
+  registerPsikologBaru = async (
+    request: FastifyRequest<{ Body: any }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.registerPsikologBaru(request.body)
+      reply.code(201).send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
 }
