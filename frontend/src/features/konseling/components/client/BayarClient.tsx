@@ -63,6 +63,14 @@ export default function BayarClient() {
   const isFailed = searchParams.get("status") === "failed" && !failedAlertDismissed
   const failedReason = searchParams.get("reason") || "Pembayaran tidak dapat diproses atau waktu transaksi telah berakhir."
 
+  const qBottomDate = searchParams.get("bottomDate") || "31 Agu 2026"
+  const qBottomTime = searchParams.get("bottomTime") || "13:30 WIB (Online)"
+  const qPsikologName = searchParams.get("psikologName") || ""
+  const qLayanan = searchParams.get("layanan") || "Layanan Konsultasi"
+  const qTanggal = searchParams.get("tanggal") || "31/08"
+  const qTahun = searchParams.get("tahun") || "2026"
+  const qWaktu = searchParams.get("waktu") || "13:30"
+
   useEffect(() => {
     const qNama = searchParams.get("nama")
     const qEmail = searchParams.get("email")
@@ -113,14 +121,15 @@ export default function BayarClient() {
       whatsapp,
       deskripsi,
       orderId: "W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
-      tanggal: "31/08",
-      tahun: "2026",
-      waktu: "13:30",
-      judul: "Layanan Konsultasi",
-      subjudul: "Psikolog Profesional Empathika",
-      bottomDate: "31 Agu 2026",
-      bottomTime: "13:30 WIB (Online)",
+      tanggal: qTanggal,
+      tahun: qTahun,
+      waktu: qWaktu,
+      judul: qLayanan,
+      subjudul: qPsikologName ? `Bersama ${qPsikologName}` : "Psikolog Profesional Empathika",
+      bottomDate: qBottomDate,
+      bottomTime: qBottomTime,
       metode: metodePembayaran,
+      ...(qPsikologName && { psikologName: qPsikologName }),
       ...(selectedBank && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
@@ -536,9 +545,9 @@ export default function BayarClient() {
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] py-4 px-6 sm:px-10 lg:px-24 flex items-center justify-between z-40">
         <div>
-          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">31 Agu 2026</div>
-          <div className="text-sm sm:text-[17px] font-bold text-black flex items-center gap-1">
-            13:30 WIB <span className="italic font-normal">(Online)</span>
+          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">{qBottomDate}</div>
+          <div className="text-sm sm:text-[17px] font-bold text-black flex items-center gap-1.5 flex-wrap">
+            <span>{qBottomTime}</span>
           </div>
         </div>
         <Link

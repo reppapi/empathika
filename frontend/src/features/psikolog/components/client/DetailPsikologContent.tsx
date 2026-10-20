@@ -276,7 +276,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
 
           <div>
             <Link
-              href={`/konseling/jadwal?psikologId=${psikolog.id}` as any}
+              href={`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}` as any}
               className="inline-block bg-[#EAB308] hover:bg-[#CA9A06] text-black font-bold text-base sm:text-lg md:text-xl px-10 sm:px-14 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Daftar Sesi

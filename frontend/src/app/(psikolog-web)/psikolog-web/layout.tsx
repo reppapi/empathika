@@ -8,6 +8,7 @@ import AdminNavbar from "@/components/layout/AdminNavbar"
 import { LOCAL_STORAGE_KEY_TENAGA, INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import { TenagaAhli } from "@/features/psikolog/types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import { psikologService } from "@/services/psikolog.service"
 
 export default function PsikologWebLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -17,17 +18,69 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   const [currentPsikolog, setCurrentPsikolog] = useState<TenagaAhli | null>(null)
   const [isCheckingAccess, setIsCheckingAccess] = useState(true)
 
-  useEffect(() => {
+  const syncPsikologData = () => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-      // Ambil akun login psikolog (default id "1" / Rizki Putri)
-      const found = list.find((item) => item.email === "putriqoida@empathika.com") || list[0]
+      const savedName = localStorage.getItem("active_psikolog_name")
+      const found =
+        (savedName ? list.find((item) => item.nama === savedName) : null) ||
+        list.find((item) => item.email === "putriqoida@empathika.com") ||
+        list[0]
       setCurrentPsikolog(found || null)
     } catch {
       setCurrentPsikolog(INITIAL_TENAGA_AHLI[0])
     } finally {
       setIsCheckingAccess(false)
+    }
+
+    // Sinkronkan juga dari database backend
+    psikologService.getList().then((dbList: any[]) => {
+      if (dbList && dbList.length > 0) {
+        const savedId = localStorage.getItem("active_psikolog_id")
+        const savedName = localStorage.getItem("active_psikolog_name")
+        const matched =
+          (savedId ? dbList.find((p) => p.id === savedId) : null) ||
+          (savedName ? dbList.find((p) => p.nama_gelar === savedName) : null) ||
+          dbList.find((p) => p.nama_gelar?.includes("Rizki")) ||
+          dbList[0]
+
+        if (matched) {
+          setCurrentPsikolog((prev) => ({
+            id: matched.id,
+            nama: matched.nama_gelar || matched.account?.nama || "Psikolog Empathika",
+            email: matched.account?.email || "psikolog@empathika.com",
+            kategori: (matched.kategori?.toLowerCase().includes("peer")
+              ? "peer-konselor"
+              : matched.kategori?.toLowerCase().includes("konselor")
+              ? "konselor"
+              : "psikolog") as any,
+            spesialisasi: matched.spesialisasi?.nama || "Kesehatan Mental",
+            foto: matched.foto || "/images/psikolog/default.jpg",
+            statusAkses: "AKTIF",
+            noTelepon: prev?.noTelepon || "081234567890",
+            jumlahSesi: matched.jumlah_sesi || prev?.jumlahSesi || 28,
+            bio: matched.bio || prev?.bio || "",
+            quote: matched.quote || prev?.quote || "",
+            instagram: matched.instagram || prev?.instagram || "",
+            keahlian: Array.isArray(matched.keahlian)
+              ? matched.keahlian
+              : typeof matched.keahlian === "string"
+              ? matched.keahlian.split(",").map((s: string) => s.trim())
+              : prev?.keahlian || ["Konseling Umum"],
+            tanggalBergabung: prev?.tanggalBergabung || "Agustus 2024",
+          }))
+        }
+      }
+    }).catch(() => {})
+  }
+
+  useEffect(() => {
+    syncPsikologData()
+
+    window.addEventListener("storage", syncPsikologData)
+    return () => {
+      window.removeEventListener("storage", syncPsikologData)
     }
   }, [pathname])
 
