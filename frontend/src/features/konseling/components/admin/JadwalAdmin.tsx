@@ -97,29 +97,6 @@ export default function JadwalAdmin() {
     }
   }, [searchParams])
 
-  // State daftar dan profil psikolog aktif yang diambil dari Database
-  const [psikologList, setPsikologList] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any }[]>([])
-  const [activePsikolog, setActivePsikolog] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any } | null>(null)
-
-  useEffect(() => {
-    psikologService
-      .getList()
-      .then((list: any[]) => {
-        if (list && list.length > 0) {
-          const mapped = list.map((p) => ({
-            id: p.id,
-            nama_gelar: p.nama_gelar || p.account?.nama || "Psikolog Empathika",
-            kategori: p.kategori,
-            account: p.account,
-          }))
-          setPsikologList(mapped)
-          setActivePsikolog(mapped[0])
-        }
-      })
-      .catch(() => {})
-  }, [])
-
-
   // Helper update URL query param tanpa reload halaman
   const updateUrlParams = (updates: Record<string, string | null | undefined>) => {
     const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
@@ -430,8 +407,8 @@ export default function JadwalAdmin() {
   const handleBooking = async (times: string[]) => {
     if (!date || times.length === 0) return
     const dateKey = formatDateKey(date)
-    const psikologId = activePsikolog?.id || "psikolog-default-id"
-    const psikologNama = activePsikolog?.nama_gelar || "Dr. Dimas, M.Psi."
+    const psikologNama = "Dr. Dimas Ardiansyah, M.Psi., Psikolog"
+    const psikologId = "psikolog-default-id"
 
     const newSessions: BookedAssessment[] = []
     const newSlotItems: any[] = []
@@ -493,8 +470,8 @@ export default function JadwalAdmin() {
     setBookedSessions((prev) => [...newSessions, ...prev])
     setBookingSuccessMsg(
       times.length === 1
-        ? `Slot jam ${times[0]} berhasil dibuka atas nama ${psikologNama}!`
-        : `${times.length} slot jam berhasil dibuka sekaligus atas nama ${psikologNama}!`
+        ? `Slot jam ${times[0]} berhasil dibuka!`
+        : `${times.length} slot jam berhasil dibuka sekaligus!`
     )
     setTimeout(() => setBookingSuccessMsg(null), 4500)
   }
@@ -544,17 +521,15 @@ export default function JadwalAdmin() {
           <button
             type="button"
             onClick={() => setIsLayananDropdownOpen((prev) => !prev)}
-            className={`flex items-center gap-2 border px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-2xs cursor-pointer ${
-              selectedLayanan !== "Semua Layanan"
+            className={`flex items-center gap-2 border px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-2xs cursor-pointer ${selectedLayanan !== "Semua Layanan"
                 ? "border-[#561269] bg-purple-50 text-[#561269] font-semibold"
                 : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <span>{selectedLayanan}</span>
             <ChevronDown
-              className={`w-4 h-4 ml-1 transition-transform duration-200 ${
-                isLayananDropdownOpen ? "rotate-180 text-[#561269]" : "text-gray-500"
-              }`}
+              className={`w-4 h-4 ml-1 transition-transform duration-200 ${isLayananDropdownOpen ? "rotate-180 text-[#561269]" : "text-gray-500"
+                }`}
             />
           </button>
 
@@ -581,11 +556,10 @@ export default function JadwalAdmin() {
                           handleLayananChange(opt)
                           setIsLayananDropdownOpen(false)
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                          isSelected
+                        className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${isSelected
                             ? "bg-purple-50 text-[#561269] font-bold"
                             : "text-gray-700 hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         <span className="truncate">{opt}</span>
                         {isSelected && (
@@ -682,17 +656,14 @@ export default function JadwalAdmin() {
         }}
       />
 
-      {/* Jadwal Sesi (Calendar & Time Slot Picker) */}
+      {/* Jadwal Asesmen (Calendar & Time Slot Picker) */}
       <JadwalAsesmenPicker
         date={date}
         onSelectDate={handleSelectDate}
-        bookedSessions={bookedSessions as any}
+        bookedSessions={bookedSessions}
         bookingSuccessMsg={bookingSuccessMsg}
         onBooking={handleBooking}
         timeSlots={TIME_SLOTS}
-        psikologList={psikologList}
-        activePsikolog={activePsikolog}
-        onSelectPsikolog={(p) => setActivePsikolog(p)}
       />
 
       {/* Jadwal Mingguan (Weekly Assessment Schedule Grid) */}
@@ -703,9 +674,9 @@ export default function JadwalAdmin() {
         weekRangeTitle={weekRangeTitle}
         weekDays={weekDays}
         currentWeekAllSessions={currentWeekAllSessions}
-        timeSlots={TIME_SLOTS}
-        currentWeekMonday={currentWeekMonday}
-        onSelectDate={handleSelectDate}
+        selectedLayanan={selectedLayanan}
+        matchLayanan={matchLayanan}
+        today={today}
       />
 
       {/* ── Modal Tambah Sesi ── */}

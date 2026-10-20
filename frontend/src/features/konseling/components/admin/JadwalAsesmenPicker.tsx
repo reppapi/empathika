@@ -12,9 +12,6 @@ interface JadwalAsesmenPickerProps {
   bookingSuccessMsg: string | null
   onBooking: (times: string[]) => void
   timeSlots?: string[]
-  psikologList?: { id: string; nama_gelar: string; kategori?: string; account?: any }[]
-  activePsikolog?: { id: string; nama_gelar: string; kategori?: string; account?: any } | null
-  onSelectPsikolog?: (p: any) => void
 }
 
 function formatFullDateIndonesian(d: Date): string {
@@ -39,9 +36,6 @@ export default function JadwalAsesmenPicker({
     "14:30 - 15:30",
     "15:30 - 16:30",
   ],
-  psikologList = [],
-  activePsikolog,
-  onSelectPsikolog,
 }: JadwalAsesmenPickerProps) {
   const today = useMemo(() => {
     const d = new Date()
@@ -105,29 +99,6 @@ export default function JadwalAsesmenPicker({
             Atur jadwal sesi konseling Anda dengan mudah. Pilih tanggal dan waktu yang tersedia sesuai dengan preferensi Anda.
           </p>
         </div>
-
-        {/* Pemilihan Psikolog dari Database */}
-        {psikologList && psikologList.length > 0 && (
-          <div className="flex items-center gap-2 self-start sm:self-auto bg-purple-50/70 border border-purple-200/80 px-3.5 py-2 rounded-xl shrink-0">
-            <span className="text-xs font-semibold text-gray-600">Psikolog:</span>
-            <select
-              value={activePsikolog?.id || ""}
-              onChange={(e) => {
-                const sel = psikologList.find((p) => p.id === e.target.value)
-                if (sel && onSelectPsikolog) {
-                  onSelectPsikolog(sel)
-                }
-              }}
-              className="text-xs font-bold text-[#561269] bg-transparent border-none focus:outline-none cursor-pointer"
-            >
-              {psikologList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nama_gelar || p.account?.nama}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">

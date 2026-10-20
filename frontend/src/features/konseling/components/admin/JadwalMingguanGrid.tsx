@@ -1,6 +1,8 @@
 "use client"
 
-import React from "react"
+import { BookedAssessment } from "@/features/konseling/types"
+import { formatDateKey } from "@/features/konseling/data/jadwalAdminData"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface WeekDayItem {
   dayName: string
@@ -10,42 +12,35 @@ interface WeekDayItem {
 }
 
 interface JadwalMingguanGridProps {
-  canGoPrevWeek?: boolean
+  canGoPrevWeek: boolean
   goToPrevWeek: () => void
   goToNextWeek: () => void
   weekRangeTitle: string
   weekDays: WeekDayItem[]
-  currentWeekAllSessions: any[]
-  selectedLayanan?: string
-  matchLayanan?: (itemLayanan: string, filter: string) => boolean
-  today?: Date
-  timeSlots?: string[]
-  currentWeekMonday?: Date
-  onSelectDate?: (d: Date) => void
+  currentWeekAllSessions: BookedAssessment[]
+  selectedLayanan: string
+  matchLayanan: (itemLayanan: string, filter: string) => boolean
+  today: Date
 }
 
 export default function JadwalMingguanGrid({
-  canGoPrevWeek = true,
+  canGoPrevWeek,
   goToPrevWeek,
   goToNextWeek,
   weekRangeTitle,
   weekDays,
-  currentWeekAllSessions = [],
-  timeSlots = [
-    "09:00 - 10:00",
-    "10:00 - 11:00",
-    "13:00 - 14:00",
-    "14:30 - 15:30",
-    "15:30 - 16:30",
-  ],
-  currentWeekMonday,
-  onSelectDate,
+  currentWeekAllSessions,
+  selectedLayanan,
+  matchLayanan,
+  today,
 }: JadwalMingguanGridProps) {
+  const todayDateKey = formatDateKey(today)
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mt-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-2">Jadwal Mingguan</h2>
-      <p className="text-sm text-gray-500 mb-6">
-        Lihat ringkasan jadwal sesi Anda yang sudah dibooking dalam satu minggu.
+    <div className="mt-8 bg-white border border-gray-100 shadow-sm rounded-2xl p-6 sm:p-8 font-poppins">
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Mingguan</h2>
+      <p className="text-gray-500 text-sm mb-6">
+        Lihat ringkasan layanan yang telah dibooking oleh klien dalam satu minggu
       </p>
 
       {/* Week Selector */}
@@ -55,71 +50,48 @@ export default function JadwalMingguanGrid({
           onClick={goToPrevWeek}
           disabled={!canGoPrevWeek}
           aria-label="Minggu Sebelumnya"
-          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors border border-gray-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          title={canGoPrevWeek ? "Minggu Sebelumnya" : "Batas riwayat maksimal 4 minggu ke belakang"}
+          className={`p-1.5 rounded-full transition-colors border border-gray-200 ${canGoPrevWeek
+              ? "hover:bg-gray-100 text-gray-600 cursor-pointer"
+              : "opacity-30 text-gray-300 cursor-not-allowed bg-gray-50"
+            }`}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.5}
-            stroke="currentColor"
-            className="w-3.5 h-3.5"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
+          <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="font-semibold text-gray-900 min-w-[150px] text-center">
+        <span className="font-semibold text-gray-900 min-w-[160px] text-center">
           {weekRangeTitle}
         </span>
         <button
           type="button"
           onClick={goToNextWeek}
           aria-label="Minggu Berikutnya"
-          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors border border-gray-200 cursor-pointer"
+          title="Minggu Berikutnya"
+          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors border border-gray-200 text-gray-600 cursor-pointer"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.5}
-            stroke="currentColor"
-            className="w-3.5 h-3.5"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Weekly Grid (Grid Asli 6 Kolom) */}
-      <div className="w-full border border-gray-200 rounded-xl overflow-x-auto hide-scrollbar">
+      {/* Weekly Grid */}
+      <div className="overflow-x-auto border border-gray-200 rounded-xl hide-scrollbar">
         <div className="min-w-[720px]">
           {/* Header */}
           <div className="grid grid-cols-6 border-b border-gray-200 bg-gray-50/70">
             {weekDays.map((wd, i) => (
               <div
                 key={i}
-                onClick={() => {
-                  if (onSelectDate && currentWeekMonday) {
-                    const targetDate = new Date(currentWeekMonday)
-                    targetDate.setDate(currentWeekMonday.getDate() + i)
-                    onSelectDate(targetDate)
-                  }
-                }}
-                className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 cursor-pointer hover:bg-purple-50/50 transition-colors ${
-                  wd.isSameAsSelected ? "bg-purple-50/80 ring-1 ring-inset ring-[#561269]/20" : ""
-                }`}
+                className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 ${wd.isSameAsSelected ? "bg-purple-50/80" : ""
+                  }`}
               >
                 <span
-                  className={`text-[13px] font-bold ${
-                    wd.isSameAsSelected ? "text-[#561269]" : "text-gray-800"
-                  }`}
+                  className={`text-[13px] font-bold ${wd.isSameAsSelected ? "text-[#561269]" : "text-gray-800"
+                    }`}
                 >
                   {wd.dayName}
                 </span>
                 <span
-                  className={`text-[11px] ${
-                    wd.isSameAsSelected ? "text-[#561269] font-bold" : "text-gray-500"
-                  }`}
+                  className={`text-[11px] ${wd.isSameAsSelected ? "text-[#561269] font-bold" : "text-gray-500"
+                    }`}
                 >
                   {wd.dateLabel}
                 </span>
@@ -130,50 +102,88 @@ export default function JadwalMingguanGrid({
           {/* Grid Body */}
           <div className="grid grid-cols-6 min-h-[360px] divide-x divide-gray-200">
             {weekDays.map((wd, i) => {
-              const sessions = currentWeekAllSessions.filter((s) => s.date === wd.dateKey)
+              const sessions = currentWeekAllSessions
+                .filter((s) => s.date === wd.dateKey && matchLayanan(s.layanan, selectedLayanan))
+                .sort((a, b) => a.waktu.localeCompare(b.waktu))
+
+              const isTodayColumn = wd.dateKey === todayDateKey
+              const isPastDay = wd.dateKey < todayDateKey
 
               return (
                 <div
                   key={i}
-                  className={`p-2 flex flex-col gap-2 ${
-                    wd.isSameAsSelected ? "bg-purple-50/20" : "bg-white"
-                  }`}
+                  className={`p-2.5 flex flex-col gap-2.5 ${isTodayColumn
+                      ? "bg-purple-50/25 ring-1 ring-inset ring-[#561269]/20"
+                      : isPastDay
+                        ? "bg-gray-50/40"
+                        : "bg-white"
+                    }`}
                 >
-                  {timeSlots.map((time, slotIdx) => {
-                    const booking = sessions.find((s) => s.waktu === time)
-
-                    if (booking && !booking.isAvailableSlot && booking.namaKlien !== "Tersedia") {
-                      // Sesi Dibooking Klien (Warna Hijau Sesuai Desain Asli)
+                  {sessions.length > 0 ? (
+                    sessions.map((item) => {
+                      const isPast = item.date < todayDateKey
                       return (
                         <div
-                          key={booking.id || slotIdx}
-                          className="bg-[#d7e6dc] border border-[#b4d6be] rounded-lg p-2.5 flex items-start gap-2 shadow-xs hover:shadow-sm transition-all"
+                          key={item.id}
+                          className={`rounded-xl p-3 flex flex-col gap-1 shadow-xs hover:shadow-sm transition-all ${isPast
+                              ? "bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                              : "bg-[#E8F3ED] border border-[#b4d6be]"
+                            }`}
                         >
-                          <div className="w-2 h-2 rounded-full bg-[#185e26] shrink-0 mt-1" />
-                          <div className="flex flex-col text-[10px] font-bold text-gray-800 leading-tight">
-                            <span className="text-[#185e26]">{booking.waktu}</span>
-                            <span className="font-semibold text-gray-900 mt-0.5">{booking.layanan}</span>
-                            <span className="font-normal italic text-[9px] text-gray-600">
-                              {booking.namaKlien ? `${booking.namaKlien} ` : ""}({booking.metode || "Online"})
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 ${isPast ? "bg-gray-400" : "bg-green-600"
+                                  }`}
+                              />
+                              <span
+                                className={`text-xs font-extrabold ${isPast ? "text-gray-600" : "text-[#185e26]"
+                                  }`}
+                              >
+                                {item.waktu}
+                              </span>
+                            </div>
+                            {isPast && (
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                Selesai
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            className={`text-xs font-bold leading-tight mt-0.5 ${isPast ? "text-gray-700" : "text-gray-900"
+                              }`}
+                          >
+                            {item.layanan}
+                          </p>
+                          <div
+                            className={`text-[10px] flex flex-col mt-0.5 leading-tight ${isPast ? "text-gray-500" : "text-gray-600"
+                              }`}
+                          >
+                            {item.namaKlien && (
+                              <span>
+                                Klien:{" "}
+                                <strong className={isPast ? "text-gray-700" : "text-gray-800"}>
+                                  {item.namaKlien}
+                                </strong>
+                              </span>
+                            )}
+                            {item.psikolog && (
+                              <span>Tenaga: {item.psikolog}</span>
+                            )}
+                            <span className="text-[9px] text-gray-400 italic mt-0.5">
+                              [{item.metode}]
                             </span>
                           </div>
                         </div>
                       )
-                    }
-
-                    return (
-                      <div
-                        key={slotIdx}
-                        className="bg-[#f3f4f6] border border-gray-200/80 rounded-lg p-2 flex items-start gap-2 hover:bg-gray-200/70 transition-colors"
-                      >
-                        <div className="w-2 h-2 rounded-full bg-gray-400 shrink-0 mt-1" />
-                        <div className="flex flex-col text-[10px] leading-tight">
-                          <span className="font-bold text-gray-700">{time}</span>
-                          <span className="text-[9px] text-gray-500 font-medium mt-0.5">Tersedia</span>
-                        </div>
-                      </div>
-                    )
-                  })}
+                    })
+                  ) : (
+                    <div className="h-full flex items-center justify-center py-16">
+                      <span className="text-xs text-gray-300 italic select-none">
+                        Tidak ada jadwal
+                      </span>
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -182,15 +192,18 @@ export default function JadwalMingguanGrid({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-6 mt-5 px-1">
+      <div className="flex items-center gap-6 mt-6 ml-1 flex-wrap">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#185e26]" />
-          <span className="text-[11px] font-bold text-gray-700">Sudah Dibooking</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-green-600"></span>
+          <span className="text-xs font-bold text-gray-700">Sesi Aktif / Terjadwal</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
-          <span className="text-[11px] font-bold text-gray-700">Tersedia (Belum Dibooking)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
+          <span className="text-xs font-bold text-gray-500">Sesi Selesai (Riwayat Masa Lalu)</span>
         </div>
+        <span className="text-[11px] text-gray-400">
+          * Riwayat sesi masa lalu dapat diakses hingga 4 minggu ke belakang. Sesi minggu berikutnya muncul bila ada pemesanan (booking).
+        </span>
       </div>
     </div>
   )
