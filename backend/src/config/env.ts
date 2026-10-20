@@ -16,6 +16,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(["development", "staging", "production", "test"]).default("development"),
   ALLOWED_ORIGINS: z.string().default("http://localhost:3000"),
+  BASE_URL: z.string().optional(), // e.g. http://localhost:3001 — untuk generate URL file upload
   MIDTRANS_SERVER_KEY: z.string().optional(),
   MIDTRANS_CLIENT_KEY: z.string().optional(),
   SMTP_HOST: z.string().optional(),

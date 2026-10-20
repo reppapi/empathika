@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, Mail, Lock, ArrowRight } from "lucide-react";
-import { DUMMY_ADMIN, DUMMY_PSIKOLOG, DUMMY_BIRO } from "../data/dummyAuth";
+import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 
 export function LoginForm() {
@@ -29,48 +29,56 @@ export function LoginForm() {
 
     setIsLoading(true);
 
-    // Simulasi delay network
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      const response = await authService.login({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
 
-    // Cek akun Admin Utama
-    if (trimmedEmail === DUMMY_ADMIN.email && trimmedPassword === DUMMY_ADMIN.password) {
-      document.cookie = "access_token=dummy-admin-token; path=/; max-age=86400";
+      if (!response.success || !response.data?.accessToken) {
+        throw new Error(response.message || "Gagal masuk");
+      }
+
+      const { user, accessToken } = response.data;
+
+      // 1. Simpan token ke cookie agar middleware Next.js mengizinkan akses ke /admin, /admin-biro, /psikolog-web
+      document.cookie = `access_token=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+
+      // 2. Simpan token ke localStorage agar axios interceptor menyertakan Authorization Bearer
+      localStorage.setItem("access_token", accessToken);
+
+      // 3. Simpan ke Zustand auth store
       setAuth(
-        { id: "1", name: "Admin Empathika", email: trimmedEmail, role: "ADMIN" },
-        "dummy-admin-token"
+        {
+          id: user.id,
+          name: user.nama,
+          email: user.email,
+          role: user.role as any,
+        },
+        accessToken
       );
-      router.push("/admin");
-      router.refresh();
-      return;
-    }
 
-    // Cek akun Psikolog
-    if (trimmedEmail === DUMMY_PSIKOLOG.email && trimmedPassword === DUMMY_PSIKOLOG.password) {
-      document.cookie = "access_token=dummy-psikolog-token; path=/; max-age=86400";
-      setAuth(
-        { id: "2", name: "Psikolog Empathika", email: trimmedEmail, role: "PSIKOLOG" },
-        "dummy-psikolog-token"
-      );
-      router.push("/psikolog-web/beranda" as any);
-      router.refresh();
-      return;
-    }
+      // 4. Arahkan pengguna ke dashboard sesuai perannya di database
+      if (user.role === "ADMIN") {
+        router.push("/admin");
+      } else if (user.role === "PSIKOLOG") {
+        router.push("/psikolog-web");
+      } else if (user.role === "BIRO") {
+        router.push("/admin-biro");
+      } else {
+        router.push("/");
+      }
 
-    // Cek akun Admin Biro (Read-only mitra)
-    if (trimmedEmail === DUMMY_BIRO.email && trimmedPassword === DUMMY_BIRO.password) {
-      document.cookie = "access_token=dummy-biro-token; path=/; max-age=86400";
-      setAuth(
-        { id: "3", name: "Admin Biro Cendekia Muda", email: trimmedEmail, role: "BIRO" },
-        "dummy-biro-token"
-      );
-      router.push("/admin-biro/transaksi");
       router.refresh();
-      return;
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        "Email atau password yang Anda masukkan tidak sesuai.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Jika tidak cocok dengan akun manapun
-    setIsLoading(false);
-    setError("Email atau password yang Anda masukkan tidak sesuai.");
   };
 
   return (

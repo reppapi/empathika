@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { BlogPost } from "@/features/blog/types"
-import { INITIAL_ADMIN_BLOGS } from "../../data/adminBlogData"
+import { blogService } from "@/services/blog.service"
+import { uploadService } from "@/services/upload.service"
 
 interface Props {
   slug: string
@@ -13,127 +13,77 @@ interface Props {
 export default function AdminEditBlogClient({ slug }: Props) {
   const router = useRouter()
   const dateInputRef = useRef<HTMLInputElement>(null)
-  const [blog, setBlog] = useState<BlogPost | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Form states
   const [title, setTitle] = useState("")
   const [date, setDate] = useState("")
   const [content, setContent] = useState("")
-  const [imageUrl, setImageUrl] = useState("")
+
+  // Image states — pisah antara URL server yg sudah ada & file baru yg mau diupload
+  const [existingBannerUrl, setExistingBannerUrl] = useState<string | null>(null)
+  const [newImageFile, setNewImageFile] = useState<File | null>(null)
+  const [newImagePreview, setNewImagePreview] = useState<string>("")
+
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
-    // Cari blog dari localStorage atau INITIAL_ADMIN_BLOGS
-    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
-    const saved = localStorage.getItem("empathika_admin_blogs")
-    if (saved) {
-      try {
-        currentBlogs = JSON.parse(saved)
-      } catch {
-        currentBlogs = INITIAL_ADMIN_BLOGS
-      }
-    }
-
-    const found = currentBlogs.find((b) => b.slug === slug)
-    if (found) {
-      setBlog(found)
-      setTitle(found.title)
-      // Konversi format tanggal ke YYYY-MM-DD jika formatnya teks seperti "12 Oktober 2026"
-      let dateValue = "2026-10-12"
-      if (found.date) {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(found.date)) {
-          dateValue = found.date
+    setLoading(true)
+    blogService
+      .getById(slug)
+      .then((res) => {
+        if (res?.success && res.data) {
+          const item = res.data
+          setTitle(item.judul)
+          setContent(item.isi)
+          setExistingBannerUrl(item.banner_url || null)
+          setDate(item.tanggal_terbit?.split("T")[0] || "")
         } else {
-          // Coba parse format teks atau DD/MM/YYYY
-          const parts = found.date.split(" ")
-          if (parts.length === 3) {
-            const months: Record<string, string> = {
-              Januari: "01",
-              Februari: "02",
-              Maret: "03",
-              April: "04",
-              Mei: "05",
-              Juni: "06",
-              Juli: "07",
-              Agustus: "08",
-              September: "09",
-              Oktober: "10",
-              November: "11",
-              Desember: "12",
-            }
-            const day = parts[0].padStart(2, "0")
-            const month = months[parts[1]] || "10"
-            const year = parts[2]
-            dateValue = `${year}-${month}-${day}`
-          }
+          setNotFound(true)
         }
-      }
-      setDate(dateValue)
-      setContent(Array.isArray(found.content) ? found.content.join("\n\n") : found.content)
-      setImageUrl(found.imageUrl || "")
-    }
-    setLoading(false)
+      })
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false))
   }, [slug])
 
-  const handleImageUpload = (file: File) => {
-    if (file) {
-      const url = URL.createObjectURL(file)
-      setImageUrl(url)
-    }
+  const handleImageSelect = (file: File) => {
+    setNewImageFile(file)
+    setNewImagePreview(URL.createObjectURL(file))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!blog) return
+    if (isSubmitting) return
+    setIsSubmitting(true)
 
-    // Update data di localStorage
-    let currentBlogs: BlogPost[] = INITIAL_ADMIN_BLOGS
-    const saved = localStorage.getItem("empathika_admin_blogs")
-    if (saved) {
-      try {
-        currentBlogs = JSON.parse(saved)
-      } catch {
-        currentBlogs = INITIAL_ADMIN_BLOGS
-      }
-    }
+    try {
+      let finalBannerUrl: string | null = existingBannerUrl
 
-    // Format tanggal ke Bahasa Indonesia (cth: "12 Oktober 2026")
-    let displayDate = date
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      const [y, m, d] = date.split("-")
-      const monthNames = [
-        "Januari",
-        "Februari",
-        "Maret",
-        "April",
-        "Mei",
-        "Juni",
-        "Juli",
-        "Agustus",
-        "September",
-        "Oktober",
-        "November",
-        "Desember",
-      ]
-      displayDate = `${parseInt(d, 10)} ${monthNames[parseInt(m, 10) - 1]} ${y}`
-    }
-
-    const updatedBlogs = currentBlogs.map((b) => {
-      if (b.slug === slug) {
-        return {
-          ...b,
-          title,
-          date: displayDate,
-          content: content.split("\n\n").filter(Boolean),
-          imageUrl,
+      // Upload gambar baru ke server jika ada file baru
+      if (newImageFile) {
+        setIsUploading(true)
+        try {
+          finalBannerUrl = await uploadService.uploadImage(newImageFile)
+        } finally {
+          setIsUploading(false)
         }
       }
-      return b
-    })
 
-    localStorage.setItem("empathika_admin_blogs", JSON.stringify(updatedBlogs))
-    router.push("/admin/blog")
+      await blogService.update(slug, {
+        judul: title,
+        isi: content,
+        banner_url: finalBannerUrl,
+      })
+
+      router.push("/admin/blog")
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || "Gagal memperbarui artikel blog")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (loading) {
@@ -144,7 +94,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
     )
   }
 
-  if (!blog) {
+  if (notFound) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-gray-400 font-poppins">
         <p className="text-lg font-bold">Blog tidak ditemukan.</p>
@@ -164,21 +114,23 @@ export default function AdminEditBlogClient({ slug }: Props) {
   const labelClass = "block text-xs font-bold text-gray-700 mb-1.5"
   const helperClass = "block text-[11px] text-gray-400 mt-1 font-normal"
 
+  // Gambar yang ditampilkan di preview: utamakan file baru, fallback ke URL yang sudah ada
+  const displayImageSrc = newImagePreview || existingBannerUrl || ""
+
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16 max-w-5xl mx-auto">
       {/* ── Heading Form ── */}
       <div className="flex flex-col gap-1">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
-          {title || blog.title}
+          {title || "Edit Blog"}
         </h2>
       </div>
 
-      {/* ── Container Form (Background putih, rounded corners, shadow tipis) ── */}
+      {/* ── Container Form ── */}
       <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* ── Baris 1 (2 Kolom): Ubah Judul Blog & Ubah Tanggal Publikasi ── */}
+          {/* ── Baris 1 (2 Kolom): Judul & Tanggal ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-            {/* Kiri: Ubah Judul Blog * */}
             <div>
               <label htmlFor="title" className={labelClass}>
                 Ubah Judul Blog <span className="text-red-500">*</span>
@@ -189,13 +141,12 @@ export default function AdminEditBlogClient({ slug }: Props) {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Masukan judul blog baru"
+                placeholder="Masukan judul blog"
                 className={inputClass}
               />
               <span className={helperClass}>Masukan judul blog baru</span>
             </div>
 
-            {/* Kanan: Ubah Tanggal Publikasi */}
             <div>
               <label htmlFor="date" className={labelClass}>
                 Ubah Tanggal Publikasi
@@ -237,11 +188,11 @@ export default function AdminEditBlogClient({ slug }: Props) {
                   </svg>
                 </button>
               </div>
-              <span className={helperClass}>Masukan tanggal publikasi blog baru</span>
+              <span className={helperClass}>Masukan tanggal publikasi blog</span>
             </div>
           </div>
 
-          {/* ── Baris 2 (1 Kolom Penuh): Ubah Isi Blog ── */}
+          {/* ── Baris 2: Isi Blog ── */}
           <div>
             <label htmlFor="content" className={labelClass}>
               Ubah Isi Blog
@@ -251,16 +202,16 @@ export default function AdminEditBlogClient({ slug }: Props) {
               rows={8}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Masukan isi blog baru"
+              placeholder="Masukan isi blog"
               className={`${inputClass} resize-y leading-relaxed font-normal`}
             />
-            <span className={helperClass}>Masukan isi blog baru</span>
+            <span className={helperClass}>Masukan isi blog</span>
           </div>
 
-          {/* ── Baris 3 (1 Kolom): Ubah Foto/Poster terkait blog * ── */}
+          {/* ── Baris 3: Foto/Poster ── */}
           <div>
             <label className={labelClass}>
-              Ubah Foto/Poster terkait blog <span className="text-red-500">*</span>
+              Ubah Foto/Poster terkait blog
             </label>
             <div
               onDragOver={(e) => {
@@ -272,7 +223,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
                 e.preventDefault()
                 setIsDragOver(false)
                 if (e.dataTransfer.files?.[0]) {
-                  handleImageUpload(e.dataTransfer.files[0])
+                  handleImageSelect(e.dataTransfer.files[0])
                 }
               }}
               className={`relative flex flex-col items-center justify-center w-full min-h-[220px] rounded-2xl border-2 border-dashed transition-all cursor-pointer p-4 overflow-hidden ${
@@ -282,30 +233,35 @@ export default function AdminEditBlogClient({ slug }: Props) {
               }`}
             >
               <input
-                id="file-upload"
+                id="file-upload-edit"
                 type="file"
-                accept="image/png, image/jpeg, image/jpg"
+                accept="image/png, image/jpeg, image/jpg, image/webp"
                 className="hidden"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
-                    handleImageUpload(e.target.files[0])
+                    handleImageSelect(e.target.files[0])
                   }
                 }}
               />
 
-              {imageUrl ? (
+              {displayImageSrc ? (
                 <div className="flex flex-col items-center gap-3 w-full">
                   <div className="relative w-full max-w-sm h-48 rounded-xl overflow-hidden shadow-sm">
                     <Image
-                      src={imageUrl}
+                      src={displayImageSrc}
                       alt="Preview banner"
                       fill
                       className="object-cover"
                       unoptimized
                     />
                   </div>
+                  {newImageFile && (
+                    <p className="text-[11px] text-green-600 font-medium">
+                      ✓ Gambar baru siap diupload: {newImageFile.name}
+                    </p>
+                  )}
                   <label
-                    htmlFor="file-upload"
+                    htmlFor="file-upload-edit"
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#561269] hover:underline cursor-pointer"
                   >
                     <svg
@@ -327,7 +283,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
                 </div>
               ) : (
                 <label
-                  htmlFor="file-upload"
+                  htmlFor="file-upload-edit"
                   className="flex flex-col items-center gap-2 text-center cursor-pointer"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 text-[#561269]">
@@ -351,7 +307,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
                       Upload gambar poster / banner
                     </span>
                     <span className="block text-[11px] text-gray-400 mt-0.5">
-                      Format: JPG, PNG (Max. 2MB)
+                      Format: JPG, PNG, WEBP (Max. 5MB)
                     </span>
                   </div>
                 </label>
@@ -359,20 +315,32 @@ export default function AdminEditBlogClient({ slug }: Props) {
             </div>
           </div>
 
-          {/* ── Form Actions (Kanan Bawah): [Kembali] & [Simpan] ── */}
+          {/* ── Form Actions ── */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"
               onClick={() => router.push("/admin/blog")}
-              className="rounded-full border border-gray-300 bg-white px-7 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+              disabled={isSubmitting}
+              className="rounded-full border border-gray-300 bg-white px-7 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer disabled:opacity-50"
             >
               Kembali
             </button>
             <button
               type="submit"
-              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Simpan
+              {isSubmitting ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {isUploading ? "Mengupload gambar..." : "Menyimpan..."}
+                </>
+              ) : (
+                "Simpan Perubahan"
+              )}
             </button>
           </div>
         </form>
