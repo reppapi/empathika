@@ -15,7 +15,7 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
   } else if (typeof item.keahlian === 'string' && item.keahlian.trim()) {
     keahlianList = item.keahlian.split(',').map((s: string) => s.trim()).filter(Boolean);
   } else {
-    keahlianList = ['Konseling Umum', 'Manajemen Stres', 'Pengembangan Diri'];
+    keahlianList = [];
   }
 
   // Format jadwal tersedia dari jadwal_slot jika ada

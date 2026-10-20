@@ -133,15 +133,26 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
     })
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form) return
 
+    // 1. Simpan pembaruan ke Database PostgreSQL backend
+    try {
+      await psikologService.createPsikologBaru(form)
+    } catch (err: any) {
+      console.warn("Gagal update ke backend database:", err?.message || err)
+    }
+
+    // 2. Simpan juga ke cache lokal & picu event sinkronisasi
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
       const updated = list.map((d) => (d.id === form.id ? form : d))
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updated))
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("storage"))
+      }
       setItem(form)
       setShowNotification(true)
       setTimeout(() => setShowNotification(false), 3000)

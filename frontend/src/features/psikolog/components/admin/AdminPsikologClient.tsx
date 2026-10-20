@@ -95,6 +95,9 @@ export default function AdminPsikologClient() {
   const persistData = (newList: TenagaAhli[], notifMsg?: string) => {
     setDataList(newList)
     localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(newList))
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("storage"))
+    }
     if (notifMsg) {
       setNotification(notifMsg)
       setTimeout(() => setNotification(null), 3000)
@@ -126,13 +129,19 @@ export default function AdminPsikologClient() {
   }
 
   // Hapus Data
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (!deleteConfirmItem) return
-    const updated = dataList.filter((d) => d.id !== deleteConfirmItem.id)
+    const idToDelete = deleteConfirmItem.id
+    const updated = dataList.filter((d) => d.id !== idToDelete)
     persistData(updated, `Data ${deleteConfirmItem.nama} telah dihapus.`)
-    // Sync delete to backend DB
-    psikologService.deletePsikolog(deleteConfirmItem.id).catch(() => {})
     setDeleteConfirmItem(null)
+
+    // Sync delete to backend DB
+    try {
+      await psikologService.deletePsikolog(idToDelete)
+    } catch (err: any) {
+      console.warn("Gagal menghapus dari backend DB:", err?.message || err)
+    }
   }
 
   // Filter List tunggal

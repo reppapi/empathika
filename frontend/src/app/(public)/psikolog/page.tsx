@@ -15,12 +15,11 @@ export default function PsikologPage() {
   const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    // Ambil data psikolog langsung dari database
+  const fetchPsychologists = () => {
     psikologService
       .getList()
       .then((dbList: any[]) => {
-        if (dbList && dbList.length > 0) {
+        if (Array.isArray(dbList)) {
           const mapped = dbList.map(mapDbPsikologToUI)
           setDataPsikolog(mapped)
         }
@@ -31,6 +30,18 @@ export default function PsikologPage() {
       .finally(() => {
         setIsLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchPsychologists()
+
+    window.addEventListener("storage", fetchPsychologists)
+    window.addEventListener("focus", fetchPsychologists)
+
+    return () => {
+      window.removeEventListener("storage", fetchPsychologists)
+      window.removeEventListener("focus", fetchPsychologists)
+    }
   }, [])
 
   const {

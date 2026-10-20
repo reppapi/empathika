@@ -48,11 +48,11 @@ export default function BookingClient() {
   const [dbProfessionals, setDbProfessionals] = useState<PsikologUI[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchProfessionals = () => {
     psikologService
       .getList()
       .then((list: any[]) => {
-        if (list && list.length > 0) {
+        if (Array.isArray(list)) {
           const mapped = list.map(mapDbPsikologToUI)
           setDbProfessionals(mapped)
         }
@@ -63,6 +63,18 @@ export default function BookingClient() {
       .finally(() => {
         setIsLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchProfessionals()
+
+    window.addEventListener("storage", fetchProfessionals)
+    window.addEventListener("focus", fetchProfessionals)
+
+    return () => {
+      window.removeEventListener("storage", fetchProfessionals)
+      window.removeEventListener("focus", fetchProfessionals)
+    }
   }, [])
 
   const filters = ["Psikolog", "Konselor", "Peer Konselor"]

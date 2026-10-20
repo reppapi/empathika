@@ -167,6 +167,9 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
       const updatedList = list.map((item) => (item.id === psikologId ? updatedTenaga : item))
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updatedList))
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("storage"))
+      }
     } catch {
       // fallback
     } finally {
