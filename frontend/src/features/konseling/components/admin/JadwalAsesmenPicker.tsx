@@ -12,6 +12,9 @@ interface JadwalAsesmenPickerProps {
   bookingSuccessMsg: string | null
   onBooking: (times: string[]) => void
   timeSlots?: string[]
+  psikologList?: { id: string; nama_gelar: string; kategori?: string; account?: any }[]
+  activePsikolog?: { id: string; nama_gelar: string; kategori?: string; account?: any } | null
+  onSelectPsikolog?: (p: any) => void
 }
 
 function formatFullDateIndonesian(d: Date): string {
@@ -36,6 +39,9 @@ export default function JadwalAsesmenPicker({
     "14:30 - 15:30",
     "15:30 - 16:30",
   ],
+  psikologList = [],
+  activePsikolog,
+  onSelectPsikolog,
 }: JadwalAsesmenPickerProps) {
   const today = useMemo(() => {
     const d = new Date()
@@ -46,15 +52,13 @@ export default function JadwalAsesmenPicker({
   // Multi-select slot jam & jam kustom
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])
   const [isCustomTime, setIsCustomTime] = useState(false)
-  const [customStart, setCustomStart] = useState("")
-  const [customEnd, setCustomEnd] = useState("")
+  const [customStart, setCustomStart] = useState("08:00")
+  const [customEnd, setCustomEnd] = useState("09:00")
 
   // Reset pilihan centang saat tanggal berganti
   useEffect(() => {
     setSelectedTimes([])
     setIsCustomTime(false)
-    setCustomStart("")
-    setCustomEnd("")
   }, [date])
 
   const toggleTimeSlot = (time: string) => {
@@ -74,6 +78,10 @@ export default function JadwalAsesmenPicker({
   const handleBookingClick = () => {
     const timesToBook = [...selectedTimes]
     if (isCustomTime && customStart && customEnd) {
+      if (customEnd <= customStart) {
+        alert("Jam selesai harus lebih akhir dari jam mulai.")
+        return
+      }
       const customFormatted = `${customStart} - ${customEnd}`
       if (!timesToBook.includes(customFormatted)) {
         timesToBook.push(customFormatted)
@@ -83,25 +91,48 @@ export default function JadwalAsesmenPicker({
       onBooking(timesToBook)
       setSelectedTimes([])
       setIsCustomTime(false)
-      setCustomStart("")
-      setCustomEnd("")
     }
   }
 
   const isFormValid = selectedTimes.length > 0 || (isCustomTime && customStart && customEnd)
 
   return (
-    <div className="mt-8 bg-white border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.03)] rounded-3xl p-6 sm:p-8 font-poppins">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Asesmen</h2>
-        <p className="text-gray-500 text-sm">
-          Atur jadwal Asesmen, pilih tanggal dan tentukan beberapa slot waktu sekaligus.
-        </p>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Jadwal Sesi</h2>
+          <p className="text-sm text-gray-500">
+            Atur jadwal sesi konseling Anda dengan mudah. Pilih tanggal dan waktu yang tersedia sesuai dengan preferensi Anda.
+          </p>
+        </div>
+
+        {/* Pemilihan Psikolog dari Database */}
+        {psikologList && psikologList.length > 0 && (
+          <div className="flex items-center gap-2 self-start sm:self-auto bg-purple-50/70 border border-purple-200/80 px-3.5 py-2 rounded-xl shrink-0">
+            <span className="text-xs font-semibold text-gray-600">Psikolog:</span>
+            <select
+              value={activePsikolog?.id || ""}
+              onChange={(e) => {
+                const sel = psikologList.find((p) => p.id === e.target.value)
+                if (sel && onSelectPsikolog) {
+                  onSelectPsikolog(sel)
+                }
+              }}
+              className="text-xs font-bold text-[#561269] bg-transparent border-none focus:outline-none cursor-pointer"
+            >
+              {psikologList.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nama_gelar || p.account?.nama}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl">
-        {/* Left: Date Picker Box */}
-        <div className="rounded-[20px] border-2 border-[#DCD0E1] shadow-sm p-6 flex flex-col items-center justify-center bg-[#FAF8FB]/30">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+        {/* Calendar Picker (Left) */}
+        <div className="rounded-[20px] border-2 border-[#DCD0E1] shadow-sm p-6 flex flex-col items-center justify-center">
           <Calendar
             mode="single"
             selected={date}
@@ -113,12 +144,11 @@ export default function JadwalAsesmenPicker({
           />
         </div>
 
-        {/* Right: Time Slots Box (Multi-Select & Jam Kustom) */}
+        {/* Time Picker (Right) */}
         <div className="rounded-[20px] border-2 border-[#DCD0E1] shadow-sm p-6 flex flex-col justify-between">
           <div>
-            {/* Header: Tanggal Terpilih + Tombol Pilih Semua */}
             <div className="flex items-center justify-between mb-4">
-              <h3 suppressHydrationWarning className="font-bold text-[15px] text-gray-900 capitalize">
+              <h3 suppressHydrationWarning className="font-bold text-[15px] capitalize">
                 {date ? formatFullDateIndonesian(date) : "Pilih Tanggal"}
               </h3>
               <button
@@ -131,16 +161,28 @@ export default function JadwalAsesmenPicker({
             </div>
 
             <p className="text-xs text-gray-500 mb-3">
-              Pilih slot jam yang ingin Anda tentukan (bisa pilih beberapa sekaligus):
+              Pilih slot jam yang ingin Anda buka (bisa pilih beberapa sekaligus):
             </p>
 
-            {/* List Checkbox Slot Waktu */}
+            {/* Checkbox List Slot Waktu */}
             <div className="flex flex-col gap-2.5 mb-6">
               {timeSlots.map((time, idx) => {
                 const isChecked = selectedTimes.includes(time)
+                const isAlreadyOpened = date
+                  ? bookedSessions.some(
+                      (s: any) =>
+                        s.date === formatDateKey(date) &&
+                        s.waktu === time &&
+                        (s.isAvailableSlot || s.namaKlien === "Tersedia")
+                    )
+                  : false
                 const isAlreadyBooked = date
                   ? bookedSessions.some(
-                      (s) => s.date === formatDateKey(date) && s.waktu === time
+                      (s: any) =>
+                        s.date === formatDateKey(date) &&
+                        s.waktu === time &&
+                        !s.isAvailableSlot &&
+                        s.namaKlien !== "Tersedia"
                     )
                   : false
 
@@ -150,8 +192,10 @@ export default function JadwalAsesmenPicker({
                     className={`flex items-center justify-between border rounded-xl px-4 py-2.5 cursor-pointer transition-all ${
                       isChecked
                         ? "border-[#561269] bg-purple-50/70 shadow-2xs"
-                        : isAlreadyBooked
+                        : isAlreadyOpened
                         ? "border-emerald-300 bg-emerald-50/40"
+                        : isAlreadyBooked
+                        ? "border-blue-200 bg-blue-50/30"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
                     }`}
                   >
@@ -170,11 +214,15 @@ export default function JadwalAsesmenPicker({
                         {time}
                       </span>
                     </div>
-
                     <div className="flex items-center gap-1.5">
-                      {isAlreadyBooked && !isChecked && (
+                      {isAlreadyOpened && !isChecked && (
                         <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
-                          Sudah Ada Sesi
+                          Sudah Dibuka
+                        </span>
+                      )}
+                      {isAlreadyBooked && !isChecked && (
+                        <span className="text-[10px] font-semibold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">
+                          Ada Klien
                         </span>
                       )}
                       {isChecked && (
@@ -238,8 +286,7 @@ export default function JadwalAsesmenPicker({
             </div>
           </div>
 
-          {/* Bottom Area: Pesan Sukses & Tombol Action */}
-          <div className="flex flex-col gap-2 mt-4">
+          <div className="flex flex-col gap-2">
             {bookingSuccessMsg && (
               <p className="text-xs text-emerald-600 font-semibold text-center animate-fadeIn bg-emerald-50 p-2.5 rounded-lg border border-emerald-100">
                 ✓ {bookingSuccessMsg}
@@ -249,17 +296,17 @@ export default function JadwalAsesmenPicker({
               type="button"
               onClick={handleBookingClick}
               disabled={!isFormValid}
-              className={`w-full font-bold py-3.5 rounded-full text-[13px] transition-all transform active:scale-98 ${
+              className={`w-full font-bold py-3.5 rounded-full text-[13px] transition-all ${
                 isFormValid
-                  ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 cursor-pointer shadow-sm hover:shadow-md"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 cursor-pointer shadow-sm hover:shadow-md active:scale-95"
+                  : "bg-[#d6d6d6] text-gray-500 cursor-not-allowed"
               }`}
             >
               {selectedTimes.length > 0
-                ? `Tentukan ${selectedTimes.length} Jadwal Asesmen Sekaligus`
+                ? `Buka ${selectedTimes.length} Jam Sesi Sekaligus`
                 : isCustomTime
-                ? "Tentukan Jam Kustom"
-                : "Pilih Minimal 1 Slot Jam"}
+                ? "Buka Jam Kustom"
+                : "Pilih Jam Terlebih Dahulu"}
             </button>
           </div>
         </div>

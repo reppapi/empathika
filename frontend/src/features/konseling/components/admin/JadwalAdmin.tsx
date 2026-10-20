@@ -24,6 +24,7 @@ import JadwalAsesmenPicker from "./JadwalAsesmenPicker"
 import JadwalMingguanGrid from "./JadwalMingguanGrid"
 import ModalDetailSesiKlien from "./ModalDetailSesiKlien"
 import ModalBatalSesi from "./ModalBatalSesi"
+import { psikologService } from "@/services/psikolog.service"
 
 import {
   Calendar as CalendarIcon,
@@ -95,6 +96,29 @@ export default function JadwalAdmin() {
       }
     }
   }, [searchParams])
+
+  // State daftar dan profil psikolog aktif yang diambil dari Database
+  const [psikologList, setPsikologList] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any }[]>([])
+  const [activePsikolog, setActivePsikolog] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any } | null>(null)
+
+  useEffect(() => {
+    psikologService
+      .getList()
+      .then((list: any[]) => {
+        if (list && list.length > 0) {
+          const mapped = list.map((p) => ({
+            id: p.id,
+            nama_gelar: p.nama_gelar || p.account?.nama || "Psikolog Empathika",
+            kategori: p.kategori,
+            account: p.account,
+          }))
+          setPsikologList(mapped)
+          setActivePsikolog(mapped[0])
+        }
+      })
+      .catch(() => {})
+  }, [])
+
 
   // Helper update URL query param tanpa reload halaman
   const updateUrlParams = (updates: Record<string, string | null | undefined>) => {
@@ -403,26 +427,76 @@ export default function JadwalAdmin() {
     setCurrentWeekMonday(next)
   }
 
-  const handleBooking = (times: string[]) => {
+  const handleBooking = async (times: string[]) => {
     if (!date || times.length === 0) return
     const dateKey = formatDateKey(date)
-    const newSessions: BookedAssessment[] = times.map((waktu, idx) => ({
-      id: "ab_" + Date.now() + "_" + idx,
-      date: dateKey,
-      waktu,
-      layanan: "Asesmen",
-      metode: "Online",
-      namaKlien: "Klien Baru",
-      psikolog: "Dr. Dimas",
-    }))
+    const psikologId = activePsikolog?.id || "psikolog-default-id"
+    const psikologNama = activePsikolog?.nama_gelar || "Dr. Dimas, M.Psi."
+
+    const newSessions: BookedAssessment[] = []
+    const newSlotItems: any[] = []
+
+    for (const finalWaktu of times) {
+      const [start, end] = finalWaktu.split(" - ")
+      const jamMulai = start?.trim() || "09:00"
+      const jamSelesai = end?.trim() || "10:00"
+
+      let savedSlotId = "slot-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6)
+
+      try {
+        const res: any = await psikologService.createJadwalSlot({
+          id_psikolog: psikologId,
+          tanggal: dateKey,
+          jam_mulai: jamMulai,
+          jam_selesai: jamSelesai,
+          tipe_jadwal: "KONSULTASI",
+        })
+        if (res && res.id) savedSlotId = res.id
+      } catch (err: any) {
+        console.warn("Notice save slot:", err?.response?.data?.message || err.message)
+      }
+
+      newSlotItems.push({
+        id: savedSlotId,
+        id_psikolog: psikologId,
+        nama_psikolog: psikologNama,
+        tanggal: dateKey,
+        jam_mulai: jamMulai,
+        jam_selesai: jamSelesai,
+        label_waktu: finalWaktu,
+        status: "TERSEDIA",
+        tipe_jadwal: "KONSULTASI",
+      })
+
+      newSessions.push({
+        id: savedSlotId,
+        date: dateKey,
+        waktu: finalWaktu,
+        layanan: "Konseling Individu",
+        metode: "Online",
+        namaKlien: "Tersedia",
+        psikolog: psikologNama,
+      })
+    }
+
+    try {
+      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+      const list = raw ? JSON.parse(raw) : []
+      const filtered = list.filter(
+        (s: any) => !(s.tanggal === dateKey && times.some((t) => s.label_waktu === t || s.jam_mulai === t.split(" - ")[0]))
+      )
+      filtered.push(...newSlotItems)
+      localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(filtered))
+      window.dispatchEvent(new Event("storage"))
+    } catch {}
 
     setBookedSessions((prev) => [...newSessions, ...prev])
     setBookingSuccessMsg(
       times.length === 1
-        ? `Jadwal ${times[0]} berhasil disimpan ke Jadwal Mingguan!`
-        : `${times.length} jadwal asesmen berhasil disimpan ke Jadwal Mingguan!`
+        ? `Slot jam ${times[0]} berhasil dibuka atas nama ${psikologNama}!`
+        : `${times.length} slot jam berhasil dibuka sekaligus atas nama ${psikologNama}!`
     )
-    setTimeout(() => setBookingSuccessMsg(null), 3500)
+    setTimeout(() => setBookingSuccessMsg(null), 4500)
   }
 
   const handleModalSuccess = (newSession: NewSessionData) => {
@@ -608,14 +682,17 @@ export default function JadwalAdmin() {
         }}
       />
 
-      {/* Jadwal Asesmen (Calendar & Time Slot Picker) */}
+      {/* Jadwal Sesi (Calendar & Time Slot Picker) */}
       <JadwalAsesmenPicker
         date={date}
         onSelectDate={handleSelectDate}
-        bookedSessions={bookedSessions}
+        bookedSessions={bookedSessions as any}
         bookingSuccessMsg={bookingSuccessMsg}
         onBooking={handleBooking}
         timeSlots={TIME_SLOTS}
+        psikologList={psikologList}
+        activePsikolog={activePsikolog}
+        onSelectPsikolog={(p) => setActivePsikolog(p)}
       />
 
       {/* Jadwal Mingguan (Weekly Assessment Schedule Grid) */}
@@ -626,9 +703,9 @@ export default function JadwalAdmin() {
         weekRangeTitle={weekRangeTitle}
         weekDays={weekDays}
         currentWeekAllSessions={currentWeekAllSessions}
-        selectedLayanan={selectedLayanan}
-        matchLayanan={matchLayanan}
-        today={today}
+        timeSlots={TIME_SLOTS}
+        currentWeekMonday={currentWeekMonday}
+        onSelectDate={handleSelectDate}
       />
 
       {/* ── Modal Tambah Sesi ── */}
