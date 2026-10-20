@@ -132,15 +132,20 @@ export default function AdminPsikologClient() {
   const handleDeleteItem = async () => {
     if (!deleteConfirmItem) return
     const idToDelete = deleteConfirmItem.id
-    const updated = dataList.filter((d) => d.id !== idToDelete)
-    persistData(updated, `Data ${deleteConfirmItem.nama} telah dihapus.`)
+    const targetName = deleteConfirmItem.nama
     setDeleteConfirmItem(null)
 
-    // Sync delete to backend DB
     try {
       await psikologService.deletePsikolog(idToDelete)
+      const updated = dataList.filter((d) => d.id !== idToDelete)
+      persistData(updated, `Data ${targetName} telah berhasil dihapus.`)
     } catch (err: any) {
-      console.warn("Gagal menghapus dari backend DB:", err?.message || err)
+      const errMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        `Gagal menghapus ${targetName} karena sudah memiliki data booking konsultasi dari klien.`
+      setNotification(errMsg)
+      setTimeout(() => setNotification(null), 5000)
     }
   }
 

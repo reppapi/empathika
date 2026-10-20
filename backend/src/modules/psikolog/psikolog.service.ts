@@ -237,32 +237,39 @@ export class PsikologService {
       return { success: true, message: 'Data tidak ditemukan atau sudah terhapus' }
     }
 
-    // 1. Bersihkan relasi jadwalSlot dan booking yang mengikat psikolog ini
-    const slots = await this.prisma.jadwalSlot.findMany({
-      where: { id_psikolog: psikolog.id },
-      select: { id: true },
+    // 1. Cek apakah psikolog ini memiliki data booking konsultasi dari klien
+    const existingBooking = await this.prisma.bookingKonsultasi.findFirst({
+      where: {
+        jadwal: {
+          id_psikolog: psikolog.id,
+        },
+      },
+      include: {
+        client: true,
+      },
     })
-    const slotIds = slots.map((s: any) => s.id)
-    if (slotIds.length > 0) {
-      await this.prisma.bookingKonsultasi
-        .deleteMany({
-          where: { id_jadwal_slot: { in: slotIds } },
-        })
-        .catch(() => {})
-      await this.prisma.jadwalSlot
-        .deleteMany({
-          where: { id: { in: slotIds } },
-        })
-        .catch(() => {})
+
+    if (existingBooking) {
+      const clientName = existingBooking.client?.nama ? `klien "${existingBooking.client.nama}"` : 'klien'
+      throw new Error(
+        `Psikolog ${psikolog.nama_gelar} tidak dapat dihapus karena sudah memiliki riwayat booking konsultasi dari ${clientName}. Anda dapat mengubah status hak aksesnya menjadi NONAKTIF.`
+      )
     }
 
-    // 2. Hapus data profil psikolog
+    // 2. Jika tidak ada booking dari klien, bersihkan slot jadwal ketersediaan kosong yang belum dibooking
+    await this.prisma.jadwalSlot
+      .deleteMany({
+        where: { id_psikolog: psikolog.id },
+      })
+      .catch(() => {})
+
+    // 3. Hapus data profil psikolog
     const accountId = psikolog.id_account
     await this.prisma.psikolog.delete({
       where: { id: psikolog.id },
     })
 
-    // 3. Hapus juga akun login terkait
+    // 4. Hapus juga akun login terkait
     if (accountId) {
       await this.prisma.account
         .delete({
