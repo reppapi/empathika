@@ -1,35 +1,77 @@
-import type { FastifyRequest, FastifyReply } from 'fastify'
+import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { EventService } from './event.service'
+import type {
+  CreateEventInput,
+  UpdateEventInput,
+  EventQueryInput,
+  EventIdParamInput,
+} from './event.schema'
 
 export class EventController {
   private service: EventService
 
-  constructor(fastify: any) {
+  constructor(fastify: FastifyInstance) {
     this.service = new EventService(fastify)
   }
 
-  getAll = async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = await this.service.getAll(request.query as Record<string, unknown>)
-    reply.send(data)
+  getAll = async (
+    request: FastifyRequest<{ Querystring: EventQueryInput }>,
+    reply: FastifyReply
+  ) => {
+    const result = await this.service.getAll(request.query)
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil mengambil daftar event',
+      data: result.items,
+      meta: result.meta,
+    })
   }
 
-  getById = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  getById = async (
+    request: FastifyRequest<{ Params: EventIdParamInput }>,
+    reply: FastifyReply
+  ) => {
     const data = await this.service.getById(request.params.id)
-    reply.send(data)
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil mengambil detail event',
+      data,
+    })
   }
 
-  create = async (request: FastifyRequest, reply: FastifyReply) => {
+  create = async (
+    request: FastifyRequest<{ Body: CreateEventInput }>,
+    reply: FastifyReply
+  ) => {
     const data = await this.service.create(request.body)
-    reply.code(201).send(data)
+    return reply.code(201).send({
+      success: true,
+      message: 'Berhasil membuat event baru',
+      data,
+    })
   }
 
-  update = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  update = async (
+    request: FastifyRequest<{ Params: EventIdParamInput; Body: UpdateEventInput }>,
+    reply: FastifyReply
+  ) => {
     const data = await this.service.update(request.params.id, request.body)
-    reply.send(data)
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil memperbarui event',
+      data,
+    })
   }
 
-  remove = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  remove = async (
+    request: FastifyRequest<{ Params: EventIdParamInput }>,
+    reply: FastifyReply
+  ) => {
     await this.service.delete(request.params.id)
-    reply.code(204).send()
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil menghapus event',
+      data: null,
+    })
   }
 }

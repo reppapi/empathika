@@ -59,7 +59,11 @@ export default function LayananClient() {
             {(() => {
               const destinationHref = service.href || (
                 activeCategory === "04"
-                  ? `/event/${idx + 1}`
+                  ? idx === 0
+                    ? "/event/seminar"
+                    : idx === 1
+                    ? "/event/workshop"
+                    : "/event/goes-to-school"
                   : activeCategory === "05"
                   ? `/booking/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
                   : "/booking"

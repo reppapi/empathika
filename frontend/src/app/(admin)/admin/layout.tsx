@@ -5,6 +5,13 @@ import { usePathname } from "next/navigation"
 import SidebarAdmin from "@/components/layout/SidebarAdmin"
 import AdminNavbar from "@/components/layout/AdminNavbar"
 
+import dynamic from "next/dynamic"
+
+const AuthGuard = dynamic(
+  () => import("@/components/shared/AuthGuard").then((mod) => mod.AuthGuard),
+  { ssr: false }
+)
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
@@ -49,33 +56,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFBFC] font-poppins text-gray-800 flex">
-      {/* 1. Sidebar Navigasi Kiri (Fixed desktop, Drawer drawer mobile/tablet) */}
-      <SidebarAdmin
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
-
-      {/* 2. Area Konten Kanan */}
-      <div className="flex-1 lg:ml-[280px] flex flex-col min-w-0 w-full transition-all duration-300">
-        {/* Top Header Navbar dengan tombol Burger responsif */}
-        <AdminNavbar
-          title={pageTitle}
-          description={pageDescription}
-          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+    <AuthGuard allowedRoles={["ADMIN"]}>
+      <div className="min-h-screen bg-[#FBFBFC] font-poppins text-gray-800 flex">
+        {/* 1. Sidebar Navigasi Kiri (Fixed desktop, Drawer drawer mobile/tablet) */}
+        <SidebarAdmin
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Konten Halaman */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8">
-          {children}
-        </main>
+        {/* 2. Area Konten Kanan */}
+        <div className="flex-1 lg:ml-[280px] flex flex-col min-w-0 w-full transition-all duration-300">
+          {/* Top Header Navbar dengan tombol Burger responsif */}
+          <AdminNavbar
+            title={pageTitle}
+            description={pageDescription}
+            onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+          />
 
-        {/* Footer Admin */}
-        <footer className="border-t border-gray-200/80 bg-white py-4 px-6 sm:px-8 text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-1">
-          <p>© 2026 Empathika. All rights reserved.</p>
-          <p className="text-gray-400 font-medium">Dashboard Management System</p>
-        </footer>
+          {/* Konten Halaman */}
+          <main className="flex-1 p-4 sm:p-6 md:p-8">
+            {children}
+          </main>
+
+          {/* Footer Admin */}
+          <footer className="border-t border-gray-200/80 bg-white py-4 px-6 sm:px-8 text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-1">
+            <p>© 2026 Empathika. All rights reserved.</p>
+            <p className="text-gray-400 font-medium">Dashboard Management System</p>
+          </footer>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   )
 }

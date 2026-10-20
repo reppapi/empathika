@@ -1,0 +1,76 @@
+import apiClient from "@/lib/axios"
+
+export interface EventItemApi {
+  id: string
+  judul: string
+  jenis_event: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  deskripsi: string
+  tanggal: string
+  jam_mulai: string
+  durasi_menit: number
+  lokasi: string | null
+  kuota: number
+  harga: number | string
+  banner_url: string | null
+  nama_pembicara: string
+  status: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
+  jumlah_booking?: number
+  sisa_kuota?: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateEventDto {
+  judul: string
+  jenis_event: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  deskripsi: string
+  tanggal: string // YYYY-MM-DD
+  jam_mulai: string // HH:MM
+  durasi_menit: number
+  lokasi?: string | null
+  kuota: number
+  harga: number
+  banner_url?: string | null
+  nama_pembicara: string
+  status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
+}
+
+export interface UpdateEventDto {
+  judul?: string
+  jenis_event?: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  deskripsi?: string
+  tanggal?: string
+  jam_mulai?: string
+  durasi_menit?: number
+  lokasi?: string | null
+  kuota?: number
+  harga?: number
+  banner_url?: string | null
+  nama_pembicara?: string
+  status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
+}
+
+export interface EventQueryParams {
+  search?: string
+  jenis_event?: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
+  page?: number
+  limit?: number
+}
+
+export const eventService = {
+  getList: (params?: EventQueryParams) =>
+    apiClient.get<{ success: boolean; data: EventItemApi[]; meta: { total: number; page: number; limit: number; totalPages: number } }>("/event", { params }).then((r) => r.data),
+
+  getById: (id: string) =>
+    apiClient.get<{ success: boolean; data: EventItemApi }>(`/event/${id}`).then((r) => r.data),
+
+  create: (data: CreateEventDto) =>
+    apiClient.post<{ success: boolean; data: EventItemApi }>("/event", data).then((r) => r.data),
+
+  update: (id: string, data: UpdateEventDto) =>
+    apiClient.put<{ success: boolean; data: EventItemApi }>(`/event/${id}`, data).then((r) => r.data),
+
+  delete: (id: string) =>
+    apiClient.delete<{ success: boolean; data: null }>(`/event/${id}`).then((r) => r.data),
+}

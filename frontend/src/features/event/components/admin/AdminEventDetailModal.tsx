@@ -1,83 +1,20 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AdminEventData, INITIAL_ADMIN_EVENTS } from "../../data/adminEventData"
+import { AdminEventData } from "../../data/adminEventData"
+import { eventService } from "@/services/event.service"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import {
   X,
   Calendar,
-  Clock,
   MapPin,
   Users,
   Tag,
   User,
   Edit,
   CheckCircle2,
-  FileText,
   Ticket,
 } from "lucide-react"
-
-// Dummy data peserta per event
-const DUMMY_PESERTA: Record<
-  string,
-  {
-    no: number
-    nama: string
-    noWa: string
-    email: string
-    tanggalDaftar: string
-    statusPembayaran: "Lunas" | "Menunggu" | "Gagal"
-  }[]
-> = {
-  "1": [
-    {
-      no: 1,
-      nama: "Budi Yono",
-      noWa: "081313787509",
-      email: "budiyono15@gmail.com",
-      tanggalDaftar: "31 Sept 2026, 13:05",
-      statusPembayaran: "Lunas",
-    },
-    {
-      no: 2,
-      nama: "Aurelia",
-      noWa: "081313787509",
-      email: "auurel5@gmail.com",
-      tanggalDaftar: "31 Sept 2026, 13:50",
-      statusPembayaran: "Lunas",
-    },
-  ],
-  "2": [
-    {
-      no: 1,
-      nama: "Rina Sari",
-      noWa: "082211445566",
-      email: "rinasari@gmail.com",
-      tanggalDaftar: "10 Sept 2026, 09:00",
-      statusPembayaran: "Lunas",
-    },
-    {
-      no: 2,
-      nama: "Dani Setiawan",
-      noWa: "083322556677",
-      email: "daniseti@gmail.com",
-      tanggalDaftar: "10 Sept 2026, 10:30",
-      statusPembayaran: "Menunggu",
-    },
-  ],
-  "3": [],
-}
-
-const getPaymentStatusBadge = (status: "Lunas" | "Menunggu" | "Gagal") => {
-  switch (status) {
-    case "Lunas":
-      return <AdminStatusBadge variant="success" className="w-24">Lunas</AdminStatusBadge>
-    case "Menunggu":
-      return <AdminStatusBadge variant="warning" className="w-24">Menunggu</AdminStatusBadge>
-    case "Gagal":
-      return <AdminStatusBadge variant="danger" className="w-24">Gagal</AdminStatusBadge>
-  }
-}
 
 interface AdminEventDetailModalProps {
   isOpen: boolean
@@ -95,6 +32,7 @@ export default function AdminEventDetailModal({
   onStatusChange,
 }: AdminEventDetailModalProps) {
   const [currentEvent, setCurrentEvent] = useState<AdminEventData | null>(event)
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     setCurrentEvent(event)
@@ -102,25 +40,23 @@ export default function AdminEventDetailModal({
 
   if (!isOpen || !currentEvent) return null
 
-  const pesertaList = DUMMY_PESERTA[currentEvent.id] || []
+  const handleMarkAsCompleted = async () => {
+    const isCompleted = currentEvent.status === "Selesai"
+    const targetStatus = isCompleted ? "UPCOMING" : "COMPLETED"
+    const nextLocalStatus = isCompleted ? "Dipublikasi" : "Selesai"
 
-  const handleMarkAsCompleted = () => {
-    const updatedStatus = currentEvent.status === "Selesai" ? "Dipublikasi" : "Selesai"
-    const updated: AdminEventData = { ...currentEvent, status: updatedStatus }
-    setCurrentEvent(updated)
-
-    // Update localStorage
-    const saved = localStorage.getItem("empathika_admin_events")
-    if (saved) {
-      try {
-        const list: AdminEventData[] = JSON.parse(saved)
-        const updatedList = list.map((e) => (e.id === updated.id ? updated : e))
-        localStorage.setItem("empathika_admin_events", JSON.stringify(updatedList))
-      } catch {}
-    }
-
-    if (onStatusChange) {
-      onStatusChange(updated)
+    setUpdating(true)
+    try {
+      await eventService.update(currentEvent.id, { status: targetStatus })
+      const updated: AdminEventData = { ...currentEvent, status: nextLocalStatus }
+      setCurrentEvent(updated)
+      if (onStatusChange) {
+        onStatusChange(updated)
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal mengubah status event di server.")
+    } finally {
+      setUpdating(false)
     }
   }
 
@@ -130,7 +66,7 @@ export default function AdminEventDetailModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl rounded-[28px] bg-white shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-3xl rounded-[28px] bg-white shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}
@@ -142,7 +78,7 @@ export default function AdminEventDetailModal({
                 Detail Informasi Event
               </h3>
               <p className="text-xs text-gray-500">
-                Informasi jadwal, kuota, pembicara, dan daftar peserta terdaftar
+                Informasi jadwal, kuota, pembicara, dan pelaksanaan acara
               </p>
             </div>
           </div>
@@ -244,7 +180,7 @@ export default function AdminEventDetailModal({
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Lokasi Acara</p>
                 <p className="text-xs font-bold text-gray-900 truncate">
-                  {currentEvent.lokasi || "Jica FPMIPA UPI"}
+                  {currentEvent.lokasi || "Online / Sesuai Pengumuman"}
                 </p>
               </div>
             </div>
@@ -256,7 +192,7 @@ export default function AdminEventDetailModal({
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Kuota Peserta</p>
                 <p className="text-xs font-bold text-gray-900 truncate">
-                  {currentEvent.tiketTerjual} / {currentEvent.totalTiket} Terjual
+                  {currentEvent.tiketTerjual} / {currentEvent.totalTiket} Terdaftar
                 </p>
               </div>
             </div>
@@ -285,58 +221,6 @@ export default function AdminEventDetailModal({
               </div>
             </div>
           </div>
-
-          {/* 3. Daftar Peserta Terdaftar */}
-          <div className="rounded-3xl bg-white border border-gray-200/80 shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <FileText className="w-4 h-4 text-[#561269]" />
-                <h5 className="text-sm font-bold text-gray-900">
-                  Daftar Peserta Terdaftar
-                </h5>
-              </div>
-              <span className="text-xs font-semibold text-[#561269] bg-purple-50 px-3 py-1 rounded-full">
-                Total {pesertaList.length} Peserta
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-[#D3C4D8] text-gray-800 font-bold">
-                    <th className="py-3 px-4 w-12 text-center">No</th>
-                    <th className="py-3 px-4">Nama</th>
-                    <th className="py-3 px-4">No WhatsApp</th>
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Tanggal Daftar</th>
-                    <th className="py-3 px-4 text-center">Status Pembayaran</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {pesertaList.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-gray-400 font-medium">
-                        Belum ada peserta yang mendaftar pada event ini.
-                      </td>
-                    </tr>
-                  ) : (
-                    pesertaList.map((p) => (
-                      <tr key={p.no} className="hover:bg-purple-50/30 transition-colors">
-                        <td className="py-3 px-4 text-center text-gray-500 font-medium">{p.no}</td>
-                        <td className="py-3 px-4 font-bold text-gray-900">{p.nama}</td>
-                        <td className="py-3 px-4 text-gray-700">{p.noWa}</td>
-                        <td className="py-3 px-4 text-gray-700">{p.email}</td>
-                        <td className="py-3 px-4 text-gray-600">{p.tanggalDaftar}</td>
-                        <td className="py-3 px-4 text-center">
-                          {getPaymentStatusBadge(p.statusPembayaran)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         {/* Footer Modal */}
@@ -352,8 +236,9 @@ export default function AdminEventDetailModal({
           <div className="flex items-center gap-3">
             <button
               type="button"
+              disabled={updating}
               onClick={handleMarkAsCompleted}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer ${
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer disabled:opacity-50 ${
                 currentEvent.status === "Selesai"
                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
                   : "bg-emerald-600 hover:bg-emerald-700 text-white"

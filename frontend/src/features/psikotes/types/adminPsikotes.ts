@@ -13,18 +13,57 @@ export type Interpretasi = {
   deskripsi: string;
   makna: string;
   saran: Tip[];
+  kekuatanUtama?: string[];
+  blindspots?: string[];
+  lingkunganOptimal?: string[];
+};
+
+export type JenisAkses = "Gratis" | "Berbayar";
+export type StatusPaket = "Aktif" | "Draf";
+
+export type PaketDetailItem = {
+  id: number;
+  judulId: number;
+  namaJudul: string;
+  kategori: string;
+  deskripsi: string;
+  bannerUrl?: string;
+  jenisAkses: JenisAkses;
+  harga: string;
+  numericHarga: number;
+  waktu: string;
+  status: StatusPaket;
+  jumlahSoal: number;
+  soalList: Soal[];
+  interpretasiList: Interpretasi[];
+  updatedAt?: string;
+};
+
+export type JudulPsikotesItem = {
+  id: number;
+  judul: string;
+  kategori: string;
+  deskripsi: string;
+  image: string;
+  paketList: PaketDetailItem[];
 };
 
 export type PaketData = {
   id: number;
+  judulId?: number;
   nama: string;
   kategori: string;
   deskripsi: string;
   waktu: string;
-  jenisAkses: string;
+  jenisAkses: JenisAkses;
   harga: string;
-  status: string;
+  numericHarga?: number;
+  status: StatusPaket;
   jumlahSoal: number;
+  modeJudul?: "baru" | "ada";
+  soalList?: Soal[];
+  interpretasiList?: Interpretasi[];
+  updatedAt?: string;
 };
 
 export type AdminPsikotesPeserta = {
@@ -48,3 +87,4 @@ export type AdminPsikotesPaketListItem = {
   waktu: string;
   status: string;
 };
+
