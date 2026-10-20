@@ -192,6 +192,11 @@ export function AdminNavbar({
             <button
               type="button"
               onClick={() => {
+                localStorage.removeItem("access_token")
+                localStorage.removeItem("empathika-auth")
+                localStorage.removeItem("active_psikolog_id")
+                localStorage.removeItem("active_psikolog_name")
+                document.cookie = "access_token=; path=/; max-age=0;"
                 window.location.href = "/login"
               }}
               className="block w-full px-4 py-2 text-left text-xs font-medium text-red-600 hover:bg-red-50"
