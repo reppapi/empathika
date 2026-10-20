@@ -20,6 +20,6 @@ export default function NotFound() {
       >
         Kembali ke Beranda
       </Link>
-    </div>
+    </div>  
   );
-}
+} 
