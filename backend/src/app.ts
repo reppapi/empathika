@@ -7,6 +7,7 @@ import jwtPlugin from "./plugins/jwt"
 import prismaPlugin from "./plugins/prisma"
 import swaggerPlugin from "./plugins/swagger"
 import multipartPlugin from "./plugins/multipart"
+import staticPlugin from "./plugins/static"
 
 // Middlewares
 import { errorHandler } from "./middlewares/error-handler"
@@ -21,6 +22,7 @@ import transaksiRoutes from "./modules/transaksi/transaksi.route"
 import blogRoutes from "./modules/blog/blog.route"
 import psikotesRoutes from "./modules/psikotes/psikotes.route"
 import adminRoutes from "./modules/admin/admin.route"
+import uploadRoutes from "./modules/upload/upload.route"
 
 const app = Fastify({ logger: true })
 
@@ -34,6 +36,7 @@ app.register(jwtPlugin)
 app.register(prismaPlugin)
 app.register(swaggerPlugin)
 app.register(multipartPlugin)
+app.register(staticPlugin)
 
 // Global error handler
 app.setErrorHandler(errorHandler)
@@ -48,6 +51,6 @@ app.register(transaksiRoutes, { prefix: "/transaksi" })
 app.register(blogRoutes, { prefix: "/blog" })
 app.register(psikotesRoutes, { prefix: "/psikotes" })
 app.register(adminRoutes, { prefix: "/admin" })
+app.register(uploadRoutes, { prefix: "/upload" })
 
 export default app
-

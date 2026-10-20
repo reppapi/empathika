@@ -45,31 +45,22 @@ export class BlogRepository {
     })
   }
 
-  async findByIdOrSlug(identifier: string) {
-    return this.findById(identifier)
-  }
-
-  async incrementViews(_id: string) {
-    // Di skema revisi, jumlah_dilihat ditiadakan dari database
-    return null
-  }
-
-  async create(data: { judul: string; isi: string; banner_url?: string | null }) {
+  async create(data: CreateBlogInput) {
     return this.prisma.artikelBlog.create({
       data: {
         judul: data.judul,
         isi: data.isi,
-        ...(data.banner_url && { banner_url: data.banner_url }),
+        banner_url: data.banner_url ?? null,
       },
     })
   }
 
-  async update(id: string, data: { judul?: string; isi?: string; banner_url?: string | null }) {
+  async update(id: string, data: UpdateBlogInput) {
     return this.prisma.artikelBlog.update({
       where: { id },
       data: {
-        ...(data.judul && { judul: data.judul }),
-        ...(data.isi && { isi: data.isi }),
+        ...(data.judul !== undefined && { judul: data.judul }),
+        ...(data.isi !== undefined && { isi: data.isi }),
         ...(data.banner_url !== undefined && { banner_url: data.banner_url }),
       },
     })

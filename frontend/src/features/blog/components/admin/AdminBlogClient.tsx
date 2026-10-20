@@ -3,34 +3,46 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { BlogPost } from "@/features/blog/types"
-import { INITIAL_ADMIN_BLOGS } from "../../data/adminBlogData"
+import { blogService } from "@/services/blog.service"
+import { BackendBlogItem } from "@/features/blog/types"
 
 export default function AdminBlogClient() {
-  const [blogs, setBlogs] = useState<BlogPost[]>([])
-  const [blogToDelete, setBlogToDelete] = useState<BlogPost | null>(null)
+  const [blogs, setBlogs] = useState<BackendBlogItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [blogToDelete, setBlogToDelete] = useState<BackendBlogItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const fetchBlogs = () => {
+    setLoading(true)
+    blogService
+      .getList({ page: 1, limit: 100 })
+      .then((res) => {
+        if (res?.success && Array.isArray(res.data)) {
+          setBlogs(res.data)
+        } else {
+          setBlogs([])
+        }
+      })
+      .catch(() => setBlogs([]))
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
-    // Muat dari localStorage jika ada, jika tidak gunakan INITIAL_ADMIN_BLOGS
-    const saved = localStorage.getItem("empathika_admin_blogs")
-    if (saved) {
-      try {
-        setBlogs(JSON.parse(saved))
-      } catch {
-        setBlogs(INITIAL_ADMIN_BLOGS)
-      }
-    } else {
-      setBlogs(INITIAL_ADMIN_BLOGS)
-      localStorage.setItem("empathika_admin_blogs", JSON.stringify(INITIAL_ADMIN_BLOGS))
-    }
+    fetchBlogs()
   }, [])
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!blogToDelete) return
-    const updated = blogs.filter((b) => b.slug !== blogToDelete.slug)
-    setBlogs(updated)
-    localStorage.setItem("empathika_admin_blogs", JSON.stringify(updated))
-    setBlogToDelete(null)
+    setIsDeleting(true)
+    try {
+      await blogService.delete(blogToDelete.id)
+      setBlogToDelete(null)
+      fetchBlogs()
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal menghapus blog")
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -57,101 +69,110 @@ export default function AdminBlogClient() {
 
       {/* ── List Kartu Blog ── */}
       <div className="flex flex-col gap-5">
-        {blogs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 bg-white rounded-3xl border border-gray-200/90 text-gray-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="h-12 w-12 mb-3 text-gray-300"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z"
-              />
-            </svg>
-            <p className="text-sm font-semibold">Belum ada blog yang tersedia</p>
+        {loading ? (
+          <div className="py-20 text-center text-gray-500 font-medium">
+            Memuat daftar blog...
+          </div>
+        ) : blogs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-12 text-center shadow-sm">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-[#CA8A04] mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="h-8 w-8"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z"
+                />
+              </svg>
+            </div>
+            <p className="text-sm font-semibold text-gray-800">Belum ada blog yang tersedia</p>
+            <p className="mt-1 text-xs text-gray-400">Silakan tambahkan artikel blog pertama Anda.</p>
           </div>
         ) : (
-          blogs.map((blog) => (
-            <div
-              key={blog.slug}
-              className="group flex flex-col md:flex-row overflow-hidden rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] transition-all hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)]"
-            >
-              {/* Kiri: Thumbnail Image */}
-              <div className="relative h-52 sm:h-56 md:h-auto md:w-72 lg:w-80 shrink-0 overflow-hidden bg-gray-100">
-                {blog.imageUrl ? (
-                  <Image
-                    src={blog.imageUrl}
-                    alt={blog.title}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, 320px"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-purple-50 text-[#561269]">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="h-10 w-10 opacity-40"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-                      />
-                    </svg>
-                  </div>
-                )}
-              </div>
+          blogs.map((blog) => {
+            const formattedDate = new Date(blog.tanggal_terbit).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+            const excerpt = blog.isi.length > 150 ? `${blog.isi.substring(0, 150)}...` : blog.isi
 
-              {/* Kanan: Informasi Blog */}
-              <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
-                <div>
-                  {/* Tanggal Artikel */}
-                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-3.5 w-3.5 text-gray-400 shrink-0">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                    </svg>
-                    <span>{blog.date}</span>
-                  </div>
-
-                  {/* Judul Blog (Bold) */}
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-snug line-clamp-2 hover:text-[#561269] transition-colors">
-                    {blog.title}
-                  </h3>
-
-                  {/* Deskripsi / Excerpt */}
-                  <p className="mt-2 text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2">
-                    {blog.excerpt}
-                  </p>
+            return (
+              <div
+                key={blog.id}
+                className="flex flex-col md:flex-row overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md"
+              >
+                {/* Kiri: Foto Thumbnail */}
+                <div className="relative h-48 w-full md:h-auto md:w-72 shrink-0 bg-gray-100 overflow-hidden">
+                  {blog.banner_url ? (
+                    <Image
+                      src={blog.banner_url}
+                      alt={blog.judul}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 288px"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gray-50 text-gray-400">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-10 w-10 text-gray-300"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                        />
+                      </svg>
+                    </div>
+                  )}
                 </div>
 
-                {/* Divider Line & Footer Card (Aksi) */}
-                <div className="mt-5">
-                  <div className="h-[1px] w-full bg-gray-100 mb-3.5" />
+                {/* Kanan: Informasi Blog */}
+                <div className="flex flex-1 flex-col justify-between p-6">
+                  <div>
+                    {/* Baris Meta Tanggal */}
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-400 mb-2">
+                      <span>{formattedDate}</span>
+                    </div>
 
-                  <div className="flex items-center justify-between">
-                    {/* Hapus Blog (Kiri) */}
+                    {/* Judul Blog */}
+                    <h3 className="text-base md:text-lg font-bold text-gray-900 line-clamp-1 mb-2">
+                      {blog.judul}
+                    </h3>
+
+                    {/* Excerpt */}
+                    <p className="text-xs md:text-sm text-gray-500 line-clamp-2 leading-relaxed">
+                      {excerpt}
+                    </p>
+                  </div>
+
+                  {/* Tombol Action Bawah */}
+                  <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
+                    {/* Hapus Blog */}
                     <button
                       type="button"
                       onClick={() => setBlogToDelete(blog)}
-                      className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-red-500 hover:text-red-700 transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        strokeWidth={1.8}
+                        strokeWidth={1.75}
                         stroke="currentColor"
-                        className="h-4 w-4"
+                        className="h-3.5 w-3.5"
                       >
                         <path
                           strokeLinecap="round"
@@ -162,23 +183,23 @@ export default function AdminBlogClient() {
                       Hapus Blog
                     </button>
 
-                    {/* Edit Blog (Kanan) */}
+                    {/* Edit Blog */}
                     <Link
-                      href={`/admin/blog/${blog.slug}`}
-                      className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#561269] hover:text-[#6f1b87] hover:underline transition-colors"
+                      href={`/admin/blog/${blog.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 px-3.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-colors"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        strokeWidth={1.8}
+                        strokeWidth={1.75}
                         stroke="currentColor"
-                        className="h-4 w-4"
+                        className="h-3.5 w-3.5"
                       >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+                          d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"
                         />
                       </svg>
                       Edit Blog
@@ -186,29 +207,26 @@ export default function AdminBlogClient() {
                   </div>
                 </div>
               </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 
       {/* ── Modal Konfirmasi Hapus ── */}
       {blogToDelete && (
-        <>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-            onClick={() => setBlogToDelete(null)}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={() => !isDeleting && setBlogToDelete(null)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600 mb-4">
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl transition-all">
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
-                  strokeWidth={2}
+                  strokeWidth={1.75}
                   stroke="currentColor"
                   className="h-6 w-6"
                 >
@@ -219,35 +237,31 @@ export default function AdminBlogClient() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                Hapus Blog?
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-600 mb-6 leading-relaxed">
-                Apakah Anda yakin ingin menghapus blog{" "}
-                <span className="font-semibold text-gray-900">
-                  &ldquo;{blogToDelete.title}&rdquo;
-                </span>
-                ? Tindakan ini tidak dapat dibatalkan.
+              <h4 className="text-base font-bold text-gray-900">Hapus Artikel Blog?</h4>
+              <p className="mt-1 text-xs text-gray-500">
+                Apakah Anda yakin ingin menghapus &quot;{blogToDelete.judul}&quot;? Tindakan ini tidak dapat dibatalkan.
               </p>
-              <div className="flex items-center justify-end gap-3">
+              <div className="mt-6 flex w-full gap-3">
                 <button
                   type="button"
+                  disabled={isDeleting}
                   onClick={() => setBlogToDelete(null)}
-                  className="rounded-full border border-gray-300 bg-white px-6 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
+                  disabled={isDeleting}
                   onClick={handleDelete}
-                  className="rounded-full bg-red-600 hover:bg-red-700 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition-all active:scale-95 cursor-pointer"
+                  className="flex-1 rounded-xl bg-red-600 py-2.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors shadow-sm"
                 >
-                  Ya, Hapus
+                  {isDeleting ? "Menghapus..." : "Ya, Hapus"}
                 </button>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

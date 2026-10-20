@@ -1,23 +1,37 @@
 import { z } from "zod"
 
 export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email({ message: "Format email tidak valid" }),
+  password: z.string().min(1, { message: "Password wajib diisi" }),
 })
 
-export const registerSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
+export const loginResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  data: z.object({
+    user: z.object({
+      id: z.string(),
+      nama: z.string(),
+      email: z.string(),
+      role: z.string(),
+    }),
+    accessToken: z.string(),
+  }),
 })
 
-export const guestSessionSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().optional(),
+export const userProfileResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  data: z.object({
+    user: z.object({
+      id: z.string(),
+      nama: z.string(),
+      email: z.string(),
+      role: z.string(),
+    }),
+  }),
 })
 
 export type LoginInput = z.infer<typeof loginSchema>
-export type RegisterInput = z.infer<typeof registerSchema>
-export type GuestSessionInput = z.infer<typeof guestSessionSchema>
-
+export type LoginResponse = z.infer<typeof loginResponseSchema>
+export type UserProfileResponse = z.infer<typeof userProfileResponseSchema>
