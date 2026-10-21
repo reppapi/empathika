@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 
 export function usePsikologSlider(itemCount: number, initialIndex: number = 2) {
-  const [activePsyIndex, setActivePsyIndex] = useState(initialIndex);
+  const [activePsyIndex, setActivePsyIndex] = useState(() => {
+    return itemCount > 0 ? Math.min(initialIndex, Math.max(0, itemCount - 1)) : 0;
+  });
 
   const scrollPsyTo = (index: number) => {
     const container = document.getElementById('psy-scroll-container');
@@ -14,12 +16,14 @@ export function usePsikologSlider(itemCount: number, initialIndex: number = 2) {
   };
 
   useEffect(() => {
-    // Center the carousel on initial load
+    if (itemCount === 0) return;
+    const targetIdx = Math.min(initialIndex, Math.max(0, itemCount - 1));
+    setActivePsyIndex(targetIdx);
     const timer = setTimeout(() => {
-      scrollPsyTo(initialIndex);
-    }, 100);
+      scrollPsyTo(targetIdx);
+    }, 150);
     return () => clearTimeout(timer);
-  }, [initialIndex]);
+  }, [itemCount, initialIndex]);
 
   const nextPsy = () => {
     if (activePsyIndex < itemCount - 1) scrollPsyTo(activePsyIndex + 1);
