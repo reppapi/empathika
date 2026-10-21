@@ -44,6 +44,10 @@ export const updateAdminProfileSchema = z.object({
   linkMaps: z.string().nullable().optional(),
   bio: z.string().nullable().optional(),
   foto: z.string().nullable().optional(),
+  instagram: z.string().nullable().optional(),
+  tiktok: z.string().nullable().optional(),
+  youtube: z.string().nullable().optional(),
+  linkedin: z.string().nullable().optional(),
   password: z.string().min(6, 'Password baru minimal 6 karakter').optional(),
 })
 

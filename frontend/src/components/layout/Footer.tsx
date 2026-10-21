@@ -10,47 +10,77 @@ export function Footer() {
     alamat: "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
     email: "empathika889@gmail.com",
     noTelepon: "0878-7878-5498",
+    instagram: "https://www.instagram.com/empathika_psikologi?psln=dzgxaTNybnZhbmts",
+    tiktok: "https://www.tiktok.com/@empathika_psikologi?_r=1&_t=ZS-9Aje7iAkpFZ",
+    youtube: "",
+    linkedin: "",
   });
 
   useEffect(() => {
-    // 1. Cek cache lokal agar instan
-    try {
-      const saved = localStorage.getItem("empathika_admin_profile");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setContact((prev) => ({
-          alamat: parsed.alamat || prev.alamat,
-          email: parsed.email || prev.email,
-          noTelepon: parsed.noTelepon || parsed.no_telepon || prev.noTelepon,
-        }));
-      }
-    } catch {}
-
-    // 2. Ambil data terbaru dari backend database (Publik)
-    let isMounted = true;
-    adminService
-      .getPublicProfile()
-      .then((res) => {
-        if (isMounted && res?.data) {
-          setContact({
-            alamat: res.data.alamat || "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
-            email: res.data.email || "empathika889@gmail.com",
-            noTelepon: res.data.no_telepon || res.data.noTelepon || "0878-7878-5498",
-          });
+    const loadProfileData = () => {
+      // 1. Cek cache lokal agar instan
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setContact((prev) => ({
+            alamat: parsed.alamat || prev.alamat,
+            email: parsed.email || prev.email,
+            noTelepon: parsed.noTelepon || parsed.no_telepon || prev.noTelepon,
+            instagram: parsed.instagram || prev.instagram,
+            tiktok: parsed.tiktok || prev.tiktok,
+            youtube: parsed.youtube !== undefined ? parsed.youtube : prev.youtube,
+            linkedin: parsed.linkedin !== undefined ? parsed.linkedin : prev.linkedin,
+          }));
         }
-      })
-      .catch(() => {
-        // Fallback ke default jika offline/error
-      });
+      } catch {}
+
+      // 2. Ambil data terbaru dari backend database (Publik)
+      adminService
+        .getPublicProfile()
+        .then((res) => {
+          if (res?.data) {
+            setContact((prev) => ({
+              alamat: res.data.alamat || prev.alamat,
+              email: res.data.email || prev.email,
+              noTelepon: res.data.no_telepon || res.data.noTelepon || prev.noTelepon,
+              instagram: res.data.instagram || prev.instagram,
+              tiktok: res.data.tiktok || prev.tiktok,
+              youtube: res.data.youtube !== undefined ? res.data.youtube : prev.youtube,
+              linkedin: res.data.linkedin !== undefined ? res.data.linkedin : prev.linkedin,
+            }));
+          }
+        })
+        .catch(() => {
+          // Fallback ke default jika offline/error
+        });
+    };
+
+    loadProfileData();
+
+    window.addEventListener("storage", loadProfileData);
+    window.addEventListener("focus", loadProfileData);
 
     return () => {
-      isMounted = false;
+      window.removeEventListener("storage", loadProfileData);
+      window.removeEventListener("focus", loadProfileData);
     };
   }, []);
 
   const cleanWa = contact.noTelepon ? contact.noTelepon.replace(/\D/g, "") : "";
   const waNumber = cleanWa.startsWith("0") ? "62" + cleanWa.slice(1) : cleanWa;
   const waUrl = waNumber ? `https://wa.me/${waNumber}` : "https://wa.me/6287878785498";
+
+  const getValidUrl = (url?: string) => {
+    if (!url || !url.trim()) return "#";
+    const trimmed = url.trim();
+    return trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : `https://${trimmed}`;
+  };
+
+  const igUrl = getValidUrl(contact.instagram || "https://www.instagram.com/empathika_psikologi?psln=dzgxaTNybnZhbmts");
+  const tiktokUrl = getValidUrl(contact.tiktok || "https://www.tiktok.com/@empathika_psikologi?_r=1&_t=ZS-9Aje7iAkpFZ");
+  const linkedinUrl = getValidUrl(contact.linkedin);
+  const ytUrl = getValidUrl(contact.youtube);
 
   return (
     <footer className="bg-[#EFE9F3] pt-16 pb-8 text-gray-800">
@@ -129,18 +159,46 @@ export function Footer() {
           </div>
 
           <div className="flex items-center gap-4">
-            <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 text-[#561269] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all" aria-label="Instagram">
+            <a
+              href={igUrl}
+              target={igUrl !== "#" ? "_blank" : undefined}
+              rel={igUrl !== "#" ? "noopener noreferrer" : undefined}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 text-[#561269] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all"
+              aria-label="Instagram"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
             </a>
-            <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 text-[#561269] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all" aria-label="TikTok">
+            <a
+              href={tiktokUrl}
+              target={tiktokUrl !== "#" ? "_blank" : undefined}
+              rel={tiktokUrl !== "#" ? "noopener noreferrer" : undefined}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 text-[#561269] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all"
+              aria-label="TikTok"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
               </svg>
             </a>
-            <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 text-[#561269] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all" aria-label="LinkedIn">
+            <a
+              href={linkedinUrl}
+              target={linkedinUrl !== "#" ? "_blank" : undefined}
+              rel={linkedinUrl !== "#" ? "noopener noreferrer" : undefined}
+              className={`w-9 h-9 flex items-center justify-center rounded-full bg-white/60 text-[#561269] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all ${
+                linkedinUrl === "#" ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              aria-label="LinkedIn"
+            >
               <span className="font-bold text-lg font-sans -tracking-wide">in</span>
             </a>
-            <a href="#" className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 text-[#561269] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all" aria-label="YouTube">
+            <a
+              href={ytUrl}
+              target={ytUrl !== "#" ? "_blank" : undefined}
+              rel={ytUrl !== "#" ? "noopener noreferrer" : undefined}
+              className={`w-9 h-9 flex items-center justify-center rounded-full bg-white/60 text-[#561269] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all ${
+                ytUrl === "#" ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              aria-label="YouTube"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
             </a>
           </div>

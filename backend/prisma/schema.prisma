@@ -116,6 +116,24 @@ model Account {
   id_biro            String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  nama       String
+  email      String   @unique
+  password   String   // Hash kata sandi
+  role       Role     @default(ADMIN)
+  no_telepon String?
+  foto       String?
+  bio        String?  @db.Text
+  alamat     String?  @db.Text
+  link_maps  String?
+  instagram  String?
+  tiktok     String?
+  youtube    String?
+  linkedin   String?
+  aktif      Boolean  @default(true)
+  id_biro    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   biro       Biro?     @relation("BiroStaff", fields: [id_biro], references: [id], onDelete: SetNull)
   owned_biro Biro[]    @relation("BiroOwner")
