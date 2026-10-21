@@ -286,9 +286,7 @@ export class PsikologService {
    * Membuat Akun login, Profil Tenaga Ahli, Spesialisasi, dan Slot Jadwal default di database
    */
   async registerPsikologBaru(body: any) {
-    const passwordToHash = body.password || 'Psikolog123!'
-    const hashedPassword = await bcrypt.hash(passwordToHash, 10)
-
+    const crypto = await import('crypto')
     // Cari atau buat Spesialisasi
     const spesialisasiNama = body.spesialisasi || 'Psikologi Umum'
     let spesialisasi = await this.prisma.spesialisasi.findFirst({
@@ -335,6 +333,8 @@ export class PsikologService {
 
     let account = null
     let psikolog = null
+    let tokenAktivasi = body.tokenAktivasi || null
+    let tokenExpiredAt: Date | null = body.tokenExpiredAt ? new Date(body.tokenExpiredAt) : null
 
     if (existingPsikolog) {
       // MODE EDIT: Update akun dan profil psikolog yang sudah ada
@@ -348,6 +348,12 @@ export class PsikologService {
           bio: body.bio || existingPsikolog.account?.bio,
           role: 'PSIKOLOG',
           aktif: body.statusAkses !== 'NONAKTIF',
+          ...(tokenAktivasi
+            ? {
+                token_aktivasi: tokenAktivasi,
+                token_aktivasi_exp: tokenExpiredAt || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+              }
+            : {}),
         },
       })
 
@@ -359,6 +365,7 @@ export class PsikologService {
           nama_gelar: body.nama,
           no_str: body.noStr || null,
           no_sipp: body.noSipp || null,
+          no_silp: body.noSilp || null,
           pendidikan: body.pendidikanText || body.pendidikan || null,
           quote: body.quote || null,
           instagram: body.instagram || null,
@@ -379,6 +386,14 @@ export class PsikologService {
         where: { email: body.email },
       })
 
+      // Generate token aktivasi baru 3 hari jika belum ada
+      if (!tokenAktivasi) {
+        tokenAktivasi = crypto.randomBytes(24).toString('hex')
+        tokenExpiredAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+      } else if (!tokenExpiredAt) {
+        tokenExpiredAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+      }
+
       if (account) {
         account = await this.prisma.account.update({
           where: { id: account.id },
@@ -388,7 +403,9 @@ export class PsikologService {
             foto: body.foto || account.foto,
             bio: body.bio || account.bio,
             role: 'PSIKOLOG',
-            aktif: body.statusAkses !== 'NONAKTIF',
+            token_aktivasi: tokenAktivasi,
+            token_aktivasi_exp: tokenExpiredAt,
+            aktif: false, // Menunggu aktivasi via WhatsApp / link
           },
         })
       } else {
@@ -396,12 +413,14 @@ export class PsikologService {
           data: {
             nama: body.nama,
             email: body.email,
-            password: hashedPassword,
+            password: null, // Tanpa password manual, dibuat sendiri via link aktivasi
             role: 'PSIKOLOG',
             no_telepon: body.noTelepon || null,
             foto: body.foto || null,
             bio: body.bio || null,
-            aktif: body.statusAkses !== 'NONAKTIF',
+            aktif: false, // Menunggu aktivasi
+            token_aktivasi: tokenAktivasi,
+            token_aktivasi_exp: tokenExpiredAt,
           },
         })
       }
@@ -419,13 +438,14 @@ export class PsikologService {
             nama_gelar: body.nama,
             no_str: body.noStr || null,
             no_sipp: body.noSipp || null,
+            no_silp: body.noSilp || null,
             pendidikan: body.pendidikanText || body.pendidikan || null,
             quote: body.quote || null,
             instagram: body.instagram || null,
             keahlian: keahlianStr,
             foto: body.foto || null,
             bio: body.bio || null,
-            status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+            status: 'ACTIVE',
             tarif_per_jam: tarif,
           },
           include: {
@@ -442,13 +462,14 @@ export class PsikologService {
             nama_gelar: body.nama,
             no_str: body.noStr || null,
             no_sipp: body.noSipp || null,
+            no_silp: body.noSilp || null,
             pendidikan: body.pendidikanText || body.pendidikan || null,
             quote: body.quote || null,
             instagram: body.instagram || null,
             keahlian: keahlianStr,
             foto: body.foto || null,
             bio: body.bio || null,
-            status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+            status: 'ACTIVE',
             tarif_per_jam: tarif,
           },
           include: {
@@ -504,7 +525,18 @@ export class PsikologService {
       console.warn('Gagal generate slot default untuk psikolog baru:', slotErr)
     }
 
-    return psikolog
+    const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+    const finalActivationUrl = tokenAktivasi
+      ? `${frontendBaseUrl}/set-password?token=${tokenAktivasi}`
+      : null
+
+    return {
+      ...psikolog,
+      success: true,
+      tokenAktivasi,
+      tokenExpiredAt: tokenExpiredAt ? tokenExpiredAt.toISOString() : null,
+      activationUrl: finalActivationUrl,
+    }
   }
 }
 

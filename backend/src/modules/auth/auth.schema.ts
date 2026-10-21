@@ -35,3 +35,16 @@ export const userProfileResponseSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>
 export type LoginResponse = z.infer<typeof loginResponseSchema>
 export type UserProfileResponse = z.infer<typeof userProfileResponseSchema>
+
+export const setPasswordSchema = z.object({
+  token: z.string().min(1, { message: "Token aktivasi wajib diisi" }),
+  password: z.string().min(8, { message: "Password minimal 8 karakter" }),
+})
+
+export type SetPasswordInput = z.infer<typeof setPasswordSchema>
+
+export const resendActivationSchema = z.object({
+  accountId: z.string().min(1, { message: "ID Akun wajib diisi" }),
+})
+
+export type ResendActivationInput = z.infer<typeof resendActivationSchema>

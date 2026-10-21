@@ -100,20 +100,22 @@ enum TipeTransaksi {
 // ==========================================
 
 model Account {
-  id         String   @id @default(uuid())
-  nama       String
-  email      String   @unique
-  password   String   // Hash kata sandi
-  role       Role     @default(ADMIN)
-  no_telepon String?
-  foto       String?
-  bio        String?  @db.Text
-  alamat     String?  @db.Text
-  link_maps  String?
-  aktif      Boolean  @default(true)
-  id_biro    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  nama               String
+  email              String    @unique
+  password           String?   // Hash kata sandi (nullable jika akun belum aktivasi)
+  role               Role      @default(ADMIN)
+  no_telepon         String?
+  foto               String?
+  bio                String?   @db.Text
+  alamat             String?   @db.Text
+  link_maps          String?
+  aktif              Boolean   @default(false)
+  token_aktivasi     String?   @unique
+  token_aktivasi_exp DateTime?
+  id_biro            String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   biro       Biro?     @relation("BiroStaff", fields: [id_biro], references: [id], onDelete: SetNull)
   owned_biro Biro[]    @relation("BiroOwner")
@@ -203,6 +205,7 @@ model Psikolog {
   nama_gelar        String
   no_str            String?
   no_sipp           String?
+  no_silp           String?   // Surat Izin Layanan Psikolog
   pendidikan        String?
   pengalaman_tahun  String?
   quote             String?        @db.Text

@@ -24,6 +24,7 @@ export interface Psikolog {
   email: string;
   no_str: string | null;
   no_sipp?: string | null;
+  no_silp?: string | null;
   foto: string | null;
   bio: string | null;
   status: 'ACTIVE' | 'INACTIVE';

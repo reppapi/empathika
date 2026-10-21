@@ -63,7 +63,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
   const noStrError = touched.noStr ? validateNoStr(noStr, kategori) : null
   const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori) : null
 
-  // Cek apakah token aktivasi sudah kedaluwarsa (7 hari)
+  // Cek apakah token aktivasi sudah kedaluwarsa (3 hari)
   const isTokenExpired = Boolean(
     tokenExpiredAt && new Date(tokenExpiredAt).getTime() < Date.now()
   )
@@ -171,7 +171,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
   const handleGenerateToken = () => {
     const newToken = `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
-    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const newExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
     setActivationToken(newToken)
     setTokenExpiredAt(newExpiry)
     setIsCopied(false)
@@ -415,7 +415,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                   <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  Tautan Aktivasi / Reset Akun (7 Hari)
+                  Tautan Aktivasi / Reset Akun (3 Hari)
                 </label>
                 {activationToken ? (
                   <button
@@ -476,7 +476,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                     </p>
                   ) : (
                     <p className="text-[11px] font-medium text-emerald-700 flex items-center gap-1">
-                      <span>✓</span> Tautan aktif &bull; Berlaku hingga {formatExpiryDate(tokenExpiredAt) || "7 hari ke depan"}.
+                      <span>✓</span> Tautan aktif &bull; Berlaku hingga {formatExpiryDate(tokenExpiredAt) || "3 hari ke depan"}.
                     </p>
                   )
                 ) : (

@@ -15,6 +15,7 @@ export interface TenagaAhli {
   spesialisasi: string
   noStr?: string
   noSipp?: string
+  noSilp?: string
   pendidikanText?: string
   jumlahSesi: number
   bio: string

@@ -25,7 +25,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
   const [tokenExpiredAt, setTokenExpiredAt] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
 
-  // Cek apakah token aktivasi sudah kedaluwarsa (7 hari)
+  // Cek apakah token aktivasi sudah kedaluwarsa (3 hari)
   const isTokenExpired = Boolean(
     tokenExpiredAt && new Date(tokenExpiredAt).getTime() < Date.now()
   )
@@ -165,7 +165,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
 
   const handleGenerateToken = () => {
     const newToken = `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
-    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const newExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
     setActivationToken(newToken)
     setTokenExpiredAt(newExpiry)
     setIsCopied(false)
@@ -185,7 +185,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
 
   const handleKirimWA = () => {
     // 1. Pertahankan token yang sudah ada jika belum kedaluwarsa.
-    // Hanya buat token baru jika belum pernah dibuat sama sekali atau sudah kedaluwarsa (> 7 hari).
+    // Hanya buat token baru jika belum pernah dibuat sama sekali atau sudah kedaluwarsa (> 3 hari).
     let activeToken = activationToken
     if (!activeToken || isTokenExpired) {
       const generated = handleGenerateToken()
@@ -213,7 +213,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
     const pesan =
       `Halo *${namaText}*, berikut adalah tautan resmi dari Tim Empathika untuk mengatur kata sandi atau mengaktifkan akun Tenaga Ahli (${katText}) Anda: 🌿\n\n` +
       `🔗 ${finalActivationUrl}\n\n` +
-      `Catatan: Tautan ini berlaku selama 7 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
+      `Catatan: Tautan ini berlaku selama 3 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
       `Salam hangat,\n*Tim Empathika*`
 
     const waUrl = waNumber
@@ -419,7 +419,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
                   <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  Tautan Aktivasi Akun (7 Hari)
+                  Tautan Aktivasi Akun (3 Hari)
                 </label>
                 {activationToken ? (
                   <button
@@ -481,7 +481,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
                       </p>
                     ) : (
                       <p className="text-[11px] font-medium text-emerald-700 flex items-center gap-1">
-                        <span>✓</span> Tautan aktif &bull; Berlaku hingga {formatExpiryDate(tokenExpiredAt) || "7 hari ke depan"}.
+                        <span>✓</span> Tautan aktif &bull; Berlaku hingga {formatExpiryDate(tokenExpiredAt) || "3 hari ke depan"}.
                       </p>
                     )
                   ) : (
