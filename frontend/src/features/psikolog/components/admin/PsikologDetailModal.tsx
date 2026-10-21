@@ -35,12 +35,12 @@ export default function PsikologDetailModal({
   onEdit,
   onToggleAkses,
 }: PsikologDetailModalProps) {
+  const [isCopied, setIsCopied] = useState(false)
+
   if (!isOpen || !psikolog) return null
 
   const isAktif = psikolog.statusAkses === "AKTIF"
   const isPsikolog = psikolog.kategori === "psikolog"
-
-  const [isCopied, setIsCopied] = useState(false)
 
   const isTokenExpired = Boolean(
     psikolog.tokenExpiredAt && new Date(psikolog.tokenExpiredAt).getTime() < Date.now()
