@@ -5,6 +5,7 @@ export interface ValidationErrors {
   noTelepon?: string
   noStr?: string
   noSipp?: string
+  noSilp?: string
 }
 
 export interface TouchedFields {
@@ -12,6 +13,7 @@ export interface TouchedFields {
   noTelepon?: boolean
   noStr?: boolean
   noSipp?: boolean
+  noSilp?: boolean
 }
 
 /**
@@ -98,6 +100,21 @@ export function validateNoSipp(noSipp: string, kategori: KategoriTenaga): string
 }
 
 /**
+ * Validasi Nomor SILP:
+ * - Opsional atau jika diisi diawali SILP
+ */
+export function validateNoSilp(noSilp?: string, kategori?: KategoriTenaga): string | null {
+  if (!noSilp || !noSilp.trim()) {
+    return null
+  }
+  const val = noSilp.trim()
+  if (!val.toUpperCase().startsWith("SILP")) {
+    return "Nomor SILP harus diawali dengan 'SILP' (contoh: SILP-2024-001)"
+  }
+  return null
+}
+
+/**
  * Validasi gabungan form tenaga ahli
  */
 export function validateTenagaAhliForm(data: {
@@ -105,6 +122,7 @@ export function validateTenagaAhliForm(data: {
   noTelepon: string
   noStr: string
   noSipp: string
+  noSilp?: string
   kategori: KategoriTenaga
 }): ValidationErrors {
   const errors: ValidationErrors = {}
@@ -120,6 +138,9 @@ export function validateTenagaAhliForm(data: {
 
   const sippErr = validateNoSipp(data.noSipp, data.kategori)
   if (sippErr) errors.noSipp = sippErr
+
+  const silpErr = validateNoSilp(data.noSilp, data.kategori)
+  if (silpErr) errors.noSilp = silpErr
 
   return errors
 }
