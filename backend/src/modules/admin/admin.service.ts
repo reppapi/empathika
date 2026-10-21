@@ -356,7 +356,12 @@ export class AdminService {
   }
 
   async getPublicProfile() {
-    const admin = await this.repo.findAdminUtama()
+    let admin = null
+    try {
+      admin = await this.repo.findAdminUtama()
+    } catch {
+      // Fallback ke profil publik default jika database belum di-seed atau belum siap
+    }
     const embedUrl = await resolveGoogleMapsEmbedUrl(admin?.link_maps, admin?.alamat)
 
     return {
