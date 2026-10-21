@@ -44,24 +44,6 @@ export const createPsikologSchema = z.object({
   tarif_per_jam: z.number().default(0),
 })
 
-export const registerPsikologBaruSchema = z.object({
-  nama: z.string().min(1, 'Nama wajib diisi').default('Dr. Jane Doe, M.Psi., Psikolog'),
-  email: z.string().email('Format email tidak valid').default('janedoe@empathika.id'),
-  noTelepon: z.string().optional().default('081234567890'),
-  kategori: z.enum(['psikolog', 'konselor', 'peer-konselor']).default('psikolog'),
-  spesialisasi: z.string().optional().default('Psikologi Klinis Dewasa'),
-  noStr: z.string().optional().default('1234567890'),
-  noSipp: z.string().optional().default('SIPP-2026-001'),
-  noSilp: z.string().optional().default('SILP-2026-001'),
-  pendidikanText: z.string().optional().default('Magister Psikologi Profesi Universitas Indonesia'),
-  bio: z.string().optional().default('Praktisi psikologi berfokus pada trauma dan kecemasan.'),
-  quote: z.string().optional().default('Setiap perjalanan pemulihan dimulai dari keberanian mendengarkan diri.'),
-  instagram: z.string().optional().default('@janedoe.psi'),
-  keahlian: z.array(z.string()).optional().default(['Trauma', 'Depresi', 'Keluarga']),
-  tarif_per_jam: z.number().optional().default(150000),
-  statusAkses: z.enum(['AKTIF', 'NONAKTIF']).default('AKTIF'),
-})
-
 export const updatePsikologSchema = createPsikologSchema.partial()
 
 export const updatePsikologProfileSchema = z.object({

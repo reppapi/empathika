@@ -504,8 +504,6 @@ export class PsikologService {
    * Menambahkan atau memperbarui tenaga ahli baru dari dashboard admin
    */
   async registerPsikologBaru(body: any) {
-    const crypto = await import('crypto')
-
     // Cari atau buat Spesialisasi
     const spesialisasiNama = body.spesialisasi || 'Psikologi Umum'
     let spesialisasi = await this.prisma.spesialisasi.findFirst({
@@ -562,8 +560,6 @@ export class PsikologService {
 
     let account = null
     let psikolog = null
-    let tokenAktivasi = body.tokenAktivasi || null
-    let tokenExpiredAt: Date | null = body.tokenExpiredAt ? new Date(body.tokenExpiredAt) : null
 
     if (existingPsikolog) {
       // MODE EDIT: Update akun dan profil psikolog yang sudah ada
