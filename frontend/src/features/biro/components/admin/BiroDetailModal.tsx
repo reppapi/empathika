@@ -43,6 +43,32 @@ export default function BiroDetailModal({
     }, 2200)
   }
 
+  const handleKirimWA = () => {
+    const rawPhone = (biro.telepon || "").trim().replace(/[^0-9]/g, "")
+    const waNumber = rawPhone
+      ? rawPhone.startsWith("0")
+        ? "62" + rawPhone.slice(1)
+        : rawPhone.startsWith("62")
+        ? rawPhone
+        : "62" + rawPhone
+      : ""
+
+    const namaText = biro.nama.trim() || "Biro Mitra"
+    const pesan =
+      `Halo *${namaText}*, selamat bergabung di ekosistem Empathika! 🌿\n\n` +
+      `Biro/Komunitas Anda telah berhasil didaftarkan di platform kami. ` +
+      `Silakan klik tautan resmi di bawah ini untuk mengaktifkan akun dan mengatur kata sandi admin biro Anda:\n\n` +
+      `🔗 ${activationUrl}\n\n` +
+      `Catatan: Tautan aktivasi ini berlaku selama 7 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
+      `Salam hangat,\n*Tim Empathika*`
+
+    const waUrl = waNumber
+      ? `https://wa.me/${waNumber}?text=${encodeURIComponent(pesan)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(pesan)}`
+
+    window.open(waUrl, "_blank")
+  }
+
   const brandColor = biro.warnaIdentitas || "#561269"
 
   return (
@@ -156,107 +182,113 @@ export default function BiroDetailModal({
 
           {/* Grid Informasi Detail & Alur Multi-Tenant */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
-            {/* Sisi Kiri: Deskripsi, Kontak, Alamat, Kode Warna & Slug/URL */}
-            <div className="md:col-span-3 space-y-4">
-              {/* Deskripsi */}
-              <div className="rounded-2xl border border-gray-200/80 bg-white p-4 sm:p-5 shadow-xs">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                  Deskripsi Biro / Komunitas
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                  {biro.deskripsi}
-                </p>
-              </div>
-
-              {/* Data Detail Lengkap: Slug, Kode Warna, Telepon, Email, Alamat, Tanggal */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Slug / Subdomain URL */}
-                <div className="rounded-2xl border border-gray-200/80 bg-white p-3.5 shadow-xs">
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Slug / Subdomain URL
-                  </p>
-                  <p className="text-xs font-mono font-bold text-gray-800 mt-1 break-all">
-                    {biro.slug}
-                  </p>
-                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">
-                    https://{biro.slug}.empathika.id
+            {/* Sisi Kiri: Satu Kotak Terpadu Informasi & Kontak Biro */}
+            <div className="md:col-span-3">
+              <div className="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+                {/* Deskripsi */}
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    Deskripsi Biro / Komunitas
+                  </h4>
+                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                    {biro.deskripsi}
                   </p>
                 </div>
 
-                {/* Kode Warna Identitas */}
-                <div className="rounded-2xl border border-gray-200/80 bg-white p-3.5 shadow-xs">
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Kode Warna Identitas
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className="w-4 h-4 rounded-md border border-gray-200 shadow-xs"
-                      style={{ backgroundColor: brandColor }}
-                    />
-                    <span className="text-xs font-mono font-bold text-gray-800">
-                      {brandColor}
-                    </span>
-                  </div>
-                </div>
+                <div className="border-t border-gray-100" />
 
-                {/* Nomor Telepon */}
-                <div className="rounded-2xl border border-gray-200/80 bg-white p-3.5 shadow-xs">
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    No. Telepon
-                  </p>
-                  <p className="text-xs font-semibold text-gray-900 mt-1">
-                    {biro.telepon || "+62 812-3456-7890"}
-                  </p>
-                </div>
+                {/* Detail Data Biro */}
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3.5">
+                    Informasi & Identitas Mitra
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-xs">
+                    {/* Email Admin */}
+                    <div>
+                      <span className="text-gray-400 text-[11px] font-medium block">
+                        Email Admin Biro
+                      </span>
+                      <span className="font-semibold text-gray-900 break-all mt-0.5 block">
+                        {biro.emailAdmin}
+                      </span>
+                    </div>
 
-                {/* Email Admin Biro */}
-                <div className="rounded-2xl border border-gray-200/80 bg-white p-3.5 shadow-xs">
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Email Admin Biro
-                  </p>
-                  <p className="text-xs font-semibold text-gray-900 mt-1 break-all">
-                    {biro.emailAdmin}
-                  </p>
-                </div>
+                    {/* Nomor Telepon */}
+                    <div>
+                      <span className="text-gray-400 text-[11px] font-medium block">
+                        No. Telepon / Hotline
+                      </span>
+                      <span className="font-semibold text-gray-900 mt-0.5 block">
+                        {biro.telepon || "+62 812-3456-7890"}
+                      </span>
+                    </div>
 
-                {/* Alamat Kantor / Komunitas (Full Width on sm) */}
-                <div className="sm:col-span-2 rounded-2xl border border-gray-200/80 bg-white p-3.5 shadow-xs">
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Alamat Kantor / Komunitas
-                  </p>
-                  <p className="text-xs font-semibold text-gray-800 mt-1 leading-relaxed">
-                    {biro.alamat || "Indonesia"}
-                  </p>
-                </div>
+                    {/* Slug / Subdomain URL */}
+                    <div>
+                      <span className="text-gray-400 text-[11px] font-medium block">
+                        Slug & Subdomain URL
+                      </span>
+                      <span className="font-mono font-semibold text-[#561269] break-all mt-0.5 block">
+                        https://{biro.slug}.empathika.id
+                      </span>
+                    </div>
 
-                {/* Tanggal Registrasi */}
-                <div className="rounded-2xl border border-gray-200/80 bg-white p-3.5 shadow-xs">
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Tanggal Registrasi
-                  </p>
-                  <p className="text-xs font-bold text-gray-800 mt-1">
-                    {new Date(biro.tanggalDibuat).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
+                    {/* Kode Warna Identitas */}
+                    <div>
+                      <span className="text-gray-400 text-[11px] font-medium block">
+                        Kode Warna Identitas
+                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className="w-4 h-4 rounded-md border border-gray-200 shadow-2xs shrink-0"
+                          style={{ backgroundColor: brandColor }}
+                        />
+                        <span className="font-mono font-bold text-gray-800">
+                          {brandColor}
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Riwayat Aktivasi */}
-                <div className="rounded-2xl border border-gray-200/80 bg-white p-3.5 shadow-xs">
-                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Riwayat Aktivasi
-                  </p>
-                  <p className="text-xs font-bold text-gray-800 mt-1">
-                    {biro.tanggalAktivasi
-                      ? new Date(biro.tanggalAktivasi).toLocaleDateString("id-ID", {
+                    {/* Alamat Kantor / Komunitas */}
+                    <div className="sm:col-span-2">
+                      <span className="text-gray-400 text-[11px] font-medium block">
+                        Alamat Kantor / Komunitas
+                      </span>
+                      <span className="font-semibold text-gray-800 leading-relaxed mt-0.5 block">
+                        {biro.alamat || "Indonesia"}
+                      </span>
+                    </div>
+
+                    {/* Tanggal Registrasi */}
+                    <div>
+                      <span className="text-gray-400 text-[11px] font-medium block">
+                        Tanggal Registrasi
+                      </span>
+                      <span className="font-semibold text-gray-800 mt-0.5 block">
+                        {new Date(biro.tanggalDibuat).toLocaleDateString("id-ID", {
                           day: "numeric",
                           month: "long",
                           year: "numeric",
-                        })
-                      : "Belum diaktivasi"}
-                  </p>
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Riwayat Aktivasi */}
+                    <div>
+                      <span className="text-gray-400 text-[11px] font-medium block">
+                        Riwayat Aktivasi
+                      </span>
+                      <span className="font-semibold text-gray-800 mt-0.5 block">
+                        {biro.tanggalAktivasi
+                          ? new Date(biro.tanggalAktivasi).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })
+                          : "Belum diaktivasi"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -297,7 +329,7 @@ export default function BiroDetailModal({
                         <button
                           type="button"
                           onClick={() => handleCopy(activationUrl, "activation")}
-                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-purple-200 text-[#561269] hover:bg-purple-50 transition active:scale-95"
+                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-purple-200 text-[#561269] hover:bg-purple-50 transition active:scale-95 cursor-pointer"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -307,8 +339,20 @@ export default function BiroDetailModal({
 
                         <button
                           type="button"
+                          onClick={handleKirimWA}
+                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba5a] text-white shadow-xs transition active:scale-95 cursor-pointer"
+                          title="Kirim tautan aktivasi via WhatsApp"
+                        >
+                          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                          </svg>
+                          Kirim Tautan ke WhatsApp
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => onSimulateAktivasi(biro)}
-                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95"
+                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -358,6 +402,18 @@ export default function BiroDetailModal({
                             {websiteTenantUrl}
                           </p>
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={handleKirimWA}
+                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba5a] text-white shadow-xs transition active:scale-95 cursor-pointer pt-1"
+                          title="Kirim informasi login & tautan via WhatsApp"
+                        >
+                          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                          </svg>
+                          Kirim ke WhatsApp
+                        </button>
                       </div>
                     </div>
                   )}

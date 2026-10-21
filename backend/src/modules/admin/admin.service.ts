@@ -282,6 +282,10 @@ export class AdminService {
       linkMapsEmbed: embedUrl,
       bio: admin.bio,
       foto: admin.foto,
+      instagram: (admin as any).instagram || 'https://www.instagram.com/empathika_psikologi?psln=dzgxaTNybnZhbmts',
+      tiktok: (admin as any).tiktok || 'https://www.tiktok.com/@empathika_psikologi?_r=1&_t=ZS-9Aje7iAkpFZ',
+      youtube: (admin as any).youtube || '',
+      linkedin: (admin as any).linkedin || '',
     }
   }
 
@@ -331,6 +335,22 @@ export class AdminService {
       updateData.foto = input.foto
     }
 
+    if (input.instagram !== undefined) {
+      updateData.instagram = input.instagram
+    }
+
+    if (input.tiktok !== undefined) {
+      updateData.tiktok = input.tiktok
+    }
+
+    if (input.youtube !== undefined) {
+      updateData.youtube = input.youtube
+    }
+
+    if (input.linkedin !== undefined) {
+      updateData.linkedin = input.linkedin
+    }
+
     if (input.password) {
       updateData.password = await bcrypt.hash(input.password, 10)
     }
@@ -352,6 +372,10 @@ export class AdminService {
       linkMapsEmbed: embedUrl,
       bio: updated.bio,
       foto: updated.foto,
+      instagram: (updated as any).instagram || '',
+      tiktok: (updated as any).tiktok || '',
+      youtube: (updated as any).youtube || '',
+      linkedin: (updated as any).linkedin || '',
     }
   }
 
@@ -376,6 +400,10 @@ export class AdminService {
       linkMapsEmbed: embedUrl,
       bio: admin?.bio || 'Platform psikologi dan kesehatan mental.',
       foto: admin?.foto || null,
+      instagram: (admin as any)?.instagram || 'https://www.instagram.com/empathika_psikologi?psln=dzgxaTNybnZhbmts',
+      tiktok: (admin as any)?.tiktok || 'https://www.tiktok.com/@empathika_psikologi?_r=1&_t=ZS-9Aje7iAkpFZ',
+      youtube: (admin as any)?.youtube || '',
+      linkedin: (admin as any)?.linkedin || '',
     }
   }
 }

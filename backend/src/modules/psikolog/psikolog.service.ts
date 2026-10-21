@@ -176,14 +176,20 @@ export class PsikologService {
       targetPsikologId = psikolog.id
     }
 
-    const isUuid = targetPsikologId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetPsikologId)
+    const isUuid =
+      targetPsikologId &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        targetPsikologId
+      )
     if (!isUuid) {
       const defaultPsikolog = await (this.repo as any).prisma.psikolog.findFirst()
       if (defaultPsikolog) {
         targetPsikologId = defaultPsikolog.id
       }
     } else {
-      const exists = await (this.repo as any).prisma.psikolog.findUnique({ where: { id: targetPsikologId } })
+      const exists = await (this.repo as any).prisma.psikolog.findUnique({
+        where: { id: targetPsikologId },
+      })
       if (!exists) {
         const defaultPsikolog = await (this.repo as any).prisma.psikolog.findFirst()
         if (defaultPsikolog) {
@@ -232,7 +238,9 @@ export class PsikologService {
       tanggal: formatDateToString(newSlot.tanggal),
       jam_mulai: formatTimeToString(newSlot.jam_mulai),
       jam_selesai: formatTimeToString(newSlot.jam_selesai),
-      label_waktu: `${formatTimeToString(newSlot.jam_mulai)} - ${formatTimeToString(newSlot.jam_selesai)}`,
+      label_waktu: `${formatTimeToString(newSlot.jam_mulai)} - ${formatTimeToString(
+        newSlot.jam_selesai
+      )}`,
       status: newSlot.status,
       tipe_jadwal: newSlot.tipe_jadwal,
     }
@@ -271,7 +279,8 @@ export class PsikologService {
   }
 
   async delete(id: string) {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
     let psikolog = null
     if (isUuid) {
       psikolog = await this.prisma.psikolog.findFirst({
@@ -309,7 +318,9 @@ export class PsikologService {
     })
 
     if (existingBooking) {
-      const clientName = existingBooking.client?.nama ? `klien "${existingBooking.client.nama}"` : 'klien'
+      const clientName = existingBooking.client?.nama
+        ? `klien "${existingBooking.client.nama}"`
+        : 'klien'
       throw new Error(
         `Psikolog ${psikolog.nama_gelar} tidak dapat dihapus karena sudah memiliki riwayat booking konsultasi dari ${clientName}. Anda dapat mengubah status hak aksesnya menjadi NONAKTIF.`
       )
@@ -344,26 +355,27 @@ export class PsikologService {
    * Mengambil profil psikolog yang sedang login
    */
   async getMyProfile(accountId?: string) {
-    let psikolog = accountId ? await this.prisma.psikolog.findUnique({
-      where: { id_account: accountId },
-      include: {
-        spesialisasi: true,
-        account: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
-            no_telepon: true,
-            foto: true,
-            bio: true,
-            role: true,
+    let psikolog = accountId
+      ? await this.prisma.psikolog.findUnique({
+          where: { id_account: accountId },
+          include: {
+            spesialisasi: true,
+            account: {
+              select: {
+                id: true,
+                nama: true,
+                email: true,
+                no_telepon: true,
+                foto: true,
+                bio: true,
+                role: true,
+              },
+            },
           },
-        },
-      },
-    }) : null
+        })
+      : null
 
     if (!psikolog) {
-      // Fallback untuk prototype testing tanpa token
       psikolog = await this.prisma.psikolog.findFirst({
         include: {
           spesialisasi: true,
@@ -407,12 +419,13 @@ export class PsikologService {
    * Mengupdate profil psikolog yang sedang login
    */
   async updateMyProfile(accountId: string | undefined, body: UpdatePsikologProfileInput) {
-    let psikolog = accountId ? await this.prisma.psikolog.findUnique({
-      where: { id_account: accountId },
-    }) : null
+    let psikolog = accountId
+      ? await this.prisma.psikolog.findUnique({
+          where: { id_account: accountId },
+        })
+      : null
 
     if (!psikolog) {
-      // Fallback untuk prototype testing tanpa token
       psikolog = await this.prisma.psikolog.findFirst()
     }
 
@@ -420,7 +433,6 @@ export class PsikologService {
       throw new Error('Data profil psikolog tidak ditemukan')
     }
 
-    // Update data account (nama, no_telepon, foto, bio)
     const accountUpdateData: Record<string, any> = {}
     if (body.nama !== undefined) accountUpdateData.nama = body.nama
     if (body.no_telepon !== undefined) accountUpdateData.no_telepon = body.no_telepon
@@ -434,15 +446,11 @@ export class PsikologService {
       })
     }
 
-    // Olah field keahlian
     let keahlianStr: string | undefined = undefined
     if (body.keahlian !== undefined) {
-      keahlianStr = Array.isArray(body.keahlian)
-        ? body.keahlian.join(', ')
-        : body.keahlian
+      keahlianStr = Array.isArray(body.keahlian) ? body.keahlian.join(', ') : body.keahlian
     }
 
-    // Olah field profil_lengkap
     let profilLengkapStr: string | undefined = undefined
     if (body.profil_lengkap !== undefined) {
       profilLengkapStr = Array.isArray(body.profil_lengkap)
@@ -450,7 +458,6 @@ export class PsikologService {
         : body.profil_lengkap
     }
 
-    // Update data profil psikolog
     const psikologUpdateData: Record<string, any> = {}
     if (body.nama !== undefined) psikologUpdateData.nama_gelar = body.nama
     if (body.foto !== undefined) psikologUpdateData.foto = body.foto
@@ -459,11 +466,15 @@ export class PsikologService {
     if (body.instagram !== undefined) psikologUpdateData.instagram = body.instagram
     if (keahlianStr !== undefined) psikologUpdateData.keahlian = keahlianStr
     if (body.pendidikan !== undefined) psikologUpdateData.pendidikan = body.pendidikan
-    if (body.pengalaman_tahun !== undefined) psikologUpdateData.pengalaman_tahun = body.pengalaman_tahun
+    if (body.pengalaman_tahun !== undefined)
+      psikologUpdateData.pengalaman_tahun = body.pengalaman_tahun
     if (body.jenis_kelamin !== undefined) psikologUpdateData.jenis_kelamin = body.jenis_kelamin
-    if (body.video_intro_url !== undefined) psikologUpdateData.video_intro_url = body.video_intro_url
-    if (body.video_thumbnail !== undefined) psikologUpdateData.video_thumbnail = body.video_thumbnail
-    if (body.video_duration !== undefined) psikologUpdateData.video_duration = body.video_duration
+    if (body.video_intro_url !== undefined)
+      psikologUpdateData.video_intro_url = body.video_intro_url
+    if (body.video_thumbnail !== undefined)
+      psikologUpdateData.video_thumbnail = body.video_thumbnail
+    if (body.video_duration !== undefined)
+      psikologUpdateData.video_duration = body.video_duration
     if (profilLengkapStr !== undefined) psikologUpdateData.profil_lengkap = profilLengkapStr
     if (body.tarif_per_jam !== undefined) psikologUpdateData.tarif_per_jam = body.tarif_per_jam
 
@@ -491,11 +502,9 @@ export class PsikologService {
 
   /**
    * Menambahkan atau memperbarui tenaga ahli baru dari dashboard admin
-   * Membuat Akun login, Profil Tenaga Ahli, Spesialisasi, dan Slot Jadwal default di database
    */
   async registerPsikologBaru(body: any) {
-    const passwordToHash = body.password || 'Psikolog123!'
-    const hashedPassword = await bcrypt.hash(passwordToHash, 10)
+    const crypto = await import('crypto')
 
     // Cari atau buat Spesialisasi
     const spesialisasiNama = body.spesialisasi || 'Psikologi Umum'
@@ -537,7 +546,7 @@ export class PsikologService {
         ? (body.profil_lengkap || body.profilLengkap).join('\n\n')
         : (body.profil_lengkap || body.profilLengkap || null)
 
-    // 1. Cek apakah ada data psikolog yang diedit berdasarkan body.id
+    // Cek apakah ada data psikolog yang diedit berdasarkan body.id
     const isUuid =
       body.id &&
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.id)
@@ -553,6 +562,8 @@ export class PsikologService {
 
     let account = null
     let psikolog = null
+    let tokenAktivasi = body.tokenAktivasi || null
+    let tokenExpiredAt: Date | null = body.tokenExpiredAt ? new Date(body.tokenExpiredAt) : null
 
     if (existingPsikolog) {
       // MODE EDIT: Update akun dan profil psikolog yang sudah ada
@@ -602,6 +613,9 @@ export class PsikologService {
       account = await this.prisma.account.findUnique({
         where: { email: body.email },
       })
+
+      const passwordToHash = body.password || 'Psikolog123!'
+      const hashedPassword = await bcrypt.hash(passwordToHash, 10)
 
       if (account) {
         account = await this.prisma.account.update({
@@ -695,10 +709,6 @@ export class PsikologService {
       }
     }
 
-    // Jadwal slot tidak dibuat otomatis secara default.
-    // Menunggu jadwal dibuka mandiri oleh admin atau psikolog yang bersangkutan.
-
     return psikolog
   }
 }
-

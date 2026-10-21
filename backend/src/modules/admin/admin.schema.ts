@@ -44,7 +44,15 @@ export const updateAdminProfileSchema = z.object({
   linkMaps: z.string().nullable().optional(),
   bio: z.string().nullable().optional(),
   foto: z.string().nullable().optional(),
+  instagram: z.string().nullable().optional(),
+  tiktok: z.string().nullable().optional(),
+  youtube: z.string().nullable().optional(),
+  linkedin: z.string().nullable().optional(),
   password: z.string().min(6, 'Password baru minimal 6 karakter').optional(),
+})
+
+export const resendActivationSchema = z.object({
+  accountId: z.string().min(1, 'accountId wajib diisi'),
 })
 
 export type GetAdminJadwalQuery = z.infer<typeof getAdminJadwalQuerySchema>
@@ -52,4 +60,5 @@ export type CreateAdminJadwalSlotInput = z.infer<typeof createAdminJadwalSlotSch
 export type CreateAdminSesiInput = z.infer<typeof createAdminSesiSchema>
 export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>
 export type UpdateAdminProfileInput = z.infer<typeof updateAdminProfileSchema>
+export type ResendActivationInput = z.infer<typeof resendActivationSchema>
 

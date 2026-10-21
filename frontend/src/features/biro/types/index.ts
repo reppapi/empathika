@@ -16,6 +16,7 @@ export interface BiroKomunitas {
   dashboardUrl?: string
   aktivasiToken?: string
   tanggalAktivasi?: string
+  tokenExpiredAt?: string
 }
 
 export interface BiroFormData {
@@ -28,4 +29,6 @@ export interface BiroFormData {
   telepon?: string
   alamat?: string
   statusAktivasi?: StatusAktivasiBiro
+  aktivasiToken?: string
+  tokenExpiredAt?: string
 }

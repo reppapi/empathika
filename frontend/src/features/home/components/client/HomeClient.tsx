@@ -12,12 +12,17 @@ import { usePsikologSlider } from '../../hooks/usePsikologSlider'
 import { eventService, EventItemApi } from '@/services/event.service'
 import { adminService } from '@/services/admin.service'
 import { psikotesService, type PaketPsikotesApiResponse } from '@/services/psikotes.service'
+import { psikologService } from '@/services/psikolog.service'
+import { mapDbPsikologToUI } from '@/features/psikolog/utils/mapPsikolog'
+import { PsikologUI } from '@/types/psikolog'
 
 export default function HomeClient() {
   const [publishedEvents, setPublishedEvents] = useState<EventItemApi[]>([])
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
   const [loadingPsikotes, setLoadingPsikotes] = useState(true)
+  const [psychologists, setPsychologists] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
+  const [loadingPsychologists, setLoadingPsychologists] = useState(true)
   const [adminProfile, setAdminProfile] = useState<{
     alamat: string
     linkMaps: string
@@ -108,6 +113,47 @@ export default function HomeClient() {
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    // Ambil data psikolog aktif langsung dari database
+    const fetchHomePsychologists = async () => {
+      try {
+        setLoadingPsychologists(true)
+        const dbList = await psikologService.getList()
+        if (Array.isArray(dbList) && dbList.length > 0) {
+          setPsychologists(dbList.map(mapDbPsikologToUI))
+        } else {
+          // Fallback ke localStorage jika ada
+          try {
+            const local = localStorage.getItem("empathika_tenaga_ahli_data")
+            if (local) {
+              const parsed = JSON.parse(local)
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setPsychologists(parsed.map(mapDbPsikologToUI))
+                return
+              }
+            }
+          } catch {}
+          setPsychologists(DATA_PSIKOLOG_DUMMY)
+        }
+      } catch (err) {
+        console.error('Gagal memuat psikolog home:', err)
+        setPsychologists(DATA_PSIKOLOG_DUMMY)
+      } finally {
+        setLoadingPsychologists(false)
+      }
+    }
+
+    fetchHomePsychologists()
+
+    window.addEventListener("storage", fetchHomePsychologists)
+    window.addEventListener("focus", fetchHomePsychologists)
+
+    return () => {
+      window.removeEventListener("storage", fetchHomePsychologists)
+      window.removeEventListener("focus", fetchHomePsychologists)
+    }
+  }, [])
+
   const {
     currentSlide,
     setCurrentSlide,
@@ -115,8 +161,6 @@ export default function HomeClient() {
     nextSlide,
     prevSlide,
   } = useHomeSlider(HERO_SLIDES.length);
-
-  const psychologists = DATA_PSIKOLOG_DUMMY;
 
   const {
     activePsyIndex,
@@ -167,19 +211,13 @@ export default function HomeClient() {
                 {slide.subtitle}
               </p>
 
-              {/* Dua Tombol (Solid Gold & Outlined Gold) */}
+              {/* Tombol Aksi */}
               <div className="flex flex-wrap items-center gap-3 lg:gap-4">
                 <Link
                   href="/konseling"
                   className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm md:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   Booking Sesi
-                </Link>
-                <Link
-                  href="/psikotes"
-                  className="bg-transparent hover:bg-white/10 text-[#EAB308] border-2 border-[#EAB308] font-bold text-sm md:text-base py-3 px-8 rounded-full transition-all active:scale-95 cursor-pointer"
-                >
-                  Tes Psikologis
                 </Link>
               </div>
             </div>
