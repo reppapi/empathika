@@ -1,11 +1,11 @@
 export type SoalOption = { text: string; bobot: string };
 
-export type Soal = { id: number; tipe: string; teks: string; pilihan: SoalOption[] };
+export type Soal = { id: string | number; tipe: string; teks: string; pilihan: SoalOption[] };
 
 export type Tip = { title: string; desc: string };
 
 export type Interpretasi = {
-  id: number;
+  id: string | number;
   min: string;
   max: string;
   judul: string;
@@ -22,8 +22,8 @@ export type JenisAkses = "Gratis" | "Berbayar";
 export type StatusPaket = "Aktif" | "Draf";
 
 export type PaketDetailItem = {
-  id: number;
-  judulId: number;
+  id: string | number;
+  judulId: string | number;
   namaJudul: string;
   kategori: string;
   deskripsi: string;
@@ -34,13 +34,15 @@ export type PaketDetailItem = {
   waktu: string;
   status: StatusPaket;
   jumlahSoal: number;
+  benefits?: string[];
   soalList: Soal[];
   interpretasiList: Interpretasi[];
   updatedAt?: string;
+  pesertaCount?: number;
 };
 
 export type JudulPsikotesItem = {
-  id: number;
+  id: string | number;
   judul: string;
   kategori: string;
   deskripsi: string;
@@ -49,11 +51,13 @@ export type JudulPsikotesItem = {
 };
 
 export type PaketData = {
-  id: number;
-  judulId?: number;
+  id: string | number;
+  judulId?: string | number;
   nama: string;
   kategori: string;
   deskripsi: string;
+  bannerUrl?: string;
+  benefits?: string[];
   waktu: string;
   jenisAkses: JenisAkses;
   harga: string;
@@ -67,7 +71,7 @@ export type PaketData = {
 };
 
 export type AdminPsikotesPeserta = {
-  id: number;
+  id: string | number;
   nama: string;
   noHp: string;
   paket: string;
