@@ -10,21 +10,48 @@ import { HERO_SLIDES } from '../../data/homeData'
 import { useHomeSlider } from '../../hooks/useHomeSlider'
 import { usePsikologSlider } from '../../hooks/usePsikologSlider'
 import { eventService, EventItemApi } from '@/services/event.service'
+import { adminService } from '@/services/admin.service'
+import { psikotesService, type PaketPsikotesApiResponse } from '@/services/psikotes.service'
 
 export default function HomeClient() {
   const [publishedEvents, setPublishedEvents] = useState<EventItemApi[]>([])
   const [loadingEvents, setLoadingEvents] = useState(true)
+  const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
+  const [loadingPsikotes, setLoadingPsikotes] = useState(true)
   const [adminProfile, setAdminProfile] = useState<{
     alamat: string
     linkMaps: string
+    linkMapsEmbed: string
     email: string
     noTelepon: string
   }>({
     alamat: "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
     linkMaps: "https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw",
+    linkMapsEmbed: "https://www.google.com/maps?q=EMPATHIKA,+Layanan+Konsultasi+Psikologi,+Jl.+Cikutra+No.312,+Neglasari,+Kec.+Cibeunying+Kaler,+Kota+Bandung,+Jawa+Barat+41024&output=embed",
     email: "empathika889@gmail.com",
     noTelepon: "0878-7878-5498",
   })
+
+  useEffect(() => {
+    // Ambil paket psikotes yang dipublikasi langsung dari database
+    const fetchHomePsikotes = async () => {
+      try {
+        setLoadingPsikotes(true)
+        const res = await psikotesService.getList({ status: 'PUBLISHED' })
+        if (res?.data && res.data.length > 0) {
+          setPublishedPsikotes(res.data)
+        } else {
+          setPublishedPsikotes([])
+        }
+      } catch (err) {
+        console.error('Gagal memuat psikotes home:', err)
+        setPublishedPsikotes([])
+      } finally {
+        setLoadingPsikotes(false)
+      }
+    }
+    fetchHomePsikotes()
+  }, [])
 
   useEffect(() => {
     // Ambil event yang berstatus UPCOMING / ONGOING langsung dari backend
@@ -55,12 +82,30 @@ export default function HomeClient() {
         setAdminProfile((prev) => ({
           ...prev,
           alamat: parsed.alamat || prev.alamat,
-          linkMaps: parsed.linkMaps || prev.linkMaps,
+          linkMaps: parsed.linkMaps || parsed.link_maps || prev.linkMaps,
+          linkMapsEmbed: parsed.linkMapsEmbed || parsed.link_maps_embed || prev.linkMapsEmbed,
           email: parsed.email || prev.email,
-          noTelepon: parsed.noTelepon || prev.noTelepon,
+          noTelepon: parsed.noTelepon || parsed.no_telepon || prev.noTelepon,
         }))
       }
     } catch {}
+
+    adminService
+      .getPublicProfile()
+      .then((res) => {
+        if (res?.data) {
+          const d = res.data
+          setAdminProfile((prev) => ({
+            ...prev,
+            alamat: d.alamat || prev.alamat,
+            linkMaps: d.link_maps || d.linkMaps || prev.linkMaps,
+            linkMapsEmbed: d.link_maps_embed || d.linkMapsEmbed || prev.linkMapsEmbed,
+            email: d.email || prev.email,
+            noTelepon: d.no_telepon || d.noTelepon || prev.noTelepon,
+          }))
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const {
@@ -551,79 +596,134 @@ export default function HomeClient() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Card 1 */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
-            <div className="h-48 w-full bg-[#f48520] overflow-hidden relative">
-              <div className="absolute inset-0 flex items-start p-6">
-                <div className="text-left w-full">
-                  <h3 className="text-white font-bold text-[28px] leading-none mb-2 uppercase drop-shadow-sm">TES 16 KEPRIBADIAN</h3>
-                  <p className="text-white text-sm font-medium drop-shadow-sm">(MBTI) Bahasa Indonesia</p>
-                </div>
-              </div>
-              {/* Abstract decorative shapes */}
-              <div className="absolute -bottom-4 right-0 opacity-40 mix-blend-overlay">
-                 <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="white"/><circle cx="50" cy="120" r="50" fill="white"/></svg>
-              </div>
-            </div>
-            <div className="p-6 flex flex-col flex-1">
-              <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
-              
-              <div className="mt-auto">
-                <Link href="/psikotes/mbti" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
-                  Ikuti Tes
-                </Link>
-              </div>
-            </div>
-          </div>
+        {publishedPsikotes.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {publishedPsikotes.map((item, idx) => {
+              const bgColors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
+              const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
+              const bgColor = bgColors[idx % bgColors.length]
+              const textColor = textColors[idx % textColors.length]
 
-          {/* Card 2 */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
-            <div className="h-48 w-full bg-[#f0d164] overflow-hidden relative">
-              <div className="absolute inset-0 flex items-start p-6">
-                <div className="text-left w-full">
-                  <h3 className="text-gray-900 font-extrabold text-[28px] leading-[1.1] mb-2 drop-shadow-sm">Tes Online 16<br/>Kepribadian</h3>
-                  <p className="text-gray-800 text-sm font-medium drop-shadow-sm">(MBTI) Bahasa Indonesia</p>
-                </div>
-              </div>
-              <div className="absolute -bottom-4 right-0 opacity-20 mix-blend-overlay">
-                 <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="black"/><circle cx="50" cy="120" r="50" fill="black"/></svg>
-              </div>
-            </div>
-            <div className="p-6 flex flex-col flex-1">
-              <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
-              
-              <div className="mt-auto">
-                <Link href="/psikotes/mbti-2" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
-                  Ikuti Tes
-                </Link>
-              </div>
-            </div>
-          </div>
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
+                >
+                  <div className={`h-48 w-full ${bgColor} overflow-hidden relative`}>
+                    <div className="absolute inset-0 flex items-start p-6">
+                      <div className="text-left w-full">
+                        <h3 className={`${textColor} font-bold text-2xl leading-tight mb-1 uppercase drop-shadow-sm line-clamp-2`}>
+                          {item.judul}
+                        </h3>
+                        <p className={`${textColor} text-xs font-medium opacity-90 drop-shadow-sm line-clamp-2`}>
+                          {item.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri."}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Abstract decorative shapes */}
+                    <div className="absolute -bottom-4 right-0 opacity-40 mix-blend-overlay pointer-events-none">
+                      <svg width="200" height="150" viewBox="0 0 200 150" fill="none">
+                        <circle cx="150" cy="100" r="80" fill="white" />
+                        <circle cx="50" cy="120" r="50" fill="white" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="p-6 flex flex-col flex-1">
+                    <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
+                      {item.judul}
+                    </h3>
+                    <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
+                      {item.deskripsi || "Tes psikologi ini dirancang untuk memberikan gambaran akurat mengenai dirimu."}
+                    </p>
 
-          {/* Card 3 */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
-            <div className="h-48 w-full bg-[#e31e3d] overflow-hidden relative">
-              <div className="absolute inset-0 flex items-start p-6">
-                <div className="text-left w-full">
-                  <h3 className="text-white font-extrabold text-[28px] leading-none mb-2 drop-shadow-sm uppercase">TES LOVE<br/>LANGUAGE</h3>
+                    <div className="mt-auto">
+                      <Link
+                        href={`/psikotes/${item.id}`}
+                        className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
+                      >
+                        Ikuti Tes
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Card 1 */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <div className="h-48 w-full bg-[#f48520] overflow-hidden relative">
+                <div className="absolute inset-0 flex items-start p-6">
+                  <div className="text-left w-full">
+                    <h3 className="text-white font-bold text-[28px] leading-none mb-2 uppercase drop-shadow-sm">TES 16 KEPRIBADIAN</h3>
+                    <p className="text-white text-sm font-medium drop-shadow-sm">(MBTI) Bahasa Indonesia</p>
+                  </div>
+                </div>
+                {/* Abstract decorative shapes */}
+                <div className="absolute -bottom-4 right-0 opacity-40 mix-blend-overlay">
+                   <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="white"/><circle cx="50" cy="120" r="50" fill="white"/></svg>
                 </div>
               </div>
-              <div className="absolute bottom-4 right-10">
-                 <svg className="w-16 h-16 text-pink-300 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
+                
+                <div className="mt-auto">
+                  <Link href="/psikotes/mbti" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                    Ikuti Tes
+                  </Link>
+                </div>
               </div>
             </div>
-            <div className="p-6 flex flex-col flex-1">
-              <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Love Language: 5 Tipe Bahasa Cinta...</h3>
-              
-              <div className="mt-auto">
-                <Link href="/psikotes/love-language" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
-                  Ikuti Tes
-                </Link>
+
+            {/* Card 2 */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <div className="h-48 w-full bg-[#f0d164] overflow-hidden relative">
+                <div className="absolute inset-0 flex items-start p-6">
+                  <div className="text-left w-full">
+                    <h3 className="text-gray-900 font-extrabold text-[28px] leading-[1.1] mb-2 drop-shadow-sm">Tes Online 16<br/>Kepribadian</h3>
+                    <p className="text-gray-800 text-sm font-medium drop-shadow-sm">(MBTI) Bahasa Indonesia</p>
+                  </div>
+                </div>
+                <div className="absolute -bottom-4 right-0 opacity-20 mix-blend-overlay">
+                   <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="black"/><circle cx="50" cy="120" r="50" fill="black"/></svg>
+                </div>
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
+                
+                <div className="mt-auto">
+                  <Link href="/psikotes/mbti-2" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                    Ikuti Tes
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <div className="h-48 w-full bg-[#e31e3d] overflow-hidden relative">
+                <div className="absolute inset-0 flex items-start p-6">
+                  <div className="text-left w-full">
+                    <h3 className="text-white font-extrabold text-[28px] leading-none mb-2 drop-shadow-sm uppercase">TES LOVE<br/>LANGUAGE</h3>
+                  </div>
+                </div>
+                <div className="absolute bottom-4 right-10">
+                   <svg className="w-16 h-16 text-pink-300 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </div>
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Love Language: 5 Tipe Bahasa Cinta...</h3>
+                
+                <div className="mt-auto">
+                  <Link href="/psikotes/love-language" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                    Ikuti Tes
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* ======================================= */}
@@ -641,7 +741,7 @@ export default function HomeClient() {
           <div className="bg-white p-4 md:p-6 rounded-3xl shadow-lg border border-gray-100 flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-2/3 h-[300px] md:h-[400px] rounded-2xl overflow-hidden bg-gray-200">
               <iframe 
-                src="https://www.google.com/maps?q=EMPATHIKA,+Layanan+Konsultasi+Psikologi,+Jl.+Cikutra+No.312,+Neglasari,+Kec.+Cibeunying+Kaler,+Kota+Bandung,+Jawa+Barat+41024&output=embed" 
+                src={adminProfile.linkMapsEmbed || `https://www.google.com/maps?q=${encodeURIComponent(adminProfile.alamat || "EMPATHIKA, Layanan Konsultasi Psikologi, Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 41024")}&output=embed`} 
                 width="100%" 
                 height="100%" 
                 style={{ border: 0 }} 

@@ -1,15 +1,64 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { TEST_DATA } from "../../data/psikotesData";
+import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { Check, ShieldCheck, FileQuestion, ArrowRight } from "lucide-react";
 
 export default function PsikotesDetailClient({ params }: { params: { testId: string } }) {
-  // Gunakan fallback "mbti" jika testId tidak ada di mock data
-  const data = TEST_DATA[params.testId as keyof typeof TEST_DATA] || TEST_DATA["mbti"];
-  const [selectedPlan, setSelectedPlan] = useState<"gratis" | "berbayar">("berbayar");
+  const fallback = TEST_DATA[params.testId as keyof typeof TEST_DATA] || TEST_DATA["mbti"];
+  const [apiData, setApiData] = useState<PaketPsikotesApiResponse | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<"gratis" | "berbayar">("gratis");
+
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        const res = await psikotesService.getById(params.testId);
+        if (res && res.success && res.data) {
+          setApiData(res.data);
+        }
+      } catch (err) {
+        // Fallback to static mock if testId is mock key
+      }
+    };
+    fetchDetail();
+  }, [params.testId]);
+
+  const hasPaidPackage = apiData
+    ? (apiData.jenis_akses === "BERBAYAR" || (typeof apiData.harga === "number" && apiData.harga > 0))
+    : (fallback.price > 0);
+
+  useEffect(() => {
+    if (!hasPaidPackage && selectedPlan === "berbayar") {
+      setSelectedPlan("gratis");
+    }
+  }, [hasPaidPackage, selectedPlan]);
+
+  const data = apiData
+    ? {
+        title: apiData.judul,
+        subtitle: apiData.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
+        image: apiData.banner_url || fallback.image,
+        description: apiData.deskripsi || fallback.description,
+        duration: "15 Menit",
+        questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
+        price: apiData.harga || 0,
+        formattedPrice: apiData.harga ? `Rp ${apiData.harga.toLocaleString("id-ID")}` : "Gratis",
+        benefits: (Array.isArray(apiData.benefits) && apiData.benefits.length > 0)
+          ? (apiData.benefits as string[])
+          : fallback.benefits,
+        guidelines: fallback.guidelines,
+        freeBenefits: [
+          `Pengerjaan ${apiData.soal_psikotes?.length || 0} butir soal terstruktur`,
+          "Analisis dan interpretasi hasil langsung keluar",
+          "Akses fleksibel tanpa biaya",
+        ],
+        paidBenefits: fallback.paidBenefits,
+        paidPackageName: fallback.paidPackageName,
+      }
+    : fallback;
 
   const checkoutUrl = `/event/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
 
@@ -117,49 +166,70 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
 
                 {/* Kartu Ringkasan Berbayar */}
                 <div 
-                  onClick={() => setSelectedPlan("berbayar")}
-                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden ${
-                    selectedPlan === "berbayar" 
-                      ? "border-[#561269] bg-white shadow-md ring-2 ring-[#561269]/10" 
-                      : "border-gray-200 bg-white/70 hover:border-gray-300"
+                  onClick={() => {
+                    if (hasPaidPackage) setSelectedPlan("berbayar");
+                  }}
+                  className={`p-5 rounded-2xl border-2 transition-all flex flex-col justify-between relative overflow-hidden ${
+                    !hasPaidPackage
+                      ? "opacity-55 bg-gray-50 border-gray-200 cursor-not-allowed select-none"
+                      : selectedPlan === "berbayar" 
+                        ? "border-[#561269] bg-white shadow-md ring-2 ring-[#561269]/10 cursor-pointer" 
+                        : "border-gray-200 bg-white/70 hover:border-gray-300 cursor-pointer"
                   }`}
                 >
-                  <div className="absolute top-0 right-0 bg-[#EAB308] text-gray-950 font-extrabold text-[10px] px-3 py-1 rounded-bl-xl uppercase tracking-wider">
-                    Rekomendasi
+                  <div className={`absolute top-0 right-0 font-extrabold text-[10px] px-3 py-1 rounded-bl-xl uppercase tracking-wider ${
+                    !hasPaidPackage ? "bg-gray-200 text-gray-500" : "bg-[#EAB308] text-gray-950"
+                  }`}>
+                    {hasPaidPackage ? "Rekomendasi" : "Belum Tersedia"}
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#561269] bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">
+                      <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                        !hasPaidPackage
+                          ? "text-gray-400 bg-gray-100 border-gray-200"
+                          : "text-[#561269] bg-purple-50 border-purple-200"
+                      }`}>
                         Paket Lengkap
                       </span>
                     </div>
                     <div className="flex items-baseline gap-1.5 mb-2">
-                      <span className="text-2xl font-black text-[#561269]">{data.formattedPrice}</span>
-                      <span className="text-xs text-gray-400 font-semibold">/ satu kali tes</span>
+                      <span className={`text-2xl font-black ${!hasPaidPackage ? "text-gray-400" : "text-[#561269]"}`}>
+                        {hasPaidPackage ? data.formattedPrice : "Rp 0"}
+                      </span>
+                      {hasPaidPackage && (
+                        <span className="text-xs text-gray-400 font-semibold">/ satu kali tes</span>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-500 mb-4">Laporan analisis lengkap &amp; komprehensif (PDF).</p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      {hasPaidPackage 
+                        ? "Laporan analisis lengkap & komprehensif (PDF)." 
+                        : "Paket asesmen ini saat ini hanya tersedia untuk akses gratis."}
+                    </p>
                     <ul className="space-y-2 text-xs text-gray-700 mb-4">
                       {data.paidBenefits.map((item, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <Check className="w-3.5 h-3.5 text-[#561269] shrink-0 mt-0.5" />
-                          <span>{item}</span>
+                          <Check className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${!hasPaidPackage ? "text-gray-300" : "text-[#561269]"}`} />
+                          <span className={!hasPaidPackage ? "text-gray-400" : "text-gray-700"}>{item}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                   <button
                     type="button"
+                    disabled={!hasPaidPackage}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedPlan("berbayar");
+                      if (hasPaidPackage) setSelectedPlan("berbayar");
                     }}
                     className={`w-full py-2 rounded-xl text-xs font-bold transition ${
-                      selectedPlan === "berbayar" 
-                        ? "bg-[#561269] text-white" 
-                        : "bg-purple-50 text-[#561269] hover:bg-purple-100"
+                      !hasPaidPackage
+                        ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                        : selectedPlan === "berbayar" 
+                          ? "bg-[#561269] text-white cursor-pointer" 
+                          : "bg-purple-50 text-[#561269] hover:bg-purple-100 cursor-pointer"
                     }`}
                   >
-                    Pilih Paket Berbayar
+                    {hasPaidPackage ? "Pilih Paket Berbayar" : "Hanya Tersedia Akses Gratis"}
                   </button>
                 </div>
               </div>
@@ -307,13 +377,15 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                     <ArrowRight className="w-4 h-4" />
                   </Link>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPlan("berbayar")}
-                    className="text-xs text-[#561269] font-bold text-center hover:underline cursor-pointer"
-                  >
-                    Ingin laporan analisis lengkap? Pilih Paket Berbayar ({data.formattedPrice})
-                  </button>
+                  {hasPaidPackage && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlan("berbayar")}
+                      className="text-xs text-[#561269] font-bold text-center hover:underline cursor-pointer"
+                    >
+                      Ingin laporan analisis lengkap? Pilih Paket Berbayar ({data.formattedPrice})
+                    </button>
+                  )}
                 </div>
               )}
               

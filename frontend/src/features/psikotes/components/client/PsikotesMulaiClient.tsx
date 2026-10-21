@@ -1,14 +1,58 @@
 "use client"
 
-
-
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { MOCK_QUESTIONS, TEST_DATA } from "../../data/psikotesData";
 import { usePsikotesTest } from "../../hooks/usePsikotesTest";
+import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
+import { Loader2, AlertCircle } from "lucide-react";
 
 export default function PsikotesMulaiClient({ params }: { params: { testId: string } }) {
-  const currentTest = TEST_DATA[params.testId as keyof typeof TEST_DATA];
-  const testTitle = currentTest?.title || `Psikotes ${params.testId.replace('-', ' ')}`;
-  const totalQuestions = MOCK_QUESTIONS.length;
+  const [dbData, setDbData] = useState<PaketPsikotesApiResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPackage = async () => {
+      try {
+        const res = await psikotesService.getById(params.testId);
+        if (res && res.success && res.data) {
+          setDbData(res.data);
+        }
+      } catch (err) {
+        // Fallback to static mock if not in database
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPackage();
+  }, [params.testId]);
+
+  const fallbackTest = TEST_DATA[params.testId as keyof typeof TEST_DATA];
+  const testTitle = dbData?.judul || fallbackTest?.title || `Psikotes ${params.testId.replace('-', ' ')}`;
+
+  const questions = (dbData?.soal_psikotes && dbData.soal_psikotes.length > 0)
+    ? dbData.soal_psikotes.map((s) => ({
+        id: s.id,
+        text: s.pertanyaan,
+        options: s.pilihan_jawaban.map((p) => p.teks_jawaban),
+        weights: s.pilihan_jawaban.map((p) => Number(p.bobot) || 0),
+      }))
+    : MOCK_QUESTIONS.map((q) => ({
+        id: q.id,
+        text: q.text,
+        options: q.options,
+        weights: [1, 0],
+      }));
+
+  const totalQuestions = questions.length;
+
+  const calculateScore = (ans: Record<number, number>) => {
+    return Object.entries(ans).reduce((sum, [qIdx, optIdx]) => {
+      const q = questions[Number(qIdx)];
+      return sum + Number(q?.weights[optIdx] ?? 0);
+    }, 0);
+  };
+
   const {
     currentIndex,
     answers,
@@ -17,30 +61,55 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     handleNext,
     handlePrev,
     goToNext,
-  } = usePsikotesTest(totalQuestions, params.testId);
+  } = usePsikotesTest(totalQuestions, params.testId, calculateScore);
 
-  const currentQuestion = MOCK_QUESTIONS[currentIndex];
-  
-  // Calculate progress percentage
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-[#561269] mb-4" />
+        <p className="text-sm text-gray-500 font-medium">Memuat soal psikotes...</p>
+      </div>
+    );
+  }
+
+  // Jika paket dari database belum memiliki butir soal
+  if (dbData && (!dbData.soal_psikotes || dbData.soal_psikotes.length === 0)) {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{testTitle}</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            Paket psikotes ini belum memiliki butir pertanyaan yang aktif. Silakan hubungi admin atau kembali ke daftar tes.
+          </p>
+          <Link
+            href="/psikotes"
+            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm"
+          >
+            Kembali ke Daftar Psikotes
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const currentQuestion = questions[currentIndex] || questions[0];
   const progressPercentage = ((currentIndex + 1) / totalQuestions) * 100;
 
   const handleSelectOption = (optionIdx: number) => {
     handleOptionSelect(optionIdx);
-    
-    // Pindah ke pertanyaan berikutnya secara otomatis setelah sedikit delay (agar animasi terlihat)
     setTimeout(() => {
       goToNext();
     }, 400);
   };
 
   const isLastQuestion = currentIndex === totalQuestions - 1;
-  const hasAnsweredCurrent = answers[currentIndex] !== undefined;
 
   return (
     <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col selection:bg-[#561269] selection:text-white">
-      
       <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col">
-        
         {/* Header / Progress */}
         <div className="mb-8 md:mb-12">
           <div className="flex items-center justify-between mb-4">
@@ -52,7 +121,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             </span>
           </div>
           
-          {/* Progress Bar */}
           <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden shadow-inner">
             <div 
               className="h-full bg-gradient-to-r from-[#8e4a9e] to-[#561269] rounded-full transition-all duration-500 ease-out"
@@ -64,7 +132,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         {/* Question Area */}
         <div className="flex-1 flex flex-col">
           <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-gray-100 mb-8 flex-1 flex flex-col justify-center transition-all duration-300">
-            
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 leading-tight md:leading-[1.4] text-center mb-10 md:mb-14">
               &quot;{currentQuestion.text}&quot;
             </h2>
@@ -98,7 +165,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               })}
             </div>
             
-            {/* Error Message */}
             {showError && (
               <p className="text-red-500 font-medium text-center mt-6 animate-pulse">
                 Silakan pilih jawaban terlebih dahulu.
@@ -135,9 +201,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );
 }
-

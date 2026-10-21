@@ -6,6 +6,7 @@ import Image from "next/image"
 
 import { AdminProfileData, RoleType } from "../../types"
 import { DEFAULT_ADMIN, DEFAULT_PSIKOLOG } from "../../data/profileData"
+import { adminService } from "@/services/admin.service"
 
 export { type AdminProfileData, type RoleType }
 
@@ -36,6 +37,7 @@ export default function ProfileAdminClient({
   const [isPlayingVideoPreview, setIsPlayingVideoPreview] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isFetchedRef = useRef(false)
 
   useEffect(() => {
     if (role === "admin") {
@@ -43,12 +45,60 @@ export default function ProfileAdminClient({
         const savedAdmin = localStorage.getItem("empathika_admin_profile")
         if (savedAdmin) {
           const parsed = JSON.parse(savedAdmin)
-          setAdminData(parsed)
-          setForm(parsed)
-          return
+          setForm((prev) => ({ ...prev, ...parsed }))
         }
       } catch {}
-      setForm(adminData)
+
+      // Ambil data resmi profil admin dari backend database (hanya sekali saat mount)
+      if (!isFetchedRef.current) {
+        isFetchedRef.current = true
+        adminService
+          .getProfile()
+          .then((res) => {
+            if (res?.data) {
+              const p = res.data
+              const mapped: AdminProfileData = {
+                nama: p.nama || "",
+                email: p.email || "",
+                noTelepon: p.noTelepon || p.no_telepon || "",
+                bio: p.bio || "",
+                foto: p.foto || null,
+                alamat: p.alamat || "",
+                linkMaps: p.linkMaps || p.link_maps || "",
+              }
+              setForm((prev) => ({ ...prev, ...mapped }))
+              try {
+                localStorage.setItem(
+                  "empathika_admin_profile",
+                  JSON.stringify({
+                    ...mapped,
+                    linkMapsEmbed: p.linkMapsEmbed || p.link_maps_embed,
+                  })
+                )
+              } catch {}
+            }
+          })
+          .catch(() => {
+            // Jika token belum ada atau request gagal, coba getPublicProfile sebagai fallback
+            adminService
+              .getPublicProfile()
+              .then((res) => {
+                if (res?.data) {
+                  const p = res.data
+                  setForm((prev) => ({
+                    ...prev,
+                    nama: p.nama || prev.nama,
+                    email: p.email || prev.email,
+                    noTelepon: p.no_telepon || p.noTelepon || prev.noTelepon,
+                    alamat: p.alamat || prev.alamat,
+                    linkMaps: p.link_maps || p.linkMaps || prev.linkMaps,
+                    bio: p.bio || prev.bio,
+                  }))
+                }
+              })
+              .catch(() => {})
+          })
+      }
     } else {
       // Ambil data dari shared storage tenaga ahli
       try {
@@ -76,7 +126,6 @@ export default function ProfileAdminClient({
               videoThumbnail: DEFAULT_PSIKOLOG.videoThumbnail,
               videoDuration: DEFAULT_PSIKOLOG.videoDuration,
             }
-            setPsikologData(mapped)
             setForm(mapped)
             return
           }
@@ -84,7 +133,7 @@ export default function ProfileAdminClient({
       } catch {}
       setForm(psikologData)
     }
-  }, [role, adminData])
+  }, [role])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -149,13 +198,51 @@ export default function ProfileAdminClient({
   }
 
   // Submit / Simpan
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (role === "admin") {
       setAdminData(form)
       try {
         localStorage.setItem("empathika_admin_profile", JSON.stringify(form))
       } catch {}
+
+      // Simpan langsung ke database backend
+      try {
+        const res = await adminService.updateProfile({
+          nama: form.nama,
+          email: form.email,
+          noTelepon: form.noTelepon,
+          bio: form.bio,
+          foto: form.foto,
+          alamat: form.alamat,
+          linkMaps: form.linkMaps,
+        })
+        if (res?.data) {
+          const updated = res.data
+          const mapped: AdminProfileData = {
+            nama: updated.nama,
+            email: updated.email,
+            noTelepon: updated.noTelepon || updated.no_telepon || "",
+            bio: updated.bio || "",
+            foto: updated.foto || null,
+            alamat: updated.alamat || "",
+            linkMaps: updated.linkMaps || updated.link_maps || "",
+          }
+          setAdminData(mapped)
+          setForm(mapped)
+          try {
+            localStorage.setItem(
+              "empathika_admin_profile",
+              JSON.stringify({
+                ...mapped,
+                linkMapsEmbed: updated.linkMapsEmbed || updated.link_maps_embed,
+              })
+            )
+          } catch {}
+        }
+      } catch (backendErr) {
+        console.warn("Update profil ke backend gagal/offline, tetap tersimpan lokal:", backendErr)
+      }
     } else {
       setPsikologData(form)
       // Sinkronkan ke shared storage tenaga ahli agar Admin Utama dan POV Klien langsung terupdate
@@ -352,7 +439,7 @@ export default function ProfileAdminClient({
               <input
                 type="text"
                 name="nama"
-                value={form.nama}
+                value={form.nama || ""}
                 onChange={handleInputChange}
                 required
                 placeholder="Contoh: dr. John Doe, M.Psi."
@@ -367,7 +454,7 @@ export default function ProfileAdminClient({
               <input
                 type="email"
                 name="email"
-                value={form.email}
+                value={form.email || ""}
                 onChange={handleInputChange}
                 required
                 placeholder="nama@empathika.com"
@@ -382,7 +469,7 @@ export default function ProfileAdminClient({
               <input
                 type="text"
                 name="noTelepon"
-                value={form.noTelepon}
+                value={form.noTelepon || ""}
                 onChange={handleInputChange}
                 placeholder="0812xxxxxxxx"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
@@ -458,7 +545,7 @@ export default function ProfileAdminClient({
               <textarea
                 name="bio"
                 rows={3}
-                value={form.bio}
+                value={form.bio || ""}
                 onChange={handleInputChange}
                 placeholder="Tuliskan gambaran singkat mengenai peran dan fokus keahlian Anda..."
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition resize-none"

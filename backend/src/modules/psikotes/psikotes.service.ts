@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { PsikotesRepository } from './psikotes.repository'
+import type { CreatePsikotesInput, UpdatePsikotesInput, PsikotesQueryInput } from './psikotes.schema'
 
 export class PsikotesService {
   private repo: PsikotesRepository
@@ -8,21 +9,23 @@ export class PsikotesService {
     this.repo = new PsikotesRepository(fastify.prisma)
   }
 
-  async getAll(params?: Record<string, unknown>) {
+  async getAll(params?: PsikotesQueryInput) {
     return this.repo.findAll(params)
   }
 
-  async getById(id: string) {
-    const item = await this.repo.findById(id)
-    if (!item) throw new Error('Psikotes tidak ditemukan')
+  async getById(id: string, allowDraft: boolean = false) {
+    const item = await this.repo.findById(id, allowDraft)
+    if (!item) {
+      throw new Error('Paket psikotes tidak ditemukan atau belum dipublikasikan')
+    }
     return item
   }
 
-  async create(data: unknown) {
+  async create(data: CreatePsikotesInput) {
     return this.repo.create(data)
   }
 
-  async update(id: string, data: unknown) {
+  async update(id: string, data: UpdatePsikotesInput) {
     return this.repo.update(id, data)
   }
 

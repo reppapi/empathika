@@ -1,7 +1,57 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MapPin, Mail, Phone } from "lucide-react";
+import { adminService } from "@/services/admin.service";
 
 export function Footer() {
+  const [contact, setContact] = useState({
+    alamat: "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
+    email: "empathika889@gmail.com",
+    noTelepon: "0878-7878-5498",
+  });
+
+  useEffect(() => {
+    // 1. Cek cache lokal agar instan
+    try {
+      const saved = localStorage.getItem("empathika_admin_profile");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setContact((prev) => ({
+          alamat: parsed.alamat || prev.alamat,
+          email: parsed.email || prev.email,
+          noTelepon: parsed.noTelepon || parsed.no_telepon || prev.noTelepon,
+        }));
+      }
+    } catch {}
+
+    // 2. Ambil data terbaru dari backend database (Publik)
+    let isMounted = true;
+    adminService
+      .getPublicProfile()
+      .then((res) => {
+        if (isMounted && res?.data) {
+          setContact({
+            alamat: res.data.alamat || "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
+            email: res.data.email || "empathika889@gmail.com",
+            noTelepon: res.data.no_telepon || res.data.noTelepon || "0878-7878-5498",
+          });
+        }
+      })
+      .catch(() => {
+        // Fallback ke default jika offline/error
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const cleanWa = contact.noTelepon ? contact.noTelepon.replace(/\D/g, "") : "";
+  const waNumber = cleanWa.startsWith("0") ? "62" + cleanWa.slice(1) : cleanWa;
+  const waUrl = waNumber ? `https://wa.me/${waNumber}` : "https://wa.me/6287878785498";
+
   return (
     <footer className="bg-[#EFE9F3] pt-16 pb-8 text-gray-800">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,18 +101,19 @@ export function Footer() {
             <div className="space-y-4 pt-1">
               <div className="flex items-start gap-3 text-gray-600">
                 <MapPin className="w-5 h-5 shrink-0 mt-0.5 text-[#561269]/70" />
-                <span className="text-sm font-medium">Jl. Cikutra No.312, Neglasari<br/>Kec. Cibeunying Kaler, Kota Bandung<br/>Jawa Barat 41024</span>
+                <span className="text-sm font-medium whitespace-pre-line">{contact.alamat}</span>
               </div>
-              <a href="mailto:empathika889@gmail.com" className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group">
+              <a href={`mailto:${contact.email}`} className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group">
                 <Mail className="w-5 h-5 shrink-0 text-[#561269]/70 group-hover:text-[#561269]" />
-                <span className="text-sm font-medium">empathika889@gmail.com</span>
+                <span className="text-sm font-medium">{contact.email}</span>
               </a>
-              <a href="https://wa.me/6287878785498" className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group">
+              <a href={waUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group">
                 <Phone className="w-5 h-5 shrink-0 text-[#561269]/70 group-hover:text-[#561269]" />
-                <span className="text-sm font-medium">0878-7878-5498</span>
+                <span className="text-sm font-medium">{contact.noTelepon}</span>
               </a>
             </div>
           </div>
+
 
         </div>
 

@@ -5,6 +5,7 @@ import type {
   CreateAdminJadwalSlotInput,
   CreateAdminSesiInput,
   UpdateBookingStatusInput,
+  UpdateAdminProfileInput,
 } from './admin.schema'
 
 export class AdminController {
@@ -62,6 +63,42 @@ export class AdminController {
     }
   }
 
+  // ── Profil Admin Utama ──────────────────────────────────────────
+  getProfile = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = request.user as { id: string; role: string }
+      const data = await this.service.getProfile(user?.id)
+      reply.send({ success: true, data })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ error: err.name || 'Error', message: err.message })
+    }
+  }
+
+  updateProfile = async (
+    request: FastifyRequest<{ Body: UpdateAdminProfileInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = request.user as { id: string; role: string }
+      if (user?.role !== 'ADMIN') {
+        return reply.code(403).send({ error: 'Forbidden', message: 'Hanya Admin Utama yang berwenang mengubah profil' })
+      }
+      const data = await this.service.updateProfile(user.id, request.body)
+      reply.send({ success: true, message: 'Profil Admin Utama berhasil diperbarui', data })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ error: err.name || 'Error', message: err.message })
+    }
+  }
+
+  getPublicProfile = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getPublicProfile()
+      reply.send({ success: true, data })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ error: err.name || 'Error', message: err.message })
+    }
+  }
+
   getAll = async (_request: FastifyRequest, reply: FastifyReply) => {
     reply.send([])
   }
@@ -82,3 +119,4 @@ export class AdminController {
     reply.code(204).send()
   }
 }
+
