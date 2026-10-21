@@ -17,6 +17,9 @@ export interface AdminProfileData {
   pendidikanText?: string
   quote?: string
   instagram?: string
+  tiktok?: string
+  youtube?: string
+  linkedin?: string
   jenisKelamin?: "Laki-laki" | "Perempuan" | ""
   keahlian?: string[]
   profilLengkap?: string[]

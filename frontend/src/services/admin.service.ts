@@ -44,6 +44,10 @@ export const adminService = {
     linkMaps?: string | null
     bio?: string | null
     foto?: string | null
+    instagram?: string | null
+    tiktok?: string | null
+    youtube?: string | null
+    linkedin?: string | null
     password?: string
   }) => apiClient.put("/admin/profile", payload).then((r) => r.data),
 

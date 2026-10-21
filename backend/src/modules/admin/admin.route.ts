@@ -7,6 +7,7 @@ import {
   createAdminSesiSchema,
   updateBookingStatusSchema,
   updateAdminProfileSchema,
+  resendActivationSchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -124,6 +125,16 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     preHandler: [adminGuard],
     schema: { tags: ['Admin'], security: [{ bearerAuth: [] }] },
     handler: controller.update,
+  })
+
+  // ── Kirim Ulang Tautan Aktivasi Tenaga Ahli / Biro ──────────────
+  fastify.post('/resend-activation', {
+    schema: {
+      tags: ['Admin'],
+      summary: 'Kirim ulang / generate ulang token aktivasi akun tenaga ahli atau biro',
+      body: resendActivationSchema,
+    },
+    handler: controller.resendActivation,
   })
 
   fastify.delete('/:id', {

@@ -12,13 +12,33 @@ export class AuthRepository {
   async findById(id: string) {
     return this.prisma.account.findUnique({
       where: { id },
-      select: {
-        id: true,
-        nama: true,
-        email: true,
-        role: true,
-        foto: true,
+    })
+  }
+
+  async findByActivationToken(token: string) {
+    return this.prisma.account.findUnique({
+      where: { token_aktivasi: token },
+    })
+  }
+
+  async updatePasswordAndActivate(accountId: string, hashedPassword: string) {
+    return this.prisma.account.update({
+      where: { id: accountId },
+      data: {
+        password: hashedPassword,
         aktif: true,
+        token_aktivasi: null,
+        token_aktivasi_exp: null,
+      },
+    })
+  }
+
+  async updateActivationToken(accountId: string, token: string, expiresAt: Date) {
+    return this.prisma.account.update({
+      where: { id: accountId },
+      data: {
+        token_aktivasi: token,
+        token_aktivasi_exp: expiresAt,
       },
     })
   }

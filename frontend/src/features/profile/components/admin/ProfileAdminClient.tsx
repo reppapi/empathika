@@ -65,6 +65,10 @@ export default function ProfileAdminClient({
                 foto: p.foto || null,
                 alamat: p.alamat || "",
                 linkMaps: p.linkMaps || p.link_maps || "",
+                instagram: p.instagram || "",
+                tiktok: p.tiktok || "",
+                youtube: p.youtube || "",
+                linkedin: p.linkedin || "",
               }
               setForm((prev) => ({ ...prev, ...mapped }))
               try {
@@ -93,6 +97,10 @@ export default function ProfileAdminClient({
                     alamat: p.alamat || prev.alamat,
                     linkMaps: p.link_maps || p.linkMaps || prev.linkMaps,
                     bio: p.bio || prev.bio,
+                    instagram: p.instagram || prev.instagram,
+                    tiktok: p.tiktok || prev.tiktok,
+                    youtube: p.youtube || prev.youtube,
+                    linkedin: p.linkedin || prev.linkedin,
                   }))
                 }
               })
@@ -216,6 +224,10 @@ export default function ProfileAdminClient({
           foto: form.foto,
           alamat: form.alamat,
           linkMaps: form.linkMaps,
+          instagram: form.instagram,
+          tiktok: form.tiktok,
+          youtube: form.youtube,
+          linkedin: form.linkedin,
         })
         if (res?.data) {
           const updated = res.data
@@ -227,6 +239,10 @@ export default function ProfileAdminClient({
             foto: updated.foto || null,
             alamat: updated.alamat || "",
             linkMaps: updated.linkMaps || updated.link_maps || "",
+            instagram: updated.instagram || "",
+            tiktok: updated.tiktok || "",
+            youtube: updated.youtube || "",
+            linkedin: updated.linkedin || "",
           }
           setAdminData(mapped)
           setForm(mapped)
@@ -533,6 +549,72 @@ export default function ProfileAdminClient({
                   <p className="text-[11px] text-gray-400 mt-1">
                     Tautan Google Maps / petunjuk arah ke lokasi klinik Empathika (tombol &quot;Dapatkan Petunjuk Arah&quot; di beranda klien).
                   </p>
+                </div>
+
+                {/* Section Tautan Sosial Media Resmi */}
+                <div className="md:col-span-2 border-t border-gray-100 pt-5 mt-2">
+                  <h4 className="text-sm font-bold text-[#561269] mb-1">
+                    Tautan Media Sosial Resmi
+                  </h4>
+                  <p className="text-xs text-gray-400 mb-4">
+                    Tautan akun media sosial resmi Empathika yang akan otomatis tampil pada footer website.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    Instagram URL
+                  </label>
+                  <input
+                    type="url"
+                    name="instagram"
+                    value={form.instagram || ""}
+                    onChange={handleInputChange}
+                    placeholder="https://www.instagram.com/empathika_psikologi"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    TikTok URL
+                  </label>
+                  <input
+                    type="url"
+                    name="tiktok"
+                    value={form.tiktok || ""}
+                    onChange={handleInputChange}
+                    placeholder="https://www.tiktok.com/@empathika_psikologi"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    LinkedIn URL
+                  </label>
+                  <input
+                    type="url"
+                    name="linkedin"
+                    value={form.linkedin || ""}
+                    onChange={handleInputChange}
+                    placeholder="https://www.linkedin.com/company/empathika"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    YouTube URL
+                  </label>
+                  <input
+                    type="url"
+                    name="youtube"
+                    value={form.youtube || ""}
+                    onChange={handleInputChange}
+                    placeholder="https://www.youtube.com/@empathika"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                  />
                 </div>
               </>
             )}

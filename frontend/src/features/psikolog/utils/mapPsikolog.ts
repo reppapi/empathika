@@ -50,6 +50,7 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
     email: item.account?.email || item.email || '',
     no_str: item.no_str || null,
     no_sipp: item.no_sipp || null,
+    no_silp: item.no_silp || null,
     foto: item.foto || '/images/psikolog/default.jpg',
     bio: item.bio || 'Praktisi kesehatan mental profesional yang berdedikasi mendampingi proses pemulihan dan pertumbuhan diri klien.',
     quote: item.quote || 'Setiap perjalanan pemulihan dimulai dari keberanian untuk mendengarkan diri sendiri.',

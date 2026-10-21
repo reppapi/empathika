@@ -30,4 +30,36 @@ export class AuthController {
       data: result,
     })
   }
+
+  setPassword = async (
+    request: FastifyRequest<{ Body: { token: string; password: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const { token, password } = request.body
+      const result = await this.service.setPassword(token, password)
+      return reply.code(200).send(result)
+    } catch (err: any) {
+      return reply.code(err.statusCode || 400).send({
+        error: err.name || "Bad Request",
+        message: err.message,
+      })
+    }
+  }
+
+  resendActivation = async (
+    request: FastifyRequest<{ Body: { accountId: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const { accountId } = request.body
+      const result = await this.service.resendActivation(accountId)
+      return reply.code(200).send(result)
+    } catch (err: any) {
+      return reply.code(err.statusCode || 400).send({
+        error: err.name || "Bad Request",
+        message: err.message,
+      })
+    }
+  }
 }
