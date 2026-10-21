@@ -1,4 +1,5 @@
 import type { PrismaClient, Prisma, JenisEvent, StatusEvent } from '@prisma/client'
+import type { CreateEventInput, UpdateEventInput } from './event.schema'
 
 export interface EventQueryInput {
   page?: number
@@ -73,12 +74,12 @@ export class EventRepository {
     return null
   }
 
-  async create(data: unknown) {
+  async create(data: CreateEventInput) {
     // TODO: Implement
     return null
   }
 
-  async update(id: string, data: unknown) {
+  async update(id: string, data: UpdateEventInput) {
     // TODO: Implement
     return null
   }
