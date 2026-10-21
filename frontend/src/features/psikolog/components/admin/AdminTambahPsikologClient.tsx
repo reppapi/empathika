@@ -24,8 +24,13 @@ export default function AdminTambahPsikologClient() {
   // Form State
   const [nama, setNama] = useState("")
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("Psikolog123!") // Password awal diset oleh admin
   const [noTelepon, setNoTelepon] = useState("")
+
+  // State Tautan Aktivasi & Token WhatsApp (null di awal, di-generate nanti)
+  const [activationToken, setActivationToken] = useState<string | null>(null)
+  const [tokenExpiredAt, setTokenExpiredAt] = useState<string | null>(null)
+  const [isCopied, setIsCopied] = useState(false)
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
   const [kategori, setKategori] = useState<KategoriTenaga>("psikolog")
   const [statusAkses, setStatusAkses] = useState<StatusAkses>("AKTIF")
   const [spesialisasi, setSpesialisasi] = useState("")
@@ -38,6 +43,8 @@ export default function AdminTambahPsikologClient() {
   const [foto, setFoto] = useState<string | null>(null)
   const [keahlian, setKeahlian] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
+
+  const isPsikolog = kategori === "psikolog"
 
   // Validation States
   const [touched, setTouched] = useState<TouchedFields>({})
@@ -57,10 +64,83 @@ export default function AdminTambahPsikologClient() {
     }
   }
 
+  const getActivationUrl = (tok: string) => {
+    return typeof window !== "undefined"
+      ? `${window.location.origin}/set-password?token=${tok}`
+      : `https://empathika.id/set-password?token=${tok}`
+  }
+
+  const currentActivationUrl = activationToken ? getActivationUrl(activationToken) : ""
+
+  const handleGenerateToken = () => {
+    const newToken = `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
+    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    setActivationToken(newToken)
+    setTokenExpiredAt(newExpiry)
+    setIsCopied(false)
+    return newToken
+  }
+
+  const handleRegenerateToken = () => {
+    handleGenerateToken()
+  }
+
+  const handleCopyLink = () => {
+    if (!currentActivationUrl) return
+    navigator.clipboard.writeText(currentActivationUrl)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 2000)
+  }
+
+  const handleKirimWA = () => {
+    // 1. Pastikan token aktif ter-generate jika belum ada
+    let activeToken = activationToken
+    if (!activeToken) {
+      activeToken = handleGenerateToken()
+    }
+    const finalActivationUrl = getActivationUrl(activeToken)
+
+    const rawPhone = noTelepon.trim().replace(/[^0-9]/g, "")
+    const waNumber = rawPhone
+      ? rawPhone.startsWith("0")
+        ? "62" + rawPhone.slice(1)
+        : rawPhone.startsWith("62")
+        ? rawPhone
+        : "62" + rawPhone
+      : ""
+
+    const namaText = nama.trim() || "Tenaga Ahli"
+    const katText =
+      kategori === "psikolog"
+        ? "Psikolog Klinis"
+        : kategori === "konselor"
+        ? "Konselor Kesehatan Mental"
+        : "Peer Konselor"
+
+    const pesan =
+      `Halo *${namaText}*, selamat bergabung di Empathika! 🌿\n\n` +
+      `Akun Anda telah didaftarkan sebagai Tenaga Ahli (${katText}). ` +
+      `Silakan klik tautan resmi di bawah ini untuk membuat kata sandi Anda dan mengaktifkan akun:\n\n` +
+      `🔗 ${finalActivationUrl}\n\n` +
+      `Catatan: Tautan ini berlaku selama 7 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
+      `Salam hangat,\n*Tim Empathika*`
+
+    const waUrl = waNumber
+      ? `https://wa.me/${waNumber}?text=${encodeURIComponent(pesan)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(pesan)}`
+
+    window.open(waUrl, "_blank")
+  }
+
   const handleAddSkill = () => {
     if (!newSkill.trim()) return
-    if (!keahlian.includes(newSkill.trim())) {
-      setKeahlian([...keahlian, newSkill.trim()])
+    const parts = newSkill
+      .split(/[,;\n]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !keahlian.includes(s))
+
+    if (parts.length > 0) {
+      setKeahlian([...keahlian, ...parts])
     }
     setNewSkill("")
   }
@@ -96,12 +176,15 @@ export default function AdminTambahPsikologClient() {
     setFormErrorAlert(null)
     setIsSubmitting(true)
 
-    const isPsikolog = kategori === "psikolog"
+    // Pastikan token aktivasi sudah ter-generate saat form disubmit
+    const effectiveToken = activationToken || handleGenerateToken()
+    const effectiveExpiry = tokenExpiredAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
     const newTenaga: TenagaAhli = {
       id: Date.now().toString(),
       nama: nama.trim(),
       email: email.trim(),
-      password: password.trim(),
+      password: "", // Kata sandi dibuat mandiri oleh tenaga ahli via WhatsApp
       noTelepon: noTelepon.trim(),
       kategori,
       statusAkses,
@@ -110,8 +193,8 @@ export default function AdminTambahPsikologClient() {
         (isPsikolog
           ? "Psikolog Klinis"
           : kategori === "konselor"
-          ? "Konselor Kesehatan Mental"
-          : "Peer Konselor"),
+            ? "Konselor Kesehatan Mental"
+            : "Peer Konselor"),
       noStr: isPsikolog ? noStr.trim() : undefined,
       noSipp: isPsikolog ? noSipp.trim() : undefined,
       pendidikanText: pendidikanText.trim(),
@@ -122,6 +205,8 @@ export default function AdminTambahPsikologClient() {
       foto,
       keahlian,
       tanggalBergabung: "Baru terdaftar",
+      tokenAktivasi: effectiveToken,
+      tokenExpiredAt: effectiveExpiry,
     }
 
     try {
@@ -140,13 +225,16 @@ export default function AdminTambahPsikologClient() {
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
       const updated = [newTenaga, ...list]
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updated))
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("storage"))
+      }
     } catch {
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify([newTenaga]))
     } finally {
       setIsSubmitting(false)
     }
 
-    router.push("/admin/psikolog")
+    setIsSuccessModalOpen(true)
   }
 
   return (
@@ -213,11 +301,10 @@ export default function AdminTambahPsikologClient() {
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
                 placeholder="contoh: psikolog@gmail.com"
-                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
-                  emailError
+                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${emailError
                     ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
                     : "border-gray-200 focus:border-[#561269]"
-                }`}
+                  }`}
               />
               {emailError ? (
                 <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
@@ -233,21 +320,83 @@ export default function AdminTambahPsikologClient() {
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Password Awal Login <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Buat password login awal"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm font-mono text-gray-800 focus:border-[#561269] focus:outline-none"
-              />
-              <p className="text-[11px] text-gray-400 mt-1">
-                Tenaga ahli dapat mengubah email atau password ini secara mandiri di halaman profil mereka.
-              </p>
+            {/* Tautan Aktivasi & Generate Ulang Link Langsung di Halaman */}
+            <div className="rounded-2xl border border-purple-200/80 bg-purple-50/50 p-4 space-y-2.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-xs font-bold text-[#561269] flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Tautan Aktivasi Akun (7 Hari)
+                </label>
+                {activationToken ? (
+                  <button
+                    type="button"
+                    onClick={handleRegenerateToken}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
+                    title="Buat ulang token aktivasi baru"
+                  >
+                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Generate Ulang Link
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGenerateToken}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
+                    title="Buat tautan aktivasi sekarang"
+                  >
+                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Generate Tautan
+                  </button>
+                )}
+              </div>
+
+              {/* Input Link Display & Tombol Salin */}
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={currentActivationUrl}
+                  placeholder="Belum di-generate (klik 'Generate Tautan' atau 'Kirim WA')"
+                  className="flex-1 rounded-xl border border-purple-200 bg-white px-3 py-2 text-xs font-mono text-purple-950 placeholder:text-gray-400 placeholder:font-sans focus:outline-none select-all shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  disabled={!activationToken}
+                  className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border transition shadow-2xs ${
+                    activationToken
+                      ? "bg-white border-purple-200 text-[#561269] hover:bg-purple-50 active:scale-95 cursor-pointer"
+                      : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  {isCopied ? "✓ Tersalin!" : "Salin"}
+                </button>
+              </div>
+
+              {/* Baris Keterangan & Tombol WhatsApp */}
+              <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
+                <p className="text-[10px] text-gray-500">
+                  {activationToken
+                    ? "Tautan siap digunakan. Tenaga ahli membuat kata sandi mandiri via tautan ini."
+                    : "Tautan otomatis dibuat saat klik 'Kirim WA' atau 'Simpan'."}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleKirimWA}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold bg-[#25D366] hover:bg-[#20ba5a] text-white transition active:scale-95 shadow-2xs cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                  </svg>
+                  Kirim WA
+                </button>
+              </div>
             </div>
 
             <div>
@@ -322,11 +471,10 @@ export default function AdminTambahPsikologClient() {
                   }}
                   onBlur={() => setTouched((prev) => ({ ...prev, noStr: true }))}
                   placeholder="Contoh: STR-8921-2023"
-                  className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${
-                    noStrError
+                  className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${noStrError
                       ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
                       : "border-gray-300 focus:border-[#561269]"
-                  }`}
+                    }`}
                 />
                 {noStrError ? (
                   <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
@@ -356,11 +504,10 @@ export default function AdminTambahPsikologClient() {
                   }}
                   onBlur={() => setTouched((prev) => ({ ...prev, noSipp: true }))}
                   placeholder="Contoh: SIPP-1049-2024"
-                  className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${
-                    noSippError
+                  className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${noSippError
                       ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
                       : "border-gray-300 focus:border-[#561269]"
-                  }`}
+                    }`}
                 />
                 {noSippError ? (
                   <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
@@ -419,11 +566,10 @@ export default function AdminTambahPsikologClient() {
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
                 placeholder="081234567890"
-                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
-                  noTeleponError
+                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${noTeleponError
                     ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
                     : "border-gray-200 focus:border-[#561269]"
-                }`}
+                  }`}
               />
               {noTeleponError ? (
                 <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
@@ -566,7 +712,7 @@ export default function AdminTambahPsikologClient() {
           <h3 className="text-base font-bold text-gray-900">
             Topik & Keahlian Konseling
           </h3>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 max-w-lg">
             <input
               type="text"
               value={newSkill}
@@ -578,12 +724,12 @@ export default function AdminTambahPsikologClient() {
                 }
               }}
               placeholder="Tambah topik (contoh: Kecemasan, Manajemen Stres)"
-              className="flex-1 rounded-2xl border border-gray-200 px-4 py-2 text-sm text-gray-800 focus:border-[#561269] focus:outline-none"
+              className="flex-1 min-w-0 rounded-2xl border border-gray-200 px-4 py-2 text-sm text-gray-800 focus:border-[#561269] focus:outline-none shadow-2xs"
             />
             <button
               type="button"
               onClick={handleAddSkill}
-              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm transition active:scale-95 cursor-pointer"
+              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm transition active:scale-95 cursor-pointer shrink-0"
             >
               Tambah
             </button>
@@ -625,6 +771,100 @@ export default function AdminTambahPsikologClient() {
           </button>
         </div>
       </form>
+
+      {/* POP-UP SUKSES SETELAH SIMPAN */}
+      {isSuccessModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-gray-100 p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 leading-tight">
+                    Tenaga Ahli Berhasil Didaftarkan!
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Kirimkan tautan aktivasi akun ke kontak WhatsApp tenaga ahli.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSuccessModalOpen(false)
+                  router.push("/admin/psikolog")
+                }}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center transition cursor-pointer"
+                aria-label="Tutup modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-purple-100 bg-purple-50/50 p-4 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Nama Tenaga Ahli:</span>
+                <span className="font-bold text-gray-900">{nama || "Tenaga Ahli Baru"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">No. WhatsApp Tujuan:</span>
+                <span className="font-mono font-bold text-gray-900">{noTelepon || "-"}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-gray-700">
+                Tautan Aktivasi (Berlaku 7 Hari):
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={currentActivationUrl}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono text-purple-950 focus:outline-none select-all"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="shrink-0 px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 shadow-2xs transition active:scale-95 cursor-pointer"
+                >
+                  {isCopied ? "✓ Tersalin!" : "Salin"}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={handleKirimWA}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold bg-[#25D366] hover:bg-[#20ba5a] text-white shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                </svg>
+                Kirim Tautan ke WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSuccessModalOpen(false)
+                  router.push("/admin/psikolog")
+                }}
+                className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-2xl text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition cursor-pointer"
+              >
+                Selesai & Lihat Daftar Tenaga Ahli
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
