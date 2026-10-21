@@ -110,6 +110,10 @@ model Account {
   bio        String?  @db.Text
   alamat     String?  @db.Text
   link_maps  String?
+  instagram  String?
+  tiktok     String?
+  youtube    String?
+  linkedin   String?
   aktif      Boolean  @default(true)
   id_biro    String?
   createdAt  DateTime @default(now())
