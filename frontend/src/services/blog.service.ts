@@ -4,12 +4,14 @@ export interface CreateBlogDto {
   judul: string
   isi: string
   banner_url?: string | null
+  tanggal_terbit?: string | Date
 }
 
 export interface UpdateBlogDto {
   judul?: string
   isi?: string
   banner_url?: string | null
+  tanggal_terbit?: string | Date
 }
 
 export const blogService = {
