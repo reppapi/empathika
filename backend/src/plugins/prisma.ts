@@ -20,4 +20,3 @@ declare module "fastify" {
     prisma: PrismaClient
   }
 }
-

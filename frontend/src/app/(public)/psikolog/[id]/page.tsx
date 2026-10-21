@@ -58,10 +58,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
               }
             })
           } else {
-            jadwalTersedia = [
-              { waktu: "09:30 - 10:30", tipe: "online" },
-              { waktu: "14:00 - 15:00", tipe: "online" },
-            ]
+            jadwalTersedia = []
           }
 
           const mapped: DetailPsikologUI = {
@@ -78,7 +75,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
             jenisKelamin: data.jenis_kelamin || "Perempuan",
             pendidikanText: data.pendidikan || "Universitas Indonesia",
             status: data.status || "ACTIVE",
-            jumlah_sesi: data.jumlah_sesi || 50,
+            jumlah_sesi: typeof data.jumlah_sesi === "number" ? data.jumlah_sesi : 0,
             tarif_per_jam: Number(data.tarif_per_jam) || 150000,
             spesialisasi: data.spesialisasi
               ? {
@@ -101,10 +98,10 @@ export default function DetailPsikologPage({ params }: PageProps) {
             videoThumbnail: data.foto || "/images/psikolog/default.jpg",
             videoDuration: "01:30",
             jadwalTersedia,
-            jadwalAssociate: [
-              { tipe: "Weekday (Online)", waktu: "09:30 - 10:30" },
-              { tipe: "Weekday (Online)", waktu: "14:00 - 15:00" },
-            ],
+            jadwalAssociate: jadwalTersedia.map((j) => ({
+              tipe: j.tipe === "online" ? "Online" : "Offline",
+              waktu: j.waktu,
+            })),
             testimoni: [
               {
                 kutipan: "Sesi konseling sangat membantu saya dalam mengurai benang kusut kecemasan yang selama ini saya rasakan.",
@@ -141,7 +138,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
               quote: found.quote,
               instagram: found.instagram,
               status: found.statusAkses === "AKTIF" ? "ACTIVE" : "INACTIVE",
-              jumlah_sesi: found.jumlahSesi || 50,
+              jumlah_sesi: typeof found.jumlahSesi === "number" ? found.jumlahSesi : 0,
               tarif_per_jam: 0,
               spesialisasi: { id: `spec-${found.id}`, nama: found.spesialisasi },
               category: found.kategori,

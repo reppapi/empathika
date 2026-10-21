@@ -175,6 +175,12 @@ export class AdminRepository {
         },
       })
 
+      // 4. Update jumlah_sesi psikolog berdasarkan penambahan booking baru
+      await tx.psikolog.update({
+        where: { id: data.id_psikolog },
+        data: { jumlah_sesi: { increment: 1 } },
+      }).catch(() => {})
+
       return booking
     })
   }

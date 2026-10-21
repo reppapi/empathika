@@ -119,7 +119,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1594824813589-3221bf3a5bb4?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Indonesia',
       keahlian: 'Kecemasan, Depresi, Regulasi Emosi, CBT',
-      jumlah_sesi: 115,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Perempuan',
       pengalaman_tahun: '6 - 10 Tahun',
     },
@@ -137,7 +137,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'UIN Sunan Gunung Djati Bandung',
       keahlian: 'Hubungan, Romantis, Keluarga, Self-Confidence, Pengembangan Diri, Quarter Life Crisis',
-      jumlah_sesi: 48,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Perempuan',
       pengalaman_tahun: '2 - 4 Tahun',
     },
@@ -155,7 +155,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Gadjah Mada',
       keahlian: 'Konseling Pra-Nikah, Mediasi Konflik, Relasi Pasangan, Pengasuhan Keluarga',
-      jumlah_sesi: 120,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Perempuan',
       pengalaman_tahun: '5 - 10 Tahun',
     },
@@ -173,7 +173,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Indonesia',
       keahlian: 'Quarter Life Crisis, Arah Karier, Burnout & Stres, Pencarian Jati Diri',
-      jumlah_sesi: 99,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Laki-laki',
       pengalaman_tahun: '4 - 7 Tahun',
     },
@@ -191,7 +191,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1594824813589-3221bf3a5bb4?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Padjadjaran',
       keahlian: 'Depresi & Kecemasan, Trauma Healing, Regulasi Emosi, Terapi Kognitif (CBT)',
-      jumlah_sesi: 145,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Perempuan',
       pengalaman_tahun: '6 - 8 Tahun',
     },
@@ -209,7 +209,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Sebelas Maret',
       keahlian: 'Stres Akademik & Kuliah, Manajemen Waktu, Pengembangan Diri, Konflik Pertemanan',
-      jumlah_sesi: 85,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Laki-laki',
       pengalaman_tahun: '2 - 4 Tahun',
     },
@@ -227,7 +227,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Airlangga',
       keahlian: 'Pola Asuh (Parenting), Tumbuh Kembang Anak, Emosi & Tantrum Anak, Komunikasi Keluarga',
-      jumlah_sesi: 99,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Perempuan',
       pengalaman_tahun: '5 - 9 Tahun',
     },
@@ -245,7 +245,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Gadjah Mada',
       keahlian: 'Kecemasan Sosial, Mood & Suasana Hati, Mindfulness, Trauma Healing',
-      jumlah_sesi: 110,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Laki-laki',
       pengalaman_tahun: '4 - 6 Tahun',
     },
@@ -263,7 +263,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Padjadjaran',
       keahlian: 'Perencanaan Karier, Imposter Syndrome, Work-Life Balance, Self-Confidence',
-      jumlah_sesi: 99,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Perempuan',
       pengalaman_tahun: '3 - 5 Tahun',
     },
@@ -281,7 +281,7 @@ async function main() {
       foto: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400',
       pendidikan: 'Universitas Indonesia',
       keahlian: 'Manajemen Amarah, Resolusi Konflik, Komunikasi Asertif, Konseling Dewasa',
-      jumlah_sesi: 130,
+      jumlah_sesi: 0,
       jenis_kelamin: 'Laki-laki',
       pengalaman_tahun: '5 - 8 Tahun',
     },
@@ -328,7 +328,7 @@ async function main() {
         foto: item.foto,
         pendidikan: item.pendidikan,
         keahlian: item.keahlian,
-        jumlah_sesi: item.jumlah_sesi,
+        jumlah_sesi: 0,
         jenis_kelamin: item.jenis_kelamin,
         pengalaman_tahun: item.pengalaman_tahun,
         no_str: item.no_str,
@@ -346,7 +346,7 @@ async function main() {
         foto: item.foto,
         pendidikan: item.pendidikan,
         keahlian: item.keahlian,
-        jumlah_sesi: item.jumlah_sesi,
+        jumlah_sesi: 0,
         jenis_kelamin: item.jenis_kelamin,
         pengalaman_tahun: item.pengalaman_tahun,
         no_str: item.no_str,
@@ -356,48 +356,8 @@ async function main() {
 
     createdPsikologs.push(psi);
 
-    // Buat slot jadwal default hari ini dan besok
-    await prisma.jadwalSlot.upsert({
-      where: { id: `slot-${psi.id.slice(0, 8)}-1` },
-      update: { tanggal: todayUtc },
-      create: {
-        id: `slot-${psi.id.slice(0, 8)}-1`,
-        id_psikolog: psi.id,
-        tipe_jadwal: 'KONSULTASI',
-        tanggal: todayUtc,
-        jam_mulai: new Date(Date.UTC(1970, 0, 1, 9, 30, 0)),
-        jam_selesai: new Date(Date.UTC(1970, 0, 1, 10, 30, 0)),
-        status: 'TERSEDIA',
-      },
-    });
-
-    await prisma.jadwalSlot.upsert({
-      where: { id: `slot-${psi.id.slice(0, 8)}-2` },
-      update: { tanggal: todayUtc },
-      create: {
-        id: `slot-${psi.id.slice(0, 8)}-2`,
-        id_psikolog: psi.id,
-        tipe_jadwal: 'KONSULTASI',
-        tanggal: todayUtc,
-        jam_mulai: new Date(Date.UTC(1970, 0, 1, 14, 0, 0)),
-        jam_selesai: new Date(Date.UTC(1970, 0, 1, 15, 0, 0)),
-        status: 'TERSEDIA',
-      },
-    });
-
-    await prisma.jadwalSlot.upsert({
-      where: { id: `slot-${psi.id.slice(0, 8)}-3` },
-      update: { tanggal: tomorrowUtc },
-      create: {
-        id: `slot-${psi.id.slice(0, 8)}-3`,
-        id_psikolog: psi.id,
-        tipe_jadwal: 'KONSULTASI',
-        tanggal: tomorrowUtc,
-        jam_mulai: new Date(Date.UTC(1970, 0, 1, 16, 0, 0)),
-        jam_selesai: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)),
-        status: 'TERSEDIA',
-      },
-    });
+    // Jadwal slot tidak dibuat otomatis secara default.
+    // Menunggu jadwal dibuka mandiri oleh admin atau psikolog yang bersangkutan.
   }
 
   console.log(`Created/updated ${createdPsikologs.length} psikolog & konselor.`);
@@ -468,6 +428,11 @@ async function main() {
       deskripsi_trauma: 'Merasa cemas berlebih saat menghadapi situasi sosial.',
       status: 'CONFIRMED',
     },
+  });
+
+  await prisma.psikolog.update({
+    where: { id: firstPsi.id },
+    data: { jumlah_sesi: 1 },
   });
 
   console.log('Seeding finished successfully.');

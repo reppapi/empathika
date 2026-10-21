@@ -76,7 +76,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
               
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-600">
                 <p>
-                  Jumlah sesi: <span className="font-semibold text-gray-900">{psikolog.jumlah_sesi}+ Sesi</span>
+                  Jumlah sesi: <span className="font-semibold text-gray-900">{psikolog.jumlah_sesi} Sesi</span>
                 </p>
                 {psikolog.no_str && (
                   <>
@@ -226,13 +226,19 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
         </section>
 
         {/* 5. JADWAL ASSOCIATE / PRAKTEK */}
-        {(psikolog.jadwalAssociate || psikolog.jadwalTersedia) && (
+        {((psikolog.jadwalAssociate && psikolog.jadwalAssociate.length > 0) || (psikolog.jadwalTersedia && psikolog.jadwalTersedia.length > 0)) ? (
           <section className="space-y-3 pt-2">
             <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#561269] uppercase tracking-wider">
               JADWAL PRAKTEK
             </h3>
             <div className="flex flex-wrap gap-3.5">
-              {(psikolog.jadwalAssociate || psikolog.jadwalTersedia?.map((j: { tipe: string; waktu: string }) => ({ tipe: j.tipe === 'online' ? 'Online' : 'Offline', waktu: j.waktu })))?.map((jadwal: { tipe: string; waktu: string }, idx: number) => (
+              {(psikolog.jadwalAssociate && psikolog.jadwalAssociate.length > 0
+                ? psikolog.jadwalAssociate
+                : psikolog.jadwalTersedia?.map((j: { tipe: string; waktu: string }) => ({
+                    tipe: j.tipe === 'online' ? 'Online' : 'Offline',
+                    waktu: j.waktu,
+                  }))
+              )?.map((jadwal: { tipe: string; waktu: string }, idx: number) => (
                 <div 
                   key={idx}
                   className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800"
@@ -241,6 +247,15 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                 </div>
               ))}
             </div>
+          </section>
+        ) : (
+          <section className="space-y-3 pt-2">
+            <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#561269] uppercase tracking-wider">
+              JADWAL PRAKTEK
+            </h3>
+            <p className="text-gray-500 text-sm italic">
+              Saat ini belum ada jadwal ketersediaan yang dibuka. Silakan cek berkala atau hubungi admin untuk info sesi terdekat.
+            </p>
           </section>
         )}
 

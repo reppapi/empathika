@@ -65,7 +65,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
             foto: matched.foto || "/images/psikolog/default.jpg",
             statusAkses: "AKTIF",
             noTelepon: prev?.noTelepon || "081234567890",
-            jumlahSesi: matched.jumlah_sesi || prev?.jumlahSesi || 28,
+            jumlahSesi: typeof matched.jumlah_sesi === "number" ? matched.jumlah_sesi : (prev?.jumlahSesi ?? 0),
             bio: matched.bio || prev?.bio || "",
             quote: matched.quote || prev?.quote || "",
             instagram: matched.instagram || prev?.instagram || "",

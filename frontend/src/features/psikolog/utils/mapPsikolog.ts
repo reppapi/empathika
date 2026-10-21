@@ -40,10 +40,7 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
   } else if (item.jadwalTersedia && Array.isArray(item.jadwalTersedia)) {
     jadwalTersedia = item.jadwalTersedia;
   } else {
-    jadwalTersedia = [
-      { waktu: '09:30 - 10:30', tipe: 'online' },
-      { waktu: '14:00 - 15:00', tipe: 'online' },
-    ];
+    jadwalTersedia = [];
   }
 
   return {
@@ -61,7 +58,7 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
     pendidikanText: item.pendidikan || 'Universitas Indonesia',
     keahlian: keahlianList,
     status: item.status || 'ACTIVE',
-    jumlah_sesi: item.jumlah_sesi || 50,
+    jumlah_sesi: typeof item.jumlah_sesi === 'number' ? item.jumlah_sesi : 0,
     tarif_per_jam: Number(item.tarif_per_jam) || 150000,
     spesialisasi: item.spesialisasi
       ? {

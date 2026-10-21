@@ -37,20 +37,14 @@ export const DETAIL_PSIKOLOG_DUMMY: Record<string, DetailPsikologUI> = {
     jenisKelamin: 'Perempuan',
     pendidikanText: 'UIN Sunan Gunung Djati Bandung',
     status: 'ACTIVE',
-    jumlah_sesi: 48,
+    jumlah_sesi: 0,
     tarif_per_jam: 120000,
     spesialisasi: { id: 'spec-4', nama: 'Konselor Kesehatan Mental' },
     category: 'konselor',
     experienceYears: '2 - 4 Tahun',
-    labelJadwal: 'Jadwal Terdekat Weekend',
-    jadwalTersedia: [
-      { waktu: 'Sabtu, 16.00 - 17.00', tipe: 'offline' },
-      { waktu: 'Minggu, 19.30 - 20.30', tipe: 'online' },
-    ],
-    jadwalAssociate: [
-      { tipe: 'Weekend (Offline)', waktu: 'Sabtu, 16.00 - 17.00' },
-      { tipe: 'Weekend (Online)', waktu: 'Minggu, 19.30 – 20.30' }
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
+    jadwalAssociate: [],
     profilLengkap: [
       "Konselor yang memiliki ketertarikan pada bidang kesehatan mental dan pendampingan individu. Saya meyakini bahwa didengarkan dan dipahami merupakan bagian penting dari proses pemulihan dan pertumbuhan diri.",
       "Saya hadir untuk menemani setiap individu dalam perjalanan mengenali diri dan menemukan kekuatan dalam dirinya."
@@ -95,19 +89,14 @@ export const DETAIL_PSIKOLOG_DUMMY: Record<string, DetailPsikologUI> = {
     jenisKelamin: 'Perempuan',
     pendidikanText: 'Universitas Gadjah Mada',
     status: 'ACTIVE',
-    jumlah_sesi: 120,
+    jumlah_sesi: 0,
     tarif_per_jam: 200000,
     spesialisasi: { id: 'spec-2', nama: 'Psikolog Keluarga & Pasangan' },
     category: 'psikolog',
     experienceYears: '5 - 10 Tahun',
-    labelJadwal: 'Jadwal Terdekat Besok',
-    jadwalTersedia: [
-      { waktu: '10:00 - 11:00', tipe: 'online' },
-      { waktu: '14:00 - 15:00', tipe: 'online' },
-    ],
-    jadwalAssociate: [
-      { tipe: 'Weekday (Online)', waktu: 'Selasa & Kamis, 10.00 - 15.00' }
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
+    jadwalAssociate: [],
     profilLengkap: [
       "Galuh Kikiany S., M.Psi., Psikolog merupakan praktisi psikologi keluarga dengan pengalaman lebih dari 7 tahun mendampingi pasangan, suami istri, serta anggota keluarga dalam merajut komunikasi yang sehat dan meredakan ketegangan konflik relasi.",
       "Beliau meyakini bahwa setiap hubungan memiliki dinamika unik. Pendekatan konseling yang diterapkan menekankan empati dua arah, resolusi damai, dan kesepakatan bersama yang konstruktif untuk jangka panjang."
@@ -149,19 +138,14 @@ export const DETAIL_PSIKOLOG_DUMMY: Record<string, DetailPsikologUI> = {
     jenisKelamin: 'Laki-laki',
     pendidikanText: 'Universitas Indonesia',
     status: 'ACTIVE',
-    jumlah_sesi: 99,
+    jumlah_sesi: 0,
     tarif_per_jam: 175000,
     spesialisasi: { id: 'spec-3', nama: 'Psikolog Perkembangan' },
     category: 'psikolog',
     experienceYears: '4 - 7 Tahun',
-    labelJadwal: 'Jadwal Terdekat Hari Ini',
-    jadwalTersedia: [
-      { waktu: '13:00 - 14:00', tipe: 'online' },
-      { waktu: '19:00 - 20:00', tipe: 'online' },
-    ],
-    jadwalAssociate: [
-      { tipe: 'Weekday (Online)', waktu: 'Senin - Rabu, 13.00 - 20.00' }
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
+    jadwalAssociate: [],
     profilLengkap: [
       "Dimas Ardiansyah, M.Psi., Psikolog mendalami psikologi perkembangan dengan spesialisasi transisi masa remaja ke fase dewasa awal (emerging adulthood).",
       "Dengan gaya komunikasi yang santai namun berbasis bukti ilmiah, Dimas membantu klien mengeksplorasi nilai-nilai hidup, mengatasi kecemasan masa depan, dan merancang roadmap hidup yang lebih bermakna."

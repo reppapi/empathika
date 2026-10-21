@@ -93,7 +93,20 @@ export default function JadwalClient() {
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots")
         if (raw) {
-          localSlots = JSON.parse(raw).filter((s: JadwalSlotItem) => s.tanggal === dateKey)
+          const allSlots = JSON.parse(raw)
+          // Bersihkan slot default admin jika ada tersimpan
+          const sanitized = Array.isArray(allSlots)
+            ? allSlots.filter((s: any) => s.id_psikolog !== "psikolog-default-id" && s.tipe_jadwal !== "ASESMEN")
+            : []
+          if (sanitized.length !== allSlots.length) {
+            localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(sanitized))
+          }
+          localSlots = sanitized.filter(
+            (s: any) =>
+              s.tanggal === dateKey &&
+              s.tipe_jadwal === "KONSULTASI" &&
+              (!psikologIdParam || s.id_psikolog === psikologIdParam)
+          )
         }
       } catch {}
 

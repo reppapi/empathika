@@ -4,9 +4,18 @@ import { parseDateString } from '../../utils/date-time'
 export class PsikologRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async findAll(params?: { kategori?: string; search?: string }) {
-    const where: Prisma.PsikologWhereInput = {
-      status: 'ACTIVE',
+  async findAll(params?: { kategori?: string; search?: string; status?: string }) {
+    const where: Prisma.PsikologWhereInput = {}
+
+    if (params?.status) {
+      const s = params.status.toUpperCase()
+      if (s === 'ACTIVE' || s === 'INACTIVE') {
+        where.status = s as any
+      }
+      // Jika status === 'ALL', tidak ada filter status agar semua (aktif maupun nonaktif) tampil untuk admin
+    } else {
+      // Default untuk publik: hanya tampilkan yang ACTIVE
+      where.status = 'ACTIVE'
     }
 
     if (params?.kategori) {
@@ -34,6 +43,29 @@ export class PsikologRepository {
             role: true,
           },
         },
+        jadwal_slot: {
+          where: {
+            status: 'TERSEDIA',
+            tipe_jadwal: 'KONSULTASI',
+            NOT: {
+              id: { startsWith: 'slot-' },
+            },
+          },
+          orderBy: [
+            { tanggal: 'asc' },
+            { jam_mulai: 'asc' },
+          ],
+          take: 2,
+        },
+        _count: {
+          select: {
+            jadwal_slot: {
+              where: {
+                booking_konsultasi: { isNot: null },
+              },
+            },
+          },
+        },
       },
       orderBy: {
         nama_gelar: 'asc',
@@ -43,6 +75,43 @@ export class PsikologRepository {
 
   async findById(id: string) {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    const detailInclude: Prisma.PsikologInclude = {
+      spesialisasi: true,
+      account: {
+        select: {
+          id: true,
+          nama: true,
+          email: true,
+          no_telepon: true,
+          foto: true,
+          role: true,
+        },
+      },
+      jadwal_slot: {
+        where: {
+          status: 'TERSEDIA',
+          tipe_jadwal: 'KONSULTASI',
+          NOT: {
+            id: { startsWith: 'slot-' },
+          },
+        },
+        orderBy: [
+          { tanggal: 'asc' },
+          { jam_mulai: 'asc' },
+        ],
+        take: 10,
+      },
+      _count: {
+        select: {
+          jadwal_slot: {
+            where: {
+              booking_konsultasi: { isNot: null },
+            },
+          },
+        },
+      },
+    }
+
     if (!isUuid) {
       // Jika bukan format UUID (misal placeholder 'string' di Swagger atau cari berdasarkan nama)
       const found = await this.prisma.psikolog.findFirst({
@@ -51,42 +120,18 @@ export class PsikologRepository {
             { nama_gelar: { contains: id === 'string' ? '' : id, mode: 'insensitive' } },
           ],
         },
-        include: {
-          spesialisasi: true,
-          account: {
-            select: {
-              email: true,
-              no_telepon: true,
-            },
-          },
-        },
+        include: detailInclude,
       })
       if (found) return found
       // Fallback ke psikolog pertama di database
       return this.prisma.psikolog.findFirst({
-        include: {
-          spesialisasi: true,
-          account: {
-            select: {
-              email: true,
-              no_telepon: true,
-            },
-          },
-        },
+        include: detailInclude,
       })
     }
 
     return this.prisma.psikolog.findUnique({
       where: { id },
-      include: {
-        spesialisasi: true,
-        account: {
-          select: {
-            email: true,
-            no_telepon: true,
-          },
-        },
-      },
+      include: detailInclude,
     })
   }
 
@@ -107,6 +152,9 @@ export class PsikologRepository {
     const where: Prisma.JadwalSlotWhereInput = {
       status: 'TERSEDIA',
       tipe_jadwal: params.tipe_jadwal || 'KONSULTASI',
+      NOT: {
+        id: { startsWith: 'slot-' },
+      },
     }
 
     if (params.tanggal) {

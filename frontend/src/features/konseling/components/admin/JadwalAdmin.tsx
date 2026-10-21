@@ -407,64 +407,32 @@ export default function JadwalAdmin() {
   const handleBooking = async (times: string[]) => {
     if (!date || times.length === 0) return
     const dateKey = formatDateKey(date)
-    const psikologNama = "Dr. Dimas Ardiansyah, M.Psi., Psikolog"
-    const psikologId = "psikolog-default-id"
+    const asesorNama = "Tim Layanan Asesmen"
 
     const newSessions: BookedAssessment[] = []
-    const newSlotItems: any[] = []
 
     for (const finalWaktu of times) {
-      const [start, end] = finalWaktu.split(" - ")
-      const jamMulai = start?.trim() || "09:00"
-      const jamSelesai = end?.trim() || "10:00"
-
-      let savedSlotId = "slot-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6)
-
-      try {
-        const res: any = await psikologService.createJadwalSlot({
-          id_psikolog: psikologId,
-          tanggal: dateKey,
-          jam_mulai: jamMulai,
-          jam_selesai: jamSelesai,
-          tipe_jadwal: "KONSULTASI",
-        })
-        if (res && res.id) savedSlotId = res.id
-      } catch (err: any) {
-        console.warn("Notice save slot:", err?.response?.data?.message || err.message)
-      }
-
-      newSlotItems.push({
-        id: savedSlotId,
-        id_psikolog: psikologId,
-        nama_psikolog: psikologNama,
-        tanggal: dateKey,
-        jam_mulai: jamMulai,
-        jam_selesai: jamSelesai,
-        label_waktu: finalWaktu,
-        status: "TERSEDIA",
-        tipe_jadwal: "KONSULTASI",
-      })
+      const savedSlotId = "asesmen-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6)
 
       newSessions.push({
         id: savedSlotId,
         date: dateKey,
         waktu: finalWaktu,
-        layanan: "Konseling Individu",
+        layanan: "Layanan Asesmen",
         metode: "Online",
         namaKlien: "Tersedia",
-        psikolog: psikologNama,
+        psikolog: asesorNama,
       })
     }
 
+    // Bersihkan slot dummy admin bawaan lama dari localStorage agar tidak mengotori slot konsultasi
     try {
       const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      const list = raw ? JSON.parse(raw) : []
-      const filtered = list.filter(
-        (s: any) => !(s.tanggal === dateKey && times.some((t) => s.label_waktu === t || s.jam_mulai === t.split(" - ")[0]))
-      )
-      filtered.push(...newSlotItems)
-      localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(filtered))
-      window.dispatchEvent(new Event("storage"))
+      if (raw) {
+        const list = JSON.parse(raw)
+        const cleaned = list.filter((s: any) => s.id_psikolog !== "psikolog-default-id" && s.tipe_jadwal !== "ASESMEN")
+        localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(cleaned))
+      }
     } catch {}
 
     setBookedSessions((prev) => [...newSessions, ...prev])

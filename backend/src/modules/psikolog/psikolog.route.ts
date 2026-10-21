@@ -4,7 +4,9 @@ import { adminGuard } from '../../middlewares/admin-guard'
 import {
   getJadwalTersediaQuerySchema,
   getJadwalPsikologMeQuerySchema,
+  getAllPsikologQuerySchema,
   createJadwalSlotSchema,
+  updatePsikologProfileSchema,
 } from './psikolog.schema'
 
 export default async function psikologRoutes(fastify: FastifyInstance) {
@@ -21,9 +23,13 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
     handler: controller.getJadwalTersedia,
   })
 
-  // Daftar psikolog aktif
+  // Daftar psikolog aktif (atau filter status untuk admin)
   fastify.get('/', {
-    schema: { tags: ['Psikolog'], summary: 'Daftar semua psikolog aktif' },
+    schema: {
+      tags: ['Psikolog'],
+      summary: 'Daftar psikolog (dengan opsi filter status)',
+      querystring: getAllPsikologQuerySchema,
+    },
     handler: controller.getAll,
   })
 
@@ -90,6 +96,45 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
       security: [{ bearerAuth: [] }],
     },
     handler: controller.deleteJadwalSlot,
+  })
+
+  // Psikolog melihat profilnya sendiri
+  fastify.get('/me/profile', {
+    preHandler: [
+      async (req) => {
+        try {
+          await req.jwtVerify()
+        } catch {
+          // Tetap lanjut saat prototype testing tanpa token
+        }
+      },
+    ],
+    schema: {
+      tags: ['Psikolog - Portal'],
+      summary: 'Profil psikolog yang sedang login',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getMyProfile,
+  })
+
+  // Psikolog mengubah profilnya sendiri
+  fastify.put('/me/profile', {
+    preHandler: [
+      async (req) => {
+        try {
+          await req.jwtVerify()
+        } catch {
+          // Tetap lanjut saat prototype testing tanpa token
+        }
+      },
+    ],
+    schema: {
+      tags: ['Psikolog - Portal'],
+      summary: 'Ubah profil psikolog yang sedang login',
+      security: [{ bearerAuth: [] }],
+      body: updatePsikologProfileSchema,
+    },
+    handler: controller.updateMyProfile,
   })
 
   // ── 3. Rute Pengelolaan Psikolog oleh Admin ───────────────────────

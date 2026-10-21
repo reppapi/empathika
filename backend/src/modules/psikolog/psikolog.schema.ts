@@ -11,6 +11,12 @@ export const getJadwalPsikologMeQuerySchema = z.object({
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 })
 
+export const getAllPsikologQuerySchema = z.object({
+  kategori: z.string().optional(),
+  search: z.string().optional(),
+  status: z.string().optional(),
+})
+
 export const createJadwalSlotSchema = z.object({
   id_psikolog: z.string().optional(),
   tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
@@ -39,8 +45,29 @@ export const createPsikologSchema = z.object({
 
 export const updatePsikologSchema = createPsikologSchema.partial()
 
+export const updatePsikologProfileSchema = z.object({
+  nama: z.string().optional(),
+  no_telepon: z.string().optional(),
+  foto: z.string().optional(),
+  bio: z.string().optional(),
+  quote: z.string().optional(),
+  instagram: z.string().optional(),
+  keahlian: z.union([z.string(), z.array(z.string())]).optional(),
+  pendidikan: z.string().optional(),
+  pengalaman_tahun: z.string().optional(),
+  jenis_kelamin: z.string().optional(),
+  video_intro_url: z.string().optional(),
+  video_thumbnail: z.string().optional(),
+  video_duration: z.string().optional(),
+  profil_lengkap: z.union([z.string(), z.array(z.string())]).optional(),
+  tarif_per_jam: z.number().optional(),
+})
+
+export type GetAllPsikologQuery = z.infer<typeof getAllPsikologQuerySchema>
 export type GetJadwalTersediaQuery = z.infer<typeof getJadwalTersediaQuerySchema>
 export type GetJadwalPsikologMeQuery = z.infer<typeof getJadwalPsikologMeQuerySchema>
 export type CreateJadwalSlotInput = z.infer<typeof createJadwalSlotSchema>
 export type CreatePsikologInput = z.infer<typeof createPsikologSchema>
 export type UpdatePsikologInput = z.infer<typeof updatePsikologSchema>
+export type UpdatePsikologProfileInput = z.infer<typeof updatePsikologProfileSchema>
+
