@@ -4,12 +4,35 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import { CATEGORIES, SERVICES_DATA } from "../../data/layananData"
+import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
 
 export default function LayananClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const categoryQuery = searchParams.get("category")
   const [activeCategory, setActiveCategory] = useState(categoryQuery || "02") // Default ke Konsultasi
+  const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
+  const [loadingPsikotes, setLoadingPsikotes] = useState(true)
+
+  useEffect(() => {
+    const fetchPsikotes = async () => {
+      try {
+        setLoadingPsikotes(true)
+        const res = await psikotesService.getList({ status: "PUBLISHED" })
+        if (res?.data && res.data.length > 0) {
+          setPublishedPsikotes(res.data)
+        } else {
+          setPublishedPsikotes([])
+        }
+      } catch (err) {
+        console.error("Gagal mengambil data paket psikotes layanan:", err)
+        setPublishedPsikotes([])
+      } finally {
+        setLoadingPsikotes(false)
+      }
+    }
+    fetchPsikotes()
+  }, [])
 
   useEffect(() => {
     if (categoryQuery && categoryQuery !== activeCategory) {
@@ -29,7 +52,9 @@ export default function LayananClient() {
           <div className="absolute inset-0 flex items-start p-6">
             <div className="text-left w-full">
               <h3 className={`${service.titleColor} font-extrabold text-[22px] sm:text-[28px] leading-[1.1] mb-2 drop-shadow-sm uppercase`}>{service.topTitle}</h3>
-              <p className={`${service.titleColor} text-xs sm:text-sm font-medium drop-shadow-sm opacity-90`}>{service.topSubtitle}</p>
+              {service.topSubtitle && (
+                <p className={`${service.titleColor} text-xs sm:text-sm font-medium drop-shadow-sm opacity-90`}>{service.topSubtitle}</p>
+              )}
             </div>
           </div>
 
@@ -135,19 +160,51 @@ export default function LayananClient() {
             </div>
 
             {/* Area Konten Scrollable */}
+            {/* Area Konten Scrollable */}
             <div className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar">
               {/* Grid Layanan Kecil */}
-              {SERVICES_DATA[activeCategory]?.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                  {SERVICES_DATA[activeCategory].map((item, idx) =>
-                    renderServiceCard(item, idx)
-                  )}
-                </div>
-              ) : (
-                <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm border border-gray-100">
-                  Konten untuk {CATEGORIES.find(c => c.id === activeCategory)?.title} belum tersedia.
-                </div>
-              )}
+              {(() => {
+                const currentServices = (() => {
+                  if (activeCategory === "01") {
+                    if (publishedPsikotes.length > 0) {
+                      return publishedPsikotes.map((p, idx) => {
+                        const colors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
+                        const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
+                        const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
+                        return {
+                          topTitle: p.judul.toUpperCase(),
+                          topSubtitle: "",
+                          bottomTitle: p.judul,
+                          bottomDescription: p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
+                          bgColor: colors[idx % colors.length],
+                          titleColor: textColors[idx % textColors.length],
+                          btnText: "Ikuti Tes",
+                          shape: shapes[idx % shapes.length],
+                          href: `/psikotes/${p.id}`,
+                        }
+                      })
+                    }
+                    return SERVICES_DATA["01"] || []
+                  }
+                  return SERVICES_DATA[activeCategory] || []
+                })()
+
+                if (currentServices.length > 0) {
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+                      {currentServices.map((item, idx) =>
+                        renderServiceCard(item, idx)
+                      )}
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm border border-gray-100">
+                    Konten untuk {CATEGORIES.find(c => c.id === activeCategory)?.title} belum tersedia.
+                  </div>
+                )
+              })()}
             </div>
 
           </div>

@@ -8,12 +8,12 @@ import {
   X,
   Mail,
   Phone,
-  AtSign,
+  AtSign, 
   Award,
   BookOpen,
   Quote,
   Calendar,
-  CheckCircle2,
+  CheckCircle2, 
   Lock,
   Edit,
   ShieldCheck,
@@ -127,7 +127,7 @@ export default function PsikologDetailModal({
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-purple-100 border border-purple-200 shrink-0 flex items-center justify-center shadow-xs">
                 {psikolog.foto ? (
                   <Image src={psikolog.foto} alt={psikolog.nama} fill className="object-cover" />
-                ) : (
+                ) : ( 
                   <span className="text-xl sm:text-2xl font-black text-[#561269]">
                     {initials}
                   </span>

@@ -42,6 +42,12 @@ jobs:
       - run: pnpm --filter backend prisma:validate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
+      - run: pnpm --filter backend exec prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
+      - run: pnpm --filter backend prisma:seed
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
       - run: pnpm --filter backend test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test

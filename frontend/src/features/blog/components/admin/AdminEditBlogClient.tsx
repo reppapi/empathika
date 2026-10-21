@@ -76,6 +76,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
         judul: title,
         isi: content,
         banner_url: finalBannerUrl,
+        ...(date ? { tanggal_terbit: new Date(date).toISOString() } : {}),
       })
 
       router.push("/admin/blog")

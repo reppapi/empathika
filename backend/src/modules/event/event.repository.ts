@@ -1,5 +1,13 @@
-import type { PrismaClient, Prisma } from '@prisma/client'
-import type { CreateEventInput, UpdateEventInput, EventQueryInput } from './event.schema'
+import type { PrismaClient, Prisma, JenisEvent, StatusEvent } from '@prisma/client'
+import type { CreateEventInput, UpdateEventInput } from './event.schema'
+
+export interface EventQueryInput {
+  page?: number
+  limit?: number
+  search?: string
+  jenis_event?: JenisEvent
+  status?: StatusEvent
+}
 
 export class EventRepository {
   constructor(private prisma: PrismaClient) {}
@@ -32,7 +40,10 @@ export class EventRepository {
         where,
         skip,
         take: limit,
-        orderBy: { tanggal: 'asc' },
+        orderBy: [
+          { tanggal: 'desc' },
+          { jam_mulai: 'desc' },
+        ],
         include: {
           _count: {
             select: { booking_event: true },

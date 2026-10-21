@@ -6,10 +6,55 @@ import {
   createAdminJadwalSlotSchema,
   createAdminSesiSchema,
   updateBookingStatusSchema,
+  updateAdminProfileSchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
   const controller = new AdminController(fastify)
+
+  // ── Modul Profil Admin Utama ────────────────────────────────────
+  // 1. Publik: Tamu/klien mengambil kontak dan lokasi Admin Utama (Footer & Home)
+  fastify.get('/profile/public', {
+    schema: {
+      tags: ['Admin - Profile'],
+      summary: 'Mendapatkan data kontak dan lokasi Admin Utama untuk publik/tamu',
+    },
+    handler: controller.getPublicProfile,
+  })
+
+  // 2. Terproteksi: Admin Utama mengambil profil lengkap sendiri
+  fastify.get('/profile', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Profile'],
+      summary: 'Mendapatkan profil Admin Utama yang sedang login',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getProfile,
+  })
+
+  // 3. Terproteksi: Admin Utama memperbarui data profil (kontak, lokasi, bio, dll.)
+  fastify.put('/profile', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Profile'],
+      summary: 'Memperbarui profil Admin Utama (kontak, lokasi, bio, foto)',
+      security: [{ bearerAuth: [] }],
+      body: updateAdminProfileSchema,
+    },
+    handler: controller.updateProfile,
+  })
+
+  fastify.patch('/profile', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Profile'],
+      summary: 'Memperbarui sebagian data profil Admin Utama',
+      security: [{ bearerAuth: [] }],
+      body: updateAdminProfileSchema,
+    },
+    handler: controller.updateProfile,
+  })
 
   // ── Modul Jadwal & Sesi Admin ────────────────────────────────────
   fastify.get('/jadwal', {

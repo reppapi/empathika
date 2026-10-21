@@ -28,8 +28,9 @@ import {
   Eye,
   AlertTriangle,
   Compass,
+  Loader2,
 } from "lucide-react";
-import { ActionButtonDetail, ActionButtonDelete } from "@/components/shared/TableActionButtons";
+import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete, EditIcon } from "@/components/shared/TableActionButtons";
 import { AdminSummaryCard } from "@/components/shared/AdminSummaryCard";
 import {
   AdminDataTable,
@@ -40,6 +41,8 @@ import {
   ColumnDef,
 } from "@/components/shared/AdminDataTable";
 import { INITIAL_JUDUL_LIST, INITIAL_PESERTA_LIST } from "../../data/adminPsikotesData";
+import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
+import { uploadService } from "@/services/upload.service";
 import type {
   AdminPsikotesPeserta,
   Interpretasi,
@@ -52,11 +55,65 @@ import type {
 
 const LOCAL_STORAGE_KEY = "empathika_admin_psikotes_judul_v5";
 
+function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulPsikotesItem[] {
+  return items.map((item) => {
+    const paketDetail: PaketDetailItem = {
+      id: item.id,
+      judulId: item.id,
+      namaJudul: item.judul,
+      kategori: "Umum",
+      deskripsi: item.deskripsi || "",
+      bannerUrl: item.banner_url || undefined,
+      benefits: Array.isArray(item.benefits) ? item.benefits : undefined,
+      jenisAkses: item.jenis_akses === "GRATIS" ? "Gratis" : "Berbayar",
+      harga: item.jenis_akses === "GRATIS" ? "Gratis" : `Rp ${Number(item.harga).toLocaleString("id-ID")}`,
+      numericHarga: Number(item.harga) || 0,
+      waktu: "15 Menit",
+      status: item.status === "PUBLISHED" ? "Aktif" : "Draf",
+      jumlahSoal: item.soal_psikotes?.length || 0,
+      soalList: (item.soal_psikotes || []).map((s) => ({
+        id: s.id,
+        tipe: "Pilihan Ganda",
+        teks: s.pertanyaan,
+        pilihan: (s.pilihan_jawaban || []).map((p) => ({
+          text: p.teks_jawaban,
+          bobot: String(p.bobot),
+        })),
+      })),
+      interpretasiList: (item.interpretasi_psikotes || []).map((i) => ({
+        id: i.id,
+        min: String(i.min_skor),
+        max: String(i.max_skor),
+        judul: i.judul,
+        kategori: i.grade || "Umum",
+        deskripsi: i.deskripsi,
+        makna: i.makna || "",
+        saran: Array.isArray(i.tips) ? i.tips : [],
+      })),
+      updatedAt: new Date(item.updatedAt).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+      pesertaCount: item._count?.booking_psikotes || 0,
+    };
+
+    return {
+      id: item.id,
+      judul: item.judul,
+      kategori: "Umum",
+      deskripsi: item.deskripsi || "",
+      image: item.banner_url || "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80&w=100&h=100",
+      paketList: [paketDetail],
+    };
+  });
+}
+
 export default function AdminPsikotesClient() {
   const [activeTab, setActiveTab] = useState<"peserta" | "paket" | "form-paket">("peserta");
   const [formTab, setFormTab] = useState<"info" | "soal" | "preview" | "interpretasi">("info");
   const [aksesFilter, setAksesFilter] = useState<"Semua" | "Gratis" | "Berbayar">("Semua");
-  const [paketFilter, setPaketFilter] = useState<"Semua" | "Dipublikasi" | "Draf">("Semua");
+  const [paketFilter, setPaketFilter] = useState<"Dipublikasi" | "Draf">("Dipublikasi");
   const [searchPaket, setSearchPaket] = useState("");
 
   // Modals
@@ -73,36 +130,39 @@ export default function AdminPsikotesClient() {
   // Core Data: Judul Psikotes and its packages
   const [judulList, setJudulList] = useState<JudulPsikotesItem[]>(INITIAL_JUDUL_LIST);
 
-  // Load from localStorage after mount to prevent hydration mismatch
-  useEffect(() => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadDataFromBackend = async () => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setJudulList(parsed);
-        }
+      const res = await psikotesService.getList({ status: "ALL", include_draft: true });
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped = mapApiResponseToJudul(res.data);
+        setJudulList(mapped);
       }
     } catch (err) {
-      console.error("Gagal membaca data dari localStorage:", err);
+      console.error("Gagal membaca data dari server:", err);
     } finally {
       setIsLoaded(true);
     }
-  }, []);
+  };
 
-  // Sync to localStorage only after initial load is complete
   useEffect(() => {
-    if (!isLoaded) return;
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(judulList));
-    } catch (err) {
-      console.error("Gagal menyimpan ke localStorage:", err);
-    }
-  }, [judulList, isLoaded]);
+    loadDataFromBackend();
+  }, []);
 
   // Form State
   const [isResumingDraft, setIsResumingDraft] = useState(false);
-  const [activeDraftPackageId, setActiveDraftPackageId] = useState<number | null>(null);
+  const [activeDraftPackageId, setActiveDraftPackageId] = useState<string | number | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Edit Published Package State & Participant Warning
+  const [isEditingPublished, setIsEditingPublished] = useState(false);
+  const [hasParticipants, setHasParticipants] = useState(false);
+  const [hasConfirmedWarning, setHasConfirmedWarning] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [pendingTab, setPendingTab] = useState<"soal" | "interpretasi" | null>(null);
+
+  const DEFAULT_BENEFITS: string[] = [""];
 
   const [paketData, setPaketData] = useState<PaketData>({
     id: 0,
@@ -110,6 +170,8 @@ export default function AdminPsikotesClient() {
     nama: "",
     kategori: "Kepribadian",
     deskripsi: "",
+    bannerUrl: "",
+    benefits: [""],
     waktu: "15",
     jenisAkses: "Gratis",
     harga: "",
@@ -120,7 +182,7 @@ export default function AdminPsikotesClient() {
   });
 
   const [soalList, setSoalList] = useState<Soal[]>([]);
-  const [activeSoalId, setActiveSoalId] = useState<number>(Date.now());
+  const [activeSoalId, setActiveSoalId] = useState<string | number>(Date.now());
   const [currentSoal, setCurrentSoal] = useState<Soal>({
     id: activeSoalId,
     tipe: "Pilihan Ganda",
@@ -167,7 +229,6 @@ export default function AdminPsikotesClient() {
       item.kategori.toLowerCase().includes(searchPaket.toLowerCase());
     if (!matchesSearch) return false;
 
-    if (paketFilter === "Semua") return true;
     if (paketFilter === "Dipublikasi") {
       return item.paketList.some((p) => p.status === "Aktif");
     }
@@ -344,6 +405,9 @@ export default function AdminPsikotesClient() {
   const openFormTambah = (targetJudul?: JudulPsikotesItem, preferredAkses?: JenisAkses) => {
     setFormErrors([]);
     setIsResumingDraft(false);
+    setIsEditingPublished(false);
+    setHasParticipants(false);
+    setHasConfirmedWarning(false);
     setActiveDraftPackageId(null);
     setActiveTab("form-paket");
     setFormTab("info");
@@ -365,6 +429,8 @@ export default function AdminPsikotesClient() {
         nama: targetJudul.judul,
         kategori: targetJudul.kategori,
         deskripsi: targetJudul.deskripsi,
+        bannerUrl: targetJudul.image || "",
+        benefits: [""],
         waktu: defaultAkses === "Gratis" ? "15" : "30",
         jenisAkses: defaultAkses,
         harga: defaultAkses === "Gratis" ? "" : "Rp 50.000",
@@ -412,6 +478,8 @@ export default function AdminPsikotesClient() {
         nama: "",
         kategori: "Kepribadian",
         deskripsi: "",
+        bannerUrl: "",
+        benefits: [""],
         waktu: "15",
         jenisAkses: "Gratis",
         harga: "",
@@ -450,6 +518,9 @@ export default function AdminPsikotesClient() {
   const resumeDraft = (targetJudul: JudulPsikotesItem, draftPackage: PaketDetailItem) => {
     setFormErrors([]);
     setIsResumingDraft(true);
+    setIsEditingPublished(false);
+    setHasParticipants(false);
+    setHasConfirmedWarning(false);
     setActiveDraftPackageId(draftPackage.id);
     setActiveTab("form-paket");
     setFormTab("info");
@@ -460,6 +531,8 @@ export default function AdminPsikotesClient() {
       nama: targetJudul.judul,
       kategori: targetJudul.kategori,
       deskripsi: draftPackage.deskripsi || targetJudul.deskripsi,
+      bannerUrl: draftPackage.bannerUrl || targetJudul.image || "",
+      benefits: draftPackage.benefits && draftPackage.benefits.length > 0 ? draftPackage.benefits : [""],
       waktu: draftPackage.waktu.replace(/[^0-9]/g, "") || "15",
       jenisAkses: draftPackage.jenisAkses,
       harga: draftPackage.harga === "Gratis" ? "" : draftPackage.harga,
@@ -512,6 +585,109 @@ export default function AdminPsikotesClient() {
     });
   };
 
+  // Helper: Edit Published or Existing Package
+  const handleEditPaket = (targetJudul: JudulPsikotesItem, targetPaket: PaketDetailItem) => {
+    setFormErrors([]);
+    setIsResumingDraft(false);
+    setIsEditingPublished(targetPaket.status === "Aktif");
+    setActiveDraftPackageId(targetPaket.id);
+
+    // Cek apakah sudah ada peserta yang mengerjakan paket ini
+    const participantsExist =
+      (typeof targetPaket.pesertaCount === "number" && targetPaket.pesertaCount > 0) ||
+      pesertaList.some(
+        (p) =>
+          p.paket.toLowerCase().includes(targetJudul.judul.toLowerCase()) &&
+          p.jenisAkses === targetPaket.jenisAkses
+      );
+
+    setHasParticipants(participantsExist);
+    setHasConfirmedWarning(false);
+    setActiveTab("form-paket");
+    setFormTab("info");
+
+    setPaketData({
+      id: targetPaket.id,
+      judulId: targetJudul.id,
+      nama: targetJudul.judul,
+      kategori: targetJudul.kategori,
+      deskripsi: targetPaket.deskripsi || targetJudul.deskripsi,
+      bannerUrl: targetPaket.bannerUrl || targetJudul.image || "",
+      benefits:
+        targetPaket.benefits && targetPaket.benefits.length > 0
+          ? targetPaket.benefits
+          : [""],
+      waktu: targetPaket.waktu.replace(/[^0-9]/g, "") || "15",
+      jenisAkses: targetPaket.jenisAkses,
+      harga: targetPaket.harga === "Gratis" ? "" : targetPaket.harga,
+      numericHarga: targetPaket.numericHarga,
+      status: targetPaket.status,
+      jumlahSoal: targetPaket.jumlahSoal,
+      modeJudul: "ada",
+    });
+
+    const questions = targetPaket.soalList && targetPaket.soalList.length > 0 ? targetPaket.soalList : [];
+    setSoalList(questions);
+
+    if (questions.length > 0) {
+      setActiveSoalId(questions[0].id);
+      setCurrentSoal(questions[0]);
+    } else {
+      const newId = Date.now();
+      setActiveSoalId(newId);
+      setCurrentSoal({
+        id: newId,
+        tipe: "Pilihan Ganda",
+        teks: "",
+        pilihan: [
+          { text: "", bobot: "1" },
+          { text: "", bobot: "0" },
+        ],
+      });
+    }
+
+    if (targetPaket.interpretasiList && targetPaket.interpretasiList.length > 0) {
+      setInterpretasiList(targetPaket.interpretasiList);
+    } else {
+      setInterpretasiList(
+        targetPaket.jenisAkses === "Berbayar"
+          ? getBerbayarDefaultInterpretasi(targetJudul.judul, targetJudul.kategori)
+          : [
+              {
+                id: Date.now(),
+                min: "0",
+                max: "5",
+                judul: "",
+                kategori: targetJudul.kategori,
+                deskripsi: "",
+                makna: "",
+                saran: [{ title: "", desc: "" }],
+              },
+            ]
+      );
+    }
+
+    setNotification({
+      type: "info",
+      message: `Membuka mode edit untuk paket "${targetJudul.judul} (${targetPaket.jenisAkses})".`,
+    });
+  };
+
+  // Helper: Intercept Tab Switching to validate warning for packages with participants
+  const handleTabSwitch = (target: "info" | "soal" | "preview" | "interpretasi") => {
+    if (
+      isEditingPublished &&
+      hasParticipants &&
+      !hasConfirmedWarning &&
+      (target === "soal" || target === "interpretasi")
+    ) {
+      setPendingTab(target);
+      setShowWarningModal(true);
+      return;
+    }
+    setFormTab(target);
+  };
+
   // Format Rupiah Input Helper
   const handleHargaChange = (val: string) => {
     const rawNumber = val.replace(/[^0-9]/g, "");
@@ -525,6 +701,59 @@ export default function AdminPsikotesClient() {
       ...prev,
       harga: formatted,
       numericHarga: num,
+    }));
+  };
+
+  // Helper Upload Banner
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Ukuran gambar maksimal 2MB.");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const url = await uploadService.uploadImage(file);
+      setPaketData((prev) => ({ ...prev, bannerUrl: url }));
+      setNotification({
+        type: "success",
+        message: "Banner instrumen psikotes berhasil diunggah!",
+      });
+    } catch (err: any) {
+      console.error("Gagal mengunggah banner:", err);
+      alert(err.message || "Gagal mengunggah gambar");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleRemoveBanner = () => {
+    setPaketData((prev) => ({ ...prev, bannerUrl: "" }));
+  };
+
+  // Helper Benefits ("Apa yang akan kamu dapatkan")
+  const addBenefit = () => {
+    setPaketData((prev) => ({
+      ...prev,
+      benefits: [...(prev.benefits || []), ""],
+    }));
+  };
+
+  const updateBenefit = (idx: number, val: string) => {
+    setPaketData((prev) => {
+      const list = [...(prev.benefits || [])];
+      list[idx] = val;
+      return { ...prev, benefits: list };
+    });
+  };
+
+  const removeBenefit = (idx: number) => {
+    setPaketData((prev) => ({
+      ...prev,
+      benefits: (prev.benefits || []).filter((_, i) => i !== idx),
     }));
   };
 
@@ -602,7 +831,7 @@ export default function AdminPsikotesClient() {
     }));
   };
 
-  const deleteSoal = (id: number) => {
+  const deleteSoal = (id: string | number) => {
     if (confirm("Hapus butir soal ini dari daftar?")) {
       const newList = soalList.filter((s) => s.id !== id);
       setSoalList(newList);
@@ -645,11 +874,11 @@ export default function AdminPsikotesClient() {
     }
   };
 
-  const updateInterpretasi = (id: number, key: keyof Interpretasi, val: string) => {
+  const updateInterpretasi = (id: string | number, key: keyof Interpretasi, val: string) => {
     setInterpretasiList((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: val } : item)));
   };
 
-  const updateBlindspot = (interId: number, idx: number, val: string) => {
+  const updateBlindspot = (interId: string | number, idx: number, val: string) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
@@ -662,7 +891,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const addBlindspot = (interId: number) => {
+  const addBlindspot = (interId: string | number) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
@@ -673,7 +902,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const removeBlindspot = (interId: number, idx: number) => {
+  const removeBlindspot = (interId: string | number, idx: number) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId && item.blindspots) {
@@ -684,7 +913,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const updateKekuatan = (interId: number, idx: number, val: string) => {
+  const updateKekuatan = (interId: string | number, idx: number, val: string) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
@@ -697,7 +926,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const addKekuatan = (interId: number) => {
+  const addKekuatan = (interId: string | number) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
@@ -708,7 +937,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const removeKekuatan = (interId: number, idx: number) => {
+  const removeKekuatan = (interId: string | number, idx: number) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId && item.kekuatanUtama) {
@@ -719,7 +948,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const updateLingkungan = (interId: number, idx: number, val: string) => {
+  const updateLingkungan = (interId: string | number, idx: number, val: string) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
@@ -732,7 +961,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const addLingkungan = (interId: number) => {
+  const addLingkungan = (interId: string | number) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
@@ -743,7 +972,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const removeLingkungan = (interId: number, idx: number) => {
+  const removeLingkungan = (interId: string | number, idx: number) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId && item.lingkunganOptimal) {
@@ -754,7 +983,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const addSaran = (interpretasiId: number) => {
+  const addSaran = (interpretasiId: string | number) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interpretasiId) {
@@ -765,7 +994,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const updateSaran = (interpretasiId: number, saranIndex: number, key: "title" | "desc", val: string) => {
+  const updateSaran = (interpretasiId: string | number, saranIndex: number, key: "title" | "desc", val: string) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interpretasiId) {
@@ -778,7 +1007,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const removeSaran = (interpretasiId: number, saranIndex: number) => {
+  const removeSaran = (interpretasiId: string | number, saranIndex: number) => {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interpretasiId) {
@@ -789,7 +1018,7 @@ export default function AdminPsikotesClient() {
     );
   };
 
-  const removeInterpretasi = (id: number) => {
+  const removeInterpretasi = (id: string | number) => {
     if (interpretasiList.length <= 1) {
       alert("Minimal harus ada 1 kategori interpretasi.");
       return;
@@ -800,85 +1029,71 @@ export default function AdminPsikotesClient() {
   };
 
   // Save Draft (Can be done anytime, even with incomplete data)
-  const handleSaveDraft = (navigateBack: boolean = true) => {
+  const handleSaveDraft = async (navigateBack: boolean = true) => {
     const titleName = paketData.nama.trim() || "Draf Psikotes Tanpa Judul";
-    const packageId = isResumingDraft && activeDraftPackageId ? activeDraftPackageId : Date.now();
+    const packageId = (isResumingDraft || isEditingPublished) && activeDraftPackageId ? activeDraftPackageId : paketData.id;
 
-    const draftItem: PaketDetailItem = {
-      id: packageId,
-      judulId: paketData.judulId || Date.now(),
-      namaJudul: titleName,
-      kategori: paketData.kategori || "Umum",
-      deskripsi: paketData.deskripsi || "Draf deskripsi paket psikotes",
-      jenisAkses: paketData.jenisAkses,
-      harga: paketData.jenisAkses === "Gratis" ? "Gratis" : paketData.harga || "Rp -",
-      numericHarga: paketData.jenisAkses === "Gratis" ? 0 : paketData.numericHarga || 0,
-      waktu: `${paketData.waktu || 15} Menit`,
-      status: "Draf",
-      jumlahSoal: soalList.length,
-      soalList: soalList,
-      interpretasiList: interpretasiList,
-      updatedAt: "Hari ini (Draf)",
-    };
+    setIsSubmitting(true);
+    try {
+      const apiPayload = {
+        judul: titleName,
+        deskripsi: paketData.deskripsi || "Draf deskripsi paket psikotes",
+        banner_url: paketData.bannerUrl || null,
+        benefits: (paketData.benefits || []).filter((b) => b.trim().length > 0),
+        jenis_akses: (paketData.jenisAkses === "Gratis" ? "GRATIS" : "BERBAYAR") as any,
+        harga: paketData.jenisAkses === "Gratis" ? 0 : (paketData.numericHarga || 0),
+        status: (isEditingPublished ? "PUBLISHED" : "DRAFT") as any,
+        soal_psikotes: soalList.map((s, idx) => ({
+          urutan: idx + 1,
+          pertanyaan: s.teks || `Pertanyaan ${idx + 1}`,
+          pilihan_jawaban: s.pilihan.map((p, pIdx) => ({
+            label: String.fromCharCode(65 + pIdx),
+            teks_jawaban: p.text || `Pilihan ${pIdx + 1}`,
+            bobot: parseInt(p.bobot) || 0,
+          })),
+        })),
+        interpretasi_psikotes: interpretasiList.map((i, iIdx) => ({
+          min_skor: parseInt(i.min) || 0,
+          max_skor: parseInt(i.max) || 0,
+          grade: i.kategori || `Grade ${iIdx + 1}`,
+          judul: i.judul || `Interpretasi ${iIdx + 1}`,
+          deskripsi: i.deskripsi || "Penjelasan interpretasi",
+          makna: i.makna || "",
+          tips: i.saran || [],
+        })),
+      };
 
-    setJudulList((prev) => {
-      // If adding to existing title
-      if (paketData.modeJudul === "ada" && paketData.judulId) {
-        return prev.map((j) => {
-          if (j.id === paketData.judulId) {
-            const existingPaketIdx = j.paketList.findIndex((p) => p.id === packageId);
-            let updatedList = [...j.paketList];
-            if (existingPaketIdx >= 0) {
-              updatedList[existingPaketIdx] = draftItem;
-            } else {
-              // Ensure no duplicate access type
-              updatedList = updatedList.filter((p) => p.jenisAkses !== draftItem.jenisAkses);
-              updatedList.push(draftItem);
-            }
-            return { ...j, paketList: updatedList };
-          }
-          return j;
-        });
-      }
-
-      // If new title
-      const existingJudul = prev.find((j) => j.judul.toLowerCase() === titleName.toLowerCase());
-      if (existingJudul) {
-        return prev.map((j) => {
-          if (j.id === existingJudul.id) {
-            const existingPaketIdx = j.paketList.findIndex((p) => p.id === packageId);
-            let updatedList = [...j.paketList];
-            if (existingPaketIdx >= 0) {
-              updatedList[existingPaketIdx] = draftItem;
-            } else {
-              updatedList = updatedList.filter((p) => p.jenisAkses !== draftItem.jenisAkses);
-              updatedList.push(draftItem);
-            }
-            return { ...j, paketList: updatedList };
-          }
-          return j;
-        });
+      if (packageId && typeof packageId === "string" && packageId.length > 10) {
+        await psikotesService.update(packageId, apiPayload);
       } else {
-        const newJudulId = Date.now();
-        const newJudul: JudulPsikotesItem = {
-          id: newJudulId,
-          judul: titleName,
-          kategori: paketData.kategori || "Umum",
-          deskripsi: paketData.deskripsi || "Draf psikotes baru",
-          image: "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80&w=100&h=100",
-          paketList: [{ ...draftItem, judulId: newJudulId }],
-        };
-        return [newJudul, ...prev];
+        const created = await psikotesService.create(apiPayload);
+        if (created?.data?.id) {
+          setActiveDraftPackageId(created.data.id);
+          setIsResumingDraft(true);
+        }
       }
-    });
 
-    setNotification({
-      type: "success",
-      message: `Draf paket "${titleName} (${paketData.jenisAkses})" berhasil disimpan!`,
-    });
+      await loadDataFromBackend();
 
-    if (navigateBack) {
-      setActiveTab("paket");
+      setNotification({
+        type: "success",
+        message: `Draf paket "${titleName}" berhasil disimpan ke database!`,
+      });
+
+      if (navigateBack) {
+        setActiveTab("paket");
+      }
+    } catch (err: any) {
+      console.error("Gagal menyimpan draf ke database:", err);
+      setNotification({
+        type: "error",
+        message: `Gagal menyimpan draf: ${err.response?.data?.message || err.message || "Terjadi kesalahan"}`,
+      });
+      if (navigateBack) {
+        setActiveTab("paket");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -887,7 +1102,7 @@ export default function AdminPsikotesClient() {
   };
 
   // Publish Package (Requires all mandatory fields)
-  const handlePublikasikan = () => {
+  const handlePublikasikan = async () => {
     const errors: string[] = [];
 
     if (!paketData.nama.trim()) {
@@ -895,12 +1110,6 @@ export default function AdminPsikotesClient() {
     }
     if (!paketData.deskripsi.trim()) {
       errors.push("Deskripsi paket wajib diisi.");
-    }
-
-    if (paketData.jenisAkses === "Berbayar") {
-      if (!paketData.numericHarga || paketData.numericHarga <= 0) {
-        errors.push("Harga untuk paket Berbayar wajib diisi dan harus lebih dari Rp 0.");
-      }
     }
 
     if (soalList.length === 0) {
@@ -918,10 +1127,10 @@ export default function AdminPsikotesClient() {
       errors.push("Minimal harus memiliki 1 kategori interpretasi hasil.");
     } else {
       const incompleteInter = interpretasiList.some(
-        (i) => !i.judul.trim() || !i.deskripsi.trim() || !i.makna.trim()
+        (i) => !i.judul.trim() || !i.deskripsi.trim()
       );
       if (incompleteInter) {
-        errors.push("Konfigurasi interpretasi hasil belum lengkap (judul hasil, deskripsi, atau makna wajib diisi).");
+        errors.push("Konfigurasi interpretasi hasil belum lengkap (judul hasil atau deskripsi wajib diisi).");
       }
     }
 
@@ -933,91 +1142,87 @@ export default function AdminPsikotesClient() {
 
     // Validation passed! Publish package
     const titleName = paketData.nama.trim();
-    const packageId = isResumingDraft && activeDraftPackageId ? activeDraftPackageId : Date.now();
+    const packageId = (isResumingDraft || isEditingPublished) && activeDraftPackageId ? activeDraftPackageId : paketData.id;
 
-    const publishedItem: PaketDetailItem = {
-      id: packageId,
-      judulId: paketData.judulId || Date.now(),
-      namaJudul: titleName,
-      kategori: paketData.kategori,
-      deskripsi: paketData.deskripsi,
-      jenisAkses: paketData.jenisAkses,
-      harga: paketData.jenisAkses === "Gratis" ? "Gratis" : paketData.harga,
-      numericHarga: paketData.jenisAkses === "Gratis" ? 0 : paketData.numericHarga || 0,
-      waktu: `${paketData.waktu} Menit`,
-      status: "Aktif",
-      jumlahSoal: soalList.length,
-      soalList: soalList,
-      interpretasiList: interpretasiList,
-      updatedAt: "Hari ini",
-    };
+    setIsSubmitting(true);
+    try {
+      const apiPayload = {
+        judul: titleName,
+        deskripsi: paketData.deskripsi.trim(),
+        banner_url: paketData.bannerUrl || null,
+        benefits: (paketData.benefits || []).filter((b) => b.trim().length > 0),
+        jenis_akses: (paketData.jenisAkses === "Gratis" ? "GRATIS" : "BERBAYAR") as any,
+        harga: paketData.jenisAkses === "Gratis" ? 0 : (paketData.numericHarga || 0),
+        status: "PUBLISHED" as const,
+        soal_psikotes: soalList.map((s, idx) => ({
+          urutan: idx + 1,
+          pertanyaan: s.teks,
+          pilihan_jawaban: s.pilihan.map((p, pIdx) => ({
+            label: String.fromCharCode(65 + pIdx),
+            teks_jawaban: p.text,
+            bobot: parseInt(p.bobot) || 0,
+          })),
+        })),
+        interpretasi_psikotes: interpretasiList.map((i, iIdx) => ({
+          min_skor: parseInt(i.min) || 0,
+          max_skor: parseInt(i.max) || 0,
+          grade: i.kategori || `Grade ${iIdx + 1}`,
+          judul: i.judul,
+          deskripsi: i.deskripsi,
+          makna: i.makna || "",
+          tips: i.saran || [],
+        })),
+      };
 
-    setJudulList((prev) => {
-      if (paketData.modeJudul === "ada" && paketData.judulId) {
-        return prev.map((j) => {
-          if (j.id === paketData.judulId) {
-            const existingPaketIdx = j.paketList.findIndex((p) => p.id === packageId);
-            let updatedList = [...j.paketList];
-            if (existingPaketIdx >= 0) {
-              updatedList[existingPaketIdx] = publishedItem;
-            } else {
-              updatedList = updatedList.filter((p) => p.jenisAkses !== publishedItem.jenisAkses);
-              updatedList.push(publishedItem);
-            }
-            return { ...j, paketList: updatedList };
-          }
-          return j;
-        });
-      }
-
-      const existingJudul = prev.find((j) => j.judul.toLowerCase() === titleName.toLowerCase());
-      if (existingJudul) {
-        return prev.map((j) => {
-          if (j.id === existingJudul.id) {
-            const existingPaketIdx = j.paketList.findIndex((p) => p.id === packageId);
-            let updatedList = [...j.paketList];
-            if (existingPaketIdx >= 0) {
-              updatedList[existingPaketIdx] = publishedItem;
-            } else {
-              updatedList = updatedList.filter((p) => p.jenisAkses !== publishedItem.jenisAkses);
-              updatedList.push(publishedItem);
-            }
-            return { ...j, paketList: updatedList };
-          }
-          return j;
-        });
+      if (packageId && typeof packageId === "string" && packageId.length > 10) {
+        await psikotesService.update(packageId, apiPayload);
       } else {
-        const newJudulId = Date.now();
-        const newJudul: JudulPsikotesItem = {
-          id: newJudulId,
-          judul: titleName,
-          kategori: paketData.kategori,
-          deskripsi: paketData.deskripsi,
-          image: "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80&w=100&h=100",
-          paketList: [{ ...publishedItem, judulId: newJudulId }],
-        };
-        return [newJudul, ...prev];
+        await psikotesService.create(apiPayload);
       }
-    });
 
-    setNotification({
-      type: "success",
-      message: `Paket psikotes "${titleName} (${paketData.jenisAkses})" berhasil dipublikasikan dan kini aktif!`,
-    });
+      await loadDataFromBackend();
 
-    setActiveTab("paket");
+      setNotification({
+        type: "success",
+        message: isEditingPublished
+          ? `Perubahan paket psikotes "${titleName}" berhasil disimpan ke database!`
+          : `Paket psikotes "${titleName} (${paketData.jenisAkses})" berhasil disimpan ke database dan kini aktif!`,
+      });
+
+      setActiveTab("paket");
+    } catch (err: any) {
+      console.error("Gagal mempublikasikan ke database:", err);
+      setNotification({
+        type: "error",
+        message: `Gagal mempublikasikan: ${err.response?.data?.message || err.message || "Terjadi kesalahan"}`,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteJudul = (id: number) => {
-    if (confirm("Apakah Anda yakin ingin menghapus judul psikotes ini beserta seluruh paket di dalamnya?")) {
-      setJudulList((prev) => prev.filter((j) => j.id !== id));
-      if (selectedJudul && selectedJudul.id === id) {
-        setSelectedJudul(null);
+  const handleDeleteJudul = async (id: string | number) => {
+    if (confirm("Apakah Anda yakin ingin menghapus judul psikotes ini beserta seluruh paket di dalamnya dari database?")) {
+      try {
+        if (typeof id === "string" && id.length > 10) {
+          await psikotesService.delete(id);
+        }
+        await loadDataFromBackend();
+        setJudulList((prev) => prev.filter((j) => j.id !== id));
+        if (selectedJudul && selectedJudul.id === id) {
+          setSelectedJudul(null);
+        }
+        setNotification({
+          type: "info",
+          message: "Judul psikotes berhasil dihapus dari database.",
+        });
+      } catch (err: any) {
+        console.error("Gagal menghapus:", err);
+        setNotification({
+          type: "error",
+          message: `Gagal menghapus: ${err.response?.data?.message || err.message || "Terjadi kesalahan"}`,
+        });
       }
-      setNotification({
-        type: "info",
-        message: "Judul psikotes berhasil dihapus.",
-      });
     }
   };
 
@@ -1091,15 +1296,6 @@ export default function AdminPsikotesClient() {
       ),
     },
     {
-      key: "kategori",
-      header: "Kategori",
-      render: (item: JudulPsikotesItem) => (
-        <span className="font-medium text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md text-xs">
-          {item.kategori}
-        </span>
-      ),
-    },
-    {
       key: "paketTersedia",
       header: "Paket & Akses",
       render: (item: JudulPsikotesItem) => {
@@ -1107,39 +1303,59 @@ export default function AdminPsikotesClient() {
         const berbayar = item.paketList.find((p) => p.jenisAkses === "Berbayar");
 
         return (
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {gratis && (
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${gratis.status === "Aktif"
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  gratis.status === "Aktif"
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                     : "bg-amber-50 text-amber-700 border border-amber-200"
-                  }`}
+                }`}
               >
-                Gratis {gratis.status === "Draf" && "(Draf)"}
+                <span className={`w-1.5 h-1.5 rounded-full ${gratis.status === "Aktif" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                Gratis
+                {gratis.status === "Draf" && (
+                  <span className="text-[10px] text-amber-600 font-medium">(Draf)</span>
+                )}
               </span>
             )}
             {berbayar && (
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${berbayar.status === "Aktif"
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  berbayar.status === "Aktif"
                     ? "bg-purple-50 text-[#561269] border border-purple-200"
                     : "bg-amber-50 text-amber-700 border border-amber-200"
-                  }`}
+                }`}
               >
-                Berbayar: {berbayar.harga} {berbayar.status === "Draf" && "(Draf)"}
+                <span className={`w-1.5 h-1.5 rounded-full ${berbayar.status === "Aktif" ? "bg-[#561269]" : "bg-amber-500"}`} />
+                Berbayar
+                {berbayar.status === "Draf" && (
+                  <span className="text-[10px] text-amber-600 font-medium">(Draf)</span>
+                )}
               </span>
             )}
-            {!gratis && (
-              <span className="text-[11px] text-gray-400 italic bg-gray-50 px-2 py-0.5 rounded border border-dashed border-gray-200">
-                + Gratis belum ada
-              </span>
-            )}
-            {!berbayar && (
-              <span className="text-[11px] text-gray-400 italic bg-gray-50 px-2 py-0.5 rounded border border-dashed border-gray-200">
-                + Berbayar belum ada
-              </span>
+            {!gratis && !berbayar && (
+              <span className="text-xs text-gray-400 italic">Belum ada paket</span>
             )}
           </div>
         );
+      },
+    },
+    {
+      key: "harga",
+      header: "Harga",
+      render: (item: JudulPsikotesItem) => {
+        const berbayar = item.paketList.find((p) => p.jenisAkses === "Berbayar");
+
+        if (berbayar && berbayar.harga) {
+          return (
+            <span className="text-sm font-semibold text-gray-900">
+              {berbayar.harga}
+            </span>
+          );
+        }
+
+        return <span className="text-sm text-gray-400 font-medium">—</span>;
       },
     },
     {
@@ -1176,10 +1392,20 @@ export default function AdminPsikotesClient() {
       align: "center",
       render: (item: JudulPsikotesItem) => {
         const draftPaket = item.paketList.find((p) => p.status === "Draf");
+        const activePaket = item.paketList.find((p) => p.status === "Aktif");
+        const targetEdit = activePaket || draftPaket || item.paketList[0];
 
         return (
           <div className="flex items-center justify-center gap-2">
             <ActionButtonDetail onClick={() => setSelectedJudul(item)} title="Lihat Detail Psikotes" />
+
+            {/* Tombol Aksi Edit */}
+            {targetEdit && (
+              <ActionButtonEdit
+                onClick={() => handleEditPaket(item, targetEdit)}
+                title="Edit Paket Psikotes"
+              />
+            )}
 
             {/* Quick Resume Draft Action if draft exists */}
             {draftPaket && (
@@ -1288,15 +1514,13 @@ export default function AdminPsikotesClient() {
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4 sm:gap-6 border-b border-gray-100 overflow-x-auto pb-2 text-sm">
-                {(["Semua", "Dipublikasi", "Draf"] as const).map((filter) => (
+                {(["Dipublikasi", "Draf"] as const).map((filter) => (
                   <AdminFilterTabItem
                     key={filter}
                     label={
                       filter === "Draf"
-                        ? `Draf Tersimpan (${totalDraftCount})`
-                        : filter === "Dipublikasi"
-                          ? "Sudah Dipublikasi"
-                          : "Semua Psikotes"
+                        ? `Draft Tersimpan (${totalDraftCount})`
+                        : "Sudah Dipublikasi"
                     }
                     isActive={paketFilter === filter}
                     onClick={() => setPaketFilter(filter)}
@@ -1315,7 +1539,7 @@ export default function AdminPsikotesClient() {
 
             <div className="flex items-center justify-between gap-4 mt-2">
               <AdminSearchInput
-                placeholder="Cari judul psikotes atau kategori..."
+                placeholder="Cari judul psikotes..."
                 value={searchPaket}
                 onChange={setSearchPaket}
               />
@@ -1329,7 +1553,11 @@ export default function AdminPsikotesClient() {
             columns={judulColumns}
             data={filteredJudul}
             keyExtractor={(item) => item.id}
-            emptyMessage="Tidak ada paket psikotes yang cocok dengan filter atau pencarian."
+            emptyMessage={
+              paketFilter === "Draf"
+                ? "Tidak ada draf paket psikotes tersimpan."
+                : "Tidak ada paket psikotes yang cocok dengan filter atau pencarian."
+            }
           />
         </AdminTableContainer>
       )}
@@ -1352,8 +1580,12 @@ export default function AdminPsikotesClient() {
               >
                 <ChevronLeft className="w-4 h-4" /> Kembali ke Daftar Psikotes
               </button>
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                {isResumingDraft ? "Lanjutkan Pengerjaan Draf Paket" : "Kelola Paket Psikotes Baru"}
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center flex-wrap gap-3">
+                {isEditingPublished
+                  ? "Edit Paket Psikotes Dipublikasi"
+                  : isResumingDraft
+                  ? "Lanjutkan Pengerjaan Draf Paket"
+                  : "Kelola Paket Psikotes Baru"}
                 <span
                   className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${paketData.jenisAkses === "Gratis"
                       ? "bg-emerald-100 text-emerald-800"
@@ -1362,6 +1594,21 @@ export default function AdminPsikotesClient() {
                 >
                   Paket {paketData.jenisAkses}
                 </span>
+                {isEditingPublished && (
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 ${
+                    hasParticipants ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  }`}>
+                    {hasParticipants ? (
+                      <>
+                        <AlertTriangle className="w-3.5 h-3.5" /> Ada Riwayat Peserta
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-3.5 h-3.5" /> Belum Ada Peserta (Bebas Edit)
+                      </>
+                    )}
+                  </span>
+                )}
               </h2>
             </div>
 
@@ -1372,7 +1619,7 @@ export default function AdminPsikotesClient() {
                 onClick={onSaveDraftClick}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
               >
-                <Save className="w-4 h-4 text-gray-600" /> Simpan Draf
+                <Save className="w-4 h-4 text-gray-600" /> {isEditingPublished ? "Simpan Perubahan" : "Simpan Draf"}
               </button>
             </div>
           </div>
@@ -1392,7 +1639,7 @@ export default function AdminPsikotesClient() {
                     ))}
                   </ul>
                   <p className="text-xs text-red-700 mt-2 font-medium">
-                    (Data pengerjaan Anda telah otomatis tersimpan sebagai Draf sehingga tidak hilang.)
+                    (Data pengerjaan Anda telah otomatis tersimpan sehingga tidak hilang.)
                   </p>
                 </div>
               </div>
@@ -1406,7 +1653,7 @@ export default function AdminPsikotesClient() {
               {/* Step 1 */}
               <button
                 type="button"
-                onClick={() => setFormTab("info")}
+                onClick={() => handleTabSwitch("info")}
                 className="flex flex-col items-center gap-2 bg-[#fdfdfd] px-2 cursor-pointer"
               >
                 <div
@@ -1425,7 +1672,7 @@ export default function AdminPsikotesClient() {
               {/* Step 2 */}
               <button
                 type="button"
-                onClick={() => setFormTab("soal")}
+                onClick={() => handleTabSwitch("soal")}
                 className="flex flex-col items-center gap-2 bg-[#fdfdfd] px-2 cursor-pointer"
               >
                 <div
@@ -1446,7 +1693,7 @@ export default function AdminPsikotesClient() {
               {/* Step 3 */}
               <button
                 type="button"
-                onClick={() => setFormTab("preview")}
+                onClick={() => handleTabSwitch("preview")}
                 className="flex flex-col items-center gap-2 bg-[#fdfdfd] px-2 cursor-pointer"
               >
                 <div
@@ -1467,7 +1714,7 @@ export default function AdminPsikotesClient() {
               {/* Step 4 */}
               <button
                 type="button"
-                onClick={() => setFormTab("interpretasi")}
+                onClick={() => handleTabSwitch("interpretasi")}
                 className="flex flex-col items-center gap-2 bg-[#fdfdfd] px-2 cursor-pointer"
               >
                 <div
@@ -1932,13 +2179,119 @@ export default function AdminPsikotesClient() {
                     </p>
                   </div>
 
-                  {/* Banner Upload Placeholder */}
+                  {/* Banner Upload */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-800">Upload Banner/Gambar Asesmen</label>
-                    <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-[#561269]/50 transition-colors cursor-pointer">
-                      <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                      <p className="text-sm font-semibold text-gray-800">Klik untuk upload atau seret gambar banner</p>
-                      <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 2MB)</p>
+                    <label className="text-sm font-semibold text-gray-800">
+                      Upload Banner/Gambar Asesmen
+                    </label>
+                    <input
+                      id="banner-file-input"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={handleBannerUpload}
+                    />
+
+                    {paketData.bannerUrl ? (
+                      <div className="relative rounded-2xl border border-gray-200 overflow-hidden bg-gray-50 p-2">
+                        <div className="relative h-48 w-full rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+                          <img
+                            src={paketData.bannerUrl}
+                            alt="Banner Asesmen"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between pt-2 px-1">
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById("banner-file-input")?.click()}
+                            disabled={isUploadingImage}
+                            className="text-xs font-bold text-[#561269] hover:text-[#400d4f] transition-colors cursor-pointer"
+                          >
+                            Ganti Gambar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRemoveBanner}
+                            disabled={isUploadingImage}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-700 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => !isUploadingImage && document.getElementById("banner-file-input")?.click()}
+                        className={`border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-[#561269]/50 transition-colors cursor-pointer ${
+                          isUploadingImage ? "opacity-60 cursor-not-allowed" : ""
+                        }`}
+                      >
+                        {isUploadingImage ? (
+                          <>
+                            <Loader2 className="w-8 h-8 mb-2 text-[#561269] animate-spin" />
+                            <p className="text-sm font-semibold text-gray-800">Mengunggah gambar...</p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-8 h-8 mb-2 text-gray-400" />
+                            <p className="text-sm font-semibold text-gray-800">Klik untuk upload atau seret gambar banner</p>
+                            <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 2MB)</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Poin Manfaat: Apa yang kamu dapatkan */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-semibold text-gray-800">
+                          Apa yang Kamu Dapatkan? (Poin Manfaat)
+                        </label>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Poin-poin ini akan ditampilkan di halaman detail psikotes user.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addBenefit}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#561269] bg-[#561269]/5 hover:bg-[#561269]/10 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Tambah Poin
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {(paketData.benefits || []).length === 0 ? (
+                        <p className="text-xs text-gray-400 italic py-1">
+                          Belum ada poin manfaat. Klik &quot;+ Tambah Poin&quot; untuk menambahkan.
+                        </p>
+                      ) : (
+                        (paketData.benefits || []).map((benefit, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="w-6 text-center text-xs font-bold text-gray-400">
+                              {idx + 1}.
+                            </span>
+                            <input
+                              type="text"
+                              value={benefit}
+                              onChange={(e) => updateBenefit(idx, e.target.value)}
+                              placeholder={`Contoh: Hasil skor dan interpretasi ${idx === 0 ? "karakter diri" : ""}`}
+                              className="flex-1 px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeBenefit(idx)}
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              title="Hapus Poin"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1963,7 +2316,7 @@ export default function AdminPsikotesClient() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFormTab("soal")}
+                      onClick={() => handleTabSwitch("soal")}
                       className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                     >
                       Lanjut: Pengisian Soal <ArrowRight className="w-4 h-4" />
@@ -1978,6 +2331,19 @@ export default function AdminPsikotesClient() {
             {/* ========================================== */}
             {formTab === "soal" && (
               <div className="animate-in fade-in">
+                {/* Warning Banner if package has participants */}
+                {isEditingPublished && hasParticipants && (
+                  <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-3 shadow-xs">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-xs leading-relaxed">
+                      <strong className="block text-sm font-bold text-amber-950 mb-0.5">
+                        Peringatan Perubahan Soal:
+                      </strong>
+                      Paket ini sudah dikerjakan oleh peserta. Mengubah kunci/skor dapat memengaruhi konsistensi riwayat asesmen yang telah diselesaikan peserta sebelumnya.
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col lg:flex-row gap-8">
                   {/* Left Column: Form Editor Soal */}
                   <div className="flex-1 space-y-6">
@@ -2279,7 +2645,7 @@ export default function AdminPsikotesClient() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFormTab("interpretasi")}
+                      onClick={() => handleTabSwitch("interpretasi")}
                       className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                     >
                       Lanjut: Interpretasi Hasil <ArrowRight className="w-4 h-4" />
@@ -2294,6 +2660,19 @@ export default function AdminPsikotesClient() {
             {/* ========================================== */}
             {formTab === "interpretasi" && (
               <div className="animate-in fade-in space-y-8 max-w-4xl mx-auto">
+                {/* Warning Banner if package has participants */}
+                {isEditingPublished && hasParticipants && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-3 shadow-xs">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-xs leading-relaxed">
+                      <strong className="block text-sm font-bold text-amber-950 mb-0.5">
+                        Peringatan Perubahan Interpretasi Skor:
+                      </strong>
+                      Paket ini sudah dikerjakan oleh peserta. Mengubah rentang skor atau interpretasi dapat memengaruhi konsistensi riwayat asesmen yang telah diselesaikan peserta sebelumnya.
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">
@@ -2701,7 +3080,7 @@ export default function AdminPsikotesClient() {
                       onClick={onSaveDraftClick}
                       className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
                     >
-                      <Save className="w-4 h-4 text-gray-500" /> Simpan sebagai Draf
+                      <Save className="w-4 h-4 text-gray-500" /> {isEditingPublished ? "Simpan Perubahan" : "Simpan sebagai Draf"}
                     </button>
                   </div>
 
@@ -2710,7 +3089,7 @@ export default function AdminPsikotesClient() {
                     onClick={handlePublikasikan}
                     className="inline-flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                   >
-                    <CheckCircle className="w-4 h-4" /> Publikasikan Paket
+                    <CheckCircle className="w-4 h-4" /> {isEditingPublished ? "Simpan & Perbarui Paket" : "Publikasikan Paket"}
                   </button>
                 </div>
               </div>
@@ -2790,6 +3169,20 @@ export default function AdminPsikotesClient() {
                               <span>Soal: {paketGratis.jumlahSoal} butir</span>
                             </div>
                           </div>
+
+                          {/* If Aktif: Edit button */}
+                          {paketGratis.status === "Aktif" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedJudul(null);
+                                handleEditPaket(selectedJudul, paketGratis);
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#561269] text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <EditIcon className="w-3.5 h-3.5" /> Edit Paket Gratis
+                            </button>
+                          )}
 
                           {/* If Draf: Resume button */}
                           {paketGratis.status === "Draf" && (
@@ -2874,6 +3267,20 @@ export default function AdminPsikotesClient() {
                               </button>
                             )}
                           </div>
+
+                          {/* If Aktif: Edit button */}
+                          {paketBerbayar.status === "Aktif" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedJudul(null);
+                                handleEditPaket(selectedJudul, paketBerbayar);
+                              }}
+                              className="w-full py-2 px-3 rounded-xl bg-[#561269]/10 hover:bg-[#561269]/20 text-[#561269] text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <EditIcon className="w-3.5 h-3.5" /> Edit Paket Berbayar
+                            </button>
+                          )}
 
                           {/* If Draf: Resume button */}
                           {paketBerbayar.status === "Draf" && (
@@ -3393,6 +3800,59 @@ export default function AdminPsikotesClient() {
               >
                 Tutup Preview
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Peringatan Edit Soal & Penilaian Ketika Paket Sudah Dikerjakan Peserta */}
+      {showWarningModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-amber-200">
+            <div className="p-6 sm:p-7 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-extrabold text-gray-900">
+                  Konfirmasi Perubahan Soal &amp; Penilaian
+                </h3>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Paket ini sudah dikerjakan oleh peserta. Mengubah kunci/skor dapat memengaruhi konsistensi riwayat asesmen yang telah diselesaikan peserta sebelumnya.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200/80 text-left text-xs text-amber-900 space-y-1">
+                <span className="font-bold block text-amber-950">Catatan:</span>
+                Informasi umum (Judul, Deskripsi, Banner, Poin Manfaat, Kategori/Harga) bebas diedit kapan saja. Namun untuk butir soal dan interpretasi skor, pastikan perubahan yang Anda buat memang disengaja.
+              </div>
+
+              <div className="flex items-center justify-center gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowWarningModal(false);
+                    setPendingTab(null);
+                  }}
+                  className="px-5 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer"
+                >
+                  Batalkan &amp; Tetap di Info Umum
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasConfirmedWarning(true);
+                    setShowWarningModal(false);
+                    if (pendingTab) {
+                      setFormTab(pendingTab);
+                      setPendingTab(null);
+                    }
+                  }}
+                  className="px-6 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
+                >
+                  Saya Mengerti, Lanjutkan Edit
+                </button>
+              </div>
             </div>
           </div>
         </div>

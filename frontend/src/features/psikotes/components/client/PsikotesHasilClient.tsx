@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { Button } from "@/components/ui/Button";
@@ -17,19 +17,61 @@ import {
   ShieldCheck,
   FileCheck,
   AlertTriangle,
-  Compass
+  Compass,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
 import { RESULT_DATA as resultData, TEST_DATA } from "../../data/psikotesData";
+import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 
 export default function PsikotesHasilClient({ params }: { params: { testId: string } }) {
   const searchParams = useSearchParams();
   const isPaid = searchParams.get("paket") === "berbayar" || searchParams.get("plan") === "berbayar" || searchParams.get("tipe") === "berbayar";
   const [isDownloading, setIsDownloading] = useState(false);
+  const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
+  const [isLoadingDb, setIsLoadingDb] = useState(true);
 
-  const currentTest = TEST_DATA[params.testId as keyof typeof TEST_DATA];
-  const displayTestName = currentTest?.title || resultData.testName;
+  // Fetch package data from backend to get interpretasi_psikotes
+  useEffect(() => {
+    const fetchPackage = async () => {
+      try {
+        const res = await psikotesService.getById(params.testId, { allowDraft: false });
+        if (res && res.success && res.data) {
+          setDbPackage(res.data);
+        }
+      } catch {
+        // Fallback to static data
+      } finally {
+        setIsLoadingDb(false);
+      }
+    };
+    fetchPackage();
+  }, [params.testId]);
+
+  // Match score from URL params to the interpretasi from database
+  const rawSkor = searchParams.get("skor");
+  const totalSkor = rawSkor ? parseInt(rawSkor) : null;
+
+  // ── Dynamic interpretation from database ──────────────────────────────────
+  const dbInterpretasi = (() => {
+    if (!dbPackage) return null;
+    const list = dbPackage.interpretasi_psikotes;
+    if (!list || list.length === 0) return null;
+    if (totalSkor === null) return list[0];
+
+    // Find exact match
+    const exact = list.find((i) => totalSkor >= i.min_skor && totalSkor <= i.max_skor);
+    if (exact) return exact;
+
+    // Closest tier fallback
+    const sorted = [...list].sort((a, b) => a.min_skor - b.min_skor);
+    if (totalSkor < sorted[0].min_skor) return sorted[0];
+    return sorted[sorted.length - 1];
+  })();
+
+  // Dynamic display name from database (fallback to static)
+  const displayTestName = dbPackage?.judul || (TEST_DATA[params.testId as keyof typeof TEST_DATA]?.title) || resultData.testName;
 
   const dynamicResult = (() => {
     if (params.testId === "mbti" || params.testId === "mbti-2") {
@@ -48,6 +90,25 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
         color: "text-[#561269]",
         bgColor: "bg-pink-50",
         borderColor: "border-pink-200"
+      };
+    }
+    // If we have db package
+    if (dbPackage) {
+      if (dbInterpretasi) {
+        return {
+          prefix: dbInterpretasi.grade ? `Tingkat: ${dbInterpretasi.grade}` : "Hasil Asesmen:",
+          value: dbInterpretasi.judul,
+          color: "text-[#561269]",
+          bgColor: "bg-purple-50",
+          borderColor: "border-purple-200"
+        };
+      }
+      return {
+        prefix: "Hasil Asesmen:",
+        value: dbPackage.judul,
+        color: "text-[#561269]",
+        bgColor: "bg-purple-50",
+        borderColor: "border-purple-200"
       };
     }
     return resultData.result;
@@ -127,6 +188,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
   const { interpretation, meaning, tips, recommendations } = resultData;
 
+
   const handleDownloadPdf = () => {
     setIsDownloading(true);
     const element = document.getElementById("laporan-berbayar-container");
@@ -153,9 +215,26 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // JIKA PSIKOTES GRATIS: Pertahankan tampilan & fitur asli tanpa diubah
+  // JIKA PSIKOTES GRATIS: Tampilkan interpretasi dinamis dari database
   // ═══════════════════════════════════════════════════════════════════════════
   if (!isPaid) {
+    // Loading state while fetching db data
+    if (isLoadingDb) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+          <Loader2 className="w-10 h-10 animate-spin text-[#561269] mb-4" />
+          <p className="text-sm text-gray-500 font-medium">Memuat hasil psikotes...</p>
+        </div>
+      );
+    }
+
+    // Derive display interpretation text
+    const interpretasiText = dbInterpretasi?.deskripsi || (dbPackage ? (dbPackage.deskripsi || "Asesmen psikotes telah berhasil diselesaikan.") : interpretation);
+    const maknaTeks = dbInterpretasi?.makna || (dbPackage ? null : meaning);
+    const dbTips = (Array.isArray(dbInterpretasi?.tips) && dbInterpretasi.tips.length > 0)
+      ? dbInterpretasi.tips as Array<{ title: string; desc: string }>
+      : (dbPackage ? [] : tips);
+
     return (
       <div className="min-h-screen bg-gray-50 pt-28 pb-12 px-4 sm:px-6 lg:px-8 lg:pt-36">
         <div className="max-w-4xl mx-auto space-y-12">
@@ -193,39 +272,43 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                   <h2 className="text-2xl font-bold text-gray-900">Interpretasi Hasil</h2>
                 </div>
                 <p className="text-lg text-gray-600 leading-relaxed">
-                  {interpretation}
+                  {interpretasiText}
                 </p>
               </section>
 
               <hr className="border-gray-200" />
 
               {/* 3. Apa Artinya untukmu? */}
-              <section className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-900">Apa Artinya untukmu?</h2>
-                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
-                  <p className="text-gray-600 leading-relaxed text-lg">
-                    {meaning}
-                  </p>
-                </div>
-              </section>
+              {maknaTeks && (
+                <section className="space-y-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Apa Artinya untukmu?</h2>
+                  <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+                    <p className="text-gray-600 leading-relaxed text-lg">
+                      {maknaTeks}
+                    </p>
+                  </div>
+                </section>
+              )}
 
               {/* 4. Tips atau Saran */}
-              <section className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900">Tips untukmu</h2>
-                <div className="space-y-4">
-                  {tips.map((tip, index) => (
-                    <div key={index} className="flex gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-gray-200 transition-colors">
-                      <div className="flex-shrink-0 mt-1">
-                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+              {dbTips.length > 0 && (
+                <section className="space-y-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Tips untukmu</h2>
+                  <div className="space-y-4">
+                    {dbTips.map((tip, index) => (
+                      <div key={index} className="flex gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-gray-200 transition-colors">
+                        <div className="flex-shrink-0 mt-1">
+                          <CheckCircle2 className="w-6 h-6 text-green-500" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">{tip.title}</h4>
+                          <p className="mt-1 text-gray-600 leading-relaxed">{tip.desc}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900">{tip.title}</h4>
-                        <p className="mt-1 text-gray-600 leading-relaxed">{tip.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
 
             {/* Sidebar / CTA Column */}

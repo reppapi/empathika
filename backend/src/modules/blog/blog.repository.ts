@@ -51,6 +51,7 @@ export class BlogRepository {
         judul: data.judul,
         isi: data.isi,
         banner_url: data.banner_url ?? null,
+        ...(data.tanggal_terbit ? { tanggal_terbit: new Date(data.tanggal_terbit) } : {}),
       },
     })
   }
@@ -62,6 +63,9 @@ export class BlogRepository {
         ...(data.judul !== undefined && { judul: data.judul }),
         ...(data.isi !== undefined && { isi: data.isi }),
         ...(data.banner_url !== undefined && { banner_url: data.banner_url }),
+        ...(data.tanggal_terbit !== undefined && {
+          tanggal_terbit: new Date(data.tanggal_terbit),
+        }),
       },
     })
   }
