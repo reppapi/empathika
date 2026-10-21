@@ -97,7 +97,7 @@ export default function PsikologDetailModal({
     const pesan = activationUrl
       ? `Halo *${namaText}*, berikut adalah tautan resmi dari Tim Empathika untuk mengatur kata sandi atau mengaktifkan akun Tenaga Ahli (${katText}) Anda: 🌿\n\n` +
         `🔗 ${activationUrl}\n\n` +
-        `Catatan: Tautan ini berlaku selama 7 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
+        `Catatan: Tautan ini berlaku selama 3 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
         `Salam hangat,\n*Tim Empathika*`
       : `Halo *${namaText}*, kami dari Tim Empathika ingin menghubungi Anda terkait profil Tenaga Ahli (${katText}) Anda di platform Empathika. 🌿\n\n` +
         `Salam hangat,\n*Tim Empathika*`
@@ -289,7 +289,7 @@ export default function PsikologDetailModal({
                         </span>
                       ) : (
                         <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          ✓ Aktif s/d {formatExpiryDate(psikolog.tokenExpiredAt) || "7 hari"}
+                          ✓ Aktif s/d {formatExpiryDate(psikolog.tokenExpiredAt) || "3 hari"}
                         </span>
                       )}
                     </div>

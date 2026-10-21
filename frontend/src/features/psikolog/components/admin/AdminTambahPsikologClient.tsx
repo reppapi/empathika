@@ -77,7 +77,7 @@ export default function AdminTambahPsikologClient() {
 
   const handleGenerateToken = () => {
     const newToken = `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
-    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const newExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
     setActivationToken(newToken)
     setTokenExpiredAt(newExpiry)
     setIsCopied(false)
@@ -124,7 +124,7 @@ export default function AdminTambahPsikologClient() {
       `Akun Anda telah didaftarkan sebagai Tenaga Ahli (${katText}). ` +
       `Silakan klik tautan resmi di bawah ini untuk membuat kata sandi Anda dan mengaktifkan akun:\n\n` +
       `🔗 ${finalActivationUrl}\n\n` +
-      `Catatan: Tautan ini berlaku selama 7 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
+      `Catatan: Tautan ini berlaku selama 3 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
       `Salam hangat,\n*Tim Empathika*`
 
     const waUrl = waNumber
@@ -182,7 +182,7 @@ export default function AdminTambahPsikologClient() {
 
     // Pastikan token aktivasi sudah ter-generate saat form disubmit
     const effectiveToken = activationToken || handleGenerateToken()
-    const effectiveExpiry = tokenExpiredAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const effectiveExpiry = tokenExpiredAt || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
 
     const newTenaga: TenagaAhli = {
       id: Date.now().toString(),
@@ -515,7 +515,7 @@ export default function AdminTambahPsikologClient() {
                   <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  Tautan Aktivasi Akun (7 Hari)
+                  Tautan Aktivasi Akun (3 Hari)
                 </label>
                 {activationToken ? (
                   <button
@@ -859,7 +859,7 @@ export default function AdminTambahPsikologClient() {
 
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-gray-700">
-                Tautan Aktivasi (Berlaku 7 Hari):
+                Tautan Aktivasi (Berlaku 3 Hari):
               </label>
               <div className="flex items-center gap-1.5">
                 <input

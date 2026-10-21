@@ -10,8 +10,10 @@ import type {
 
 export class AdminController {
   private service: AdminService
+  private fastify: FastifyInstance
 
   constructor(fastify: FastifyInstance) {
+    this.fastify = fastify
     this.service = new AdminService(fastify)
   }
 
@@ -113,6 +115,56 @@ export class AdminController {
 
   update = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     reply.send({ id: request.params.id })
+  }
+
+  resendActivation = async (
+    request: FastifyRequest<{ Body: { accountId: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const { accountId } = request.body
+      if (!accountId) {
+        return reply.code(400).send({ error: 'Bad Request', message: 'accountId wajib disertakan' })
+      }
+      const account = await this.fastify.prisma.account.findUnique({
+        where: { id: accountId },
+      })
+      if (!account) {
+        return reply.code(404).send({ error: 'Not Found', message: 'Akun tidak ditemukan' })
+      }
+
+      const crypto = await import('crypto')
+      const newToken = crypto.randomBytes(24).toString('hex')
+      const newExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+
+      await this.fastify.prisma.account.update({
+        where: { id: account.id },
+        data: {
+          token_aktivasi: newToken,
+          token_aktivasi_exp: newExpiry,
+        },
+      })
+
+      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+      const activationUrl = `${frontendBaseUrl}/set-password?token=${newToken}`
+
+      return reply.code(200).send({
+        success: true,
+        message: 'Tautan aktivasi baru berhasil dibuat',
+        token: newToken,
+        tokenExpiredAt: newExpiry.toISOString(),
+        activationUrl,
+        account: {
+          id: account.id,
+          nama: account.nama,
+          email: account.email,
+          no_telepon: account.no_telepon,
+          role: account.role,
+        },
+      })
+    } catch (err: any) {
+      return reply.code(500).send({ error: 'Internal Server Error', message: err.message })
+    }
   }
 
   remove = async (_request: FastifyRequest, reply: FastifyReply) => {

@@ -51,9 +51,14 @@ export const updateAdminProfileSchema = z.object({
   password: z.string().min(6, 'Password baru minimal 6 karakter').optional(),
 })
 
+export const resendActivationSchema = z.object({
+  accountId: z.string().min(1, 'accountId wajib diisi'),
+})
+
 export type GetAdminJadwalQuery = z.infer<typeof getAdminJadwalQuerySchema>
 export type CreateAdminJadwalSlotInput = z.infer<typeof createAdminJadwalSlotSchema>
 export type CreateAdminSesiInput = z.infer<typeof createAdminSesiSchema>
 export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>
 export type UpdateAdminProfileInput = z.infer<typeof updateAdminProfileSchema>
+export type ResendActivationInput = z.infer<typeof resendActivationSchema>
 

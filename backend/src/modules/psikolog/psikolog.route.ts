@@ -5,6 +5,7 @@ import {
   getJadwalTersediaQuerySchema,
   getJadwalPsikologMeQuerySchema,
   createJadwalSlotSchema,
+  registerPsikologBaruSchema,
 } from './psikolog.schema'
 
 export default async function psikologRoutes(fastify: FastifyInstance) {
@@ -106,6 +107,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Psikolog - Admin'],
       summary: 'Tambah tenaga ahli baru oleh admin (buat Akun & Profil Psikolog di DB)',
+      body: registerPsikologBaruSchema,
     },
     handler: controller.registerPsikologBaru,
   })
