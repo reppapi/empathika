@@ -211,19 +211,13 @@ export default function HomeClient() {
                 {slide.subtitle}
               </p>
 
-              {/* Dua Tombol (Solid Gold & Outlined Gold) */}
+              {/* Tombol Aksi */}
               <div className="flex flex-wrap items-center gap-3 lg:gap-4">
                 <Link
                   href="/konseling"
                   className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm md:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   Booking Sesi
-                </Link>
-                <Link
-                  href="/psikotes"
-                  className="bg-transparent hover:bg-white/10 text-[#EAB308] border-2 border-[#EAB308] font-bold text-sm md:text-base py-3 px-8 rounded-full transition-all active:scale-95 cursor-pointer"
-                >
-                  Tes Psikologis
                 </Link>
               </div>
             </div>
