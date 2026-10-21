@@ -6,6 +6,7 @@ import type {
   CreateJadwalSlotInput,
   CreatePsikologInput,
   UpdatePsikologInput,
+  UpdatePsikologProfileInput,
 } from './psikolog.schema'
 
 export class PsikologController {
@@ -84,8 +85,40 @@ export class PsikologController {
     }
   }
 
+  /**
+   * Endpoint Psikolog: Melihat profil sendiri
+   */
+  getMyProfile = async (
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = request.user as { id: string } | undefined
+      const data = await this.service.getMyProfile(user?.id)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(404).send({ error: 'Not Found', message: err.message })
+    }
+  }
+
+  /**
+   * Endpoint Psikolog: Mengubah profil sendiri
+   */
+  updateMyProfile = async (
+    request: FastifyRequest<{ Body: UpdatePsikologProfileInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = request.user as { id: string } | undefined
+      const data = await this.service.updateMyProfile(user?.id, request.body)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
   getAll = async (
-    request: FastifyRequest<{ Querystring: { kategori?: string; search?: string } }>,
+    request: FastifyRequest<{ Querystring: { kategori?: string; search?: string; status?: string } }>,
     reply: FastifyReply
   ) => {
     try {

@@ -22,16 +22,13 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Quarter Life Crisis'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 48,
+    jumlah_sesi: 0,
     tarif_per_jam: 120000,
     spesialisasi: { id: 'spec-4', nama: 'Konselor Kesehatan Mental' },
     category: 'konselor',
     experienceYears: '2 - 4 Tahun',
-    labelJadwal: 'Jadwal Terdekat Weekend',
-    jadwalTersedia: [
-      { waktu: 'Sabtu, 16.00 - 17.00', tipe: 'offline' },
-      { waktu: 'Minggu, 19.30 - 20.30', tipe: 'online' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   },
   {
     id: '2',
@@ -52,16 +49,13 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Pengasuhan Keluarga'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 120,
+    jumlah_sesi: 0,
     tarif_per_jam: 200000,
     spesialisasi: { id: 'spec-2', nama: 'Psikolog Keluarga & Pasangan' },
     category: 'psikolog',
     experienceYears: '5 - 10 Tahun',
-    labelJadwal: 'Jadwal Terdekat Besok',
-    jadwalTersedia: [
-      { waktu: '10:00 - 11:00', tipe: 'online' },
-      { waktu: '14:00 - 15:00', tipe: 'online' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   },
   {
     id: '3',
@@ -82,16 +76,13 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Pencarian Jati Diri'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 99,
+    jumlah_sesi: 0,
     tarif_per_jam: 175000,
     spesialisasi: { id: 'spec-3', nama: 'Psikolog Perkembangan' },
     category: 'psikolog',
     experienceYears: '4 - 7 Tahun',
-    labelJadwal: 'Jadwal Terdekat Hari Ini',
-    jadwalTersedia: [
-      { waktu: '13:00 - 14:00', tipe: 'online' },
-      { waktu: '19:00 - 20:00', tipe: 'online' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   },
   {
     id: '4',
@@ -112,16 +103,13 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Terapi Kognitif (CBT)'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 145,
+    jumlah_sesi: 0,
     tarif_per_jam: 180000,
     spesialisasi: { id: 'spec-1', nama: 'Psikolog Klinis' },
     category: 'psikolog',
     experienceYears: '6 - 8 Tahun',
-    labelJadwal: 'Jadwal Terdekat Besok',
-    jadwalTersedia: [
-      { waktu: '08:00 - 09:00', tipe: 'online' },
-      { waktu: '15:00 - 16:00', tipe: 'offline' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   },
   {
     id: '5',
@@ -142,16 +130,13 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Konflik Pertemanan'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 85,
+    jumlah_sesi: 0,
     tarif_per_jam: 100000,
     spesialisasi: { id: 'spec-4', nama: 'Peer Konselor Mahasiswa' },
     category: 'peer-konselor',
     experienceYears: '2 - 4 Tahun',
-    labelJadwal: 'Jadwal Terdekat Weekend',
-    jadwalTersedia: [
-      { waktu: '16:00 - 17:00', tipe: 'online' },
-      { waktu: '19:00 - 20:00', tipe: 'online' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   },
   {
     id: '6',
@@ -172,16 +157,13 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Komunikasi Keluarga'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 99,
+    jumlah_sesi: 0,
     tarif_per_jam: 190000,
     spesialisasi: { id: 'spec-2', nama: 'Psikolog Anak & Remaja' },
     category: 'psikolog',
     experienceYears: '5 - 9 Tahun',
-    labelJadwal: 'Jadwal Terdekat Besok',
-    jadwalTersedia: [
-      { waktu: '11:00 - 12:00', tipe: 'offline' },
-      { waktu: '16:00 - 17:00', tipe: 'online' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   },
   {
     id: '7',
@@ -202,16 +184,13 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Trauma Healing'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 110,
+    jumlah_sesi: 0,
     tarif_per_jam: 160000,
     spesialisasi: { id: 'spec-1', nama: 'Psikolog Klinis Dewasa' },
     category: 'psikolog',
     experienceYears: '4 - 6 Tahun',
-    labelJadwal: 'Jadwal Terdekat Hari Ini',
-    jadwalTersedia: [
-      { waktu: '14:00 - 15:00', tipe: 'online' },
-      { waktu: '20:00 - 21:00', tipe: 'online' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   },
   {
     id: '8',
@@ -232,16 +211,13 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Self-Confidence'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 99,
+    jumlah_sesi: 0,
     tarif_per_jam: 120000,
     spesialisasi: { id: 'spec-4', nama: 'Konselor Karier & Kehidupan' },
     category: 'konselor',
     experienceYears: '3 - 5 Tahun',
-    labelJadwal: 'Jadwal Terdekat Besok',
-    jadwalTersedia: [
-      { waktu: '10:00 - 11:00', tipe: 'online' },
-      { waktu: '13:00 - 14:00', tipe: 'online' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   },
   {
     id: '9',
@@ -262,15 +238,12 @@ export const DATA_PSIKOLOG_DUMMY: PsikologUI[] = [
       'Konseling Dewasa'
     ],
     status: 'ACTIVE',
-    jumlah_sesi: 130,
+    jumlah_sesi: 0,
     tarif_per_jam: 175000,
     spesialisasi: { id: 'spec-2', nama: 'Psikolog Klinis Umum' },
     category: 'psikolog',
     experienceYears: '5 - 8 Tahun',
-    labelJadwal: 'Jadwal Terdekat Lusa',
-    jadwalTersedia: [
-      { waktu: '09:00 - 10:00', tipe: 'offline' },
-      { waktu: '15:00 - 16:00', tipe: 'online' },
-    ],
+    labelJadwal: 'Jadwal Konsultasi',
+    jadwalTersedia: [],
   }
 ];

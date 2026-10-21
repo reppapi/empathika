@@ -18,7 +18,7 @@ export interface JadwalSlotItem {
 }
 
 export const psikologService = {
-  getList: (filter?: PsikologFilter) =>
+  getList: (filter?: PsikologFilter & { status?: string }) =>
     apiClient.get<Psikolog[]>("/psikolog", { params: filter }).then((r) => r.data),
 
   getBySlug: (slug: string) =>

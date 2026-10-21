@@ -190,7 +190,7 @@ export default function PsikologBerandaClient() {
             </div>
             <div className="flex flex-col leading-tight">
               <span className="text-[10px] text-gray-500 font-medium">Total Sesi Hari Ini</span>
-              <span className="text-xl font-extrabold text-gray-900">12</span>
+              <span className="text-xl font-extrabold text-gray-900">{AGENDA_HARI_INI.length}</span>
             </div>
           </div>
         </div>

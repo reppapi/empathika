@@ -85,7 +85,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
               noStr: dbData.no_str || undefined,
               noSipp: dbData.no_sipp || undefined,
               pendidikanText: dbData.pendidikan || "",
-              jumlahSesi: dbData.jumlah_sesi || 0,
+              jumlahSesi: typeof dbData.jumlah_sesi === "number" ? dbData.jumlah_sesi : 0,
               bio: dbData.bio || "",
               quote: dbData.quote || "",
               instagram: dbData.instagram || "",

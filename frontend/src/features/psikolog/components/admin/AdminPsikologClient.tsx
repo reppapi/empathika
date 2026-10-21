@@ -35,9 +35,9 @@ export default function AdminPsikologClient() {
   const [notification, setNotification] = useState<string | null>(null)
 
   useEffect(() => {
-    // 1. Ambil data tenaga ahli langsung dari database backend
+    // 1. Ambil data tenaga ahli langsung dari database backend (termasuk nonaktif)
     psikologService
-      .getList()
+      .getList({ status: "ALL" })
       .then((dbList: any[]) => {
         if (dbList && dbList.length > 0) {
           const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
@@ -56,6 +56,11 @@ export default function AdminPsikologClient() {
               ? "konselor"
               : "psikolog"
 
+            const statusAkses: StatusAkses =
+              p.status === "INACTIVE"
+                ? "NONAKTIF"
+                : matchedLocal?.statusAkses || "AKTIF"
+
             return {
               id: p.id,
               nama: p.nama_gelar || p.account?.nama || matchedLocal?.nama || "Psikolog Empathika",
@@ -65,12 +70,12 @@ export default function AdminPsikologClient() {
                 `${(p.nama_gelar || "psikolog").toLowerCase().replace(/[^a-z0-9]/g, "")}@empathika.com`,
               noTelepon: p.account?.no_telepon || matchedLocal?.noTelepon || "081234567890",
               kategori,
-              statusAkses: matchedLocal?.statusAkses || "AKTIF",
+              statusAkses,
               spesialisasi: p.spesialisasi?.nama || matchedLocal?.spesialisasi || "Psikologi Klinis",
               noStr: p.no_str || matchedLocal?.noStr || undefined,
               noSipp: p.no_sipp || matchedLocal?.noSipp || undefined,
               pendidikanText: p.pendidikan || matchedLocal?.pendidikanText || "Universitas Indonesia",
-              jumlahSesi: p.jumlah_sesi || matchedLocal?.jumlahSesi || 0,
+              jumlahSesi: typeof p.jumlah_sesi === "number" ? p.jumlah_sesi : (matchedLocal?.jumlahSesi ?? 0),
               bio: p.bio || matchedLocal?.bio || "",
               quote: p.quote || matchedLocal?.quote || "",
               instagram: p.instagram || matchedLocal?.instagram || "",
