@@ -3,9 +3,58 @@ import type { PrismaClient } from '@prisma/client'
 export class EventRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async findAll(params?: Record<string, unknown>) {
-    // TODO: Implement query
-    return []
+  async findAll(query?: EventQueryInput) {
+    const page = query?.page ?? 1
+    const limit = query?.limit ?? 10
+    const skip = (page - 1) * limit
+
+    const where: Prisma.EventWhereInput = {}
+
+    if (query?.search) {
+      where.OR = [
+        { judul: { contains: query.search, mode: 'insensitive' } },
+        { deskripsi: { contains: query.search, mode: 'insensitive' } },
+        { nama_pembicara: { contains: query.search, mode: 'insensitive' } },
+      ]
+    }
+
+    if (query?.jenis_event) {
+      where.jenis_event = query.jenis_event
+    }
+
+    if (query?.status) {
+      where.status = query.status
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { tanggal: 'asc' },
+        include: {
+          _count: {
+            select: { booking_event: true },
+          },
+        },
+      }),
+      this.prisma.event.count({ where }),
+    ])
+
+    return {
+      items: items.map((item) => ({
+        ...item,
+        harga: item.harga.toString(),
+        jumlah_booking: item._count.booking_event,
+        sisa_kuota: item.kuota - item._count.booking_event,
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    }
   }
 
   async findById(id: string) {

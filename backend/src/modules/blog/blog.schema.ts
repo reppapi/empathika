@@ -30,6 +30,12 @@ export const createBlogSchema = z.object({
     .string()
     .trim()
     .nullish(),
+  tanggal_terbit: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .or(z.date())
+    .optional(),
 })
 
 export const updateBlogSchema = z.object({
@@ -48,6 +54,12 @@ export const updateBlogSchema = z.object({
     .string()
     .trim()
     .nullish(),
+  tanggal_terbit: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .or(z.date())
+    .optional(),
 })
 
 // ==========================================
