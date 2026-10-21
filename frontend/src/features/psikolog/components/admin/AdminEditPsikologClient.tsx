@@ -31,8 +31,13 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
   // Form State
   const [nama, setNama] = useState("")
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("Psikolog123!")
+  const [password, setPassword] = useState("")
   const [noTelepon, setNoTelepon] = useState("")
+
+  // State Tautan Aktivasi & Token WhatsApp (bisa di-generate atau reset di halaman edit)
+  const [activationToken, setActivationToken] = useState<string | null>(null)
+  const [tokenExpiredAt, setTokenExpiredAt] = useState<string | null>(null)
+  const [isCopied, setIsCopied] = useState(false)
   const [kategori, setKategori] = useState<KategoriTenaga>("psikolog")
   const [statusAkses, setStatusAkses] = useState<StatusAkses>("AKTIF")
   const [spesialisasi, setSpesialisasi] = useState("")
@@ -58,6 +63,28 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
   const noStrError = touched.noStr ? validateNoStr(noStr, kategori) : null
   const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori) : null
 
+  // Cek apakah token aktivasi sudah kedaluwarsa (7 hari)
+  const isTokenExpired = Boolean(
+    tokenExpiredAt && new Date(tokenExpiredAt).getTime() < Date.now()
+  )
+
+  const formatExpiryDate = (dateStr?: string | null) => {
+    if (!dateStr) return null
+    try {
+      const d = new Date(dateStr)
+      if (isNaN(d.getTime())) return null
+      return d.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return null
+    }
+  }
+
   // Load existing data
   useEffect(() => {
     let foundItem: TenagaAhli | null = null
@@ -71,8 +98,14 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     const applyData = (found: any) => {
       setNama(found.nama || found.nama_gelar || "")
       setEmail(found.email || found.account?.email || "")
-      setPassword(found.password || "Psikolog123!")
+      setPassword(found.password || "")
       setNoTelepon(found.noTelepon || found.account?.no_telepon || "")
+      if (found.tokenAktivasi || found.token_aktivasi) {
+        setActivationToken(found.tokenAktivasi || found.token_aktivasi)
+      }
+      if (found.tokenExpiredAt || found.token_expired_at) {
+        setTokenExpiredAt(found.tokenExpiredAt || found.token_expired_at)
+      }
       const kat = (found.kategori || "").toLowerCase()
       setKategori(
         kat.includes("peer")
@@ -128,10 +161,83 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     }
   }
 
+  const getActivationUrl = (tok: string) => {
+    return typeof window !== "undefined"
+      ? `${window.location.origin}/set-password?token=${tok}`
+      : `https://empathika.id/set-password?token=${tok}`
+  }
+
+  const currentActivationUrl = activationToken ? getActivationUrl(activationToken) : ""
+
+  const handleGenerateToken = () => {
+    const newToken = `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
+    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    setActivationToken(newToken)
+    setTokenExpiredAt(newExpiry)
+    setIsCopied(false)
+    return { token: newToken, expiry: newExpiry }
+  }
+
+  const handleRegenerateToken = () => {
+    handleGenerateToken()
+  }
+
+  const handleCopyLink = () => {
+    if (!currentActivationUrl) return
+    navigator.clipboard.writeText(currentActivationUrl)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 2000)
+  }
+
+  const handleKirimWA = () => {
+    // 1. Pertahankan token yang sudah ada jika belum kedaluwarsa.
+    // Hanya buat token baru jika belum pernah dibuat sama sekali atau sudah kedaluwarsa (> 7 hari).
+    let activeToken = activationToken
+    if (!activeToken || isTokenExpired) {
+      const generated = handleGenerateToken()
+      activeToken = generated.token
+    }
+    const finalActivationUrl = getActivationUrl(activeToken)
+
+    const rawPhone = noTelepon.trim().replace(/[^0-9]/g, "")
+    const waNumber = rawPhone
+      ? rawPhone.startsWith("0")
+        ? "62" + rawPhone.slice(1)
+        : rawPhone.startsWith("62")
+        ? rawPhone
+        : "62" + rawPhone
+      : ""
+
+    const namaText = nama.trim() || "Tenaga Ahli"
+    const katText =
+      kategori === "psikolog"
+        ? "Psikolog Klinis"
+        : kategori === "konselor"
+        ? "Konselor Kesehatan Mental"
+        : "Peer Konselor"
+
+    const pesan =
+      `Halo *${namaText}*, berikut adalah tautan resmi dari Tim Empathika untuk mengatur kata sandi atau mengaktifkan akun Tenaga Ahli (${katText}) Anda: 🌿\n\n` +
+      `🔗 ${finalActivationUrl}\n\n` +
+      `Catatan: Tautan ini berlaku selama 7 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
+      `Salam hangat,\n*Tim Empathika*`
+
+    const waUrl = waNumber
+      ? `https://wa.me/${waNumber}?text=${encodeURIComponent(pesan)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(pesan)}`
+
+    window.open(waUrl, "_blank")
+  }
+
   const handleAddSkill = () => {
     if (!newSkill.trim()) return
-    if (!keahlian.includes(newSkill.trim())) {
-      setKeahlian([...keahlian, newSkill.trim()])
+    const parts = newSkill
+      .split(/[,;\n]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !keahlian.includes(s))
+
+    if (parts.length > 0) {
+      setKeahlian([...keahlian, ...parts])
     }
     setNewSkill("")
   }
@@ -193,6 +299,8 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       foto,
       keahlian,
       tanggalBergabung,
+      tokenAktivasi: activationToken || undefined,
+      tokenExpiredAt: tokenExpiredAt || undefined,
     }
 
     try {
@@ -334,18 +442,101 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Kata Sandi Login <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm font-mono text-gray-800 focus:border-[#561269] focus:outline-none"
-              />
-              <p className="text-[11px] text-gray-400 mt-1">Dapat diubah oleh admin kapan saja.</p>
+            {/* Tautan Aktivasi / Reset Kata Sandi Langsung di Halaman Edit */}
+            <div
+              className={`rounded-2xl border p-4 space-y-2.5 transition-colors ${
+                activationToken && isTokenExpired
+                  ? "border-amber-300 bg-amber-50/70"
+                  : "border-purple-200/80 bg-purple-50/50"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-xs font-bold text-[#561269] flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Tautan Aktivasi / Reset Akun (7 Hari)
+                </label>
+                {activationToken ? (
+                  <button
+                    type="button"
+                    onClick={handleRegenerateToken}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
+                    title="Buat ulang token aktivasi baru"
+                  >
+                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Generate Ulang Link
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGenerateToken}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
+                    title="Buat tautan aktivasi sekarang"
+                  >
+                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Generate Tautan
+                  </button>
+                )}
+              </div>
+
+              {/* Input Link Display & Tombol Salin */}
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={currentActivationUrl}
+                  placeholder="Belum di-generate (klik 'Generate Tautan' atau 'Kirim WA')"
+                  className="flex-1 rounded-xl border border-purple-200 bg-white px-3 py-2 text-xs font-mono text-purple-950 placeholder:text-gray-400 placeholder:font-sans focus:outline-none select-all shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  disabled={!activationToken}
+                  className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border transition shadow-2xs ${
+                    activationToken
+                      ? "bg-white border-purple-200 text-[#561269] hover:bg-purple-50 active:scale-95 cursor-pointer"
+                      : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  {isCopied ? "✓ Tersalin!" : "Salin"}
+                </button>
+              </div>
+
+              {/* Baris Keterangan Masa Berlaku & Tombol WhatsApp */}
+              <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
+                <div>
+                  {activationToken ? (
+                    isTokenExpired ? (
+                      <p className="text-[11px] font-medium text-amber-800 flex items-center gap-1">
+                        <span>⚠️</span> Tautan telah kedaluwarsa{tokenExpiredAt ? ` (${formatExpiryDate(tokenExpiredAt)})` : ""}. Klik &quot;Generate Ulang Link&quot;.
+                      </p>
+                    ) : (
+                      <p className="text-[11px] font-medium text-emerald-700 flex items-center gap-1">
+                        <span>✓</span> Tautan aktif &bull; Berlaku hingga {formatExpiryDate(tokenExpiredAt) || "7 hari ke depan"}.
+                      </p>
+                    )
+                  ) : (
+                    <p className="text-[10px] text-gray-500">
+                      Tautan otomatis dibuat saat klik &quot;Kirim WA&quot; atau &quot;Generate Tautan&quot;.
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleKirimWA}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold bg-[#25D366] hover:bg-[#20ba5a] text-white transition active:scale-95 shadow-2xs cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                  </svg>
+                  Kirim WA
+                </button>
+              </div>
             </div>
 
             <div>
@@ -671,7 +862,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
           </div>
 
           <div className="space-y-3">
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2 max-w-lg">
               <input
                 type="text"
                 value={newSkill}
@@ -682,13 +873,13 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                     handleAddSkill()
                   }
                 }}
-                placeholder="Ketik topik keahlian baru lalu tekan Tambah..."
-                className="flex-1 rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#561269] focus:outline-none"
+                placeholder="Tambah topik (contoh: Kecemasan, Manajemen Stres)"
+                className="flex-1 min-w-0 rounded-2xl border border-gray-200 px-4 py-2 text-sm text-gray-800 focus:border-[#561269] focus:outline-none shadow-2xs"
               />
               <button
                 type="button"
                 onClick={handleAddSkill}
-                className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-xs font-bold text-gray-950 shadow-xs transition active:scale-95 cursor-pointer"
+                className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm transition active:scale-95 cursor-pointer shrink-0"
               >
                 Tambah
               </button>

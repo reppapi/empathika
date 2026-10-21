@@ -40,7 +40,15 @@ export default function AdminPsikologClient() {
       .getList()
       .then((dbList: any[]) => {
         if (dbList && dbList.length > 0) {
+          const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
+          const localList: TenagaAhli[] = saved ? JSON.parse(saved) : []
+
           const mapped: TenagaAhli[] = dbList.map((p) => {
+            const matchedLocal = localList.find(
+              (loc) =>
+                loc.id === p.id ||
+                (loc.email && p.account?.email && loc.email.toLowerCase() === p.account.email.toLowerCase())
+            )
             const katStr = (p.kategori || "").toLowerCase()
             const kategori: KategoriTenaga = katStr.includes("peer")
               ? "peer-konselor"
@@ -50,32 +58,41 @@ export default function AdminPsikologClient() {
 
             return {
               id: p.id,
-              nama: p.nama_gelar || p.account?.nama || "Psikolog Empathika",
+              nama: p.nama_gelar || p.account?.nama || matchedLocal?.nama || "Psikolog Empathika",
               email:
                 p.account?.email ||
+                matchedLocal?.email ||
                 `${(p.nama_gelar || "psikolog").toLowerCase().replace(/[^a-z0-9]/g, "")}@empathika.com`,
-              noTelepon: p.account?.no_telepon || "081234567890",
+              noTelepon: p.account?.no_telepon || matchedLocal?.noTelepon || "081234567890",
               kategori,
-              statusAkses: "AKTIF" as StatusAkses,
-              spesialisasi: p.spesialisasi?.nama || "Psikologi Klinis",
-              noStr: p.no_str || undefined,
-              noSipp: p.no_sipp || undefined,
-              pendidikanText: p.pendidikan || "Universitas Indonesia",
-              jumlahSesi: p.jumlah_sesi || 0,
-              bio: p.bio || "",
-              quote: p.quote || "",
-              instagram: p.instagram || "",
-              foto: p.foto || null,
+              statusAkses: matchedLocal?.statusAkses || "AKTIF",
+              spesialisasi: p.spesialisasi?.nama || matchedLocal?.spesialisasi || "Psikologi Klinis",
+              noStr: p.no_str || matchedLocal?.noStr || undefined,
+              noSipp: p.no_sipp || matchedLocal?.noSipp || undefined,
+              pendidikanText: p.pendidikan || matchedLocal?.pendidikanText || "Universitas Indonesia",
+              jumlahSesi: p.jumlah_sesi || matchedLocal?.jumlahSesi || 0,
+              bio: p.bio || matchedLocal?.bio || "",
+              quote: p.quote || matchedLocal?.quote || "",
+              instagram: p.instagram || matchedLocal?.instagram || "",
+              foto: p.foto || matchedLocal?.foto || null,
               keahlian: Array.isArray(p.keahlian)
                 ? p.keahlian
                 : typeof p.keahlian === "string"
                 ? p.keahlian.split(",").map((s: string) => s.trim())
-                : ["Konseling"],
-              tanggalBergabung: "Terdaftar di DB",
+                : matchedLocal?.keahlian || ["Konseling"],
+              tanggalBergabung: matchedLocal?.tanggalBergabung || "Terdaftar di DB",
+              tokenAktivasi: p.tokenAktivasi || p.token_aktivasi || matchedLocal?.tokenAktivasi || undefined,
+              tokenExpiredAt: p.tokenExpiredAt || p.token_expired_at || matchedLocal?.tokenExpiredAt || undefined,
             }
           })
-          setDataList(mapped)
-          localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(mapped))
+
+          // Pertahankan juga data lokal baru yang belum ada di backend
+          const dbIds = new Set(mapped.map((m) => m.id))
+          const localOnly = localList.filter((loc) => !dbIds.has(loc.id))
+          const combined = [...localOnly, ...mapped]
+
+          setDataList(combined)
+          localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(combined))
           return
         }
       })

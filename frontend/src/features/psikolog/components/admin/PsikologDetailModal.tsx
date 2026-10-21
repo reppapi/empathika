@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import { TenagaAhli, StatusAkses } from "../../types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
@@ -34,10 +35,46 @@ export default function PsikologDetailModal({
   onEdit,
   onToggleAkses,
 }: PsikologDetailModalProps) {
+  const [isCopied, setIsCopied] = useState(false)
+
   if (!isOpen || !psikolog) return null
 
   const isAktif = psikolog.statusAkses === "AKTIF"
   const isPsikolog = psikolog.kategori === "psikolog"
+
+  const isTokenExpired = Boolean(
+    psikolog.tokenExpiredAt && new Date(psikolog.tokenExpiredAt).getTime() < Date.now()
+  )
+
+  const formatExpiryDate = (dateStr?: string | null) => {
+    if (!dateStr) return null
+    try {
+      const d = new Date(dateStr)
+      if (isNaN(d.getTime())) return null
+      return d.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return null
+    }
+  }
+
+  const activationUrl = psikolog.tokenAktivasi
+    ? typeof window !== "undefined"
+      ? `${window.location.origin}/set-password?token=${psikolog.tokenAktivasi}`
+      : `https://empathika.id/set-password?token=${psikolog.tokenAktivasi}`
+    : ""
+
+  const handleCopyLink = () => {
+    if (!activationUrl) return
+    navigator.clipboard.writeText(activationUrl)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 2000)
+  }
 
   const initials = psikolog.nama
     ? psikolog.nama
@@ -199,24 +236,56 @@ export default function PsikologDetailModal({
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-2xs space-y-2">
+            <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-2xs space-y-2.5">
               <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                Akun Login Web
+                Akun Login & Tautan Aktivasi
               </p>
-              <div className="space-y-1.5 text-xs">
+              <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Email Akun:</span>
                   <span className="font-semibold text-gray-800">{psikolog.email}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Password Awal:</span>
-                  <span className="font-mono font-medium text-purple-900 bg-purple-50 px-2 py-0.5 rounded">
-                    {psikolog.password || "Psikolog123!"}
-                  </span>
-                </div>
-                <p className="text-[10px] text-gray-400 pt-1">
-                  Password dapat disesuaikan melalui menu Edit Tenaga Ahli.
-                </p>
+
+                {activationUrl ? (
+                  <div className="space-y-1.5 pt-1.5 border-t border-gray-100">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <span className="text-gray-500 text-[11px]">Tautan Aktivasi Akun:</span>
+                      {isTokenExpired ? (
+                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          ⚠️ Kedaluwarsa{psikolog.tokenExpiredAt ? ` (${formatExpiryDate(psikolog.tokenExpiredAt)})` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          ✓ Aktif s/d {formatExpiryDate(psikolog.tokenExpiredAt) || "7 hari"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        readOnly
+                        value={activationUrl}
+                        className="flex-1 rounded-xl border border-purple-200 bg-purple-50/40 px-2.5 py-1.5 text-[11px] font-mono text-purple-950 focus:outline-none select-all shadow-2xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        className="shrink-0 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border border-purple-200 bg-white text-[#561269] hover:bg-purple-50 active:scale-95 transition shadow-2xs cursor-pointer"
+                      >
+                        {isCopied ? "✓ Tersalin!" : "Salin"}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-gray-400 pt-0.5">
+                      Tenaga ahli mengatur kata sandi secara mandiri melalui tautan ini.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="pt-1.5 border-t border-gray-100">
+                    <p className="text-[11px] text-gray-400">
+                      Tautan aktivasi belum dibuat. Anda dapat membuatnya di menu <span className="font-semibold text-[#561269]">Edit Profil</span>.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
