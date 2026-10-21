@@ -209,18 +209,20 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
           <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#561269] uppercase tracking-wider">
             KEAHLIAN PSIKOLOG
           </h3>
-          <ul className="space-y-3 text-gray-800 text-sm sm:text-base md:text-lg leading-relaxed max-w-5xl">
+          <div className="flex flex-wrap gap-2.5 pt-1 max-w-5xl">
             {psikolog.keahlian && psikolog.keahlian.length > 0 ? (
               psikolog.keahlian.map((item: string, idx: number) => (
-                <li key={idx} className="flex items-start gap-3">
-                  <span className="text-gray-900 font-bold mt-0.5">•</span>
-                  <span>{item}</span>
-                </li>
+                <span
+                  key={idx}
+                  className="inline-flex items-center px-4 py-2 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium border border-gray-200/80 shadow-2xs hover:bg-purple-50/60 hover:border-purple-200 transition-colors"
+                >
+                  {item}
+                </span>
               ))
             ) : (
-              <li className="text-gray-500">Informasi keahlian belum tersedia.</li>
+              <p className="text-gray-500 text-sm">Informasi keahlian belum tersedia.</p>
             )}
-          </ul>
+          </div>
         </section>
 
         {/* 5. JADWAL ASSOCIATE / PRAKTEK */}
@@ -276,7 +278,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
 
           <div>
             <Link
-              href={`/konseling/jadwal?psikologId=${psikolog.id}` as any}
+              href={`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}` as any}
               className="inline-block bg-[#EAB308] hover:bg-[#CA9A06] text-black font-bold text-base sm:text-lg md:text-xl px-10 sm:px-14 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Daftar Sesi

@@ -7,46 +7,41 @@ import { PsikologCard } from "@/features/psikolog/components/client/PsikologCard
 import { QuoteBanner } from "@/features/psikolog/components/client/QuoteBanner"
 import { CtaSection } from "@/features/psikolog/components/client/CtaSection"
 import { useFilterPsikolog } from "@/features/psikolog/hooks/useFilterPsikolog"
-import { DATA_PSIKOLOG_DUMMY } from "@/features/psikolog/dummy"
 import { PsikologUI } from "@/types/psikolog"
+import { psikologService } from "@/services/psikolog.service"
+import { mapDbPsikologToUI } from "@/features/psikolog/utils/mapPsikolog"
 
 export default function PsikologPage() {
-  const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
+  const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchPsychologists = () => {
+    psikologService
+      .getList()
+      .then((dbList: any[]) => {
+        if (Array.isArray(dbList)) {
+          const mapped = dbList.map(mapDbPsikologToUI)
+          setDataPsikolog(mapped)
+        }
+      })
+      .catch((err) => {
+        console.error("Gagal mengambil data psikolog dari database:", err)
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }
 
   useEffect(() => {
-    // Sinkronkan data profil yang diedit dari admin/psikolog ke dalam list kartu klien tanpa menghapus psikolog lainnya
-    try {
-      const saved = localStorage.getItem("empathika_tenaga_ahli_data")
-      if (saved) {
-        const list = JSON.parse(saved)
-        const updatedList: PsikologUI[] = DATA_PSIKOLOG_DUMMY.map((item) => {
-          const edited = list.find((t: any) => t.id === item.id || t.email === item.email)
-          if (edited) {
-            return {
-              ...item,
-              nama_gelar: edited.nama || item.nama_gelar,
-              foto: edited.foto || item.foto,
-              bio: edited.bio || item.bio,
-              quote: edited.quote || item.quote,
-              instagram: edited.instagram || item.instagram,
-              no_str: edited.noStr !== undefined ? edited.noStr : item.no_str,
-              no_sipp: edited.noSipp !== undefined ? edited.noSipp : item.no_sipp,
-              keahlian: edited.keahlian || item.keahlian,
-              pendidikanText: edited.pendidikanText || item.pendidikanText,
-              spesialisasi: edited.spesialisasi
-                ? {
-                    id: item.spesialisasi?.id || item.id_spesialisasi || "spesialisasi-1",
-                    nama: edited.spesialisasi,
-                  }
-                : item.spesialisasi,
-              category: edited.kategori || item.category,
-            }
-          }
-          return item
-        })
-        setDataPsikolog(updatedList as PsikologUI[])
-      }
-    } catch {}
+    fetchPsychologists()
+
+    window.addEventListener("storage", fetchPsychologists)
+    window.addEventListener("focus", fetchPsychologists)
+
+    return () => {
+      window.removeEventListener("storage", fetchPsychologists)
+      window.removeEventListener("focus", fetchPsychologists)
+    }
   }, [])
 
   const {
@@ -73,7 +68,12 @@ export default function PsikologPage() {
         />
 
         {/* List Psikolog Cards */}
-        {dataTerfilter.length > 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-8 h-8 border-3 border-[#561269] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-gray-500">Memuat direktori psikolog...</p>
+          </div>
+        ) : dataTerfilter.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
             {dataTerfilter.map((psikolog) => (
               <PsikologCard key={psikolog.id} psikolog={psikolog} mode="psikolog" />

@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
+import Link from 'next/link';
+
 export default function AdminError({
   error,
   reset,
@@ -7,38 +10,37 @@ export default function AdminError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    console.error('Admin route error:', error);
+  }, [error]);
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 gap-6 px-4 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="h-8 w-8 text-red-500"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-          />
-        </svg>
+    <div className="flex min-h-[400px] flex-col items-center justify-center bg-white rounded-2xl border border-gray-100 p-8 gap-4 text-center my-6">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
+        <span className="text-2xl font-bold">!</span>
       </div>
       <div>
-        <h2 className="text-xl font-bold text-gray-800">
-          Terjadi Kesalahan
+        <h2 className="text-lg font-bold text-gray-900">
+          Terjadi Kesalahan pada Panel Admin
         </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          {error.message || 'Terjadi kesalahan yang tidak terduga.'}
+        <p className="mt-1 text-xs text-gray-500 max-w-sm">
+          Terjadi kendala saat memuat data operasional. Silakan muat ulang.
         </p>
       </div>
-      <button
-        onClick={reset}
-        className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-      >
-        Coba Lagi
-      </button>
+      <div className="flex items-center gap-3 pt-2">
+        <button
+          onClick={() => reset()}
+          className="rounded-xl bg-[#561269] px-5 py-2 text-xs font-semibold text-white hover:bg-[#6f1b87] transition-colors"
+        >
+          Muat Ulang
+        </button>
+        <Link
+          href="/admin"
+          className="rounded-xl border border-gray-300 px-5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          Kembali ke Dashboard
+        </Link>
+      </div>
     </div>
   );
 }

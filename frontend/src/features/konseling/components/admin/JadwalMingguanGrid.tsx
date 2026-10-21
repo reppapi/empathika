@@ -51,11 +51,10 @@ export default function JadwalMingguanGrid({
           disabled={!canGoPrevWeek}
           aria-label="Minggu Sebelumnya"
           title={canGoPrevWeek ? "Minggu Sebelumnya" : "Batas riwayat maksimal 4 minggu ke belakang"}
-          className={`p-1.5 rounded-full transition-colors border border-gray-200 ${
-            canGoPrevWeek
+          className={`p-1.5 rounded-full transition-colors border border-gray-200 ${canGoPrevWeek
               ? "hover:bg-gray-100 text-gray-600 cursor-pointer"
               : "opacity-30 text-gray-300 cursor-not-allowed bg-gray-50"
-          }`}
+            }`}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -81,21 +80,18 @@ export default function JadwalMingguanGrid({
             {weekDays.map((wd, i) => (
               <div
                 key={i}
-                className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 ${
-                  wd.isSameAsSelected ? "bg-purple-50/80" : ""
-                }`}
+                className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 ${wd.isSameAsSelected ? "bg-purple-50/80" : ""
+                  }`}
               >
                 <span
-                  className={`text-[13px] font-bold ${
-                    wd.isSameAsSelected ? "text-[#561269]" : "text-gray-800"
-                  }`}
+                  className={`text-[13px] font-bold ${wd.isSameAsSelected ? "text-[#561269]" : "text-gray-800"
+                    }`}
                 >
                   {wd.dayName}
                 </span>
                 <span
-                  className={`text-[11px] ${
-                    wd.isSameAsSelected ? "text-[#561269] font-bold" : "text-gray-500"
-                  }`}
+                  className={`text-[11px] ${wd.isSameAsSelected ? "text-[#561269] font-bold" : "text-gray-500"
+                    }`}
                 >
                   {wd.dateLabel}
                 </span>
@@ -116,13 +112,12 @@ export default function JadwalMingguanGrid({
               return (
                 <div
                   key={i}
-                  className={`p-2.5 flex flex-col gap-2.5 ${
-                    isTodayColumn
+                  className={`p-2.5 flex flex-col gap-2.5 ${isTodayColumn
                       ? "bg-purple-50/25 ring-1 ring-inset ring-[#561269]/20"
                       : isPastDay
-                      ? "bg-gray-50/40"
-                      : "bg-white"
-                  }`}
+                        ? "bg-gray-50/40"
+                        : "bg-white"
+                    }`}
                 >
                   {sessions.length > 0 ? (
                     sessions.map((item) => {
@@ -130,23 +125,20 @@ export default function JadwalMingguanGrid({
                       return (
                         <div
                           key={item.id}
-                          className={`rounded-xl p-3 flex flex-col gap-1 shadow-xs hover:shadow-sm transition-all ${
-                            isPast
+                          className={`rounded-xl p-3 flex flex-col gap-1 shadow-xs hover:shadow-sm transition-all ${isPast
                               ? "bg-gray-100/85 border border-gray-200/90 text-gray-500"
                               : "bg-[#E8F3ED] border border-[#b4d6be]"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="flex items-center gap-1.5">
                               <span
-                                className={`w-2 h-2 rounded-full shrink-0 ${
-                                  isPast ? "bg-gray-400" : "bg-green-600"
-                                }`}
+                                className={`w-2 h-2 rounded-full shrink-0 ${isPast ? "bg-gray-400" : "bg-green-600"
+                                  }`}
                               />
                               <span
-                                className={`text-xs font-extrabold ${
-                                  isPast ? "text-gray-600" : "text-[#185e26]"
-                                }`}
+                                className={`text-xs font-extrabold ${isPast ? "text-gray-600" : "text-[#185e26]"
+                                  }`}
                               >
                                 {item.waktu}
                               </span>
@@ -158,16 +150,14 @@ export default function JadwalMingguanGrid({
                             )}
                           </div>
                           <p
-                            className={`text-xs font-bold leading-tight mt-0.5 ${
-                              isPast ? "text-gray-700" : "text-gray-900"
-                            }`}
+                            className={`text-xs font-bold leading-tight mt-0.5 ${isPast ? "text-gray-700" : "text-gray-900"
+                              }`}
                           >
                             {item.layanan}
                           </p>
                           <div
-                            className={`text-[10px] flex flex-col mt-0.5 leading-tight ${
-                              isPast ? "text-gray-500" : "text-gray-600"
-                            }`}
+                            className={`text-[10px] flex flex-col mt-0.5 leading-tight ${isPast ? "text-gray-500" : "text-gray-600"
+                              }`}
                           >
                             {item.namaKlien && (
                               <span>

@@ -9,8 +9,11 @@ import { PsikologCard } from '@/features/psikolog/components/client/PsikologCard
 import { HERO_SLIDES } from '../../data/homeData'
 import { useHomeSlider } from '../../hooks/useHomeSlider'
 import { usePsikologSlider } from '../../hooks/usePsikologSlider'
+import { eventService, EventItemApi } from '@/services/event.service'
 
 export default function HomeClient() {
+  const [publishedEvents, setPublishedEvents] = useState<EventItemApi[]>([])
+  const [loadingEvents, setLoadingEvents] = useState(true)
   const [adminProfile, setAdminProfile] = useState<{
     alamat: string
     linkMaps: string
@@ -22,6 +25,27 @@ export default function HomeClient() {
     email: "empathika889@gmail.com",
     noTelepon: "0878-7878-5498",
   })
+
+  useEffect(() => {
+    // Ambil event yang berstatus UPCOMING / ONGOING langsung dari backend
+    const fetchHomeEvents = async () => {
+      try {
+        setLoadingEvents(true)
+        const res = await eventService.getList({ status: 'UPCOMING', limit: 4 })
+        if (res?.data) {
+          setPublishedEvents(res.data)
+        } else {
+          setPublishedEvents([])
+        }
+      } catch (err) {
+        console.error('Gagal memuat event home:', err)
+        setPublishedEvents([])
+      } finally {
+        setLoadingEvents(false)
+      }
+    }
+    fetchHomeEvents()
+  }, [])
 
   useEffect(() => {
     try {
@@ -205,98 +229,129 @@ export default function HomeClient() {
           </Link>
         </div>
 
-        {/* Event Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          
-          {/* Card 1 */}
-          <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group">
-            <div className="relative h-56 sm:h-auto sm:w-2/5 shrink-0 overflow-hidden">
-              <Image unoptimized src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Event" fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">Webinar</div>
-            </div>
-            <div className="p-5 md:p-6 flex flex-col flex-1">
-              <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-2 line-clamp-2 leading-tight">Overcoming Burnout: Mengelola Lelah Mental di Tempat Kerja</h3>
-              
-              <div className="space-y-1.5 mb-5">
-                <div className="flex items-center text-sm text-gray-500">
-                  <svg className="w-4 h-4 mr-2 text-[#d97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  Sabtu, 24 Oktober 2026
-                </div>
-                <div className="flex items-center text-sm text-gray-500">
-                  <svg className="w-4 h-4 mr-2 text-[#d97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  19:00 - 21:00 WIB
-                </div>
-              </div>
+        {/* Jika ada event aktif dipublikasi */}
+        {publishedEvents.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            {publishedEvents.map((ev) => {
+              // Format tanggal
+              let tanggalTeks = ev.tanggal
+              try {
+                const d = new Date(ev.tanggal)
+                if (!isNaN(d.getTime())) {
+                  tanggalTeks = d.toLocaleDateString("id-ID", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                }
+              } catch {}
 
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0 relative"><Image unoptimized src="https://ui-avatars.com/api/?name=Sarah+M&background=561269&color=fff" alt="Speaker" fill className="object-cover" /></div>
-                <div className="text-sm">
-                  <p className="font-bold text-gray-900">Sarah M., M.Psi</p>
-                  <p className="text-xs text-gray-500">Psikolog Klinis</p>
-                </div>
-              </div>
+              // Format jam
+              let jamTeks = "09:00 WIB"
+              try {
+                const t = new Date(ev.jam_mulai)
+                if (!isNaN(t.getTime())) {
+                  const hh = String(t.getUTCHours()).padStart(2, "0")
+                  const mm = String(t.getUTCMinutes()).padStart(2, "0")
+                  jamTeks = `${hh}:${mm} WIB`
+                } else if (typeof ev.jam_mulai === "string") {
+                  jamTeks = `${ev.jam_mulai.slice(0, 5)} WIB`
+                }
+              } catch {}
 
-              <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
-                  <p className="text-lg font-black text-[#561269]">Rp 50.000</p>
-                </div>
-                <Link
-                  href="/event/checkout?judul=Overcoming%20Burnout%3A%20Mengelola%20Lelah%20Mental%20di%20Tempat%20Kerja&pembicara=Sarah%20M.%2C%20M.Psi&kategori=Webinar&harga=Rp%2050.000&lokasi=Kantor%20Empathika%20Cikutra&tanggal=24%20Oktober%202026&waktu=19%3A00%20-%2021%3A00%20WIB"
-                  className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
+              const hargaNum = typeof ev.harga === "string" ? parseFloat(ev.harga) : ev.harga
+              const hargaTeks = hargaNum > 0 ? `Rp ${hargaNum.toLocaleString("id-ID")}` : "Gratis"
+
+              return (
+                <div
+                  key={ev.id}
+                  className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group"
                 >
-                  Daftar
-                </Link>
-              </div>
-            </div>
+                  <div className="relative h-56 sm:h-auto sm:w-2/5 shrink-0 overflow-hidden bg-gray-100">
+                    <Image
+                      unoptimized
+                      src={ev.banner_url || "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"}
+                      alt={ev.judul}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">
+                      {ev.jenis_event}
+                    </div>
+                  </div>
+                  <div className="p-5 md:p-6 flex flex-col flex-1">
+                    <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-2 line-clamp-2 leading-tight">
+                      {ev.judul}
+                    </h3>
+
+                    <div className="space-y-1.5 mb-5">
+                      <div className="flex items-center text-sm text-gray-500">
+                        <svg className="w-4 h-4 mr-2 text-[#d97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        {tanggalTeks}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <svg className="w-4 h-4 mr-2 text-[#d97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        {jamTeks}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-8 h-8 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center font-bold text-xs shrink-0">
+                        {ev.nama_pembicara.charAt(0)}
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-bold text-gray-900">{ev.nama_pembicara}</p>
+                        <p className="text-xs text-gray-500">Narasumber / Pembicara</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
+                        <p className="text-lg font-black text-[#561269]">{hargaTeks}</p>
+                      </div>
+                      <Link
+                        href={`/event/checkout?judul=${encodeURIComponent(ev.judul)}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || "Online / Sesuai Pengumuman")}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}`}
+                        className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
+                      >
+                        Daftar
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-
-          {/* Card 2 */}
-          <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group">
-            <div className="relative h-56 sm:h-auto sm:w-2/5 shrink-0 overflow-hidden">
-              <Image unoptimized src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Event" fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#d97706] shadow-sm uppercase tracking-wider">Workshop</div>
+        ) : (
+          /* Empty State: Belum ada event yang dipublikasi */
+          <div className="w-full bg-gradient-to-br from-white via-purple-50/30 to-purple-100/20 rounded-[2.5rem] border border-purple-100/80 p-8 sm:p-12 text-center shadow-sm flex flex-col items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-purple-100/80 text-[#561269] flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
             </div>
-            <div className="p-5 md:p-6 flex flex-col flex-1">
-              <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-2 line-clamp-2 leading-tight">Seni Mengenali Diri Sendiri & Self-Healing Therapy</h3>
-              
-              <div className="space-y-1.5 mb-5">
-                <div className="flex items-center text-sm text-gray-500">
-                  <svg className="w-4 h-4 mr-2 text-[#d97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  Minggu, 1 November 2026
-                </div>
-                <div className="flex items-center text-sm text-gray-500">
-                  <svg className="w-4 h-4 mr-2 text-[#d97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  10:00 - 14:00 WIB
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0 relative"><Image unoptimized src="https://ui-avatars.com/api/?name=Dr+Andi&background=d97706&color=fff" alt="Speaker" fill className="object-cover" /></div>
-                <div className="text-sm">
-                  <p className="font-bold text-gray-900">Dr. Andi Pratama</p>
-                  <p className="text-xs text-gray-500">Pakar Mindfulness</p>
-                </div>
-              </div>
-
-              <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
-                  <p className="text-lg font-black text-[#561269]">Rp 150.000</p>
-                </div>
-                <Link
-                  href="/event/checkout?judul=Seni%20Mengenali%20Diri%20Sendiri%20%26%20Self-Healing%20Therapy&pembicara=Dr.%20Andi%20Pratama&kategori=Workshop&harga=Rp%20150.000&lokasi=Auditorium%20UPI%20Bandung&tanggal=1%20November%202026&waktu=10%3A00%20-%2014%3A00%20WIB"
-                  className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
-                >
-                  Daftar
-                </Link>
-              </div>
-            </div>
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+              Saat Ini Belum Ada Event yang Sedang Berlangsung
+            </h3>
+            <p className="text-gray-500 text-sm sm:text-base max-w-xl mb-6 leading-relaxed">
+              Mohon maaf, saat ini belum ada webinar atau workshop yang kami jadwalkan. Kamu bisa membaca informasi lengkap seputar rangkaian program event dan kegiatan menarik kami di halaman layanan.
+            </p>
+            <Link
+              href="/layanan?category=04"
+              className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm sm:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95"
+            >
+              <span>Pelajari Rangkaian Event Empathika</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </Link>
           </div>
-
-
-
-        </div>
+        )}
       </section>
 
       {/* ======================================= */}

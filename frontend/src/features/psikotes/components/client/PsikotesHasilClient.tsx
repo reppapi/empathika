@@ -15,7 +15,9 @@ import {
   Briefcase, 
   HeartHandshake, 
   ShieldCheck,
-  FileCheck
+  FileCheck,
+  AlertTriangle,
+  Compass
 } from "lucide-react";
 import Link from "next/link";
 
@@ -49,6 +51,78 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
       };
     }
     return resultData.result;
+  })();
+
+  // Data komprehensif interpretasi untuk paket Berbayar (sinkron dengan sistem Admin)
+  const berbayarDetail = (() => {
+    if (params.testId === "love-language") {
+      return {
+        deskripsi:
+          "Hasil asesmen komprehensif menunjukkan bahasa cinta utamamu adalah Words of Affirmation. Kamu paling merasa dihargai dan dicintai melalui kata-kata verbal yang tulus, apresiasi spesifik, dan komunikasi yang membangun.",
+        makna:
+          "Pujian yang tulus, ucapan terima kasih yang jujur, dan kata-kata penyemangat memiliki dampak emosional yang mendalam bagimu dalam memperkuat ikatan hubungan interpersonal.",
+        kekuatanUtama: [
+          "Kemampuan mengekspresikan apresiasi verbal yang menyejukkan dan memvalidasi perasaan orang lain.",
+          "Sensitivitas tinggi terhadap nada bicara dan kebutuhan emosional pasangan atau sahabat.",
+          "Komunikasi afektif yang membangun rasa aman, keterbukaan, dan kepercayaan jangka panjang.",
+        ],
+        blindspots: [
+          "Sangat sensitif terhadap kritik pedas, nada bicara ketus, atau sarkasme ringan dari orang terdekat.",
+          "Dapat meragukan ketulusan atau kasih sayang orang lain jika tidak dinyatakan secara verbal berulang kali.",
+          "Kerap menahan kekecewaan sendiri demi menjaga suasana verbal tetap positif di depan orang lain.",
+        ],
+        lingkunganOptimal: [
+          "Lingkungan relasi personal dan kerja yang mengedepankan budaya apresiatif serta umpan balik positif.",
+          "Dinamika kelompok kerja yang saling menghargai usaha anggota tim secara transparan.",
+          "Pola interaksi yang asertif, jujur, dan bebas dari sindiran atau sarkasme pasif.",
+        ],
+      };
+    }
+    if (params.testId === "kesiapan-karir" || params.testId.includes("karier") || params.testId.includes("karir")) {
+      return {
+        deskripsi:
+          "Dominasi minat berfokus pada inovasi, ekspresi ide orisinal, serta komunikasi persuasif yang berakar pada empati tulus.",
+        makna:
+          "Unggul dalam industri edukasi, psikologi, human resource, dan perancangan strategi kreatif dengan ruang kolaborasi tim yang fleksibel.",
+        kekuatanUtama: [
+          "Kreativitas tinggi dalam memecahkan masalah interpersonal dan operasional.",
+          "Kecerdasan emosional yang mendukung komunikasi asertif dan diplomatis.",
+          "Kemampuan mengubah konsep abstrak menjadi strategi implementatif yang menarik.",
+        ],
+        blindspots: [
+          "Cenderung menghindari konfrontasi langsung meskipun ada masalah struktural yang mendesak.",
+          "Rentan overthinking terhadap ekspektasi atau pandangan orang lain terhadap hasil kerjanya.",
+          "Sering kesulitan menetapkan batasan profesional ketika urusan pekerjaan menyentuh empati emosional.",
+        ],
+        lingkunganOptimal: [
+          "Industri kreatif, agensi konsultan, riset sosial, dan human capital.",
+          "Organisasi yang memiliki budaya terbuka, suportif, dan inovatif.",
+          "Posisi yang memungkinkan interaksi berkelanjutan dengan klien atau komunitas.",
+        ],
+      };
+    }
+    // Default MBTI / Kepribadian
+    return {
+      deskripsi:
+        "Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.",
+      makna:
+        "Mampu membangun keselarasan dan kohesi tim kerja, merumuskan solusi berpusat pada manusia, serta menginspirasi rekan kerja dengan empati tulus.",
+      kekuatanUtama: [
+        "Komunikasi persuasif yang berakar pada empati tulus dan pemahaman interpersonal.",
+        "Kemampuan membangun keselarasan dan kohesi tim kerja dalam mencapai target bersama.",
+        "Ketajaman dalam merumuskan solusi strategis yang tetap berpusat pada kesejahteraan manusia.",
+      ],
+      blindspots: [
+        "Cenderung mengabaikan kebutuhan diri sendiri demi mendahulukan kepentingan atau perasaan orang lain.",
+        "Rentan mengalami kelelahan emosional (burnout) akibat terlalu menyerap beban masalah lingkungan sekitar.",
+        "Sulit menolak permintaan tambahan atau menetapkan batasan beban kerja pribadi yang tegas.",
+      ],
+      lingkunganOptimal: [
+        "Industri edukasi, psikologi, human resource, konsultasi, dan pengembangan komunitas.",
+        "Posisi strategis dengan ruang kolaborasi tim yang fleksibel, hangat, dan suportif.",
+        "Budaya organisasi yang menghargai inovasi sosial, empati, dan pengakuan personal yang transparan.",
+      ],
+    };
   })();
 
   const { interpretation, meaning, tips, recommendations } = resultData;
@@ -272,7 +346,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               {dynamicResult.value}
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.
+              {berbayarDetail.deskripsi}
             </p>
           </section>
 
@@ -282,82 +356,15 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
             {/* Kolom Kiri: Analisis Lengkap */}
             <div className="lg:col-span-8 space-y-8">
               
-              {/* Dimensi & Spektrum Karakter */}
-              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-[#561269]" />
-                    Dimensi &amp; Spektrum Karakter
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Pemetaan indikator psikologis berdasarkan respon pengerjaan kuesionermu:
-                  </p>
-                </div>
-
-                <div className="space-y-5">
-                  <div>
-                    <div className="flex justify-between items-center text-xs font-bold mb-2">
-                      <span className="text-gray-700">Orientasi Energi Sosial</span>
-                      <span className="text-[#561269]">76% Ekstrovert · 24% Introvert</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#561269] rounded-full" style={{ width: "76%" }}></div>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
-                      Memperoleh stimulasi positif dan semangat tinggi melalui kolaborasi tim dan interaksi sosial.
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center text-xs font-bold mb-2">
-                      <span className="text-gray-700">Pengambilan Keputusan</span>
-                      <span className="text-[#561269]">68% Nilai &amp; Empati · 32% Logika Kaku</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#EAB308] rounded-full" style={{ width: "68%" }}></div>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
-                      Mempertimbangkan dampak terhadap perasaan orang lain dan keharmonisan lingkungan sebelum mengambil keputusan.
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center text-xs font-bold mb-2">
-                      <span className="text-gray-700">Pola Kerja &amp; Struktur</span>
-                      <span className="text-[#561269]">82% Terorganisir · 18% Spontan</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-600 rounded-full" style={{ width: "82%" }}></div>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
-                      Memiliki preferensi kuat terhadap perencanaan jadwal, tenggat waktu yang jelas, dan target terukur.
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center text-xs font-bold mb-2">
-                      <span className="text-gray-700">Regulasi Stres &amp; Adaptabilitas</span>
-                      <span className="text-[#561269]">74% Stabil &amp; Adaptif</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-600 rounded-full" style={{ width: "74%" }}></div>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
-                      Mampu memulihkan fokus dengan cepat saat menghadapi dinamika situasi yang tidak terduga.
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              {/* Interpretasi Hasil & Makna Strategis */}
+              {/* Interpretasi Hasil & Implikasi Strategis */}
               <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                     <Info className="w-5 h-5 text-[#561269]" />
-                    Interpretasi Analisis
+                    Interpretasi Analisis &amp; Landasan Ilmiah
                   </h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    {interpretation}
+                    {berbayarDetail.deskripsi}
                   </p>
                 </div>
 
@@ -365,64 +372,84 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                   <h4 className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-2">
                     Implikasi bagi Kehidupan Sehari-hari
                   </h4>
-                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                    {meaning}
+                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                    {berbayarDetail.makna}
                   </p>
                 </div>
               </section>
 
-              {/* Potensi Karir & Kekuatan Kunci */}
+              {/* Analisis Karakteristik: Kekuatan Utama vs Blindspots */}
               <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-[#561269]" />
-                    Potensi Karir &amp; Kekuatan Kunci
+                    <ShieldCheck className="w-5 h-5 text-[#561269]" />
+                    Analisis Karakteristik &amp; Dinamika Diri
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Kombinasi keunggulan utama dan lingkungan kerja yang paling mendukung potensimu:
+                    Pemetaan keunggulan utama serta area blindspot yang perlu kamu waspadai untuk berkembang optimal:
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70">
-                    <span className="text-xs font-bold text-gray-900 uppercase tracking-wider block mb-3">
-                      Kekuatan Utama (Core Strengths)
-                    </span>
-                    <ul className="space-y-2.5 text-xs text-gray-700">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>Komunikasi persuasif yang berakar pada empati tulus.</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>Kemampuan membangun keselarasan dan kohesi tim kerja.</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>Ketajaman dalam merumuskan solusi berpusat pada manusia.</span>
-                      </li>
+                  {/* Kekuatan Utama */}
+                  <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+                        Kekuatan Utama (Core Strengths)
+                      </span>
+                    </div>
+                    <ul className="space-y-2.5 text-xs text-emerald-950">
+                      {berbayarDetail.kekuatanUtama.map((point, pIdx) => (
+                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
                     </ul>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/70">
-                    <span className="text-xs font-bold text-gray-900 uppercase tracking-wider block mb-3">
-                      Lingkungan Kerja Optimal
-                    </span>
-                    <ul className="space-y-2.5 text-xs text-gray-700">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <span>Industri edukasi, psikologi, human resource, dan konsultasi.</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <span>Posisi strategis dengan ruang kolaborasi tim yang fleksibel.</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <span>Budaya organisasi yang menghargai inovasi dan empati.</span>
-                      </li>
+                  {/* Titik Rawan & Blindspots */}
+                  <div className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200/70">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span className="text-xs font-bold text-rose-900 uppercase tracking-wider">
+                        Titik Rawan (Blindspots)
+                      </span>
+                    </div>
+                    <ul className="space-y-2.5 text-xs text-rose-950">
+                      {berbayarDetail.blindspots.map((point, pIdx) => (
+                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
                     </ul>
                   </div>
+                </div>
+              </section>
+
+              {/* Lingkungan & Budaya Kerja Optimal */}
+              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-[#561269]" />
+                    Lingkungan &amp; Budaya Optimal
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Kondisi eksternal yang paling mendukung performa optimal dan kesejahteraan emosionalmu:
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-amber-50/40 border border-amber-200/70">
+                  <ul className="space-y-2.5 text-xs text-gray-800">
+                    {berbayarDetail.lingkunganOptimal.map((ling, lIdx) => (
+                      <li key={lIdx} className="flex items-start gap-2 leading-relaxed">
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>{ling}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </section>
 

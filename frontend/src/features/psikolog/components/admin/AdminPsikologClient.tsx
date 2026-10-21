@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { TenagaAhli, StatusAkses } from "../../types"
+import { TenagaAhli, StatusAkses, KategoriTenaga } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { psikologService } from "@/services/psikolog.service"
 import {
   ActionButtonDetail,
   ActionButtonEdit,
@@ -34,22 +35,69 @@ export default function AdminPsikologClient() {
   const [notification, setNotification] = useState<string | null>(null)
 
   useEffect(() => {
+    // 1. Ambil data tenaga ahli langsung dari database backend
+    psikologService
+      .getList()
+      .then((dbList: any[]) => {
+        if (dbList && dbList.length > 0) {
+          const mapped: TenagaAhli[] = dbList.map((p) => {
+            const katStr = (p.kategori || "").toLowerCase()
+            const kategori: KategoriTenaga = katStr.includes("peer")
+              ? "peer-konselor"
+              : katStr.includes("konselor")
+              ? "konselor"
+              : "psikolog"
+
+            return {
+              id: p.id,
+              nama: p.nama_gelar || p.account?.nama || "Psikolog Empathika",
+              email:
+                p.account?.email ||
+                `${(p.nama_gelar || "psikolog").toLowerCase().replace(/[^a-z0-9]/g, "")}@empathika.com`,
+              noTelepon: p.account?.no_telepon || "081234567890",
+              kategori,
+              statusAkses: "AKTIF" as StatusAkses,
+              spesialisasi: p.spesialisasi?.nama || "Psikologi Klinis",
+              noStr: p.no_str || undefined,
+              noSipp: p.no_sipp || undefined,
+              pendidikanText: p.pendidikan || "Universitas Indonesia",
+              jumlahSesi: p.jumlah_sesi || 0,
+              bio: p.bio || "",
+              quote: p.quote || "",
+              instagram: p.instagram || "",
+              foto: p.foto || null,
+              keahlian: Array.isArray(p.keahlian)
+                ? p.keahlian
+                : typeof p.keahlian === "string"
+                ? p.keahlian.split(",").map((s: string) => s.trim())
+                : ["Konseling"],
+              tanggalBergabung: "Terdaftar di DB",
+            }
+          })
+          setDataList(mapped)
+          localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(mapped))
+          return
+        }
+      })
+      .catch(() => {})
+
+    // 2. Fallback localStorage jika offline
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
     if (saved) {
       try {
         setDataList(JSON.parse(saved))
       } catch {
-        setDataList(INITIAL_TENAGA_AHLI)
+        setDataList([])
       }
-    } else {
-      setDataList(INITIAL_TENAGA_AHLI)
-      localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(INITIAL_TENAGA_AHLI))
     }
   }, [])
 
   const persistData = (newList: TenagaAhli[], notifMsg?: string) => {
     setDataList(newList)
     localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(newList))
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("storage"))
+    }
     if (notifMsg) {
       setNotification(notifMsg)
       setTimeout(() => setNotification(null), 3000)
@@ -67,6 +115,8 @@ export default function AdminPsikologClient() {
     if (selectedDetailPsikolog && selectedDetailPsikolog.id === item.id) {
       setSelectedDetailPsikolog({ ...selectedDetailPsikolog, statusAkses: newStatus })
     }
+    // Sync to backend DB
+    psikologService.createPsikologBaru({ ...item, statusAkses: newStatus }).catch(() => {})
   }
 
   const handleOpenDetail = (item: TenagaAhli) => {
@@ -79,11 +129,24 @@ export default function AdminPsikologClient() {
   }
 
   // Hapus Data
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (!deleteConfirmItem) return
-    const updated = dataList.filter((d) => d.id !== deleteConfirmItem.id)
-    persistData(updated, `Data ${deleteConfirmItem.nama} telah dihapus.`)
+    const idToDelete = deleteConfirmItem.id
+    const targetName = deleteConfirmItem.nama
     setDeleteConfirmItem(null)
+
+    try {
+      await psikologService.deletePsikolog(idToDelete)
+      const updated = dataList.filter((d) => d.id !== idToDelete)
+      persistData(updated, `Data ${targetName} telah berhasil dihapus.`)
+    } catch (err: any) {
+      const errMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        `Gagal menghapus ${targetName} karena sudah memiliki data booking konsultasi dari klien.`
+      setNotification(errMsg)
+      setTimeout(() => setNotification(null), 5000)
+    }
   }
 
   // Filter List tunggal

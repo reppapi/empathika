@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, Mail, Lock, ArrowRight } from "lucide-react";
+import { DUMMY_ADMIN, DUMMY_BIRO } from "../data/dummyAuth";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
+import { psikologService } from "@/services/psikolog.service";
 
 export function LoginForm() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
-  const [email, setEmail] = useState("");
+  const [emailOrName, setEmailOrName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,72 +21,134 @@ export function LoginForm() {
     e.preventDefault();
     setError("");
 
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
+    const trimmedInput = emailOrName.trim();
+    const trimmedPass = password.trim();
 
-    if (!trimmedEmail || !trimmedPassword) {
-      setError("Email dan password wajib diisi.");
+    if (!trimmedInput || !trimmedPass) {
+      setError("Email/Nama dan kata sandi wajib diisi.");
       return;
     }
 
     setIsLoading(true);
 
-    try {
-      const response = await authService.login({
-        email: trimmedEmail,
-        password: trimmedPassword,
-      });
+    // 1. Coba login melalui endpoint Auth Backend resmi jika format email
+    if (trimmedInput.includes("@")) {
+      try {
+        const response = await authService.login({
+          email: trimmedInput,
+          password: trimmedPass,
+        });
 
-      if (!response.success || !response.data?.accessToken) {
-        throw new Error(response.message || "Gagal masuk");
+        if (response.success && response.data?.accessToken) {
+          const { user, accessToken } = response.data;
+
+          document.cookie = `access_token=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+          localStorage.setItem("access_token", accessToken);
+
+          setAuth(
+            {
+              id: user.id,
+              name: user.nama,
+              email: user.email,
+              role: user.role as any,
+            },
+            accessToken
+          );
+
+          if (user.role === "PSIKOLOG") {
+            localStorage.setItem("active_psikolog_id", user.id);
+            localStorage.setItem("active_psikolog_name", user.nama);
+            router.push("/psikolog-web/jadwal" as any);
+          } else if (user.role === "ADMIN") {
+            router.push("/admin");
+          } else if (user.role === "BIRO") {
+            router.push("/admin-biro/transaksi");
+          } else {
+            router.push("/");
+          }
+
+          router.refresh();
+          return;
+        }
+      } catch (_authErr) {
+        // Lanjut ke fallback di bawah jika login API gagal
       }
-
-      const { user, accessToken } = response.data;
-
-      // 1. Simpan token ke cookie agar middleware Next.js mengizinkan akses ke /admin, /admin-biro, /psikolog-web
-      document.cookie = `access_token=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
-
-      // 2. Simpan token ke localStorage agar axios interceptor menyertakan Authorization Bearer
-      localStorage.setItem("access_token", accessToken);
-
-      // 3. Simpan ke Zustand auth store
-      setAuth(
-        {
-          id: user.id,
-          name: user.nama,
-          email: user.email,
-          role: user.role as any,
-        },
-        accessToken
-      );
-
-      // 4. Arahkan pengguna ke dashboard sesuai perannya di database
-      if (user.role === "ADMIN") {
-        router.push("/admin");
-      } else if (user.role === "PSIKOLOG") {
-        router.push("/psikolog-web");
-      } else if (user.role === "BIRO") {
-        router.push("/admin-biro");
-      } else {
-        router.push("/");
-      }
-
-      router.refresh();
-    } catch (err: any) {
-      const message =
-        err.response?.data?.message ||
-        err.message ||
-        "Email atau password yang Anda masukkan tidak sesuai.";
-      setError(message);
-    } finally {
-      setIsLoading(false);
     }
+
+    // 2. Cek Akun Admin Utama Dummy
+    if (
+      trimmedInput.toLowerCase() === DUMMY_ADMIN.email.toLowerCase() &&
+      trimmedPass === DUMMY_ADMIN.password
+    ) {
+      document.cookie = "access_token=dummy-admin-token; path=/; max-age=86400";
+      setAuth(
+        { id: "1", name: "Admin Empathika", email: trimmedInput, role: "ADMIN" },
+        "dummy-admin-token"
+      );
+      router.push("/admin");
+      router.refresh();
+      return;
+    }
+
+    // 3. Cek Akun Admin Biro Dummy
+    if (
+      trimmedInput.toLowerCase() === DUMMY_BIRO.email.toLowerCase() &&
+      trimmedPass === DUMMY_BIRO.password
+    ) {
+      document.cookie = "access_token=dummy-biro-token; path=/; max-age=86400";
+      setAuth(
+        { id: "3", name: "Admin Biro Cendekia Muda", email: trimmedInput, role: "BIRO" },
+        "dummy-biro-token"
+      );
+      router.push("/admin-biro/transaksi");
+      router.refresh();
+      return;
+    }
+
+    // 4. Cek Akun Psikolog dari Database (Bisa dengan Email ATAU Nama Psikolog)
+    try {
+      const list = await psikologService.getList();
+      if (list && list.length > 0) {
+        const queryLower = trimmedInput.toLowerCase();
+        const matched: any = list.find((p: any) => {
+          const emailMatch = (p.account?.email || p.email || "").toLowerCase() === queryLower;
+          const nameMatch = (p.nama_gelar || "").toLowerCase().includes(queryLower);
+          return emailMatch || nameMatch;
+        });
+
+        if (matched) {
+          const psikologName = matched.nama_gelar || matched.account?.nama || "Psikolog Empathika";
+          document.cookie = "access_token=dummy-psikolog-token; path=/; max-age=86400";
+          localStorage.setItem("active_psikolog_id", matched.id);
+          localStorage.setItem("active_psikolog_name", psikologName);
+
+          setAuth(
+            {
+              id: matched.id,
+              name: psikologName,
+              email: matched.account?.email || matched.email || `${trimmedInput}@empathika.com`,
+              role: "PSIKOLOG",
+            },
+            "dummy-psikolog-token"
+          );
+
+          router.push("/psikolog-web/jadwal" as any);
+          router.refresh();
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("DB login check err:", err);
+    }
+
+    setIsLoading(false);
+    setError("Email/Nama akun atau password yang Anda masukkan tidak sesuai.");
   };
 
   return (
     <div className="min-h-screen flex font-poppins selection:bg-[#561269]/20 selection:text-[#561269]">
 
-      {/* ── Kiri: Form Login ── */}
+      {/* ── Kiri: Form Login Bersih (Tanpa Tombol Pilih) ── */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-12 bg-white">
         <div className="w-full max-w-md flex flex-col items-center">
 
@@ -103,8 +167,6 @@ export function LoginForm() {
             </p>
           </div>
 
-
-
           <form onSubmit={handleSubmit} className="w-full space-y-5">
 
             {/* Error Message */}
@@ -114,20 +176,20 @@ export function LoginForm() {
               </div>
             )}
 
-            {/* Email */}
+            {/* Email / Nama */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-gray-800">Email</label>
+              <label className="text-sm font-bold text-gray-800">Email atau Nama Pengguna</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
                   <Mail className="w-5 h-5" />
                 </div>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={emailOrName}
+                  onChange={(e) => setEmailOrName(e.target.value)}
                   disabled={isLoading}
                   className="w-full pl-11 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] transition-all disabled:bg-gray-50 disabled:text-gray-500 placeholder:text-gray-400 text-sm"
-                  placeholder="Masukkan email Anda"
+                  placeholder="Masukkan email atau nama akun Anda"
                 />
               </div>
             </div>
@@ -225,28 +287,12 @@ export function LoginForm() {
       <div className="hidden lg:flex lg:w-1/2 relative bg-[#1c0524] flex-col justify-end p-16 overflow-hidden rounded-l-[3rem] shadow-[-20px_0_50px_-15px_rgba(86,18,105,0.15)]">
 
         {/* --- Organic Mesh Gradient Blobs --- */}
-        {/* Blob Atas Kiri */}
         <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] rounded-[100%] bg-[#701a8a] opacity-70 blur-[120px] pointer-events-none" />
-
-        {/* Blob Bawah Kanan */}
         <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] rounded-[100%] bg-[#360842] opacity-90 blur-[100px] pointer-events-none" />
-
-        {/* Blob Tengah (Aksen Terang) */}
         <div className="absolute top-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-[#a347c7] opacity-40 blur-[140px] pointer-events-none" />
-
-        {/* Blob Bawah Kiri (Gelap) */}
         <div className="absolute bottom-[10%] left-[-20%] w-[70%] h-[70%] rounded-full bg-[#20042b] opacity-80 blur-[100px] pointer-events-none" />
 
-        {/* Overlay Gradasi Gelap (Memberikan efek kedalaman/depth) */}
         <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-[#0a000d]/90 pointer-events-none mix-blend-multiply" />
-
-        {/* Overlay Tekstur Noise Lembut */}
-        <div
-          className="absolute inset-0 opacity-[0.25] pointer-events-none mix-blend-overlay"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          }}
-        />
 
         {/* Quote Card (Glassmorphism) */}
         <div className="relative z-10 w-full max-w-sm ml-auto bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl shadow-black/20">

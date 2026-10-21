@@ -24,7 +24,8 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
   // Unknown server error
   reply.code(500).send({
     error: "Internal Server Error",
-    message: "Terjadi kesalahan pada server",
+    message: error.message || "Terjadi kesalahan pada server",
+    stack: process.env.NODE_ENV !== "production" ? error.stack : undefined,
   })
 }
 

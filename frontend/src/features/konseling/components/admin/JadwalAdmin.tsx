@@ -24,6 +24,7 @@ import JadwalAsesmenPicker from "./JadwalAsesmenPicker"
 import JadwalMingguanGrid from "./JadwalMingguanGrid"
 import ModalDetailSesiKlien from "./ModalDetailSesiKlien"
 import ModalBatalSesi from "./ModalBatalSesi"
+import { psikologService } from "@/services/psikolog.service"
 
 import {
   Calendar as CalendarIcon,
@@ -403,21 +404,76 @@ export default function JadwalAdmin() {
     setCurrentWeekMonday(next)
   }
 
-  const handleBooking = () => {
-    if (!date || !selectedTime) return
+  const handleBooking = async (times: string[]) => {
+    if (!date || times.length === 0) return
     const dateKey = formatDateKey(date)
-    const newSession: BookedAssessment = {
-      id: "ab_" + Date.now(),
-      date: dateKey,
-      waktu: selectedTime,
-      layanan: "Asesmen",
-      metode: "Online",
-      namaKlien: "Klien Baru",
-      psikolog: "Dr. Dimas",
+    const psikologNama = "Dr. Dimas Ardiansyah, M.Psi., Psikolog"
+    const psikologId = "psikolog-default-id"
+
+    const newSessions: BookedAssessment[] = []
+    const newSlotItems: any[] = []
+
+    for (const finalWaktu of times) {
+      const [start, end] = finalWaktu.split(" - ")
+      const jamMulai = start?.trim() || "09:00"
+      const jamSelesai = end?.trim() || "10:00"
+
+      let savedSlotId = "slot-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6)
+
+      try {
+        const res: any = await psikologService.createJadwalSlot({
+          id_psikolog: psikologId,
+          tanggal: dateKey,
+          jam_mulai: jamMulai,
+          jam_selesai: jamSelesai,
+          tipe_jadwal: "KONSULTASI",
+        })
+        if (res && res.id) savedSlotId = res.id
+      } catch (err: any) {
+        console.warn("Notice save slot:", err?.response?.data?.message || err.message)
+      }
+
+      newSlotItems.push({
+        id: savedSlotId,
+        id_psikolog: psikologId,
+        nama_psikolog: psikologNama,
+        tanggal: dateKey,
+        jam_mulai: jamMulai,
+        jam_selesai: jamSelesai,
+        label_waktu: finalWaktu,
+        status: "TERSEDIA",
+        tipe_jadwal: "KONSULTASI",
+      })
+
+      newSessions.push({
+        id: savedSlotId,
+        date: dateKey,
+        waktu: finalWaktu,
+        layanan: "Konseling Individu",
+        metode: "Online",
+        namaKlien: "Tersedia",
+        psikolog: psikologNama,
+      })
     }
-    setBookedSessions((prev) => [...prev, newSession])
-    setBookingSuccessMsg(`Jadwal ${selectedTime} berhasil disimpan ke Jadwal Mingguan!`)
-    setTimeout(() => setBookingSuccessMsg(null), 3500)
+
+    try {
+      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+      const list = raw ? JSON.parse(raw) : []
+      const filtered = list.filter(
+        (s: any) => !(s.tanggal === dateKey && times.some((t) => s.label_waktu === t || s.jam_mulai === t.split(" - ")[0]))
+      )
+      filtered.push(...newSlotItems)
+      localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(filtered))
+      window.dispatchEvent(new Event("storage"))
+    } catch {}
+
+    setBookedSessions((prev) => [...newSessions, ...prev])
+    setBookingSuccessMsg(
+      times.length === 1
+        ? `Slot jam ${times[0]} berhasil dibuka!`
+        : `${times.length} slot jam berhasil dibuka sekaligus!`
+    )
+    setTimeout(() => setBookingSuccessMsg(null), 4500)
   }
 
   const handleModalSuccess = (newSession: NewSessionData) => {
@@ -465,17 +521,15 @@ export default function JadwalAdmin() {
           <button
             type="button"
             onClick={() => setIsLayananDropdownOpen((prev) => !prev)}
-            className={`flex items-center gap-2 border px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-2xs cursor-pointer ${
-              selectedLayanan !== "Semua Layanan"
+            className={`flex items-center gap-2 border px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-2xs cursor-pointer ${selectedLayanan !== "Semua Layanan"
                 ? "border-[#561269] bg-purple-50 text-[#561269] font-semibold"
                 : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <span>{selectedLayanan}</span>
             <ChevronDown
-              className={`w-4 h-4 ml-1 transition-transform duration-200 ${
-                isLayananDropdownOpen ? "rotate-180 text-[#561269]" : "text-gray-500"
-              }`}
+              className={`w-4 h-4 ml-1 transition-transform duration-200 ${isLayananDropdownOpen ? "rotate-180 text-[#561269]" : "text-gray-500"
+                }`}
             />
           </button>
 
@@ -502,11 +556,10 @@ export default function JadwalAdmin() {
                           handleLayananChange(opt)
                           setIsLayananDropdownOpen(false)
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                          isSelected
+                        className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${isSelected
                             ? "bg-purple-50 text-[#561269] font-bold"
                             : "text-gray-700 hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         <span className="truncate">{opt}</span>
                         {isSelected && (
@@ -607,8 +660,7 @@ export default function JadwalAdmin() {
       <JadwalAsesmenPicker
         date={date}
         onSelectDate={handleSelectDate}
-        selectedTime={selectedTime}
-        onSelectTime={(time) => setSelectedTime(time)}
+        bookedSessions={bookedSessions}
         bookingSuccessMsg={bookingSuccessMsg}
         onBooking={handleBooking}
         timeSlots={TIME_SLOTS}
