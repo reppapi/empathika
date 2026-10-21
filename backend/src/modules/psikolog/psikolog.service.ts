@@ -52,7 +52,7 @@ export class PsikologService {
     const list = await this.repo.findAll(params)
 
     // Hitung total booking riil langsung dari tabel booking_konsultasi
-    let countMap: Record<string, number> = {}
+    const countMap: Record<string, number> = {}
     try {
       const activeBookings = await this.prisma.bookingKonsultasi.findMany({
         where: { status: { not: 'BATAL' } },
