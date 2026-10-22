@@ -172,7 +172,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
         {/* 3. PROFIL PSIKOLOG / PRAKATA DIRI */}
         <section className="space-y-3">
           <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#561269] uppercase tracking-wider">
-            PROFIL PSIKOLOG
+            PERKENALAN PROFIL
           </h3>
           <div className="space-y-4 text-gray-800 text-sm sm:text-base md:text-lg leading-relaxed max-w-5xl">
             {psikolog.profilLengkap && psikolog.profilLengkap.length > 0 ? (
@@ -186,14 +186,19 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
 
           {/* Pendidikan & Lisensi */}
           <div className="pt-2 space-y-2">
-            {psikolog.pendidikan && psikolog.pendidikan.length > 0 && (
-              <p className="text-sm sm:text-base text-gray-600 font-semibold">
-                Pendidikan / Institusi: <span className="font-normal text-gray-800">{psikolog.pendidikan.join(', ')}</span>
-              </p>
+            {psikolog.pendidikan && (
+              <div className="text-sm sm:text-base text-gray-600 font-semibold">
+                <span>Pendidikan / Institusi:</span>
+                <div className="font-normal text-gray-800 whitespace-pre-wrap leading-relaxed mt-1">
+                  {Array.isArray(psikolog.pendidikan)
+                    ? psikolog.pendidikan.join('\n')
+                    : psikolog.pendidikan}
+                </div>
+              </div>
             )}
             {(psikolog.no_str || psikolog.no_sipp) && (
               <p className="text-sm sm:text-base text-gray-600 font-semibold">
-                Izin Praktik & STR:{' '}
+                Nomor Izin Praktik:{' '}
                 <span className="font-normal text-gray-800">
                   {psikolog.no_str && `STR: ${psikolog.no_str}`}
                   {psikolog.no_str && psikolog.no_sipp && ' | '}
@@ -207,7 +212,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
         {/* 4. KEAHLIAN PSIKOLOG (Area of Expertise) */}
         <section className="space-y-3 pt-2">
           <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#561269] uppercase tracking-wider">
-            KEAHLIAN PSIKOLOG
+            KEAHLIAN
           </h3>
           <div className="flex flex-wrap gap-2.5 pt-1 max-w-5xl">
             {psikolog.keahlian && psikolog.keahlian.length > 0 ? (
@@ -243,7 +248,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                   key={idx}
                   className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800"
                 >
-                  <span className="font-semibold text-[#561269]">{jadwal.tipe}:</span> {jadwal.waktu}
+                  {jadwal.waktu}
                 </div>
               ))}
             </div>

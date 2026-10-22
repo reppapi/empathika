@@ -217,6 +217,7 @@ model Psikolog {
   keahlian          String?        // Multi-topik keahlian
   jenis_kelamin     String?
   foto              String?
+  bio               String?        @db.Text
   video_intro_url   String?
   video_thumbnail   String?
   video_duration    String?

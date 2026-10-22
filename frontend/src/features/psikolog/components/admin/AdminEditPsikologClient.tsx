@@ -491,22 +491,25 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
               />
             </div>
 
-            <div>
+            <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Riwayat Pendidikan
               </label>
-              <input
-                type="text"
+              <textarea
+                rows={3}
                 value={pendidikanText}
                 onChange={(e) => setPendidikanText(e.target.value)}
-                placeholder="Contoh: S2 Psikologi - Universitas Indonesia"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none"
+                placeholder="Contoh:&#10;S1 Psikologi - Universitas Padjadjaran (2015 - 2019)&#10;S2 Magister Psikologi Profesi - Universitas Gadjah Mada (2020 - 2022)"
+                className="w-full rounded-2xl border border-gray-200 p-3.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-y min-h-[80px] whitespace-pre-wrap leading-relaxed transition"
               />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Tekan <strong>Enter</strong> untuk membuat baris baru jika memiliki lebih dari satu riwayat pendidikan.
+              </p>
             </div>
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Bio Profil
+                Perkenalan Profil
               </label>
               <textarea
                 rows={3}
