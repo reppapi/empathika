@@ -16,12 +16,14 @@ async function main() {
     where: { email: 'admin@empathika.test' },
     update: {
       password: hashedAdminPassword,
+      aktif: true,
     },
     create: {
       nama: 'Admin Empathika',
       email: 'admin@empathika.test',
       password: hashedAdminPassword,
       role: Role.ADMIN,
+      aktif: true,
     },
   });
 
@@ -29,6 +31,7 @@ async function main() {
     where: { email: 'biro@cendekiamuda.org' },
     update: {
       password: hashedBiroPassword,
+      aktif: true,
     },
     create: {
       nama: 'Admin Biro Cendekia Muda',
@@ -36,6 +39,7 @@ async function main() {
       password: hashedBiroPassword,
       role: Role.BIRO,
       no_telepon: '081234567890',
+      aktif: true,
     },
   });
 
@@ -301,15 +305,18 @@ async function main() {
         nama: item.nama,
         foto: item.foto,
         bio: item.bio,
+        password: hashedPsikologPassword,
+        aktif: true,
       },
       create: {
         nama: item.nama,
         email: item.email,
-        password: 'PsikologPasswordHashed123!',
+        password: hashedPsikologPassword,
         role: Role.PSIKOLOG,
         no_telepon: '081234567890',
         foto: item.foto,
         bio: item.bio,
+        aktif: true,
       },
     });
 

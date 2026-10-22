@@ -26,4 +26,6 @@ export interface AdminProfileData {
   videoIntroUrl?: string
   videoThumbnail?: string
   videoDuration?: string
+  password?: string
+  noSilp?: string
 }

@@ -435,6 +435,10 @@ export class PsikologService {
 
     const accountUpdateData: Record<string, any> = {}
     if (body.nama !== undefined) accountUpdateData.nama = body.nama
+    if (body.email !== undefined && body.email.trim()) accountUpdateData.email = body.email.trim()
+    if (body.password !== undefined && body.password.trim()) {
+      accountUpdateData.password = await bcrypt.hash(body.password.trim(), 10)
+    }
     if (body.no_telepon !== undefined) accountUpdateData.no_telepon = body.no_telepon
     if (body.foto !== undefined) accountUpdateData.foto = body.foto
     if (body.bio !== undefined) accountUpdateData.bio = body.bio
@@ -444,6 +448,21 @@ export class PsikologService {
         where: { id: psikolog.id_account },
         data: accountUpdateData,
       })
+    }
+
+    // Tangani spesialisasi jika dikirim
+    let spesialisasiId = psikolog.id_spesialisasi
+    if (body.spesialisasi && body.spesialisasi.trim()) {
+      const specNama = body.spesialisasi.trim()
+      let spec = await this.prisma.spesialisasi.findFirst({
+        where: { nama: { equals: specNama, mode: 'insensitive' } },
+      })
+      if (!spec) {
+        spec = await this.prisma.spesialisasi.create({
+          data: { nama: specNama },
+        })
+      }
+      spesialisasiId = spec.id
     }
 
     let keahlianStr: string | undefined = undefined
@@ -464,6 +483,10 @@ export class PsikologService {
     if (body.bio !== undefined) psikologUpdateData.bio = body.bio
     if (body.quote !== undefined) psikologUpdateData.quote = body.quote
     if (body.instagram !== undefined) psikologUpdateData.instagram = body.instagram
+    if (body.no_str !== undefined) psikologUpdateData.no_str = body.no_str
+    if (body.no_sipp !== undefined) psikologUpdateData.no_sipp = body.no_sipp
+    if (body.no_silp !== undefined) psikologUpdateData.no_silp = body.no_silp
+    if (spesialisasiId !== psikolog.id_spesialisasi) psikologUpdateData.id_spesialisasi = spesialisasiId
     if (keahlianStr !== undefined) psikologUpdateData.keahlian = keahlianStr
     if (body.pendidikan !== undefined) psikologUpdateData.pendidikan = body.pendidikan
     if (body.pengalaman_tahun !== undefined)
