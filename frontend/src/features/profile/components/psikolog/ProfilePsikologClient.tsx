@@ -40,8 +40,10 @@ export default function ProfilePsikologClient({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoFileInputRef = useRef<HTMLInputElement>(null)
+  const thumbnailFileInputRef = useRef<HTMLInputElement>(null)
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null)
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
+  const [selectedThumbnailFile, setSelectedThumbnailFile] = useState<File | null>(null)
   const [videoUploadError, setVideoUploadError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export default function ProfilePsikologClient({
                 ? res.profil_lengkap.split("\n\n").map((s: string) => s.trim()).filter(Boolean)
                 : DEFAULT_PSIKOLOG.profilLengkap,
               videoIntroUrl: res.video_intro_url || "",
+              videoThumbnail: res.video_thumbnail || "",
               videoDuration: res.video_duration || "",
             }
             if (res.no_silp) {
@@ -231,6 +234,23 @@ export default function ProfilePsikologClient({
     if (videoFileInputRef.current) videoFileInputRef.current.value = ""
   }
 
+  // Upload Thumbnail Video (JPG/PNG foto)
+  const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedThumbnailFile(file)
+      const url = URL.createObjectURL(file)
+      setForm((prev) => ({ ...prev, videoThumbnail: url }))
+    }
+  }
+
+  // Hapus Thumbnail Video
+  const handleRemoveThumbnail = () => {
+    setSelectedThumbnailFile(null)
+    setForm((prev) => ({ ...prev, videoThumbnail: "" }))
+    if (thumbnailFileInputRef.current) thumbnailFileInputRef.current.value = ""
+  }
+
   // Tambah & Hapus Keahlian (Psikolog)
   const handleAddSkill = () => {
     if (!newSkill.trim()) return
@@ -317,7 +337,24 @@ export default function ProfilePsikologClient({
         }
       }
 
-      // 3. Siapkan payload untuk API updateMyProfile
+      // 3. Upload file thumbnail video (JPG/PNG) jika pengguna memilih thumbnail baru
+      let thumbnailUrl = form.videoThumbnail
+      if (selectedThumbnailFile) {
+        const thumbFormData = new FormData()
+        thumbFormData.append("file", selectedThumbnailFile)
+        try {
+          const resThumb = await apiClient.post("/upload/image", thumbFormData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })
+          if (resThumb.data?.data?.url) {
+            thumbnailUrl = resThumb.data.data.url
+          }
+        } catch (uploadErr) {
+          console.warn("Gagal upload thumbnail video ke backend:", uploadErr)
+        }
+      }
+
+      // 4. Siapkan payload untuk API updateMyProfile
       const payload: Record<string, any> = {
         nama: form.nama,
         email: form.email,
@@ -333,6 +370,7 @@ export default function ProfilePsikologClient({
         pendidikan: form.pendidikanText,
         profil_lengkap: form.profilLengkap,
         video_intro_url: videoUrl,
+        video_thumbnail: thumbnailUrl,
         video_duration: form.videoDuration,
       }
 
@@ -340,19 +378,26 @@ export default function ProfilePsikologClient({
         payload.password = form.password.trim()
       }
 
-      // 4. Kirim ke backend
+      // 5. Kirim ke backend
       try {
         await psikologService.updateMyProfile(payload)
       } catch (apiErr) {
         console.warn("Peringatan saat update profil ke backend:", apiErr)
       }
 
-      // 5. Update local state & shared storage sebagai cadangan
-      const updatedForm = { ...form, foto: fotoUrl, videoIntroUrl: videoUrl, password: "" }
+      // 6. Update local state & shared storage sebagai cadangan
+      const updatedForm = {
+        ...form,
+        foto: fotoUrl,
+        videoIntroUrl: videoUrl,
+        videoThumbnail: thumbnailUrl,
+        password: "",
+      }
       setPsikologData(updatedForm)
       setForm(updatedForm)
       setSelectedPhotoFile(null)
       setSelectedVideoFile(null)
+      setSelectedThumbnailFile(null)
 
       try {
         const saved = localStorage.getItem("empathika_tenaga_ahli_data")
@@ -807,6 +852,7 @@ export default function ProfilePsikologClient({
               {form.videoIntroUrl ? (
                 <video
                   src={form.videoIntroUrl}
+                  poster={form.videoThumbnail || undefined}
                   controls
                   className="w-full h-full object-cover"
                 />
@@ -864,6 +910,68 @@ export default function ProfilePsikologClient({
                     Hapus Video
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-bagian Upload Thumbnail Video (JPG / PNG) */}
+          <div className="pt-3 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-200/80">
+              {/* Box Thumbnail Image Preview */}
+              <div className="relative w-28 h-20 sm:w-36 sm:h-24 rounded-xl overflow-hidden bg-purple-100 shrink-0 border border-purple-200 flex items-center justify-center">
+                {form.videoThumbnail ? (
+                  <Image
+                    src={form.videoThumbnail}
+                    alt="Thumbnail Video"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-gray-400 gap-1 p-2 text-center">
+                    <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-[10px] text-gray-500">Tanpa Cover</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Kontrol Upload Thumbnail */}
+              <div className="flex-1 space-y-2 text-center sm:text-left">
+                <div>
+                  <p className="text-xs font-bold text-gray-800">
+                    Foto Cover / Thumbnail Video (JPG / PNG)
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    Foto pratinjau yang ditampilkan sebelum klien memutar video (opsional).
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-0.5">
+                  <input
+                    ref={thumbnailFileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={handleThumbnailUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => thumbnailFileInputRef.current?.click()}
+                    className="rounded-full border border-gray-300 bg-white hover:bg-gray-100 px-4 py-1.5 text-xs font-bold text-gray-700 shadow-sm transition active:scale-95 cursor-pointer"
+                  >
+                    {form.videoThumbnail ? "Ganti Foto Cover" : "Unggah Foto Cover"}
+                  </button>
+                  {form.videoThumbnail && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveThumbnail}
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-red-600 transition cursor-pointer"
+                    >
+                      Hapus Cover
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1067,6 +1175,7 @@ export default function ProfilePsikologClient({
                     {isPlayingVideoPreview || form.videoIntroUrl ? (
                       <video
                         src={form.videoIntroUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+                        poster={form.videoThumbnail || undefined}
                         controls
                         autoPlay={isPlayingVideoPreview}
                         className="w-full h-full object-cover"
