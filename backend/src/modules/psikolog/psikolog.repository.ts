@@ -25,7 +25,7 @@ export class PsikologRepository {
     if (params?.search) {
       where.OR = [
         { nama_gelar: { contains: params.search, mode: 'insensitive' } },
-        { bio: { contains: params.search, mode: 'insensitive' } },
+        { keahlian: { contains: params.search, mode: 'insensitive' } },
       ]
     }
 

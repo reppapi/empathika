@@ -480,7 +480,6 @@ export class PsikologService {
     const psikologUpdateData: Record<string, any> = {}
     if (body.nama !== undefined) psikologUpdateData.nama_gelar = body.nama
     if (body.foto !== undefined) psikologUpdateData.foto = body.foto
-    if (body.bio !== undefined) psikologUpdateData.bio = body.bio
     if (body.quote !== undefined) psikologUpdateData.quote = body.quote
     if (body.instagram !== undefined) psikologUpdateData.instagram = body.instagram
     if (body.no_str !== undefined) psikologUpdateData.no_str = body.no_str
@@ -614,7 +613,6 @@ export class PsikologService {
           keahlian: keahlianStr,
           jenis_kelamin: jenisKelamin,
           foto: body.foto || null,
-          bio: body.bio || null,
           video_intro_url: videoIntroUrl,
           video_thumbnail: videoThumbnail,
           video_duration: videoDuration,
@@ -683,7 +681,6 @@ export class PsikologService {
             keahlian: keahlianStr,
             jenis_kelamin: jenisKelamin,
             foto: body.foto || null,
-            bio: body.bio || null,
             video_intro_url: videoIntroUrl,
             video_thumbnail: videoThumbnail,
             video_duration: videoDuration,
@@ -712,7 +709,6 @@ export class PsikologService {
             keahlian: keahlianStr,
             jenis_kelamin: jenisKelamin,
             foto: body.foto || null,
-            bio: body.bio || null,
             video_intro_url: videoIntroUrl,
             video_thumbnail: videoThumbnail,
             video_duration: videoDuration,
