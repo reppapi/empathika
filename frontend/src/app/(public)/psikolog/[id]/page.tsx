@@ -90,10 +90,17 @@ export default function DetailPsikologPage({ params }: PageProps) {
             experienceYears: data.pengalaman_tahun || "3 - 6 Tahun",
             keahlian: keahlianList,
             pendidikan: [data.pendidikan || "Universitas Indonesia"],
-            profilLengkap: [
-              data.bio || "Praktisi kesehatan mental profesional yang berdedikasi mendampingi proses pemulihan dan pertumbuhan diri klien.",
-              data.quote || "Setiap manusia adalah cerita yang sedang bertumbuh, layak didengar, dihargai, dan ditemani.",
-            ],
+            profilLengkap: (() => {
+              const bioText = data.bio?.trim()
+              if (!bioText) {
+                return [
+                  "Praktisi kesehatan mental profesional yang berdedikasi mendampingi proses pemulihan dan pertumbuhan diri klien.",
+                  data.quote || "Setiap manusia adalah cerita yang sedang bertumbuh, layak didengar, dihargai, dan ditemani.",
+                ]
+              }
+              const paragraphs = bioText.split(/\n\s*\n/).map((p: string) => p.trim()).filter(Boolean)
+              return paragraphs.length > 0 ? paragraphs : [bioText]
+            })(),
             videoIntroUrl: data.video_intro_url || "https://www.w3schools.com/html/mov_bbb.mp4",
             videoThumbnail: data.foto || "/images/psikolog/default.jpg",
             videoDuration: "01:30",
@@ -145,10 +152,17 @@ export default function DetailPsikologPage({ params }: PageProps) {
               keahlian: found.keahlian || dummyDetail?.keahlian || [],
               pendidikanText: found.pendidikanText,
               pendidikan: found.pendidikanText ? [found.pendidikanText] : dummyDetail?.pendidikan || [],
-              profilLengkap: dummyDetail?.profilLengkap || [
-                found.bio || "Konselor dan tenaga ahli profesional Empathika.",
-                "Siap mendampingi proses pemulihan dan pertumbuhan diri Anda.",
-              ],
+              profilLengkap: (() => {
+                const bioText = found.bio?.trim()
+                if (!bioText) {
+                  return dummyDetail?.profilLengkap || [
+                    "Konselor dan tenaga ahli profesional Empathika.",
+                    "Siap mendampingi proses pemulihan dan pertumbuhan diri Anda.",
+                  ]
+                }
+                const paragraphs = bioText.split(/\n\s*\n/).map((p: string) => p.trim()).filter(Boolean)
+                return paragraphs.length > 0 ? paragraphs : [bioText]
+              })(),
               videoIntroUrl: dummyDetail?.videoIntroUrl,
               videoThumbnail: dummyDetail?.videoThumbnail || found.foto,
               videoDuration: dummyDetail?.videoDuration,

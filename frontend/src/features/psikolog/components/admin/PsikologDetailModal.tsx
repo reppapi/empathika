@@ -377,8 +377,8 @@ export default function PsikologDetailModal({
 
               {psikolog.bio && (
                 <div>
-                  <p className="text-xs font-bold text-gray-900 mb-1">Bio / Profil Ringkas:</p>
-                  <p className="text-xs text-gray-600 leading-relaxed">{psikolog.bio}</p>
+                  <p className="text-xs font-bold text-gray-900 mb-1">Perkenalan Psikolog:</p>
+                  <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{psikolog.bio}</p>
                 </div>
               )}
             </div>

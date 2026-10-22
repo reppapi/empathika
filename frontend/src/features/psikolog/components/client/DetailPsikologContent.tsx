@@ -177,10 +177,10 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
           <div className="space-y-4 text-gray-800 text-sm sm:text-base md:text-lg leading-relaxed max-w-5xl">
             {psikolog.profilLengkap && psikolog.profilLengkap.length > 0 ? (
               psikolog.profilLengkap.map((paragraf: string, idx: number) => (
-                <p key={idx}>{paragraf}</p>
+                <p key={idx} className="whitespace-pre-line">{paragraf}</p>
               ))
             ) : (
-              <p>{psikolog.bio || 'Deskripsi profil belum dicantumkan.'}</p>
+              <p className="whitespace-pre-line">{psikolog.bio || 'Deskripsi profil belum dicantumkan.'}</p>
             )}
           </div>
 

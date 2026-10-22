@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Psikolog, PsikologUI } from "@/types/psikolog"
@@ -9,6 +12,7 @@ interface PsikologCardProps {
 }
 
 export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }: PsikologCardProps) {
+  const [imgError, setImgError] = useState(false)
   const peran =
     psikolog.spesialisasi?.nama ||
     ("category" in psikolog && psikolog.category === "peer-konselor"
@@ -41,14 +45,15 @@ export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }:
       
       {/* 1. Full-view Fixed Aspect Ratio Photo Container */}
       <div className="relative w-full aspect-[4/3] bg-[#FAF5FD] overflow-hidden shrink-0 flex items-center justify-center p-2">
-        {psikolog.foto ? (
+        {psikolog.foto && !imgError ? (
           <Image
             src={psikolog.foto}
-            alt={psikolog.nama_gelar}
+            alt={psikolog.nama_gelar || "Foto Psikolog"}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover object-top rounded-2xl group-hover:scale-105 transition-transform duration-500"
             priority={false}
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center rounded-2xl bg-gradient-to-br from-[#8B3A9C] to-[#561269] text-white text-4xl font-bold">

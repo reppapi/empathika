@@ -58,7 +58,8 @@ export class AdminController {
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.updateBookingStatus(request.params.id, request.body.status)
+      const body = request.body as UpdateBookingStatusInput
+      const data = await this.service.updateBookingStatus(request.params.id, body.status)
       reply.send(data)
     } catch (err: any) {
       reply.code(400).send({ error: 'Bad Request', message: err.message })

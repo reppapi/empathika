@@ -52,13 +52,40 @@ export default function BookingClient() {
     psikologService
       .getList()
       .then((list: any[]) => {
-        if (Array.isArray(list)) {
-          const mapped = list.map(mapDbPsikologToUI)
-          setDbProfessionals(mapped)
-        }
+        const mappedFromDb = Array.isArray(list) ? list.map(mapDbPsikologToUI) : []
+        let combined = mappedFromDb
+
+        try {
+          const saved = typeof window !== "undefined" ? localStorage.getItem("empathika_tenaga_ahli_data") : null
+          if (saved) {
+            const localList = JSON.parse(saved)
+            if (Array.isArray(localList) && localList.length > 0) {
+              const dbIds = new Set(mappedFromDb.map((m) => m.id))
+              const dbEmails = new Set(mappedFromDb.map((m) => m.email?.toLowerCase()).filter(Boolean))
+              const localOnly = localList
+                .filter((loc: any) => !dbIds.has(loc.id) && (!loc.email || !dbEmails.has(loc.email.toLowerCase())) && loc.statusAkses !== "NONAKTIF" && loc.status !== "INACTIVE")
+                .map(mapDbPsikologToUI)
+              combined = [...mappedFromDb, ...localOnly]
+            }
+          }
+        } catch {}
+
+        setDbProfessionals(combined)
       })
       .catch((err) => {
         console.error("Gagal mengambil data tenaga profesional:", err)
+        try {
+          const saved = typeof window !== "undefined" ? localStorage.getItem("empathika_tenaga_ahli_data") : null
+          if (saved) {
+            const localList = JSON.parse(saved)
+            if (Array.isArray(localList)) {
+              const activeOnly = localList
+                .filter((loc: any) => loc.statusAkses !== "NONAKTIF" && loc.status !== "INACTIVE")
+                .map(mapDbPsikologToUI)
+              setDbProfessionals(activeOnly)
+            }
+          }
+        } catch {}
       })
       .finally(() => {
         setIsLoading(false)

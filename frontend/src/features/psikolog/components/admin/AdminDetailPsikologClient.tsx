@@ -646,7 +646,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
         <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-4">
           <div className="border-b border-gray-100 pb-3">
             <h3 className="text-base font-bold text-gray-900">
-              Bio Profil & Keahlian
+              Perkenalan Psikolog & Keahlian
             </h3>
             <p className="text-xs text-gray-500">
               Informasi yang ditampilkan kepada klien di halaman web.
@@ -656,14 +656,14 @@ export default function AdminDetailPsikologClient({ psikologId }: Props) {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Bio
+                Perkenalan Psikolog
               </label>
               <textarea
                 name="bio"
-                rows={3}
+                rows={5}
                 value={form.bio}
                 onChange={handleInputChange}
-                className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 focus:border-[#561269] focus:outline-none resize-none"
+                className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 focus:border-[#561269] focus:outline-none resize-y min-h-[120px] whitespace-pre-wrap leading-relaxed"
               />
             </div>
 

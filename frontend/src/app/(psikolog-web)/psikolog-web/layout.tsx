@@ -59,8 +59,8 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
             kategori: (matched.kategori?.toLowerCase().includes("peer")
               ? "peer-konselor"
               : matched.kategori?.toLowerCase().includes("konselor")
-              ? "konselor"
-              : "psikolog") as any,
+                ? "konselor"
+                : "psikolog") as any,
             spesialisasi: matched.spesialisasi?.nama || "Kesehatan Mental",
             foto: matched.foto || "/images/psikolog/default.jpg",
             statusAkses: "AKTIF",
@@ -72,13 +72,13 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
             keahlian: Array.isArray(matched.keahlian)
               ? matched.keahlian
               : typeof matched.keahlian === "string"
-              ? matched.keahlian.split(",").map((s: string) => s.trim())
-              : prev?.keahlian || ["Konseling Umum"],
+                ? matched.keahlian.split(",").map((s: string) => s.trim())
+                : prev?.keahlian || ["Konseling Umum"],
             tanggalBergabung: prev?.tanggalBergabung || "Agustus 2024",
           }))
         }
       }
-    }).catch(() => {})
+    }).catch(() => { })
   }
 
   useEffect(() => {
@@ -119,8 +119,8 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
               currentPsikolog?.kategori === "psikolog"
                 ? "Psikolog Resmi"
                 : currentPsikolog?.kategori === "konselor"
-                ? "Konselor"
-                : "Peer Konselor"
+                  ? "Konselor"
+                  : "Peer Konselor"
             }
             onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
           />

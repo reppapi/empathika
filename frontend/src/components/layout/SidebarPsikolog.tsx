@@ -26,15 +26,13 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
       {/* Overlay Mobile */}
       <div
         onClick={onClose}
-        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
-          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
       />
 
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col bg-[#561269] font-poppins text-white shadow-2xl transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={`fixed left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col bg-[#561269] font-poppins text-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
       >
         {/* Logo (Tetap Diam di Atas, Tidak Ikut Ter-scroll) */}
         <div className="shrink-0 px-5 pt-8 pb-2 sm:px-6">
@@ -62,11 +60,10 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
                   key={item.name}
                   href={item.path as any}
                   onClick={onClose}
-                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${
-                    active
+                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${active
                       ? "w-full bg-white/25 text-white shadow-sm font-semibold"
                       : "text-white/90 hover:bg-white/10"
-                  }`}
+                    }`}
                 >
                   {item.name}
                 </Link>

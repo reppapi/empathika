@@ -56,32 +56,34 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
   return {
     id: item.id,
     id_spesialisasi: item.id_spesialisasi || 'spec',
-    nama_gelar: item.nama_gelar || item.account?.nama || 'Psikolog Empathika',
+    nama_gelar: item.nama_gelar || item.nama || item.account?.nama || 'Psikolog Empathika',
     email: item.account?.email || item.email || '',
-    no_str: item.no_str || null,
-    no_sipp: item.no_sipp || null,
-    no_silp: item.no_silp || null,
+    no_str: item.no_str || item.noStr || null,
+    no_sipp: item.no_sipp || item.noSipp || null,
+    no_silp: item.no_silp || item.noSilp || null,
     foto: item.foto || '/images/psikolog/default.jpg',
     bio: item.bio || 'Praktisi kesehatan mental profesional yang berdedikasi mendampingi proses pemulihan dan pertumbuhan diri klien.',
     quote: item.quote || 'Setiap perjalanan pemulihan dimulai dari keberanian untuk mendengarkan diri sendiri.',
     instagram: item.instagram || '@empathika.id',
-    jenisKelamin: item.jenis_kelamin || 'Perempuan',
-    pendidikanText: item.pendidikan || 'Universitas Indonesia',
+    jenisKelamin: item.jenis_kelamin || item.jenisKelamin || 'Perempuan',
+    pendidikanText: item.pendidikanText || item.pendidikan || 'Universitas Indonesia',
     keahlian: keahlianList,
-    status: item.status || 'ACTIVE',
-    jumlah_sesi: typeof item.jumlah_sesi === 'number' ? item.jumlah_sesi : 0,
+    status: item.status || (item.statusAkses === 'AKTIF' ? 'ACTIVE' : 'INACTIVE'),
+    jumlah_sesi: typeof item.jumlah_sesi === 'number' ? item.jumlah_sesi : (item.jumlahSesi ?? 0),
     tarif_per_jam: Number(item.tarif_per_jam) || 150000,
     spesialisasi: item.spesialisasi
-      ? {
-          id: item.spesialisasi.id || 'spec-1',
-          nama: item.spesialisasi.nama || item.kategori || 'Psikolog Klinis',
-        }
+      ? typeof item.spesialisasi === 'string'
+        ? { id: 'spec-1', nama: item.spesialisasi }
+        : {
+            id: item.spesialisasi.id || 'spec-1',
+            nama: item.spesialisasi.nama || item.kategori || 'Psikolog Klinis',
+          }
       : {
           id: 'spec-1',
           nama: item.kategori || 'Psikolog Klinis',
         },
     category,
-    experienceYears: item.pengalaman_tahun || '3 - 6 Tahun',
+    experienceYears: item.pengalaman_tahun || item.experienceYears || '3 - 6 Tahun',
     labelJadwal: 'Jadwal Terdekat',
     jadwalTersedia,
   };
