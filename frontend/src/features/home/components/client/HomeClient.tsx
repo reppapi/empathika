@@ -119,24 +119,41 @@ export default function HomeClient() {
       try {
         setLoadingPsychologists(true)
         const dbList = await psikologService.getList()
-        if (Array.isArray(dbList) && dbList.length > 0) {
-          setPsychologists(dbList.map(mapDbPsikologToUI))
-        } else {
-          // Fallback ke localStorage jika ada
-          try {
-            const local = localStorage.getItem("empathika_tenaga_ahli_data")
-            if (local) {
-              const parsed = JSON.parse(local)
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setPsychologists(parsed.map(mapDbPsikologToUI))
-                return
-              }
+        const mappedFromDb = Array.isArray(dbList) ? dbList.map(mapDbPsikologToUI) : []
+        let combined = mappedFromDb
+
+        try {
+          const local = localStorage.getItem("empathika_tenaga_ahli_data")
+          if (local) {
+            const parsed = JSON.parse(local)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const dbIds = new Set(mappedFromDb.map((m) => m.id))
+              const dbEmails = new Set(mappedFromDb.map((m) => m.email?.toLowerCase()).filter(Boolean))
+              const localOnly = parsed
+                .filter((loc: any) => !dbIds.has(loc.id) && (!loc.email || !dbEmails.has(loc.email.toLowerCase())) && loc.statusAkses !== "NONAKTIF" && loc.status !== "INACTIVE")
+                .map(mapDbPsikologToUI)
+              combined = [...mappedFromDb, ...localOnly]
             }
-          } catch {}
+          }
+        } catch {}
+
+        if (combined.length > 0) {
+          setPsychologists(combined)
+        } else {
           setPsychologists(DATA_PSIKOLOG_DUMMY)
         }
       } catch (err) {
         console.error('Gagal memuat psikolog home:', err)
+        try {
+          const local = localStorage.getItem("empathika_tenaga_ahli_data")
+          if (local) {
+            const parsed = JSON.parse(local)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setPsychologists(parsed.filter((loc: any) => loc.statusAkses !== "NONAKTIF" && loc.status !== "INACTIVE").map(mapDbPsikologToUI))
+              return
+            }
+          }
+        } catch {}
         setPsychologists(DATA_PSIKOLOG_DUMMY)
       } finally {
         setLoadingPsychologists(false)

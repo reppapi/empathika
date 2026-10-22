@@ -1,28 +1,18 @@
 import { z } from 'zod'
 
-export const getJadwalTersediaQuerySchema = z.object({
-  tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD').optional(),
-  id_psikolog: z.string().optional(),
-  tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).default('KONSULTASI'),
-})
-
-export const getJadwalPsikologMeQuerySchema = z.object({
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-})
+export {
+  getJadwalTersediaQuerySchema,
+  getJadwalPsikologMeQuerySchema,
+  createJadwalSlotSchema,
+  type GetJadwalTersediaQuery,
+  type GetJadwalPsikologMeQuery,
+  type CreateJadwalSlotInput,
+} from '../booking/booking.schema'
 
 export const getAllPsikologQuerySchema = z.object({
   kategori: z.string().optional(),
   search: z.string().optional(),
   status: z.string().optional(),
-})
-
-export const createJadwalSlotSchema = z.object({
-  id_psikolog: z.string().optional(),
-  tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
-  jam_mulai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_mulai harus HH:mm'),
-  jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
-  tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).default('KONSULTASI'),
 })
 
 export const createPsikologSchema = z.object({
@@ -65,42 +55,39 @@ export const updatePsikologProfileSchema = z.object({
 })
 
 export const registerPsikologBaruSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().nullable().optional(),
   nama: z.string().min(1, 'Nama wajib diisi').default('Dr. Jane Doe, M.Psi., Psikolog'),
   email: z.string().email('Format email tidak valid').default('janedoe@empathika.id'),
-  noTelepon: z.string().optional().default('081234567890'),
+  noTelepon: z.string().nullable().optional().default('081234567890'),
   kategori: z.enum(['psikolog', 'konselor', 'peer-konselor']).default('psikolog'),
-  spesialisasi: z.string().optional().default('Psikologi Klinis Dewasa'),
-  noStr: z.string().optional().default('1234567890'),
-  noSipp: z.string().optional().default('SIPP-2026-001'),
-  noSilp: z.string().optional().default('SILP-2026-001'),
-  pendidikanText: z.string().optional().default('Magister Psikologi Profesi Universitas Indonesia'),
-  pendidikan: z.string().optional(),
-  bio: z.string().optional().default('Praktisi psikologi berfokus pada trauma dan kecemasan.'),
-  quote: z.string().optional().default('Setiap perjalanan pemulihan dimulai dari keberanian mendengarkan diri.'),
-  instagram: z.string().optional().default('@janedoe.psi'),
-  keahlian: z.union([z.string(), z.array(z.string())]).optional().default(['Trauma', 'Depresi', 'Keluarga']),
-  tarif_per_jam: z.number().optional().default(150000),
+  spesialisasi: z.string().nullable().optional().default('Psikologi Klinis Dewasa'),
+  noStr: z.string().nullable().optional().default('1234567890'),
+  noSipp: z.string().nullable().optional().default('SIPP-2026-001'),
+  noSilp: z.string().nullable().optional().default('SILP-2026-001'),
+  pendidikanText: z.string().nullable().optional().default('Magister Psikologi Profesi Universitas Indonesia'),
+  pendidikan: z.string().nullable().optional(),
+  bio: z.string().nullable().optional().default('Praktisi psikologi berfokus pada trauma dan kecemasan.'),
+  quote: z.string().nullable().optional().default('Setiap perjalanan pemulihan dimulai dari keberanian mendengarkan diri.'),
+  instagram: z.string().nullable().optional().default('@janedoe.psi'),
+  keahlian: z.union([z.string(), z.array(z.string())]).nullable().optional().default(['Trauma', 'Depresi', 'Keluarga']),
+  tarif_per_jam: z.number().nullable().optional().default(150000),
   statusAkses: z.enum(['AKTIF', 'NONAKTIF']).default('AKTIF'),
-  foto: z.string().optional(),
-  pengalaman_tahun: z.string().optional(),
-  experienceYears: z.string().optional(),
-  jenis_kelamin: z.string().optional(),
-  jenisKelamin: z.string().optional(),
-  video_intro_url: z.string().optional(),
-  videoIntroUrl: z.string().optional(),
-  video_thumbnail: z.string().optional(),
-  videoThumbnail: z.string().optional(),
-  video_duration: z.string().optional(),
-  videoDuration: z.string().optional(),
-  profil_lengkap: z.union([z.string(), z.array(z.string())]).optional(),
-  profilLengkap: z.union([z.string(), z.array(z.string())]).optional(),
-})
+  foto: z.string().nullable().optional(),
+  pengalaman_tahun: z.string().nullable().optional(),
+  experienceYears: z.string().nullable().optional(),
+  jenis_kelamin: z.string().nullable().optional(),
+  jenisKelamin: z.string().nullable().optional(),
+  video_intro_url: z.string().nullable().optional(),
+  videoIntroUrl: z.string().nullable().optional(),
+  video_thumbnail: z.string().nullable().optional(),
+  videoThumbnail: z.string().nullable().optional(),
+  video_duration: z.string().nullable().optional(),
+  videoDuration: z.string().nullable().optional(),
+  profil_lengkap: z.union([z.string(), z.array(z.string())]).nullable().optional(),
+  profilLengkap: z.union([z.string(), z.array(z.string())]).nullable().optional(),
+}).passthrough()
 
 export type GetAllPsikologQuery = z.infer<typeof getAllPsikologQuerySchema>
-export type GetJadwalTersediaQuery = z.infer<typeof getJadwalTersediaQuerySchema>
-export type GetJadwalPsikologMeQuery = z.infer<typeof getJadwalPsikologMeQuerySchema>
-export type CreateJadwalSlotInput = z.infer<typeof createJadwalSlotSchema>
 export type CreatePsikologInput = z.infer<typeof createPsikologSchema>
 export type UpdatePsikologInput = z.infer<typeof updatePsikologSchema>
 export type UpdatePsikologProfileInput = z.infer<typeof updatePsikologProfileSchema>

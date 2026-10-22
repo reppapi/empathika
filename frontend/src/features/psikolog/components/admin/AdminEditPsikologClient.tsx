@@ -506,14 +506,14 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Bio Profil
+                Perkenalan Psikolog
               </label>
               <textarea
-                rows={3}
+                rows={5}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Deskripsi singkat mengenai pendekatan konseling..."
-                className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-none"
+                placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog... Tekan Enter untuk membuat paragraf baru."
+                className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-y min-h-[120px] whitespace-pre-wrap leading-relaxed"
               />
             </div>
 
