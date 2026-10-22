@@ -50,6 +50,13 @@ export const psikologService = {
 
   deletePsikolog: (id: string) =>
     apiClient.delete(`/psikolog/${id}`).then((r) => r.data),
+
+  // ── Profil Psikolog Login ──
+  getMyProfile: () =>
+    apiClient.get("/psikolog/me/profile").then((r) => r.data),
+
+  updateMyProfile: (payload: any) =>
+    apiClient.put("/psikolog/me/profile", payload).then((r) => r.data),
 }
 
 

@@ -6,6 +6,8 @@ import Image from "next/image"
 
 import { AdminProfileData, RoleType } from "../../types"
 import { DEFAULT_ADMIN, DEFAULT_PSIKOLOG } from "../../data/profileData"
+import { psikologService } from "@/services/psikolog.service"
+import apiClient from "@/lib/axios"
 
 export { type AdminProfileData, type RoleType }
 
@@ -32,54 +34,104 @@ export default function ProfilePsikologClient({
   // Status notifikasi simpan
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
   const [previewModalOpen, setPreviewModalOpen] = useState(false)
   const [isPlayingVideoPreview, setIsPlayingVideoPreview] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoFileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null)
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
+  const [videoUploadError, setVideoUploadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (role === "admin") {
       setForm(adminData)
     } else {
-      // Ambil data dari shared storage tenaga ahli
-      try {
-        const saved = localStorage.getItem("empathika_tenaga_ahli_data")
-        if (saved) {
-          const list = JSON.parse(saved)
-          const savedId = localStorage.getItem("active_psikolog_id")
-          const savedName = localStorage.getItem("active_psikolog_name")
-          const found =
-            (savedId ? list.find((d: any) => d.id === savedId) : null) ||
-            (savedName ? list.find((d: any) => d.nama === savedName) : null) ||
-            list.find((d: any) => d.id === "1" || d.email === "putriqoida@empathika.com") ||
-            list[0]
-          if (found) {
+      // 1. Ambil dari API resmi backend psikolog
+      psikologService
+        .getMyProfile()
+        .then((res: any) => {
+          if (res) {
             const mapped: AdminProfileData = {
-              nama: found.nama,
-              email: found.email,
-              noTelepon: found.noTelepon,
-              bio: found.bio,
-              foto: found.foto,
-              kategoriProfesi: found.kategori,
-              spesialisasi: found.spesialisasi,
-              noStr: found.noStr,
-              noSipp: found.noSipp,
-              pendidikanText: found.pendidikanText,
-              quote: found.quote,
-              instagram: found.instagram,
-              keahlian: found.keahlian,
-              profilLengkap: DEFAULT_PSIKOLOG.profilLengkap,
-              videoIntroUrl: DEFAULT_PSIKOLOG.videoIntroUrl,
-              videoThumbnail: DEFAULT_PSIKOLOG.videoThumbnail,
-              videoDuration: DEFAULT_PSIKOLOG.videoDuration,
+              nama: res.nama_gelar || res.account?.nama || DEFAULT_PSIKOLOG.nama,
+              email: res.account?.email || DEFAULT_PSIKOLOG.email,
+              noTelepon: res.account?.no_telepon || DEFAULT_PSIKOLOG.noTelepon,
+              bio: res.bio || res.account?.bio || "",
+              foto: res.foto || res.account?.foto || null,
+              kategoriProfesi: res.kategori?.toLowerCase().includes("peer")
+                ? "peer-konselor"
+                : res.kategori?.toLowerCase().includes("konselor")
+                ? "konselor"
+                : "psikolog",
+              spesialisasi: res.spesialisasi?.nama || res.spesialisasi || "",
+              noStr: res.no_str || "",
+              noSipp: res.no_sipp || "",
+              pendidikanText: res.pendidikan || "",
+              quote: res.quote || "",
+              instagram: res.instagram || "",
+              keahlian: typeof res.keahlian === "string"
+                ? res.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
+                : Array.isArray(res.keahlian)
+                ? res.keahlian
+                : DEFAULT_PSIKOLOG.keahlian,
+              profilLengkap: res.profil_lengkap
+                ? res.profil_lengkap.split("\n\n").map((s: string) => s.trim()).filter(Boolean)
+                : DEFAULT_PSIKOLOG.profilLengkap,
+              videoIntroUrl: res.video_intro_url || "",
+              videoDuration: res.video_duration || "",
+            }
+            if (res.no_silp) {
+              (mapped as any).noSilp = res.no_silp
             }
             setPsikologData(mapped)
             setForm(mapped)
+            if (res.id) localStorage.setItem("active_psikolog_id", res.id)
+            if (mapped.nama) localStorage.setItem("active_psikolog_name", mapped.nama)
             return
           }
-        }
-      } catch {}
-      setForm(psikologData)
+        })
+        .catch(() => {
+          // 2. Fallback ke shared storage tenaga ahli jika backend belum terkoneksi
+          try {
+            const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+            if (saved) {
+              const list = JSON.parse(saved)
+              const savedId = localStorage.getItem("active_psikolog_id")
+              const savedName = localStorage.getItem("active_psikolog_name")
+              const found =
+                (savedId ? list.find((d: any) => d.id === savedId) : null) ||
+                (savedName ? list.find((d: any) => d.nama === savedName) : null) ||
+                list.find((d: any) => d.id === "1" || d.email === "putriqoida@empathika.com") ||
+                list[0]
+              if (found) {
+                const mapped: AdminProfileData = {
+                  nama: found.nama,
+                  email: found.email,
+                  noTelepon: found.noTelepon,
+                  bio: found.bio,
+                  foto: found.foto,
+                  kategoriProfesi: found.kategori,
+                  spesialisasi: found.spesialisasi,
+                  noStr: found.noStr,
+                  noSipp: found.noSipp,
+                  pendidikanText: found.pendidikanText,
+                  quote: found.quote,
+                  instagram: found.instagram,
+                  keahlian: found.keahlian,
+                  profilLengkap: DEFAULT_PSIKOLOG.profilLengkap,
+                  videoIntroUrl: DEFAULT_PSIKOLOG.videoIntroUrl,
+                  videoThumbnail: DEFAULT_PSIKOLOG.videoThumbnail,
+                  videoDuration: DEFAULT_PSIKOLOG.videoDuration,
+                }
+                setPsikologData(mapped)
+                setForm(mapped)
+                return
+              }
+            }
+          } catch {}
+          setForm(psikologData)
+        })
     }
   }, [role, adminData])
 
@@ -97,6 +149,7 @@ export default function ProfilePsikologClient({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      setSelectedPhotoFile(file)
       const url = URL.createObjectURL(file)
       setForm((prev) => ({ ...prev, foto: url }))
     }
@@ -104,8 +157,78 @@ export default function ProfilePsikologClient({
 
   // Hapus Foto
   const handleRemovePhoto = () => {
+    setSelectedPhotoFile(null)
     setForm((prev) => ({ ...prev, foto: null }))
     if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  // Upload Video File (.mp4 langsung, max durasi 10 menit)
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setVideoUploadError(null)
+
+    // Validasi tipe file mp4
+    if (file.type !== "video/mp4" && !file.name.toLowerCase().endsWith(".mp4")) {
+      setVideoUploadError("Hanya file video berformat .mp4 yang diizinkan.")
+      if (videoFileInputRef.current) videoFileInputRef.current.value = ""
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+
+    // Buat elemen video sementara untuk mengecek durasi
+    const tempVideo = document.createElement("video")
+    tempVideo.preload = "metadata"
+    tempVideo.src = objectUrl
+
+    tempVideo.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(tempVideo.src)
+      const durationSeconds = tempVideo.duration
+
+      // Validasi durasi maksimal 10 menit (600 detik)
+      if (durationSeconds > 600) {
+        setVideoUploadError(
+          `Durasi video melebihi batas maksimal 10 menit (${Math.floor(durationSeconds / 60)} menit ${Math.round(
+            durationSeconds % 60
+          )} detik). Silakan unggah video dengan durasi 10 menit atau kurang.`
+        )
+        if (videoFileInputRef.current) videoFileInputRef.current.value = ""
+        setSelectedVideoFile(null)
+        return
+      }
+
+      // Format durasi MM:SS
+      const mins = Math.floor(durationSeconds / 60)
+      const secs = Math.floor(durationSeconds % 60)
+      const formattedDuration = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+
+      setSelectedVideoFile(file)
+      setForm((prev) => ({
+        ...prev,
+        videoIntroUrl: objectUrl,
+        videoDuration: formattedDuration,
+      }))
+    }
+
+    tempVideo.onerror = () => {
+      setVideoUploadError("Gagal memproses file video. Pastikan format file adalah MP4 yang valid.")
+      if (videoFileInputRef.current) videoFileInputRef.current.value = ""
+      setSelectedVideoFile(null)
+    }
+  }
+
+  // Hapus Video
+  const handleRemoveVideo = () => {
+    setSelectedVideoFile(null)
+    setForm((prev) => ({
+      ...prev,
+      videoIntroUrl: "",
+      videoDuration: "",
+    }))
+    setVideoUploadError(null)
+    if (videoFileInputRef.current) videoFileInputRef.current.value = ""
   }
 
   // Tambah & Hapus Keahlian (Psikolog)
@@ -146,13 +269,91 @@ export default function ProfilePsikologClient({
   }
 
   // Submit / Simpan
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (role === "admin") {
-      setAdminData(form)
-    } else {
-      setPsikologData(form)
-      // Sinkronkan ke shared storage tenaga ahli agar Admin Utama dan POV Klien langsung terupdate
+    if (isSaving) return
+
+    setIsSaving(true)
+    try {
+      if (role === "admin") {
+        setAdminData(form)
+        setToastMessage("Profil Admin berhasil diperbarui!")
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 3500)
+        return
+      }
+
+      // 1. Upload file foto jika pengguna memilih file baru
+      let fotoUrl = form.foto
+      if (selectedPhotoFile) {
+        const photoFormData = new FormData()
+        photoFormData.append("file", selectedPhotoFile)
+        try {
+          const resPhoto = await apiClient.post("/upload/image", photoFormData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })
+          if (resPhoto.data?.data?.url) {
+            fotoUrl = resPhoto.data.data.url
+          }
+        } catch (uploadErr) {
+          console.warn("Gagal upload foto ke backend, menggunakan foto lama/data lokal:", uploadErr)
+        }
+      }
+
+      // 2. Upload file video MP4 jika pengguna memilih file baru
+      let videoUrl = form.videoIntroUrl
+      if (selectedVideoFile) {
+        const videoFormData = new FormData()
+        videoFormData.append("file", selectedVideoFile)
+        try {
+          const resVideo = await apiClient.post("/upload/video", videoFormData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })
+          if (resVideo.data?.data?.url) {
+            videoUrl = resVideo.data.data.url
+          }
+        } catch (uploadErr) {
+          console.warn("Gagal upload video ke backend:", uploadErr)
+        }
+      }
+
+      // 3. Siapkan payload untuk API updateMyProfile
+      const payload: Record<string, any> = {
+        nama: form.nama,
+        email: form.email,
+        no_telepon: form.noTelepon,
+        spesialisasi: form.spesialisasi,
+        no_str: form.noStr,
+        no_sipp: form.noSipp,
+        no_silp: (form as any).noSilp || undefined,
+        foto: fotoUrl,
+        quote: form.quote,
+        instagram: form.instagram,
+        keahlian: form.keahlian,
+        pendidikan: form.pendidikanText,
+        profil_lengkap: form.profilLengkap,
+        video_intro_url: videoUrl,
+        video_duration: form.videoDuration,
+      }
+
+      if (form.password && form.password.trim()) {
+        payload.password = form.password.trim()
+      }
+
+      // 4. Kirim ke backend
+      try {
+        await psikologService.updateMyProfile(payload)
+      } catch (apiErr) {
+        console.warn("Peringatan saat update profil ke backend:", apiErr)
+      }
+
+      // 5. Update local state & shared storage sebagai cadangan
+      const updatedForm = { ...form, foto: fotoUrl, videoIntroUrl: videoUrl, password: "" }
+      setPsikologData(updatedForm)
+      setForm(updatedForm)
+      setSelectedPhotoFile(null)
+      setSelectedVideoFile(null)
+
       try {
         const saved = localStorage.getItem("empathika_tenaga_ahli_data")
         if (saved) {
@@ -164,16 +365,18 @@ export default function ProfilePsikologClient({
                 nama: form.nama,
                 email: form.email,
                 noTelepon: form.noTelepon,
-                bio: form.bio,
-                foto: form.foto,
+                foto: fotoUrl,
                 kategori: form.kategoriProfesi || item.kategori,
                 spesialisasi: form.spesialisasi || item.spesialisasi,
                 noStr: form.noStr,
                 noSipp: form.noSipp,
+                noSilp: (form as any).noSilp,
                 pendidikanText: form.pendidikanText,
                 quote: form.quote,
                 instagram: form.instagram,
                 keahlian: form.keahlian,
+                videoIntroUrl: videoUrl,
+                videoDuration: form.videoDuration,
               }
             }
             return item
@@ -181,10 +384,22 @@ export default function ProfilePsikologClient({
           localStorage.setItem("empathika_tenaga_ahli_data", JSON.stringify(updated))
         }
       } catch {}
+
+      setToastMessage("Profil Psikolog berhasil diperbarui!")
+      setShowToast(true)
+
+      // 6. Langsung redirect ke halaman beranda psikolog sesuai instruksi
+      setTimeout(() => {
+        router.push("/psikolog-web/beranda" as any)
+      }, 1000)
+    } catch (err) {
+      console.error("Gagal menyimpan profil:", err)
+      setToastMessage("Terjadi kesalahan saat menyimpan profil.")
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3500)
+    } finally {
+      setIsSaving(false)
     }
-    setToastMessage(`Profil ${role === "admin" ? "Admin" : "Psikolog"} berhasil diperbarui!`)
-    setShowToast(true)
-    setTimeout(() => setShowToast(false), 3500)
   }
 
   const initials = form.nama
@@ -227,50 +442,58 @@ export default function ProfilePsikologClient({
 
       {/* Form Utama */}
       <form onSubmit={handleSave} className="space-y-6">
-        {/* KARTU 1: FOTO PROFIL & IDENTITAS CEPAT */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-              {/* Foto / Inisial Avatar */}
-              <div className="relative group">
-                <div className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-3xl overflow-hidden bg-gradient-to-tr from-purple-100 to-purple-50 border-2 border-purple-200/80 shadow-md flex items-center justify-center">
-                  {form.foto ? (
-                    <Image
-                      src={form.foto}
-                      alt={form.nama}
-                      fill
-                      className="object-cover"
-                      priority
-                    />
-                  ) : (
+        {/* 1. KOLOM PROFIL TENAGA AHLI */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="border-b border-gray-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-base font-bold text-[#561269]">
+                Profil Tenaga Ahli
+              </h3>
+              <p className="text-xs text-gray-500">
+                Foto profil, biodata diri, riwayat pendidikan, dan kontak yang tampil pada sistem layanan.
+              </p>
+            </div>
+            {/* Quick Preview Client POV Button */}
+            <button
+              type="button"
+              onClick={() => setPreviewModalOpen(true)}
+              className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full border border-purple-200 bg-purple-50/70 hover:bg-purple-100 px-3.5 py-1.5 text-xs font-bold text-[#561269] transition shadow-2xs cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Lihat Pratinjau (POV Klien)
+            </button>
+          </div>
+
+          {/* Foto Profil Tenaga Ahli */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2">
+              Foto Profil Tenaga Ahli
+            </label>
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-4 rounded-2xl bg-purple-50/40 border border-purple-100">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden bg-white shrink-0 border-2 border-purple-200 shadow-sm flex items-center justify-center">
+                {form.foto ? (
+                  <Image src={form.foto} alt="Preview Foto" fill className="object-cover" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-gray-400 gap-1">
                     <span className="text-3xl font-extrabold text-[#561269] select-none">
                       {initials}
                     </span>
-                  )}
-                </div>
-
-                {/* Badge Status */}
-                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-white">
-                  <span className="h-2 w-2 rounded-full bg-white" />
-                </div>
+                    <span className="text-[11px] font-semibold text-[#561269]">Pratinjau Foto</span>
+                  </div>
+                )}
               </div>
 
-              {/* Teks & Keterangan Foto */}
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <h3 className="text-lg sm:text-xl font-extrabold text-gray-900">
-                    Foto Profil
-                  </h3>
-                  <span className="inline-block rounded-full bg-purple-100 px-3 py-0.5 text-xs font-semibold text-[#561269]">
-                    {role === "admin" ? "Admin Utama" : form.spesialisasi || "Psikolog / Konselor"}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 max-w-sm">
-                  Format gambar JPG, PNG, atau WEBP. Ukuran maksimal 2MB dengan rasio 1:1 untuk tampilan optimal.
+              <div className="flex-1 space-y-2 text-center sm:text-left">
+                <p className="text-xs font-medium text-gray-700">
+                  Ubah pas foto formal atau foto profil profesional tenaga ahli.
                 </p>
-
-                {/* Tombol Aksi Foto */}
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
+                <p className="text-[11px] text-gray-400">
+                  Format gambar JPG, PNG, atau WEBP rasio 1:1. Maksimal ukuran file 2MB.
+                </p>
+                <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -281,66 +504,27 @@ export default function ProfilePsikologClient({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-4 py-2 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm transition active:scale-95 cursor-pointer"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    {form.foto ? "Ubah Foto" : "Unggah Foto"}
+                    {form.foto ? "Ganti Foto" : "Pilih & Unggah Foto"}
                   </button>
-
                   {form.foto && (
                     <button
                       type="button"
                       onClick={handleRemovePhoto}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-100 transition-all active:scale-95 cursor-pointer"
+                      className="rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-600 hover:text-red-600 transition cursor-pointer"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
                       Hapus
                     </button>
                   )}
                 </div>
               </div>
             </div>
-
-            {/* Quick Preview Client POV Button (khusus Psikolog) */}
-            {role === "psikolog" && (
-              <div className="flex sm:flex-col items-center justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setPreviewModalOpen(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all shadow-sm cursor-pointer"
-                >
-                  <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  Lihat Pratinjau (POV Klien)
-                </button>
-                <span className="text-[11px] text-gray-400 hidden sm:block text-center">
-                  Live preview tampilan profil Anda
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* KARTU 2: INFORMASI DASAR (Umum untuk Admin & Admin Psikolog) */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-          <div className="border-b border-gray-100 pb-4">
-            <h3 className="text-base sm:text-lg font-extrabold text-[#561269]">
-              Informasi Umum & Kontak
-            </h3>
-            <p className="text-xs text-gray-400">
-              Data dasar akun untuk kebutuhan identitas internal dan korespondensi.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Nama Lengkap & Gelar <span className="text-red-500">*</span>
               </label>
               <input
@@ -349,14 +533,102 @@ export default function ProfilePsikologClient({
                 value={form.nama}
                 onChange={handleInputChange}
                 required
-                placeholder="Contoh: dr. John Doe, M.Psi."
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                placeholder="contoh: Dr. Jane Doe, M.Psi., Psikolog"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                Alamat Email <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Nomor Telepon / WhatsApp <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="noTelepon"
+                value={form.noTelepon}
+                onChange={handleInputChange}
+                required
+                placeholder="081234567890"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 transition focus:border-[#561269] focus:outline-none"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Wajib diawali dengan 08 (contoh: 081234567890).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Spesialisasi Bidang
+              </label>
+              <input
+                type="text"
+                name="spesialisasi"
+                value={form.spesialisasi || ""}
+                onChange={handleInputChange}
+                placeholder="Contoh: Hubungan Keluarga, Kecemasan, Remaja"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Riwayat Pendidikan
+              </label>
+              <input
+                type="text"
+                name="pendidikanText"
+                value={form.pendidikanText || ""}
+                onChange={handleInputChange}
+                placeholder="Contoh: S2 Psikologi - Universitas Indonesia"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Quote Diri
+              </label>
+              <input
+                type="text"
+                name="quote"
+                value={form.quote || ""}
+                onChange={handleInputChange}
+                placeholder="Prinsip konseling..."
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm italic text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Instagram
+              </label>
+              <input
+                type="text"
+                name="instagram"
+                value={form.instagram || ""}
+                onChange={handleInputChange}
+                placeholder="@username"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 2. KOLOM AKUN LOGIN */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-5">
+          <div className="border-b border-gray-100 pb-3">
+            <h3 className="text-base font-bold text-[#561269]">
+              Akun Login & Pengaturan Keamanan
+            </h3>
+            <p className="text-xs text-gray-500">
+              Kelola alamat email login dan kata sandi akun psikolog Anda.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Email Login <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -364,359 +636,289 @@ export default function ProfilePsikologClient({
                 value={form.email}
                 onChange={handleInputChange}
                 required
-                placeholder="nama@empathika.com"
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+                placeholder="contoh: psikolog@gmail.com"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 transition focus:border-[#561269] focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                Nomor WhatsApp / Telepon
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Ubah Kata Sandi (Opsional)
               </label>
               <input
-                type="text"
-                name="noTelepon"
-                value={form.noTelepon}
+                type="password"
+                name="password"
+                value={form.password || ""}
                 onChange={handleInputChange}
-                placeholder="0812xxxxxxxx"
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-              />
-            </div>
-
-            {role === "psikolog" && (
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  Akun Instagram
-                </label>
-                <input
-                  type="text"
-                  name="instagram"
-                  value={form.instagram || ""}
-                  onChange={handleInputChange}
-                  placeholder="@username"
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-                />
-              </div>
-            )}
-
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                Bio Singkat
-              </label>
-              <textarea
-                name="bio"
-                rows={3}
-                value={form.bio}
-                onChange={handleInputChange}
-                placeholder="Tuliskan gambaran singkat mengenai peran dan fokus keahlian Anda..."
-                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition resize-none"
+                placeholder="Masukkan kata sandi baru (kosongkan jika tidak diubah)"
+                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
               />
             </div>
           </div>
         </div>
 
-        {/* KARTU 3: KHUSUS PSIKOLOG (DATA LENGKAP PERSIS POV CLIENT) */}
-        {role === "psikolog" && (
-          <div className="space-y-6">
-            {/* 3A: Legalitas & Kategori Profesi */}
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-              <div className="border-b border-gray-100 pb-4">
-                <h3 className="text-base sm:text-lg font-extrabold text-[#561269]">
-                  Kredensial & Spesialisasi Praktik
-                </h3>
-                <p className="text-xs text-gray-400">
-                  Data legalitas resmi STR/SIPP serta kategori spesialisasi yang akan tampil di halaman detail klien.
+        {/* 3. KOLOM LEGALITAS PRAKTIK */}
+        <div className="rounded-3xl border border-purple-200 bg-purple-50/40 p-6 sm:p-8 space-y-4">
+          <div className="border-b border-purple-100 pb-3">
+            <h3 className="text-base font-bold text-[#561269]">
+              Legalitas Praktik
+            </h3>
+            <p className="text-xs text-gray-600">
+              Cantumkan nomor STR, SIPP resmi, serta SILP (Surat Izin Layanan Psikolog) untuk kredibilitas Anda di hadapan klien.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Nomor STR (Surat Tanda Registrasi) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="noStr"
+                value={form.noStr || ""}
+                onChange={handleInputChange}
+                placeholder="Contoh: STR-8921-2023"
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
+              />
+              <p className="text-[11px] text-purple-600/70 mt-1">
+                Format resmi diawali dengan &apos;STR&apos; (contoh: STR-8921-2023).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Nomor SIPP (Surat Izin Praktik Psikologi) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="noSipp"
+                value={form.noSipp || ""}
+                onChange={handleInputChange}
+                placeholder="Contoh: SIPP-1049-2024"
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
+              />
+              <p className="text-[11px] text-purple-600/70 mt-1">
+                Format resmi diawali dengan &apos;SIPP&apos; (contoh: SIPP-1049-2024).
+              </p>
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Nomor SILP (Surat Izin Layanan Psikolog)
+              </label>
+              <input
+                type="text"
+                name="noSilp"
+                value={(form as any).noSilp || ""}
+                onChange={handleInputChange}
+                placeholder="Contoh: SILP-2024-001"
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
+              />
+              <p className="text-[11px] text-purple-600/70 mt-1">
+                Format resmi diawali dengan &apos;SILP&apos; (contoh: SILP-2024-001).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. KOLOM TOPIK & KEAHLIAN KONSELING */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-4">
+          <div className="border-b border-gray-100 pb-3">
+            <h3 className="text-base font-bold text-gray-900">
+              Topik & Keahlian Konseling
+            </h3>
+            <p className="text-xs text-gray-500">
+              Tambahkan tag topik keahlian (contoh: Trauma Healing, Relasi, Depresi).
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newSkill}
+              onChange={(e) => setNewSkill(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  handleAddSkill()
+                }
+              }}
+              placeholder="Tambah keahlian (contoh: Burnout & Stres)"
+              className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-800 focus:border-[#561269] focus:outline-none transition"
+            />
+            <button
+              type="button"
+              onClick={handleAddSkill}
+              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2.5 text-xs font-bold text-gray-950 shadow-sm transition active:scale-95 cursor-pointer"
+            >
+              Tambah
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {(form.keahlian || []).map((skill, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-purple-50 border border-purple-200 px-3 py-1.5 text-xs font-medium text-[#561269]"
+              >
+                <span>{skill}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveSkill(skill)}
+                  className="rounded hover:bg-purple-200/80 p-0.5 text-purple-600 hover:text-purple-900 transition leading-none cursor-pointer"
+                  title={`Hapus ${skill}`}
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </span>
+            ))}
+            {(form.keahlian || []).length === 0 && (
+              <p className="text-xs text-gray-400 italic">Belum ada keahlian yang ditambahkan.</p>
+            )}
+          </div>
+        </div>
+
+        {/* 5. KOLOM VIDEO PERKENALAN (UPLOAD LANGSUNG MP4 DENGAN BATAS 10 MENIT) */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-5">
+          <div className="border-b border-gray-100 pb-3">
+            <h3 className="text-base font-bold text-[#561269]">
+              Video Perkenalan (Greeting Video)
+            </h3>
+            <p className="text-xs text-gray-500">
+              Unggah file video MP4 perkenalan singkat untuk menyapa calon klien di halaman profil Anda (maksimal 10 menit).
+            </p>
+          </div>
+
+          {videoUploadError && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-3.5 flex items-start gap-2.5 text-red-700 text-xs">
+              <svg className="w-4 h-4 shrink-0 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{videoUploadError}</span>
+            </div>
+          )}
+
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 p-5 rounded-2xl bg-purple-50/40 border border-purple-100">
+            {/* Pratinjau Video Box */}
+            <div className="relative w-full md:w-72 aspect-video rounded-2xl overflow-hidden bg-black/90 shrink-0 border-2 border-purple-200 shadow-md flex items-center justify-center">
+              {form.videoIntroUrl ? (
+                <video
+                  src={form.videoIntroUrl}
+                  controls
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-gray-400 gap-1.5 p-4 text-center">
+                  <svg className="w-8 h-8 text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-xs font-semibold text-purple-200">Belum ada video</span>
+                  <span className="text-[10px] text-gray-400">Pilih file MP4 untuk mengunggah</span>
+                </div>
+              )}
+            </div>
+
+            {/* Kontrol Upload File MP4 Langsung */}
+            <div className="flex-1 space-y-3 text-center md:text-left">
+              <div>
+                <p className="text-xs font-bold text-gray-800">
+                  Unggah File Video Langsung (.mp4)
                 </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Klasifikasi Profesi
-                  </label>
-                  <div className="flex items-center justify-between rounded-2xl border border-purple-200 bg-purple-50/50 px-4 py-3 text-sm">
-                    <span className="font-bold text-[#561269] capitalize">
-                      {form.kategoriProfesi === "psikolog"
-                        ? "Psikolog Resmi"
-                        : form.kategoriProfesi === "peer-konselor"
-                        ? "Peer Konselor"
-                        : "Konselor"}
-                    </span>
-                    <span className="text-[11px] font-medium text-gray-400 bg-white border border-purple-100 rounded-lg px-2.5 py-0.5">
-                      Ditetapkan Admin Utama
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Spesialisasi Utama
-                  </label>
-                  <input
-                    type="text"
-                    name="spesialisasi"
-                    value={form.spesialisasi || ""}
-                    onChange={handleInputChange}
-                    placeholder="Contoh: Konselor Kesehatan Mental"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Ubah Kata Sandi Akun
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    placeholder="Masukkan kata sandi baru (opsional)"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-                  />
-                </div>
-
-                {form.kategoriProfesi === "psikolog" ? (
-                  <>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                        Nomor STR (Surat Tanda Registrasi) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="noStr"
-                        value={form.noStr || ""}
-                        onChange={handleInputChange}
-                        placeholder="Contoh: STR-8921-2023"
-                        className="w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                        Nomor SIPP (Surat Izin Praktik) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="noSipp"
-                        value={form.noSipp || ""}
-                        onChange={handleInputChange}
-                        placeholder="Contoh: SIPP-1049-2024"
-                        className="w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="md:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/50 p-3.5 text-xs text-blue-700 flex items-center gap-2.5">
-                    <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Format yang didukung khusus <strong>.mp4</strong>. Durasi maksimal yang diizinkan adalah <strong>10 menit (600 detik)</strong>.
+                </p>
+                {form.videoDuration && (
+                  <p className="text-xs font-semibold text-[#561269] mt-1.5 inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-purple-200">
+                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>
-                      Sebagai <strong>{form.kategoriProfesi === "peer-konselor" ? "Peer Konselor" : "Konselor"}</strong>, Anda tidak diwajibkan menyertakan nomor STR dan SIPP.
-                    </span>
-                  </div>
+                    Durasi Video: {form.videoDuration}
+                  </p>
                 )}
-
-                <div className="md:col-span-2 lg:col-span-3">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Pendidikan & Institusi
-                  </label>
-                  <input
-                    type="text"
-                    name="pendidikanText"
-                    value={form.pendidikanText || ""}
-                    onChange={handleInputChange}
-                    placeholder="Contoh: Sarjana Psikologi (S.Psi.) - Universitas Indonesia"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-                  />
-                </div>
-
-                <div className="md:col-span-2 lg:col-span-3">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Quote / Prinsip Pribadi Diri
-                  </label>
-                  <input
-                    type="text"
-                    name="quote"
-                    value={form.quote || ""}
-                    onChange={handleInputChange}
-                    placeholder="Prinsip konseling yang menginspirasi klien..."
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 italic focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 3B: Media Video Intro (Video Greeting POV Klien) */}
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-              <div className="border-b border-gray-100 pb-4">
-                <h3 className="text-base sm:text-lg font-extrabold text-[#561269]">
-                  Video Perkenalan (Greeting Video)
-                </h3>
-                <p className="text-xs text-gray-400">
-                  Video singkat untuk menyapa calon klien di halaman profil Anda.
-                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    URL File Video (.mp4 / stream)
-                  </label>
-                  <input
-                    type="text"
-                    name="videoIntroUrl"
-                    value={form.videoIntroUrl || ""}
-                    onChange={handleInputChange}
-                    placeholder="https://domain.com/video-greeting.mp4"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Durasi Video (Contoh: 01:30)
-                  </label>
-                  <input
-                    type="text"
-                    name="videoDuration"
-                    value={form.videoDuration || ""}
-                    onChange={handleInputChange}
-                    placeholder="01:30"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
-                  />
-                </div>
-
-                <div className="md:col-span-3">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    URL Thumbnail Video (Opsional)
-                  </label>
-                  <input
-                    type="text"
-                    name="videoThumbnail"
-                    value={form.videoThumbnail || ""}
-                    onChange={handleInputChange}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 3C: Fokus Keahlian & Profil Naratif Lengkap */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Tag Keahlian */}
-              <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-4 flex flex-col">
-                <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-[#561269]">
-                    Area Keahlian Konseling
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    Fokus topik atau masalah yang Anda tangani.
-                  </p>
-                </div>
-
-                {/* Input Tambah Tag */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault()
-                        handleAddSkill()
-                      }
-                    }}
-                    placeholder="Tambah keahlian (contoh: Burnout & Stres)"
-                    className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-                  />
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
+                <input
+                  ref={videoFileInputRef}
+                  type="file"
+                  accept="video/mp4,.mp4"
+                  onChange={handleVideoUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => videoFileInputRef.current?.click()}
+                  className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm transition active:scale-95 cursor-pointer"
+                >
+                  {form.videoIntroUrl ? "Ganti File Video (.mp4)" : "Pilih File Video (.mp4)"}
+                </button>
+                {form.videoIntroUrl && (
                   <button
                     type="button"
-                    onClick={handleAddSkill}
-                    className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-4 py-2.5 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    onClick={handleRemoveVideo}
+                    className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600 hover:text-red-600 transition cursor-pointer"
                   >
-                    Tambah
+                    Hapus Video
                   </button>
-                </div>
-
-                {/* List Badges */}
-                <div className="flex flex-wrap gap-1.5 pt-1 flex-1 items-start content-start">
-                  {(form.keahlian || []).map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-purple-50/90 border border-purple-200/70 px-2.5 py-1 text-[11px] font-medium text-[#561269] transition hover:bg-purple-100/80"
-                    >
-                      <span>{skill}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(skill)}
-                        className="rounded hover:bg-purple-200/80 p-0.5 text-purple-600 hover:text-purple-900 transition leading-none"
-                        title={`Hapus ${skill}`}
-                      >
-                        <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </span>
-                  ))}
-                  {(form.keahlian || []).length === 0 && (
-                    <p className="text-xs text-gray-400 italic">Belum ada keahlian yang ditambahkan.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Paragraf Profil Lengkap (Prakata Diri) */}
-              <div className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-4 flex flex-col">
-                <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-[#561269]">
-                    Profil Lengkap & Prakata Klien
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    Naratif paragraf yang muncul pada bagian &ldquo;PROFIL PSIKOLOG&rdquo; di halaman klien.
-                  </p>
-                </div>
-
-                <div className="space-y-3 flex-1">
-                  {(form.profilLengkap || []).map((paragraf, idx) => (
-                    <div
-                      key={idx}
-                      className="group relative rounded-2xl bg-gray-50 border border-gray-100 p-3.5 text-xs text-gray-700 leading-relaxed pr-10"
-                    >
-                      <p>{paragraf}</p>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveParagraph(idx)}
-                        className="absolute top-3 right-3 text-red-500 hover:text-red-700 p-1 opacity-70 group-hover:opacity-100 transition"
-                        title="Hapus Paragraf"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Input Tambah Paragraf */}
-                <div className="space-y-2 pt-2">
-                  <textarea
-                    rows={2}
-                    value={newParagraph}
-                    onChange={(e) => setNewParagraph(e.target.value)}
-                    placeholder="Tulis paragraf naratif baru..."
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition resize-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddParagraph}
-                    className="w-full rounded-full border border-gray-300 bg-white py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all shadow-sm cursor-pointer"
-                  >
-                    + Tambah Paragraf ke Profil
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* 6. KOLOM PROFIL LENGKAP & PRAKATA DIRI (NARATIF) */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-4">
+          <div className="border-b border-gray-100 pb-3">
+            <h3 className="text-base font-bold text-[#561269]">
+              Profil Lengkap & Prakata Klien
+            </h3>
+            <p className="text-xs text-gray-500">
+              Naratif paragraf yang muncul pada bagian &ldquo;PROFIL PSIKOLOG&rdquo; di halaman profil publik klien.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {(form.profilLengkap || []).map((paragraf, idx) => (
+              <div
+                key={idx}
+                className="group relative rounded-2xl bg-gray-50 border border-gray-100 p-3.5 text-xs text-gray-700 leading-relaxed pr-10"
+              >
+                <p>{paragraf}</p>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveParagraph(idx)}
+                  className="absolute top-3 right-3 text-red-500 hover:text-red-700 p-1 opacity-70 group-hover:opacity-100 transition cursor-pointer"
+                  title="Hapus Paragraf"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Input Tambah Paragraf */}
+          <div className="space-y-2 pt-2">
+            <textarea
+              rows={3}
+              value={newParagraph}
+              onChange={(e) => setNewParagraph(e.target.value)}
+              placeholder="Tulis naratif atau paragraf prakata baru untuk klien..."
+              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs text-gray-800 focus:border-[#561269] focus:outline-none transition resize-none"
+            />
+            <button
+              type="button"
+              onClick={handleAddParagraph}
+              className="rounded-full border border-gray-300 bg-white px-5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all shadow-sm cursor-pointer"
+            >
+              + Tambah Paragraf ke Profil
+            </button>
+          </div>
+        </div>
 
         {/* BOTTOM ACTION BAR */}
         <div className="sticky bottom-4 z-20 flex items-center justify-between gap-4 rounded-3xl bg-white/95 backdrop-blur-md border border-gray-200/80 p-4 sm:p-5 shadow-xl">
@@ -745,12 +947,29 @@ export default function ProfilePsikologClient({
             </button>
             <button
               type="submit"
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-7 py-2.5 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+              disabled={isSaving}
+              className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full px-7 py-2.5 text-xs font-bold transition-all shadow-sm ${
+                isSaving
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 hover:shadow-md active:scale-95 cursor-pointer"
+              }`}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-              Simpan Perubahan
+              {isSaving ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin text-gray-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Simpan Perubahan
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -845,19 +1064,19 @@ export default function ProfilePsikologClient({
                 {/* Kolom Kanan: Video Perkenalan */}
                 <div className="md:col-span-5 w-full">
                   <div className="relative rounded-2xl overflow-hidden shadow-md border border-purple-100 bg-[#3B074B] aspect-video flex items-center justify-center">
-                    {isPlayingVideoPreview ? (
+                    {isPlayingVideoPreview || form.videoIntroUrl ? (
                       <video
                         src={form.videoIntroUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
                         controls
-                        autoPlay
+                        autoPlay={isPlayingVideoPreview}
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <>
-                        {form.videoThumbnail || form.foto ? (
+                        {form.foto ? (
                           <Image
-                            src={form.videoThumbnail || form.foto!}
-                            alt="Thumbnail Video"
+                            src={form.foto}
+                            alt="Foto Tenaga Ahli"
                             fill
                             className="object-cover opacity-60"
                           />
@@ -867,21 +1086,10 @@ export default function ProfilePsikologClient({
                           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                           <span>Video Perkenalan</span>
                         </div>
-                        {form.videoDuration && (
-                          <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-white text-[10px] font-mono">
-                            {form.videoDuration}
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setIsPlayingVideoPreview(true)}
-                          className="relative z-10 flex items-center gap-2 bg-white/95 text-[#561269] px-4 py-2 rounded-full font-bold text-xs shadow-lg hover:scale-105 transition"
-                        >
-                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                          Putar Video
-                        </button>
+                        <div className="text-center p-4 z-10 text-white">
+                          <p className="text-xs font-semibold">Belum Ada Video Perkenalan</p>
+                          <p className="text-[10px] text-gray-300">Unggah file MP4 di form edit profil</p>
+                        </div>
                       </>
                     )}
                   </div>
@@ -899,7 +1107,7 @@ export default function ProfilePsikologClient({
                   {(form.profilLengkap && form.profilLengkap.length > 0) ? (
                     form.profilLengkap.map((p, i) => <p key={i}>{p}</p>)
                   ) : (
-                    <p>{form.bio}</p>
+                    <p className="text-gray-400 italic">Belum ada prakata atau deskripsi profil yang ditambahkan.</p>
                   )}
                 </div>
                 {form.pendidikanText && (

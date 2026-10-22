@@ -48,7 +48,13 @@ export const updatePsikologSchema = createPsikologSchema.partial()
 
 export const updatePsikologProfileSchema = z.object({
   nama: z.string().optional(),
+  email: z.string().email().optional(),
+  password: z.string().optional(),
   no_telepon: z.string().optional(),
+  spesialisasi: z.string().optional(),
+  no_str: z.string().optional(),
+  no_sipp: z.string().optional(),
+  no_silp: z.string().optional(),
   foto: z.string().optional(),
   bio: z.string().optional(),
   quote: z.string().optional(),
