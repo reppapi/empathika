@@ -11,6 +11,9 @@ import { PsikologUI } from "@/types/psikolog"
 import { psikologService } from "@/services/psikolog.service"
 import { mapDbPsikologToUI } from "@/features/psikolog/utils/mapPsikolog"
 
+import { LOCAL_STORAGE_KEY_TENAGA } from "@/features/psikolog/data/initialData"
+import type { TenagaAhli } from "@/features/psikolog/types"
+
 export default function PsikologPage() {
   const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -19,13 +22,40 @@ export default function PsikologPage() {
     psikologService
       .getList()
       .then((dbList: any[]) => {
-        if (Array.isArray(dbList)) {
-          const mapped = dbList.map(mapDbPsikologToUI)
-          setDataPsikolog(mapped)
-        }
+        const mappedFromDb = Array.isArray(dbList) ? dbList.map(mapDbPsikologToUI) : []
+
+        // Sinkronisasi data lokal dari localStorage (agar tenaga ahli yang baru ditambah langsung tampil)
+        let combined = mappedFromDb
+        try {
+          const saved = typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA) : null
+          if (saved) {
+            const localList: TenagaAhli[] = JSON.parse(saved)
+            const dbIds = new Set(mappedFromDb.map((m) => m.id))
+            const dbEmails = new Set(mappedFromDb.map((m) => m.email?.toLowerCase()).filter(Boolean))
+
+            const localOnly = localList
+              .filter((loc) => !dbIds.has(loc.id) && (!loc.email || !dbEmails.has(loc.email.toLowerCase())) && loc.statusAkses !== "NONAKTIF" && (loc as any).status !== "INACTIVE")
+              .map((loc) => mapDbPsikologToUI(loc))
+
+            combined = [...mappedFromDb, ...localOnly]
+          }
+        } catch {}
+
+        setDataPsikolog(combined)
       })
       .catch((err) => {
         console.error("Gagal mengambil data psikolog dari database:", err)
+        // Fallback ke localStorage jika API backend belum terhubung
+        try {
+          const saved = typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA) : null
+          if (saved) {
+            const localList: TenagaAhli[] = JSON.parse(saved)
+            const activeOnly = localList
+              .filter((loc) => loc.statusAkses !== "NONAKTIF" && (loc as any).status !== "INACTIVE")
+              .map((loc) => mapDbPsikologToUI(loc))
+            setDataPsikolog(activeOnly)
+          }
+        } catch {}
       })
       .finally(() => {
         setIsLoading(false)
