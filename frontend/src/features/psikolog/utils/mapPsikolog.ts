@@ -21,20 +21,30 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
   // Format jadwal tersedia dari jadwal_slot jika ada
   let jadwalTersedia: { waktu: string; tipe: 'online' | 'offline' }[] = [];
   if (item.jadwal_slot && Array.isArray(item.jadwal_slot) && item.jadwal_slot.length > 0) {
-    jadwalTersedia = item.jadwal_slot.slice(0, 2).map((slot: any) => {
-      let jamMulai = '09:00';
-      let jamSelesai = '10:00';
-      if (typeof slot.jam_mulai === 'string') {
-        const match = slot.jam_mulai.match(/(\d{2}:\d{2})/);
-        if (match) jamMulai = match[1];
-      }
-      if (typeof slot.jam_selesai === 'string') {
-        const match = slot.jam_selesai.match(/(\d{2}:\d{2})/);
-        if (match) jamSelesai = match[1];
-      }
+    jadwalTersedia = item.jadwal_slot.slice(0, 3).map((slot: any) => {
+      // Mendukung format "HH:MM" string maupun ISO datetime dari Prisma
+      const parseJam = (val: any): string => {
+        if (!val) return '00:00';
+        if (typeof val === 'string') {
+          const match = val.match(/(\d{2}:\d{2})/);
+          if (match) return match[1];
+        }
+        if (val instanceof Date || (typeof val === 'string' && val.includes('T'))) {
+          const d = new Date(val);
+          return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+        }
+        return '00:00';
+      };
+
+      const jamMulai = parseJam(slot.jam_mulai);
+      const jamSelesai = parseJam(slot.jam_selesai);
+
+      const tipeRaw = (slot.tipe_jadwal || '').toUpperCase();
+      const tipe: 'online' | 'offline' = tipeRaw.includes('OFFLINE') ? 'offline' : 'online';
+
       return {
         waktu: `${jamMulai} - ${jamSelesai}`,
-        tipe: 'online' as const,
+        tipe,
       };
     });
   } else if (item.jadwalTersedia && Array.isArray(item.jadwalTersedia)) {

@@ -28,8 +28,7 @@ export default function ProfilePsikologClient({
 
   // Tag keahlian baru
   const [newSkill, setNewSkill] = useState("")
-  // Paragraf profil lengkap baru
-  const [newParagraph, setNewParagraph] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   // Status notifikasi simpan
   const [showToast, setShowToast] = useState(false)
@@ -271,23 +270,6 @@ export default function ProfilePsikologClient({
     }))
   }
 
-  // Tambah & Hapus Paragraf Profil Lengkap (Psikolog)
-  const handleAddParagraph = () => {
-    if (!newParagraph.trim()) return
-    setForm((prev) => ({
-      ...prev,
-      profilLengkap: [...(prev.profilLengkap || []), newParagraph.trim()],
-    }))
-    setNewParagraph("")
-  }
-
-  const handleRemoveParagraph = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      profilLengkap: (prev.profilLengkap || []).filter((_, i) => i !== index),
-    }))
-  }
-
   // Submit / Simpan
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -359,6 +341,7 @@ export default function ProfilePsikologClient({
         nama: form.nama,
         email: form.email,
         no_telepon: form.noTelepon,
+        bio: form.bio,
         spesialisasi: form.spesialisasi,
         no_str: form.noStr,
         no_sipp: form.noSipp,
@@ -368,7 +351,6 @@ export default function ProfilePsikologClient({
         instagram: form.instagram,
         keahlian: form.keahlian,
         pendidikan: form.pendidikanText,
-        profil_lengkap: form.profilLengkap,
         video_intro_url: videoUrl,
         video_thumbnail: thumbnailUrl,
         video_duration: form.videoDuration,
@@ -410,6 +392,7 @@ export default function ProfilePsikologClient({
                 nama: form.nama,
                 email: form.email,
                 noTelepon: form.noTelepon,
+                bio: form.bio,
                 foto: fotoUrl,
                 kategori: form.kategoriProfesi || item.kategori,
                 spesialisasi: form.spesialisasi || item.spesialisasi,
@@ -421,6 +404,7 @@ export default function ProfilePsikologClient({
                 instagram: form.instagram,
                 keahlian: form.keahlian,
                 videoIntroUrl: videoUrl,
+                videoThumbnail: thumbnailUrl,
                 videoDuration: form.videoDuration,
               }
             }
@@ -615,17 +599,34 @@ export default function ProfilePsikologClient({
               />
             </div>
 
-            <div>
+            <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Riwayat Pendidikan
               </label>
-              <input
-                type="text"
+              <textarea
+                rows={3}
                 name="pendidikanText"
                 value={form.pendidikanText || ""}
                 onChange={handleInputChange}
-                placeholder="Contoh: S2 Psikologi - Universitas Indonesia"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
+                placeholder="Contoh:&#10;S1 Psikologi - Universitas Padjadjaran (2015 - 2019)&#10;S2 Magister Psikologi Profesi - Universitas Gadjah Mada (2020 - 2022)"
+                className="w-full rounded-2xl border border-gray-200 p-3.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-y min-h-[80px] whitespace-pre-wrap leading-relaxed transition"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Tekan <strong>Enter</strong> untuk membuat baris baru jika memiliki lebih dari satu riwayat pendidikan.
+              </p>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Perkenalan Profil
+              </label>
+              <textarea
+                rows={5}
+                name="bio"
+                value={form.bio || ""}
+                onChange={handleInputChange}
+                placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog... Tekan Enter untuk membuat paragraf baru."
+                className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-y min-h-[120px] whitespace-pre-wrap leading-relaxed"
               />
             </div>
 
@@ -690,14 +691,34 @@ export default function ProfilePsikologClient({
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Ubah Kata Sandi (Opsional)
               </label>
-              <input
-                type="password"
-                name="password"
-                value={form.password || ""}
-                onChange={handleInputChange}
-                placeholder="Masukkan kata sandi baru (kosongkan jika tidak diubah)"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={form.password || ""}
+                  onChange={handleInputChange}
+                  placeholder="Masukkan kata sandi baru (kosongkan jika tidak diubah)"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 hover:text-[#561269] transition cursor-pointer"
+                  tabIndex={-1}
+                  title={showPassword ? "Sembunyikan kata sandi" : "Lihat kata sandi"}
+                >
+                  {showPassword ? (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -977,56 +998,7 @@ export default function ProfilePsikologClient({
           </div>
         </div>
 
-        {/* 6. KOLOM PROFIL LENGKAP & PRAKATA DIRI (NARATIF) */}
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-4">
-          <div className="border-b border-gray-100 pb-3">
-            <h3 className="text-base font-bold text-[#561269]">
-              Profil Lengkap & Prakata Klien
-            </h3>
-            <p className="text-xs text-gray-500">
-              Naratif paragraf yang muncul pada bagian &ldquo;PROFIL PSIKOLOG&rdquo; di halaman profil publik klien.
-            </p>
-          </div>
 
-          <div className="space-y-3">
-            {(form.profilLengkap || []).map((paragraf, idx) => (
-              <div
-                key={idx}
-                className="group relative rounded-2xl bg-gray-50 border border-gray-100 p-3.5 text-xs text-gray-700 leading-relaxed pr-10"
-              >
-                <p>{paragraf}</p>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveParagraph(idx)}
-                  className="absolute top-3 right-3 text-red-500 hover:text-red-700 p-1 opacity-70 group-hover:opacity-100 transition cursor-pointer"
-                  title="Hapus Paragraf"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {/* Input Tambah Paragraf */}
-          <div className="space-y-2 pt-2">
-            <textarea
-              rows={3}
-              value={newParagraph}
-              onChange={(e) => setNewParagraph(e.target.value)}
-              placeholder="Tulis naratif atau paragraf prakata baru untuk klien..."
-              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs text-gray-800 focus:border-[#561269] focus:outline-none transition resize-none"
-            />
-            <button
-              type="button"
-              onClick={handleAddParagraph}
-              className="rounded-full border border-gray-300 bg-white px-5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all shadow-sm cursor-pointer"
-            >
-              + Tambah Paragraf ke Profil
-            </button>
-          </div>
-        </div>
 
         {/* BOTTOM ACTION BAR */}
         <div className="sticky bottom-4 z-20 flex items-center justify-between gap-4 rounded-3xl bg-white/95 backdrop-blur-md border border-gray-200/80 p-4 sm:p-5 shadow-xl">
@@ -1091,9 +1063,14 @@ export default function ProfilePsikologClient({
             <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md px-6 py-4">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-                <h4 className="text-sm font-bold text-[#561269]">
-                  Pratinjau Tampilan Profil (POV Klien Empathika)
-                </h4>
+                <div>
+                  <h4 className="text-sm font-bold text-[#561269]">
+                    Pratinjau Tampilan Profil (POV Klien Empathika)
+                  </h4>
+                  <p className="text-[11px] text-gray-500">
+                    Tampilan langsung sama persis seperti yang dilihat oleh klien di halaman publik Empathika
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -1101,7 +1078,7 @@ export default function ProfilePsikologClient({
                   setPreviewModalOpen(false)
                   setIsPlayingVideoPreview(false)
                 }}
-                className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
+                className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1109,151 +1086,239 @@ export default function ProfilePsikologClient({
               </button>
             </div>
 
-            {/* Isi Konten Replika DetailPsikologContent */}
-            <div className="p-6 sm:p-8 space-y-8">
-              {/* Header Profil & Video */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                {/* Kolom Kiri: Foto Profil & Info */}
-                <div className="md:col-span-7 flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden shrink-0 bg-[#D4B2E8] flex items-center justify-center shadow-inner border-2 border-purple-100">
-                    {form.foto ? (
-                      <Image
-                        src={form.foto}
-                        alt={form.nama}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <span className="text-[#561269] font-bold text-3xl select-none">
-                        {initials}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 flex-1">
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <span className="inline-block px-3 py-1 text-[11px] font-semibold text-[#561269] bg-purple-100 rounded-full">
-                        {form.spesialisasi || "Psikolog"}
-                      </span>
-                      {form.instagram && (
-                        <span className="inline-block px-3 py-1 text-[11px] font-medium text-purple-700 bg-purple-50 rounded-full border border-purple-200">
-                          {form.instagram}
+            {/* Isi Konten Replika DetailPsikologContent (tanpa hero banner & footer CTA) */}
+            <div className="bg-white">
+              {/* Main Content Container */}
+              <div className="w-full px-6 sm:px-10 pt-6 pb-8 space-y-8">
+                {/* Header Profil & Video Intro di Bagian Atas */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                  
+                  {/* Kolom Kiri: Foto Profil & Info Pokok */}
+                  <div className="lg:col-span-7 flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+                    {/* Avatar Foto Bundar */}
+                    <div className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full overflow-hidden shrink-0 bg-[#D4B2E8] flex items-center justify-center shadow-inner border-2 border-purple-100">
+                      {form.foto ? (
+                        <Image
+                          src={form.foto}
+                          alt={form.nama}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="text-[#561269] font-bold text-4xl select-none">
+                          {initials}
                         </span>
                       )}
                     </div>
 
-                    <h2 className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight">
-                      {form.nama}
-                    </h2>
+                    {/* Nama, Status, Sesi, dan Quote di Samping Foto */}
+                    <div className="flex-1 space-y-3">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <span className="inline-block px-3 py-1 text-xs font-semibold text-[#561269] bg-purple-100 rounded-full">
+                          {form.spesialisasi || "Psikolog"}
+                        </span>
+                        {form.instagram && (
+                          <span className="inline-block px-3 py-1 text-xs font-medium text-purple-700 bg-purple-50 rounded-full border border-purple-200">
+                            {form.instagram}
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 text-xs text-gray-600">
-                      {form.noStr && (
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-[#561269] tracking-tight leading-snug">
+                        {form.nama || "Nama Tenaga Ahli"}
+                      </h2>
+                      
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-600">
                         <p>
-                          STR: <span className="font-semibold text-[#561269] font-mono">{form.noStr}</span>
+                          Jumlah sesi: <span className="font-semibold text-gray-900">0 Sesi</span>
                         </p>
-                      )}
-                      {form.noSipp && (
-                        <p>
-                          SIPP: <span className="font-semibold text-[#561269] font-mono">{form.noSipp}</span>
-                        </p>
+                        {form.noStr && (
+                          <>
+                            <span className="hidden sm:inline text-gray-300">•</span>
+                            <p>
+                              No. STR: <span className="font-semibold text-[#561269] font-mono">{form.noStr}</span>
+                            </p>
+                          </>
+                        )}
+                        {form.noSipp && (
+                          <>
+                            <span className="hidden sm:inline text-gray-300">•</span>
+                            <p>
+                              No. SIPP: <span className="font-semibold text-[#561269] font-mono">{form.noSipp}</span>
+                            </p>
+                          </>
+                        )}
+                        {(form as any).noSilp && (
+                          <>
+                            <span className="hidden sm:inline text-gray-300">•</span>
+                            <p>
+                              No. SILP: <span className="font-semibold text-[#561269] font-mono">{(form as any).noSilp}</span>
+                            </p>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Quote / Prinsip Singkat Diri */}
+                      {form.quote && (
+                        <div className="mt-3 bg-[#FAF5FD] border-l-4 border-[#561269] p-3.5 sm:p-4 rounded-r-2xl text-left">
+                          <p className="text-gray-800 text-xs sm:text-sm italic leading-relaxed">
+                            &ldquo;{form.quote}&rdquo;
+                          </p>
+                        </div>
                       )}
                     </div>
+                  </div>
 
-                    {form.quote && (
-                      <div className="mt-2 bg-[#FAF5FD] border-l-4 border-[#561269] p-3 rounded-r-2xl text-left">
-                        <p className="text-gray-800 text-xs italic">
-                          &ldquo;{form.quote}&rdquo;
-                        </p>
+                  {/* Kolom Kanan: Video Perkenalan Diri (Video Greeting / Intro) */}
+                  <div className="lg:col-span-5 w-full">
+                    <div className="relative rounded-3xl overflow-hidden shadow-lg border border-purple-100 bg-[#3B074B] aspect-video flex items-center justify-center group">
+                      {isPlayingVideoPreview ? (
+                        <video
+                          src={form.videoIntroUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+                          poster={form.videoThumbnail || undefined}
+                          controls
+                          autoPlay
+                          className="w-full h-full object-cover"
+                        >
+                          Browser Anda tidak mendukung tag video.
+                        </video>
+                      ) : (
+                        <>
+                          {/* Thumbnail Video */}
+                          {form.videoThumbnail || form.foto ? (
+                            <Image
+                              src={form.videoThumbnail || form.foto!}
+                              alt="Thumbnail Video Perkenalan"
+                              fill
+                              className="object-cover opacity-60 group-hover:opacity-75 group-hover:scale-105 transition-all duration-300"
+                            />
+                          ) : null}
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                          {/* Badge Video Intro */}
+                          <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-medium">
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                            <span>Video Perkenalan</span>
+                          </div>
+
+                          {/* Durasi */}
+                          {form.videoDuration && (
+                            <div className="absolute bottom-4 right-4 z-10 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-white text-[11px] font-mono">
+                              {form.videoDuration}
+                            </div>
+                          )}
+
+                          {/* Tombol Play Interaktif */}
+                          {form.videoIntroUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => setIsPlayingVideoPreview(true)}
+                              className="relative z-10 flex items-center gap-3 bg-white/90 hover:bg-white text-[#561269] px-6 py-3 rounded-full font-bold text-sm shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-[#561269] text-white flex items-center justify-center pl-0.5">
+                                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                              <span>Tonton Video Perkenalan</span>
+                            </button>
+                          ) : (
+                            <div className="relative z-10 text-center p-4 text-white">
+                              <p className="text-xs font-semibold">Belum Ada Video Perkenalan</p>
+                              <p className="text-[10px] text-gray-300 mt-0.5">Unggah file MP4 di form edit profil</p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Garis Horizontal Tipis */}
+                <hr className="border-gray-200" />
+
+                {/* 3. PROFIL PSIKOLOG / PERKENALAN PROFIL */}
+                <section className="space-y-3">
+                  <h3 className="text-base sm:text-lg font-bold text-[#561269] uppercase tracking-wider">
+                    PERKENALAN PROFIL
+                  </h3>
+                  <div className="space-y-4 text-gray-800 text-sm sm:text-base leading-relaxed">
+                    <p className="whitespace-pre-line">
+                      {form.bio || "Perkenalan profil belum dicantumkan."}
+                    </p>
+                  </div>
+
+                  {/* Pendidikan & Lisensi */}
+                  <div className="pt-2 space-y-2">
+                    {form.pendidikanText && (
+                      <div className="text-sm sm:text-base text-gray-600 font-semibold">
+                        <span>Pendidikan / Institusi:</span>
+                        <div className="font-normal text-gray-800 whitespace-pre-wrap leading-relaxed mt-1">
+                          {form.pendidikanText}
+                        </div>
                       </div>
                     )}
-                  </div>
-                </div>
-
-                {/* Kolom Kanan: Video Perkenalan */}
-                <div className="md:col-span-5 w-full">
-                  <div className="relative rounded-2xl overflow-hidden shadow-md border border-purple-100 bg-[#3B074B] aspect-video flex items-center justify-center">
-                    {isPlayingVideoPreview || form.videoIntroUrl ? (
-                      <video
-                        src={form.videoIntroUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
-                        poster={form.videoThumbnail || undefined}
-                        controls
-                        autoPlay={isPlayingVideoPreview}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <>
-                        {form.foto ? (
-                          <Image
-                            src={form.foto}
-                            alt="Foto Tenaga Ahli"
-                            fill
-                            className="object-cover opacity-60"
-                          />
-                        ) : null}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[10px] font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                          <span>Video Perkenalan</span>
-                        </div>
-                        <div className="text-center p-4 z-10 text-white">
-                          <p className="text-xs font-semibold">Belum Ada Video Perkenalan</p>
-                          <p className="text-[10px] text-gray-300">Unggah file MP4 di form edit profil</p>
-                        </div>
-                      </>
+                    {(form.noStr || form.noSipp) && (
+                      <p className="text-sm sm:text-base text-gray-600 font-semibold">
+                        Nomor Izin Praktik:{" "}
+                        <span className="font-normal text-gray-800">
+                          {form.noStr && `STR: ${form.noStr}`}
+                          {form.noStr && form.noSipp && " | "}
+                          {form.noSipp && `SIPP: ${form.noSipp}`}
+                        </span>
+                      </p>
                     )}
                   </div>
-                </div>
-              </div>
+                </section>
 
-              <hr className="border-gray-100" />
+                {/* 4. KEAHLIAN PSIKOLOG (Area of Expertise) */}
+                <section className="space-y-3 pt-2">
+                  <h3 className="text-base sm:text-lg font-bold text-[#561269] uppercase tracking-wider">
+                    KEAHLIAN
+                  </h3>
+                  <div className="flex flex-wrap gap-2.5 pt-1">
+                    {form.keahlian && form.keahlian.length > 0 ? (
+                      form.keahlian.map((item: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-4 py-2 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium border border-gray-200/80 shadow-2xs hover:bg-purple-50/60 hover:border-purple-200 transition-colors"
+                        >
+                          {item}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-sm">Informasi keahlian belum tersedia.</p>
+                    )}
+                  </div>
+                </section>
 
-              {/* Bagian Profil */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#561269] uppercase tracking-wider">
-                  PROFIL PSIKOLOG
-                </h4>
-                <div className="space-y-2 text-xs sm:text-sm text-gray-700 leading-relaxed">
-                  {(form.profilLengkap && form.profilLengkap.length > 0) ? (
-                    form.profilLengkap.map((p, i) => <p key={i}>{p}</p>)
-                  ) : (
-                    <p className="text-gray-400 italic">Belum ada prakata atau deskripsi profil yang ditambahkan.</p>
-                  )}
-                </div>
-                {form.pendidikanText && (
-                  <p className="text-xs text-gray-500 pt-1">
-                    <span className="font-semibold text-gray-700">Pendidikan: </span>
-                    {form.pendidikanText}
-                  </p>
-                )}
-              </div>
-
-              {/* Bagian Keahlian */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#561269] uppercase tracking-wider">
-                  KEAHLIAN PSIKOLOG
-                </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {(form.keahlian || []).map((k, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-1 rounded-lg bg-[#FAF5FD] border border-purple-200/80 text-[11px] font-medium text-[#561269]"
-                    >
-                      {k}
-                    </span>
-                  ))}
-                </div>
+                {/* 5. JADWAL PRAKTEK (Mockup Info Klien) */}
+                <section className="space-y-3 pt-2 pb-2">
+                  <h3 className="text-base sm:text-lg font-bold text-[#561269] uppercase tracking-wider">
+                    JADWAL PRAKTEK
+                  </h3>
+                  <div className="flex flex-wrap gap-3.5">
+                    <div className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-medium text-gray-800">
+                      <span className="font-semibold text-[#561269]">Online & Offline:</span> Jadwal dibuka fleksibel sesuai ketersediaan slot
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
 
             {/* Footer Modal */}
-            <div className="border-t border-gray-100 bg-gray-50 px-6 py-3.5 text-right">
+            <div className="sticky bottom-0 z-30 border-t border-gray-100 bg-gray-50 px-6 py-3.5 text-right flex items-center justify-between">
+              <span className="text-xs text-gray-500">
+                Mode Pratinjau POV Klien &bull; Perubahan belum otomatis tersimpan
+              </span>
               <button
                 type="button"
                 onClick={() => {
                   setPreviewModalOpen(false)
                   setIsPlayingVideoPreview(false)
                 }}
-                className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 Tutup Pratinjau
               </button>
