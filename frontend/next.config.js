@@ -22,6 +22,15 @@ const nextConfig = {
       },
     ],
   },
+  // Proxy semua request /api/v1/* ke backend Fastify agar tidak 404
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/:path*`,
+      },
+    ]
+  },
   async redirects() {
     return [
       {
@@ -41,7 +50,7 @@ const nextConfig = {
       },
       {
         source: '/admin/psikolog-web/profil',
-        destination: '/psikolog-web/profile',
+        destination: '/psikolog-web/profil',
         permanent: true,
       },
       {
@@ -79,3 +88,4 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
+

@@ -11,9 +11,7 @@ export class PsikologRepository {
       if (s === 'ACTIVE' || s === 'INACTIVE') {
         where.status = s as any
       }
-      // Jika status === 'ALL', tidak ada filter status agar semua (aktif maupun nonaktif) tampil untuk admin
     } else {
-      // Default untuk publik: hanya tampilkan yang ACTIVE
       where.status = 'ACTIVE'
     }
 
@@ -40,6 +38,9 @@ export class PsikologRepository {
             no_telepon: true,
             foto: true,
             role: true,
+            aktif: true,
+            token_aktivasi: true,
+            token_aktivasi_exp: true,
           },
         },
         jadwal_slot: {
@@ -84,6 +85,9 @@ export class PsikologRepository {
           no_telepon: true,
           foto: true,
           role: true,
+          aktif: true,
+          token_aktivasi: true,
+          token_aktivasi_exp: true,
         },
       },
       jadwal_slot: {
@@ -111,19 +115,14 @@ export class PsikologRepository {
       },
     }
 
-    if (!isUuid) {
-      // Jika bukan format UUID (misal placeholder 'string' di Swagger atau cari berdasarkan nama)
-      const found = await this.prisma.psikolog.findFirst({
+    if (isUuid) {
+      return this.prisma.psikolog.findFirst({
         where: {
           OR: [
-            { nama_gelar: { contains: id === 'string' ? '' : id, mode: 'insensitive' } },
+            { id },
+            { id_account: id },
           ],
         },
-        include: detailInclude,
-      })
-      if (found) return found
-      // Fallback ke psikolog pertama di database
-      return this.prisma.psikolog.findFirst({
         include: detailInclude,
       })
     }
@@ -139,15 +138,18 @@ export class PsikologRepository {
       where: { id_account },
       include: {
         spesialisasi: true,
+        account: true,
       },
     })
   }
 
-
-
-  async create(data: Prisma.PsikologUncheckedCreateInput) {
+  async create(data: Prisma.PsikologCreateInput) {
     return this.prisma.psikolog.create({
       data,
+      include: {
+        spesialisasi: true,
+        account: true,
+      },
     })
   }
 
@@ -155,6 +157,10 @@ export class PsikologRepository {
     return this.prisma.psikolog.update({
       where: { id },
       data,
+      include: {
+        spesialisasi: true,
+        account: true,
+      },
     })
   }
 

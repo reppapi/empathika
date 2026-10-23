@@ -3,6 +3,21 @@ import bcrypt from "bcrypt"
 import { AuthRepository } from "./auth.repository"
 import type { LoginInput } from "./auth.schema"
 
+function formatRemainingTime(ms: number): string {
+  if (ms <= 0) return "0 detik"
+  const totalSeconds = Math.floor(ms / 1000)
+  const days = Math.floor(totalSeconds / 86400)
+  const hours = Math.floor((totalSeconds % 86400) / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+
+  const parts: string[] = []
+  if (days > 0) parts.push(`${days} hari`)
+  if (hours > 0) parts.push(`${hours} jam`)
+  if (minutes > 0 && days === 0) parts.push(`${minutes} menit`)
+  if (parts.length === 0) return "kurang dari 1 menit"
+  return parts.join(" ")
+}
+
 export class AuthService {
   private repo: AuthRepository
 
@@ -32,7 +47,6 @@ export class AuthService {
       )
     }
 
-    // Bandingkan password (support bcrypt hash atau plain text jika baru seed)
     let isPasswordValid = false
     try {
       isPasswordValid = await bcrypt.compare(input.password, account.password)
@@ -40,7 +54,6 @@ export class AuthService {
       isPasswordValid = false
     }
 
-    // Fallback jika database belum di-hash (misal seed awal)
     if (!isPasswordValid && account.password === input.password) {
       isPasswordValid = true
     }
@@ -51,7 +64,6 @@ export class AuthService {
       })
     }
 
-    // Generate JWT access token
     const token = this.fastify.jwt.sign(
       {
         id: account.id,
@@ -104,9 +116,51 @@ export class AuthService {
       throw Object.assign(new Error("Akun tidak ditemukan"), { statusCode: 404 })
     }
 
+    // 1. Validasi jika akun sudah aktif (password sudah diset)
+    if (account.aktif && account.password) {
+      throw Object.assign(
+        new Error("Akun sudah aktif. Generate ulang link aktivasi tidak diperlukan lagi."),
+        {
+          statusCode: 400,
+          errorCode: "ACCOUNT_ALREADY_ACTIVE",
+        }
+      )
+    }
+
+    // 2. Validasi masa berlaku link aktivasi: tolak jika masih dalam masa 3 hari
+    const now = Date.now()
+    if (account.token_aktivasi && account.token_aktivasi_exp) {
+      const expTime = new Date(account.token_aktivasi_exp).getTime()
+      if (expTime > now) {
+        const remainingMs = expTime - now
+        const remainingStr = formatRemainingTime(remainingMs)
+        const expDateFormatted = new Date(account.token_aktivasi_exp).toLocaleString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+
+        throw Object.assign(
+          new Error(
+            `Link aktivasi masih berlaku. Generate ulang baru bisa dilakukan setelah ${expDateFormatted} (tersisa ${remainingStr}).`
+          ),
+          {
+            statusCode: 429,
+            errorCode: "LINK_STILL_ACTIVE",
+            tokenExpiredAt: account.token_aktivasi_exp,
+            remainingSeconds: Math.ceil(remainingMs / 1000),
+            remainingFormatted: remainingStr,
+          }
+        )
+      }
+    }
+
+    // 3. Buat token baru masa aktif 3 hari
     const crypto = await import("crypto")
-    const newToken = crypto.randomBytes(24).toString("hex")
-    const newExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+    const newToken = `act_${crypto.randomBytes(20).toString("hex")}`
+    const newExpiry = new Date(now + 3 * 24 * 60 * 60 * 1000)
 
     await this.repo.updateActivationToken(account.id, newToken, newExpiry)
 
@@ -125,6 +179,7 @@ export class AuthService {
         email: account.email,
         no_telepon: account.no_telepon,
         role: account.role,
+        aktif: account.aktif,
       },
     }
   }
