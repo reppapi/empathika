@@ -25,6 +25,12 @@ import JadwalMingguanGrid from "./JadwalMingguanGrid"
 import ModalDetailSesiKlien from "./ModalDetailSesiKlien"
 import ModalBatalSesi from "./ModalBatalSesi"
 import { psikologService } from "@/services/psikolog.service"
+import {
+  recordCancelledSession,
+  getCancelledSessions,
+  isSessionCancelled,
+  canCancelSession,
+} from "@/features/konseling/utils/cancellationSync"
 
 import {
   Calendar as CalendarIcon,
@@ -58,11 +64,28 @@ export default function JadwalAdmin() {
   const [date, setDate] = useState<Date | undefined>(getInitialDate)
   const [selectedTime, setSelectedTime] = useState<string>("13:00 - 14:00")
   const [currentWeekMonday, setCurrentWeekMonday] = useState<Date>(() => getMonday(getInitialDate()))
-  const [bookedSessions, setBookedSessions] = useState<BookedAssessment[]>(() => getSampleUpcomingBookings())
+  const [bookedSessions, setBookedSessions] = useState<BookedAssessment[]>(() => {
+    const list = getSampleUpcomingBookings()
+    const cancelledList = getCancelledSessions()
+    if (cancelledList.length === 0) return list
+    return list.map((item) =>
+      isSessionCancelled(item, cancelledList) ? { ...item, status: "Dibatalkan" } : item
+    )
+  })
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null)
 
-  // State Sesi Klien Hari Ini (Disesuaikan dengan Jam Sekarang)
-  const [todaySessions, setTodaySessions] = useState<ClientSessionToday[]>(() => getInitialSessionsBasedOnTime())
+  // State Sesi Klien Hari Ini (Disesuaikan dengan Jam Sekarang & Status Pembatalan)
+  const [todaySessions, setTodaySessions] = useState<ClientSessionToday[]>(() => {
+    const todayKey = formatDateKey(new Date())
+    const initial = getInitialSessionsBasedOnTime().map((s) => ({ ...s, date: todayKey }))
+    const cancelledList = getCancelledSessions()
+    if (cancelledList.length === 0) return initial
+    return initial.map((s) =>
+      isSessionCancelled(s, cancelledList)
+        ? { ...s, status: "Dibatalkan" as const, isUpcomingNearest: false }
+        : s
+    )
+  })
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [selectedDetailSession, setSelectedDetailSession] = useState<ClientSessionToday | null>(null)
   const [sessionToCancel, setSessionToCancel] = useState<ClientSessionToday | null>(null)
@@ -142,10 +165,68 @@ export default function JadwalAdmin() {
   }
 
   const handleCancelSession = (id: string, namaKlien: string) => {
+    // 1. Cari data sesi yang dibatalkan untuk keperluan sinkronisasi
+    const targetToday = todaySessions.find((s) => s.id === id)
+    const targetBooked = bookedSessions.find((s) => s.id === id)
+    const targetCombined = currentWeekAllSessions.find((s) => s.id === id)
+
+    const dateKey =
+      (targetBooked && targetBooked.date) ||
+      (targetCombined && targetCombined.date) ||
+      targetToday?.date ||
+      formatDateKey(date || new Date())
+
+    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan sebelum hari H (maksimal H-1)
+    if (!canCancelSession(dateKey)) {
+      triggerToast(
+        "Pembatalan tidak dapat dilakukan pada hari H konseling. Pembatalan hanya dapat dilakukan sebelum hari H.",
+        "danger"
+      )
+      return
+    }
+
+    const waktu = targetToday?.waktu || targetBooked?.waktu || targetCombined?.waktu || ""
+    const psikolog = targetToday?.psikolog || targetBooked?.psikolog || targetCombined?.psikolog || ""
+
+    // 2. Simpan dan sinkronkan pembatalan (backend + localStorage + real-time storage event)
+    recordCancelledSession({
+      id,
+      date: dateKey,
+      waktu,
+      namaKlien,
+      psikolog,
+    })
+
+    // 3. Update state lokal todaySessions
     setTodaySessions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, status: "Dibatalkan", isUpcomingNearest: false } : s))
     )
-    triggerToast(`Sesi ${namaKlien} telah dibatalkan.`, "danger")
+
+    // 4. Update state bookedSessions
+    setBookedSessions((prev) =>
+      prev.map((b) =>
+        b.id === id || (b.date === dateKey && b.waktu === waktu)
+          ? { ...b, status: "Dibatalkan" }
+          : b
+      )
+    )
+
+    triggerToast(`Sesi ${namaKlien} (${waktu}) telah dibatalkan.`, "danger")
+  }
+
+  const handleSelectWeeklySession = (session: BookedAssessment) => {
+    const converted: ClientSessionToday = {
+      id: session.id,
+      date: session.date,
+      waktu: session.waktu,
+      namaKlien: session.namaKlien || "Klien Terdaftar",
+      klienId: "010" + Math.floor(100 + Math.random() * 900),
+      psikolog: session.psikolog || "Tenaga Ahli",
+      layanan: session.layanan,
+      tipe: session.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
+      status: session.status === "Dibatalkan" ? "Dibatalkan" : "Menunggu Jadwal",
+    }
+    setSelectedDetailSession(converted)
   }
 
   // ── 3. Filter Layanan & Derived Values ──
@@ -333,19 +414,18 @@ export default function JadwalAdmin() {
 
     // 2. Hari Ini: sinkron 100% dari todaySessions aktif
     if (isTodayInThisWeek) {
-      todaySessions
-        .filter((ts) => ts.status !== "Dibatalkan")
-        .forEach((ts) => {
-          combined.push({
-            id: `today_sync_${ts.id}`,
-            date: todayDateKey,
-            waktu: ts.waktu,
-            layanan: ts.layanan,
-            metode: ts.tipe.toLowerCase().includes("online") ? "Online" : "Offline",
-            namaKlien: ts.namaKlien,
-            psikolog: ts.psikolog,
-          })
+      todaySessions.forEach((ts) => {
+        combined.push({
+          id: `today_sync_${ts.id}`,
+          date: todayDateKey,
+          waktu: ts.waktu,
+          layanan: ts.layanan,
+          metode: ts.tipe.toLowerCase().includes("online") ? "Online" : "Offline",
+          namaKlien: ts.namaKlien,
+          psikolog: ts.psikolog,
+          status: ts.status,
         })
+      })
     }
 
     // 3. Masa Depan: HANYA muncul bila ada booking di bookedSessions
@@ -361,7 +441,13 @@ export default function JadwalAdmin() {
       }
     })
 
-    return combined
+    const cancelledList = getCancelledSessions()
+    return combined.map((s) => {
+      if (s.status === "Dibatalkan" || isSessionCancelled(s, cancelledList)) {
+        return { ...s, status: "Dibatalkan" }
+      }
+      return s
+    })
   }, [currentWeekMonday, bookedSessions, todaySessions, today, weekDays])
 
   // Batas riwayat mundur maksimal 4 minggu ke belakang
@@ -615,7 +701,6 @@ export default function JadwalAdmin() {
         activeMenuId={activeMenuId}
         setActiveMenuId={setActiveMenuId}
         onSelectDetail={(session) => setSelectedDetailSession(session)}
-        onSelectCancel={(session) => setSessionToCancel(session)}
         onMarkCompleted={handleMarkCompleted}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
         onResetFilter={() => {
@@ -645,6 +730,7 @@ export default function JadwalAdmin() {
         selectedLayanan={selectedLayanan}
         matchLayanan={matchLayanan}
         today={today}
+        onSelectSession={handleSelectWeeklySession}
       />
 
       {/* ── Modal Tambah Sesi ── */}

@@ -74,6 +74,7 @@ export default function AdminPsikologClient() {
               spesialisasi: p.spesialisasi?.nama || matchedLocal?.spesialisasi || "Psikologi Klinis",
               noStr: p.no_str || matchedLocal?.noStr || undefined,
               noSipp: p.no_sipp || matchedLocal?.noSipp || undefined,
+              noSilp: p.no_silp || matchedLocal?.noSilp || undefined,
               pendidikanText: p.pendidikan || matchedLocal?.pendidikanText || "Universitas Indonesia",
               jumlahSesi: typeof p.jumlah_sesi === "number" ? p.jumlah_sesi : (matchedLocal?.jumlahSesi ?? 0),
               bio: p.bio || matchedLocal?.bio || "",
@@ -225,7 +226,7 @@ export default function AdminPsikologClient() {
     },
     {
       key: "legalitas",
-      header: "Legalitas (STR & SIPP)",
+      header: "Legalitas (STR, SIPP & SILP)",
       render: (item: TenagaAhli) => {
         const isPsikolog = item.kategori === "psikolog"
         return isPsikolog ? (
@@ -236,9 +237,14 @@ export default function AdminPsikologClient() {
             <p>
               SIPP: <span className="font-mono text-gray-800 font-medium">{item.noSipp || "-"}</span>
             </p>
+            {item.noSilp && (
+              <p>
+                SILP: <span className="font-mono text-gray-800 font-medium">{item.noSilp}</span>
+              </p>
+            )}
           </div>
         ) : (
-          <span className="text-[11px] text-gray-400">Tidak Perlu STR/SIPP</span>
+          <span className="text-[11px] text-gray-400">Tidak Perlu STR/SIPP/SILP</span>
         )
       },
     },

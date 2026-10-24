@@ -24,13 +24,6 @@ export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }:
   const jadwalList = ("jadwalTersedia" in psikolog && psikolog.jadwalTersedia) ? psikolog.jadwalTersedia : []
   const labelJadwal = ("labelJadwal" in psikolog && psikolog.labelJadwal) ? psikolog.labelJadwal : "Jadwal Terdekat"
 
-  const formatTipeHari = (jdw: { waktu: string; tipe: string }) => {
-    const w = jdw.waktu.toLowerCase()
-    if (w.includes("sabtu") || w.includes("minggu") || w.includes("weekend")) {
-      return "Weekend"
-    }
-    return "Weekday"
-  }
 
   const keahlianList = ("keahlian" in psikolog && psikolog.keahlian) ? psikolog.keahlian : []
   const initial = psikolog.nama_gelar ? psikolog.nama_gelar.charAt(0) : "P"
@@ -112,15 +105,12 @@ export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }:
             </p>
             {jadwalList.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
-                {jadwalList.map((jadwal, idx) => (
+                {jadwalList.slice(0, 3).map((jadwal, idx) => (
                   <span
                     key={idx}
                     className="bg-white border border-purple-100 px-2.5 py-1 rounded-full text-[11px] font-medium text-gray-700 shadow-2xs"
                   >
-                    {jadwal.waktu}{" "}
-                    <span className="text-[#561269] font-semibold">
-                      ({formatTipeHari(jadwal)})
-                    </span>
+                    {jadwal.waktu}
                   </span>
                 ))}
               </div>

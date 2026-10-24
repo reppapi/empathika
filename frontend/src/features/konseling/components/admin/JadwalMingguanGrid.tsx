@@ -21,6 +21,7 @@ interface JadwalMingguanGridProps {
   selectedLayanan: string
   matchLayanan: (itemLayanan: string, filter: string) => boolean
   today: Date
+  onSelectSession?: (session: BookedAssessment) => void
 }
 
 export default function JadwalMingguanGrid({
@@ -33,6 +34,7 @@ export default function JadwalMingguanGrid({
   selectedLayanan,
   matchLayanan,
   today,
+  onSelectSession,
 }: JadwalMingguanGridProps) {
   const todayDateKey = formatDateKey(today)
 
@@ -40,7 +42,7 @@ export default function JadwalMingguanGrid({
     <div className="mt-8 bg-white border border-gray-100 shadow-sm rounded-2xl p-6 sm:p-8 font-poppins">
       <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Mingguan</h2>
       <p className="text-gray-500 text-sm mb-6">
-        Lihat ringkasan layanan yang telah dibooking oleh klien dalam satu minggu
+        Lihat ringkasan layanan yang telah dibooking oleh klien dalam satu minggu (klik sesi untuk melihat opsi pembatalan)
       </p>
 
       {/* Week Selector */}
@@ -122,42 +124,60 @@ export default function JadwalMingguanGrid({
                   {sessions.length > 0 ? (
                     sessions.map((item) => {
                       const isPast = item.date < todayDateKey
+                      const isCancelled = item.status === "Dibatalkan" || (item as any).isCancelled
+
                       return (
                         <div
                           key={item.id}
-                          className={`rounded-xl p-3 flex flex-col gap-1 shadow-xs hover:shadow-sm transition-all ${isPast
+                          onClick={() => onSelectSession && onSelectSession(item)}
+                          className={`rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] ${
+                            isCancelled
+                              ? "bg-rose-50/80 border border-rose-200/90 text-gray-600 opacity-90"
+                              : isPast
                               ? "bg-gray-100/85 border border-gray-200/90 text-gray-500"
                               : "bg-[#E8F3ED] border border-[#b4d6be]"
-                            }`}
+                          }`}
                         >
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="flex items-center gap-1.5">
                               <span
-                                className={`w-2 h-2 rounded-full shrink-0 ${isPast ? "bg-gray-400" : "bg-green-600"
-                                  }`}
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  isCancelled ? "bg-rose-500" : isPast ? "bg-gray-400" : "bg-green-600"
+                                }`}
                               />
                               <span
-                                className={`text-xs font-extrabold ${isPast ? "text-gray-600" : "text-[#185e26]"
-                                  }`}
+                                className={`text-xs font-extrabold ${
+                                  isCancelled
+                                    ? "text-rose-700 line-through"
+                                    : isPast
+                                    ? "text-gray-600"
+                                    : "text-[#185e26]"
+                                }`}
                               >
                                 {item.waktu}
                               </span>
                             </div>
-                            {isPast && (
+                            {isCancelled ? (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                                Dibatalkan
+                              </span>
+                            ) : isPast ? (
                               <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
                                 Selesai
                               </span>
-                            )}
+                            ) : null}
                           </div>
                           <p
-                            className={`text-xs font-bold leading-tight mt-0.5 ${isPast ? "text-gray-700" : "text-gray-900"
-                              }`}
+                            className={`text-xs font-bold leading-tight mt-0.5 ${
+                              isCancelled ? "text-gray-700 line-through" : isPast ? "text-gray-700" : "text-gray-900"
+                            }`}
                           >
                             {item.layanan}
                           </p>
                           <div
-                            className={`text-[10px] flex flex-col mt-0.5 leading-tight ${isPast ? "text-gray-500" : "text-gray-600"
-                              }`}
+                            className={`text-[10px] flex flex-col mt-0.5 leading-tight ${
+                              isPast ? "text-gray-500" : "text-gray-600"
+                            }`}
                           >
                             {item.namaKlien && (
                               <span>
