@@ -7,6 +7,7 @@ import Image from "next/image"
 import { AdminProfileData, RoleType } from "../../types"
 import { DEFAULT_ADMIN, DEFAULT_PSIKOLOG } from "../../data/profileData"
 import { adminService } from "@/services/admin.service"
+import { processAndUploadImage } from "@/lib/imageCompressor"
 
 export { type AdminProfileData, type RoleType }
 
@@ -153,12 +154,16 @@ export default function ProfileAdminClient({
     }))
   }
 
-  // Upload Foto
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload & Kompresi Foto
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const url = URL.createObjectURL(file)
-      setForm((prev) => ({ ...prev, foto: url }))
+      try {
+        const { url } = await processAndUploadImage(file)
+        setForm((prev) => ({ ...prev, foto: url }))
+      } catch (err: any) {
+        alert(err?.message || "Gagal memproses foto")
+      }
     }
   }
 

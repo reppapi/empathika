@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { Calendar } from "@/components/ui/calendar"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 import { useAuthStore } from "@/store/authStore"
@@ -127,6 +128,10 @@ function formatFullDateIndonesian(d: Date): string {
 }
 
 export default function PsikologJadwalClient() {
+  const searchParams = useSearchParams()
+  const urlPsikologId = searchParams?.get("psikologId") || searchParams?.get("id") || undefined
+  const urlPsikologName = searchParams?.get("psikologName") || undefined
+
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -155,6 +160,15 @@ export default function PsikologJadwalClient() {
   const [customStart, setCustomStart] = useState("08:00")
   const [customEnd, setCustomEnd] = useState("09:00")
 
+  // Daftar slot waktu bawaan awal
+  const [timeSlots, setTimeSlots] = useState<string[]>([
+    "09:00 - 10:00",
+    "10:00 - 11:00",
+    "13:30 - 14:30",
+    "14:30 - 15:30",
+    "15:30 - 16:30",
+  ])
+
   const toggleTimeSlot = (time: string) => {
     setSelectedTimes((prev) =>
       prev.includes(time) ? prev.filter((t) => t !== time) : [...prev, time]
@@ -169,24 +183,41 @@ export default function PsikologJadwalClient() {
     }
   }
 
-  // Tutup / Hapus slot jam ketersediaan yang dibuka
-  const handleRemoveSlot = (timeToRemove: string) => {
+  // Tutup / Hapus slot jam ketersediaan yang dibuka (Sinkron ke Database & LocalStorage)
+  const handleRemoveSlot = async (timeToRemove: string) => {
     if (!date) return
     const dateKey = formatDateKey(date)
     const targetStart = timeToRemove.split(" - ")[0].trim().substring(0, 5)
 
+    const targetSession = bookedSessions.find(
+      (s) => s.date === dateKey && s.waktu === timeToRemove && s.isAvailableSlot
+    )
+
+    // 1. Hapus dari state lokal langsung (optimistic update)
     setBookedSessions((prev) =>
       prev.filter((s) => !(s.date === dateKey && s.waktu === timeToRemove))
     )
 
+    // 2. Hapus dari Backend Database jika memiliki slot ID riil
+    if (targetSession && targetSession.id && !targetSession.id.startsWith("mock-") && !targetSession.id.startsWith("slot-sample")) {
+      try {
+        await psikologService.deleteJadwalSlot(targetSession.id)
+      } catch (err: any) {
+        console.warn("Delete slot backend notice:", err?.response?.data?.message || err.message)
+      }
+    }
+
+    // 3. Hapus dari LocalStorage
     try {
       const raw = localStorage.getItem("empathika_custom_jadwal_slots")
       if (raw) {
         const list: JadwalSlotItem[] = JSON.parse(raw)
+        const currentId = activePsikolog?.id || (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_id") : null)
         const filtered = list.filter(
           (s) =>
             !(
               s.tanggal === dateKey &&
+              (!currentId || s.id_psikolog === currentId || (activePsikolog && s.nama_psikolog === activePsikolog.nama_gelar)) &&
               (s.label_waktu === timeToRemove ||
                 (s.jam_mulai || "").trim().substring(0, 5) === targetStart)
             )
@@ -199,30 +230,104 @@ export default function PsikologJadwalClient() {
     setSelectedTimes((prev) => prev.filter((t) => t !== timeToRemove))
   }
 
-  // Daftar slot waktu bawaan awal
-  const [timeSlots, setTimeSlots] = useState<string[]>([
-    "09:00 - 10:00",
-    "10:00 - 11:00",
-    "13:30 - 14:30",
-    "14:30 - 15:30",
-    "15:30 - 16:30",
-  ])
+  // Sinkronkan jadwal dari Database dan LocalStorage untuk psikolog aktif
+  const loadScheduleForPsikolog = useCallback(async (targetPsikologId?: string) => {
+    const currentId =
+      targetPsikologId ||
+      activePsikolog?.id ||
+      (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_id") : null)
 
-  // 1. Ambil data profil psikolog dari Database Backend PostgreSQL (Sesuai sesi login psikolog)
+    if (!currentId) return
+
+    try {
+      const res: any = await psikologService.getJadwalSaya({ id_psikolog: currentId })
+      let dbSessions: BookedSession[] = []
+      if (res && res.slots) {
+        dbSessions = res.slots.map((s: any) => ({
+          id: s.id,
+          date: s.date,
+          waktu: s.waktu,
+          layanan: s.booking?.layanan || "Konsultasi Psikologi",
+          metode: (s.booking?.metode === "OFFLINE" ? "Offline" : (s.metode || "Online")) as MetodeKonsultasi,
+          namaKlien: s.booking?.nama_klien || "Tersedia",
+          id_psikolog: res.psikolog?.id || currentId,
+          namaPsikolog: res.psikolog?.nama_gelar,
+          isAvailableSlot: s.status === "TERSEDIA",
+        }))
+
+        // Tambahkan slot baru ke timeSlots jika belum ada
+        dbSessions.forEach((s) => {
+          if (s.waktu) {
+            setTimeSlots((prev) => (prev.includes(s.waktu) ? prev : [...prev, s.waktu].sort()))
+          }
+        })
+      }
+
+      // Ambil juga dari localStorage HANYA yang milik psikolog ini
+      let localSessions: BookedSession[] = []
+      try {
+        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+        if (raw) {
+          const localList: JadwalSlotItem[] = JSON.parse(raw)
+          localSessions = localList
+            .filter((s) => s.id_psikolog === currentId || (activePsikolog && s.nama_psikolog === activePsikolog.nama_gelar))
+            .map((s) => ({
+              id: s.id,
+              date: s.tanggal,
+              waktu: s.label_waktu || `${s.jam_mulai} - ${s.jam_selesai}`,
+              layanan: "Konseling Individu",
+              metode: (s.metode as MetodeKonsultasi) || "Online",
+              namaKlien: "Tersedia",
+              id_psikolog: s.id_psikolog,
+              namaPsikolog: s.nama_psikolog,
+              isAvailableSlot: true,
+            }))
+        }
+      } catch {}
+
+      const sessionMap = new Map<string, BookedSession>()
+      // Isi sessionMap dengan db sessions dan local sessions
+      dbSessions.forEach((s) => sessionMap.set(`${s.date}_${s.waktu}`, s))
+      localSessions.forEach((s) => {
+        if (!sessionMap.has(`${s.date}_${s.waktu}`)) {
+          sessionMap.set(`${s.date}_${s.waktu}`, s)
+        }
+      })
+
+      // Terapkan status pembatalan admin
+      try {
+        const cancelledList = getCancelledSessions()
+        if (cancelledList.length > 0) {
+          sessionMap.forEach((item, key) => {
+            if (isSessionCancelled(item, cancelledList)) {
+              sessionMap.set(key, { ...item, isCancelled: true, status: "Dibatalkan" })
+            }
+          })
+        }
+      } catch {}
+
+      setBookedSessions(Array.from(sessionMap.values()))
+    } catch {}
+  }, [activePsikolog])
+
+  // 1. Ambil data profil psikolog dari Database Backend PostgreSQL
   useEffect(() => {
     psikologService
       .getList()
       .then((list: any[]) => {
         if (list && list.length > 0) {
           setPsikologList(list)
-          // Prioritaskan psikolog yang sesuai dengan akun login auth store
+          // Prioritaskan psikolog yang sesuai dengan URL param, pilihan tersimpan, atau akun login auth store
           const savedId = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_id") : null
           const savedName = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") : null
           const found =
-            (user?.id ? list.find((p) => p.account?.id === user.id || p.id === user.id || p.account?.email === user.email) : null) ||
-            (user?.email ? list.find((p) => p.account?.email === user.email) : null) ||
+            (urlPsikologId ? list.find((p) => p.id === urlPsikologId) : null) ||
+            (urlPsikologName ? list.find((p) => p.nama_gelar?.toLowerCase().includes(urlPsikologName.toLowerCase())) : null) ||
             (savedId ? list.find((p) => p.id === savedId) : null) ||
             (savedName ? list.find((p) => p.nama_gelar === savedName) : null) ||
+            (user?.id ? list.find((p) => p.account?.id === user.id || p.id === user.id || p.account?.email === user.email) : null) ||
+            (user?.email ? list.find((p) => p.account?.email === user.email) : null) ||
+            list.find((p) => p.nama_gelar?.includes("Jane")) ||
             list.find((p) => p.nama_gelar?.includes("Rizki") || p.account?.email?.includes("putriqoida")) ||
             list[0]
 
@@ -230,6 +335,7 @@ export default function PsikologJadwalClient() {
           if (found) {
             localStorage.setItem("active_psikolog_id", found.id)
             localStorage.setItem("active_psikolog_name", found.nama_gelar || found.account?.nama)
+            loadScheduleForPsikolog(found.id)
           }
         }
       })
@@ -238,97 +344,31 @@ export default function PsikologJadwalClient() {
         const savedId = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_id") : null
         const savedName = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") : null
         const fallback = {
-          id: user?.id || savedId || "1",
-          nama_gelar: user?.name || savedName || "Rizki Putri Dzulqaidah, S.Psi.",
-          kategori: "Konselor",
+          id: user?.id || savedId || "3ed78047-be9c-490d-8415-ac2e1118c0b8",
+          nama_gelar: user?.name || savedName || "Dr. Jane Doe, M.Psi., Psikolog",
+          kategori: "Psikolog",
         }
         setPsikologList([fallback])
         setActivePsikolog(fallback)
       })
-  }, [user])
+  }, [user, urlPsikologId, urlPsikologName, loadScheduleForPsikolog])
 
-  // 2. Sinkronkan jadwal dari Database dan LocalStorage
-  const loadScheduleFromBackend = async () => {
-    try {
-      const res: any = await psikologService.getJadwalSaya()
-      if (res) {
-        if (res.psikolog) {
-          setActivePsikolog((prev) => ({
-            ...prev,
-            id: res.psikolog.id,
-            nama_gelar: res.psikolog.nama_gelar,
-            kategori: res.psikolog.kategori,
-          }))
-        }
-        if (res.slots) {
-          const mappedFromDb: BookedSession[] = res.slots.map((s: any) => ({
-            id: s.id,
-            date: s.date,
-            waktu: s.waktu,
-            layanan: s.booking?.layanan || "Konsultasi Psikologi",
-            metode: (s.booking?.metode === "OFFLINE" ? "Offline" : (s.metode || "Online")) as MetodeKonsultasi,
-            namaKlien: s.booking?.nama_klien || "Tersedia",
-            id_psikolog: res.psikolog?.id,
-            namaPsikolog: res.psikolog?.nama_gelar,
-            isAvailableSlot: s.status === "TERSEDIA",
-          }))
+  // Sync saat tab aktif kembali
+  useEffect(() => {
+    loadScheduleForPsikolog()
 
-          // Gabungkan dengan state awal
-          setBookedSessions((prev) => {
-            const map = new Map<string, BookedSession>()
-            prev.forEach((item) => map.set(`${item.date}_${item.waktu}`, item))
-            mappedFromDb.forEach((item) => map.set(`${item.date}_${item.waktu}`, item))
-            return Array.from(map.values())
-          })
-        }
-      }
-    } catch {}
+    window.addEventListener("focus", () => loadScheduleForPsikolog())
+    window.addEventListener("storage", () => loadScheduleForPsikolog())
 
-    // Baca dari localStorage dev cache
-    try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      if (raw) {
-        const localList: JadwalSlotItem[] = JSON.parse(raw)
-        const localSessions: BookedSession[] = localList.map((s) => ({
-          id: s.id,
-          date: s.tanggal,
-          waktu: s.label_waktu || `${s.jam_mulai} - ${s.jam_selesai}`,
-          layanan: "Konseling Individu",
-          metode: (s.metode as MetodeKonsultasi) || "Online",
-          namaKlien: "Tersedia",
-          id_psikolog: s.id_psikolog,
-          namaPsikolog: s.nama_psikolog,
-          isAvailableSlot: true,
-        }))
-
-        setBookedSessions((prev) => {
-          const map = new Map<string, BookedSession>()
-          prev.forEach((item) => map.set(`${item.date}_${item.waktu}`, item))
-          localSessions.forEach((item) => map.set(`${item.date}_${item.waktu}`, item))
-          return Array.from(map.values())
-        })
-      }
-    } catch {}
-
-    // 3. Terapkan status pembatalan yang dilakukan oleh admin
-    try {
-      const cancelledList = getCancelledSessions()
-      if (cancelledList.length > 0) {
-        setBookedSessions((prev) =>
-          prev.map((item) => {
-            if (item.isCancelled || item.status === "Dibatalkan" || isSessionCancelled(item, cancelledList)) {
-              return { ...item, isCancelled: true, status: "Dibatalkan" }
-            }
-            return item
-          })
-        )
-      }
-    } catch {}
-  }
+    return () => {
+      window.removeEventListener("focus", () => loadScheduleForPsikolog())
+      window.removeEventListener("storage", () => loadScheduleForPsikolog())
+    }
+  }, [loadScheduleForPsikolog])
 
   useEffect(() => {
-    loadScheduleFromBackend()
-  }, [currentWeekMonday])
+    loadScheduleForPsikolog()
+  }, [currentWeekMonday, loadScheduleForPsikolog])
 
   // Listener real-time: jika admin membatalkan sesi di halaman admin, otomatis jadwal psikolog ter-update
   useEffect(() => {
@@ -464,8 +504,8 @@ export default function PsikologJadwalClient() {
 
     const savedId = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_id") : null
     const savedName = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") : null
-    const psikologId = activePsikolog?.id || savedId || "1"
-    const psikologNama = activePsikolog?.nama_gelar || savedName || "Rizki Putri Dzulqaidah, S.Psi."
+    const psikologId = activePsikolog?.id || savedId || "3ed78047-be9c-490d-8415-ac2e1118c0b8"
+    const psikologNama = activePsikolog?.nama_gelar || savedName || "Dr. Jane Doe, M.Psi., Psikolog"
 
     const newSessions: BookedSession[] = []
     const newSlotItems: JadwalSlotItem[] = []
@@ -569,6 +609,35 @@ export default function PsikologJadwalClient() {
               Atur ketersediaan sesi konseling Anda. Pilih metode konsultasi, tentukan tanggal, lalu centang slot jam yang ingin dibuka untuk klien.
             </p>
           </div>
+          {psikologList.length > 0 && (
+            <div className="flex items-center gap-2.5 bg-[#FAF5FD] border border-purple-200/90 rounded-2xl p-2.5 sm:px-4 sm:py-2.5 shrink-0 shadow-2xs">
+              <div className="w-8 h-8 rounded-full bg-[#561269] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                {(activePsikolog?.nama_gelar || "P")[0]}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wide">Kelola Jadwal Untuk:</span>
+                <select
+                  value={activePsikolog?.id || ""}
+                  onChange={(e) => {
+                    const selected = psikologList.find((p) => p.id === e.target.value)
+                    if (selected) {
+                      setActivePsikolog(selected)
+                      localStorage.setItem("active_psikolog_id", selected.id)
+                      localStorage.setItem("active_psikolog_name", selected.nama_gelar || (selected as any).account?.nama)
+                      loadScheduleForPsikolog(selected.id)
+                    }
+                  }}
+                  className="text-xs sm:text-sm font-bold text-[#561269] bg-white border border-purple-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-[#561269]/30 cursor-pointer shadow-2xs"
+                >
+                  {psikologList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nama_gelar || (p as any).account?.nama || p.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Step 1: Pilih Metode Konsultasi (Identik dengan Desain Klien Booking) */}

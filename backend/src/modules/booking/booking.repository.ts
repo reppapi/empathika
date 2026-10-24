@@ -419,6 +419,14 @@ export class BookingRepository {
             data: { jumlah_sesi: { decrement: 1 } },
           }).catch(() => {})
         }
+
+        // Kembalikan status slot jam ke TERSEDIA agar ketersediaan psikolog terbuka kembali
+        if (existing.id_jadwal) {
+          await tx.jadwalSlot.update({
+            where: { id: existing.id_jadwal },
+            data: { status: 'TERSEDIA' },
+          }).catch(() => {})
+        }
       }
 
       return updated
@@ -457,6 +465,15 @@ export class BookingRepository {
   }
 
   // ── Helper Psikolog ──
+  async findPsikologById(id: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    if (!isUuid) return null
+    return this.prisma.psikolog.findUnique({
+      where: { id },
+      include: { spesialisasi: true },
+    })
+  }
+
   async findPsikologByAccountId(id_account: string) {
     return this.prisma.psikolog.findUnique({
       where: { id_account },

@@ -12,6 +12,39 @@ interface ModalLeadDetailProps {
 }
 
 function formatLeadWhatsAppMessage(lead: PengajuanKerjaSama): string {
+  if (lead.status === "Disetujui") {
+    return `Halo Kak ${lead.namaPIC} dari ${lead.namaInstansi},
+
+Kabar baik! Kami dari Tim Administrasi & Kemitraan Empathika ingin menginformasikan bahwa pengajuan kerja sama yang Anda kirimkan telah *DISETUJUI* oleh pihak Empathika. 🎉
+
+📋 *Detail Pengajuan Kerja Sama:*
+• *Instansi/Organisasi:* ${lead.namaInstansi}
+• *Nama PIC:* ${lead.namaPIC}
+• *Layanan / Program:* ${lead.formTitle || `Kerja Sama ${lead.kategori}`}
+• *Kategori Mitra:* ${lead.kategori}
+• *Tanggal Pengajuan:* ${lead.tanggal}
+
+Untuk langkah selanjutnya, kami ingin mengundang Kak ${lead.namaPIC} untuk membahas detail teknis pelaksanaan serta koordinasi MoU kerja sama. Apakah Kak ${lead.namaPIC} memiliki waktu luang untuk kita jadwalkan diskusi lebih lanjut? 
+
+Terima kasih atas kepercayaannya bermitra bersama Empathika! 🙏`
+  }
+
+  if (lead.status === "Ditolak") {
+    return `Halo Kak ${lead.namaPIC} dari ${lead.namaInstansi},
+
+Terima kasih banyak atas inisiatif baik dan ketertarikan Anda untuk mengajukan kerja sama bersama Empathika.
+
+📋 *Detail Pengajuan Kerja Sama:*
+• *Instansi/Organisasi:* ${lead.namaInstansi}
+• *Nama PIC:* ${lead.namaPIC}
+• *Layanan / Program:* ${lead.formTitle || `Kerja Sama ${lead.kategori}`}
+• *Tanggal Pengajuan:* ${lead.tanggal}
+
+Setelah ditinjau bersama tim internal, kami mohon maaf saat ini belum dapat mengakomodasi pengajuan kerja sama ini dikarenakan kuota dan jadwal program yang terbatas pada periode ini.
+
+Kami sangat mengapresiasi perhatian Kak ${lead.namaPIC} serta ${lead.namaInstansi}, dan kami sangat terbuka untuk menjajaki kesempatan kolaborasi di periode berikutnya. Terima kasih banyak atas pengertiannya. 🙏`
+  }
+
   return `Halo Kak ${lead.namaPIC} dari ${lead.namaInstansi},
 
 Kami dari Tim Administrasi & Kemitraan Empathika ingin menindaklanjuti formulir pengajuan kerja sama yang Anda kirimkan:

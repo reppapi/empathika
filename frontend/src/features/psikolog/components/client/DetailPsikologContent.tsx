@@ -241,12 +241,13 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                 ? psikolog.jadwalAssociate.slice(0, 3)
                 : psikolog.jadwalTersedia?.slice(0, 3)
               )?.map((jadwal: { waktu: string }, idx: number) => (
-                <div 
+                <Link 
                   key={idx}
-                  className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800"
+                  href={`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}` as any}
+                  className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800 hover:bg-[#F3E8F7] hover:border-purple-300 transition-all cursor-pointer shadow-2xs hover:scale-105"
                 >
                   {jadwal.waktu}
-                </div>
+                </Link>
               ))}
             </div>
           </section>

@@ -32,7 +32,7 @@ export const psikologService = {
   getJadwalTersedia: (params?: { tanggal?: string; id_psikolog?: string; tipe_jadwal?: string }) =>
     apiClient.get<JadwalSlotItem[]>("/psikolog/jadwal-tersedia", { params }).then((r) => r.data),
 
-  getJadwalSaya: (params?: { start_date?: string; end_date?: string }) =>
+  getJadwalSaya: (params?: { start_date?: string; end_date?: string; id_psikolog?: string }) =>
     apiClient.get("/psikolog/me/jadwal", { params }).then((r) => r.data),
 
   createJadwalSlot: (payload: {

@@ -25,23 +25,7 @@ export class PsikologService {
   }
 
   private async purgeLegacyUnbookedSlots() {
-    if (!legacySlotsPurged && this.prisma?.jadwalSlot) {
-      legacySlotsPurged = true
-      try {
-        const unbooked = await this.prisma.jadwalSlot.findMany({
-          where: {
-            status: 'TERSEDIA',
-            booking_konsultasi: null,
-          },
-          select: { id: true },
-        })
-        if (unbooked && unbooked.length > 0) {
-          await this.prisma.jadwalSlot.deleteMany({
-            where: { id: { in: unbooked.map((s: { id: string }) => s.id) } },
-          })
-        }
-      } catch {}
-    }
+    // Dinonaktifkan: Slot jam ketersediaan yang dibuka oleh psikolog harus tetap tersimpan dan tidak boleh dihapus.
   }
 
   async getAll(params?: { kategori?: string; search?: string; status?: string }) {
