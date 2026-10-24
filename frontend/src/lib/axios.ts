@@ -8,7 +8,7 @@ const apiClient = axios.create({
   timeout: 10000,
 })
 
-// Request interceptor: attach access token
+// Request interceptor: attach access token (baca dari localStorage atau cookie)
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const isRemembered = localStorage.getItem("remember_me") === "true"

@@ -102,7 +102,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   const isAktif = currentPsikolog?.statusAkses === "AKTIF"
 
   return (
-    <AuthGuard allowedRoles={["PSIKOLOG"]}>
+    <AuthGuard allowedRoles={["PSIKOLOG", "ADMIN"]}>
       <div className="min-h-screen bg-[#FBFBFC] font-poppins text-gray-800 flex">
         {/* Sidebar khusus psikolog */}
         <SidebarPsikolog

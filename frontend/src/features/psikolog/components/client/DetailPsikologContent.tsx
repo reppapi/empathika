@@ -238,12 +238,9 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
             </h3>
             <div className="flex flex-wrap gap-3.5">
               {(psikolog.jadwalAssociate && psikolog.jadwalAssociate.length > 0
-                ? psikolog.jadwalAssociate
-                : psikolog.jadwalTersedia?.map((j: { tipe: string; waktu: string }) => ({
-                    tipe: j.tipe === 'online' ? 'Online' : 'Offline',
-                    waktu: j.waktu,
-                  }))
-              )?.map((jadwal: { tipe: string; waktu: string }, idx: number) => (
+                ? psikolog.jadwalAssociate.slice(0, 3)
+                : psikolog.jadwalTersedia?.slice(0, 3)
+              )?.map((jadwal: { waktu: string }, idx: number) => (
                 <div 
                   key={idx}
                   className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800"

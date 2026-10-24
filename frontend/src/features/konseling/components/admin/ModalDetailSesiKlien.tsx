@@ -3,6 +3,7 @@
 import { ClientSessionToday } from "@/features/konseling/types"
 import { getWhatsAppUrl } from "@/features/konseling/data/jadwalAdminData"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import { canCancelSession } from "@/features/konseling/utils/cancellationSync"
 import {
   FileText,
   X,
@@ -10,6 +11,9 @@ import {
   MessageCircle,
   ExternalLink,
   Copy,
+  Calendar,
+  AlertCircle,
+  Info,
 } from "lucide-react"
 
 interface ModalDetailSesiKlienProps {
@@ -29,6 +33,10 @@ export default function ModalDetailSesiKlien({
 }: ModalDetailSesiKlienProps) {
   if (!session) return null
 
+  // Sesi HANYA BISA dibatalkan jika tanggal jadwal adalah sebelum hari H (maksimal H-1, date > today)
+  const isCancellable = session.status !== "Selesai" && session.status !== "Dibatalkan" && canCancelSession(session.date)
+  const isHariH = !canCancelSession(session.date)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn">
       <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-7 flex flex-col justify-between">
@@ -43,7 +51,7 @@ export default function ModalDetailSesiKlien({
                 Detail Sesi Klien
               </h3>
               <p className="text-xs text-gray-500">
-                Informasi sesi konseling hari ini
+                Informasi jadwal dan sesi konseling
               </p>
             </div>
           </div>
@@ -124,6 +132,19 @@ export default function ModalDetailSesiKlien({
             )}
           </div>
 
+          {/* Tanggal Sesi (jika tersedia) */}
+          {session.date && (
+            <div className="flex items-center justify-between p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+              <span className="font-semibold text-gray-700 text-xs flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#561269]" />
+                Tanggal Pelaksanaan:
+              </span>
+              <span className="font-bold text-[#561269] text-xs">
+                {session.date}
+              </span>
+            </div>
+          )}
+
           {/* Grid Info Sesi */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100">
@@ -176,28 +197,51 @@ export default function ModalDetailSesiKlien({
               {session.status}
             </AdminStatusBadge>
           </div>
+
+          {/* Informasi Kebijakan Pembatalan */}
+          {session.status !== "Dibatalkan" && session.status !== "Selesai" && (
+            isCancellable ? (
+              <div className="flex items-start gap-2.5 text-[11px] text-blue-900 bg-blue-50/90 border border-blue-200/80 rounded-xl p-3 leading-relaxed">
+                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Sesi Sebelum Hari H:</strong> Sesi ini dapat dibatalkan oleh Admin bila ada permohonan pembatalan dari klien atau psikolog sebelum hari konseling.
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2.5 text-[11px] text-amber-950 bg-amber-50/90 border border-amber-200/80 rounded-xl p-3 leading-relaxed">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Sesi Hari H:</strong> Sesi pada hari pelaksanaan tidak dapat dibatalkan (kebijakan pembatalan jadwal hanya berlaku maksimal H-1 sebelum konseling).
+                </span>
+              </div>
+            )
+          )}
         </div>
 
         {/* Footer Modal */}
         <div className="flex items-center justify-end gap-2.5 pt-5 mt-5 border-t border-gray-100">
-          {session.status !== "Selesai" && session.status !== "Dibatalkan" && (
-            <>
-              <button
-                type="button"
-                onClick={() => onCancelClick(session)}
-                className="px-4 py-2 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition cursor-pointer"
-              >
-                Batalkan Sesi
-              </button>
-              <button
-                type="button"
-                onClick={() => onMarkCompleted(session.id, session.namaKlien)}
-                className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
-              >
-                Tandai Selesai
-              </button>
-            </>
+          {/* Tombol Batalkan Sesi: HANYA untuk jadwal sebelum hari H */}
+          {isCancellable && (
+            <button
+              type="button"
+              onClick={() => onCancelClick(session)}
+              className="px-4 py-2 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition cursor-pointer"
+            >
+              Batalkan Sesi (H-1)
+            </button>
           )}
+
+          {/* Tombol Tandai Selesai: HANYA untuk hari H / setelah sesi berlangsung */}
+          {isHariH && session.status !== "Selesai" && session.status !== "Dibatalkan" && (
+            <button
+              type="button"
+              onClick={() => onMarkCompleted(session.id, session.namaKlien)}
+              className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+            >
+              Tandai Selesai
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onClose}

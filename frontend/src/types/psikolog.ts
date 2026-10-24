@@ -48,10 +48,9 @@ export interface PsikologFilter {
 // ==========================================
 export type KategoriProfesional = 'semua' | 'psikolog' | 'konselor' | 'peer-konselor';
 
-// Karena DB tidak menyimpan info online/offline pada jadwal, kita buat struktur UI
 export interface JadwalUI {
   waktu: string;
-  tipe: 'online' | 'offline';
+  tipe: 'online' | 'offline' | 'keduanya' | 'online & offline' | string;
 }
 
 export interface PsikologUI extends Psikolog {

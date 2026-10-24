@@ -13,6 +13,9 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const [isMounted, setIsMounted] = useState<boolean>(false)
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false)
 
+  // Stabilkan dependensi allowedRoles agar tidak memicu re-running di setiap re-render
+  const rolesKey = allowedRoles ? allowedRoles.slice().sort().join(",") : ""
+
   useEffect(() => {
     setIsMounted(true)
 
@@ -90,7 +93,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     }
 
     setIsAuthorized(true)
-  }, [router, allowedRoles])
+  }, [router, rolesKey])
 
   // Jangan render apapun sebelum mounted di client untuk menghindari perbedaan DOM dengan SSR (Hydration error)
   if (!isMounted || !isAuthorized) {

@@ -127,4 +127,16 @@ export class BookingController {
       reply.code(400).send({ message: err.message })
     }
   }
+
+  cancelBooking = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.updateBookingStatus(request.params.id, 'CANCELLED')
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ message: err.message })
+    }
+  }
 }

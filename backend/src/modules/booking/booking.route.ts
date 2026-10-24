@@ -104,4 +104,12 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
     },
     handler: controller.updateBookingStatus,
   })
+
+  fastify.patch('/:id/cancel', {
+    schema: {
+      tags: ['Booking & Jadwal - Admin'],
+      summary: 'Batalkan sesi booking konsultasi',
+    },
+    handler: controller.cancelBooking,
+  })
 }

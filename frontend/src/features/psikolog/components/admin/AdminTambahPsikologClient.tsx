@@ -56,8 +56,8 @@ export default function AdminTambahPsikologClient() {
   const emailError = touched.email ? validateEmail(email) : null
   const noTeleponError = touched.noTelepon ? validateNoTelepon(noTelepon) : null
   const noStrError = touched.noStr ? validateNoStr(noStr, kategori) : null
-  const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori) : null
-  const noSilpError = touched.noSilp ? validateNoSilp(noSilp, kategori) : null
+  const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori, noSilp) : null
+  const noSilpError = touched.noSilp ? validateNoSilp(noSilp, kategori, noSipp) : null
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -671,11 +671,10 @@ export default function AdminTambahPsikologClient() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Nomor SIPP (Surat Izin Praktik Psikologi) <span className="text-red-500">*</span>
+                  Nomor SIPP (Surat Izin Praktik Psikologi) {!noSilp && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="text"
-                  required={kategori === "psikolog"}
                   value={noSipp}
                   onChange={(e) => {
                     setNoSipp(e.target.value)
@@ -698,14 +697,14 @@ export default function AdminTambahPsikologClient() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-purple-600/70 mt-1">
-                    Format resmi wajib diawali dengan &apos;SIPP&apos; (contoh: SIPP-1049-2024).
+                    Format diawali &apos;SIPP&apos;. Wajib jika Nomor SILP tidak diisi.
                   </p>
                 )}
               </div>
 
               <div className="sm:col-span-2 lg:col-span-1">
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Nomor SILP (Surat Izin Layanan Psikolog)
+                  Nomor SILP (Surat Izin Layanan Psikolog) {!noSipp && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="text"
@@ -731,7 +730,7 @@ export default function AdminTambahPsikologClient() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-purple-600/70 mt-1">
-                    Format resmi diawali dengan &apos;SILP&apos; (contoh: SILP-2024-001).
+                    Format diawali &apos;SILP&apos;. Wajib jika Nomor SIPP tidak diisi.
                   </p>
                 )}
               </div>

@@ -11,6 +11,61 @@ interface PageProps {
   params: { id: string }
 }
 
+function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBackendSlots?: any[]) {
+  const rawSlots: any[] = []
+  if (Array.isArray(rawBackendSlots)) {
+    rawSlots.push(...rawBackendSlots)
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+      if (raw) {
+        const parsed: any[] = JSON.parse(raw)
+        const matched = parsed.filter(
+          (s) =>
+            s.id_psikolog === psikologId ||
+            s.id_psikolog === "psikolog-default-id" ||
+            s.id_psikolog === "1" ||
+            (psikologNama && (s.nama_psikolog === psikologNama || psikologNama.includes("Rizki")))
+        )
+        rawSlots.push(...matched)
+      }
+    } catch {}
+  }
+
+  const parseJam = (val: any): string => {
+    if (!val) return "00:00"
+    if (typeof val === "string") {
+      const m = val.match(/(\d{2}:\d{2})/)
+      if (m) return m[1]
+    }
+    if (val instanceof Date || (typeof val === "string" && val.includes("T"))) {
+      const d = new Date(val)
+      return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`
+    }
+    return "00:00"
+  }
+
+  const seen = new Set<string>()
+  const result: { waktu: string; tipe: "Online" | "Offline" }[] = []
+
+  for (const s of rawSlots) {
+    const start = parseJam(s.jam_mulai)
+    const end = parseJam(s.jam_selesai)
+    const waktu = s.label_waktu || `${start} - ${end}`
+    if (!seen.has(waktu)) {
+      seen.add(waktu)
+      const m = (s.metode || s.tipe_jadwal || "").toUpperCase()
+      const tipe: "Online" | "Offline" = m.includes("OFFLINE") ? "Offline" : "Online"
+      result.push({ waktu, tipe })
+    }
+  }
+
+  result.sort((a, b) => a.waktu.localeCompare(b.waktu))
+  return result.slice(0, 3)
+}
+
 export default function DetailPsikologPage({ params }: PageProps) {
   const { id } = params
   const [psikolog, setPsikolog] = useState<DetailPsikologUI | null>(null)
@@ -39,27 +94,11 @@ export default function DetailPsikologPage({ params }: PageProps) {
             keahlianList = []
           }
 
-          let jadwalTersedia: { waktu: string; tipe: "online" | "offline" }[] = []
-          if (data.jadwal_slot && Array.isArray(data.jadwal_slot) && data.jadwal_slot.length > 0) {
-            jadwalTersedia = data.jadwal_slot.slice(0, 3).map((slot: any) => {
-              let jamMulai = "09:30"
-              let jamSelesai = "10:30"
-              if (typeof slot.jam_mulai === "string") {
-                const match = slot.jam_mulai.match(/(\d{2}:\d{2})/)
-                if (match) jamMulai = match[1]
-              }
-              if (typeof slot.jam_selesai === "string") {
-                const match = slot.jam_selesai.match(/(\d{2}:\d{2})/)
-                if (match) jamSelesai = match[1]
-              }
-              return {
-                waktu: `${jamMulai} - ${jamSelesai}`,
-                tipe: "online" as const,
-              }
-            })
-          } else {
-            jadwalTersedia = []
-          }
+          const scheduleList = resolveDetailSchedule(data.id, data.nama_gelar || data.account?.nama, data.jadwal_slot)
+          const jadwalTersedia = scheduleList.map((s) => ({
+            waktu: s.waktu,
+            tipe: (s.tipe === "Offline" ? "offline" : "online") as "online" | "offline",
+          }))
 
           const mapped: DetailPsikologUI = {
             id: data.id,
@@ -105,10 +144,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
             videoThumbnail: data.foto || "/images/psikolog/default.jpg",
             videoDuration: "01:30",
             jadwalTersedia,
-            jadwalAssociate: jadwalTersedia.map((j) => ({
-              tipe: j.tipe === "online" ? "Online" : "Offline",
-              waktu: j.waktu,
-            })),
+            jadwalAssociate: scheduleList,
             testimoni: [
               {
                 kutipan: "Sesi konseling sangat membantu saya dalam mengurai benang kusut kecemasan yang selama ini saya rasakan.",
@@ -133,6 +169,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
 
           if (found) {
             const dummyDetail = getDetailPsikolog(id)
+            const scheduleList = resolveDetailSchedule(found.id || "1", found.nama)
             const merged: DetailPsikologUI = {
               id: found.id,
               id_spesialisasi: `spec-${found.id}`,
@@ -166,8 +203,8 @@ export default function DetailPsikologPage({ params }: PageProps) {
               videoIntroUrl: dummyDetail?.videoIntroUrl,
               videoThumbnail: dummyDetail?.videoThumbnail || found.foto,
               videoDuration: dummyDetail?.videoDuration,
-              jadwalTersedia: dummyDetail?.jadwalTersedia,
-              jadwalAssociate: dummyDetail?.jadwalAssociate,
+              jadwalTersedia: scheduleList.length > 0 ? scheduleList : dummyDetail?.jadwalTersedia,
+              jadwalAssociate: scheduleList.length > 0 ? scheduleList : dummyDetail?.jadwalAssociate,
               testimoni: dummyDetail?.testimoni || [],
             }
             setPsikolog(merged)
@@ -177,6 +214,13 @@ export default function DetailPsikologPage({ params }: PageProps) {
         } catch {}
 
         const fallback = getDetailPsikolog(id)
+        if (fallback) {
+          const scheduleList = resolveDetailSchedule(id, fallback.nama_gelar)
+          if (scheduleList.length > 0) {
+            fallback.jadwalAssociate = scheduleList
+            fallback.jadwalTersedia = scheduleList
+          }
+        }
         setPsikolog(fallback)
         setLoading(false)
       })

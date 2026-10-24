@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   MoreVertical,
   Eye,
-  XCircle,
   MessageCircle,
   ExternalLink,
   Copy,
@@ -23,7 +22,6 @@ interface JadwalHariIniSectionProps {
   activeMenuId: string | null
   setActiveMenuId: (id: string | null) => void
   onSelectDetail: (session: ClientSessionToday) => void
-  onSelectCancel: (session: ClientSessionToday) => void
   onMarkCompleted: (id: string, namaKlien: string) => void
   onCopyWhatsApp: (session: ClientSessionToday) => void
   onResetFilter: () => void
@@ -38,7 +36,6 @@ export default function JadwalHariIniSection({
   activeMenuId,
   setActiveMenuId,
   onSelectDetail,
-  onSelectCancel,
   onMarkCompleted,
   onCopyWhatsApp,
   onResetFilter,
@@ -277,20 +274,6 @@ export default function JadwalHariIniSection({
                                 >
                                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                                   Tandai Selesai
-                                </button>
-                              )}
-
-                              {item.status !== "Dibatalkan" && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    onSelectCancel(item)
-                                    setActiveMenuId(null)
-                                  }}
-                                  className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-gray-100"
-                                >
-                                  <XCircle className="w-4 h-4 text-red-500 shrink-0" />
-                                  Batalkan Sesi
                                 </button>
                               )}
                             </div>
