@@ -275,8 +275,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
               emailAdmin: emailAdmin.trim(),
               telepon: telepon.trim(),
               alamat: alamat.trim(),
-              websiteUrl: `https://${finalSlug}.empathika.id`,
-              dashboardUrl: `https://${finalSlug}.empathika.id/admin`,
+              websiteUrl: `/biro/${finalSlug}`,
+              dashboardUrl: `/admin-biro`,
               statusAktivasi,
               aktivasiToken: effectiveToken,
               tokenExpiredAt: effectiveExpiry,
@@ -298,8 +298,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             alamat: alamat.trim(),
             tanggalDibuat: new Date().toISOString().split("T")[0],
             statusAktivasi,
-            websiteUrl: `https://${finalSlug}.empathika.id`,
-            dashboardUrl: `https://${finalSlug}.empathika.id/admin`,
+            websiteUrl: `/biro/${finalSlug}`,
+            dashboardUrl: `/admin-biro`,
             aktivasiToken: effectiveToken,
             tokenExpiredAt: effectiveExpiry,
           }
@@ -319,8 +319,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           alamat: alamat.trim(),
           tanggalDibuat: today,
           statusAktivasi: "Menunggu Aktivasi",
-          websiteUrl: `https://${finalSlug}.empathika.id`,
-          dashboardUrl: `https://${finalSlug}.empathika.id/admin`,
+          websiteUrl: `/biro/${finalSlug}`,
+          dashboardUrl: `/admin-biro`,
           aktivasiToken: effectiveToken,
           tokenExpiredAt: effectiveExpiry,
         }
@@ -505,8 +505,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                     : "border-gray-200 bg-white focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
                 }`}
               />
-              <p className="text-[11px] text-gray-400 font-mono mt-1">
-                Akses: https://{slug || "slug-biro"}.empathika.id
+              <p className="text-[11px] text-gray-500 font-mono mt-1">
+                Akses Website: /biro/{slug || "slug-biro"}
               </p>
               {errors.slug && <p className="text-xs text-red-500 mt-0.5 font-medium">{errors.slug}</p>}
             </div>

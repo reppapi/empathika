@@ -46,7 +46,14 @@ export default function AdminBiroClient() {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
       if (saved) {
-        setBiroList(JSON.parse(saved))
+        const parsed: BiroKomunitas[] = JSON.parse(saved)
+        const sanitized = parsed.map((item) => ({
+          ...item,
+          websiteUrl: `/biro/${item.slug}`,
+          dashboardUrl: `/admin-biro`,
+        }))
+        setBiroList(sanitized)
+        localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(sanitized))
       } else {
         setBiroList(INITIAL_BIRO_LIST)
         localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(INITIAL_BIRO_LIST))

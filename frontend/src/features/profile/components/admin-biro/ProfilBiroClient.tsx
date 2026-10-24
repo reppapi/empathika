@@ -127,7 +127,7 @@ export default function ProfilBiroClient() {
             )}
             <span className="flex items-center gap-1.5 font-medium">
               <Globe className="w-3.5 h-3.5 text-gray-400" />
-              {biro.slug}.empathika.id
+              /biro/{biro.slug}
             </span>
           </div>
         </div>
