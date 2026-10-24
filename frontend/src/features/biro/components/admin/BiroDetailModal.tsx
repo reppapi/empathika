@@ -57,7 +57,7 @@ export default function BiroDetailModal({
       `Biro/Komunitas Anda telah berhasil didaftarkan di platform kami. ` +
       `Silakan klik tautan resmi di bawah ini untuk mengaktifkan akun dan mengatur kata sandi admin biro Anda:\n\n` +
       `🔗 ${activationUrl}\n\n` +
-      `Catatan: Tautan aktivasi ini berlaku selama 7 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
+      `Catatan: Tautan aktivasi ini berlaku selama 3 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
       `Salam hangat,\n*Tim Empathika*`
 
     const waUrl = waNumber
