@@ -11,8 +11,6 @@ import type {
   UpdatePsikologProfileInput,
 } from './psikolog.schema'
 
-let legacySlotsPurged = false
-
 export class PsikologService {
   private repo: PsikologRepository
   private bookingService: BookingService
@@ -24,12 +22,7 @@ export class PsikologService {
     this.prisma = fastify.prisma
   }
 
-  private async purgeLegacyUnbookedSlots() {
-    // Dinonaktifkan: Slot jam ketersediaan yang dibuka oleh psikolog harus tetap tersimpan dan tidak boleh dihapus.
-  }
-
   async getAll(params?: { kategori?: string; search?: string; status?: string }) {
-    await this.purgeLegacyUnbookedSlots()
     const list = await this.repo.findAll(params)
 
     // Hitung total booking riil langsung dari tabel booking_konsultasi
@@ -54,7 +47,6 @@ export class PsikologService {
   }
 
   async getById(id: string) {
-    await this.purgeLegacyUnbookedSlots()
     const item: any = await this.repo.findById(id)
     if (!item) throw new Error('Psikolog tidak ditemukan')
 
