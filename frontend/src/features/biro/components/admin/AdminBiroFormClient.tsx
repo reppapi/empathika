@@ -56,7 +56,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
 
   const handleGenerateToken = () => {
     const newToken = `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
-    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const newExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
     setAktivasiToken(newToken)
     setTokenExpiredAt(newExpiry)
     setIsCopied(false)
@@ -99,7 +99,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       `Biro/Komunitas Anda telah berhasil didaftarkan di platform kami. ` +
       `Silakan klik tautan resmi di bawah ini untuk mengaktifkan akun dan mengatur kata sandi admin biro Anda:\n\n` +
       `🔗 ${finalActivationUrl}\n\n` +
-      `Catatan: Tautan aktivasi ini berlaku selama 7 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
+      `Catatan: Tautan aktivasi ini berlaku selama 3 hari demi keamanan akun Anda. Jangan bagikan tautan ini ke siapa pun.\n\n` +
       `Salam hangat,\n*Tim Empathika*`
 
     const waUrl = waNumber
@@ -257,7 +257,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       const effectiveToken =
         aktivasiToken || `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
       const effectiveExpiry =
-        tokenExpiredAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        tokenExpiredAt || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
 
       let resultBiro: BiroKomunitas
 
@@ -563,14 +563,14 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             </div>
           </div>
 
-          {/* Tautan Aktivasi Akun Biro (7 Hari) */}
+          {/* Tautan Aktivasi Akun Biro (3 Hari) */}
           <div className="rounded-2xl border border-purple-200/80 bg-purple-50/50 p-4 sm:p-5 space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <label className="text-xs font-bold text-[#561269] flex items-center gap-1.5 uppercase tracking-wider">
                 <svg className="w-4 h-4 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Tautan Aktivasi Akun Biro (7 Hari)
+                Tautan Aktivasi Akun Biro (3 Hari)
               </label>
               {aktivasiToken ? (
                 <button
@@ -805,7 +805,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
 
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-gray-700">
-                Tautan Aktivasi (Berlaku 7 Hari):
+                Tautan Aktivasi (Berlaku 3 Hari):
               </label>
               <div className="flex items-center gap-1.5">
                 <input
