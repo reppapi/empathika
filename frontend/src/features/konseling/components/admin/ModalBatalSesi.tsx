@@ -27,7 +27,9 @@ export default function ModalBatalSesi({
         </h3>
         <p className="text-xs text-gray-500 mb-5 leading-relaxed">
           Apakah Anda yakin ingin membatalkan sesi untuk{" "}
-          <strong className="text-gray-800">{session.namaKlien}</strong> ({session.waktu})? Tindakan ini akan mengubah status sesi menjadi Dibatalkan.
+          <strong className="text-gray-800">{session.namaKlien}</strong>{" "}
+          {session.date ? `pada tanggal ${session.date} (${session.waktu})` : `(${session.waktu})`}?
+          Tindakan ini akan membatalkan jadwal konseling sebelum hari H dan mengubah statusnya di seluruh sistem.
         </p>
         <div className="flex gap-2.5">
           <button

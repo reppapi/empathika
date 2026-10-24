@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
@@ -23,6 +23,8 @@ interface Props {
 
 export default function AdminEditPsikologClient({ psikologId }: Props) {
   const router = useRouter()
+  const params = useParams()
+  const effectiveId = psikologId || (params?.id as string) || ""
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
@@ -63,8 +65,8 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
   const emailError = touched.email ? validateEmail(email) : null
   const noTeleponError = touched.noTelepon ? validateNoTelepon(noTelepon) : null
   const noStrError = touched.noStr ? validateNoStr(noStr, kategori) : null
-  const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori) : null
-  const noSilpError = touched.noSilp ? validateNoSilp(noSilp, kategori) : null
+  const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori, noSilp) : null
+  const noSilpError = touched.noSilp ? validateNoSilp(noSilp, kategori, noSipp) : null
 
   // Cek apakah token aktivasi sudah kedaluwarsa (3 hari)
   const isTokenExpired = Boolean(
@@ -88,74 +90,258 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     }
   }
 
-  // Load existing data
+  // Load existing data (riwayat isian sebelumnya lengkap)
   useEffect(() => {
-    let foundItem: TenagaAhli | null = null
+    let isMounted = true
+    setLoading(true)
 
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-      const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-      foundItem = list.find((d) => d.id === psikologId) || null
-    } catch {}
+    const loadData = async () => {
+      const cleanId = (effectiveId || "").trim()
+      const decodedId = decodeURIComponent(cleanId)
 
-    const applyData = (found: any) => {
-      setNama(found.nama || found.nama_gelar || "")
-      setEmail(found.email || found.account?.email || "")
-      setPassword(found.password || "")
-      setNoTelepon(found.noTelepon || found.account?.no_telepon || "")
-      if (found.tokenAktivasi || found.token_aktivasi) {
-        setActivationToken(found.tokenAktivasi || found.token_aktivasi)
-      }
-      if (found.tokenExpiredAt || found.token_expired_at) {
-        setTokenExpiredAt(found.tokenExpiredAt || found.token_expired_at)
-      }
-      const kat = (found.kategori || "").toLowerCase()
-      setKategori(
-        kat.includes("peer")
-          ? "peer-konselor"
-          : kat.includes("konselor")
-          ? "konselor"
-          : "psikolog"
+      // 1. Cek dulu di localStorage
+      let localData: any = null
+      try {
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
+        const list: any[] = saved ? JSON.parse(saved) : []
+        localData = list.find(
+          (d) =>
+            String(d.id).trim() === cleanId ||
+            String(d.id).trim() === decodedId ||
+            (d.account?.id && String(d.account.id).trim() === cleanId)
+        )
+      } catch {}
+
+      // 2. Cek di INITIAL_TENAGA_AHLI sebagai fallback data awal
+      const initialMatch = INITIAL_TENAGA_AHLI.find(
+        (d) =>
+          String(d.id).trim() === cleanId ||
+          String(d.id).trim() === decodedId ||
+          (d.email && localData?.email && d.email.toLowerCase() === localData.email.toLowerCase())
       )
-      setStatusAkses(found.statusAkses || (found.status === "INACTIVE" ? "NONAKTIF" : "AKTIF"))
-      setSpesialisasi(found.spesialisasi?.nama || found.spesialisasi || "")
-      setNoStr(found.noStr || found.no_str || "")
-      setNoSipp(found.noSipp || found.no_sipp || "")
-      setNoSilp(found.noSilp || found.no_silp || "")
-      setPendidikanText(found.pendidikanText || found.pendidikan || "")
-      setBio(found.bio || "")
-      setQuote(found.quote || "")
-      setInstagram(found.instagram || "")
-      setFoto(found.foto || null)
-      setKeahlian(
-        Array.isArray(found.keahlian)
-          ? found.keahlian
-          : typeof found.keahlian === "string"
-          ? found.keahlian.split(",").map((s: string) => s.trim())
-          : []
-      )
-      setJumlahSesi(found.jumlahSesi || found.jumlah_sesi || 0)
-      setTanggalBergabung(found.tanggalBergabung || "Terdaftar di DB")
-    }
 
-    if (foundItem) {
-      applyData(foundItem)
-      setLoading(false)
-    } else {
-      // Fallback: Fetch directly from backend DB by ID
-      psikologService
-        .getBySlug(psikologId)
-        .then((dbData: any) => {
-          if (dbData && (dbData.id || dbData.nama_gelar)) {
-            applyData(dbData)
-          } else {
-            setNotFound(true)
+      // 3. Coba fetch dari backend DB
+      let backendData: any = null
+      if (cleanId) {
+        try {
+          backendData = await psikologService.getBySlug(cleanId)
+        } catch {
+          try {
+            const allDb: any[] = await psikologService.getList({ status: "ALL" })
+            if (Array.isArray(allDb)) {
+              backendData = allDb.find(
+                (p) =>
+                  String(p.id).trim() === cleanId ||
+                  String(p.id).trim() === decodedId ||
+                  (p.account?.id && String(p.account.id).trim() === cleanId) ||
+                  (localData?.email && p.account?.email?.toLowerCase() === localData.email.toLowerCase()) ||
+                  (initialMatch?.email && p.account?.email?.toLowerCase() === initialMatch.email.toLowerCase())
+              )
+            }
+          } catch {}
+        }
+      }
+
+      if (!isMounted) return
+
+      const candidate = backendData || localData || initialMatch
+
+      if (!candidate) {
+        setNotFound(true)
+        setLoading(false)
+        return
+      }
+
+      const pick = (...vals: any[]) => {
+        for (const v of vals) {
+          if (v !== undefined && v !== null && String(v).trim() !== "") {
+            return v
           }
-        })
-        .catch(() => setNotFound(true))
-        .finally(() => setLoading(false))
+        }
+        return ""
+      }
+
+      const namaVal = pick(
+        backendData?.nama_gelar,
+        backendData?.account?.nama,
+        localData?.nama,
+        localData?.nama_gelar,
+        initialMatch?.nama
+      )
+
+      const emailVal = pick(
+        backendData?.account?.email,
+        backendData?.email,
+        localData?.email,
+        localData?.account?.email,
+        initialMatch?.email
+      )
+
+      const teleponVal = pick(
+        backendData?.account?.no_telepon,
+        backendData?.no_telepon,
+        localData?.noTelepon,
+        localData?.account?.no_telepon,
+        initialMatch?.noTelepon
+      )
+
+      const spesialisasiVal = pick(
+        backendData?.spesialisasi?.nama,
+        backendData?.spesialisasi,
+        localData?.spesialisasi,
+        initialMatch?.spesialisasi
+      )
+
+      const noStrVal = pick(
+        backendData?.no_str,
+        backendData?.noStr,
+        localData?.noStr,
+        localData?.no_str,
+        initialMatch?.noStr
+      )
+
+      const noSippVal = pick(
+        backendData?.no_sipp,
+        backendData?.noSipp,
+        localData?.noSipp,
+        localData?.no_sipp,
+        initialMatch?.noSipp
+      )
+
+      const noSilpVal = pick(
+        backendData?.no_silp,
+        backendData?.noSilp,
+        localData?.noSilp,
+        localData?.no_silp,
+        initialMatch?.noSilp
+      )
+
+      const pendidikanVal = pick(
+        backendData?.pendidikan,
+        backendData?.pendidikanText,
+        localData?.pendidikanText,
+        localData?.pendidikan,
+        initialMatch?.pendidikanText
+      )
+
+      const bioVal = pick(
+        backendData?.bio,
+        localData?.bio,
+        initialMatch?.bio
+      )
+
+      const quoteVal = pick(
+        backendData?.quote,
+        localData?.quote,
+        initialMatch?.quote
+      )
+
+      const instagramVal = pick(
+        backendData?.instagram,
+        localData?.instagram,
+        initialMatch?.instagram
+      )
+
+      const fotoVal = pick(
+        backendData?.foto,
+        backendData?.account?.foto,
+        localData?.foto,
+        initialMatch?.foto
+      )
+
+      const katRaw = pick(
+        backendData?.kategori,
+        localData?.kategori,
+        initialMatch?.kategori
+      ).toLowerCase()
+
+      const kategoriVal: KategoriTenaga = katRaw.includes("peer")
+        ? "peer-konselor"
+        : katRaw.includes("konselor")
+        ? "konselor"
+        : "psikolog"
+
+      const statusRaw = pick(
+        localData?.statusAkses,
+        backendData?.status === "INACTIVE" ? "NONAKTIF" : "AKTIF",
+        initialMatch?.statusAkses,
+        "AKTIF"
+      )
+      const statusAksesVal: StatusAkses = statusRaw === "NONAKTIF" ? "NONAKTIF" : "AKTIF"
+
+      let keahlianArr: string[] = []
+      const keahlianRaw = backendData?.keahlian || localData?.keahlian || initialMatch?.keahlian
+      if (Array.isArray(keahlianRaw)) {
+        keahlianArr = keahlianRaw
+      } else if (typeof keahlianRaw === "string" && keahlianRaw.trim()) {
+        keahlianArr = keahlianRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
+      }
+
+      const jumlahSesiVal =
+        typeof backendData?.jumlah_sesi === "number"
+          ? backendData.jumlah_sesi
+          : typeof localData?.jumlahSesi === "number"
+          ? localData.jumlahSesi
+          : initialMatch?.jumlahSesi ?? 0
+
+      const tokenAktivasiVal = pick(
+        backendData?.account?.token_aktivasi,
+        backendData?.token_aktivasi,
+        backendData?.tokenAktivasi,
+        localData?.tokenAktivasi,
+        initialMatch?.tokenAktivasi
+      )
+
+      const tokenExpiredVal = pick(
+        backendData?.account?.token_aktivasi_exp,
+        backendData?.token_expired_at,
+        backendData?.tokenExpiredAt,
+        localData?.tokenExpiredAt,
+        initialMatch?.tokenExpiredAt
+      )
+
+      const passwordVal = pick(
+        localData?.password,
+        initialMatch?.password,
+        "Psikolog123!"
+      )
+
+      const tanggalBergabungVal = pick(
+        localData?.tanggalBergabung,
+        initialMatch?.tanggalBergabung,
+        "Terdaftar di DB"
+      )
+
+      setNama(namaVal)
+      setEmail(emailVal)
+      setNoTelepon(teleponVal)
+      setPassword(passwordVal)
+      setKategori(kategoriVal)
+      setStatusAkses(statusAksesVal)
+      setSpesialisasi(spesialisasiVal)
+      setNoStr(noStrVal)
+      setNoSipp(noSippVal)
+      setNoSilp(noSilpVal)
+      setPendidikanText(pendidikanVal)
+      setBio(bioVal)
+      setQuote(quoteVal)
+      setInstagram(instagramVal)
+      setFoto(fotoVal || null)
+      setKeahlian(keahlianArr)
+      setJumlahSesi(jumlahSesiVal)
+      setTanggalBergabung(tanggalBergabungVal)
+      if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
+      if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
+
+      setLoading(false)
     }
-  }, [psikologId])
+
+    loadData()
+
+    return () => {
+      isMounted = false
+    }
+  }, [effectiveId])
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -773,11 +959,10 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Nomor SIPP (Surat Izin Praktik Psikologi) <span className="text-red-500">*</span>
+                  Nomor SIPP (Surat Izin Praktik Psikologi) {!noSilp && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="text"
-                  required={kategori === "psikolog"}
                   value={noSipp}
                   onChange={(e) => {
                     setNoSipp(e.target.value)
@@ -800,14 +985,14 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                   </p>
                 ) : (
                   <p className="text-[11px] text-purple-600/70 mt-1">
-                    Format resmi wajib diawali dengan &apos;SIPP&apos; (contoh: SIPP-1049-2024).
+                    Format diawali &apos;SIPP&apos;. Wajib jika Nomor SILP tidak diisi.
                   </p>
                 )}
               </div>
 
               <div className="sm:col-span-2 lg:col-span-1">
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Nomor SILP (Surat Izin Layanan Psikolog)
+                  Nomor SILP (Surat Izin Layanan Psikolog) {!noSipp && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="text"
@@ -833,7 +1018,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                   </p>
                 ) : (
                   <p className="text-[11px] text-purple-600/70 mt-1">
-                    Format resmi diawali dengan &apos;SILP&apos; (contoh: SILP-2024-001).
+                    Format diawali &apos;SILP&apos;. Wajib jika Nomor SIPP tidak diisi.
                   </p>
                 )}
               </div>

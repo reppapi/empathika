@@ -13,19 +13,40 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const [isMounted, setIsMounted] = useState<boolean>(false)
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false)
 
+  // Stabilkan dependensi allowedRoles agar tidak memicu re-running di setiap re-render
+  const rolesKey = allowedRoles ? allowedRoles.slice().sort().join(",") : ""
+
   useEffect(() => {
     setIsMounted(true)
 
     // 1. Cek token di localStorage dan Cookie
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+    let token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
 
-    // Helper cek cookie access_token
-    const hasTokenCookie = typeof document !== "undefined" && document.cookie
-      .split(";")
-      .some((item) => item.trim().startsWith("access_token="))
+    // Cek keberadaan nilai cookie access_token yang tidak kosong
+    let cookieToken: string | null = null
+    if (typeof document !== "undefined") {
+      const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)
+      if (match && match[1] && match[1].trim() !== "") {
+        cookieToken = decodeURIComponent(match[1].trim())
+      }
+    }
 
-    if (!token && !hasTokenCookie) {
-      // Jika tidak ada token sama sekali, paksa redirect ke /login
+    // Dual-Sync: jika ada di cookie tapi belum ada di localStorage, sinkronkan
+    if (!token && cookieToken) {
+      token = cookieToken
+      try {
+        localStorage.setItem("access_token", cookieToken)
+      } catch {}
+    }
+
+    // Dual-Sync: jika ada di localStorage tapi cookie hilang (idle/fresh load), pulihkan cookie
+    if (token && !cookieToken && typeof document !== "undefined") {
+      document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax`
+      cookieToken = token
+    }
+
+    if (!token && !cookieToken) {
+      // Jika benar-benar tidak ada token, baru redirect ke /login
       router.replace("/login")
       return
     }
@@ -33,12 +54,16 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     // 2. Jika ada pembatasan role tertentu, cek data di authStore / localStorage
     if (allowedRoles && allowedRoles.length > 0) {
       try {
-        const authDataStr = localStorage.getItem("empathika-auth")
+        const authDataStr = typeof window !== "undefined" ? localStorage.getItem("empathika-auth") : null
         if (authDataStr) {
           const authData = JSON.parse(authDataStr)
           const userRole = authData?.state?.user?.role
-          if (userRole && !allowedRoles.includes(userRole)) {
-            // Role tidak sesuai
+
+          // Superadmin handling: Akun ADMIN memiliki izin memantau portal psikolog dan biro
+          const isSuperAdmin = userRole === "ADMIN"
+
+          if (userRole && !allowedRoles.includes(userRole) && !isSuperAdmin) {
+            // Role tidak sesuai dan bukan superadmin
             router.replace("/login")
             return
           }
@@ -49,7 +74,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     }
 
     setIsAuthorized(true)
-  }, [router, allowedRoles])
+  }, [router, rolesKey])
 
   // Jangan render apapun sebelum mounted di client untuk menghindari perbedaan DOM dengan SSR (Hydration error)
   if (!isMounted || !isAuthorized) {

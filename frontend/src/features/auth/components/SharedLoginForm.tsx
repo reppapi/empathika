@@ -42,7 +42,7 @@ export function LoginForm() {
         if (response.success && response.data?.accessToken) {
           const { user, accessToken } = response.data;
 
-          document.cookie = `access_token=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `access_token=${accessToken}; path=/; max-age=604800; SameSite=Lax`;
           localStorage.setItem("access_token", accessToken);
 
           setAuth(
@@ -80,7 +80,8 @@ export function LoginForm() {
       trimmedInput.toLowerCase() === DUMMY_ADMIN.email.toLowerCase() &&
       trimmedPass === DUMMY_ADMIN.password
     ) {
-      document.cookie = "access_token=dummy-admin-token; path=/; max-age=86400";
+      document.cookie = "access_token=dummy-admin-token; path=/; max-age=604800; SameSite=Lax";
+      localStorage.setItem("access_token", "dummy-admin-token");
       setAuth(
         { id: "1", name: "Admin Empathika", email: trimmedInput, role: "ADMIN" },
         "dummy-admin-token"
@@ -95,7 +96,8 @@ export function LoginForm() {
       trimmedInput.toLowerCase() === DUMMY_BIRO.email.toLowerCase() &&
       trimmedPass === DUMMY_BIRO.password
     ) {
-      document.cookie = "access_token=dummy-biro-token; path=/; max-age=86400";
+      document.cookie = "access_token=dummy-biro-token; path=/; max-age=604800; SameSite=Lax";
+      localStorage.setItem("access_token", "dummy-biro-token");
       setAuth(
         { id: "3", name: "Admin Biro Cendekia Muda", email: trimmedInput, role: "BIRO" },
         "dummy-biro-token"
@@ -118,7 +120,8 @@ export function LoginForm() {
 
         if (matched) {
           const psikologName = matched.nama_gelar || matched.account?.nama || "Psikolog Empathika";
-          document.cookie = "access_token=dummy-psikolog-token; path=/; max-age=86400";
+          document.cookie = "access_token=dummy-psikolog-token; path=/; max-age=604800; SameSite=Lax";
+          localStorage.setItem("access_token", "dummy-psikolog-token");
           localStorage.setItem("active_psikolog_id", matched.id);
           localStorage.setItem("active_psikolog_name", psikologName);
 

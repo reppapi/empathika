@@ -13,6 +13,7 @@ export interface JadwalSlotItem {
   jam_mulai: string
   jam_selesai: string
   label_waktu: string
+  metode?: "Online" | "Offline" | "Keduanya" | string
   status: "TERSEDIA" | "SUDAH_DIBOOKING" | "TIDAK_TERSEDIA"
   tipe_jadwal: "KONSULTASI" | "ASESMEN"
 }
@@ -40,6 +41,7 @@ export const psikologService = {
     jam_mulai: string
     jam_selesai: string
     tipe_jadwal?: string
+    metode?: string
   }) => apiClient.post("/psikolog/me/jadwal-slots", payload).then((r) => r.data),
 
   deleteJadwalSlot: (slotId: string) =>

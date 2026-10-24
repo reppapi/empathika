@@ -76,6 +76,7 @@ export default function JadwalClient() {
     const fetchSlots = async () => {
       setIsLoadingSlots(true)
 
+      // 1. Ambil slot dari Backend API (jika ada)
       let apiSlots: JadwalSlotItem[] = []
       try {
         apiSlots =
@@ -88,41 +89,106 @@ export default function JadwalClient() {
         apiSlots = []
       }
 
-      // Baca juga slot yang baru saja dibuka oleh psikolog dari localStorage
-      let localSlots: JadwalSlotItem[] = []
+      // 2. Ambil seluruh slot dari LocalStorage (yang dibuka oleh psikolog)
+      let allCustomSlots: any[] = []
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots")
         if (raw) {
-          const allSlots = JSON.parse(raw)
-          // Bersihkan slot default admin jika ada tersimpan
-          const sanitized = Array.isArray(allSlots)
-            ? allSlots.filter((s: any) => s.id_psikolog !== "psikolog-default-id" && s.tipe_jadwal !== "ASESMEN")
-            : []
-          if (sanitized.length !== allSlots.length) {
-            localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(sanitized))
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            allCustomSlots = parsed
           }
-          localSlots = sanitized.filter(
-            (s: any) =>
-              s.tanggal === dateKey &&
-              s.tipe_jadwal === "KONSULTASI" &&
-              (!psikologIdParam || s.id_psikolog === psikologIdParam)
-          )
         }
       } catch {}
 
-      // Gabungkan hasil API dan LocalStorage (dedupe berdasarkan jam_mulai)
-      const mergedMap = new Map<string, JadwalSlotItem>()
-      apiSlots.forEach((s) => mergedMap.set(s.jam_mulai, s))
-      localSlots.forEach((s) => mergedMap.set(s.jam_mulai, s))
+      // Buat lookup metadata (terutama 'metode') berdasarkan tanggal dan jam_mulai (5 karakter HH:mm)
+      const localMetaMap = new Map<string, any>()
+      allCustomSlots.forEach((s: any) => {
+        const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
+        if (s.tanggal && timeKey) {
+          localMetaMap.set(`${s.tanggal}_${timeKey}`, s)
+        }
+        if (s.label_waktu) {
+          localMetaMap.set(`${s.tanggal}_${s.label_waktu}`, s)
+        }
+        if (s.id) {
+          localMetaMap.set(s.id, s)
+        }
+      })
 
-      const combined = Array.from(mergedMap.values()).sort((a, b) =>
-        a.jam_mulai.localeCompare(b.jam_mulai)
-      )
+      // 3. Kumpulkan kandidat slot untuk tanggal & psikolog yang sesuai
+      const candidateSlotsMap = new Map<string, JadwalSlotItem>()
 
-      setAvailableSlots(combined)
-      if (combined.length > 0) {
-        setWaktu(combined[0].jam_mulai)
-        setSelectedSlotId(combined[0].id)
+      // A. Masukkan slot API, diperkaya dengan metode dari localStorage
+      apiSlots.forEach((slot) => {
+        const timeKey = (slot.jam_mulai || "").trim().substring(0, 5)
+        const localMeta =
+          localMetaMap.get(`${slot.tanggal}_${timeKey}`) ||
+          (slot.id ? localMetaMap.get(slot.id) : null)
+
+        const effectiveMetode = slot.metode || localMeta?.metode || "Keduanya"
+        candidateSlotsMap.set(timeKey, {
+          ...slot,
+          jam_mulai: timeKey,
+          jam_selesai: (slot.jam_selesai || "").trim().substring(0, 5),
+          metode: effectiveMetode,
+        })
+      })
+
+      // B. Masukkan slot dari LocalStorage yang relevan dengan tanggal & psikolog
+      allCustomSlots
+        .filter((s: any) => {
+          const matchDate = s.tanggal === dateKey
+          const matchType = !s.tipe_jadwal || s.tipe_jadwal === "KONSULTASI"
+          const matchPsi =
+            !psikologIdParam ||
+            s.id_psikolog === psikologIdParam ||
+            s.id_psikolog === "psikolog-default-id" ||
+            s.id_psikolog === "1" ||
+            (selectedPsikolog &&
+              (s.nama_psikolog === selectedPsikolog.nama_gelar ||
+                s.nama_psikolog === selectedPsikolog.nama ||
+                s.nama_psikolog === selectedPsikolog.account?.nama))
+          return matchDate && matchType && matchPsi
+        })
+        .forEach((s: any) => {
+          const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
+          candidateSlotsMap.set(timeKey, {
+            ...s,
+            jam_mulai: timeKey,
+            jam_selesai: (s.jam_selesai || "").trim().substring(0, 5),
+          })
+        })
+
+      // 4. FILTER KETAT berdasarkan metode yang dipilih klien (Online / Offline)
+      const targetMetode = metode.toLowerCase()
+      const matchingSlots: JadwalSlotItem[] = []
+
+      candidateSlotsMap.forEach((slot) => {
+        const slotMetode = (slot.metode || "Keduanya").toLowerCase()
+        const isMatch =
+          slotMetode === "keduanya" ||
+          slotMetode === "online & offline" ||
+          slotMetode === "semua" ||
+          slotMetode === targetMetode
+
+        if (isMatch) {
+          matchingSlots.push(slot)
+        }
+      })
+
+      matchingSlots.sort((a, b) => a.jam_mulai.localeCompare(b.jam_mulai))
+      setAvailableSlots(matchingSlots)
+
+      if (matchingSlots.length > 0) {
+        const stillValid = matchingSlots.find((s) => s.jam_mulai === waktu)
+        if (stillValid) {
+          setWaktu(stillValid.jam_mulai)
+          setSelectedSlotId(stillValid.id)
+        } else {
+          setWaktu(matchingSlots[0].jam_mulai)
+          setSelectedSlotId(matchingSlots[0].id)
+        }
       } else {
         setWaktu(null)
         setSelectedSlotId(null)
@@ -140,7 +206,7 @@ export default function JadwalClient() {
       window.removeEventListener("focus", fetchSlots)
       window.removeEventListener("storage", fetchSlots)
     }
-  }, [date, psikologIdParam])
+  }, [date, psikologIdParam, metode])
 
   const selectedSlot = availableSlots.find((s) => s.jam_mulai === waktu)
   const activePsikologName =
@@ -417,7 +483,7 @@ export default function JadwalClient() {
                     ))}
                   </div>
                   <p className="text-[11px] text-gray-400 italic text-center">
-                    Belum ada slot waktu yang dibuka pada tanggal ini.
+                    Belum ada slot waktu {metode} yang dibuka pada tanggal ini.
                   </p>
                 </div>
               )}

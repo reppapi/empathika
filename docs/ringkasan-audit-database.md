@@ -156,7 +156,13 @@ classDiagram
         +string bio
         +string alamat
         +string link_maps
+        +string instagram
+        +string tiktok
+        +string youtube
+        +string linkedin
         +boolean aktif
+        +string token_aktivasi
+        +dateTime token_aktivasi_exp
         +string id_biro_FK
         +dateTime createdAt
         +dateTime updatedAt
@@ -226,6 +232,7 @@ classDiagram
         +string nama_gelar
         +string no_str
         +string no_sipp
+        +string no_silp
         +string pendidikan
         +string pengalaman_tahun
         +string quote
@@ -362,6 +369,8 @@ classDiagram
         +float harga
         +string banner_url
         +string deskripsi
+        +string status
+        +json benefits
         +dateTime createdAt
         +dateTime updatedAt
         +tampilkanDetail()
