@@ -312,30 +312,6 @@ export default function ModalDetailSesiKlien({
 
           {session.status !== "Selesai" && session.status !== "Dibatalkan" && session.status !== "Dibatalkan (Refund)" && (
             <>
-              {onRefundClick && (
-                <button
-                  type="button"
-                  disabled={!session.canRefund}
-                  onClick={() => {
-                    if (session.canRefund) {
-                      onRefundClick(session)
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
-                    session.canRefund
-                      ? "border border-amber-300 text-amber-700 hover:bg-amber-50 cursor-pointer"
-                      : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
-                  }`}
-                  title={
-                    session.canRefund
-                      ? "Proses refund 100% untuk klien"
-                      : "Refund nonaktif (sudah lewat H-1 atau tidak memenuhi syarat)"
-                  }
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Refund (H-1)
-                </button>
-              )}
 
               {/* Tombol Batalkan Sesi: HANYA untuk jadwal sebelum hari H */}
               {isCancellable && (

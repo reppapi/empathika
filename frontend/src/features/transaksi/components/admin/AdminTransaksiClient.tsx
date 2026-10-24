@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { transaksiService } from "@/services/transaksi.service"
+import { invoiceService } from "@/services/invoice.service"
 import { AlertCircle, RotateCcw, X, DollarSign } from "lucide-react"
 
 type JenisLayanan = "semua" | "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
@@ -39,12 +40,20 @@ function ModalRefundTransaksi({
 
   if (!transaksi) return null
 
+  const nominal = Number(
+    transaksi.total ??
+    transaksi.jumlah ??
+    transaksi.total_harga ??
+    transaksi.subtotal ??
+    0
+  )
+
   const nominalStr = new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     maximumFractionDigits: 0,
     minimumFractionDigits: 0,
-  }).format(transaksi.jumlah || transaksi.total_harga || 0)
+  }).format(nominal)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,14 +73,20 @@ function ModalRefundTransaksi({
     }
   }
 
+  const booking = transaksi.booking_konsultasi || transaksi.booking || {}
+  const client = transaksi.client || transaksi.user || transaksi.klien || {}
+  const layanan = booking.layanan || {}
+
   const klienName =
-    transaksi.user?.name ||
+    client.nama ||
+    client.name ||
     transaksi.nama_klien ||
     transaksi.nama_user ||
     "Klien"
 
   const layananName =
-    transaksi.booking?.layanan?.nama_layanan ||
+    layanan.nama ||
+    layanan.nama_layanan ||
     transaksi.nama_layanan ||
     transaksi.layanan ||
     "-"
@@ -116,7 +131,7 @@ function ModalRefundTransaksi({
             </div>
             <div className="flex justify-between items-center text-gray-600">
               <span className="font-medium">Order ID</span>
-              <span className="font-bold text-gray-900">{transaksi.order_id || transaksi.id?.slice(0, 8)?.toUpperCase() || "-"}</span>
+              <span className="font-bold text-gray-900">{transaksi.kode_transaksi || transaksi.order_id || transaksi.id?.slice(0, 8)?.toUpperCase() || "-"}</span>
             </div>
             <div className="flex justify-between items-center text-gray-600">
               <span className="flex items-center gap-1.5 font-medium">
@@ -189,18 +204,20 @@ function ModalRefundTransaksi({
 
 // ── Helper: normalize Prisma API response → display shape ──
 function normalizeTransaksi(raw: any) {
-  const booking = raw.booking || {}
-  const user = raw.user || raw.klien || {}
+  const booking = raw.booking_konsultasi || raw.booking || {}
+  const client = raw.client || raw.user || raw.klien || {}
   const layanan = booking.layanan || {}
-  const psikolog = booking.psikolog || {}
-  const jadwal = booking.jadwal_slot || booking.jadwal || {}
+  const jadwal = booking.jadwal || booking.jadwal_slot || {}
+  const psikolog = jadwal.psikolog || booking.psikolog || {}
+  const psikologAccount = psikolog.account || {}
 
-  const jenisRaw = (layanan.kategori || layanan.jenis_layanan || "konseling")
+  const jenisRaw = (layanan.kategori || raw.tipe_transaksi || "konseling")
     .toLowerCase()
     .replace(/_/g, " ")
 
   const jenisMap: Record<string, JenisLayanan> = {
     konseling: "konseling",
+    konsultasi: "konseling",
     psikotes: "psikotes",
     "pelatihan peer helper": "pelatihan peer helper",
     event: "event",
@@ -229,23 +246,60 @@ function normalizeTransaksi(raw: any) {
     status = "Menunggu Pembayaran"
   }
 
-  const createdAt = raw.created_at ? new Date(raw.created_at) : new Date()
+  const createdAt = raw.createdAt || raw.created_at ? new Date(raw.createdAt || raw.created_at) : new Date()
   const tanggalTransaksi = createdAt.toISOString().split("T")[0]
 
-  const jadwalDate = jadwal.tanggal ? new Date(jadwal.tanggal + "T00:00:00") : null
-  const jadwalDisplay = jadwalDate
-    ? jadwalDate.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" }) +
-      (jadwal.jam_mulai ? `, ${jadwal.jam_mulai}` : "") +
-      (jadwal.jam_selesai ? ` - ${jadwal.jam_selesai}` : "")
-    : "-"
+  let jadwalDisplay = "-"
+  if (jadwal.tanggal) {
+    const jd = new Date(jadwal.tanggal)
+    const tglStr = jd.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
+    let jamMulai = ""
+    let jamSelesai = ""
+    if (jadwal.jam_mulai) {
+      if (typeof jadwal.jam_mulai === "string" && jadwal.jam_mulai.includes(":")) {
+        jamMulai = jadwal.jam_mulai.slice(0, 5)
+      } else {
+        const d = new Date(jadwal.jam_mulai)
+        jamMulai = d.toISOString().slice(11, 16)
+      }
+    }
+    if (jadwal.jam_selesai) {
+      if (typeof jadwal.jam_selesai === "string" && jadwal.jam_selesai.includes(":")) {
+        jamSelesai = jadwal.jam_selesai.slice(0, 5)
+      } else {
+        const d = new Date(jadwal.jam_selesai)
+        jamSelesai = d.toISOString().slice(11, 16)
+      }
+    }
+    const jamStr = jamMulai && jamSelesai ? `, ${jamMulai} - ${jamSelesai} WIB` : jamMulai ? `, ${jamMulai} WIB` : ""
+    jadwalDisplay = `${tglStr}${jamStr}`
+  }
 
-  const total = Number(raw.jumlah || raw.total_harga || raw.nominal || 0)
+  const total = Number(raw.total || raw.jumlah || raw.total_harga || raw.nominal || 0)
   const biaya = Number(raw.biaya_admin || raw.biaya_layanan || 0)
-  const subtotal = total - biaya
+  const subtotal = Number(raw.subtotal || (total - biaya) || 0)
+
+  const psikologName =
+    psikolog.nama_gelar ||
+    psikologAccount.nama ||
+    psikolog.nama ||
+    psikolog.name ||
+    undefined
+
+  const paidAt = raw.tanggal_bayar || raw.paid_at
+  const waktuPembayaran = paidAt
+    ? new Date(paidAt).toLocaleString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }) + " WIB"
+    : undefined
 
   return {
     id: raw.id,
-    orderId: raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-",
+    orderId: raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-",
     orderDate: createdAt.toLocaleString("id-ID", {
       day: "2-digit",
       month: "short",
@@ -253,31 +307,20 @@ function normalizeTransaksi(raw: any) {
       hour: "2-digit",
       minute: "2-digit",
     }) + " WIB",
-    clientName: user.name || user.nama || "–",
-    clientEmail: user.email || "–",
-    clientPhone: user.no_hp || user.phone || "–",
+    clientName: client.nama || client.name || "–",
+    clientEmail: client.email || "–",
+    clientPhone: client.no_telepon || client.no_hp || client.phone || "–",
     jenisLayanan,
-    namaLayanan: layanan.nama_layanan || layanan.nama || "–",
-    psikologOrFasilitator:
-      psikolog.name ||
-      psikolog.nama ||
-      (booking.psikolog_id ? `Psikolog #${booking.psikolog_id}` : undefined),
+    namaLayanan: layanan.nama || layanan.nama_layanan || "–",
+    psikologOrFasilitator: psikologName,
     jadwal: jadwalDisplay,
     status,
     subtotal,
     biayaLayanan: biaya,
     totalBayar: total,
     metodePembayaran:
-      raw.metode_pembayaran || raw.payment_type || raw.channel || "–",
-    waktuPembayaran: raw.paid_at
-      ? new Date(raw.paid_at).toLocaleString("id-ID", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }) + " WIB"
-      : undefined,
+      raw.channel_pembayaran || raw.metode_pembayaran || raw.payment_type || "–",
+    waktuPembayaran,
     tanggalTransaksi,
     // raw for refund
     _raw: raw,
@@ -394,15 +437,24 @@ export default function AdminTransaksiClient() {
     triggerToast("Refund berhasil diproses.", "success")
   }
 
-  // Invoice send handler
-  const handleSendInvoice = (item: ReturnType<typeof normalizeTransaksi>) => {
-    const phone = item.clientPhone
-      .replace(/[^0-9]/g, "")
-      .replace(/^0/, "62")
-    const text = encodeURIComponent(
-      `Halo ${item.clientName},\n\nTerima kasih atas kepercayaan Anda kepada Empathika.\nBerikut rincian invoice transaksi Anda:\n- Order ID: ${item.orderId}\n- Layanan: ${item.namaLayanan}\n- Total Bayar: Rp. ${item.totalBayar.toLocaleString("id-ID")}\n- Status: ${item.status}\n\nUntuk informasi lebih lanjut, hubungi kami di 081234567890.\n\nSalam hangat,\nTim Empathika`
-    )
-    window.open(`https://wa.me/${phone}?text=${text}`, "_blank")
+  // Invoice send handler - menggunakan modul Invoice backend dengan teks template resmi Empathika
+  const handleSendInvoice = async (item: ReturnType<typeof normalizeTransaksi>) => {
+    try {
+      // Panggil backend invoice service untuk generate invoice dan format teks resmi
+      const res = await invoiceService.getWaUrl(item.id)
+      if (res?.url) {
+        window.open(res.url, "_blank")
+        // Tandai sudah terkirim di background
+        try {
+          await invoiceService.markSent(item.id)
+        } catch {
+          // ignore mark-sent non-critical failure
+        }
+        triggerToast("Invoice WhatsApp berhasil disiapkan & dibuka.", "success")
+      }
+    } catch (err: any) {
+      triggerToast(err?.response?.data?.message || err?.message || "Gagal membuat invoice WhatsApp", "danger")
+    }
   }
 
   // Month label for select

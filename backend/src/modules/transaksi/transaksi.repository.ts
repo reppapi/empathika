@@ -11,7 +11,11 @@ export class TransaksiRepository {
           include: {
             layanan: true,
             jadwal: {
-              include: { psikolog: true },
+              include: {
+                psikolog: {
+                  include: { account: true },
+                },
+              },
             },
           },
         },
@@ -30,7 +34,11 @@ export class TransaksiRepository {
           include: {
             layanan: true,
             jadwal: {
-              include: { psikolog: true },
+              include: {
+                psikolog: {
+                  include: { account: true },
+                },
+              },
             },
           },
         },

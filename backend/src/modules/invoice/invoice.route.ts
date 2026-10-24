@@ -6,8 +6,13 @@
 // =====================================================================
 
 import type { FastifyInstance } from 'fastify'
+import { z } from 'zod'
 import { InvoiceController } from './invoice.controller'
 import { adminGuard } from '../../middlewares/admin-guard'
+
+const invoiceTransaksiParamSchema = z.object({
+  transaksiId: z.string(),
+})
 
 export default async function invoiceRoutes(fastify: FastifyInstance) {
   const controller = new InvoiceController(fastify)
@@ -21,11 +26,7 @@ export default async function invoiceRoutes(fastify: FastifyInstance) {
       tags: ['Invoice'],
       summary: 'Ambil/terbitkan invoice untuk transaksi (lazy generate, idempotent)',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { transaksiId: { type: 'string' } },
-        required: ['transaksiId'],
-      },
+      params: invoiceTransaksiParamSchema,
     },
     handler: controller.getOrCreate,
   })
@@ -39,11 +40,7 @@ export default async function invoiceRoutes(fastify: FastifyInstance) {
       tags: ['Invoice'],
       summary: 'Dapatkan URL wa.me dengan teks invoice ter-URL-encode',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { transaksiId: { type: 'string' } },
-        required: ['transaksiId'],
-      },
+      params: invoiceTransaksiParamSchema,
     },
     handler: controller.getWaUrl,
   })
@@ -57,11 +54,7 @@ export default async function invoiceRoutes(fastify: FastifyInstance) {
       tags: ['Invoice'],
       summary: 'Tandai invoice sudah dikirim ke WhatsApp klien',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { transaksiId: { type: 'string' } },
-        required: ['transaksiId'],
-      },
+      params: invoiceTransaksiParamSchema,
     },
     handler: controller.markSent,
   })
