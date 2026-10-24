@@ -25,7 +25,6 @@ interface ModalDetailSesiKlienProps {
   session: ClientSessionToday | null
   onClose: () => void
   onCancelClick: (session: ClientSessionToday) => void
-  onRefundClick?: (session: ClientSessionToday) => void
   onMarkCompleted: (id: string, namaKlien: string) => void
   onCopyWhatsApp: (session: ClientSessionToday) => void
 }
@@ -34,7 +33,6 @@ export default function ModalDetailSesiKlien({
   session,
   onClose,
   onCancelClick,
-  onRefundClick,
   onMarkCompleted,
   onCopyWhatsApp,
 }: ModalDetailSesiKlienProps) {

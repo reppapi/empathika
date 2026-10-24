@@ -74,8 +74,8 @@ export class InvoiceService {
       throw err
     }
 
-    // 3. Validasi: hanya transaksi yang sudah PAID yang bisa diterbitkan
-    if (transaksi.status_pembayaran !== 'PAID') {
+    // 3. Validasi: jika belum ada invoice, hanya transaksi yang sudah PAID (atau pernah PAID lalu REFUNDED) yang bisa diterbitkan
+    if (transaksi.status_pembayaran !== 'PAID' && transaksi.status_pembayaran !== 'REFUNDED') {
       const err: any = new Error(
         'Invoice hanya dapat diterbitkan untuk transaksi yang sudah dibayar (status PAID).'
       )
@@ -180,6 +180,17 @@ export class InvoiceService {
     invoice: any
   }> {
     const invoice = await this.getOrCreateInvoice(transaksiId)
+
+    // Cek status transaksi: jika REFUNDED, tombol kirim tidak diizinkan
+    const trx = await this.fastify.prisma.transaksi.findUnique({
+      where: { id: transaksiId },
+      select: { status_pembayaran: true },
+    })
+    if (trx?.status_pembayaran === 'REFUNDED') {
+      const err: any = new Error('Invoice tidak dapat dikirim untuk transaksi yang sudah dibatalkan/direfund.')
+      err.statusCode = 422
+      throw err
+    }
 
     const waValidation = validateWhatsAppNumber(invoice!.no_wa_client)
     if (!waValidation.valid) {
