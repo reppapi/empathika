@@ -41,7 +41,6 @@ export class TransaksiService {
       statusPembayaran: result.transaksi.status_pembayaran,
       refundAt: result.transaksi.refund_at,
       refundReason: result.transaksi.refund_reason,
-      refundByAdmin: result.transaksi.refund_by_admin,
       booking: result.booking
         ? {
             id: result.booking.id,

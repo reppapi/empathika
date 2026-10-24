@@ -545,7 +545,6 @@ export class BookingRepository {
             status_pembayaran: 'REFUNDED',
             refund_at: new Date(),
             refund_reason: params.alasan,
-            refund_by_admin: params.adminName,
             refund_amount: refundAmount,
           },
         })
@@ -562,7 +561,6 @@ export class BookingRepository {
             status_pembayaran: 'REFUNDED',
             refund_at: new Date(),
             refund_reason: params.alasan,
-            refund_by_admin: params.adminName,
             refund_amount: refundAmount,
           },
         })
