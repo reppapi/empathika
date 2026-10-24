@@ -3,8 +3,30 @@
 import { useState, useRef, useEffect } from "react"
 import { useAuthStore } from "@/store/authStore"
 import { psikologService } from "@/services/psikolog.service"
+import { PSIKOLOG_SHARE, formatRupiahPendapatan } from "@/config/constants"
 
-const AGENDA_HARI_INI = [
+// Tipe data sesi agenda beranda psikolog
+export interface SesiAgendaItem {
+  id: string
+  waktuMulai: string
+  waktuSelesai: string
+  metode: string
+  namaKlien: string
+  keluhan: string
+  layanan: string
+  hargaPenuh?: number | null
+  pendapatanPsikolog?: number | null
+  isRefunded?: boolean
+  statusSesi?: string
+}
+
+export interface AgendaGrupTanggal {
+  tanggal: string
+  sesi: SesiAgendaItem[]
+}
+
+// Data mock default / fallback dengan rincian pendapatan & status refund
+const DEFAULT_AGENDA_HARI_INI: SesiAgendaItem[] = [
   {
     id: "a1",
     waktuMulai: "08:00",
@@ -13,6 +35,10 @@ const AGENDA_HARI_INI = [
     namaKlien: "Karen Sya",
     keluhan: '"Stress terhadap pekerjaan yang gaada beresnya"',
     layanan: "Konseling Pribadi",
+    hargaPenuh: 200000,
+    pendapatanPsikolog: Math.round(200000 * PSIKOLOG_SHARE), // Rp120.000
+    isRefunded: false,
+    statusSesi: "CONFIRMED",
   },
   {
     id: "a2",
@@ -22,10 +48,14 @@ const AGENDA_HARI_INI = [
     namaKlien: "Karen Sya",
     keluhan: '"Stress terhadap pekerjaan yang gaada beresnya"',
     layanan: "Konseling Pribadi",
+    hargaPenuh: 200000,
+    pendapatanPsikolog: Math.round(200000 * PSIKOLOG_SHARE), // Rp120.000
+    isRefunded: false,
+    statusSesi: "CONFIRMED",
   },
 ]
 
-const AGENDA_BERIKUTNYA = [
+const DEFAULT_AGENDA_BERIKUTNYA: AgendaGrupTanggal[] = [
   {
     tanggal: "03-09-2026",
     sesi: [
@@ -37,6 +67,23 @@ const AGENDA_BERIKUTNYA = [
         namaKlien: "Karen Sya",
         keluhan: '"Stress terhadap pekerjaan yang gaada beresnya"',
         layanan: "Konseling Pribadi",
+        hargaPenuh: 200000,
+        pendapatanPsikolog: Math.round(200000 * PSIKOLOG_SHARE),
+        isRefunded: false,
+        statusSesi: "CONFIRMED",
+      },
+      {
+        id: "b1-refund",
+        waktuMulai: "10:30",
+        waktuSelesai: "11:30",
+        metode: "Online",
+        namaKlien: "Rendi Pratama",
+        keluhan: '"Permohonan refund jadwal H-1 karena dinas luar kota"',
+        layanan: "Konseling Karir",
+        hargaPenuh: 200000,
+        pendapatanPsikolog: null,
+        isRefunded: true,
+        statusSesi: "CANCELLED",
       },
     ],
   },
@@ -51,23 +98,50 @@ const AGENDA_BERIKUTNYA = [
         namaKlien: "Karen Sya",
         keluhan: '"Stress terhadap pekerjaan yang gaada beresnya"',
         layanan: "Konseling Pribadi",
+        hargaPenuh: 0, // Kasus harga kosong/0 -> tampilkan "-"
+        pendapatanPsikolog: 0,
+        isRefunded: false,
+        statusSesi: "CONFIRMED",
       },
     ],
   },
 ]
 
-function SesiCard({ waktuMulai, waktuSelesai, metode, namaKlien, keluhan, layanan }: {
-  waktuMulai: string
-  waktuSelesai: string
-  metode: string
-  namaKlien: string
-  keluhan: string
-  layanan: string
-}) {
+export function SesiCard({
+  waktuMulai,
+  waktuSelesai,
+  metode,
+  namaKlien,
+  keluhan,
+  layanan,
+  pendapatanPsikolog,
+  hargaPenuh,
+  isRefunded,
+  statusSesi,
+}: SesiAgendaItem) {
+  // Aturan Bisnis Bagian 1:
+  // 1. Tampilkan HANYA bagian Psikolog (60%).
+  // 2. Format: "Pendapatan Anda: Rp120.000".
+  // 3. Intl.NumberFormat("id-ID") dibulatkan tanpa desimal.
+  // 4. Jika harga kosong, null, atau 0 -> tampilkan "-" bukan "Rp0" atau NaN.
+  // 5. Jika refund/dibatalkan -> JANGAN tampilkan nominal. Ganti label status "Dibatalkan (Refund)".
+  const isCanceledOrRefunded =
+    isRefunded ||
+    statusSesi === "CANCELLED" ||
+    statusSesi === "REFUNDED" ||
+    statusSesi === "Dibatalkan (Refund)"
+
+  let nominalKalkulasi = pendapatanPsikolog
+  if (nominalKalkulasi === undefined && hargaPenuh !== undefined && hargaPenuh !== null && hargaPenuh > 0) {
+    nominalKalkulasi = Math.round(hargaPenuh * PSIKOLOG_SHARE)
+  }
+
+  const formattedPendapatan = formatRupiahPendapatan(nominalKalkulasi)
+
   return (
     <div className="relative flex flex-col gap-1 rounded-xl border border-gray-200 bg-white p-4 pl-5 overflow-hidden">
       {/* Garis ungu kiri */}
-      <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#561269]" />
+      <div className={`absolute left-0 top-0 bottom-0 w-[4px] ${isCanceledOrRefunded ? "bg-gray-400" : "bg-[#561269]"}`} />
 
       {/* Baris Waktu + Metode */}
       <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
@@ -84,8 +158,24 @@ function SesiCard({ waktuMulai, waktuSelesai, metode, namaKlien, keluhan, layana
       {/* Garis pemisah */}
       <div className="h-[1px] w-full bg-gray-100 mt-1" />
 
-      {/* Layanan */}
-      <p className="text-xs italic text-gray-500 text-right">{layanan}</p>
+      {/* Baris Informasi Transaksi (Hanya Bagian Psikolog 60%) & Layanan */}
+      <div className="flex items-center justify-between pt-0.5 text-xs">
+        <div>
+          {isCanceledOrRefunded ? (
+            <span className="text-xs font-semibold text-gray-500">
+              Dibatalkan (Refund)
+            </span>
+          ) : (
+            <span className="font-semibold text-gray-700">
+              Pendapatan Anda:{" "}
+              <strong className="font-bold text-gray-900">
+                {formattedPendapatan}
+              </strong>
+            </span>
+          )}
+        </div>
+        <p className="italic text-gray-500 text-right">{layanan}</p>
+      </div>
     </div>
   )
 }
@@ -97,6 +187,11 @@ export default function PsikologBerandaClient() {
   const { user } = useAuthStore()
   const [psikologName, setPsikologName] = useState<string>("Psikolog Empathika")
 
+  // State Agenda Riwayat Sesi
+  const [agendaHariIni, setAgendaHariIni] = useState<SesiAgendaItem[]>(DEFAULT_AGENDA_HARI_INI)
+  const [agendaBerikutnya, setAgendaBerikutnya] = useState<AgendaGrupTanggal[]>(DEFAULT_AGENDA_BERIKUTNYA)
+
+  // 1. Resolve Profil & Nama Psikolog
   useEffect(() => {
     const resolveName = () => {
       const savedName = localStorage.getItem("active_psikolog_name")
@@ -137,9 +232,63 @@ export default function PsikologBerandaClient() {
     return () => window.removeEventListener("storage", resolveName)
   }, [user])
 
-  const displayDate = selectedDate
-    ? selectedDate.split("-").reverse().join("/")
-    : ""
+  // 2. Fetch data riwayat sesi real-time dari BE dengan fallback gracefully
+  useEffect(() => {
+    // TODO: Sesuaikan filter tanggal atau pagination jika BE menyediakan parameter khusus
+    psikologService
+      .getJadwalSaya()
+      .then((res: any) => {
+        if (res && res.slots && Array.isArray(res.slots)) {
+          const bookedOnly = res.slots.filter((s: any) => s.booking)
+          if (bookedOnly.length > 0) {
+            const todayStr = new Date().toISOString().split("T")[0]
+            const todayItems: SesiAgendaItem[] = []
+            const futureMap = new Map<string, SesiAgendaItem[]>()
+
+            bookedOnly.forEach((s: any) => {
+              const b = s.booking
+              const isRefund = b.is_refunded || b.status_booking === "CANCELLED"
+              const item: SesiAgendaItem = {
+                id: s.id,
+                waktuMulai: s.jam_mulai,
+                waktuSelesai: s.jam_selesai,
+                metode: b.metode === "OFFLINE" ? "Offline" : "Online",
+                namaKlien: b.nama_klien || "Klien Empathika",
+                keluhan: b.deskripsi_trauma ? `"${b.deskripsi_trauma}"` : '"Konsultasi terjadwal"',
+                layanan: b.layanan || "Konseling Individu",
+                hargaPenuh: b.harga_penuh,
+                pendapatanPsikolog: b.pendapatan_psikolog,
+                isRefunded: isRefund,
+                statusSesi: b.status_booking,
+              }
+
+              if (s.date === todayStr) {
+                todayItems.push(item)
+              } else {
+                const dateKey = s.date.split("-").reverse().join("-")
+                const existing = futureMap.get(dateKey) || []
+                existing.push(item)
+                futureMap.set(dateKey, existing)
+              }
+            })
+
+            if (todayItems.length > 0) {
+              setAgendaHariIni(todayItems)
+            }
+            if (futureMap.size > 0) {
+              const groups: AgendaGrupTanggal[] = Array.from(futureMap.entries()).map(([tanggal, sesi]) => ({
+                tanggal,
+                sesi,
+              }))
+              setAgendaBerikutnya(groups)
+            }
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback ke DEFAULT_AGENDA jika offline / dev test
+      })
+  }, [])
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
@@ -190,7 +339,7 @@ export default function PsikologBerandaClient() {
             </div>
             <div className="flex flex-col leading-tight">
               <span className="text-[10px] text-gray-500 font-medium">Total Sesi Hari Ini</span>
-              <span className="text-xl font-extrabold text-gray-900">{AGENDA_HARI_INI.length}</span>
+              <span className="text-xl font-extrabold text-gray-900">{agendaHariIni.length}</span>
             </div>
           </div>
         </div>
@@ -202,7 +351,7 @@ export default function PsikologBerandaClient() {
       {/* ── Agenda Hari Ini ── */}
       <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4 flex flex-col gap-3">
         <h4 className="text-sm font-semibold text-gray-700">Agenda Hari Ini</h4>
-        {AGENDA_HARI_INI.map((sesi) => (
+        {agendaHariIni.map((sesi) => (
           <SesiCard key={sesi.id} {...sesi} />
         ))}
       </div>
@@ -210,7 +359,7 @@ export default function PsikologBerandaClient() {
       {/* ── Agenda Berikutnya ── */}
       <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4 flex flex-col gap-4">
         <h4 className="text-sm font-semibold text-gray-700">Agenda Berikutnya</h4>
-        {AGENDA_BERIKUTNYA.map((grup) => (
+        {agendaBerikutnya.map((grup) => (
           <div key={grup.tanggal} className="flex flex-col gap-2">
             <p className="text-xs font-bold text-gray-500">{grup.tanggal}</p>
             {grup.sesi.map((sesi) => (

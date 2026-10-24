@@ -8,6 +8,7 @@ import {
   updateBookingStatusSchema,
   updateAdminProfileSchema,
   resendActivationSchema,
+  processRefundSchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -100,6 +101,17 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       body: updateBookingStatusSchema,
     },
     handler: controller.updateBookingStatus,
+  })
+
+  fastify.post('/booking/:id/refund', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Jadwal'],
+      summary: 'Admin memproses refund 100% sesi booking konsultasi (maksimal H-1)',
+      security: [{ bearerAuth: [] }],
+      body: processRefundSchema,
+    },
+    handler: controller.processRefund,
   })
 
   // ── Standar CRUD Admin ──────────────────────────────────────────

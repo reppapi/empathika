@@ -7,6 +7,7 @@ import type {
   UpdateBookingStatusInput,
   UpdateAdminProfileInput,
   ResendActivationInput,
+  ProcessRefundInput,
 } from './admin.schema'
 
 function formatRemainingTime(ms: number): string {
@@ -79,6 +80,27 @@ export class AdminController {
       reply.send(data)
     } catch (err: any) {
       reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  processRefund = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: ProcessRefundInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = request.user as { id?: string; name?: string; role?: string; email?: string }
+      const adminName = user?.name || user?.email || 'Admin Empathika'
+      const { alasan } = request.body
+
+      const result = await this.service.processRefund(request.params.id, adminName, alasan)
+      reply.send(result)
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      reply.code(statusCode).send({
+        error: statusCode === 409 ? 'Conflict' : statusCode === 422 ? 'Unprocessable Entity' : 'Bad Request',
+        message: err.message,
+        details: err.details,
+      })
     }
   }
 

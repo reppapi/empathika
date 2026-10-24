@@ -58,6 +58,7 @@ export class BookingRepository {
       include: {
         client: true,
         layanan: true,
+        transaksi: true,
         jadwal: {
           include: {
             psikolog: true,
@@ -160,6 +161,12 @@ export class BookingRepository {
     return this.prisma.jadwalSlot.findMany({
       where,
       include: {
+        psikolog: {
+          select: {
+            id: true,
+            tarif_per_jam: true,
+          },
+        },
         booking_konsultasi: {
           include: {
             client: {
@@ -176,6 +183,19 @@ export class BookingRepository {
                 id: true,
                 nama: true,
                 metode: true,
+                harga_weekday: true,
+                harga_weekend: true,
+              },
+            },
+            transaksi: {
+              select: {
+                id: true,
+                kode_transaksi: true,
+                total: true,
+                subtotal: true,
+                status_pembayaran: true,
+                refund_at: true,
+                refund_reason: true,
               },
             },
           },
@@ -431,6 +451,7 @@ export class BookingRepository {
       include: {
         client: true,
         layanan: true,
+        transaksi: true,
         jadwal: {
           include: {
             psikolog: true,
@@ -440,7 +461,136 @@ export class BookingRepository {
     })
   }
 
-  async findAllBookings(params?: Record<string, unknown>) {
+  async refundBooking(params: {
+    bookingId: string
+    adminName: string
+    alasan: string
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.bookingKonsultasi.findUnique({
+        where: { id: params.bookingId },
+        include: {
+          transaksi: true,
+          jadwal: true,
+          client: true,
+          layanan: true,
+        },
+      })
+
+      if (!booking) {
+        throw Object.assign(new Error('Sesi booking tidak ditemukan'), { statusCode: 404 })
+      }
+
+      // Pastikan status belum dibatalkan / direfund
+      if (booking.status === 'CANCELLED' || booking.transaksi?.status_pembayaran === 'REFUNDED') {
+        throw Object.assign(new Error('Sesi atau transaksi ini sudah pernah direfund atau dibatalkan sebelumnya'), { statusCode: 409 })
+      }
+
+      if (booking.status === 'COMPLETED') {
+        throw Object.assign(new Error('Sesi yang sudah selesai tidak dapat direfund'), { statusCode: 422 })
+      }
+
+      // Validasi H-1 (24 jam sebelum jadwal sesi)
+      const sessionDate = new Date(booking.jadwal.tanggal)
+      const sessionTime = new Date(booking.jadwal.jam_mulai)
+      const sessionDateTime = new Date(
+        Date.UTC(
+          sessionDate.getUTCFullYear(),
+          sessionDate.getUTCMonth(),
+          sessionDate.getUTCDate(),
+          sessionTime.getUTCHours(),
+          sessionTime.getUTCMinutes(),
+          0,
+          0
+        )
+      )
+      const refundDeadline = new Date(sessionDateTime.getTime() - 24 * 60 * 60 * 1000)
+
+      if (Date.now() > refundDeadline.getTime()) {
+        const deadlineStr = refundDeadline.toLocaleString('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })
+        throw Object.assign(
+          new Error(`Refund ditolak. Batas waktu pengajuan refund maksimal H-1 (24 jam sebelum sesi) telah terlewati pada ${deadlineStr} WIB`),
+          {
+            statusCode: 422,
+            details: {
+              batasRefund: refundDeadline.toISOString(),
+              batasRefundStr: `${deadlineStr} WIB`,
+            },
+          }
+        )
+      }
+
+      // Hitung nominal refund 100%
+      let refundAmount = booking.transaksi ? Number(booking.transaksi.total) : Number(booking.layanan.harga_weekday)
+      if (refundAmount <= 0) refundAmount = 200000
+
+      // 1. Update / Catat transaksi (PENTING: Jangan di-delete, hanya update status ke REFUNDED)
+      let updatedTransaksi = booking.transaksi
+      if (booking.transaksi) {
+        updatedTransaksi = await tx.transaksi.update({
+          where: { id: booking.transaksi.id },
+          data: {
+            status_pembayaran: 'REFUNDED',
+            refund_at: new Date(),
+            refund_reason: params.alasan,
+            refund_by_admin: params.adminName,
+            refund_amount: refundAmount,
+          },
+        })
+      } else {
+        // Jika sesi belum memiliki record transaksi terhubung (misal walk-in manual admin), buat record transaksi REFUNDED
+        updatedTransaksi = await tx.transaksi.create({
+          data: {
+            id_client: booking.id_client,
+            tipe_transaksi: 'KONSULTASI',
+            subtotal: refundAmount,
+            biaya_admin: 0,
+            total: refundAmount,
+            metode_pembayaran: 'TRANSFER_BANK',
+            status_pembayaran: 'REFUNDED',
+            refund_at: new Date(),
+            refund_reason: params.alasan,
+            refund_by_admin: params.adminName,
+            refund_amount: refundAmount,
+          },
+        })
+      }
+
+      // 2. Ubah status BookingKonsultasi menjadi CANCELLED
+      const updatedBooking = await tx.bookingKonsultasi.update({
+        where: { id: booking.id },
+        data: {
+          status: 'CANCELLED',
+          id_transaksi: updatedTransaksi.id,
+        },
+        include: {
+          client: true,
+          layanan: true,
+          jadwal: {
+            include: { psikolog: true },
+          },
+        },
+      })
+
+      // 3. Lepas slot jadwal psikolog agar kembali TERSEDIA untuk klien lain
+      await tx.jadwalSlot.update({
+        where: { id: booking.id_jadwal },
+        data: { status: 'TERSEDIA' },
+      })
+
+      return {
+        booking: updatedBooking,
+        transaksi: updatedTransaksi,
+        nominalRefund: refundAmount,
+      }
+    })
+  }
+
+  async findAllBookings(_params?: Record<string, unknown>) {
     return this.prisma.bookingKonsultasi.findMany({
       include: {
         client: true,
