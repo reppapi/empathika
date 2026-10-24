@@ -31,9 +31,6 @@ export const adminService = {
   updateBookingStatus: (id: string, status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED") =>
     apiClient.patch(`/admin/booking/${id}/status`, { status }).then((r) => r.data),
 
-  processRefund: (bookingId: string, payload: { alasan: string }) =>
-    apiClient.post(`/admin/booking/${bookingId}/refund`, payload).then((r) => r.data),
-
   // Modul Profil Admin Utama
   getProfile: () => apiClient.get("/admin/profile").then((r) => r.data),
 

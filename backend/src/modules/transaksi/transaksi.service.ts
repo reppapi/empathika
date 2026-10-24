@@ -20,8 +20,37 @@ export class TransaksiService {
 
   async getById(id: string) {
     const transaksi = await this.repo.findById(id)
-    if (!transaksi) throw new Error('Transaksi tidak ditemukan')
+    if (!transaksi) {
+      throw Object.assign(new Error('Transaksi tidak ditemukan'), { statusCode: 404 })
+    }
     return transaksi
+  }
+
+  async processRefund(params: {
+    transaksiId: string
+    adminName: string
+    alasan: string
+  }) {
+    const result = await this.repo.refundTransaksi(params)
+    return {
+      success: true,
+      message: 'Refund transaksi berhasil diproses. Status telah diperbarui ke REFUNDED.',
+      transaksiId: result.transaksi.id,
+      kodeTransaksi: result.transaksi.kode_transaksi,
+      nominalRefund: result.nominalRefund,
+      statusPembayaran: result.transaksi.status_pembayaran,
+      refundAt: result.transaksi.refund_at,
+      refundReason: result.transaksi.refund_reason,
+      refundByAdmin: result.transaksi.refund_by_admin,
+      booking: result.booking
+        ? {
+            id: result.booking.id,
+            kodePesanan: result.booking.kode_pesanan,
+            statusBooking: result.booking.status,
+            namaKlien: result.booking.client?.nama,
+          }
+        : null,
+    }
   }
 
   async createPayment(input: CreateTransaksiInput, clientId: string) {
