@@ -123,11 +123,22 @@ export default function AdminEventFormClient({ eventId }: Props) {
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleImageUpload = (file: File) => {
+  const handleImageUpload = async (file: File) => {
     if (file) {
-      setImageFile(file)
-      const url = URL.createObjectURL(file)
-      setBannerUrl(url)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("Ukuran file gambar maksimal 10MB.")
+        return
+      }
+      try {
+        const { compressImage } = await import("@/lib/imageCompressor")
+        const compressed = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.82 })
+        setImageFile(compressed.file)
+        setBannerUrl(compressed.dataUrl)
+      } catch {
+        setImageFile(file)
+        const url = URL.createObjectURL(file)
+        setBannerUrl(url)
+      }
     }
   }
 
@@ -334,7 +345,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
                     Seret & lepas foto di sini, atau{" "}
                     <span className="text-[#561269] underline">pilih file</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG hingga 5MB</p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, WebP maks. 5MB (otomatis dioptimalkan)</p>
                 </label>
               )}
             </div>

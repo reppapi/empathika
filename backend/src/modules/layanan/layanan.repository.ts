@@ -3,27 +3,27 @@ import type { PrismaClient } from '@prisma/client'
 export class LayananRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async findAll(params?: Record<string, unknown>) {
+  async findAll(_params?: Record<string, unknown>) {
     // TODO: Implement query
     return []
   }
 
-  async findById(id: string) {
+  async findById(_id: string) {
     // TODO: Implement query
     return null
   }
 
-  async create(data: unknown) {
+  async create(_data: unknown) {
     // TODO: Implement
     return null
   }
 
-  async update(id: string, data: unknown) {
+  async update(_id: string, _data: unknown) {
     // TODO: Implement
     return null
   }
 
-  async delete(id: string) {
+  async delete(_id: string) {
     // TODO: Implement
     return null
   }

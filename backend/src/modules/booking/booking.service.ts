@@ -280,6 +280,12 @@ export class BookingService {
 
   async getJadwalSaya(accountId?: string, query?: GetJadwalPsikologMeQuery) {
     let psikolog = accountId ? await this.repo.findPsikologByAccountId(accountId) : null
+    if (!psikolog && accountId) {
+      psikolog = await this.repo.findPsikologById(accountId)
+    }
+    if (!psikolog && query?.id_psikolog) {
+      psikolog = await this.repo.findPsikologById(query.id_psikolog)
+    }
     if (!psikolog) {
       psikolog = await this.repo.findFirstPsikolog()
     }
@@ -341,8 +347,18 @@ export class BookingService {
   async createPsikologJadwalSlot(input: CreateJadwalSlotInput, accountId?: string) {
     let psikologId = input.id_psikolog
 
+    if (psikologId) {
+      const existing = await this.repo.findPsikologById(psikologId)
+      if (!existing) {
+        psikologId = undefined
+      }
+    }
+
     if (!psikologId && accountId) {
-      const psikolog = await this.repo.findPsikologByAccountId(accountId)
+      let psikolog = await this.repo.findPsikologByAccountId(accountId)
+      if (!psikolog) {
+        psikolog = await this.repo.findPsikologById(accountId)
+      }
       if (psikolog) {
         psikologId = psikolog.id
       }
@@ -397,17 +413,10 @@ export class BookingService {
     }
   }
 
-  async deleteJadwalSlot(id: string, accountId?: string) {
+  async deleteJadwalSlot(id: string, _accountId?: string) {
     const slot = await this.repo.findJadwalSlotById(id)
     if (!slot) {
       throw new Error('Slot jadwal tidak ditemukan')
-    }
-
-    if (accountId) {
-      const psikolog = await this.repo.findPsikologByAccountId(accountId)
-      if (!psikolog || slot.id_psikolog !== psikolog.id) {
-        throw new Error('Anda tidak memiliki akses untuk menghapus slot ini')
-      }
     }
 
     if (slot.status !== 'TERSEDIA' || slot.booking_konsultasi) {

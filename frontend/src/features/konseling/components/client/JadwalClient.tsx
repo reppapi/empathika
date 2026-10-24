@@ -22,10 +22,46 @@ const STANDARD_CLINIC_SLOTS = [
   { jam_mulai: "15:30", jam_selesai: "16:30", label: "15:30 - 16:30" },
 ]
 
+// Helper format YYYY-MM-DD
+function formatDateToKey(d: Date): string {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function parseDateParam(param?: string | null): Date | undefined {
+  if (!param) return undefined
+  try {
+    if (param.includes("-")) {
+      const parts = param.split("-")
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+        d.setHours(0, 0, 0, 0)
+        return isNaN(d.getTime()) ? undefined : d
+      }
+    }
+    if (param.includes("/")) {
+      const parts = param.split("/")
+      if (parts.length >= 2) {
+        const day = parseInt(parts[0], 10)
+        const month = parseInt(parts[1], 10) - 1
+        const year = parts.length === 3 ? parseInt(parts[2], 10) : new Date().getFullYear()
+        const d = new Date(year, month, day)
+        d.setHours(0, 0, 0, 0)
+        return isNaN(d.getTime()) ? undefined : d
+      }
+    }
+  } catch {}
+  return undefined
+}
+
 export default function JadwalClient() {
   const searchParams = useSearchParams()
   const initialLayanan = searchParams?.get("layanan") || "Psikolog"
   const psikologIdParam = searchParams?.get("psikologId") || undefined
+  const psikologNameParam = searchParams?.get("psikologName") || undefined
+  const tanggalParam = searchParams?.get("tanggal") || searchParams?.get("date") || undefined
 
   // Batas tanggal hari ini (pukul 00:00:00) agar tanggal masa lalu tidak bisa diklik
   const today = useMemo(() => {
@@ -41,12 +77,18 @@ export default function JadwalClient() {
   const [waktu, setWaktu] = useState<string | null>(null)
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
 
-  // Calendar state: default hari ini
+  // Calendar state: default tanggal dari URL param atau hari ini
   const [date, setDate] = useState<Date | undefined>(() => {
+    const fromParam = parseDateParam(tanggalParam)
+    if (fromParam && fromParam >= today) return fromParam
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
   })
+
+  // Daftar tanggal yang memiliki slot ketersediaan (untuk indikator titik kalender & auto-jump)
+  const [datesWithSlots, setDatesWithSlots] = useState<Date[]>([])
+  const [earliestAvailableDate, setEarliestAvailableDate] = useState<Date | null>(null)
 
   // Dynamic slots dari database backend
   const [availableSlots, setAvailableSlots] = useState<JadwalSlotItem[]>([])
@@ -64,14 +106,113 @@ export default function JadwalClient() {
     }
   }, [psikologIdParam])
 
+  // Deteksi semua tanggal yang memiliki slot jadwal untuk psikolog ini
+  useEffect(() => {
+    let isCancelled = false
+
+    const loadAllAvailableDates = async () => {
+      const datesFound = new Set<string>()
+
+      // 1. Ambil seluruh slot ketersediaan dari Backend Database
+      try {
+        const slots = await psikologService.getJadwalTersedia({
+          id_psikolog: psikologIdParam,
+          tipe_jadwal: "KONSULTASI",
+        })
+        if (Array.isArray(slots)) {
+          slots.forEach((s) => {
+            if (s.tanggal && s.status === "TERSEDIA") {
+              datesFound.add(s.tanggal)
+            }
+          })
+        }
+      } catch {}
+
+      // 2. Ambil dari LocalStorage
+      try {
+        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            parsed.forEach((s: any) => {
+              const matchType = !s.tipe_jadwal || s.tipe_jadwal === "KONSULTASI"
+              const matchPsi =
+                !psikologIdParam ||
+                s.id_psikolog === psikologIdParam ||
+                (selectedPsikolog &&
+                  (s.nama_psikolog === selectedPsikolog.nama_gelar ||
+                    s.nama_psikolog === selectedPsikolog.nama ||
+                    s.nama_psikolog === selectedPsikolog.account?.nama)) ||
+                (psikologNameParam &&
+                  s.nama_psikolog &&
+                  (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
+                    psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
+
+              if (matchType && matchPsi && s.tanggal && (s.status === "TERSEDIA" || !s.status)) {
+                datesFound.add(s.tanggal)
+              }
+            })
+          }
+        }
+      } catch {}
+
+      if (isCancelled) return
+
+      const sortedDateStrings = Array.from(datesFound).sort()
+      const dateObjects: Date[] = []
+      let earliest: Date | null = null
+
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+
+      for (const dStr of sortedDateStrings) {
+        const parts = dStr.split("-")
+        if (parts.length === 3) {
+          const dObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+          dObj.setHours(0, 0, 0, 0)
+          if (!isNaN(dObj.getTime())) {
+            dateObjects.push(dObj)
+            if (!earliest && dObj >= todayStart) {
+              earliest = dObj
+            }
+          }
+        }
+      }
+
+      setDatesWithSlots(dateObjects)
+      setEarliestAvailableDate(earliest)
+
+      // Jika tanggal belum ditentukan dari URL search param dan hari ini tidak memiliki slot,
+      // otomatis alihkan kalender ke tanggal terdekat yang memiliki slot
+      if (!tanggalParam) {
+        setDate((currentDate) => {
+          if (!currentDate) return earliest || todayStart
+          const currentKey = formatDateToKey(currentDate)
+          if (!datesFound.has(currentKey) && earliest) {
+            return earliest
+          }
+          return currentDate
+        })
+      }
+    }
+
+    loadAllAvailableDates()
+
+    window.addEventListener("focus", loadAllAvailableDates)
+    window.addEventListener("storage", loadAllAvailableDates)
+
+    return () => {
+      isCancelled = true
+      window.removeEventListener("focus", loadAllAvailableDates)
+      window.removeEventListener("storage", loadAllAvailableDates)
+    }
+  }, [psikologIdParam, psikologNameParam, selectedPsikolog, tanggalParam, today])
+
   // Fetch slot ketersediaan dari Backend saat tanggal berubah
   useEffect(() => {
     if (!date) return
 
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, "0")
-    const day = String(date.getDate()).padStart(2, "0")
-    const dateKey = `${year}-${month}-${day}`
+    const dateKey = formatDateToKey(date)
 
     const fetchSlots = async () => {
       setIsLoadingSlots(true)
@@ -143,12 +284,14 @@ export default function JadwalClient() {
           const matchPsi =
             !psikologIdParam ||
             s.id_psikolog === psikologIdParam ||
-            s.id_psikolog === "psikolog-default-id" ||
-            s.id_psikolog === "1" ||
             (selectedPsikolog &&
               (s.nama_psikolog === selectedPsikolog.nama_gelar ||
                 s.nama_psikolog === selectedPsikolog.nama ||
-                s.nama_psikolog === selectedPsikolog.account?.nama))
+                s.nama_psikolog === selectedPsikolog.account?.nama)) ||
+            (psikologNameParam &&
+              s.nama_psikolog &&
+              (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
+                psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
           return matchDate && matchType && matchPsi
         })
         .forEach((s: any) => {
@@ -206,7 +349,7 @@ export default function JadwalClient() {
       window.removeEventListener("focus", fetchSlots)
       window.removeEventListener("storage", fetchSlots)
     }
-  }, [date, psikologIdParam, metode])
+  }, [date, psikologIdParam, metode, psikologNameParam, selectedPsikolog])
 
   const selectedSlot = availableSlots.find((s) => s.jam_mulai === waktu)
   const activePsikologName =
@@ -352,8 +495,33 @@ export default function JadwalClient() {
                   }}
                   fromDate={today}
                   disabled={{ before: today }}
+                  modifiers={{
+                    hasSlots: datesWithSlots,
+                  }}
+                  modifiersClassNames={{
+                    hasSlots:
+                      "font-bold text-[#561269] relative after:content-[''] after:absolute after:bottom-1 after:w-1.5 after:h-1.5 after:bg-[#EAB308] after:rounded-full after:left-1/2 after:-translate-x-1/2",
+                  }}
                   className="w-full max-w-[350px]"
                 />
+              </div>
+
+              {/* Legend & Quick Switch Helper */}
+              <div className="flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 mt-3 pt-3 border-t border-gray-100 gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#EAB308] inline-block shadow-xs shrink-0"></span>
+                  <span className="text-gray-600 font-medium">Tanggal dengan slot tersedia</span>
+                </div>
+                {earliestAvailableDate && date && formatDateToKey(date) !== formatDateToKey(earliestAvailableDate) && (
+                  <button
+                    type="button"
+                    onClick={() => setDate(earliestAvailableDate)}
+                    className="text-[#561269] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Lompat ke {earliestAvailableDate.getDate()} {MONTHS[earliestAvailableDate.getMonth()].substring(0, 3)}</span>
+                    <span>&rarr;</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -482,9 +650,24 @@ export default function JadwalClient() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11px] text-gray-400 italic text-center">
-                    Belum ada slot waktu {metode} yang dibuka pada tanggal ini.
-                  </p>
+                  <div className="flex flex-col items-center gap-2 mt-2">
+                    <p className="text-[11px] text-gray-400 italic text-center">
+                      Belum ada slot waktu {metode} yang dibuka pada tanggal ini.
+                    </p>
+                    {earliestAvailableDate && date && formatDateToKey(date) !== formatDateToKey(earliestAvailableDate) && (
+                      <button
+                        type="button"
+                        onClick={() => setDate(earliestAvailableDate)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FAF5FD] border border-[#C3A4CE] text-[#561269] text-xs font-semibold hover:bg-[#F3E8F7] transition-all cursor-pointer shadow-2xs"
+                      >
+                        <span>💡 Slot terdekat tersedia pada:</span>
+                        <span className="font-bold underline">
+                          {earliestAvailableDate.getDate()} {MONTHS[earliestAvailableDate.getMonth()]} {earliestAvailableDate.getFullYear()}
+                        </span>
+                        <span>&rarr;</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

@@ -22,10 +22,10 @@ export const INITIAL_KERJASAMA_CONFIG: KerjaSamaPageConfig = {
     "Punya ide kolaborasi lainnya? Empathika terbuka untuk berbagai ide dan bentuk kolaborasi yang dapat memberikan manfaat bagi masyarakat. Mari bersama-sama menciptakan ruang yang mendukung kesehatan dan kesejahteraan psikologis. Hubungi contact person kami dan mari berkolaborasi bersama Empathika.",
   kontak: {
     email: "partnership@empathika.com",
-    whatsapp: "+62 821-2345-6789",
+    whatsapp: "+62 878-7878-5498",
     formInHouseTraining: "https://forms.gle/empathika-inhousetraining",
     formAsesmen: "https://forms.gle/empathika-asesmen-psikologi",
-    formAffiliate: "https://wa.me/6282123456789?text=Halo%20Empathika,%20saya%20tertarik%20dengan%20program%20Affiliate",
+    formAffiliate: "https://wa.me/6287878785498?text=Halo%20Empathika,%20saya%20tertarik%20dengan%20program%20Affiliate",
     formLainnya: "https://forms.gle/empathika-kerjasama-lainnya",
   },
 }
@@ -59,7 +59,7 @@ export const INITIAL_KERJASAMA_ITEMS: KerjaSamaItem[] = [
     mitraTitle: "Empathika x SMA Taruna Bangsa",
     mitraDeskripsi: "Pemeriksaan psikologis minat bakat untuk 240 siswa kelas XII serta pendampingan pemilihan jurusan perkuliahan.",
     mitraImage: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=800",
-    color: "from-blue-400 to-blue-600",
+    color: "from-blue-500 to-cyan-600",
     status: "AKTIF",
     urutan: 2,
   },
@@ -75,7 +75,7 @@ export const INITIAL_KERJASAMA_ITEMS: KerjaSamaItem[] = [
     mitraTitle: "Empathika x Youth Mental Health Indo",
     mitraDeskripsi: "Rangkaian 12 sesi online circle sharing mingguan untuk pemuda rentan stres perkotaan dengan psikolog pendamping.",
     mitraImage: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800",
-    color: "from-emerald-400 to-teal-500",
+    color: "from-amber-500 to-orange-600",
     status: "AKTIF",
     urutan: 3,
   },
@@ -91,7 +91,7 @@ export const INITIAL_KERJASAMA_ITEMS: KerjaSamaItem[] = [
     mitraTitle: "Empathika x PT Astra Otoparts",
     mitraDeskripsi: "Paket konsultasi psikologis confidential 1-on-1 bagi karyawan serta survey kesehatan mental tahunan perusahaan.",
     mitraImage: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=800",
-    color: "from-orange-400 to-red-500",
+    color: "from-emerald-500 to-teal-600",
     status: "AKTIF",
     urutan: 4,
   },
@@ -107,7 +107,7 @@ export const INITIAL_KERJASAMA_ITEMS: KerjaSamaItem[] = [
     mitraTitle: "Empathika x Dinas Kesehatan Kota Bandung",
     mitraDeskripsi: "Program posko konseling keliling di 5 puskesmas percontohan dengan ribuan konsultasi warga tertangani.",
     mitraImage: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&q=80&w=800",
-    color: "from-gray-600 to-gray-800",
+    color: "from-rose-500 to-red-600",
     status: "AKTIF",
     urutan: 5,
   },
@@ -206,12 +206,41 @@ export const INITIAL_PENGAJUAN_KERJASAMA: PengajuanKerjaSama[] = [
   },
 ]
 
+// Helper pembersih nomor WhatsApp ke format internasional 62xxx
+export function getCleanWhatsAppNumber(raw?: string): string {
+  if (!raw) return "6287878785498"
+  // Jika masih ada nomor dummy lama, langsung override ke nomor resmi
+  if (raw.includes("82123456789") || raw.includes("821-2345")) {
+    return "6287878785498"
+  }
+  const digits = raw.replace(/\D/g, "")
+  if (!digits) return "6287878785498"
+  if (digits.startsWith("0")) return "62" + digits.slice(1)
+  if (digits.startsWith("62")) return digits
+  return "62" + digits
+}
+
 // ── Helpers untuk Client & Admin ──
 export function getKerjaSamaConfig(): KerjaSamaPageConfig {
   if (typeof window === "undefined") return INITIAL_KERJASAMA_CONFIG
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_KERJASAMA_CONFIG)
-    return saved ? JSON.parse(saved) : INITIAL_KERJASAMA_CONFIG
+    if (!saved) return INITIAL_KERJASAMA_CONFIG
+    const parsed = JSON.parse(saved)
+    // Otomatis bersihkan / perbarui jika localStorage browser klien masih menyimpan nomor dummy lama
+    if (
+      !parsed?.kontak?.whatsapp ||
+      parsed.kontak.whatsapp.includes("82123456789") ||
+      parsed.kontak.whatsapp.includes("821-2345")
+    ) {
+      parsed.kontak = {
+        ...parsed.kontak,
+        whatsapp: "+62 878-7878-5498",
+        formAffiliate: "https://wa.me/6287878785498?text=Halo%20Empathika,%20saya%20tertarik%20dengan%20program%20Affiliate",
+      }
+      localStorage.setItem(LOCAL_STORAGE_KEY_KERJASAMA_CONFIG, JSON.stringify(parsed))
+    }
+    return parsed
   } catch {
     return INITIAL_KERJASAMA_CONFIG
   }
@@ -230,7 +259,17 @@ export function getKerjaSamaItems(): KerjaSamaItem[] {
   if (typeof window === "undefined") return INITIAL_KERJASAMA_ITEMS
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_KERJASAMA_ITEMS)
-    return saved ? JSON.parse(saved) : INITIAL_KERJASAMA_ITEMS
+    if (!saved) return INITIAL_KERJASAMA_ITEMS
+    const parsed = JSON.parse(saved)
+    // Pastikan program rumah-sakit tidak hilang dari cache lokal
+    if (Array.isArray(parsed) && !parsed.some((it: any) => it.slug === "rumah-sakit")) {
+      const rs = INITIAL_KERJASAMA_ITEMS.find((it) => it.slug === "rumah-sakit")
+      if (rs) {
+        parsed.push(rs)
+        localStorage.setItem(LOCAL_STORAGE_KEY_KERJASAMA_ITEMS, JSON.stringify(parsed))
+      }
+    }
+    return parsed
   } catch {
     return INITIAL_KERJASAMA_ITEMS
   }

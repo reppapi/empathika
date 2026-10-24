@@ -11,8 +11,6 @@ import type {
   UpdatePsikologProfileInput,
 } from './psikolog.schema'
 
-let legacySlotsPurged = false
-
 export class PsikologService {
   private repo: PsikologRepository
   private bookingService: BookingService
@@ -24,28 +22,7 @@ export class PsikologService {
     this.prisma = fastify.prisma
   }
 
-  private async purgeLegacyUnbookedSlots() {
-    if (!legacySlotsPurged && this.prisma?.jadwalSlot) {
-      legacySlotsPurged = true
-      try {
-        const unbooked = await this.prisma.jadwalSlot.findMany({
-          where: {
-            status: 'TERSEDIA',
-            booking_konsultasi: null,
-          },
-          select: { id: true },
-        })
-        if (unbooked && unbooked.length > 0) {
-          await this.prisma.jadwalSlot.deleteMany({
-            where: { id: { in: unbooked.map((s: { id: string }) => s.id) } },
-          })
-        }
-      } catch {}
-    }
-  }
-
   async getAll(params?: { kategori?: string; search?: string; status?: string }) {
-    await this.purgeLegacyUnbookedSlots()
     const list = await this.repo.findAll(params)
 
     // Hitung total booking riil langsung dari tabel booking_konsultasi
@@ -70,7 +47,6 @@ export class PsikologService {
   }
 
   async getById(id: string) {
-    await this.purgeLegacyUnbookedSlots()
     const item: any = await this.repo.findById(id)
     if (!item) throw new Error('Psikolog tidak ditemukan')
 

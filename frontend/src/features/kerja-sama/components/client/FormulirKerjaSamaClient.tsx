@@ -7,9 +7,11 @@ import {
   savePengajuanKerjaSama,
   getFormulirConfigs,
   getKerjaSamaConfig,
+  getCleanWhatsAppNumber,
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
+import { kerjaSamaService } from "@/services/kerja-sama.service"
 
 interface FormulirKerjaSamaClientProps {
   formType?: string
@@ -28,16 +30,14 @@ export default function FormulirKerjaSamaClient({
   formType = "asesmen",
 }: FormulirKerjaSamaClientProps) {
   const [allFormConfigs, setAllFormConfigs] = useState<FormulirConfigItem[]>(INITIAL_FORMULIR_CONFIGS)
-  const [waNumber, setWaNumber] = useState<string>("6282123456789")
+  const [waNumber, setWaNumber] = useState<string>("6287878785498")
   const [isMounted, setIsMounted] = useState(false)
 
   React.useEffect(() => {
     setIsMounted(true)
     setAllFormConfigs(getFormulirConfigs())
     const cfg = getKerjaSamaConfig()
-    if (cfg?.kontak?.whatsapp) {
-      setWaNumber(cfg.kontak.whatsapp.replace(/\D/g, "") || "6282123456789")
-    }
+    setWaNumber(getCleanWhatsAppNumber(cfg?.kontak?.whatsapp))
   }, [])
 
   const currentConfigs = isMounted ? allFormConfigs : INITIAL_FORMULIR_CONFIGS
@@ -50,6 +50,7 @@ export default function FormulirKerjaSamaClient({
   const [namaLengkap, setNamaLengkap] = useState("")
   const [namaInstitusi, setNamaInstitusi] = useState("")
   const [nomorWhatsapp, setNomorWhatsapp] = useState("")
+  const [emailPIC, setEmailPIC] = useState("")
   const [tipeInstitusi, setTipeInstitusi] = useState("Sekolah / Universitas")
   const [activeInput, setActiveInput] = useState<string>("whatsapp")
 
@@ -75,9 +76,13 @@ export default function FormulirKerjaSamaClient({
     setJawabanKhusus((prev) => ({ ...prev, [key]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!namaLengkap || !namaInstitusi || !nomorWhatsapp) return
+    if (!namaLengkap || !namaInstitusi || !nomorWhatsapp || isSubmitting) return
+
+    setIsSubmitting(true)
 
     const now = new Date()
     const months = [
@@ -97,10 +102,15 @@ export default function FormulirKerjaSamaClient({
     const tanggalStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
 
     // Siapkan dictionary jawaban detail yang lengkap
+    const cleanEmail = emailPIC.trim()
+      ? emailPIC.trim()
+      : `${namaLengkap.toLowerCase().replace(/[^a-z0-9]/g, "") || "mitra"}@institusi.id`
+
     const detailLengkap: Record<string, string> = {
       "Nama Lengkap / PIC": namaLengkap,
       "Nama Institusi / Organisasi": namaInstitusi,
       "Nomor WhatsApp": nomorWhatsapp,
+      "Email PIC": cleanEmail,
       "Tipe Institusi": tipeInstitusi,
       "Tipe Formulir": formConfig.title,
     }
@@ -113,17 +123,42 @@ export default function FormulirKerjaSamaClient({
       detailLengkap["Catatan / Kebutuhan Tambahan"] = catatanKebutuhan
     }
 
+    const pesanKebutuhan = `Pengajuan melalui ${formConfig.title}. ${
+      catatanKebutuhan ? `Catatan: ${catatanKebutuhan}` : ""
+    }`
+
+    let backendId = "lead_" + Date.now()
+
+    // 1. Kirim data ke API Backend resmi (POST /kerja-sama/pengajuan)
+    try {
+      const res = await kerjaSamaService.submitPengajuan({
+        nama_instansi: namaInstitusi,
+        nama_pic: namaLengkap,
+        email: cleanEmail,
+        no_telepon: nomorWhatsapp,
+        kategori: tipeInstitusi.split("/")[0].trim() || formConfig.categoryDefault,
+        tipe_formulir: formType,
+        pesan: pesanKebutuhan,
+        jawaban_detail: detailLengkap,
+      })
+
+      if (res?.data?.id) {
+        backendId = res.data.id
+      }
+    } catch (apiErr) {
+      console.warn("Backend API submit pengajuan error (fallback to local):", apiErr)
+    }
+
+    // 2. Simpan juga ke cache lokal agar langsung sinkron di tab admin
     const newLead: PengajuanKerjaSama = {
-      id: "lead_" + Date.now(),
+      id: backendId,
       tanggal: tanggalStr,
       namaInstansi: namaInstitusi,
       kategori: tipeInstitusi.split("/")[0].trim() || formConfig.categoryDefault,
       namaPIC: namaLengkap,
-      email: `${namaLengkap.toLowerCase().replace(/\s+/g, "")}@institusi.id`,
+      email: cleanEmail,
       telepon: nomorWhatsapp,
-      pesan: `Pengajuan melalui ${formConfig.title}. ${
-        catatanKebutuhan ? `Catatan: ${catatanKebutuhan}` : ""
-      }`,
+      pesan: pesanKebutuhan,
       status: "Menunggu",
       tipeFormulir: formType as any,
       formTitle: formConfig.title,
@@ -132,6 +167,7 @@ export default function FormulirKerjaSamaClient({
 
     const existingLeads = getPengajuanKerjaSama()
     savePengajuanKerjaSama([newLead, ...existingLeads])
+    setIsSubmitting(false)
     setIsSubmitted(true)
   }
 
@@ -323,6 +359,21 @@ export default function FormulirKerjaSamaClient({
                     placeholder="Nomor Whatsapp"
                     className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
                       activeInput === "whatsapp"
+                        ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
+                        : "border border-gray-300 hover:border-gray-400 focus:outline-none"
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="email"
+                    value={emailPIC}
+                    onFocus={() => setActiveInput("email")}
+                    onChange={(e) => setEmailPIC(e.target.value)}
+                    placeholder="Alamat Email (Opsional)"
+                    className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
+                      activeInput === "email"
                         ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
                         : "border border-gray-300 hover:border-gray-400 focus:outline-none"
                     }`}

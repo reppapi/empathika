@@ -63,6 +63,13 @@ export class AuthService {
       }
     }
 
+    if (!email) {
+      throw Object.assign(
+        new Error("Token Google tidak valid atau tidak berisi email"),
+        { statusCode: 401 }
+      )
+    }
+
     // 1. Cek keberadaan akun di database (Hanya untuk akun yang sudah terdaftar)
     const account = await this.repo.findByEmail(email)
     if (!account) {

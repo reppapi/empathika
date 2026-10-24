@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
 import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
+import { processAndUploadImage } from "@/lib/imageCompressor"
 
 interface AdminBiroFormClientProps {
   biroId?: string
@@ -157,7 +158,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
     if (errors.slug) setErrors((prev) => ({ ...prev, slug: "" }))
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -170,10 +171,10 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       return
     }
 
-    if (file.size > 3 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       setErrors((prev) => ({
         ...prev,
-        logo: "Ukuran file logo maksimal 3 MB",
+        logo: "Ukuran file logo maksimal 5 MB",
       }))
       return
     }
@@ -184,13 +185,15 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       return next
     })
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setLogo(reader.result)
-      }
+    try {
+      const { url } = await processAndUploadImage(file)
+      setLogo(url)
+    } catch (err: any) {
+      setErrors((prev) => ({
+        ...prev,
+        logo: err?.message || "Gagal memproses gambar logo",
+      }))
     }
-    reader.readAsDataURL(file)
   }
 
   const validate = () => {

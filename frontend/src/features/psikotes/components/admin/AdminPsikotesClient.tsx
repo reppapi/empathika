@@ -709,8 +709,8 @@ export default function AdminPsikotesClient() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran gambar maksimal 2MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Ukuran gambar maksimal 10MB.");
       return;
     }
 
@@ -2236,7 +2236,7 @@ export default function AdminPsikotesClient() {
                           <>
                             <Upload className="w-8 h-8 mb-2 text-gray-400" />
                             <p className="text-sm font-semibold text-gray-800">Klik untuk upload atau seret gambar banner</p>
-                            <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 2MB)</p>
+                            <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 5MB, otomatis dioptimalkan)</p>
                           </>
                         )}
                       </div>

@@ -4,6 +4,7 @@ import React from "react"
 import Link from "next/link"
 import { KerjaSamaItem } from "../../types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import { COLOR_THEMES, getColorTheme, normalizeColorTheme } from "../../utils/colorThemes"
 
 interface TabProgramListProps {
   items: KerjaSamaItem[]
@@ -41,27 +42,41 @@ export default function TabProgramList({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {items.map((item) => {
           const isAktif = item.status === "AKTIF"
+          const colorTheme = getColorTheme(item.color)
+
           return (
             <div
               key={item.id}
-              className={`rounded-2xl border p-5 shadow-xs transition-all flex flex-col justify-between ${
+              className={`relative rounded-2xl border p-5 shadow-xs transition-all flex flex-col justify-between overflow-hidden ${
                 isAktif
                   ? "border-gray-200 bg-white hover:shadow-md"
                   : "border-gray-300 bg-gray-50/90 opacity-75 grayscale-[35%]"
               }`}
             >
+              {/* Garis Aksen Warna Tema di Bagian Atas Kartu */}
+              <div
+                className={`absolute top-0 left-0 right-0 h-1.5 ${
+                  isAktif ? colorTheme.dotClass : "bg-gray-300"
+                }`}
+              />
+
               <div>
                 {/* Header Card */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3 mt-1">
                   <AdminStatusBadge variant={isAktif ? "success" : "neutral"} className="w-36">
                     {isAktif ? "Aktif" : "Disembunyikan"}
                   </AdminStatusBadge>
 
+                  {/* Badge Tema Warna */}
                   <div
-                    className={`w-4 h-4 rounded-full ${
-                      isAktif ? `bg-gradient-to-r ${item.color}` : "bg-gray-400"
-                    }`}
-                  />
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gray-50 border border-gray-200 shadow-xs"
+                    title={`Tema Warna: ${colorTheme.label}`}
+                  >
+                    <span
+                      className={`w-3.5 h-3.5 rounded-full ${colorTheme.dotClass} shadow-xs shrink-0 ring-1 ring-white`}
+                    />
+                    <span className="text-gray-700 font-medium">{colorTheme.label}</span>
+                  </div>
                 </div>
 
                 {/* Title & Slug */}
@@ -112,7 +127,7 @@ export default function TabProgramList({
               </div>
 
               {/* Action Bar */}
-              <div className="flex items-center justify-between border-t border-gray-200/80 pt-3 mt-2">
+              <div className="flex items-center justify-between border-t border-gray-200/80 pt-3 mt-1">
                 {/* Toggle Status */}
                 <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600">
                   <input
@@ -146,8 +161,8 @@ export default function TabProgramList({
                   </Link>
                   <button
                     onClick={() => onOpenEditModal(item)}
-                    className="p-1.5 rounded-lg text-gray-500 hover:text-[#561269] hover:bg-purple-50 transition"
-                    title="Edit Konten"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-[#561269] hover:bg-purple-50 transition flex items-center gap-1"
+                    title="Edit Konten & Pengaturan Program"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path

@@ -15,7 +15,7 @@ export const paymentService = {
     return `https://payment-gateway.example.com/pay/${input.transaksiId}`
   },
 
-  verifyWebhookSignature: (payload: unknown, signature: string): boolean => {
+  verifyWebhookSignature: (_payload: unknown, _signature: string): boolean => {
     // TODO: Verifikasi HMAC signature dari payment gateway
     return true
   },

@@ -7,6 +7,7 @@ import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation"
 import { CATEGORIES } from "../../data/layananData"
 import { addLayanan } from "../../data/adminLayananData"
+import { processAndUploadImage } from "@/lib/imageCompressor"
 
 export default function TambahLayananView() {
   const router = useRouter()
@@ -34,18 +35,15 @@ export default function TambahLayananView() {
     fileInputRef.current?.click()
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Ukuran file maksimal 2MB")
-        return
+      try {
+        const { url } = await processAndUploadImage(file)
+        setImagePreview(url)
+      } catch (err: any) {
+        alert(err?.message || "Gagal memproses gambar")
       }
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
     }
   }
 

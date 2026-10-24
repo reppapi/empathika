@@ -25,9 +25,10 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
         const matched = parsed.filter(
           (s) =>
             s.id_psikolog === psikologId ||
-            s.id_psikolog === "psikolog-default-id" ||
-            s.id_psikolog === "1" ||
-            (psikologNama && (s.nama_psikolog === psikologNama || psikologNama.includes("Rizki")))
+            (psikologNama &&
+              (s.nama_psikolog === psikologNama ||
+                s.nama_psikolog?.toLowerCase().includes(psikologNama.toLowerCase()) ||
+                psikologNama.toLowerCase().includes(s.nama_psikolog?.toLowerCase())))
         )
         rawSlots.push(...matched)
       }

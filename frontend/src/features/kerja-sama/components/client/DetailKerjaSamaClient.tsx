@@ -1,8 +1,9 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getKerjaSamaItems, getKerjaSamaConfig, INITIAL_KERJASAMA_ITEMS, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
+import { getKerjaSamaItems, getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_ITEMS, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
 import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
+import { kerjaSamaService } from '@/services/kerja-sama.service';
 
 interface DetailKerjaSamaClientProps {
   category: string;
@@ -17,6 +18,31 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
     setIsMounted(true);
     setItems(getKerjaSamaItems());
     setConfig(getKerjaSamaConfig());
+
+    kerjaSamaService
+      .getProgramList()
+      .then((res: any) => {
+        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped: KerjaSamaItem[] = res.data.map((p: any) => ({
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            shortName: p.short_name,
+            description: p.deskripsi,
+            pelatihanTitle: p.pelatihan_title || "",
+            pelatihanDeskripsi: p.pelatihan_deskripsi || "",
+            pelatihanImage: p.pelatihan_image || "",
+            mitraTitle: p.mitra_title || "",
+            mitraDeskripsi: p.mitra_deskripsi || "",
+            mitraImage: p.mitra_image || "",
+            color: p.warna_tema || "from-purple-500 to-indigo-600",
+            status: p.status === "NONAKTIF" ? "NONAKTIF" : "AKTIF",
+            urutan: p.urutan || 1,
+          }));
+          setItems(mapped);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const activeItems = isMounted ? items : INITIAL_KERJASAMA_ITEMS;
@@ -122,12 +148,14 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
               <li>
                 Whatsapp:{" "}
                 <a
-                  href={`https://wa.me/${(currentConfig.kontak?.whatsapp || "6282123456789").replace(/\D/g, "")}`}
+                  href={`https://wa.me/${getCleanWhatsAppNumber(currentConfig.kontak?.whatsapp)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-[#561269] hover:underline font-medium"
                 >
-                  {currentConfig.kontak?.whatsapp || "+62 821-2345-6789"}
+                  {currentConfig.kontak?.whatsapp && !currentConfig.kontak.whatsapp.includes("821-2345")
+                    ? currentConfig.kontak.whatsapp
+                    : "+62 878-7878-5498"}
                 </a>
               </li>
               <li>
@@ -144,7 +172,7 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
               </li>
               <li>
                 <a
-                  href={`https://wa.me/${(currentConfig.kontak?.whatsapp || "6282123456789").replace(/\D/g, "")}?text=${encodeURIComponent(
+                  href={`https://wa.me/${getCleanWhatsAppNumber(currentConfig.kontak?.whatsapp)}?text=${encodeURIComponent(
                     "Halo Tim Partnership Empathika, saya tertarik untuk bermitra dan berdiskusi seputar Program Affiliate Empathika."
                   )}`}
                   target="_blank"

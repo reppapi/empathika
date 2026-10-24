@@ -39,6 +39,7 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
             (item.nama_gelar && s.nama_psikolog === item.nama_gelar) ||
             (item.account?.nama && s.nama_psikolog === item.account?.nama) ||
             (item.nama && s.nama_psikolog === item.nama) ||
+            (item.nama_gelar && s.nama_psikolog && (item.nama_gelar.toLowerCase().includes(s.nama_psikolog.toLowerCase()) || s.nama_psikolog.toLowerCase().includes(item.nama_gelar.toLowerCase()))) ||
             (item.nama_gelar && item.nama_gelar.includes('Rizki'))
         );
         rawSlots.push(...matchingCustom);
