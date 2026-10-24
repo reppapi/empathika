@@ -1,4 +1,4 @@
-import { PrismaClient, Role, KategoriLayanan, JenisAksesPsikotes } from '@prisma/client';
+import { PrismaClient, Role, KategoriLayanan, JenisAksesPsikotes, TipeTransaksi, MetodePembayaran, StatusPembayaran } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -423,19 +423,67 @@ async function main() {
     },
   });
 
+  // 9. Create Sample Transaksi linked to the Booking
+  const sampleTransaksi = await prisma.transaksi.upsert({
+    where: { kode_transaksi: 'TRX-SEED-20261024-001' },
+    update: {},
+    create: {
+      kode_transaksi: 'TRX-SEED-20261024-001',
+      id_client: sampleClient.id,
+      tipe_transaksi: TipeTransaksi.KONSULTASI,
+      subtotal: 150000.0,
+      biaya_admin: 0.0,
+      total: 150000.0,
+      metode_pembayaran: MetodePembayaran.QRIS,
+      channel_pembayaran: 'QRIS',
+      status_pembayaran: StatusPembayaran.PAID,
+      tanggal_bayar: new Date(),
+    },
+  });
+
   await prisma.bookingKonsultasi.upsert({
     where: { kode_pesanan: 'EMP-KONS-SEED-01' },
-    update: {},
+    update: {
+      id_transaksi: sampleTransaksi.id,
+    },
     create: {
       kode_pesanan: 'EMP-KONS-SEED-01',
       id_client: sampleClient.id,
       id_layanan: layananKonsultasi.id,
       id_jadwal: bookedSlot.id,
+      id_transaksi: sampleTransaksi.id,
       metode: 'ONLINE',
       deskripsi_trauma: 'Merasa cemas berlebih saat menghadapi situasi sosial.',
       status: 'CONFIRMED',
     },
   });
+
+  // 10. Create/Upsert Sample Invoice
+  await prisma.invoice.upsert({
+    where: { id_transaksi: sampleTransaksi.id },
+    update: {
+      harga: sampleTransaksi.total,
+      nama_client: sampleClient.nama,
+      no_wa_client: sampleClient.no_telepon,
+      judul_layanan: layananKonsultasi.nama,
+      metode_bayar: sampleTransaksi.metode_pembayaran,
+    },
+    create: {
+      nomor: 'INV-20261024-0001',
+      id_transaksi: sampleTransaksi.id,
+      nama_client: sampleClient.nama,
+      no_wa_client: sampleClient.no_telepon,
+      nama_psikolog: firstPsi.nama_gelar,
+      judul_layanan: layananKonsultasi.nama,
+      tanggal_sesi: new Date(Date.UTC(todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate(), 19, 0, 0)),
+      jenis_sesi: 'ONLINE',
+      harga: sampleTransaksi.total,
+      metode_bayar: sampleTransaksi.metode_pembayaran,
+      tanggal_bayar: new Date(),
+    },
+  });
+
+  console.log(`Created/linked sample transaksi: ${sampleTransaksi.kode_transaksi}`);
 
   await prisma.psikolog.update({
     where: { id: firstPsi.id },

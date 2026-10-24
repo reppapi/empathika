@@ -225,6 +225,29 @@ export function getInitialSessionsBasedOnTime(): ClientSessionToday[] {
       status: "Menunggu Jadwal" as const,
       isUpcomingNearest: false,
     }
+  }).map((session) => {
+    // Simulasi batas refund H-1 (24 jam sebelum jam sesi hari ini)
+    const [startH, startM] = session.waktu.split("-")[0].trim().split(":").map(Number)
+    const sessionTime = new Date(now)
+    sessionTime.setHours(startH || 9, startM || 0, 0, 0)
+    const refundDeadline = new Date(sessionTime.getTime() - 24 * 60 * 60 * 1000)
+    const isPastH1 = now.getTime() > refundDeadline.getTime()
+
+    // Sesi hari ini secara default sudah melewati H-1 jika sesi dimulai hari ini
+    const isPaid = true
+    const isRefunded = (session.status as string) === "Dibatalkan (Refund)" || (session.status as string) === "Dibatalkan"
+    const isCompleted = session.status === "Selesai"
+    const canRefund = isPaid && !isRefunded && !isCompleted && !isPastH1
+
+    return {
+      ...session,
+      canRefund,
+      isPastH1,
+      isRefunded,
+      isPaid,
+      refundDeadline: refundDeadline.toISOString(),
+      nominalRefund: 200000,
+    }
   })
 
   // Jaga-jaga jika dibuka larut malam (> 22:30), tambahkan 1 slot aktif malam ini

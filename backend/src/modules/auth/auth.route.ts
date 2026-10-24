@@ -7,6 +7,7 @@ import {
   userProfileResponseSchema,
   setPasswordSchema,
   resendActivationSchema,
+  googleLoginSchema,
 } from "./auth.schema"
 
 export default async function authRoutes(fastify: FastifyInstance) {
@@ -23,6 +24,19 @@ export default async function authRoutes(fastify: FastifyInstance) {
       },
     },
     handler: controller.login,
+  })
+
+  // POST /auth/google - Endpoint login dengan Google
+  fastify.post("/google", {
+    schema: {
+      tags: ["Auth"],
+      summary: "Login pengguna menggunakan akun Google",
+      body: googleLoginSchema,
+      response: {
+        200: loginResponseSchema,
+      },
+    },
+    handler: controller.loginGoogle,
   })
 
   // GET /auth/me - Cek status profil yang sedang login

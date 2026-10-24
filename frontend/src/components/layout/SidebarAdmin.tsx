@@ -90,9 +90,13 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
             <button
               type="button"
               onClick={() => {
-                // Hapus cookie simulasi saat logout
-                document.cookie = "access_token=; path=/; max-age=0;";
-                window.location.href = "/login"
+                document.cookie = "access_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                document.cookie = "remember_me=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                localStorage.removeItem("access_token");
+                localStorage.removeItem("remember_me");
+                sessionStorage.removeItem("access_token");
+                localStorage.removeItem("empathika-auth");
+                window.location.href = "/login";
               }}
               className="inline-block w-full text-left font-normal text-white/80 transition-colors hover:text-white py-3 text-[15px]"
             >
