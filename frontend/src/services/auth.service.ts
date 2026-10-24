@@ -16,5 +16,10 @@ export const authService = {
 
   refreshToken: () =>
     apiClient.post<{ accessToken: string }>("/auth/refresh").then((r) => r.data),
+
+  setPassword: (payload: { token: string; password: string }) =>
+    apiClient
+      .post<{ success: boolean; message: string; user: any }>("/auth/set-password", payload)
+      .then((r) => r.data),
 }
 
