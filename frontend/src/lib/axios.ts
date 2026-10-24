@@ -11,7 +11,10 @@ const apiClient = axios.create({
 // Request interceptor: attach access token
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("access_token")
+    const isRemembered = localStorage.getItem("remember_me") === "true"
+    const token = isRemembered
+      ? localStorage.getItem("access_token")
+      : sessionStorage.getItem("access_token")
     if (token) config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -24,6 +27,9 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       // TODO: Attempt token refresh, lalu redirect ke /login kalau gagal
       localStorage.removeItem("access_token")
+      localStorage.removeItem("remember_me")
+      localStorage.removeItem("empathika-auth")
+      sessionStorage.removeItem("access_token")
     }
     return Promise.reject(error)
   }

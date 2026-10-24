@@ -5,6 +5,9 @@ export const authService = {
   login: (payload: LoginPayload) =>
     apiClient.post<AuthResponse>("/auth/login", payload).then((r) => r.data),
 
+  loginGoogle: (credential: string, rememberMe?: boolean) =>
+    apiClient.post<AuthResponse>("/auth/google", { credential, rememberMe }).then((r) => r.data),
+
   register: (payload: RegisterPayload) =>
     apiClient.post<AuthResponse>("/auth/register", payload).then((r) => r.data),
 

@@ -3,6 +3,7 @@ import { z } from "zod"
 export const loginSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid" }),
   password: z.string().min(1, { message: "Password wajib diisi" }),
+  rememberMe: z.boolean().optional(),
 })
 
 export const loginResponseSchema = z.object({
@@ -48,3 +49,11 @@ export const resendActivationSchema = z.object({
 })
 
 export type ResendActivationInput = z.infer<typeof resendActivationSchema>
+
+export const googleLoginSchema = z.object({
+  credential: z.string().min(1, { message: "Credential token Google wajib diisi" }),
+  rememberMe: z.boolean().optional(),
+})
+
+export type GoogleLoginInput = z.infer<typeof googleLoginSchema>
+
