@@ -250,7 +250,6 @@ export class BookingService {
         statusPembayaran: result.transaksi.status_pembayaran,
         refundAt: result.transaksi.refund_at,
         refundReason: result.transaksi.refund_reason,
-        refundByAdmin: result.transaksi.refund_by_admin,
         refundAmount: result.transaksi.refund_amount,
       },
     }
