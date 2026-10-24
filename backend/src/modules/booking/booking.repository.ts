@@ -406,13 +406,42 @@ export class BookingRepository {
   }
 
   async updateBookingStatus(id: string, status: StatusBooking) {
-    return this.prisma.bookingKonsultasi.update({
-      where: { id },
-      data: { status },
-      include: {
-        client: true,
-        layanan: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.bookingKonsultasi.findUnique({
+        where: { id },
+        include: { jadwal: true },
+      })
+
+      if (!existing) {
+        throw new Error('Booking konsultasi tidak ditemukan')
+      }
+
+      const updated = await tx.bookingKonsultasi.update({
+        where: { id },
+        data: { status },
+        include: {
+          client: true,
+          layanan: true,
+          jadwal: {
+            include: {
+              psikolog: true,
+            },
+          },
+        },
+      })
+
+      // Jika dibatalkan (CANCELLED) oleh admin
+      if (status === 'CANCELLED') {
+        // Kurangi jumlah sesi psikolog yang sebelumnya bertambah saat booking
+        if (existing.jadwal?.id_psikolog) {
+          await tx.psikolog.update({
+            where: { id: existing.jadwal.id_psikolog },
+            data: { jumlah_sesi: { decrement: 1 } },
+          }).catch(() => {})
+        }
+      }
+
+      return updated
     })
   }
 

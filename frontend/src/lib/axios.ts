@@ -8,10 +8,16 @@ const apiClient = axios.create({
   timeout: 10000,
 })
 
-// Request interceptor: attach access token
+// Request interceptor: attach access token (baca dari localStorage atau cookie)
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("access_token")
+    let token = localStorage.getItem("access_token")
+    if (!token && typeof document !== "undefined") {
+      const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)
+      if (match && match[1]) {
+        token = decodeURIComponent(match[1].trim())
+      }
+    }
     if (token) config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -21,9 +27,12 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // TODO: Attempt token refresh, lalu redirect ke /login kalau gagal
-      localStorage.removeItem("access_token")
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      const currentToken = localStorage.getItem("access_token")
+      // Hanya hapus token asli jika memang invalid dari backend, jangan hapus token prototype
+      if (currentToken && !currentToken.startsWith("dummy-")) {
+        localStorage.removeItem("access_token")
+      }
     }
     return Promise.reject(error)
   }

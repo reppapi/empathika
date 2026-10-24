@@ -82,18 +82,26 @@ export function validateNoStr(noStr: string, kategori: KategoriTenaga): string |
 
 /**
  * Validasi Nomor SIPP:
- * - Wajib diisi jika kategori adalah Psikolog
- * - Wajib diawali 'SIPP' (sesuai instruksi: nomor sipp harus diawali dengan itu)
+ * - Untuk kategori Psikolog: Wajib diisi jika Nomor SILP tidak diisi
+ * - Jika diisi, wajib diawali 'SIPP' (contoh: SIPP-1049-2024)
  */
-export function validateNoSipp(noSipp: string, kategori: KategoriTenaga): string | null {
+export function validateNoSipp(
+  noSipp?: string,
+  kategori?: KategoriTenaga,
+  noSilp?: string
+): string | null {
   if (kategori !== "psikolog") {
     return null
   }
-  const val = noSipp.trim()
-  if (!val) {
-    return "Nomor SIPP wajib diisi untuk kategori Psikolog"
+  const sippVal = (noSipp || "").trim()
+  const silpVal = (noSilp || "").trim()
+
+  // Jika SILP tidak diisi, maka SIPP wajib diisi
+  if (!silpVal && !sippVal) {
+    return "Nomor SIPP wajib diisi jika nomor SILP tidak diisi"
   }
-  if (!val.toUpperCase().startsWith("SIPP")) {
+
+  if (sippVal && !sippVal.toUpperCase().startsWith("SIPP")) {
     return "Nomor SIPP harus diawali dengan 'SIPP' (contoh: SIPP-1049-2024)"
   }
   return null
@@ -101,14 +109,26 @@ export function validateNoSipp(noSipp: string, kategori: KategoriTenaga): string
 
 /**
  * Validasi Nomor SILP:
- * - Opsional atau jika diisi diawali SILP
+ * - Untuk kategori Psikolog: Wajib diisi jika Nomor SIPP tidak diisi
+ * - Jika diisi, wajib diawali 'SILP' (contoh: SILP-2024-001)
  */
-export function validateNoSilp(noSilp?: string, kategori?: KategoriTenaga): string | null {
-  if (!noSilp || !noSilp.trim()) {
+export function validateNoSilp(
+  noSilp?: string,
+  kategori?: KategoriTenaga,
+  noSipp?: string
+): string | null {
+  if (kategori !== "psikolog") {
     return null
   }
-  const val = noSilp.trim()
-  if (!val.toUpperCase().startsWith("SILP")) {
+  const silpVal = (noSilp || "").trim()
+  const sippVal = (noSipp || "").trim()
+
+  // Jika SIPP tidak diisi, maka SILP wajib diisi
+  if (!sippVal && !silpVal) {
+    return "Nomor SILP wajib diisi jika nomor SIPP tidak diisi"
+  }
+
+  if (silpVal && !silpVal.toUpperCase().startsWith("SILP")) {
     return "Nomor SILP harus diawali dengan 'SILP' (contoh: SILP-2024-001)"
   }
   return null
@@ -136,10 +156,10 @@ export function validateTenagaAhliForm(data: {
   const strErr = validateNoStr(data.noStr, data.kategori)
   if (strErr) errors.noStr = strErr
 
-  const sippErr = validateNoSipp(data.noSipp, data.kategori)
+  const sippErr = validateNoSipp(data.noSipp, data.kategori, data.noSilp)
   if (sippErr) errors.noSipp = sippErr
 
-  const silpErr = validateNoSilp(data.noSilp, data.kategori)
+  const silpErr = validateNoSilp(data.noSilp, data.kategori, data.noSipp)
   if (silpErr) errors.noSilp = silpErr
 
   return errors

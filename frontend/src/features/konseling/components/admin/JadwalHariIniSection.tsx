@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   MoreVertical,
   Eye,
-  XCircle,
   MessageCircle,
   ExternalLink,
   Copy,

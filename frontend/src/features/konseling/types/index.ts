@@ -6,6 +6,7 @@ export interface BookedAssessment {
   metode: "Online" | "Offline"
   namaKlien?: string
   psikolog?: string
+  status?: "Aktif" | "Dibatalkan" | "Selesai" | string
 }
 
 export type ClientSessionStatus =
@@ -18,6 +19,7 @@ export type ClientSessionStatus =
 
 export interface ClientSessionToday {
   id: string
+  date?: string // format YYYY-MM-DD
   waktu: string
   namaKlien: string
   klienId: string
