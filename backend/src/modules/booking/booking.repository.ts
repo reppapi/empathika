@@ -590,7 +590,7 @@ export class BookingRepository {
     })
   }
 
-  async findAllBookings(params?: Record<string, unknown>) {
+  async findAllBookings(_params?: Record<string, unknown>) {
     return this.prisma.bookingKonsultasi.findMany({
       include: {
         client: true,

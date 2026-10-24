@@ -112,7 +112,8 @@ export class InvoiceService {
     // 5. Generate nomor invoice (dengan retry jika race condition)
     let nomor: string
     let retries = 0
-    while (true) {
+    let lastError: unknown = null
+    while (retries < 5) {
       nomor = await generateNomorInvoice(this.repo)
       try {
         const invoice = await this.repo.create({
@@ -130,9 +131,10 @@ export class InvoiceService {
         })
         return invoice as any
       } catch (e: any) {
+        lastError = e
         // Jika unique constraint violation pada nomor (race condition), retry
         if (
-          retries < 5 &&
+          retries < 4 &&
           (e?.code === 'P2002' || e?.message?.includes('unique'))
         ) {
           retries++
@@ -145,6 +147,7 @@ export class InvoiceService {
         throw e
       }
     }
+    throw lastError || new Error('Gagal generate nomor invoice setelah 5 percobaan')
   }
 
   // ── Ambil invoice berdasarkan transaksi (lazy generate) ─────────

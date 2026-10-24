@@ -270,6 +270,8 @@ export default function ModalDetailSesiKlien({
                 )}
               </div>
             </div>
+          )}
+
           {/* Informasi Kebijakan Pembatalan */}
           {session.status !== "Dibatalkan" && session.status !== "Selesai" && (
             isCancellable ? (
@@ -336,41 +338,29 @@ export default function ModalDetailSesiKlien({
                   Refund (H-1)
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => onCancelClick(session)}
-                className="px-4 py-2 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition cursor-pointer"
-              >
-                Batalkan Sesi
-              </button>
-              <button
-                type="button"
-                onClick={() => onMarkCompleted(session.id, session.namaKlien)}
-                className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
-              >
-                Tandai Selesai
-              </button>
-            </>
-          {/* Tombol Batalkan Sesi: HANYA untuk jadwal sebelum hari H */}
-          {isCancellable && (
-            <button
-              type="button"
-              onClick={() => onCancelClick(session)}
-              className="px-4 py-2 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition cursor-pointer"
-            >
-              Batalkan Sesi (H-1)
-            </button>
-          )}
 
-          {/* Tombol Tandai Selesai: HANYA untuk hari H / setelah sesi berlangsung */}
-          {isHariH && session.status !== "Selesai" && session.status !== "Dibatalkan" && (
-            <button
-              type="button"
-              onClick={() => onMarkCompleted(session.id, session.namaKlien)}
-              className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
-            >
-              Tandai Selesai
-            </button>
+              {/* Tombol Batalkan Sesi: HANYA untuk jadwal sebelum hari H */}
+              {isCancellable && (
+                <button
+                  type="button"
+                  onClick={() => onCancelClick(session)}
+                  className="px-4 py-2 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition cursor-pointer"
+                >
+                  Batalkan Sesi (H-1)
+                </button>
+              )}
+
+              {/* Tombol Tandai Selesai: HANYA untuk hari H / setelah sesi berlangsung */}
+              {isHariH && (
+                <button
+                  type="button"
+                  onClick={() => onMarkCompleted(session.id, session.namaKlien)}
+                  className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                >
+                  Tandai Selesai
+                </button>
+              )}
+            </>
           )}
 
           <button
