@@ -32,5 +32,10 @@ export const resendActivationSchema = z.object({
   accountId: z.string().min(1, 'accountId wajib diisi'),
 })
 
+export const processRefundSchema = z.object({
+  alasan: z.string().min(3, 'Alasan refund wajib diisi (minimal 3 karakter)'),
+})
+
 export type UpdateAdminProfileInput = z.infer<typeof updateAdminProfileSchema>
 export type ResendActivationInput = z.infer<typeof resendActivationSchema>
+export type ProcessRefundInput = z.infer<typeof processRefundSchema>

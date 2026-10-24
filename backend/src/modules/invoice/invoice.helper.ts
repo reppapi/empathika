@@ -1,0 +1,187 @@
+// =====================================================================
+// invoice.helper.ts
+// Fungsi pembantu pembentuk teks pesan WhatsApp invoice dan normalisasi
+// nomor WA. Fungsi ini dipakai oleh service (BE) dan dapat di-import
+// dari FE jika dibutuhkan untuk pratinjau di sisi klien.
+// =====================================================================
+
+import { Decimal } from '@prisma/client/runtime/library'
+
+export interface InvoiceData {
+  nomor: string
+  tanggal_terbit: Date
+  tanggal_bayar?: Date | null
+  nama_client: string
+  judul_layanan: string
+  nama_psikolog: string
+  tanggal_sesi: Date
+  jenis_sesi: string // "ONLINE" | "OFFLINE"
+  harga: Decimal | number
+  metode_bayar: string
+  no_wa_client?: string | null
+}
+
+// ── Format Rupiah (tanpa desimal, pemisah ribuan) ──────────────────────
+export function formatRupiahInvoice(amount: Decimal | number): string {
+  const num = typeof amount === 'number' ? amount : Number(amount)
+  return 'Rp' + num.toLocaleString('id-ID')
+}
+
+// ── Format Tanggal Indonesia  e.g. "24 Oktober 2026" ──────────────────
+export function formatTanggalIndonesia(date: Date): string {
+  const MONTHS = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ]
+  // Konversi ke WIB (UTC+7)
+  const wib = toWIB(date)
+  return `${wib.day} ${MONTHS[wib.month]} ${wib.year}`
+}
+
+// ── Format Tanggal + Jam WIB  e.g. "24 Oktober 2026, 09:00 WIB" ───────
+export function formatTanggalJamWIB(date: Date): string {
+  const MONTHS = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ]
+  const wib = toWIB(date)
+  const jam = pad2(wib.hours) + ':' + pad2(wib.minutes)
+  return `${wib.day} ${MONTHS[wib.month]} ${wib.year}, ${jam} WIB`
+}
+
+// ── Format label metode pembayaran ────────────────────────────────────
+export function formatMetodeBayar(metode: string): string {
+  const map: Record<string, string> = {
+    TRANSFER_BANK: 'Transfer Bank',
+    E_WALLET: 'E-Wallet',
+    QRIS: 'QRIS',
+  }
+  return map[metode] ?? metode
+}
+
+// ── Format label jenis sesi ───────────────────────────────────────────
+function formatJenisSesi(jenis: string): string {
+  const j = jenis.toUpperCase()
+  if (j === 'ONLINE') return 'Online'
+  if (j === 'OFFLINE') return 'Offline'
+  return jenis
+}
+
+// ── Pembentuk teks pesan WhatsApp invoice ─────────────────────────────
+// Dipakai oleh endpoint BE dan oleh komponen pratinjau di FE.
+// Menghasilkan string siap kirim dengan format WhatsApp (*bold*, baris baru).
+export function buildInvoiceWhatsAppText(data: InvoiceData): string {
+  const tanggalTerbit = formatTanggalIndonesia(data.tanggal_terbit)
+  const tanggalBayar = data.tanggal_bayar
+    ? formatTanggalIndonesia(data.tanggal_bayar)
+    : '-'
+  const jadwal = formatTanggalJamWIB(data.tanggal_sesi)
+  const totalBayar = formatRupiahInvoice(data.harga)
+  const metodeBayar = formatMetodeBayar(data.metode_bayar)
+  const jenisSesi = formatJenisSesi(data.jenis_sesi)
+
+  const lines = [
+    `*INVOICE EMPATHIKA LAYANAN PSIKOLOGI*`,
+    ``,
+    `No. Invoice   : ${data.nomor}`,
+    `Tanggal Terbit: ${tanggalTerbit}`,
+    `Tanggal Bayar : ${tanggalBayar}`,
+    `---`,
+    ``,
+    `*Data Klien*`,
+    `Nama : ${data.nama_client}`,
+    ``,
+    `*Rincian Layanan*`,
+    `Layanan  : ${data.judul_layanan}`,
+    `Psikolog : ${data.nama_psikolog}`,
+    `Jadwal   : ${jadwal} (${jenisSesi})`,
+    ``,
+    `---`,
+    ``,
+    `*Total Bayar : ${totalBayar}*`,
+    `Metode Bayar : ${metodeBayar}`,
+    `Status       : Lunas`,
+    ``,
+    `---`,
+    ``,
+    `*Kebijakan Pembatalan & Refund*`,
+    `Pembatalan sesi dapat dilakukan paling lambat *H-1 (24 jam sebelum jadwal sesi)*. Pengajuan pembatalan yang melewati batas waktu tersebut tidak dapat diproses dan tidak memenuhi syarat untuk pengembalian dana.`,
+    ``,
+    `Untuk mengajukan pembatalan, hubungi nomor whatsapp ini sebelum batas waktu yang tertera di atas.`,
+    ``,
+    `---`,
+    ``,
+    `Empathika Layanan Psikologi`,
+    `Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler`,
+    `Kota Bandung, Jawa Barat 41024`,
+    `Kontak: 0878-7878-5498`,
+    ``,
+    `_Dokumen ini diterbitkan otomatis oleh sistem Empathika._`,
+  ]
+
+  return lines.join('\n')
+}
+
+// ── Bangun URL wa.me dengan teks ter-URL-encode ───────────────────────
+export function buildWhatsAppUrl(noWa: string, text: string): string {
+  const normalizedNo = normalizeWhatsAppNumber(noWa)
+  const encodedText = encodeURIComponent(text)
+  return `https://wa.me/${normalizedNo}?text=${encodedText}`
+}
+
+// ── Normalisasi nomor WhatsApp ke format internasional (tanpa +) ──────
+// Contoh: "0878-7878-5498" → "6287878785498"
+//         "+62878..." → "62878..."
+//         "62878..." → "62878..." (sudah benar)
+export function normalizeWhatsAppNumber(raw: string): string {
+  // Hapus semua karakter selain angka
+  let num = raw.replace(/\D/g, '')
+
+  if (num.startsWith('0')) {
+    // 0878... → 6287...
+    num = '62' + num.slice(1)
+  } else if (!num.startsWith('62')) {
+    // Angka tanpa kode negara – asumsikan Indonesia
+    num = '62' + num
+  }
+  return num
+}
+
+// ── Validasi nomor WhatsApp ───────────────────────────────────────────
+export function validateWhatsAppNumber(raw?: string | null): { valid: boolean; normalized?: string; error?: string } {
+  if (!raw || raw.trim() === '') {
+    return { valid: false, error: 'Nomor WhatsApp klien tidak tersedia. Pastikan data klien sudah lengkap.' }
+  }
+  const normalized = normalizeWhatsAppNumber(raw)
+  if (normalized.length < 10 || normalized.length > 15) {
+    return { valid: false, error: `Nomor WhatsApp tidak valid: "${raw}". Panjang nomor harus 10–15 digit.` }
+  }
+  return { valid: true, normalized }
+}
+
+// ── Utilitas internal ─────────────────────────────────────────────────
+function pad2(n: number) {
+  return String(n).padStart(2, '0')
+}
+
+interface WIBDate {
+  day: number
+  month: number // 0-indexed
+  year: number
+  hours: number
+  minutes: number
+}
+
+// Konversi Date (UTC) ke komponen waktu WIB (UTC+7)
+function toWIB(date: Date): WIBDate {
+  // getTimezoneOffset bisa tidak reliable di Node; gunakan offset manual
+  const WIB_OFFSET_MS = 7 * 60 * 60 * 1000
+  const wibDate = new Date(date.getTime() + WIB_OFFSET_MS)
+  return {
+    day: wibDate.getUTCDate(),
+    month: wibDate.getUTCMonth(),
+    year: wibDate.getUTCFullYear(),
+    hours: wibDate.getUTCHours(),
+    minutes: wibDate.getUTCMinutes(),
+  }
+}

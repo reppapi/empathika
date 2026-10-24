@@ -24,6 +24,7 @@ import psikotesRoutes from "./modules/psikotes/psikotes.route"
 import adminRoutes from "./modules/admin/admin.route"
 import biroRoutes from "./modules/biro/biro.route"
 import uploadRoutes from "./modules/upload/upload.route"
+import invoiceRoutes from "./modules/invoice/invoice.route"
 
 const app = Fastify({ logger: true })
 
@@ -54,5 +55,6 @@ app.register(psikotesRoutes, { prefix: "/psikotes" })
 app.register(adminRoutes, { prefix: "/admin" })
 app.register(biroRoutes, { prefix: "/biro" })
 app.register(uploadRoutes, { prefix: "/upload" })
+app.register(invoiceRoutes, { prefix: "/invoice" })
 
 export default app

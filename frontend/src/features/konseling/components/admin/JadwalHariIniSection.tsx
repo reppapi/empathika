@@ -12,6 +12,7 @@ import {
   MessageCircle,
   ExternalLink,
   Copy,
+  RotateCcw,
 } from "lucide-react"
 
 interface JadwalHariIniSectionProps {
@@ -24,6 +25,7 @@ interface JadwalHariIniSectionProps {
   setActiveMenuId: (id: string | null) => void
   onSelectDetail: (session: ClientSessionToday) => void
   onSelectCancel: (session: ClientSessionToday) => void
+  onSelectRefund: (session: ClientSessionToday) => void
   onMarkCompleted: (id: string, namaKlien: string) => void
   onCopyWhatsApp: (session: ClientSessionToday) => void
   onResetFilter: () => void
@@ -39,6 +41,7 @@ export default function JadwalHariIniSection({
   setActiveMenuId,
   onSelectDetail,
   onSelectCancel,
+  onSelectRefund,
   onMarkCompleted,
   onCopyWhatsApp,
   onResetFilter,
@@ -280,7 +283,7 @@ export default function JadwalHariIniSection({
                                 </button>
                               )}
 
-                              {item.status !== "Dibatalkan" && (
+                              {item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -292,6 +295,49 @@ export default function JadwalHariIniSection({
                                   <XCircle className="w-4 h-4 text-red-500 shrink-0" />
                                   Batalkan Sesi
                                 </button>
+                              )}
+
+                              {/* Tombol Refund dengan Validasi H-1 & Keterangan */}
+                              {item.canRefund ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onSelectRefund(item)
+                                    setActiveMenuId(null)
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-gray-100"
+                                  title={`Batas refund: ${item.refundDeadline ? new Date(item.refundDeadline).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : 'H-1'}`}
+                                >
+                                  <RotateCcw className="w-4 h-4 text-amber-600 shrink-0" />
+                                  <span>Refund Sesi (H-1)</span>
+                                </button>
+                              ) : (
+                                <div
+                                  className="px-4 py-2 text-[10px] text-gray-400 bg-gray-50 flex flex-col gap-0.5 border-t border-gray-100 cursor-not-allowed select-none"
+                                  title={
+                                    item.isRefunded || item.status === "Dibatalkan (Refund)"
+                                      ? "Sesi sudah berstatus refund"
+                                      : item.status === "Selesai"
+                                      ? "Sesi sudah selesai"
+                                      : item.isPastH1
+                                      ? "Refund ditolak: sudah melewati batas H-1 (24 jam sebelum sesi)"
+                                      : "Refund tidak memenuhi syarat"
+                                  }
+                                >
+                                  <div className="flex items-center gap-1.5 font-semibold text-gray-500">
+                                    <RotateCcw className="w-3.5 h-3.5 opacity-50" />
+                                    <span>Refund Nonaktif</span>
+                                  </div>
+                                  <span className="text-[9px] text-gray-400 leading-tight">
+                                    {item.isRefunded || item.status === "Dibatalkan (Refund)"
+                                      ? "Sudah direfund"
+                                      : item.status === "Selesai"
+                                      ? "Sudah selesai"
+                                      : item.isPastH1
+                                      ? "Lewat H-1"
+                                      : "Belum lunas"}
+                                  </span>
+                                </div>
                               )}
                             </div>
                           </>

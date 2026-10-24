@@ -46,6 +46,30 @@ export class BookingService {
       const cleanWa = s.client.no_telepon ? s.client.no_telepon.replace(/\D/g, '') : ''
       const waNumber = cleanWa.startsWith('0') ? '62' + cleanWa.slice(1) : cleanWa
 
+      // Hitung batas refund (H-1 = 24 jam sebelum jadwal sesi)
+      const sessionDate = new Date(s.jadwal.tanggal)
+      const sessionTime = new Date(s.jadwal.jam_mulai)
+      const sessionDateTime = new Date(
+        Date.UTC(
+          sessionDate.getUTCFullYear(),
+          sessionDate.getUTCMonth(),
+          sessionDate.getUTCDate(),
+          sessionTime.getUTCHours(),
+          sessionTime.getUTCMinutes(),
+          0,
+          0
+        )
+      )
+      const refundDeadline = new Date(sessionDateTime.getTime() - 24 * 60 * 60 * 1000)
+      const isPastH1 = Date.now() > refundDeadline.getTime()
+
+      const isPaid = (s as any).transaksi?.status_pembayaran === 'PAID' || s.status === 'CONFIRMED'
+      const isRefunded = (s as any).transaksi?.status_pembayaran === 'REFUNDED' || s.status === 'CANCELLED'
+      const isCompleted = s.status === 'COMPLETED'
+      const canRefund = isPaid && !isRefunded && !isCompleted && !isPastH1
+
+      const nominalRefund = (s as any).transaksi ? Number((s as any).transaksi.total) : (s.layanan?.harga_weekday ? Number(s.layanan.harga_weekday) : 200000)
+
       return {
         id: s.id,
         idKlien: `K-${s.client.id.slice(0, 4).toUpperCase()}`,
@@ -58,9 +82,19 @@ export class BookingService {
         jamSelesai: jamSelesaiStr,
         waktuRange: `${jamMulaiStr} - ${jamSelesaiStr}`,
         metode: s.metode === 'OFFLINE' ? 'Offline' : 'Online',
-        status: statusLabel,
+        status: (s as any).transaksi?.status_pembayaran === 'REFUNDED' ? 'Dibatalkan (Refund)' : statusLabel,
         rawStatus: s.status,
         deskripsiTrauma: s.deskripsi_trauma,
+        tanggal: formatDateToString(s.jadwal.tanggal),
+        // Rincian Refund H-1
+        canRefund,
+        isPastH1,
+        isRefunded,
+        isPaid,
+        refundDeadline: refundDeadline.toISOString(),
+        nominalRefund,
+        idTransaksi: (s as any).transaksi?.id || null,
+        kodeTransaksi: (s as any).transaksi?.kode_transaksi || null,
       }
     })
 
@@ -196,6 +230,32 @@ export class BookingService {
     }
   }
 
+  async processRefund(params: {
+    bookingId: string
+    adminName: string
+    alasan: string
+  }) {
+    const result = await this.repo.refundBooking(params)
+    return {
+      success: true,
+      message: 'Refund berhasil diproses. Status transaksi telah diperbarui dan jadwal telah dibatalkan.',
+      bookingId: result.booking.id,
+      kodePesanan: result.booking.kode_pesanan,
+      klien: result.booking.client.nama,
+      statusBooking: result.booking.status,
+      nominalRefund: result.nominalRefund,
+      transaksi: {
+        id: result.transaksi.id,
+        kodeTransaksi: result.transaksi.kode_transaksi,
+        statusPembayaran: result.transaksi.status_pembayaran,
+        refundAt: result.transaksi.refund_at,
+        refundReason: result.transaksi.refund_reason,
+        refundByAdmin: result.transaksi.refund_by_admin,
+        refundAmount: result.transaksi.refund_amount,
+      },
+    }
+  }
+
   // ── 2. Psikolog: Slot Ketersediaan & Agenda ──────────────────────────────────
 
   async getJadwalTersedia(query: GetJadwalTersediaQuery) {
@@ -244,16 +304,35 @@ export class BookingService {
         status: slot.status,
         tipe_jadwal: slot.tipe_jadwal,
         booking: slot.booking_konsultasi
-          ? {
-              id_booking: slot.booking_konsultasi.id,
-              kode_pesanan: slot.booking_konsultasi.kode_pesanan,
-              nama_klien: slot.booking_konsultasi.client?.nama,
-              no_telepon_klien: slot.booking_konsultasi.client?.no_telepon,
-              layanan: slot.booking_konsultasi.layanan?.nama,
-              metode: slot.booking_konsultasi.metode,
-              status_booking: slot.booking_konsultasi.status,
-              deskripsi_trauma: slot.booking_konsultasi.deskripsi_trauma,
-            }
+          ? (() => {
+              const b = slot.booking_konsultasi
+              const isRefunded =
+                b.status === 'CANCELLED' ||
+                b.transaksi?.status_pembayaran === 'REFUNDED'
+
+              // Hitung harga penuh: prioritaskan nilai nominal transaksi, lalu tarif layanan/psikolog
+              const nominalTransaksi = b.transaksi ? Number(b.transaksi.total) : null
+              const tarifPsikolog = (slot as any).psikolog?.tarif_per_jam ? Number((slot as any).psikolog.tarif_per_jam) : null
+              const fullPrice = nominalTransaksi ?? tarifPsikolog ?? (b.layanan?.harga_weekday ? Number(b.layanan.harga_weekday) : 0)
+
+              // Bagian Psikolog 60%
+              const pendapatanPsikolog = isRefunded || fullPrice <= 0 ? null : Math.round(fullPrice * 0.6)
+
+              return {
+                id_booking: b.id,
+                kode_pesanan: b.kode_pesanan,
+                nama_klien: b.client?.nama,
+                no_telepon_klien: b.client?.no_telepon,
+                layanan: b.layanan?.nama,
+                metode: b.metode,
+                status_booking: b.status,
+                deskripsi_trauma: b.deskripsi_trauma,
+                harga_penuh: fullPrice > 0 ? fullPrice : null,
+                pendapatan_psikolog: pendapatanPsikolog,
+                status_pembayaran: b.transaksi?.status_pembayaran || (b.status === 'CANCELLED' ? 'REFUNDED' : 'PAID'),
+                is_refunded: isRefunded,
+              }
+            })()
           : null,
       })),
     }

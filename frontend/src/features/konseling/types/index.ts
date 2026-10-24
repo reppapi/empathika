@@ -14,6 +14,7 @@ export type ClientSessionStatus =
   | "Menunggu Jadwal"
   | "Sedang Berlangsung"
   | "Dibatalkan"
+  | "Dibatalkan (Refund)"
 
 export interface ClientSessionToday {
   id: string
@@ -27,6 +28,20 @@ export interface ClientSessionToday {
   catatan?: string
   status: ClientSessionStatus
   isUpcomingNearest?: boolean
+  tanggal?: string
+  // Fitur Refund H-1
+  canRefund?: boolean
+  isPastH1?: boolean
+  isRefunded?: boolean
+  isPaid?: boolean
+  refundDeadline?: string
+  nominalRefund?: number
+  idTransaksi?: string | null
+  kodeTransaksi?: string | null
+  // Fitur Invoice (populated dari API saat data dari BE)
+  hasInvoice?: boolean       // apakah sudah ada invoice
+  invoiceStatus?: "BELUM_DIKIRIM" | "DIKIRIM" | "GAGAL" | null
+  invoiceSentAt?: string | null
 }
 
 export interface WeeklyTemplateItem {
@@ -37,3 +52,4 @@ export interface WeeklyTemplateItem {
   namaKlien: string
   psikolog: string
 }
+

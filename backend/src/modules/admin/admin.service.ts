@@ -114,6 +114,14 @@ export class AdminService {
     return this.bookingService.updateBookingStatus(id, status)
   }
 
+  async processRefund(bookingId: string, adminName: string, alasan: string) {
+    return this.bookingService.processRefund({
+      bookingId,
+      adminName,
+      alasan,
+    })
+  }
+
   // ── Modul Profil Admin Utama ────────────────────────────────────
   async getProfile(adminId?: string) {
     const admin = await this.repo.findAdminUtama(adminId)

@@ -24,7 +24,9 @@ import JadwalAsesmenPicker from "./JadwalAsesmenPicker"
 import JadwalMingguanGrid from "./JadwalMingguanGrid"
 import ModalDetailSesiKlien from "./ModalDetailSesiKlien"
 import ModalBatalSesi from "./ModalBatalSesi"
+import ModalRefundSesi from "./ModalRefundSesi"
 import { psikologService } from "@/services/psikolog.service"
+import { adminService } from "@/services/admin.service"
 
 import {
   Calendar as CalendarIcon,
@@ -66,6 +68,7 @@ export default function JadwalAdmin() {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [selectedDetailSession, setSelectedDetailSession] = useState<ClientSessionToday | null>(null)
   const [sessionToCancel, setSessionToCancel] = useState<ClientSessionToday | null>(null)
+  const [sessionToRefund, setSessionToRefund] = useState<ClientSessionToday | null>(null)
   const [actionToast, setActionToast] = useState<{ message: string; type: "success" | "danger" } | null>(null)
 
   // State Modal Tambah Sesi
@@ -146,6 +149,33 @@ export default function JadwalAdmin() {
       prev.map((s) => (s.id === id ? { ...s, status: "Dibatalkan", isUpcomingNearest: false } : s))
     )
     triggerToast(`Sesi ${namaKlien} telah dibatalkan.`, "danger")
+  }
+
+  const handleRefundSession = async (id: string, alasan: string) => {
+    try {
+      // Panggil backend API refund jika id adalah UUID valid
+      if (id && !id.startsWith("cs")) {
+        await adminService.processRefund(id, { alasan })
+      }
+      setTodaySessions((prev) =>
+        prev.map((s) =>
+          s.id === id
+            ? {
+                ...s,
+                status: "Dibatalkan (Refund)" as any,
+                canRefund: false,
+                isRefunded: true,
+                isUpcomingNearest: false,
+              }
+            : s
+        )
+      )
+      triggerToast(`Refund 100% untuk sesi berhasil diproses. Status sesi: Dibatalkan (Refund).`, "success")
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || "Gagal memproses refund"
+      triggerToast(errMsg, "danger")
+      throw err
+    }
   }
 
   // ── 3. Filter Layanan & Derived Values ──
@@ -616,6 +646,7 @@ export default function JadwalAdmin() {
         setActiveMenuId={setActiveMenuId}
         onSelectDetail={(session) => setSelectedDetailSession(session)}
         onSelectCancel={(session) => setSessionToCancel(session)}
+        onSelectRefund={(session) => setSessionToRefund(session)}
         onMarkCompleted={handleMarkCompleted}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
         onResetFilter={() => {
@@ -662,6 +693,10 @@ export default function JadwalAdmin() {
           setSelectedDetailSession(null)
           setSessionToCancel(session)
         }}
+        onRefundClick={(session) => {
+          setSelectedDetailSession(null)
+          setSessionToRefund(session)
+        }}
         onMarkCompleted={(id, namaKlien) => {
           handleMarkCompleted(id, namaKlien)
           setSelectedDetailSession(null)
@@ -674,6 +709,13 @@ export default function JadwalAdmin() {
         session={sessionToCancel}
         onClose={() => setSessionToCancel(null)}
         onConfirmCancel={handleCancelSession}
+      />
+
+      {/* ── Modal Konfirmasi Refund H-1 ── */}
+      <ModalRefundSesi
+        session={sessionToRefund}
+        onClose={() => setSessionToRefund(null)}
+        onConfirmRefund={handleRefundSession}
       />
 
       {/* ── Toast Notifikasi Aksi ── */}
