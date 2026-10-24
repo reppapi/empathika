@@ -17,8 +17,8 @@ export function middleware(request: NextRequest) {
 
   const isAdmin = adminRoutes.some((r) => pathname.startsWith(r))
 
-  // Jika akses admin, biro, atau psikolog-web tanpa token, redirect ke login
-  if (isAdmin && !token) {
+  // Jika akses admin, biro, atau psikolog-web tanpa token valid, redirect ke login
+  if (isAdmin && (!token || token.trim() === "")) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
@@ -27,11 +27,17 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/admin",
     "/admin/:path*",
+    "/admin-biro",
     "/admin-biro/:path*",
+    "/psikolog-web",
     "/psikolog-web/:path*",
+    "/beranda",
     "/beranda/:path*",
+    "/jadwal",
     "/jadwal/:path*",
+    "/profile",
     "/profile/:path*",
   ],
 }

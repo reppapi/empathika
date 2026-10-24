@@ -1,5 +1,7 @@
 import type { FastifyInstance } from "fastify"
 import bcrypt from "bcrypt"
+import { OAuth2Client } from "google-auth-library"
+import { env } from "../../config/env"
 import { AuthRepository } from "./auth.repository"
 import type { LoginInput } from "./auth.schema"
 
@@ -23,6 +25,82 @@ export class AuthService {
 
   constructor(private fastify: FastifyInstance) {
     this.repo = new AuthRepository(fastify.prisma)
+  }
+
+  async loginWithGoogle(credential: string, rememberMe?: boolean) {
+    if (!credential || typeof credential !== "string") {
+      throw Object.assign(new Error("Token credential Google tidak valid"), {
+        statusCode: 400,
+      })
+    }
+
+    let email: string | undefined
+
+    // Mode development / testing support mock token
+    const isMock =
+      process.env.NODE_ENV !== "production" && credential.startsWith("mock-google-token:")
+
+    if (isMock) {
+      email = credential.replace("mock-google-token:", "").trim().toLowerCase()
+    } else {
+      const clientId = env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID
+      try {
+        const client = new OAuth2Client(clientId)
+        const ticket = await client.verifyIdToken({
+          idToken: credential,
+          audience: clientId ? [clientId] : undefined,
+        })
+        const payload = ticket.getPayload()
+        if (!payload || !payload.email) {
+          throw new Error("Token Google tidak berisi email yang valid")
+        }
+        email = payload.email.toLowerCase()
+      } catch (err: any) {
+        throw Object.assign(
+          new Error("Token Google tidak valid atau telah kedaluwarsa"),
+          { statusCode: 401 }
+        )
+      }
+    }
+
+    // 1. Cek keberadaan akun di database (Hanya untuk akun yang sudah terdaftar)
+    const account = await this.repo.findByEmail(email)
+    if (!account) {
+      throw Object.assign(
+        new Error("Email Google belum terdaftar di Empathika. Silakan hubungi admin."),
+        { statusCode: 401 }
+      )
+    }
+
+    // 2. Cek apakah akun belum diaktivasi (Tolak dengan HTTP 403)
+    if (!account.aktif || !account.password) {
+      throw Object.assign(
+        new Error("Akun Anda belum diaktivasi. Silakan lakukan aktivasi terlebih dahulu melalui tautan aktivasi yang telah dikirimkan oleh admin."),
+        { statusCode: 403 }
+      )
+    }
+
+    // 3. Akun aktif -> Terbitkan JWT resmi Empathika
+    const expiresIn = rememberMe ? "7d" : "1d"
+    const token = this.fastify.jwt.sign(
+      {
+        id: account.id,
+        email: account.email,
+        role: account.role,
+        nama: account.nama,
+      },
+      { expiresIn }
+    )
+
+    return {
+      user: {
+        id: account.id,
+        nama: account.nama,
+        email: account.email,
+        role: account.role,
+      },
+      accessToken: token,
+    }
   }
 
   async login(input: LoginInput) {
@@ -64,6 +142,7 @@ export class AuthService {
       })
     }
 
+    const expiresIn = input.rememberMe ? "7d" : "1d"
     const token = this.fastify.jwt.sign(
       {
         id: account.id,
@@ -71,7 +150,7 @@ export class AuthService {
         role: account.role,
         nama: account.nama,
       },
-      { expiresIn: "1d" }
+      { expiresIn }
     )
 
     return {

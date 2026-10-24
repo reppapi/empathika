@@ -75,7 +75,17 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
           <div className="mt-8 px-6 pb-6">
             <button
               type="button"
-              onClick={() => { window.location.href = "/login" }}
+              onClick={() => {
+                document.cookie = "access_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                document.cookie = "remember_me=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                localStorage.removeItem("access_token");
+                localStorage.removeItem("remember_me");
+                sessionStorage.removeItem("access_token");
+                localStorage.removeItem("empathika-auth");
+                localStorage.removeItem("active_psikolog_id");
+                localStorage.removeItem("active_psikolog_name");
+                window.location.href = "/login";
+              }}
               className="inline-block w-full text-left font-normal text-white/80 transition-colors hover:text-white py-3 text-[15px]"
             >
               Log out
