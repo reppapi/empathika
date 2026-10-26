@@ -9,6 +9,7 @@ import { LOCAL_STORAGE_KEY_TENAGA, INITIAL_TENAGA_AHLI } from "@/features/psikol
 import { TenagaAhli } from "@/features/psikolog/types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { psikologService } from "@/services/psikolog.service"
+import { useAuthStore } from "@/store/authStore"
 import dynamic from "next/dynamic"
 
 const AuthGuard = dynamic(
@@ -19,8 +20,9 @@ const AuthGuard = dynamic(
 export default function PsikologWebLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const { user } = useAuthStore()
 
-  // Ambil data tenaga ahli aktif (default akun psikolog web: Rizki Putri Dzulqaidah / akun aktif pertama)
+  // Ambil data tenaga ahli aktif (default akun psikolog web: Dr. Jane Doe / akun aktif pertama)
   const [currentPsikolog, setCurrentPsikolog] = useState<TenagaAhli | null>(null)
   const [isCheckingAccess, setIsCheckingAccess] = useState(true)
 
@@ -29,8 +31,12 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
       const savedName = localStorage.getItem("active_psikolog_name")
+      const isInvalidSaved = !savedName || savedName.toLowerCase().includes("admin")
       const found =
-        (savedName ? list.find((item) => item.nama === savedName) : null) ||
+        (user?.role === "PSIKOLOG" && user?.email ? list.find((item) => item.email.toLowerCase() === user.email.toLowerCase()) : null) ||
+        (user?.role === "PSIKOLOG" && user?.name ? list.find((item) => item.nama.toLowerCase().includes(user.name.toLowerCase())) : null) ||
+        (!isInvalidSaved ? list.find((item) => item.nama === savedName) : null) ||
+        list.find((item) => item.nama?.includes("Jane")) ||
         list.find((item) => item.email === "putriqoida@empathika.com") ||
         list[0]
       setCurrentPsikolog(found || null)
@@ -45,16 +51,32 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
       if (dbList && dbList.length > 0) {
         const savedId = localStorage.getItem("active_psikolog_id")
         const savedName = localStorage.getItem("active_psikolog_name")
+        const isInvalidSaved = !savedName || savedName.toLowerCase().includes("admin")
+
         const matched =
-          (savedId ? dbList.find((p) => p.id === savedId) : null) ||
-          (savedName ? dbList.find((p) => p.nama_gelar === savedName) : null) ||
+          (user?.role === "PSIKOLOG" && user?.id
+            ? dbList.find((p) => p.id === user.id || p.account?.id === user.id)
+            : null) ||
+          (user?.role === "PSIKOLOG" && user?.email
+            ? dbList.find((p) => p.account?.email?.toLowerCase() === user.email.toLowerCase())
+            : null) ||
+          (user?.role === "PSIKOLOG" && user?.name
+            ? dbList.find((p) => p.nama_gelar?.toLowerCase().includes(user.name.toLowerCase()) || p.account?.nama?.toLowerCase().includes(user.name.toLowerCase()))
+            : null) ||
+          (!isInvalidSaved && savedId ? dbList.find((p) => p.id === savedId) : null) ||
+          (!isInvalidSaved && savedName ? dbList.find((p) => p.nama_gelar === savedName) : null) ||
+          dbList.find((p) => p.nama_gelar?.includes("Jane") || p.account?.email?.includes("psikolog@empathika")) ||
           dbList.find((p) => p.nama_gelar?.includes("Rizki")) ||
           dbList[0]
 
         if (matched) {
+          const resolvedName = matched.nama_gelar || matched.account?.nama || "Dr. Jane Doe, M.Psi., Psikolog"
+          localStorage.setItem("active_psikolog_id", matched.id)
+          localStorage.setItem("active_psikolog_name", resolvedName)
+
           setCurrentPsikolog((prev) => ({
             id: matched.id,
-            nama: matched.nama_gelar || matched.account?.nama || "Psikolog Empathika",
+            nama: resolvedName,
             email: matched.account?.email || "psikolog@empathika.com",
             kategori: (matched.kategori?.toLowerCase().includes("peer")
               ? "peer-konselor"

@@ -105,7 +105,15 @@ export default function JadwalMingguanGrid({
           <div className="grid grid-cols-6 min-h-[360px] divide-x divide-gray-200">
             {weekDays.map((wd, i) => {
               const sessions = currentWeekAllSessions
-                .filter((s) => s.date === wd.dateKey && matchLayanan(s.layanan, selectedLayanan))
+                .filter(
+                  (s) =>
+                    s.date === wd.dateKey &&
+                    matchLayanan(s.layanan, selectedLayanan) &&
+                    Boolean(s.namaKlien && s.namaKlien.trim().toLowerCase() !== "tersedia") &&
+                    s.status !== "Tersedia" &&
+                    !s.isAvailableSlot &&
+                    s.layanan !== "Slot Tersedia"
+                )
                 .sort((a, b) => a.waktu.localeCompare(b.waktu))
 
               const isTodayColumn = wd.dateKey === todayDateKey

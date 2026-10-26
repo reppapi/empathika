@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     pageDescription = "Pantau aktivitas, statistik, dan perkembangan operasional Empathika secara menyeluruh."
   } else if (pathname?.startsWith("/admin/jadwal")) {
     pageTitle = "Jadwal & Sesi"
-    pageDescription = "Kelola sesi konsultasi baru untuk client dan pantau daftar client yang melakukan booking konsultasi."
+    pageDescription = "Kelola sesi konsultasi baru untuk client dan pantau daftar client yang melakukan booking."
   } else if (pathname?.startsWith("/admin/event")) {
     pageTitle = "Manajemen Event"
     pageDescription = "Kelola informasi event, jadwal pelaksanaan, pendaftaran peserta, dan publikasi kegiatan."

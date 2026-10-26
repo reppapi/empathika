@@ -123,6 +123,14 @@ export default function AdminKerjaSamaFormClient({ programId }: AdminKerjaSamaFo
       errs.slug = "Slug URL wajib diisi"
     } else if (!/^[a-z0-9-]+$/.test(formData.slug.trim())) {
       errs.slug = "Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung (-)"
+    } else {
+      const currentItems = getKerjaSamaItems()
+      const isDuplicate = currentItems.some(
+        (it) => it.slug.toLowerCase() === formData.slug?.trim().toLowerCase() && it.id !== programId
+      )
+      if (isDuplicate) {
+        errs.slug = `Slug '${formData.slug?.trim()}' sudah digunakan oleh program lain.`
+      }
     }
     if (!formData.description?.trim()) {
       errs.description = "Deskripsi program wajib diisi"

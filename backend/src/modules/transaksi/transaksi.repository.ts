@@ -220,13 +220,49 @@ export class TransaksiRepository {
   }
 
   async updateStatus(id: string, status: string, paymentData?: Record<string, unknown>) {
-    return this.prisma.transaksi.update({
-      where: { id },
-      data: {
-        status_pembayaran: status as any,
-        ...(status === 'PAID' && { tanggal_bayar: new Date() }),
-        ...(paymentData && { data_pembayaran: JSON.stringify(paymentData) }),
-      } as any,
+    return this.prisma.$transaction(async (tx) => {
+      const updatedTransaksi = await tx.transaksi.update({
+        where: { id },
+        data: {
+          status_pembayaran: status as any,
+          ...(status === 'PAID' && { tanggal_bayar: new Date() }),
+          ...(paymentData && { data_pembayaran: JSON.stringify(paymentData) }),
+        } as any,
+      })
+
+      // Sinkronkan status BookingKonsultasi terkait
+      const booking = await tx.bookingKonsultasi.findFirst({
+        where: { id_transaksi: id },
+        include: { jadwal: true },
+      })
+
+      if (booking) {
+        if (status === 'PAID') {
+          await tx.bookingKonsultasi.update({
+            where: { id: booking.id },
+            data: { status: 'CONFIRMED' },
+          })
+        } else if (status === 'FAILED') {
+          await tx.bookingKonsultasi.update({
+            where: { id: booking.id },
+            data: { status: 'CANCELLED' },
+          })
+          if (booking.id_jadwal) {
+            await tx.jadwalSlot.update({
+              where: { id: booking.id_jadwal },
+              data: { status: 'TERSEDIA' },
+            }).catch(() => {})
+          }
+          if (booking.jadwal?.id_psikolog) {
+            await tx.psikolog.update({
+              where: { id: booking.jadwal.id_psikolog },
+              data: { jumlah_sesi: { decrement: 1 } },
+            }).catch(() => {})
+          }
+        }
+      }
+
+      return updatedTransaksi
     })
   }
 }

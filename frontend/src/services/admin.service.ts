@@ -5,11 +5,12 @@ export const adminService = {
     apiClient.get("/admin/jadwal", { params }).then((r) => r.data),
 
   createJadwalSlot: (payload: {
-    id_psikolog: string
+    id_psikolog?: string
     tanggal: string
     jam_mulai: string
     jam_selesai: string
     tipe_jadwal?: string
+    metode?: "ONLINE" | "OFFLINE" | string
   }) => apiClient.post("/admin/jadwal-slots", payload).then((r) => r.data),
 
   createSesiBaru: (payload: {

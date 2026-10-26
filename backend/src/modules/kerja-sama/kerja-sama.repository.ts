@@ -28,6 +28,22 @@ export class KerjaSamaRepository {
     })
   }
 
+  async findRecentDuplicate(data: {
+    nama_instansi: string
+    no_telepon: string
+    tipe_formulir: string
+    withinSeconds?: number
+  }) {
+    const cutoff = new Date(Date.now() - (data.withinSeconds || 60) * 1000)
+    return this.prisma.pengajuanKerjaSama.findFirst({
+      where: {
+        nama_instansi: { equals: data.nama_instansi, mode: 'insensitive' },
+        no_telepon: data.no_telepon,
+        tipe_formulir: data.tipe_formulir,
+        createdAt: { gte: cutoff },
+      },
+    })
+  }
   async findPengajuanList(query: GetPengajuanQuery) {
     const where: Prisma.PengajuanKerjaSamaWhereInput = {}
 

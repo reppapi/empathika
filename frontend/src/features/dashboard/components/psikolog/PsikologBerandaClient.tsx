@@ -25,87 +25,7 @@ export interface AgendaGrupTanggal {
   sesi: SesiAgendaItem[]
 }
 
-// Data mock default / fallback dengan rincian pendapatan & status refund
-const DEFAULT_AGENDA_HARI_INI: SesiAgendaItem[] = [
-  {
-    id: "a1",
-    waktuMulai: "08:00",
-    waktuSelesai: "09:00",
-    metode: "Offline",
-    namaKlien: "Karen Sya",
-    keluhan: '"Stress terhadap pekerjaan yang gaada beresnya"',
-    layanan: "Konseling Pribadi",
-    hargaPenuh: 200000,
-    pendapatanPsikolog: Math.round(200000 * PSIKOLOG_SHARE), // Rp120.000
-    isRefunded: false,
-    statusSesi: "CONFIRMED",
-  },
-  {
-    id: "a2",
-    waktuMulai: "09:00",
-    waktuSelesai: "10:00",
-    metode: "Offline",
-    namaKlien: "Karen Sya",
-    keluhan: '"Stress terhadap pekerjaan yang gaada beresnya"',
-    layanan: "Konseling Pribadi",
-    hargaPenuh: 200000,
-    pendapatanPsikolog: Math.round(200000 * PSIKOLOG_SHARE), // Rp120.000
-    isRefunded: false,
-    statusSesi: "CONFIRMED",
-  },
-]
 
-const DEFAULT_AGENDA_BERIKUTNYA: AgendaGrupTanggal[] = [
-  {
-    tanggal: "03-09-2026",
-    sesi: [
-      {
-        id: "b1",
-        waktuMulai: "08:00",
-        waktuSelesai: "09:00",
-        metode: "Online",
-        namaKlien: "Karen Sya",
-        keluhan: '"Stress terhadap pekerjaan yang gaada beresnya"',
-        layanan: "Konseling Pribadi",
-        hargaPenuh: 200000,
-        pendapatanPsikolog: Math.round(200000 * PSIKOLOG_SHARE),
-        isRefunded: false,
-        statusSesi: "CONFIRMED",
-      },
-      {
-        id: "b1-refund",
-        waktuMulai: "10:30",
-        waktuSelesai: "11:30",
-        metode: "Online",
-        namaKlien: "Rendi Pratama",
-        keluhan: '"Permohonan refund jadwal H-1 karena dinas luar kota"',
-        layanan: "Konseling Karir",
-        hargaPenuh: 200000,
-        pendapatanPsikolog: null,
-        isRefunded: true,
-        statusSesi: "CANCELLED",
-      },
-    ],
-  },
-  {
-    tanggal: "05-09-2026",
-    sesi: [
-      {
-        id: "b2",
-        waktuMulai: "13:00",
-        waktuSelesai: "14:00",
-        metode: "Offline",
-        namaKlien: "Karen Sya",
-        keluhan: '"Stress terhadap pekerjaan yang gaada beresnya"',
-        layanan: "Konseling Pribadi",
-        hargaPenuh: 0, // Kasus harga kosong/0 -> tampilkan "-"
-        pendapatanPsikolog: 0,
-        isRefunded: false,
-        statusSesi: "CONFIRMED",
-      },
-    ],
-  },
-]
 
 export function SesiCard({
   waktuMulai,
@@ -182,44 +102,57 @@ export function SesiCard({
 
 export default function PsikologBerandaClient() {
   const dateInputRef = useRef<HTMLInputElement>(null)
-  const [selectedDate, setSelectedDate] = useState("2026-09-01")
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  })
 
   const { user } = useAuthStore()
-  const [psikologName, setPsikologName] = useState<string>("Psikolog Empathika")
+  const [psikologName, setPsikologName] = useState<string>("Dr. Jane Doe, M.Psi., Psikolog")
 
-  // State Agenda Riwayat Sesi
-  const [agendaHariIni, setAgendaHariIni] = useState<SesiAgendaItem[]>(DEFAULT_AGENDA_HARI_INI)
-  const [agendaBerikutnya, setAgendaBerikutnya] = useState<AgendaGrupTanggal[]>(DEFAULT_AGENDA_BERIKUTNYA)
+  // State Agenda Riwayat Sesi (Murni Database PostgreSQL)
+  const [allBookedSlots, setAllBookedSlots] = useState<any[]>([])
+  const [agendaHariIni, setAgendaHariIni] = useState<SesiAgendaItem[]>([])
+  const [agendaBerikutnya, setAgendaBerikutnya] = useState<AgendaGrupTanggal[]>([])
 
   // 1. Resolve Profil & Nama Psikolog
   useEffect(() => {
     const resolveName = () => {
+      // 1. Jika akun yang login adalah PSIKOLOG murni (bukan admin)
+      if (user?.role === "PSIKOLOG" && user?.name && !user.name.toLowerCase().includes("admin")) {
+        setPsikologName(user.name)
+        localStorage.setItem("active_psikolog_name", user.name)
+        return
+      }
+
+      // 2. Ambil dari localStorage jika valid (bukan Admin)
       const savedName = localStorage.getItem("active_psikolog_name")
-      if (savedName) {
+      const isInvalid = !savedName || savedName.toLowerCase().includes("admin")
+      if (!isInvalid) {
         setPsikologName(savedName)
         return
       }
 
-      if (user?.name) {
-        setPsikologName(user.name)
-        return
-      }
-
-      const savedId = localStorage.getItem("active_psikolog_id") || user?.id
+      // 3. Fallback ambil dari daftar psikolog (prioritaskan Dr. Jane Doe)
+      const savedId = localStorage.getItem("active_psikolog_id")
       psikologService
         .getList()
         .then((list: any[]) => {
           if (list && list.length > 0) {
             const matched =
-              (savedId ? list.find((p) => p.id === savedId || p.account?.id === savedId) : null) ||
+              (!isInvalid && savedId ? list.find((p) => p.id === savedId || p.account?.id === savedId) : null) ||
+              list.find((p) => p.nama_gelar?.includes("Jane") || p.account?.email?.includes("psikolog@empathika")) ||
               list.find((p) => p.nama_gelar?.includes("Rizki") || p.account?.email?.includes("putriqoida")) ||
               list[0]
 
             if (matched) {
-              const name = matched.nama_gelar || matched.account?.nama || "Psikolog Empathika"
-              setPsikologName(name)
+              const name = matched.nama_gelar || matched.account?.nama || "Dr. Jane Doe, M.Psi., Psikolog"
               localStorage.setItem("active_psikolog_id", matched.id)
               localStorage.setItem("active_psikolog_name", name)
+              setPsikologName(name)
             }
           }
         })
@@ -232,63 +165,72 @@ export default function PsikologBerandaClient() {
     return () => window.removeEventListener("storage", resolveName)
   }, [user])
 
-  // 2. Fetch data riwayat sesi real-time dari BE dengan fallback gracefully
+  // 2. Fetch data riwayat sesi real-time dari BE PostgreSQL
   useEffect(() => {
-    // TODO: Sesuaikan filter tanggal atau pagination jika BE menyediakan parameter khusus
     psikologService
       .getJadwalSaya()
       .then((res: any) => {
-        if (res && res.slots && Array.isArray(res.slots)) {
-          const bookedOnly = res.slots.filter((s: any) => s.booking)
-          if (bookedOnly.length > 0) {
-            const todayStr = new Date().toISOString().split("T")[0]
-            const todayItems: SesiAgendaItem[] = []
-            const futureMap = new Map<string, SesiAgendaItem[]>()
-
-            bookedOnly.forEach((s: any) => {
-              const b = s.booking
-              const isRefund = b.is_refunded || b.status_booking === "CANCELLED"
-              const item: SesiAgendaItem = {
-                id: s.id,
-                waktuMulai: s.jam_mulai,
-                waktuSelesai: s.jam_selesai,
-                metode: b.metode === "OFFLINE" ? "Offline" : "Online",
-                namaKlien: b.nama_klien || "Klien Empathika",
-                keluhan: b.deskripsi_trauma ? `"${b.deskripsi_trauma}"` : '"Konsultasi terjadwal"',
-                layanan: b.layanan || "Konseling Individu",
-                hargaPenuh: b.harga_penuh,
-                pendapatanPsikolog: b.pendapatan_psikolog,
-                isRefunded: isRefund,
-                statusSesi: b.status_booking,
-              }
-
-              if (s.date === todayStr) {
-                todayItems.push(item)
-              } else {
-                const dateKey = s.date.split("-").reverse().join("-")
-                const existing = futureMap.get(dateKey) || []
-                existing.push(item)
-                futureMap.set(dateKey, existing)
-              }
-            })
-
-            if (todayItems.length > 0) {
-              setAgendaHariIni(todayItems)
+        if (res) {
+          // Sinkronkan nama profil psikolog resmi langsung dari response backend
+          if (res.psikolog?.nama_gelar) {
+            setPsikologName(res.psikolog.nama_gelar)
+            localStorage.setItem("active_psikolog_name", res.psikolog.nama_gelar)
+            if (res.psikolog.id) {
+              localStorage.setItem("active_psikolog_id", res.psikolog.id)
             }
-            if (futureMap.size > 0) {
-              const groups: AgendaGrupTanggal[] = Array.from(futureMap.entries()).map(([tanggal, sesi]) => ({
-                tanggal,
-                sesi,
-              }))
-              setAgendaBerikutnya(groups)
-            }
+          }
+
+          if (res.slots && Array.isArray(res.slots)) {
+            const bookedOnly = res.slots.filter((s: any) => s.booking)
+            setAllBookedSlots(bookedOnly)
           }
         }
       })
-      .catch(() => {
-        // Fallback ke DEFAULT_AGENDA jika offline / dev test
-      })
+      .catch(() => {})
   }, [])
+
+  // 3. Sinkronkan agenda hari ini & agenda berikutnya sesuai selectedDate / hari ini
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split("T")[0]
+    const targetDate = selectedDate || todayStr
+
+    const targetItems: SesiAgendaItem[] = []
+    const futureMap = new Map<string, SesiAgendaItem[]>()
+
+    allBookedSlots.forEach((s: any) => {
+      const b = s.booking
+      const isRefund = b.is_refunded || b.status_booking === "CANCELLED"
+      const item: SesiAgendaItem = {
+        id: s.id,
+        waktuMulai: s.jam_mulai,
+        waktuSelesai: s.jam_selesai,
+        metode: b.metode === "OFFLINE" ? "Offline" : "Online",
+        namaKlien: b.nama_klien || "Klien Empathika",
+        keluhan: b.deskripsi_trauma ? `"${b.deskripsi_trauma}"` : '"Konsultasi terjadwal"',
+        layanan: b.layanan || "Konseling Individu",
+        hargaPenuh: b.harga_penuh,
+        pendapatanPsikolog: b.pendapatan_psikolog,
+        isRefunded: isRefund,
+        statusSesi: b.status_booking,
+      }
+
+      if (s.date === targetDate) {
+        targetItems.push(item)
+      } else {
+        const dateKey = s.date.split("-").reverse().join("-")
+        const existing = futureMap.get(dateKey) || []
+        existing.push(item)
+        futureMap.set(dateKey, existing)
+      }
+    })
+
+    setAgendaHariIni(targetItems)
+    const groups: AgendaGrupTanggal[] = Array.from(futureMap.entries()).map(([tanggal, sesi]) => ({
+      tanggal,
+      sesi,
+    }))
+    setAgendaBerikutnya(groups)
+  }, [allBookedSlots, selectedDate])
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
@@ -351,22 +293,34 @@ export default function PsikologBerandaClient() {
       {/* ── Agenda Hari Ini ── */}
       <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4 flex flex-col gap-3">
         <h4 className="text-sm font-semibold text-gray-700">Agenda Hari Ini</h4>
-        {agendaHariIni.map((sesi) => (
-          <SesiCard key={sesi.id} {...sesi} />
-        ))}
+        {agendaHariIni.length > 0 ? (
+          agendaHariIni.map((sesi) => (
+            <SesiCard key={sesi.id} {...sesi} />
+          ))
+        ) : (
+          <div className="rounded-xl border border-dashed border-gray-200 bg-white p-6 text-center text-xs text-gray-400">
+            Belum ada jadwal sesi klien hari ini.
+          </div>
+        )}
       </div>
 
       {/* ── Agenda Berikutnya ── */}
       <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4 flex flex-col gap-4">
         <h4 className="text-sm font-semibold text-gray-700">Agenda Berikutnya</h4>
-        {agendaBerikutnya.map((grup) => (
-          <div key={grup.tanggal} className="flex flex-col gap-2">
-            <p className="text-xs font-bold text-gray-500">{grup.tanggal}</p>
-            {grup.sesi.map((sesi) => (
-              <SesiCard key={sesi.id} {...sesi} />
-            ))}
+        {agendaBerikutnya.length > 0 ? (
+          agendaBerikutnya.map((grup) => (
+            <div key={grup.tanggal} className="flex flex-col gap-2">
+              <p className="text-xs font-bold text-gray-500">{grup.tanggal}</p>
+              {grup.sesi.map((sesi) => (
+                <SesiCard key={sesi.id} {...sesi} />
+              ))}
+            </div>
+          ))
+        ) : (
+          <div className="rounded-xl border border-dashed border-gray-200 bg-white p-6 text-center text-xs text-gray-400">
+            Belum ada agenda sesi mendatang yang terdaftar.
           </div>
-        ))}
+        )}
       </div>
 
     </div>

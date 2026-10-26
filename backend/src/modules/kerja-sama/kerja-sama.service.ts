@@ -228,6 +228,22 @@ export class KerjaSamaService {
   // ── 1. Pengajuan Kerja Sama (Leads) ─────────────────────────────────────────
 
   async createPengajuan(input: CreatePengajuanInput) {
+    // Cegah duplikasi submit berulang/spam dari instansi & kontak yang sama dalam 60 detik
+    const duplicate = await this.repo.findRecentDuplicate({
+      nama_instansi: input.nama_instansi,
+      no_telepon: input.no_telepon,
+      tipe_formulir: input.tipe_formulir,
+      withinSeconds: 60,
+    })
+
+    if (duplicate) {
+      return {
+        success: true,
+        message: 'Pengajuan kerja sama Anda sudah berhasil kami terima sebelumnya. Tim kami akan segera menghubungi Anda.',
+        data: duplicate,
+      }
+    }
+
     const created = await this.repo.createPengajuan(input)
     return {
       success: true,
@@ -326,6 +342,12 @@ export class KerjaSamaService {
   }
 
   async updateProgram(id: string, input: UpdateProgramInput) {
+    if (input.slug) {
+      const existing = await this.repo.findProgramByIdOrSlug(input.slug)
+      if (existing && existing.id !== id) {
+        throw Object.assign(new Error(`Program dengan slug '${input.slug}' sudah ada`), { statusCode: 400 })
+      }
+    }
     const updated = await this.repo.updateProgram(id, input)
     return {
       success: true,

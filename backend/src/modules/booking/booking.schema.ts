@@ -9,9 +9,9 @@ export const getJadwalTersediaQuerySchema = z.object({
 
 // ── 2. Jadwal Milik Psikolog (Portal Psikolog) ──
 export const getJadwalPsikologMeQuerySchema = z.object({
+  id_psikolog: z.string().optional(),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  id_psikolog: z.string().optional(),
 })
 
 export const createJadwalSlotSchema = z.object({
@@ -20,6 +20,7 @@ export const createJadwalSlotSchema = z.object({
   jam_mulai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_mulai harus HH:mm'),
   jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
   tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).default('KONSULTASI'),
+  metode: z.string().optional().default('ONLINE'),
 })
 
 // ── 3. Jadwal & Sesi Konsultasi di Admin ──
@@ -30,11 +31,12 @@ export const getAdminJadwalQuerySchema = z.object({
 })
 
 export const createAdminJadwalSlotSchema = z.object({
-  id_psikolog: z.string().uuid(),
+  id_psikolog: z.string().uuid().optional(),
   tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   jam_mulai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_mulai harus HH:mm'),
   jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
-  tipe_jadwal: z.literal('ASESMEN').default('ASESMEN'),
+  tipe_jadwal: z.string().optional().default('ASESMEN'),
+  metode: z.string().optional().default('ONLINE'),
 })
 
 export const createAdminSesiSchema = z.object({
@@ -59,14 +61,20 @@ export const updateBookingStatusSchema = z.object({
 
 // ── 4. Booking Mandiri oleh Klien (Public) ──
 export const createClientBookingSchema = z.object({
-  id_jadwal: z.string().uuid('ID Jadwal harus UUID valid'),
-  id_layanan: z.string().uuid('ID Layanan harus UUID valid'),
+  id_jadwal: z.string().optional(),
+  id_layanan: z.string().optional(),
+  id_psikolog: z.string().optional(),
+  tanggal: z.string().optional(),
+  jam_mulai: z.string().optional(),
   metode: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'),
   deskripsi_trauma: z.string().optional(),
+  status: z.enum(['PENDING', 'CONFIRMED']).optional().default('CONFIRMED'),
+  metode_pembayaran: z.string().optional(),
+  channel_pembayaran: z.string().optional(),
   klien: z.object({
     nama: z.string().min(1, 'Nama klien wajib diisi'),
     no_telepon: z.string().min(8, 'Nomor WhatsApp minimal 8 digit'),
-    email: z.string().email('Format email tidak valid').optional(),
+    email: z.string().email('Format email tidak valid').optional().or(z.literal('')),
     usia: z.number().optional(),
     jenis_kelamin: z.string().optional(),
   }),

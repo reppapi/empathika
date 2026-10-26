@@ -2,6 +2,26 @@ import { TenagaAhli } from "../types"
 
 export const INITIAL_TENAGA_AHLI: TenagaAhli[] = [
   {
+    id: "0",
+    nama: "Dr. Jane Doe, M.Psi., Psikolog",
+    email: "psikolog@empathika.test",
+    password: "Psikolog123!",
+    noTelepon: "081399887766",
+    kategori: "psikolog",
+    statusAkses: "AKTIF",
+    spesialisasi: "Psikolog Klinis Dewasa",
+    noStr: "STR-123456789",
+    noSipp: "SIPP-1234-JKT",
+    pendidikanText: "Magister Psikologi Profesi Klinis - Universitas Indonesia",
+    jumlahSesi: 1,
+    bio: "Berpengalaman dalam menangani kecemasan, depresi, dan dinamika kesehatan mental dewasa.",
+    quote: "Menerima kerentanan diri adalah langkah awal dari pemulihan sejati.",
+    instagram: "@drjanedoe.psi",
+    foto: "https://images.unsplash.com/photo-1594824813589-3221bf3a5bb4?auto=format&fit=crop&q=80&w=400",
+    keahlian: ["Kecemasan", "Depresi", "Regulasi Emosi", "CBT"],
+    tanggalBergabung: "01 Jan 2024",
+  },
+  {
     id: "1",
     nama: "Rizki Putri Dzulqaidah, S.Psi.",
     email: "putriqoida@empathika.com",

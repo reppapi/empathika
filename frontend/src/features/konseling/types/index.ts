@@ -7,6 +7,8 @@ export interface BookedAssessment {
   namaKlien?: string
   psikolog?: string
   status?: "Aktif" | "Dibatalkan" | "Selesai" | string
+  isAvailableSlot?: boolean
+  isBooked?: boolean
 }
 
 export type ClientSessionStatus =
@@ -25,6 +27,8 @@ export interface ClientSessionToday {
   klienId: string
   kontak?: string
   psikolog: string
+  idPsikolog?: string
+  noTeleponPsikolog?: string
   layanan: string
   tipe: string
   catatan?: string

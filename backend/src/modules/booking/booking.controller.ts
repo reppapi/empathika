@@ -37,7 +37,12 @@ export class BookingController {
       const data = await this.service.createClientBooking(request.body)
       reply.code(201).send(data)
     } catch (err: any) {
-      reply.code(400).send({ message: err.message })
+      const statusCode = err.statusCode || (err.code === 'P2002' ? 409 : 400)
+      const message =
+        err.code === 'P2002'
+          ? 'Slot jadwal ini sudah dibooking oleh klien lain. Silakan pilih jadwal lain.'
+          : err.message
+      reply.code(statusCode).send({ message })
     }
   }
 
@@ -134,6 +139,35 @@ export class BookingController {
   ) => {
     try {
       const data = await this.service.updateBookingStatus(request.params.id, 'CANCELLED')
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ message: err.message })
+    }
+  }
+
+  processRefund = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: { adminName?: string; alasan: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.processRefund({
+        bookingId: request.params.id,
+        adminName: request.body.adminName || 'Admin',
+        alasan: request.body.alasan,
+      })
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ message: err.message, details: err.details })
+    }
+  }
+
+  cleanExpired = async (
+    request: FastifyRequest<{ Querystring: { maxAgeMinutes?: number } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const maxAge = request.query?.maxAgeMinutes ? Number(request.query.maxAgeMinutes) : 30
+      const data = await this.service.cleanExpiredPendingBookings(maxAge)
       reply.send(data)
     } catch (err: any) {
       reply.code(400).send({ message: err.message })
