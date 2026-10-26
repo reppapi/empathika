@@ -7,7 +7,7 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const post = getBlogPost(params.slug);
+  const post = await getBlogPost(params.slug);
   if (!post) return { title: 'Artikel Tidak Ditemukan – Empathika' };
   return {
     title: `${post.title} – Blog Empathika`,
