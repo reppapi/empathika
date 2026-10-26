@@ -1,6 +1,12 @@
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { PsikotesService } from './psikotes.service'
-import type { CreatePsikotesInput, UpdatePsikotesInput, PsikotesQueryInput } from './psikotes.schema'
+import type {
+  CreatePsikotesInput,
+  UpdatePsikotesInput,
+  PsikotesQueryInput,
+  SubmitPsikotesInput,
+  PesertaQueryInput,
+} from './psikotes.schema'
 
 export class PsikotesController {
   private service: PsikotesService
@@ -68,4 +74,30 @@ export class PsikotesController {
       message: 'Berhasil menghapus paket psikotes',
     })
   }
+
+  submit = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: SubmitPsikotesInput }>,
+    reply: FastifyReply
+  ) => {
+    const data = await this.service.submit(request.params.id, request.body)
+    return reply.code(201).send({
+      success: true,
+      message: 'Berhasil mengirimkan jawaban psikotes dan menghitung hasil asesmen',
+      data,
+    })
+  }
+
+  getPeserta = async (
+    request: FastifyRequest<{ Querystring: PesertaQueryInput }>,
+    reply: FastifyReply
+  ) => {
+    const data = await this.service.getPeserta(request.query)
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil mengambil daftar peserta psikotes',
+      data,
+    })
+  }
 }
+
+

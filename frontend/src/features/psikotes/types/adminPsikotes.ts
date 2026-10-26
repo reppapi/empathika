@@ -79,6 +79,18 @@ export type AdminPsikotesPeserta = {
   status: string;
   skor: string;
   jenisAkses: string;
+  usia?: number | null;
+  jenisKelamin?: string | null;
+  totalSkor?: number | null;
+  hasil?: {
+    id: string;
+    grade: string;
+    judul: string;
+    deskripsi: string;
+    makna: string;
+    tips: Array<{ title: string; desc: string } | string>;
+    tanggal_selesai?: string;
+  } | null;
 };
 
 export type AdminPsikotesPaketListItem = {
