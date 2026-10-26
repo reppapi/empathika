@@ -20,20 +20,11 @@ import {
   getTodayTransactions,
   getTodayDateKey,
 } from "@/features/transaksi/data/transaksiData"
-import { getInitialSessionsBasedOnTime } from "@/features/konseling/components/admin/JadwalAdmin"
+import { adminService } from "@/services/admin.service"
 
 export default function AdminDashboardClient() {
-  // 1. Ambil sesi konseling hari ini langsung dari Sesi & Jadwal (JadwalAdmin) bagian Sesi Klien Hari Ini
-  const [sessions, setSessions] = useState<TodaySessionItem[]>(() => {
-    return getInitialSessionsBasedOnTime().map((item) => ({
-      waktu: item.waktu.includes("WIB") ? item.waktu : `${item.waktu} WIB`,
-      klien: item.namaKlien,
-      psikolog: item.psikolog,
-      layanan: item.layanan,
-      metode: item.tipe.toLowerCase().includes("online") ? "Online" : "Offline",
-      status: item.status,
-    }))
-  })
+  // 1. Ambil sesi konseling hari ini langsung dari Database PostgreSQL via adminService
+  const [sessions, setSessions] = useState<TodaySessionItem[]>([])
 
   // 2. Ambil transaksi pembayaran pada saat tanggal hari ini saja
   const [transactions, setTransactions] = useState<TransaksiItem[]>(() => {
@@ -43,19 +34,27 @@ export default function AdminDashboardClient() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
-  // Reaktif terhadap jam berjalan agar status sesi konseling sinkron otomatis seperti di JadwalAdmin
+  // Muat sesi konseling hari ini murni dari Database
   useEffect(() => {
-    const interval = setInterval(() => {
-      const liveSessions = getInitialSessionsBasedOnTime()
-      setSessions((prev) =>
-        prev.map((curr) => {
-          const match = liveSessions.find((s) => s.namaKlien === curr.klien)
-          return match ? { ...curr, status: match.status } : curr
-        })
-      )
-    }, 30000)
-
-    return () => clearInterval(interval)
+    adminService
+      .getJadwal()
+      .then((res: any) => {
+        if (res && Array.isArray(res.todaySessions)) {
+          setSessions(
+            res.todaySessions.map((item: any) => ({
+              waktu: (item.waktuRange || item.waktu || "").includes("WIB")
+                ? item.waktuRange || item.waktu
+                : `${item.waktuRange || item.waktu || ""} WIB`,
+              klien: item.namaKlien,
+              psikolog: item.psikolog,
+              layanan: item.layanan,
+              metode: item.metode,
+              status: item.status,
+            }))
+          )
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const currentDate = new Intl.DateTimeFormat("id-ID", {

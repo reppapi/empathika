@@ -239,6 +239,7 @@ model JadwalSlot {
   id          String     @id @default(uuid())
   id_psikolog String
   tipe_jadwal String     @default("KONSULTASI") // "KONSULTASI" | "ASESMEN"
+  metode      String     @default("ONLINE") // "ONLINE" | "OFFLINE"
   tanggal     DateTime   @db.Date
   jam_mulai   DateTime   @db.Time()
   jam_selesai DateTime   @db.Time()

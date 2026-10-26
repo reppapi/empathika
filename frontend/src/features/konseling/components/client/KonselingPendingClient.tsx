@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { bookingService } from "@/services/booking.service"
 
 // ── Komponen counting down + simulasi "cek pembayaran" konseling ──────────────
 function PendingContent() {
@@ -9,10 +10,13 @@ function PendingContent() {
   const searchParams = useSearchParams()
 
   const nama        = searchParams.get("nama")        ?? "PESERTA"
-  const email       = searchParams.get("email")       ?? ""
   const whatsapp    = searchParams.get("whatsapp")    ?? ""
   const deskripsi   = searchParams.get("deskripsi")   ?? ""
   const orderId     = searchParams.get("orderId")     ?? "W-EMP-0000"
+  const bookingId   = searchParams.get("bookingId")   ?? ""
+  const slotId      = searchParams.get("slotId")      ?? ""
+  const psikologId  = searchParams.get("psikologId")  ?? ""
+  const psikologName = searchParams.get("psikologName") ?? ""
   const tanggal     = searchParams.get("tanggal")     ?? "31/08"
   const tahun       = searchParams.get("tahun")       ?? "2026"
   const waktu       = searchParams.get("waktu")       ?? "13:30"
@@ -68,9 +72,30 @@ function PendingContent() {
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [searchParams])
 
+  const fallbackCreatedRef = useRef(false)
+
   // Ketika confirmed → redirect ke success konseling
   useEffect(() => {
     if (phase !== "confirmed") return
+
+    // Safety fallback jika booking belum sempat tersimpan di langkah checkout (hanya dipanggil maksimal 1x)
+    if (!bookingId && whatsapp && nama && !fallbackCreatedRef.current) {
+      fallbackCreatedRef.current = true
+      bookingService
+        .createBooking({
+          id_jadwal: slotId || undefined,
+          id_psikolog: psikologId || undefined,
+          metode: metode.toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE",
+          deskripsi_trauma: deskripsi,
+          status: "CONFIRMED",
+          klien: {
+            nama: nama.toUpperCase(),
+            no_telepon: whatsapp,
+          },
+        })
+        .catch(() => {})
+    }
+
     const t = setTimeout(() => {
       const params = new URLSearchParams({
         nama,
@@ -85,18 +110,18 @@ function PendingContent() {
         metode,
         ...(bank && { bank }),
         ...(ewallet && { ewallet }),
+        ...(psikologName && { psikologName }),
       })
       router.push(`/konseling/success?${params.toString()}`)
     }, 2000)
     return () => clearTimeout(t)
-  }, [phase])
+  }, [phase, bookingId, whatsapp, nama, slotId, psikologId, metode, deskripsi, orderId, tanggal, tahun, waktu, judul, subjudul, bottomDate, bottomTime, bank, ewallet, psikologName, router])
 
   const handleBackToPayment = (reason?: string) => {
     const params = new URLSearchParams({
       status: "failed",
       reason: reason || "Pembayaran dibatalkan atau waktu pembayaran telah habis.",
       ...(nama && { nama }),
-      ...(email && { email }),
       ...(whatsapp && { whatsapp }),
       ...(deskripsi && { deskripsi }),
       ...(metode && { metode }),

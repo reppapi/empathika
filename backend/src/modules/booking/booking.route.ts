@@ -112,4 +112,20 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
     },
     handler: controller.cancelBooking,
   })
+
+  fastify.post('/clean-expired', {
+    schema: {
+      tags: ['Booking & Jadwal - Admin'],
+      summary: 'Bersihkan sesi booking pending yang sudah kedaluwarsa dan kembalikan slot',
+    },
+    handler: controller.cleanExpired,
+  })
+
+  fastify.post('/:id/refund', {
+    schema: {
+      tags: ['Booking & Jadwal - Admin'],
+      summary: 'Admin memproses refund sesi booking konsultasi 100% (validasi maksimal H-1)',
+    },
+    handler: controller.processRefund,
+  })
 }

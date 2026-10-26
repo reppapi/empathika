@@ -1,7 +1,7 @@
 "use client"
 
 import { ClientSessionToday } from "@/features/konseling/types"
-import { getWhatsAppUrl } from "@/features/konseling/data/jadwalAdminData"
+import { getWhatsAppUrl, getWhatsAppPsikologUrl } from "@/features/konseling/data/jadwalAdminData"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { canCancelSession } from "@/features/konseling/utils/cancellationSync"
 import {
@@ -22,6 +22,7 @@ interface ModalDetailSesiKlienProps {
   onCancelClick: (session: ClientSessionToday) => void
   onMarkCompleted: (id: string, namaKlien: string) => void
   onCopyWhatsApp: (session: ClientSessionToday) => void
+  onCopyWhatsAppPsikolog?: (session: ClientSessionToday) => void
 }
 
 export default function ModalDetailSesiKlien({
@@ -30,6 +31,7 @@ export default function ModalDetailSesiKlien({
   onCancelClick,
   onMarkCompleted,
   onCopyWhatsApp,
+  onCopyWhatsAppPsikolog,
 }: ModalDetailSesiKlienProps) {
   if (!session) return null
 
@@ -151,9 +153,36 @@ export default function ModalDetailSesiKlien({
               <p className="text-[11px] font-semibold text-gray-500">Layanan</p>
               <p className="font-bold text-gray-900 mt-1">{session.layanan}</p>
             </div>
-            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100">
-              <p className="text-[11px] font-semibold text-gray-500">Psikolog Bertugas</p>
-              <p className="font-bold text-gray-900 mt-1">{session.psikolog}</p>
+            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 flex flex-col justify-between">
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500">Psikolog Bertugas</p>
+                <p className="font-bold text-gray-900 mt-1">{session.psikolog}</p>
+              </div>
+              {session.status !== "Selesai" && session.status !== "Dibatalkan" && (
+                <div className="mt-2 pt-1.5 border-t border-purple-200/50 flex items-center gap-1.5 flex-wrap">
+                  <a
+                    href={getWhatsAppPsikologUrl(session)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs active:scale-95 transition cursor-pointer"
+                    title={`Kirim pesan pengingat jadwal ke ${session.psikolog} via WhatsApp`}
+                  >
+                    <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0" />
+                    <span>Ingatkan (WA)</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                  </a>
+                  {onCopyWhatsAppPsikolog && (
+                    <button
+                      type="button"
+                      onClick={() => onCopyWhatsAppPsikolog(session)}
+                      className="p-1 rounded-full border border-purple-200 hover:bg-purple-100 text-gray-600 transition cursor-pointer"
+                      title="Salin Pesan Pengingat Psikolog"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
               <p className="text-[11px] font-semibold text-gray-500">Waktu Sesi</p>

@@ -1,4 +1,4 @@
-import PsikologBerandaClient from "@/features/psikolog/components/psikolog/PsikologBerandaClient"
+import PsikologBerandaClient from "@/features/dashboard/components/psikolog/PsikologBerandaClient"
 
 export default function PsikologWebBerandaPage() {
   return <PsikologBerandaClient />

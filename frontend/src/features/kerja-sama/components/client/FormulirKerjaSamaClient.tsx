@@ -10,6 +10,7 @@ import {
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
+import apiClient from "@/lib/axios"
 
 interface FormulirKerjaSamaClientProps {
   formType?: string
@@ -70,14 +71,18 @@ export default function FormulirKerjaSamaClient({
 
   const [catatanKebutuhan, setCatatanKebutuhan] = useState("")
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleKhususChange = (key: string, value: string) => {
     setJawabanKhusus((prev) => ({ ...prev, [key]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!namaLengkap || !namaInstitusi || !nomorWhatsapp) return
+    if (isSubmitting || isSubmitted) return
+    if (!namaLengkap.trim() || !namaInstitusi.trim() || !nomorWhatsapp.trim()) return
+
+    setIsSubmitting(true)
 
     const now = new Date()
     const months = [
@@ -98,9 +103,9 @@ export default function FormulirKerjaSamaClient({
 
     // Siapkan dictionary jawaban detail yang lengkap
     const detailLengkap: Record<string, string> = {
-      "Nama Lengkap / PIC": namaLengkap,
-      "Nama Institusi / Organisasi": namaInstitusi,
-      "Nomor WhatsApp": nomorWhatsapp,
+      "Nama Lengkap / PIC": namaLengkap.trim(),
+      "Nama Institusi / Organisasi": namaInstitusi.trim(),
+      "Nomor WhatsApp": nomorWhatsapp.trim(),
       "Tipe Institusi": tipeInstitusi,
       "Tipe Formulir": formConfig.title,
     }
@@ -109,30 +114,60 @@ export default function FormulirKerjaSamaClient({
       detailLengkap[q.label] = jawabanKhusus[q.key] || "-"
     })
 
-    if (catatanKebutuhan) {
-      detailLengkap["Catatan / Kebutuhan Tambahan"] = catatanKebutuhan
+    if (catatanKebutuhan.trim()) {
+      detailLengkap["Catatan / Kebutuhan Tambahan"] = catatanKebutuhan.trim()
     }
 
-    const newLead: PengajuanKerjaSama = {
-      id: "lead_" + Date.now(),
-      tanggal: tanggalStr,
-      namaInstansi: namaInstitusi,
+    const payloadBackend = {
+      nama_instansi: namaInstitusi.trim(),
+      nama_pic: namaLengkap.trim(),
+      email: `${namaLengkap.trim().toLowerCase().replace(/\s+/g, "")}@institusi.id`,
+      no_telepon: nomorWhatsapp.trim(),
       kategori: tipeInstitusi.split("/")[0].trim() || formConfig.categoryDefault,
-      namaPIC: namaLengkap,
-      email: `${namaLengkap.toLowerCase().replace(/\s+/g, "")}@institusi.id`,
-      telepon: nomorWhatsapp,
+      tipe_formulir: formType,
       pesan: `Pengajuan melalui ${formConfig.title}. ${
         catatanKebutuhan ? `Catatan: ${catatanKebutuhan}` : ""
       }`,
-      status: "Menunggu",
-      tipeFormulir: formType as any,
-      formTitle: formConfig.title,
-      jawabanDetail: detailLengkap,
+      jawaban_detail: detailLengkap,
     }
 
+    // 1. Simpan ke LocalStorage jika belum pernah ada submit persis dalam sesi ini
     const existingLeads = getPengajuanKerjaSama()
-    savePengajuanKerjaSama([newLead, ...existingLeads])
-    setIsSubmitted(true)
+    const cleanPhone = nomorWhatsapp.replace(/\D/g, "")
+    const isRecentDuplicate = existingLeads.some(
+      (l) =>
+        l.namaInstansi.toLowerCase() === namaInstitusi.trim().toLowerCase() &&
+        l.telepon.replace(/\D/g, "") === cleanPhone &&
+        l.tipeFormulir === formType
+    )
+
+    if (!isRecentDuplicate) {
+      const newLead: PengajuanKerjaSama = {
+        id: "lead_" + Date.now(),
+        tanggal: tanggalStr,
+        namaInstansi: namaInstitusi.trim(),
+        kategori: tipeInstitusi.split("/")[0].trim() || formConfig.categoryDefault,
+        namaPIC: namaLengkap.trim(),
+        email: payloadBackend.email,
+        telepon: nomorWhatsapp.trim(),
+        pesan: payloadBackend.pesan,
+        status: "Menunggu",
+        tipeFormulir: formType as any,
+        formTitle: formConfig.title,
+        jawabanDetail: detailLengkap,
+      }
+      savePengajuanKerjaSama([newLead, ...existingLeads])
+    }
+
+    // 2. Kirim juga ke Backend API (non-blocking jika backend offline)
+    try {
+      await apiClient.post("/kerja-sama/pengajuan", payloadBackend)
+    } catch (err) {
+      console.warn("Backend API sync warning (tersimpan di lokal):", err)
+    } finally {
+      setIsSubmitting(false)
+      setIsSubmitted(true)
+    }
   }
 
   // Generate WA URL jika klien ingin langsung menghubungi setelah submit
@@ -441,9 +476,10 @@ export default function FormulirKerjaSamaClient({
             <div className="mt-4 pt-2">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 px-7 py-2.5 bg-[#E8C32A] hover:bg-[#d4b024] active:scale-95 text-gray-900 font-bold text-xs sm:text-sm rounded-full shadow-md transition-all cursor-pointer"
+                disabled={isSubmitting || isSubmitted}
+                className="inline-flex items-center gap-2 px-7 py-2.5 bg-[#E8C32A] hover:bg-[#d4b024] active:scale-95 text-gray-900 font-bold text-xs sm:text-sm rounded-full shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>Submit</span>
+                <span>{isSubmitting ? "Mengirim..." : "Submit"}</span>
                 <span className="text-base font-extrabold">→</span>
               </button>
             </div>

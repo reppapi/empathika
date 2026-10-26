@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import PsikologJadwalClient from "@/features/psikolog/components/psikolog/PsikologJadwalClient"
+import PsikologJadwalClient from "@/features/konseling/components/psikolog/PsikologJadwalClient"
 
 export default function PsikologWebJadwalPage() {
   return (

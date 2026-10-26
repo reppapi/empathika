@@ -40,7 +40,7 @@ export class PsikologService {
             where: { id: { in: unbooked.map((s: { id: string }) => s.id) } },
           })
         }
-      } catch {}
+      } catch { }
     }
   }
 
@@ -61,7 +61,7 @@ export class PsikologService {
           countMap[psiId] = (countMap[psiId] || 0) + 1
         }
       }
-    } catch {}
+    } catch { }
 
     return list.map((item: any) => ({
       ...item,
@@ -82,7 +82,7 @@ export class PsikologService {
           status: { not: 'CANCELLED' },
         },
       })
-    } catch {}
+    } catch { }
 
     return {
       ...item,
@@ -179,7 +179,7 @@ export class PsikologService {
       .deleteMany({
         where: { id_psikolog: psikolog.id },
       })
-      .catch(() => {})
+      .catch(() => { })
 
     // 3. Hapus data profil psikolog
     const accountId = psikolog.id_account
@@ -193,7 +193,7 @@ export class PsikologService {
         .delete({
           where: { id: accountId },
         })
-        .catch(() => {})
+        .catch(() => { })
     }
 
     return { success: true, message: 'Psikolog berhasil dihapus dari database' }
@@ -205,23 +205,48 @@ export class PsikologService {
   async getMyProfile(accountId?: string) {
     let psikolog = accountId
       ? await this.prisma.psikolog.findUnique({
-          where: { id_account: accountId },
-          include: {
-            spesialisasi: true,
-            account: {
-              select: {
-                id: true,
-                nama: true,
-                email: true,
-                no_telepon: true,
-                foto: true,
-                bio: true,
-                role: true,
-              },
+        where: { id_account: accountId },
+        include: {
+          spesialisasi: true,
+          account: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+              no_telepon: true,
+              foto: true,
+              bio: true,
+              role: true,
             },
           },
-        })
+        },
+      })
       : null
+
+    if (!psikolog) {
+      psikolog = await this.prisma.psikolog.findFirst({
+        where: {
+          OR: [
+            { nama_gelar: { contains: 'Jane', mode: 'insensitive' } },
+            { account: { email: { contains: 'psikolog@empathika', mode: 'insensitive' } } },
+          ],
+        },
+        include: {
+          spesialisasi: true,
+          account: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+              no_telepon: true,
+              foto: true,
+              bio: true,
+              role: true,
+            },
+          },
+        },
+      })
+    }
 
     if (!psikolog) {
       psikolog = await this.prisma.psikolog.findFirst({
@@ -255,7 +280,7 @@ export class PsikologService {
           status: { not: 'CANCELLED' },
         },
       })
-    } catch {}
+    } catch { }
 
     return {
       ...psikolog,
@@ -269,8 +294,8 @@ export class PsikologService {
   async updateMyProfile(accountId: string | undefined, body: UpdatePsikologProfileInput) {
     let psikolog = accountId
       ? await this.prisma.psikolog.findUnique({
-          where: { id_account: accountId },
-        })
+        where: { id_account: accountId },
+      })
       : null
 
     if (!psikolog) {
@@ -380,8 +405,8 @@ export class PsikologService {
       typeof body.spesialisasi === 'object' && body.spesialisasi?.nama
         ? body.spesialisasi.nama
         : typeof body.spesialisasi === 'string' && body.spesialisasi.trim()
-        ? body.spesialisasi.trim()
-        : 'Psikologi Umum'
+          ? body.spesialisasi.trim()
+          : 'Psikologi Umum'
     let spesialisasi = await this.prisma.spesialisasi.findFirst({
       where: { nama: { equals: spesialisasiNama, mode: 'insensitive' } },
     })
@@ -396,15 +421,15 @@ export class PsikologService {
     const kategoriFormatted = kat.includes('peer')
       ? 'Peer Konselor'
       : kat.includes('konselor')
-      ? 'Konselor'
-      : 'Psikolog Klinis'
+        ? 'Konselor'
+        : 'Psikolog Klinis'
 
     const keahlianStr =
       Array.isArray(body.keahlian) && body.keahlian.length > 0
         ? body.keahlian.join(', ')
         : typeof body.keahlian === 'string' && body.keahlian.trim()
-        ? body.keahlian.trim()
-        : null
+          ? body.keahlian.trim()
+          : null
 
     const tarif =
       body.tarif_per_jam ||
@@ -438,7 +463,21 @@ export class PsikologService {
     let psikolog = null
 
     if (existingPsikolog) {
-      // MODE EDIT: Update akun dan profil psikolog yang sudah ada
+      // MODE EDIT: Pastikan nama tidak bertabrakan dengan psikolog lain
+      const namaClean = (body.nama || '').trim()
+      if (namaClean) {
+        const duplicateOther = await this.prisma.psikolog.findFirst({
+          where: {
+            id: { not: existingPsikolog.id },
+            nama_gelar: { equals: namaClean, mode: 'insensitive' },
+          },
+        })
+        if (duplicateOther) {
+          throw new Error(`Nama "${namaClean}" sudah digunakan oleh tenaga ahli lain.`)
+        }
+      }
+
+      // Update akun dan profil psikolog yang sudah ada
       account = await this.prisma.account.update({
         where: { id: existingPsikolog.id_account },
         data: {
@@ -481,40 +520,42 @@ export class PsikologService {
         },
       })
     } else {
-      // MODE CREATE / UPSERT: Cek berdasarkan email
+      // MODE CREATE: Validasi duplikasi nama dan email
+      const namaClean = (body.nama || '').trim()
+      if (namaClean) {
+        const duplicateName = await this.prisma.psikolog.findFirst({
+          where: {
+            nama_gelar: { equals: namaClean, mode: 'insensitive' },
+          },
+        })
+        if (duplicateName) {
+          throw new Error(`Tenaga ahli dengan nama "${namaClean}" sudah terdaftar di sistem. Mohon gunakan nama pembeda atau periksa daftar tenaga ahli.`)
+        }
+      }
+
+      const emailClean = (body.email || '').trim().toLowerCase()
       account = await this.prisma.account.findUnique({
-        where: { email: body.email },
+        where: { email: emailClean },
       })
+      if (account) {
+        throw new Error(`Email "${emailClean}" sudah digunakan oleh akun lain. Silakan gunakan email lain.`)
+      }
 
       const passwordToHash = body.password || 'Psikolog123!'
       const hashedPassword = await bcrypt.hash(passwordToHash, 10)
 
-      if (account) {
-        account = await this.prisma.account.update({
-          where: { id: account.id },
-          data: {
-            nama: body.nama,
-            no_telepon: body.noTelepon || account.no_telepon,
-            foto: body.foto || account.foto,
-            bio: body.bio || account.bio,
-            role: 'PSIKOLOG',
-            aktif: body.statusAkses !== 'NONAKTIF',
-          },
-        })
-      } else {
-        account = await this.prisma.account.create({
-          data: {
-            nama: body.nama,
-            email: body.email,
-            password: hashedPassword,
-            role: 'PSIKOLOG',
-            no_telepon: body.noTelepon || null,
-            foto: body.foto || null,
-            bio: body.bio || null,
-            aktif: body.statusAkses !== 'NONAKTIF',
-          },
-        })
-      }
+      account = await this.prisma.account.create({
+        data: {
+          nama: body.nama,
+          email: emailClean,
+          password: hashedPassword,
+          role: 'PSIKOLOG',
+          no_telepon: body.noTelepon || null,
+          foto: body.foto || null,
+          bio: body.bio || null,
+          aktif: body.statusAkses !== 'NONAKTIF',
+        },
+      })
 
       psikolog = await this.prisma.psikolog.findUnique({
         where: { id_account: account.id },

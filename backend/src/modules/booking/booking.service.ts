@@ -46,6 +46,31 @@ export class BookingService {
       const cleanWa = s.client.no_telepon ? s.client.no_telepon.replace(/\D/g, '') : ''
       const waNumber = cleanWa.startsWith('0') ? '62' + cleanWa.slice(1) : cleanWa
 
+      // Hitung batas refund (H-1 = 24 jam sebelum jadwal sesi)
+      // Jam di DB disimpan sebagai angka WIB (misal 13:30), konversi ke UTC absolut dengan dikurangi 7 jam
+      const sessionDate = new Date(s.jadwal.tanggal)
+      const sessionTime = new Date(s.jadwal.jam_mulai)
+      const sessionDateTime = new Date(
+        Date.UTC(
+          sessionDate.getUTCFullYear(),
+          sessionDate.getUTCMonth(),
+          sessionDate.getUTCDate(),
+          sessionTime.getUTCHours() - 7,
+          sessionTime.getUTCMinutes(),
+          0,
+          0
+        )
+      )
+      const refundDeadline = new Date(sessionDateTime.getTime() - 24 * 60 * 60 * 1000)
+      const isPastH1 = Date.now() > refundDeadline.getTime()
+
+      const isPaid = (s as any).transaksi?.status_pembayaran === 'PAID' || s.status === 'CONFIRMED'
+      const isRefunded = (s as any).transaksi?.status_pembayaran === 'REFUNDED' || s.status === 'CANCELLED'
+      const isCompleted = s.status === 'COMPLETED'
+      const canRefund = isPaid && !isRefunded && !isCompleted && !isPastH1
+
+      const nominalRefund = (s as any).transaksi ? Number((s as any).transaksi.total) : (s.layanan?.harga_weekday ? Number(s.layanan.harga_weekday) : 200000)
+
       return {
         id: s.id,
         idKlien: `K-${s.client.id.slice(0, 4).toUpperCase()}`,
@@ -54,13 +79,25 @@ export class BookingService {
         waLink: waNumber ? `https://wa.me/${waNumber}` : null,
         layanan: s.layanan.nama,
         psikolog: s.jadwal.psikolog?.nama_gelar || 'Belum Ditentukan',
+        idPsikolog: s.jadwal.psikolog?.id,
+        noTeleponPsikolog: (s.jadwal.psikolog as any)?.account?.no_telepon || '081234567890',
         jamMulai: jamMulaiStr,
         jamSelesai: jamSelesaiStr,
         waktuRange: `${jamMulaiStr} - ${jamSelesaiStr}`,
-        metode: s.metode === 'OFFLINE' ? 'Offline' : 'Online',
-        status: statusLabel,
+        metode: s.metode === 'OFFLINE' ? 'Offline' : s.metode === 'KEDUANYA' ? 'Keduanya' : 'Online',
+        status: (s as any).transaksi?.status_pembayaran === 'REFUNDED' ? 'Dibatalkan (Refund)' : statusLabel,
         rawStatus: s.status,
         deskripsiTrauma: s.deskripsi_trauma,
+        tanggal: formatDateToString(s.jadwal.tanggal),
+        // Rincian Refund H-1
+        canRefund,
+        isPastH1,
+        isRefunded,
+        isPaid,
+        refundDeadline: refundDeadline.toISOString(),
+        nominalRefund,
+        idTransaksi: (s as any).transaksi?.id || null,
+        kodeTransaksi: (s as any).transaksi?.kode_transaksi || null,
       }
     })
 
@@ -72,16 +109,30 @@ export class BookingService {
       const jamMulaiStr = formatTimeToString(slot.jam_mulai)
       const jamSelesaiStr = formatTimeToString(slot.jam_selesai)
       const timeSlot = `${jamMulaiStr} - ${jamSelesaiStr}`
+      const isBooked = slot.status === 'SUDAH_DIBOOKING' || Boolean(slot.booking_konsultasi)
+      const clientName = slot.booking_konsultasi?.client?.nama || (isBooked ? 'Klien Terdaftar' : undefined)
 
       return {
         id: slot.id,
         date: dateStr,
         timeSlot,
         statusSlot: slot.status,
+        isBooked,
+        clientName,
+        namaKlien: clientName,
         psikologName: slot.psikolog?.nama_gelar || '',
         layanan: slot.booking_konsultasi?.layanan?.nama || (slot.status === 'TERSEDIA' ? 'Slot Tersedia' : 'Terjadwal'),
-        clientName: slot.booking_konsultasi?.client?.nama || '',
-        metode: slot.booking_konsultasi?.metode === 'OFFLINE' ? 'Offline' : 'Online',
+        metode: slot.booking_konsultasi?.metode
+          ? (slot.booking_konsultasi.metode.toUpperCase().includes('KEDUANYA')
+            ? 'Keduanya'
+            : slot.booking_konsultasi.metode.toUpperCase().includes('OFFLINE')
+              ? 'Offline'
+              : 'Online')
+          : ((slot as any).metode && (slot as any).metode.toUpperCase().includes('KEDUANYA')
+            ? 'Keduanya'
+            : (slot as any).metode && (slot as any).metode.toUpperCase().includes('OFFLINE')
+              ? 'Offline'
+              : 'Online'),
       }
     })
 
@@ -107,8 +158,17 @@ export class BookingService {
       throw new Error('Jam selesai harus lebih akhir dari jam mulai')
     }
 
+    let targetPsikologId = input.id_psikolog
+    if (!targetPsikologId) {
+      const firstPsikolog = await this.repo.findFirstPsikolog()
+      if (!firstPsikolog) {
+        throw new Error('Tidak ditemukan data psikolog untuk dialokasikan pada slot ini')
+      }
+      targetPsikologId = firstPsikolog.id
+    }
+
     const overlap = await this.repo.findOverlappingSlot(
-      input.id_psikolog,
+      targetPsikologId,
       parsedTanggal,
       parsedJamMulai,
       parsedJamSelesai
@@ -118,12 +178,25 @@ export class BookingService {
       throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
     }
 
+    let targetMetode = 'ONLINE'
+    if (input.metode) {
+      const upper = input.metode.toUpperCase()
+      if (upper.includes('KEDUANYA') || (upper.includes('OFFLINE') && upper.includes('ONLINE'))) {
+        targetMetode = 'KEDUANYA'
+      } else if (upper.includes('OFFLINE')) {
+        targetMetode = 'OFFLINE'
+      } else {
+        targetMetode = 'ONLINE'
+      }
+    }
+
     const newSlot = await this.repo.createJadwalSlot({
-      id_psikolog: input.id_psikolog,
+      id_psikolog: targetPsikologId,
       tanggal: parsedTanggal,
       jam_mulai: parsedJamMulai,
       jam_selesai: parsedJamSelesai,
       tipe_jadwal: input.tipe_jadwal || 'ASESMEN',
+      metode: targetMetode,
     })
 
     return {
@@ -132,8 +205,9 @@ export class BookingService {
       tanggal: formatDateToString(newSlot.tanggal),
       jam_mulai: formatTimeToString(newSlot.jam_mulai),
       jam_selesai: formatTimeToString(newSlot.jam_selesai),
-      status: newSlot.status,
-      tipe_jadwal: newSlot.tipe_jadwal,
+      metode: (newSlot as any).metode || targetMetode,
+      status: (newSlot as any).status || 'TERSEDIA',
+      tipe_jadwal: (newSlot as any).tipe_jadwal || 'ASESMEN',
     }
   }
 
@@ -196,10 +270,49 @@ export class BookingService {
     }
   }
 
+  async processRefund(params: {
+    bookingId: string
+    adminName: string
+    alasan: string
+  }) {
+    const result = await this.repo.refundBooking(params)
+    return {
+      success: true,
+      message: 'Refund berhasil diproses. Status transaksi telah diperbarui dan jadwal telah dibatalkan.',
+      bookingId: result.booking.id,
+      kodePesanan: result.booking.kode_pesanan,
+      klien: result.booking.client.nama,
+      statusBooking: result.booking.status,
+      nominalRefund: result.nominalRefund,
+      transaksi: result.transaksi
+        ? {
+          id: result.transaksi.id,
+          kodeTransaksi: result.transaksi.kode_transaksi,
+          statusPembayaran: result.transaksi.status_pembayaran,
+          refundAt: result.transaksi.refund_at,
+          refundReason: result.transaksi.refund_reason,
+          refundAmount: result.transaksi.refund_amount,
+        }
+        : null,
+    }
+  }
   // ── 2. Psikolog: Slot Ketersediaan & Agenda ──────────────────────────────────
 
   async getJadwalTersedia(query: GetJadwalTersediaQuery) {
-    const slots = await this.repo.findJadwalTersedia(query)
+    let resolvedQuery = { ...query }
+    if (query.id_psikolog) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(query.id_psikolog)
+      if (isUuid) {
+        let psikolog = await this.repo.findPsikologById(query.id_psikolog)
+        if (!psikolog) {
+          psikolog = await this.repo.findPsikologByAccountId(query.id_psikolog)
+        }
+        if (psikolog) {
+          resolvedQuery.id_psikolog = psikolog.id
+        }
+      }
+    }
+    const slots = await this.repo.findJadwalTersedia(resolvedQuery)
 
     return slots.map((slot) => ({
       id: slot.id,
@@ -213,6 +326,7 @@ export class BookingService {
       jam_mulai: formatTimeToString(slot.jam_mulai),
       jam_selesai: formatTimeToString(slot.jam_selesai),
       label_waktu: `${formatTimeToString(slot.jam_mulai)} - ${formatTimeToString(slot.jam_selesai)}`,
+      metode: (slot as any).metode || 'ONLINE',
       status: slot.status,
       tipe_jadwal: slot.tipe_jadwal,
     }))
@@ -220,6 +334,15 @@ export class BookingService {
 
   async getJadwalSaya(accountId?: string, query?: GetJadwalPsikologMeQuery) {
     let psikolog = accountId ? await this.repo.findPsikologByAccountId(accountId) : null
+    if (!psikolog && accountId) {
+      psikolog = await this.repo.findPsikologById(accountId)
+    }
+    if (!psikolog && query?.id_psikolog) {
+      psikolog = await this.repo.findPsikologById(query.id_psikolog)
+      if (!psikolog) {
+        psikolog = await this.repo.findPsikologByAccountId(query.id_psikolog)
+      }
+    }
     if (!psikolog) {
       psikolog = await this.repo.findFirstPsikolog()
     }
@@ -241,19 +364,39 @@ export class BookingService {
         waktu: `${formatTimeToString(slot.jam_mulai)} - ${formatTimeToString(slot.jam_selesai)}`,
         jam_mulai: formatTimeToString(slot.jam_mulai),
         jam_selesai: formatTimeToString(slot.jam_selesai),
+        metode: (slot as any).metode || 'ONLINE',
         status: slot.status,
         tipe_jadwal: slot.tipe_jadwal,
         booking: slot.booking_konsultasi
-          ? {
-              id_booking: slot.booking_konsultasi.id,
-              kode_pesanan: slot.booking_konsultasi.kode_pesanan,
-              nama_klien: slot.booking_konsultasi.client?.nama,
-              no_telepon_klien: slot.booking_konsultasi.client?.no_telepon,
-              layanan: slot.booking_konsultasi.layanan?.nama,
-              metode: slot.booking_konsultasi.metode,
-              status_booking: slot.booking_konsultasi.status,
-              deskripsi_trauma: slot.booking_konsultasi.deskripsi_trauma,
+          ? (() => {
+            const b = slot.booking_konsultasi
+            const isRefunded =
+              b.status === 'CANCELLED' ||
+              b.transaksi?.status_pembayaran === 'REFUNDED'
+
+            // Hitung harga penuh: prioritaskan nilai nominal transaksi, lalu tarif layanan/psikolog
+            const nominalTransaksi = b.transaksi ? Number(b.transaksi.total) : null
+            const tarifPsikolog = (slot as any).psikolog?.tarif_per_jam ? Number((slot as any).psikolog.tarif_per_jam) : null
+            const fullPrice = nominalTransaksi ?? tarifPsikolog ?? (b.layanan?.harga_weekday ? Number(b.layanan.harga_weekday) : 0)
+
+            // Bagian Psikolog 60%
+            const pendapatanPsikolog = isRefunded || fullPrice <= 0 ? null : Math.round(fullPrice * 0.6)
+
+            return {
+              id_booking: b.id,
+              kode_pesanan: b.kode_pesanan,
+              nama_klien: b.client?.nama,
+              no_telepon_klien: b.client?.no_telepon,
+              layanan: b.layanan?.nama,
+              metode: b.metode || (slot as any).metode || 'ONLINE',
+              status_booking: b.status,
+              deskripsi_trauma: b.deskripsi_trauma,
+              harga_penuh: fullPrice > 0 ? fullPrice : null,
+              pendapatan_psikolog: pendapatanPsikolog,
+              status_pembayaran: b.transaksi?.status_pembayaran || (b.status === 'CANCELLED' ? 'REFUNDED' : 'PAID'),
+              is_refunded: isRefunded,
             }
+          })()
           : null,
       })),
     }
@@ -262,6 +405,17 @@ export class BookingService {
   async createPsikologJadwalSlot(input: CreateJadwalSlotInput, accountId?: string) {
     let psikologId = input.id_psikolog
 
+    if (psikologId) {
+      let existing = await this.repo.findPsikologById(psikologId)
+      if (!existing) {
+        existing = await this.repo.findPsikologByAccountId(psikologId)
+      }
+      if (existing) {
+        psikologId = existing.id
+      } else {
+        psikologId = undefined
+      }
+    }
     if (!psikologId && accountId) {
       const psikolog = await this.repo.findPsikologByAccountId(accountId)
       if (psikolog) {
@@ -299,12 +453,25 @@ export class BookingService {
       throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
     }
 
+    let metodeSlot = 'ONLINE'
+    if (input.metode) {
+      const upper = input.metode.toUpperCase()
+      if (upper.includes('KEDUANYA') || (upper.includes('OFFLINE') && upper.includes('ONLINE'))) {
+        metodeSlot = 'KEDUANYA'
+      } else if (upper.includes('OFFLINE')) {
+        metodeSlot = 'OFFLINE'
+      } else {
+        metodeSlot = 'ONLINE'
+      }
+    }
+
     const newSlot = await this.repo.createJadwalSlot({
       id_psikolog: psikologId,
       tanggal: parsedTanggal,
       jam_mulai: parsedJamMulai,
       jam_selesai: parsedJamSelesai,
       tipe_jadwal: input.tipe_jadwal || 'KONSULTASI',
+      metode: metodeSlot,
     })
 
     return {
@@ -313,8 +480,9 @@ export class BookingService {
       tanggal: formatDateToString(newSlot.tanggal),
       jam_mulai: formatTimeToString(newSlot.jam_mulai),
       jam_selesai: formatTimeToString(newSlot.jam_selesai),
-      status: newSlot.status,
-      tipe_jadwal: newSlot.tipe_jadwal,
+      metode: (newSlot as any).metode || 'ONLINE',
+      status: (newSlot as any).status || 'TERSEDIA',
+      tipe_jadwal: (newSlot as any).tipe_jadwal || 'KONSULTASI',
     }
   }
 
@@ -353,5 +521,14 @@ export class BookingService {
     const item = await this.repo.findBookingById(id)
     if (!item) throw new Error('Booking tidak ditemukan')
     return item
+  }
+
+  async cleanExpiredPendingBookings(maxAgeMinutes: number = 30) {
+    const result = await this.repo.cancelExpiredPendingBookings(maxAgeMinutes)
+    return {
+      success: true,
+      message: `${result.count} sesi booking pending yang kedaluwarsa berhasil dibatalkan dan slotnya telah dikembalikan.`,
+      ...result,
+    }
   }
 }

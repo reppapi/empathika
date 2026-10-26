@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { bookingService } from "@/services/booking.service"
 
 // ── Dummy data ────────────────────────────────────────────────────────────────
 
@@ -51,7 +52,6 @@ export default function BayarClient() {
   const searchParams = useSearchParams()
 
   const [nama, setNama] = useState("")
-  const [email, setEmail] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
 
@@ -59,10 +59,25 @@ export default function BayarClient() {
   const [selectedBank, setSelectedBank] = useState<string | null>(null)
   const [selectedEwallet, setSelectedEwallet] = useState<string | null>(null)
   const [failedAlertDismissed, setFailedAlertDismissed] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Validasi form & status error peringatan
+  const [errors, setErrors] = useState<{
+    nama?: string
+    whatsapp?: string
+    deskripsi?: string
+    metodePembayaran?: string
+    detailMetode?: string
+  }>({})
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false)
 
   const isFailed = searchParams.get("status") === "failed" && !failedAlertDismissed
   const failedReason = searchParams.get("reason") || "Pembayaran tidak dapat diproses atau waktu transaksi telah berakhir."
 
+  const qSlotId = searchParams.get("slotId") || searchParams.get("id_jadwal") || ""
+  const qPsikologId = searchParams.get("psikologId") || searchParams.get("id_psikolog") || ""
+  const qFullDate = searchParams.get("fullDate") || ""
+  const qMetodeKonseling = searchParams.get("metodeKonseling") || searchParams.get("metode") || "Online"
   const qBottomDate = searchParams.get("bottomDate") || "31 Agu 2026"
   const qBottomTime = searchParams.get("bottomTime") || "13:30 WIB (Online)"
   const qPsikologName = searchParams.get("psikologName") || ""
@@ -73,7 +88,6 @@ export default function BayarClient() {
 
   useEffect(() => {
     const qNama = searchParams.get("nama")
-    const qEmail = searchParams.get("email")
     const qWa = searchParams.get("whatsapp")
     const qDeskripsi = searchParams.get("deskripsi")
     const qMetode = searchParams.get("metode")
@@ -81,7 +95,6 @@ export default function BayarClient() {
     const qEwallet = searchParams.get("ewallet")
 
     if (qNama) setNama(qNama)
-    if (qEmail) setEmail(qEmail)
     if (qWa) setWhatsapp(qWa)
     if (qDeskripsi) setDeskripsi(qDeskripsi)
     if (qMetode) setMetodePembayaran(qMetode)
@@ -94,47 +107,137 @@ export default function BayarClient() {
 
   const handleSelectPayment = (id: string) => {
     if (metodePembayaran === id) {
-      // Jika opsi yang sama diklik lagi, tutup dropdown/accordion-nya
       setMetodePembayaran(null)
       setSelectedBank(null)
       setSelectedEwallet(null)
+      if (attemptedSubmit) {
+        setErrors((prev) => ({ ...prev, metodePembayaran: "Silakan pilih salah satu metode pembayaran." }))
+      }
       return
     }
 
     setMetodePembayaran(id)
     if (id !== "bank") { setSelectedBank(null) }
     if (id !== "ewallet") { setSelectedEwallet(null) }
+
+    if (attemptedSubmit) {
+      setErrors((prev) => ({
+        ...prev,
+        metodePembayaran: undefined,
+        detailMetode: undefined,
+      }))
+    }
   }
 
-  const handleSubmit = () => {
-    if (!nama || !email || !whatsapp || !deskripsi) {
-      alert("Harap isi semua data peserta terlebih dahulu.")
-      return
+  const handleSubmit = async () => {
+    if (isSubmitting) return
+    setAttemptedSubmit(true)
+
+    const newErrors: {
+      nama?: string
+      whatsapp?: string
+      deskripsi?: string
+      metodePembayaran?: string
+      detailMetode?: string
+    } = {}
+
+    if (!nama.trim()) {
+      newErrors.nama = "Nama lengkap wajib diisi."
     }
+
+    if (!whatsapp.trim()) {
+      newErrors.whatsapp = "Nomor WhatsApp wajib diisi."
+    } else if (!/^[0-9+-\s]{8,16}$/.test(whatsapp.trim())) {
+      newErrors.whatsapp = "Nomor WhatsApp minimal 8 digit angka."
+    }
+
+    if (!deskripsi.trim()) {
+      newErrors.deskripsi = "Deskripsi ringkasan hidup atau keluhan wajib diisi."
+    }
+
     if (!metodePembayaran) {
-      alert("Harap pilih metode pembayaran terlebih dahulu.")
+      newErrors.metodePembayaran = "Silakan pilih salah satu metode pembayaran."
+    } else if (metodePembayaran === "bank" && !selectedBank) {
+      newErrors.detailMetode = "Silakan pilih bank tujuan transfer."
+    } else if (metodePembayaran === "ewallet" && !selectedEwallet) {
+      newErrors.detailMetode = "Silakan pilih jenis e-wallet yang ingin digunakan."
+    }
+
+    setErrors(newErrors)
+
+    if (Object.keys(newErrors).length > 0) {
+      if (newErrors.nama || newErrors.whatsapp || newErrors.deskripsi) {
+        const el = document.getElementById("box-data-peserta")
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+      } else if (newErrors.metodePembayaran || newErrors.detailMetode) {
+        const el = document.getElementById("box-metode-pembayaran")
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
       return
     }
-    const params = new URLSearchParams({
-      nama: nama.toUpperCase(),
-      email,
-      whatsapp,
-      deskripsi,
-      orderId: "W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
-      tanggal: qTanggal,
-      tahun: qTahun,
-      waktu: qWaktu,
-      judul: qLayanan,
-      subjudul: qPsikologName ? `Bersama ${qPsikologName}` : "Psikolog Profesional Empathika",
-      bottomDate: qBottomDate,
-      bottomTime: qBottomTime,
-      metode: metodePembayaran,
-      ...(qPsikologName && { psikologName: qPsikologName }),
-      ...(selectedBank && { bank: selectedBank }),
-      ...(selectedEwallet && { ewallet: selectedEwallet }),
-    })
-    // Arahkan ke halaman pending dulu
-    router.push(`/konseling/pending?${params.toString()}`)
+
+    setIsSubmitting(true)
+
+    try {
+      let targetDate = qFullDate
+      if (!targetDate && qTanggal && qTahun) {
+        const parts = qTanggal.split("/")
+        if (parts.length === 2) {
+          targetDate = `${qTahun}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
+        }
+      }
+
+      // Simpan langsung booking & transaksi ke PostgreSQL database
+      const res: any = await bookingService.createBooking({
+        id_jadwal: qSlotId || undefined,
+        id_psikolog: qPsikologId || undefined,
+        tanggal: targetDate || undefined,
+        jam_mulai: qWaktu ? qWaktu.substring(0, 5) : undefined,
+        metode: qMetodeKonseling.toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE",
+        deskripsi_trauma: deskripsi.trim(),
+        status: "CONFIRMED",
+        metode_pembayaran: (metodePembayaran || "QRIS").toUpperCase(),
+        channel_pembayaran: selectedBank || selectedEwallet || "QRIS",
+        klien: {
+          nama: nama.trim().toUpperCase(),
+          no_telepon: whatsapp.trim(),
+        },
+      })
+
+      const finalOrderId = res?.kode_pesanan || ("W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"))
+      const bookingId = res?.id
+
+      const params = new URLSearchParams({
+        nama: nama.trim().toUpperCase(),
+        whatsapp: whatsapp.trim(),
+        deskripsi: deskripsi.trim(),
+        orderId: finalOrderId,
+        ...(bookingId && { bookingId }),
+        ...(qSlotId && { slotId: qSlotId }),
+        ...(qPsikologId && { psikologId: qPsikologId }),
+        tanggal: qTanggal,
+        tahun: qTahun,
+        waktu: qWaktu,
+        judul: qLayanan,
+        subjudul: qPsikologName ? `Bersama ${qPsikologName}` : "Psikolog Profesional Empathika",
+        bottomDate: qBottomDate,
+        bottomTime: qBottomTime,
+        metode: metodePembayaran || "qris",
+        metodeKonseling: qMetodeKonseling,
+        ...(qPsikologName && { psikologName: qPsikologName }),
+        ...(selectedBank && { bank: selectedBank }),
+        ...(selectedEwallet && { ewallet: selectedEwallet }),
+      })
+
+      // Arahkan ke halaman pending
+      router.push(`/konseling/pending?${params.toString()}`)
+    } catch (err: any) {
+      console.error("Booking error:", err)
+      const msg = err?.response?.data?.message || err?.message || "Gagal memproses booking. Silakan coba lagi."
+      alert(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const paymentOptions = [
@@ -237,45 +340,128 @@ export default function BayarClient() {
         )}
 
         {/* ── Box 1: Data Peserta ── */}
-        <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <div id="box-data-peserta" className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] scroll-mt-28">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">1</div>
             <h3 className="text-sm font-bold text-gray-800">Data Peserta</h3>
           </div>
-          <div className="flex flex-col gap-5">
-            <div>
-              <label className="block text-xs font-bold text-gray-800 mb-2">Nama Lengkap</label>
-              <input
-                type="text" placeholder="Masukkan nama lengkap"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder-gray-400"
-                value={nama} onChange={(e) => setNama(e.target.value)}
-              />
+
+          {attemptedSubmit && (errors.nama || errors.whatsapp || errors.deskripsi) && (
+            <div className="mb-5 bg-red-50 border border-red-200 rounded-xl p-3.5 flex items-start gap-3 text-red-700 animate-in fade-in duration-200">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-600 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div className="text-xs">
+                <p className="font-bold">Data peserta belum lengkap</p>
+                <p className="text-red-600/90 mt-0.5">Mohon lengkapi seluruh kolom bertanda bintang (<span className="text-red-500 font-bold">*</span>) di bawah ini.</p>
+              </div>
             </div>
+          )}
+
+          <div className="flex flex-col gap-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-bold text-gray-800 mb-2">Email</label>
+                <label className="block text-xs font-bold text-gray-800 mb-2">
+                  Nama Lengkap <span className="text-red-500">*</span>
+                </label>
                 <input
-                  type="email" placeholder="user@gmail.com"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder-gray-400"
-                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="Masukkan nama lengkap"
+                  className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all placeholder-gray-400 ${
+                    errors.nama
+                      ? "border-red-500 bg-red-50/20 focus:ring-1 focus:ring-red-400 focus:border-red-500"
+                      : "border-gray-300 bg-white focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+                  }`}
+                  value={nama}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setNama(val)
+                    if (attemptedSubmit) {
+                      setErrors((prev) => ({ ...prev, nama: val.trim() ? undefined : "Nama lengkap wajib diisi." }))
+                    }
+                  }}
                 />
+                {errors.nama && (
+                  <p className="text-xs text-red-600 font-medium mt-1.5 flex items-center gap-1.5 animate-in fade-in duration-150">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.nama}
+                  </p>
+                )}
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-gray-800 mb-2">No WhatsApp</label>
+                <label className="block text-xs font-bold text-gray-800 mb-2">
+                  No WhatsApp <span className="text-red-500">*</span>
+                </label>
                 <input
-                  type="tel" placeholder="08xxxxxxxxx"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder-gray-400"
-                  value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)}
+                  type="tel"
+                  placeholder="Contoh: 08123456789"
+                  className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all placeholder-gray-400 ${
+                    errors.whatsapp
+                      ? "border-red-500 bg-red-50/20 focus:ring-1 focus:ring-red-400 focus:border-red-500"
+                      : "border-gray-300 bg-white focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+                  }`}
+                  value={whatsapp}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setWhatsapp(val)
+                    if (attemptedSubmit) {
+                      if (!val.trim()) {
+                        setErrors((prev) => ({ ...prev, whatsapp: "Nomor WhatsApp wajib diisi." }))
+                      } else if (!/^[0-9+-\s]{8,16}$/.test(val.trim())) {
+                        setErrors((prev) => ({ ...prev, whatsapp: "Nomor WhatsApp minimal 8 digit angka." }))
+                      } else {
+                        setErrors((prev) => ({ ...prev, whatsapp: undefined }))
+                      }
+                    }
+                  }}
                 />
+                {errors.whatsapp && (
+                  <p className="text-xs text-red-600 font-medium mt-1.5 flex items-center gap-1.5 animate-in fade-in duration-150">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.whatsapp}
+                  </p>
+                )}
               </div>
             </div>
+
             <div>
-              <label className="block text-xs font-bold text-gray-800 mb-2">Deskripsi Ringkasan Hidup/Trauma</label>
-              <input
-                type="text" placeholder="saya sering merasa.."
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder-gray-400"
-                value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)}
+              <label className="block text-xs font-bold text-gray-800 mb-2">
+                Deskripsi Ringkasan Hidup / Trauma <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Ceritakan secara singkat keluhan, kondisi emosional, atau hal yang ingin Anda konsultasikan..."
+                className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all placeholder-gray-400 resize-none ${
+                  errors.deskripsi
+                    ? "border-red-500 bg-red-50/20 focus:ring-1 focus:ring-red-400 focus:border-red-500"
+                    : "border-gray-300 bg-white focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+                }`}
+                value={deskripsi}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setDeskripsi(val)
+                  if (attemptedSubmit) {
+                    setErrors((prev) => ({ ...prev, deskripsi: val.trim() ? undefined : "Deskripsi ringkasan hidup atau keluhan wajib diisi." }))
+                  }
+                }}
               />
+              {errors.deskripsi ? (
+                <p className="text-xs text-red-600 font-medium mt-1.5 flex items-center gap-1.5 animate-in fade-in duration-150">
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.deskripsi}
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Informasi ini akan membantu psikolog mempersiapkan sesi konseling Anda dengan lebih baik.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -288,10 +474,14 @@ export default function BayarClient() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border border-gray-200 rounded-2xl p-4 flex flex-col justify-center items-center sm:items-start sm:flex-row gap-4 h-full">
-              <div className="w-[70px] h-[70px] rounded-full bg-[#E6D9E9] shrink-0" />
+              <div className="w-[70px] h-[70px] rounded-full bg-[#E6D9E9] flex items-center justify-center shrink-0 text-[#561269] font-bold text-xl">
+                {(qPsikologName ? qPsikologName.replace(/^(dr\.|drg\.|prof\.)\s*/i, "").slice(0, 2) : "EM").toUpperCase()}
+              </div>
               <div className="text-center sm:text-left flex flex-col justify-center h-full pt-1">
                 <div className="text-[10px] text-gray-500 mb-1">Psikolog Anda</div>
-                <div className="text-sm font-extrabold text-[#561269]">nama, M.Psi.,<br />Psikolog</div>
+                <div className="text-sm font-extrabold text-[#561269]">
+                  {qPsikologName ? (qPsikologName.includes(",") ? qPsikologName : `${qPsikologName}, M.Psi., Psikolog`) : "Psikolog Profesional Empathika"}
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -302,9 +492,9 @@ export default function BayarClient() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] text-gray-500 mb-0.5">Jadwal</div>
-                  <div className="text-xs font-bold text-[#561269]">2026-08-31 (weekday)</div>
-                  <div className="text-[10px] text-gray-500">13:30 WIB (Online)</div>
+                  <div className="text-[10px] text-gray-500 mb-0.5">Jadwal Sesi</div>
+                  <div className="text-xs font-bold text-[#561269]">{qBottomDate}</div>
+                  <div className="text-[10px] text-gray-500">{qBottomTime}</div>
                 </div>
               </div>
               <div className="border border-gray-200 rounded-2xl p-4 flex items-center gap-4">
@@ -314,8 +504,8 @@ export default function BayarClient() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] text-gray-500 mb-0.5">Layanan konsultasi</div>
-                  <div className="text-sm font-bold text-[#561269]">Psikolog</div>
+                  <div className="text-[10px] text-gray-500 mb-0.5">Layanan Konsultasi</div>
+                  <div className="text-sm font-bold text-[#561269]">{qLayanan}</div>
                 </div>
               </div>
             </div>
@@ -323,11 +513,31 @@ export default function BayarClient() {
         </div>
 
         {/* ── Box 3: Metode Pembayaran ── */}
-        <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <div id="box-metode-pembayaran" className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] scroll-mt-28">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">3</div>
-            <h3 className="text-sm font-bold text-gray-800">Pilih Metode Pembayaran</h3>
+            <h3 className="text-sm font-bold text-gray-800">
+              Pilih Metode Pembayaran <span className="text-red-500">*</span>
+            </h3>
           </div>
+
+          {errors.metodePembayaran && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium flex items-center gap-2 mb-4 animate-in fade-in duration-150">
+              <svg className="w-4 h-4 shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span>{errors.metodePembayaran}</span>
+            </div>
+          )}
+
+          {errors.detailMetode && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-medium flex items-center gap-2 mb-4 animate-in fade-in duration-150">
+              <svg className="w-4 h-4 shrink-0 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span>{errors.detailMetode}</span>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3 mb-8">
             {paymentOptions.map((opt) => {
@@ -337,6 +547,7 @@ export default function BayarClient() {
 
                   {/* Tombol header metode */}
                   <button
+                    type="button"
                     onClick={() => handleSelectPayment(opt.id)}
                     className={`w-full flex items-center justify-between p-4 transition-colors ${isActive ? "bg-[#F8EFFF]" : "hover:bg-gray-50"}`}
                   >
@@ -375,7 +586,13 @@ export default function BayarClient() {
                                   {/* Baris item */}
                                   <button
                                     type="button"
-                                    onClick={() => setSelectedEwallet(isSelected ? null : ew.id)}
+                                    onClick={() => {
+                                      const next = isSelected ? null : ew.id
+                                      setSelectedEwallet(next)
+                                      if (attemptedSubmit) {
+                                        setErrors((prev) => ({ ...prev, detailMetode: next ? undefined : "Silakan pilih jenis e-wallet yang ingin digunakan." }))
+                                      }
+                                    }}
                                     className="w-full flex items-center gap-3 px-3.5 py-3 text-sm text-left"
                                   >
                                     <span
@@ -428,7 +645,13 @@ export default function BayarClient() {
                                   {/* Baris item */}
                                   <button
                                     type="button"
-                                    onClick={() => setSelectedBank(isSelected ? null : bank.id)}
+                                    onClick={() => {
+                                      const next = isSelected ? null : bank.id
+                                      setSelectedBank(next)
+                                      if (attemptedSubmit) {
+                                        setErrors((prev) => ({ ...prev, detailMetode: next ? undefined : "Silakan pilih bank tujuan transfer." }))
+                                      }
+                                    }}
                                     className="w-full flex items-center gap-3 px-3.5 py-3 text-sm text-left"
                                   >
                                     <span className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[10px] font-extrabold text-blue-700 shrink-0">
@@ -527,15 +750,31 @@ export default function BayarClient() {
               <span className="text-xs text-gray-500">Biaya Konsultasi</span>
               <span className="text-xs font-medium text-gray-500">Rp 350.000</span>
             </div>
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-6">
               <span className="text-sm font-extrabold text-[#561269]">Total Bayar</span>
               <span className="text-sm font-extrabold text-[#561269]">Rp 350.000</span>
             </div>
+
+            {attemptedSubmit && Object.keys(errors).some((k) => errors[k as keyof typeof errors]) && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-center gap-2 text-red-600 text-xs font-semibold animate-in fade-in duration-150">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>Harap periksa dan lengkapi kolom yang bertanda merah di atas.</span>
+              </div>
+            )}
+
             <button
+              type="button"
               onClick={handleSubmit}
-              className="w-full bg-[#EAB308] hover:bg-[#FACC15] text-black font-bold text-sm py-4 rounded-xl shadow-sm transition-colors flex justify-center items-center"
+              disabled={isSubmitting}
+              className={`w-full font-bold text-sm py-4 rounded-xl shadow-sm transition-colors flex justify-center items-center ${
+                isSubmitting
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-[#EAB308] hover:bg-[#FACC15] text-black cursor-pointer"
+              }`}
             >
-              Bayar Sekarang
+              {isSubmitting ? "Memproses Booking..." : "Bayar Sekarang"}
             </button>
           </div>
         </div>

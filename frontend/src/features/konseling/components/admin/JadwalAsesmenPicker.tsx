@@ -4,13 +4,14 @@ import { useState, useEffect, useMemo } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { BookedAssessment } from "@/features/konseling/types"
 import { formatDateKey } from "@/features/konseling/data/jadwalAdminData"
+import { Video, Building2, Layers, Trash2 } from "lucide-react"
 
 interface JadwalAsesmenPickerProps {
   date: Date | undefined
   onSelectDate: (newDate: Date | undefined) => void
   bookedSessions?: BookedAssessment[]
   bookingSuccessMsg: string | null
-  onBooking: (times: string[]) => void
+  onBooking: (times: string[], metode: "Online" | "Offline" | "Keduanya") => void | Promise<void>
   timeSlots?: string[]
 }
 
@@ -37,11 +38,45 @@ export default function JadwalAsesmenPicker({
     "15:30 - 16:30",
   ],
 }: JadwalAsesmenPickerProps) {
+  const DEFAULT_SLOTS = useMemo(
+    () => [
+      "09:00 - 10:00",
+      "10:00 - 11:00",
+      "13:00 - 14:00",
+      "14:30 - 15:30",
+      "15:30 - 16:30",
+    ],
+    []
+  )
+
+  const [availableSlots, setAvailableSlots] = useState<string[]>(timeSlots)
+  const [deletedCustomSlots, setDeletedCustomSlots] = useState<string[]>([])
+
+  useEffect(() => {
+    setAvailableSlots((prev) => {
+      const merged = new Set([...DEFAULT_SLOTS, ...timeSlots, ...prev])
+      bookedSessions.forEach((s) => {
+        if (s.waktu) merged.add(s.waktu)
+      })
+      const filtered = Array.from(merged).filter((t) => !deletedCustomSlots.includes(t))
+      return filtered.sort()
+    })
+  }, [timeSlots, bookedSessions, deletedCustomSlots, DEFAULT_SLOTS])
+
+  const handleDeleteCustomSlot = (timeToRemove: string) => {
+    setDeletedCustomSlots((prev) => [...prev, timeToRemove])
+    setAvailableSlots((prev) => prev.filter((t) => t !== timeToRemove))
+    setSelectedTimes((prev) => prev.filter((t) => t !== timeToRemove))
+  }
+
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
   }, [])
+
+  // Pilihan metode sesi: Online (Zoom), Offline (Klinik), atau Keduanya
+  const [metode, setMetode] = useState<"Online" | "Offline" | "Keduanya">("Online")
 
   // Multi-select slot jam & jam kustom
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])
@@ -62,10 +97,10 @@ export default function JadwalAsesmenPicker({
   }
 
   const toggleSelectAll = () => {
-    if (selectedTimes.length === timeSlots.length) {
+    if (selectedTimes.length === availableSlots.length) {
       setSelectedTimes([])
     } else {
-      setSelectedTimes([...timeSlots])
+      setSelectedTimes([...availableSlots])
     }
   }
 
@@ -80,9 +115,13 @@ export default function JadwalAsesmenPicker({
       if (!timesToBook.includes(customFormatted)) {
         timesToBook.push(customFormatted)
       }
+      if (!availableSlots.includes(customFormatted)) {
+        setAvailableSlots((prev) => [...prev, customFormatted].sort())
+      }
+      setDeletedCustomSlots((prev) => prev.filter((t) => t !== customFormatted))
     }
     if (timesToBook.length > 0) {
-      onBooking(timesToBook)
+      onBooking(timesToBook, metode)
       setSelectedTimes([])
       setIsCustomTime(false)
     }
@@ -131,46 +170,98 @@ export default function JadwalAsesmenPicker({
               </button>
             </div>
 
+            {/* Pilihan Metode Layanan Asesmen: Online, Offline, atau Keduanya */}
+            <div className="mb-4 bg-purple-50/50 p-3 rounded-2xl border border-[#EDE0F2]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-gray-800">
+                  Pilih Metode Asesmen:
+                </span>
+                <span className="text-[11px] font-semibold text-[#561269]">
+                  {metode === "Online"
+                    ? "Sesi Online via Zoom"
+                    : metode === "Offline"
+                      ? "Sesi Tatap Muka di Klinik"
+                      : "Fleksibel (Online & Offline)"}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMetode("Online")}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${metode === "Online"
+                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
+                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
+                    }`}
+                >
+                  <Video className="w-3.5 h-3.5 text-[#561269]" />
+                  <span>Online</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetode("Offline")}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${metode === "Offline"
+                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
+                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
+                    }`}
+                >
+                  <Building2 className="w-3.5 h-3.5 text-[#561269]" />
+                  <span>Offline</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetode("Keduanya")}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${metode === "Keduanya"
+                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
+                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
+                    }`}
+                >
+                  <Layers className="w-3.5 h-3.5 text-[#561269]" />
+                  <span>Keduanya</span>
+                </button>
+              </div>
+            </div>
+
             <p className="text-xs text-gray-500 mb-3">
               Pilih slot jam yang ingin Anda buka (bisa pilih beberapa sekaligus):
             </p>
 
             {/* Checkbox List Slot Waktu */}
             <div className="flex flex-col gap-2.5 mb-6">
-              {timeSlots.map((time, idx) => {
+              {availableSlots.map((time, idx) => {
                 const isChecked = selectedTimes.includes(time)
-                const isAlreadyOpened = date
-                  ? bookedSessions.some(
-                      (s: any) =>
-                        s.date === formatDateKey(date) &&
-                        s.waktu === time &&
-                        (s.isAvailableSlot || s.namaKlien === "Tersedia")
-                    )
-                  : false
+                const isCustom = !DEFAULT_SLOTS.includes(time)
+                const openedSlot = date
+                  ? bookedSessions.find(
+                    (s: any) =>
+                      s.date === formatDateKey(date) &&
+                      s.waktu === time &&
+                      (s.isAvailableSlot || s.namaKlien === "Tersedia")
+                  )
+                  : undefined
+                const isAlreadyOpened = Boolean(openedSlot)
                 const isAlreadyBooked = date
                   ? bookedSessions.some(
-                      (s: any) =>
-                        s.date === formatDateKey(date) &&
-                        s.waktu === time &&
-                        !s.isAvailableSlot &&
-                        s.namaKlien !== "Tersedia"
-                    )
+                    (s: any) =>
+                      s.date === formatDateKey(date) &&
+                      s.waktu === time &&
+                      !s.isAvailableSlot &&
+                      s.namaKlien !== "Tersedia"
+                  )
                   : false
 
                 return (
-                  <label
+                  <div
                     key={idx}
-                    className={`flex items-center justify-between border rounded-xl px-4 py-2.5 cursor-pointer transition-all ${
-                      isChecked
+                    className={`flex items-center justify-between border rounded-xl px-4 py-2.5 transition-all ${isChecked
                         ? "border-[#561269] bg-purple-50/70 shadow-2xs"
                         : isAlreadyOpened
-                        ? "border-emerald-300 bg-emerald-50/40"
-                        : isAlreadyBooked
-                        ? "border-blue-200 bg-blue-50/30"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
-                    }`}
+                          ? "border-emerald-300 bg-emerald-50/40"
+                          : isAlreadyBooked
+                            ? "border-blue-200 bg-blue-50/30"
+                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                      }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-3 cursor-pointer flex-1">
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -178,17 +269,16 @@ export default function JadwalAsesmenPicker({
                         className="w-4 h-4 text-[#561269] focus:ring-[#561269] rounded border-gray-300 cursor-pointer"
                       />
                       <span
-                        className={`text-[13px] font-medium ${
-                          isChecked ? "text-[#561269] font-bold" : "text-gray-700"
-                        }`}
+                        className={`text-[13px] font-medium ${isChecked ? "text-[#561269] font-bold" : "text-gray-700"
+                          }`}
                       >
                         {time}
                       </span>
-                    </div>
+                    </label>
                     <div className="flex items-center gap-1.5">
                       {isAlreadyOpened && !isChecked && (
                         <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
-                          Sudah Dibuka
+                          Sudah Dibuka {openedSlot?.metode ? `(${openedSlot.metode})` : ""}
                         </span>
                       )}
                       {isAlreadyBooked && !isChecked && (
@@ -201,18 +291,38 @@ export default function JadwalAsesmenPicker({
                           Dipilih
                         </span>
                       )}
+
+                      {/* Tombol hapus khusus untuk jam yang dikustom sendiri agar pilihan clean lagi */}
+                      {isCustom && (
+                        <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-gray-200">
+                          <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                            Kustom
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleDeleteCustomSlot(time)
+                            }}
+                            title="Hapus jam kustom ini dari pilihan"
+                            className="text-gray-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </label>
+                  </div>
                 )
               })}
 
               {/* Opsi Tambahan: Tentukan Jam Kustom Sendiri */}
               <div
-                className={`border rounded-xl px-4 py-2.5 transition-colors cursor-pointer ${
-                  isCustomTime
+                className={`border rounded-xl px-4 py-2.5 transition-colors cursor-pointer ${isCustomTime
                     ? "border-[#561269] bg-purple-50/70 shadow-2xs"
                     : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
-                }`}
+                  }`}
               >
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -227,30 +337,55 @@ export default function JadwalAsesmenPicker({
                 </label>
 
                 {isCustomTime && (
-                  <div className="flex items-center gap-2 pl-7 pt-2.5">
-                    <div className="flex-1">
-                      <span className="text-[10px] text-gray-500 font-semibold block mb-1">
-                        Jam Mulai
-                      </span>
-                      <input
-                        type="time"
-                        value={customStart}
-                        onChange={(e) => setCustomStart(e.target.value)}
-                        className="w-full text-xs font-semibold p-1.5 rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
-                      />
+                  <div className="flex flex-col gap-2 pl-7 pt-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <span className="text-[10px] text-gray-500 font-semibold block mb-1">
+                          Jam Mulai
+                        </span>
+                        <input
+                          type="time"
+                          value={customStart}
+                          onChange={(e) => setCustomStart(e.target.value)}
+                          className="w-full text-xs font-semibold p-1.5 rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                        />
+                      </div>
+                      <span className="text-gray-400 mt-4 text-xs font-bold">-</span>
+                      <div className="flex-1">
+                        <span className="text-[10px] text-gray-500 font-semibold block mb-1">
+                          Jam Selesai
+                        </span>
+                        <input
+                          type="time"
+                          value={customEnd}
+                          onChange={(e) => setCustomEnd(e.target.value)}
+                          className="w-full text-xs font-semibold p-1.5 rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                        />
+                      </div>
                     </div>
-                    <span className="text-gray-400 mt-4 text-xs font-bold">-</span>
-                    <div className="flex-1">
-                      <span className="text-[10px] text-gray-500 font-semibold block mb-1">
-                        Jam Selesai
-                      </span>
-                      <input
-                        type="time"
-                        value={customEnd}
-                        onChange={(e) => setCustomEnd(e.target.value)}
-                        className="w-full text-xs font-semibold p-1.5 rounded border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (!customStart || !customEnd || customEnd <= customStart) {
+                          alert("Jam selesai harus lebih akhir dari jam mulai.")
+                          return
+                        }
+                        const customFormatted = `${customStart} - ${customEnd}`
+                        if (!availableSlots.includes(customFormatted)) {
+                          setAvailableSlots((prev) => [...prev, customFormatted].sort())
+                        }
+                        if (!selectedTimes.includes(customFormatted)) {
+                          setSelectedTimes((prev) => [...prev, customFormatted])
+                        }
+                        setDeletedCustomSlots((prev) => prev.filter((t) => t !== customFormatted))
+                        setIsCustomTime(false)
+                      }}
+                      className="text-left text-xs font-semibold text-[#561269] hover:text-[#3d0b4b] hover:underline cursor-pointer pt-0.5"
+                    >
+                      + Tambahkan ke Pilihan Jam
+                    </button>
                   </div>
                 )}
               </div>
@@ -267,17 +402,16 @@ export default function JadwalAsesmenPicker({
               type="button"
               onClick={handleBookingClick}
               disabled={!isFormValid}
-              className={`w-full font-bold py-3.5 rounded-full text-[13px] transition-all ${
-                isFormValid
+              className={`w-full font-bold py-3.5 rounded-full text-[13px] transition-all ${isFormValid
                   ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 cursor-pointer shadow-sm hover:shadow-md active:scale-95"
                   : "bg-[#d6d6d6] text-gray-500 cursor-not-allowed"
-              }`}
+                }`}
             >
               {selectedTimes.length > 0
-                ? `Buka ${selectedTimes.length} Jam Sesi Sekaligus`
+                ? `Buka ${selectedTimes.length} Jam Sesi (${metode}) Sekaligus`
                 : isCustomTime
-                ? "Buka Jam Kustom"
-                : "Pilih Jam Terlebih Dahulu"}
+                  ? `Buka Jam Kustom (${metode})`
+                  : "Pilih Jam Terlebih Dahulu"}
             </button>
           </div>
         </div>

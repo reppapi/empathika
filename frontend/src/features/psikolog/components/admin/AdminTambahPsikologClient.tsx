@@ -220,8 +220,12 @@ export default function AdminTambahPsikologClient() {
       if (result && result.id) {
         newTenaga.id = result.id
       }
-    } catch (err) {
-      console.warn("Gagal menyimpan ke DB backend, data tetap disimpan lokal:", err)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Gagal mendaftarkan tenaga ahli."
+      setFormErrorAlert(msg)
+      setIsSubmitting(false)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
     }
 
     try {

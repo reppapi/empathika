@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import ModalTambahSesi, { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
-import { BookedAssessment, ClientSessionToday } from "@/features/konseling/types"
+import { BookedAssessment, ClientSessionToday, ClientSessionStatus } from "@/features/konseling/types"
 import {
   TIME_SLOTS,
   RAW_CLIENT_SESSIONS,
@@ -13,6 +13,7 @@ import {
   getMonday,
   formatDateKey,
   formatWhatsAppMessage,
+  formatWhatsAppPsikologReminder,
   generateWeekSessions,
   getSampleUpcomingBookings,
 } from "@/features/konseling/data/jadwalAdminData"
@@ -24,6 +25,7 @@ import JadwalAsesmenPicker from "./JadwalAsesmenPicker"
 import JadwalMingguanGrid from "./JadwalMingguanGrid"
 import ModalDetailSesiKlien from "./ModalDetailSesiKlien"
 import ModalBatalSesi from "./ModalBatalSesi"
+import { adminService } from "@/services/admin.service"
 import { psikologService } from "@/services/psikolog.service"
 import {
   recordCancelledSession,
@@ -64,28 +66,12 @@ export default function JadwalAdmin() {
   const [date, setDate] = useState<Date | undefined>(getInitialDate)
   const [selectedTime, setSelectedTime] = useState<string>("13:00 - 14:00")
   const [currentWeekMonday, setCurrentWeekMonday] = useState<Date>(() => getMonday(getInitialDate()))
-  const [bookedSessions, setBookedSessions] = useState<BookedAssessment[]>(() => {
-    const list = getSampleUpcomingBookings()
-    const cancelledList = getCancelledSessions()
-    if (cancelledList.length === 0) return list
-    return list.map((item) =>
-      isSessionCancelled(item, cancelledList) ? { ...item, status: "Dibatalkan" } : item
-    )
-  })
+  const [bookedSessions, setBookedSessions] = useState<BookedAssessment[]>([])
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null)
 
-  // State Sesi Klien Hari Ini (Disesuaikan dengan Jam Sekarang & Status Pembatalan)
-  const [todaySessions, setTodaySessions] = useState<ClientSessionToday[]>(() => {
-    const todayKey = formatDateKey(new Date())
-    const initial = getInitialSessionsBasedOnTime().map((s) => ({ ...s, date: todayKey }))
-    const cancelledList = getCancelledSessions()
-    if (cancelledList.length === 0) return initial
-    return initial.map((s) =>
-      isSessionCancelled(s, cancelledList)
-        ? { ...s, status: "Dibatalkan" as const, isUpcomingNearest: false }
-        : s
-    )
-  })
+  // State Sesi Klien Hari Ini (Murni dari Database)
+  const [todaySessions, setTodaySessions] = useState<ClientSessionToday[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [selectedDetailSession, setSelectedDetailSession] = useState<ClientSessionToday | null>(null)
   const [sessionToCancel, setSessionToCancel] = useState<ClientSessionToday | null>(null)
@@ -157,14 +143,26 @@ export default function JadwalAdmin() {
     triggerToast(`Pesan jadwal untuk ${session.namaKlien} berhasil disalin ke clipboard!`, "success")
   }
 
-  const handleMarkCompleted = (id: string, namaKlien: string) => {
+  const handleCopyWhatsAppPsikologMessage = (session: ClientSessionToday) => {
+    const text = formatWhatsAppPsikologReminder(session)
+    navigator.clipboard.writeText(text)
+    triggerToast(`Pesan pengingat jadwal untuk ${session.psikolog} berhasil disalin!`, "success")
+  }
+
+  const handleMarkCompleted = async (id: string, namaKlien: string) => {
+    try {
+      await adminService.updateBookingStatus(id, "COMPLETED")
+    } catch (err: any) {
+      console.warn("Update status error:", err?.response?.data?.message || err.message)
+    }
     setTodaySessions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, status: "Selesai", isUpcomingNearest: false } : s))
     )
     triggerToast(`Sesi ${namaKlien} berhasil ditandai Selesai!`, "success")
+    fetchJadwalData()
   }
 
-  const handleCancelSession = (id: string, namaKlien: string) => {
+  const handleCancelSession = async (id: string, namaKlien: string) => {
     // 1. Cari data sesi yang dibatalkan untuk keperluan sinkronisasi
     const targetToday = todaySessions.find((s) => s.id === id)
     const targetBooked = bookedSessions.find((s) => s.id === id)
@@ -188,7 +186,14 @@ export default function JadwalAdmin() {
     const waktu = targetToday?.waktu || targetBooked?.waktu || targetCombined?.waktu || ""
     const psikolog = targetToday?.psikolog || targetBooked?.psikolog || targetCombined?.psikolog || ""
 
-    // 2. Simpan dan sinkronkan pembatalan (backend + localStorage + real-time storage event)
+    // 2. Simpan status CANCELLED di database backend
+    try {
+      await adminService.updateBookingStatus(id, "CANCELLED")
+    } catch (err: any) {
+      console.warn("Cancel status error:", err?.response?.data?.message || err.message)
+    }
+
+    // 3. Simpan dan sinkronkan pembatalan ke event sinkronisasi real-time
     recordCancelledSession({
       id,
       date: dateKey,
@@ -197,12 +202,12 @@ export default function JadwalAdmin() {
       psikolog,
     })
 
-    // 3. Update state lokal todaySessions
+    // 4. Update state lokal todaySessions
     setTodaySessions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, status: "Dibatalkan", isUpcomingNearest: false } : s))
     )
 
-    // 4. Update state bookedSessions
+    // 5. Update state bookedSessions
     setBookedSessions((prev) =>
       prev.map((b) =>
         b.id === id || (b.date === dateKey && b.waktu === waktu)
@@ -212,6 +217,7 @@ export default function JadwalAdmin() {
     )
 
     triggerToast(`Sesi ${namaKlien} (${waktu}) telah dibatalkan.`, "danger")
+    fetchJadwalData()
   }
 
   const handleSelectWeeklySession = (session: BookedAssessment) => {
@@ -260,14 +266,19 @@ export default function JadwalAdmin() {
   }, [todaySessions, bookedSessions])
 
   const matchLayanan = (itemLayanan: string, filter: string) => {
-    if (filter === "Semua Layanan") return true
+    if (!filter || filter === "Semua Layanan" || filter === "semua") return true
     const itemNorm = (itemLayanan || "").trim().toLowerCase()
     const filterNorm = (filter || "").trim().toLowerCase()
     if (itemNorm === filterNorm) return true
-    if (filterNorm === "konseling" && itemNorm.includes("konseling")) return true
-    if (filterNorm === "asesmen" && itemNorm.includes("asesmen")) return true
-    if (filterNorm === "hipnoterapi" && itemNorm.includes("hipnoterapi")) return true
-    return false
+    if (
+      (filterNorm.includes("konseling") || filterNorm.includes("konsultasi")) &&
+      (itemNorm.includes("konseling") || itemNorm.includes("konsultasi"))
+    ) {
+      return true
+    }
+    if (filterNorm.includes("asesmen") && itemNorm.includes("asesmen")) return true
+    if (filterNorm.includes("hipnoterapi") && itemNorm.includes("hipnoterapi")) return true
+    return itemNorm.includes(filterNorm)
   }
 
   const filteredTodaySessions = useMemo(() => {
@@ -368,6 +379,71 @@ export default function JadwalAdmin() {
     return `${y}-${m}-${day}`
   }, [date, today])
 
+  // Muat data jadwal & sesi riil langsung dari Database PostgreSQL
+  const fetchJadwalData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const res: any = await adminService.getJadwal({ date: datePickerValue })
+      if (res) {
+        if (Array.isArray(res.todaySessions)) {
+          const mappedToday: ClientSessionToday[] = res.todaySessions.map((s: any) => ({
+            id: s.id,
+            date: s.tanggal,
+            waktu: s.waktuRange,
+            namaKlien: s.namaKlien,
+            klienId: s.idKlien,
+            kontak: s.noTelepon,
+            psikolog: s.psikolog,
+            idPsikolog: s.idPsikolog,
+            noTeleponPsikolog: s.noTeleponPsikolog,
+            layanan: s.layanan,
+            tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
+            catatan: s.deskripsiTrauma || undefined,
+            status: s.status as ClientSessionStatus,
+            tanggal: s.tanggal,
+            canRefund: s.canRefund,
+            isPastH1: s.isPastH1,
+            isRefunded: s.isRefunded,
+            isPaid: s.isPaid,
+            refundDeadline: s.refundDeadline,
+            nominalRefund: s.nominalRefund,
+            idTransaksi: s.idTransaksi,
+            kodeTransaksi: s.kodeTransaksi,
+          }))
+          setTodaySessions(mappedToday)
+        } else {
+          setTodaySessions([])
+        }
+
+        if (Array.isArray(res.weeklyGrid)) {
+          const mappedWeekly: BookedAssessment[] = res.weeklyGrid.map((w: any) => ({
+            id: w.id,
+            date: w.date,
+            waktu: w.timeSlot,
+            layanan: w.layanan,
+            metode: w.metode,
+            namaKlien: w.clientName || (w.statusSlot === "TERSEDIA" ? "Tersedia" : undefined),
+            psikolog: w.psikologName,
+            status: w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif",
+            isAvailableSlot: w.statusSlot === "TERSEDIA",
+            isBooked: w.isBooked ?? (w.statusSlot === "SUDAH_DIBOOKING" || (Boolean(w.clientName) && w.clientName !== "Tersedia")),
+          }))
+          setBookedSessions(mappedWeekly)
+        } else {
+          setBookedSessions([])
+        }
+      }
+    } catch (err: any) {
+      console.warn("Notice loading admin jadwal:", err?.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [datePickerValue])
+
+  useEffect(() => {
+    fetchJadwalData()
+  }, [fetchJadwalData])
+
   const handleSelectDate = (newDate: Date | undefined) => {
     setDate(newDate)
     if (newDate) {
@@ -400,36 +476,38 @@ export default function JadwalAdmin() {
   }, [currentWeekMonday, date])
 
   const currentWeekAllSessions = useMemo(() => {
-    const todayDateKey = formatDateKey(today)
-    const isTodayInThisWeek = weekDays.some((wd) => wd.dateKey === todayDateKey)
     const combined: BookedAssessment[] = []
 
-    // 1. Hari-hari masa lalu: template riwayat hingga 4 minggu ke belakang
-    const baseWeekSessions = generateWeekSessions(currentWeekMonday)
-    baseWeekSessions.forEach((bs) => {
-      if (bs.date < todayDateKey) {
-        combined.push(bs)
-      }
+    // 1. Sesi aktif hari ini / tanggal terpilih (data riil Database - hanya yang sudah dibooking)
+    todaySessions.forEach((ts) => {
+      if (!ts.namaKlien || ts.namaKlien.toLowerCase() === "tersedia") return
+
+      const sessionDateKey = ts.date || (ts as any).tanggal || formatDateKey(today)
+      combined.push({
+        id: `today_sync_${ts.id}`,
+        date: sessionDateKey,
+        waktu: ts.waktu,
+        layanan: ts.layanan,
+        metode: ts.tipe.toLowerCase().includes("online") ? "Online" : "Offline",
+        namaKlien: ts.namaKlien,
+        psikolog: ts.psikolog,
+        status: ts.status,
+        isBooked: true,
+      })
     })
 
-    // 2. Hari Ini: sinkron 100% dari todaySessions aktif
-    if (isTodayInThisWeek) {
-      todaySessions.forEach((ts) => {
-        combined.push({
-          id: `today_sync_${ts.id}`,
-          date: todayDateKey,
-          waktu: ts.waktu,
-          layanan: ts.layanan,
-          metode: ts.tipe.toLowerCase().includes("online") ? "Online" : "Offline",
-          namaKlien: ts.namaKlien,
-          psikolog: ts.psikolog,
-          status: ts.status,
-        })
-      })
-    }
-
-    // 3. Masa Depan: HANYA muncul bila ada booking di bookedSessions
+    // 2. Seluruh slot dan sesi mingguan murni dari Database PostgreSQL
+    // HANYA sesi yang SUDAH DIBOOKING (memiliki nama klien riil dan bukan slot kosong 'Tersedia')
     bookedSessions.forEach((bs) => {
+      const isUnbooked =
+        bs.isAvailableSlot ||
+        bs.status === "Tersedia" ||
+        !bs.namaKlien ||
+        bs.namaKlien.toLowerCase() === "tersedia" ||
+        bs.layanan === "Slot Tersedia"
+
+      if (isUnbooked) return
+
       if (
         !combined.some(
           (c) =>
@@ -448,7 +526,7 @@ export default function JadwalAdmin() {
       }
       return s
     })
-  }, [currentWeekMonday, bookedSessions, todaySessions, today, weekDays])
+  }, [bookedSessions, todaySessions, today])
 
   // Batas riwayat mundur maksimal 4 minggu ke belakang
   const thisWeekMonday = useMemo(() => getMonday(today), [today])
@@ -490,44 +568,59 @@ export default function JadwalAdmin() {
     setCurrentWeekMonday(next)
   }
 
-  const handleBooking = async (times: string[]) => {
+  const handleBooking = async (times: string[], metode: "Online" | "Offline" | "Keduanya" = "Online") => {
     if (!date || times.length === 0) return
-    const dateKey = formatDateKey(date)
-    const asesorNama = "Tim Layanan Asesmen"
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    const tanggalStr = `${y}-${m}-${day}`
 
-    const newSessions: BookedAssessment[] = []
+    setIsLoading(true)
+    let successCount = 0
+    const failErrors: string[] = []
 
     for (const finalWaktu of times) {
-      const savedSlotId = "asesmen-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6)
+      const parts = finalWaktu.split("-").map((p) => p.trim())
+      const jamMulai = parts[0]?.substring(0, 5) || "09:00"
+      const jamSelesai = parts[1]?.substring(0, 5) || "10:00"
 
-      newSessions.push({
-        id: savedSlotId,
-        date: dateKey,
-        waktu: finalWaktu,
-        layanan: "Layanan Asesmen",
-        metode: "Online",
-        namaKlien: "Tersedia",
-        psikolog: asesorNama,
-      })
+      try {
+        await adminService.createJadwalSlot({
+          tanggal: tanggalStr,
+          jam_mulai: jamMulai,
+          jam_selesai: jamSelesai,
+          tipe_jadwal: "ASESMEN",
+          metode: metode.toUpperCase(),
+        })
+        successCount++
+      } catch (err: any) {
+        console.warn(`Gagal membuka slot ${finalWaktu}:`, err?.response?.data?.message || err.message)
+        failErrors.push(err?.response?.data?.message || `${finalWaktu} gagal dibuka`)
+      }
     }
 
-    // Bersihkan slot dummy admin bawaan lama dari localStorage agar tidak mengotori slot konsultasi
-    try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      if (raw) {
-        const list = JSON.parse(raw)
-        const cleaned = list.filter((s: any) => s.id_psikolog !== "psikolog-default-id" && s.tipe_jadwal !== "ASESMEN")
-        localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(cleaned))
-      }
-    } catch {}
+    // Refresh data jadwal terbaru dari database PostgreSQL
+    await fetchJadwalData()
+    setIsLoading(false)
 
-    setBookedSessions((prev) => [...newSessions, ...prev])
-    setBookingSuccessMsg(
-      times.length === 1
-        ? `Slot jam ${times[0]} berhasil dibuka!`
-        : `${times.length} slot jam berhasil dibuka sekaligus!`
-    )
-    setTimeout(() => setBookingSuccessMsg(null), 4500)
+    if (successCount > 0) {
+      triggerToast(
+        successCount === 1
+          ? `Slot jadwal asesmen ${metode} (${times[0]}) berhasil dibuka di database!`
+          : `${successCount} slot jadwal asesmen ${metode} berhasil dibuka di database!`,
+        "success"
+      )
+      setBookingSuccessMsg(
+        successCount === 1
+          ? `Slot jam ${times[0]} (${metode}) berhasil dibuka!`
+          : `${successCount} slot jam (${metode}) berhasil dibuka sekaligus!`
+      )
+      setTimeout(() => setBookingSuccessMsg(null), 4500)
+    }
+
+    if (failErrors.length > 0 && successCount === 0) {
+      triggerToast(`Gagal membuka slot: ${failErrors[0]}`, "danger")
+    }
   }
 
   const handleModalSuccess = (newSession: NewSessionData) => {
@@ -562,6 +655,7 @@ export default function JadwalAdmin() {
 
     setBookingSuccessMsg(`Sesi baru untuk ${newSession.namaKlien} (${newSession.waktu}) berhasil dijadwalkan!`)
     setTimeout(() => setBookingSuccessMsg(null), 4000)
+    fetchJadwalData()
   }
 
   // ── 7. Render Layout ──
@@ -576,8 +670,8 @@ export default function JadwalAdmin() {
             type="button"
             onClick={() => setIsLayananDropdownOpen((prev) => !prev)}
             className={`flex items-center gap-2 border px-4 py-2.5 rounded-full text-sm font-medium transition-all shadow-2xs cursor-pointer ${selectedLayanan !== "Semua Layanan"
-                ? "border-[#561269] bg-purple-50 text-[#561269] font-semibold"
-                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              ? "border-[#561269] bg-purple-50 text-[#561269] font-semibold"
+              : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
               }`}
           >
             <span>{selectedLayanan}</span>
@@ -611,8 +705,8 @@ export default function JadwalAdmin() {
                           setIsLayananDropdownOpen(false)
                         }}
                         className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${isSelected
-                            ? "bg-purple-50 text-[#561269] font-bold"
-                            : "text-gray-700 hover:bg-gray-50"
+                          ? "bg-purple-50 text-[#561269] font-bold"
+                          : "text-gray-700 hover:bg-gray-50"
                           }`}
                       >
                         <span className="truncate">{opt}</span>
@@ -703,6 +797,7 @@ export default function JadwalAdmin() {
         onSelectDetail={(session) => setSelectedDetailSession(session)}
         onMarkCompleted={handleMarkCompleted}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
+        onCopyWhatsAppPsikolog={handleCopyWhatsAppPsikologMessage}
         onResetFilter={() => {
           handleLayananChange("Semua Layanan")
           handleStatusChange("semua")
@@ -753,6 +848,7 @@ export default function JadwalAdmin() {
           setSelectedDetailSession(null)
         }}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
+        onCopyWhatsAppPsikolog={handleCopyWhatsAppPsikologMessage}
       />
 
       {/* ── Modal Konfirmasi Pembatalan ── */}
