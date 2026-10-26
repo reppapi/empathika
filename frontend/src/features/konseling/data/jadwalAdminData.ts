@@ -25,7 +25,92 @@ export function parseTimeRangeMinutes(timeStr: string) {
 }
 
 export function getInitialSessionsBasedOnTime(): ClientSessionToday[] {
-  return []
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  let foundNearest = false
+
+  const list: ClientSessionToday[] = RAW_CLIENT_SESSIONS.map((item) => {
+    const { startMinutes, endMinutes } = parseTimeRangeMinutes(item.waktu)
+
+    // Kasus 1: Sesi sudah lewat dibanding jam sekarang
+    if (currentMinutes >= endMinutes) {
+      return {
+        ...item,
+        status: "Selesai" as const,
+        isUpcomingNearest: false,
+      }
+    }
+
+    // Kasus 2: Sesi sedang berlangsung di jam sekarang (bukan sesi terdekat berikutnya)
+    if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+      return {
+        ...item,
+        status: "Sedang Berlangsung" as const,
+        isUpcomingNearest: false,
+      }
+    }
+
+    // Kasus 3: Sesi di masa mendatang hari ini (currentMinutes < startMinutes)
+    if (!foundNearest) {
+      foundNearest = true
+      return {
+        ...item,
+        status: "Segera Dimulai" as const,
+        isUpcomingNearest: true,
+      }
+    }
+
+    // Sesi setelahnya berstatus Menunggu Jadwal
+    return {
+      ...item,
+      status: "Menunggu Jadwal" as const,
+      isUpcomingNearest: false,
+    }
+  }).map((session) => {
+    // Simulasi batas refund H-1 (24 jam sebelum jam sesi hari ini)
+    const [startH, startM] = session.waktu.split("-")[0].trim().split(":").map(Number)
+    const sessionTime = new Date(now)
+    sessionTime.setHours(startH || 9, startM || 0, 0, 0)
+    const refundDeadline = new Date(sessionTime.getTime() - 24 * 60 * 60 * 1000)
+    const isPastH1 = now.getTime() > refundDeadline.getTime()
+
+    // Sesi hari ini secara default sudah melewati H-1 jika sesi dimulai hari ini
+    const isPaid = true
+    const isRefunded = (session.status as string) === "Dibatalkan (Refund)" || (session.status as string) === "Dibatalkan"
+    const isCompleted = session.status === "Selesai"
+    const canRefund = isPaid && !isRefunded && !isCompleted && !isPastH1
+
+    return {
+      ...session,
+      canRefund,
+      isPastH1,
+      isRefunded,
+      isPaid,
+      refundDeadline: refundDeadline.toISOString(),
+      nominalRefund: 200000,
+    }
+  })
+
+  // Jaga-jaga jika dibuka larut malam (> 22:30), tambahkan 1 slot aktif malam ini
+  if (!foundNearest) {
+    const currentH = now.getHours()
+    const nextH = (currentH + 1) % 24
+    list.push({
+      id: "cs_night",
+      waktu: `${String(currentH).padStart(2, "0")}:45 - ${String(nextH).padStart(2, "0")}:45`,
+      namaKlien: "Dina Mariana",
+      klienId: "010240",
+      kontak: "0813-2233-4455",
+      psikolog: "Dr. Dimas",
+      layanan: "Konseling Darurat",
+      tipe: "Online [Zoom]",
+      catatan: "Sesi konseling malam / evaluasi stres akut",
+      status: "Segera Dimulai",
+      isUpcomingNearest: true,
+    })
+  }
+
+  return list
 }
 
 export function getMonday(d: Date): Date {

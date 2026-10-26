@@ -14,6 +14,7 @@ export interface TodaySessionItem {
     | "Menunggu Jadwal"
     | "Mendatang"
     | "Dibatalkan"
+    | "Dibatalkan (Refund)"
 }
 
 export interface MetricItem {

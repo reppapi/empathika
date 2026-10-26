@@ -4,19 +4,13 @@ import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { KerjaSamaItem } from "../../types"
 import { getKerjaSamaItems, saveKerjaSamaItems } from "../../data/initialData"
+import { kerjaSamaService } from "@/services/kerja-sama.service"
+import { COLOR_THEMES, normalizeColorTheme, getColorTheme } from "../../utils/colorThemes"
+import { processAndUploadImage } from "../../utils/imageCompressor"
 
 interface AdminKerjaSamaFormClientProps {
   programId?: string
 }
-
-const COLOR_OPTIONS = [
-  { label: "Ungu Indigo", value: "from-purple-500 to-indigo-600" },
-  { label: "Biru Samudra", value: "from-blue-400 to-blue-600" },
-  { label: "Hijau Zamrud", value: "from-emerald-400 to-teal-500" },
-  { label: "Oranye Merah", value: "from-orange-400 to-red-500" },
-  { label: "Abu Netral", value: "from-gray-600 to-gray-800" },
-  { label: "Pink Mawar", value: "from-pink-400 to-rose-500" },
-]
 
 const DEFAULT_FORM: Partial<KerjaSamaItem> = {
   title: "Empathika untuk ",
@@ -54,34 +48,70 @@ export default function AdminKerjaSamaFormClient({ programId }: AdminKerjaSamaFo
   useEffect(() => {
     if (!programId) return
 
+    // 1. Cek dari local storage terlebih dahulu agar form langsung terisi
     const currentItems = getKerjaSamaItems()
-    const found = currentItems.find((it) => it.id === programId)
+    const found = currentItems.find((it) => it.id === programId || it.slug === programId)
     if (found) {
-      setFormData({ ...found })
-    } else {
-      setNotFound(true)
+      setFormData({
+        ...found,
+        color: normalizeColorTheme(found.color),
+      })
+      setLoading(false)
     }
-    setLoading(false)
+
+    // 2. Sinkronkan dengan data backend resmi agar warna dan teks selalu presisi
+    kerjaSamaService
+      .getProgramByIdOrSlug(programId)
+      .then((res: any) => {
+        if (res?.data) {
+          const p = res.data
+          setFormData({
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            shortName: p.short_name,
+            description: p.deskripsi,
+            pelatihanTitle: p.pelatihan_title || "",
+            pelatihanDeskripsi: p.pelatihan_deskripsi || "",
+            pelatihanImage:
+              p.pelatihan_image ||
+              "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800",
+            mitraTitle: p.mitra_title || "",
+            mitraDeskripsi: p.mitra_deskripsi || "",
+            mitraImage:
+              p.mitra_image ||
+              "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=800",
+            color: normalizeColorTheme(p.warna_tema),
+            status: p.status === "NONAKTIF" ? "NONAKTIF" : "AKTIF",
+            urutan: p.urutan || 1,
+          })
+          setNotFound(false)
+        }
+      })
+      .catch(() => {
+        if (!found) setNotFound(true)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [programId])
 
-  const handleImageUpload = (
+  const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    onSuccess: (dataUrl: string) => void
+    onSuccess: (url: string) => void
   ) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("Ukuran foto maksimal 5MB!")
-      return
+
+    try {
+      const { url, infoText } = await processAndUploadImage(file, (msg) => showToast(msg))
+      onSuccess(url)
+      showToast(`Foto berhasil dioptimalkan! (${infoText})`)
+    } catch (err: any) {
+      showToast(err?.message || "Gagal memproses foto!")
+    } finally {
+      e.target.value = ""
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        onSuccess(reader.result)
-        showToast("Foto berhasil dimuat!")
-      }
-    }
-    reader.readAsDataURL(file)
   }
 
   const validate = () => {
@@ -109,42 +139,75 @@ export default function AdminKerjaSamaFormClient({ programId }: AdminKerjaSamaFo
     return Object.keys(errs).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!validate()) return
+    if (!validate() || isSubmitting) return
 
     setIsSubmitting(true)
     try {
       const currentItems = getKerjaSamaItems()
 
+      const payload = {
+        slug: formData.slug?.trim() || "program-baru",
+        title: formData.title?.trim() || "",
+        short_name:
+          formData.shortName?.trim() ||
+          formData.title?.replace("Empathika untuk ", "").trim() ||
+          "Program",
+        deskripsi: formData.description?.trim() || "",
+        pelatihan_title: formData.pelatihanTitle?.trim() || null,
+        pelatihan_deskripsi: formData.pelatihanDeskripsi?.trim() || null,
+        pelatihan_image: formData.pelatihanImage || null,
+        mitra_title: formData.mitraTitle?.trim() || null,
+        mitra_deskripsi: formData.mitraDeskripsi?.trim() || null,
+        mitra_image: formData.mitraImage || null,
+        warna_tema: normalizeColorTheme(formData.color),
+        status: (formData.status as "AKTIF" | "NONAKTIF") || "AKTIF",
+        urutan: formData.urutan || currentItems.length + 1,
+      }
+
+      let backendId = programId || `ks_${Date.now()}`
+
       if (isEditMode && programId) {
+        // Update ke API Backend resmi
+        try {
+          await kerjaSamaService.updateProgram(programId, payload)
+        } catch (apiErr) {
+          console.warn("Backend update program error (fallback to local):", apiErr)
+        }
+
         const updated = currentItems.map((it) =>
-          it.id === programId ? ({ ...it, ...formData } as KerjaSamaItem) : it
+          it.id === programId || it.slug === programId
+            ? ({ ...it, ...formData, color: payload.warna_tema } as KerjaSamaItem)
+            : it
         )
         saveKerjaSamaItems(updated)
       } else {
+        // Buat ke API Backend resmi
+        try {
+          const res = await kerjaSamaService.createProgram(payload)
+          if (res?.data?.id) {
+            backendId = res.data.id
+          }
+        } catch (apiErr) {
+          console.warn("Backend create program error (fallback to local):", apiErr)
+        }
+
         const newItem: KerjaSamaItem = {
-          id: `ks_${Date.now()}`,
-          slug: formData.slug?.trim() || "program-baru",
-          title: formData.title?.trim() || "",
-          shortName:
-            formData.shortName?.trim() ||
-            formData.title?.replace("Empathika untuk ", "").trim() ||
-            "",
-          description: formData.description?.trim() || "",
-          pelatihanTitle: formData.pelatihanTitle?.trim() || "",
-          pelatihanDeskripsi: formData.pelatihanDeskripsi?.trim() || "",
-          pelatihanImage:
-            formData.pelatihanImage ||
-            "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800",
-          mitraTitle: formData.mitraTitle?.trim() || "",
-          mitraDeskripsi: formData.mitraDeskripsi?.trim() || "",
-          mitraImage:
-            formData.mitraImage ||
-            "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=800",
-          color: formData.color || "from-purple-500 to-indigo-600",
-          status: (formData.status as "AKTIF" | "NONAKTIF") || "AKTIF",
-          urutan: currentItems.length + 1,
+          id: backendId,
+          slug: payload.slug,
+          title: payload.title,
+          shortName: payload.short_name,
+          description: payload.deskripsi,
+          pelatihanTitle: payload.pelatihan_title || "",
+          pelatihanDeskripsi: payload.pelatihan_deskripsi || "",
+          pelatihanImage: payload.pelatihan_image || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800",
+          mitraTitle: payload.mitra_title || "",
+          mitraDeskripsi: payload.mitra_deskripsi || "",
+          mitraImage: payload.mitra_image || "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=800",
+          color: payload.warna_tema,
+          status: payload.status,
+          urutan: payload.urutan,
         }
         const updated = [...currentItems, newItem]
         saveKerjaSamaItems(updated)
@@ -291,25 +354,66 @@ export default function AdminKerjaSamaFormClient({ programId }: AdminKerjaSamaFo
 
           {/* Baris 2: Warna Gradasi Kartu */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-              Warna Gradasi Kartu
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {COLOR_OPTIONS.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, color: c.value }))}
-                  className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition active:scale-95 cursor-pointer ${
-                    formData.color === c.value
-                      ? "border-[#561269] bg-purple-50/60 shadow-xs ring-1 ring-[#561269]"
-                      : "border-gray-200 bg-white hover:bg-gray-50"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-gradient-to-r ${c.value} shrink-0`} />
-                  <span className="text-xs font-semibold text-gray-800">{c.label}</span>
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Tema Warna Gradasi Kartu <span className="text-red-500">*</span>
+              </label>
+              <span className="text-[11px] text-gray-500 font-medium">
+                Pilih palet warna yang mewakili program ini
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {COLOR_THEMES.map((c) => {
+                const isSelected = normalizeColorTheme(formData.color) === c.value
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, color: c.value }))}
+                    className={`p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all active:scale-95 cursor-pointer ${
+                      isSelected
+                        ? "border-[#561269] bg-purple-50/70 shadow-sm ring-2 ring-[#561269]/20"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/60"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-5 h-5 rounded-full ${c.dotClass} shadow-xs shrink-0 ring-2 ring-white`} />
+                      <span className={`text-xs font-semibold truncate ${isSelected ? "text-[#561269] font-bold" : "text-gray-700"}`}>
+                        {c.label}
+                      </span>
+                    </div>
+
+                    {isSelected && (
+                      <span className="text-[#561269] shrink-0">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Preview Banner Aksen */}
+            <div className="mt-3 p-3.5 rounded-2xl border border-gray-200/80 bg-gray-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs text-gray-500 font-medium">Preview Kartu Client:</span>
+                <div className="flex items-center gap-2">
+                  <span className={`w-16 h-2.5 rounded-full ${getColorTheme(formData.color).dotClass} shadow-xs`} />
+                  <span className="text-xs font-bold text-gray-800">
+                    {getColorTheme(formData.color).label}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[11px] text-gray-400">
+                Warna ini akan menjadi aksen garis atas dan efek hover di halaman utama.
+              </span>
             </div>
           </div>
 
@@ -410,7 +514,7 @@ export default function AdminKerjaSamaFormClient({ programId }: AdminKerjaSamaFo
                     />
                   </label>
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Format PNG, JPG, atau WebP (maks. 5MB).
+                    Format PNG, JPG, WebP (otomatis dikompresi & dioptimalkan untuk web).
                   </p>
                 </div>
               </div>
@@ -489,7 +593,7 @@ export default function AdminKerjaSamaFormClient({ programId }: AdminKerjaSamaFo
                     />
                   </label>
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Format PNG, JPG, atau WebP (maks. 5MB).
+                    Format PNG, JPG, WebP (otomatis dikompresi & dioptimalkan untuk web).
                   </p>
                 </div>
               </div>

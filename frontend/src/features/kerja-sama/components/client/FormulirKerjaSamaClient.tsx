@@ -7,10 +7,11 @@ import {
   savePengajuanKerjaSama,
   getFormulirConfigs,
   getKerjaSamaConfig,
+  getCleanWhatsAppNumber,
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
-import apiClient from "@/lib/axios"
+import { kerjaSamaService } from "@/services/kerja-sama.service"
 
 interface FormulirKerjaSamaClientProps {
   formType?: string
@@ -29,16 +30,14 @@ export default function FormulirKerjaSamaClient({
   formType = "asesmen",
 }: FormulirKerjaSamaClientProps) {
   const [allFormConfigs, setAllFormConfigs] = useState<FormulirConfigItem[]>(INITIAL_FORMULIR_CONFIGS)
-  const [waNumber, setWaNumber] = useState<string>("6282123456789")
+  const [waNumber, setWaNumber] = useState<string>("6287878785498")
   const [isMounted, setIsMounted] = useState(false)
 
   React.useEffect(() => {
     setIsMounted(true)
     setAllFormConfigs(getFormulirConfigs())
     const cfg = getKerjaSamaConfig()
-    if (cfg?.kontak?.whatsapp) {
-      setWaNumber(cfg.kontak.whatsapp.replace(/\D/g, "") || "6282123456789")
-    }
+    setWaNumber(getCleanWhatsAppNumber(cfg?.kontak?.whatsapp))
   }, [])
 
   const currentConfigs = isMounted ? allFormConfigs : INITIAL_FORMULIR_CONFIGS
@@ -51,6 +50,7 @@ export default function FormulirKerjaSamaClient({
   const [namaLengkap, setNamaLengkap] = useState("")
   const [namaInstitusi, setNamaInstitusi] = useState("")
   const [nomorWhatsapp, setNomorWhatsapp] = useState("")
+  const [emailPIC, setEmailPIC] = useState("")
   const [tipeInstitusi, setTipeInstitusi] = useState("Sekolah / Universitas")
   const [activeInput, setActiveInput] = useState<string>("whatsapp")
 
@@ -102,10 +102,15 @@ export default function FormulirKerjaSamaClient({
     const tanggalStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
 
     // Siapkan dictionary jawaban detail yang lengkap
+    const cleanEmail = emailPIC.trim()
+      ? emailPIC.trim()
+      : `${namaLengkap.toLowerCase().replace(/[^a-z0-9]/g, "") || "mitra"}@institusi.id`
+
     const detailLengkap: Record<string, string> = {
       "Nama Lengkap / PIC": namaLengkap.trim(),
       "Nama Institusi / Organisasi": namaInstitusi.trim(),
       "Nomor WhatsApp": nomorWhatsapp.trim(),
+      "Email PIC": cleanEmail,
       "Tipe Institusi": tipeInstitusi,
       "Tipe Formulir": formConfig.title,
     }
@@ -118,20 +123,33 @@ export default function FormulirKerjaSamaClient({
       detailLengkap["Catatan / Kebutuhan Tambahan"] = catatanKebutuhan.trim()
     }
 
-    const payloadBackend = {
-      nama_instansi: namaInstitusi.trim(),
-      nama_pic: namaLengkap.trim(),
-      email: `${namaLengkap.trim().toLowerCase().replace(/\s+/g, "")}@institusi.id`,
-      no_telepon: nomorWhatsapp.trim(),
-      kategori: tipeInstitusi.split("/")[0].trim() || formConfig.categoryDefault,
-      tipe_formulir: formType,
-      pesan: `Pengajuan melalui ${formConfig.title}. ${
-        catatanKebutuhan ? `Catatan: ${catatanKebutuhan}` : ""
-      }`,
-      jawaban_detail: detailLengkap,
+    const pesanKebutuhan = `Pengajuan melalui ${formConfig.title}. ${
+      catatanKebutuhan ? `Catatan: ${catatanKebutuhan}` : ""
+    }`
+
+    let backendId = "lead_" + Date.now()
+
+    // 1. Kirim data ke API Backend resmi (POST /kerja-sama/pengajuan)
+    try {
+      const res = await kerjaSamaService.submitPengajuan({
+        nama_instansi: namaInstitusi.trim(),
+        nama_pic: namaLengkap.trim(),
+        email: cleanEmail,
+        no_telepon: nomorWhatsapp.trim(),
+        kategori: tipeInstitusi.split("/")[0].trim() || formConfig.categoryDefault,
+        tipe_formulir: formType,
+        pesan: pesanKebutuhan,
+        jawaban_detail: detailLengkap,
+      })
+
+      if (res?.data?.id) {
+        backendId = res.data.id
+      }
+    } catch (apiErr) {
+      console.warn("Backend API submit pengajuan error (fallback to local):", apiErr)
     }
 
-    // 1. Simpan ke LocalStorage jika belum pernah ada submit persis dalam sesi ini
+    // 2. Simpan juga ke cache lokal jika belum pernah ada submit persis dalam sesi ini
     const existingLeads = getPengajuanKerjaSama()
     const cleanPhone = nomorWhatsapp.replace(/\D/g, "")
     const isRecentDuplicate = existingLeads.some(
@@ -143,14 +161,14 @@ export default function FormulirKerjaSamaClient({
 
     if (!isRecentDuplicate) {
       const newLead: PengajuanKerjaSama = {
-        id: "lead_" + Date.now(),
+        id: backendId,
         tanggal: tanggalStr,
         namaInstansi: namaInstitusi.trim(),
         kategori: tipeInstitusi.split("/")[0].trim() || formConfig.categoryDefault,
         namaPIC: namaLengkap.trim(),
-        email: payloadBackend.email,
+        email: cleanEmail,
         telepon: nomorWhatsapp.trim(),
-        pesan: payloadBackend.pesan,
+        pesan: pesanKebutuhan,
         status: "Menunggu",
         tipeFormulir: formType as any,
         formTitle: formConfig.title,
@@ -159,15 +177,8 @@ export default function FormulirKerjaSamaClient({
       savePengajuanKerjaSama([newLead, ...existingLeads])
     }
 
-    // 2. Kirim juga ke Backend API (non-blocking jika backend offline)
-    try {
-      await apiClient.post("/kerja-sama/pengajuan", payloadBackend)
-    } catch (err) {
-      console.warn("Backend API sync warning (tersimpan di lokal):", err)
-    } finally {
-      setIsSubmitting(false)
-      setIsSubmitted(true)
-    }
+    setIsSubmitting(false)
+    setIsSubmitted(true)
   }
 
   // Generate WA URL jika klien ingin langsung menghubungi setelah submit
@@ -358,6 +369,21 @@ export default function FormulirKerjaSamaClient({
                     placeholder="Nomor Whatsapp"
                     className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
                       activeInput === "whatsapp"
+                        ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
+                        : "border border-gray-300 hover:border-gray-400 focus:outline-none"
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="email"
+                    value={emailPIC}
+                    onFocus={() => setActiveInput("email")}
+                    onChange={(e) => setEmailPIC(e.target.value)}
+                    placeholder="Alamat Email (Opsional)"
+                    className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
+                      activeInput === "email"
                         ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
                         : "border border-gray-300 hover:border-gray-400 focus:outline-none"
                     }`}

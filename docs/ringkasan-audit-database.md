@@ -133,11 +133,19 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
 32. **Peniadaan Model/Tabel `Testimoni`**
    - Model/tabel `Testimoni` **ditiadakan dari database**, karena antarmuka web Empathika tidak mengelola ulasan psikolog secara mandiri/dinamis berbasis formulir ulasan. Hal ini merampingkan arsitektur relasi `Psikolog` dan menyederhanakan skema database.
 
+33. **Fitur Audit Pembatalan Sesi & Pengembalian Dana Transaksi (`refund_at`, `refund_reason`, `refund_amount`)**
+   - Penambahan kolom `refund_at DateTime?`, `refund_reason String? @db.Text`, dan `refund_amount Decimal? @db.Decimal(12, 2)` pada tabel `Transaksi` untuk mencatat audit riwayat pengembalian dana 100% (maksimal H-1 sebelum sesi berlangsung).
+   - Kolom `refund_by_admin` ditiadakan/dihapus dari skema database agar struktur data tabel `Transaksi` tetap bersih dan ramping.
+
+34. **Model Tabel `Invoice` & Enum `StatusPengirimanInvoice` untuk Penerbitan dan Pengiriman Invoice WhatsApp**
+   - Dibuatkan tabel mandiri `Invoice` (`id`, `nomor @unique`, `id_transaksi @unique`, `nama_client`, `no_wa_client`, `nama_psikolog`, `judul_layanan`, `tanggal_sesi`, `jenis_sesi`, `harga`, `metode_bayar`, `tanggal_bayar`, `tanggal_terbit`, `status_kirim`, `sent_at`, `sent_by_admin`, `gagal_alasan`, `createdAt`, `updatedAt`) untuk menyimpan snapshot data transaksi konseling yang telah dibayar (PAID) atau dibatalkan (REFUNDED) saat diterbitkan, sehingga invoice resmi tetap valid meskipun data master mengalami perubahan di kemudian hari.
+   - Dilengkapi relasi 1-to-1 dengan `Transaksi` (`Transaksi 1 -- 0..1 Invoice`) dan tracking status pengiriman pesan WhatsApp melalui enum `StatusPengirimanInvoice` (`BELUM_DIKIRIM`, `DIKIRIM`, `GAGAL`).
+
 ---
 
 ## 2. Diagram UML Database (Mermaid Class Diagram)
 
-Berikut adalah diagram kelas UML database lengkap yang mencakup 22 tabel, atribut PK/FK, method bisnis, dan kardinalitas relasi:
+Berikut adalah diagram kelas UML database lengkap yang mencakup 23 tabel, atribut PK/FK, method bisnis, dan kardinalitas relasi:
 
 ```mermaid
 classDiagram
@@ -294,6 +302,9 @@ classDiagram
         +string status_pembayaran
         +dateTime tanggal_bayar
         +string data_pembayaran
+        +dateTime refund_at
+        +string refund_reason
+        +float refund_amount
         +dateTime createdAt
         +dateTime updatedAt
         +buatInvoice()
@@ -512,41 +523,68 @@ classDiagram
     }
 
     %% ========================================================
-    %% RELASI & KARDINALITAS
-    %% (1-ke-1: panah kedua ujung <--> ; 1-ke-Many: sisi 1 panah, sisi * garis biasa <--)
+    %% 7. INVOICE
     %% ========================================================
-    Account "1" <--> "1" Psikolog : profil
-    Account "1" <-- "*" Biro : owner
-    Biro "1" <-- "*" Account : staff
-    Biro "1" <-- "*" Client : client
+    class Invoice {
+        +string id_PK
+        +string nomor
+        +string id_transaksi_FK
+        +string nama_client
+        +string no_wa_client
+        +string nama_psikolog
+        +string judul_layanan
+        +dateTime tanggal_sesi
+        +string jenis_sesi
+        +float harga
+        +string metode_bayar
+        +dateTime tanggal_bayar
+        +dateTime tanggal_terbit
+        +string status_kirim
+        +dateTime sent_at
+        +string sent_by_admin
+        +string gagal_alasan
+        +dateTime createdAt
+        +dateTime updatedAt
+        +kirimWhatsApp()
+        +updateStatusKirim()
+    }
 
-    Client "1" <-- "*" Booking_Konsultasi : memesan
-    Client "1" <-- "*" Booking_Event : mendaftar
-    Client "1" <-- "*" Booking_Psikotes : tes
-    Client "1" <-- "*" Transaksi : membayar
+    %% ========================================================
+    %% RELASI & KARDINALITAS
+    %% ========================================================
+    Account "1" -- "1" Psikolog : profil
+    Account "1" -- "*" Biro : owner
+    Biro "1" -- "*" Account : staff
+    Biro "1" -- "*" Client : client
 
-    Layanan "1" <-- "*" Booking_Konsultasi : layanan
-    Event "1" <-- "*" Booking_Event : event
+    Client "1" -- "*" Booking_Konsultasi : memesan
+    Client "1" -- "*" Booking_Event : mendaftar
+    Client "1" -- "*" Booking_Psikotes : tes
+    Client "1" -- "*" Transaksi : membayar
 
-    Jadwal_Slot "1" <--> "0..1" Booking_Konsultasi : jadwal
-    Transaksi "0..1" <--> "0..1" Booking_Konsultasi : invoice_konseling
-    Transaksi "0..1" <--> "1" Booking_Event : invoice_event
-    Transaksi "0..1" <--> "0..1" Booking_Psikotes : invoice_psikotes
+    Layanan "1" -- "*" Booking_Konsultasi : layanan
+    Event "1" -- "*" Booking_Event : event
 
-    Psikolog "1" <-- "*" Jadwal_Slot : slot
-    Spesialisasi "1" <-- "*" Psikolog : bidang
+    Jadwal_Slot "1" -- "0..1" Booking_Konsultasi : jadwal
+    Transaksi "0..1" -- "0..1" Booking_Konsultasi : transaksi_konseling
+    Transaksi "0..1" -- "1" Booking_Event : transaksi_event
+    Transaksi "0..1" -- "0..1" Booking_Psikotes : transaksi_psikotes
+    Transaksi "1" -- "0..1" Invoice : invoice
 
-    Paket_Psikotes "1" <-- "*" Soal_Psikotes : butir_soal
-    Paket_Psikotes "1" <-- "*" Interpretasi_Psikotes : skor
-    Paket_Psikotes "1" <-- "*" Booking_Psikotes : paket
+    Psikolog "1" -- "*" Jadwal_Slot : slot
+    Spesialisasi "1" -- "*" Psikolog : bidang
 
-    Soal_Psikotes "1" <-- "*" Pilihan_Jawaban : opsi
-    Soal_Psikotes "1" <-- "*" Jawaban_Psikotes : jawaban
-    Pilihan_Jawaban "1" <-- "*" Jawaban_Psikotes : pilihan
+    Paket_Psikotes "1" -- "*" Soal_Psikotes : butir_soal
+    Paket_Psikotes "1" -- "*" Interpretasi_Psikotes : skor
+    Paket_Psikotes "1" -- "*" Booking_Psikotes : paket
 
-    Booking_Psikotes "1" <-- "*" Jawaban_Psikotes : lembar_jawaban
-    Booking_Psikotes "1" <--> "0..1" Hasil_Tes : hasil
-    Interpretasi_Psikotes "1" <-- "*" Hasil_Tes : kategori_skor
+    Soal_Psikotes "1" -- "*" Pilihan_Jawaban : opsi
+    Soal_Psikotes "1" -- "*" Jawaban_Psikotes : jawaban
+    Pilihan_Jawaban "1" -- "*" Jawaban_Psikotes : pilihan
+
+    Booking_Psikotes "1" -- "*" Jawaban_Psikotes : lembar_jawaban
+    Booking_Psikotes "1" -- "0..1" Hasil_Tes : hasil
+    Interpretasi_Psikotes "1" -- "*" Hasil_Tes : kategori_skor
 ```
 
 ---
@@ -557,6 +595,7 @@ classDiagram
 1. **Model `Transaksi`**:
    - Mempertahankan enum `MetodePembayaran`: `TRANSFER_BANK`, `E_WALLET`, `QRIS` (tanpa kartu kredit).
    - Menambahkan kolom `channel_pembayaran String?` (contoh: `bca_va`, `mandiri_va`, `gopay`, `dana`, `qris`).
+   - Menambahkan kolom audit pengembalian dana (refund): `refund_at DateTime?`, `refund_reason String? @db.Text`, dan `refund_amount Decimal? @db.Decimal(12, 2)` untuk mencatat histori pembatalan sesi lunas (PAID) secara otomatis maksimal H-1.
 2. **Model `Layanan`**:
    - Menambahkan kolom `metode String @default("Online/Offline")` untuk mencatat metode pelaksanaan layanan (`Online`, `Offline`, atau `Online/Offline`) yang dipilih admin di form input dan ditampilkan di tabel `/admin/layanan`.
    - Menyelaraskan enum `KategoriLayanan` dengan 5 kategori layanan platform Empathika: `PSIKOTES`, `KONSULTASI`, `PELATIHAN_PEER_HELPER`, `EVENT`, dan `ASESMEN`. Adapun jenis layanan seperti `Psikolog`, `Peer Konselor`, `Hipnoterapi`, dan `Home Visit` disimpan pada kolom `nama String` di bawah kategori `KONSULTASI`.
@@ -577,16 +616,19 @@ classDiagram
 9. **Enum `StatusPengajuanKerjaSama`**:
    - Mendefinisikan enum resmi `StatusPengajuanKerjaSama`: `MENUNGGU`, `DIHUBUNGI`, `DISETUJUI`, `DITOLAK` untuk standarisasi alur penanganan leads kemitraan.
 10. **Enum `TipeTransaksi` (Discriminator / Label Struk)**:
-   - Mendefinisikan enum baru `enum TipeTransaksi { KONSULTASI, EVENT, PSIKOTES }` sebagai label penanda transaksi pada struk pembayaran dan pembeda relasi polimorfik tanpa perlu query join bertingkat.
+    - Mendefinisikan enum baru `enum TipeTransaksi { KONSULTASI, EVENT, PSIKOTES }` sebagai label penanda transaksi pada struk pembayaran dan pembeda relasi polimorfik tanpa perlu query join bertingkat.
+11. **Enum `StatusPengirimanInvoice`**:
+    - Mendefinisikan enum resmi `enum StatusPengirimanInvoice { BELUM_DIKIRIM, DIKIRIM, GAGAL }` untuk pelacakan alur pengiriman bukti invoice WhatsApp kepada klien.
 
 ### KATEGORI 2: PERLU DITAMBAHKAN
-1. **Tabel Baru `PengajuanKerjaSama`, `ProgramKerjaSama`, & `FormulirKerjaSama`**:
+1. **Tabel Baru `PengajuanKerjaSama`, `ProgramKerjaSama`, `FormulirKerjaSama`, & `Invoice`**:
    - `PengajuanKerjaSama`: `id`, `nama_instansi`, `nama_pic`, `email`, `no_telepon`, `kategori`, `tipe_formulir`, `pesan`, `jawaban_detail Json?`, `status StatusPengajuanKerjaSama @default(MENUNGGU)`, `createdAt`, `updatedAt`.
    - `ProgramKerjaSama`: `id`, `slug @unique`, `title`, `short_name`, `deskripsi`, `pelatihan_title`, `pelatihan_deskripsi`, `pelatihan_image`, `mitra_title`, `mitra_deskripsi`, `mitra_image`, `warna_tema`, `status` ("AKTIF" | "NONAKTIF"), `urutan`, `createdAt`, `updatedAt`.
    - `FormulirKerjaSama`: `id`, `slug @unique`, `title`, `kategori_default`, `deskripsi String? @db.Text`, `pertanyaan_khusus Json`, `createdAt`, `updatedAt` (master template pertanyaan dinamis per jenis formulir agar tersinkronisasi lintas perangkat).
+   - `Invoice`: `id`, `nomor @unique`, `id_transaksi @unique`, `nama_client`, `no_wa_client`, `nama_psikolog`, `judul_layanan`, `tanggal_sesi`, `jenis_sesi`, `harga Decimal(12, 2)`, `metode_bayar`, `tanggal_bayar`, `tanggal_terbit`, `status_kirim StatusPengirimanInvoice @default(BELUM_DIKIRIM)`, `sent_at`, `sent_by_admin`, `gagal_alasan`, `createdAt`, `updatedAt`.
 2. **Atribut Baru pada Tabel Eksisting**:
    - `Account`: `alamat String?`, `link_maps String?`, `bio String? @db.Text` (khusus profil Admin Utama pengelola platform).
-   - `Transaksi`: `kode_transaksi String? @unique`, `tipe_transaksi TipeTransaksi`, `total Decimal @db.Decimal(12, 2)`, `channel_pembayaran String?`, `createdAt`, `updatedAt`.
+   - `Transaksi`: `kode_transaksi String? @unique`, `tipe_transaksi TipeTransaksi`, `total Decimal @db.Decimal(12, 2)`, `channel_pembayaran String?`, `refund_at DateTime?`, `refund_reason String? @db.Text`, `refund_amount Decimal? @db.Decimal(12, 2)`, `createdAt`, `updatedAt`.
    - `Event`: `createdAt`, `updatedAt`.
    - `PaketPsikotes`: `banner_url String?`, `createdAt`, `updatedAt`.
    - `Layanan`: `metode String @default("Online/Offline")`, `createdAt`, `updatedAt`.
@@ -617,4 +659,6 @@ classDiagram
 12. **Kolom `slug` pada `Event`**: Ditiadakan dari database, akses dan manajemen detail event menggunakan `id`.
 13. **Kolom `slug` dan `is_active` pada `PaketPsikotes`**: Ditiadakan dari database, seluruh paket psikotes selalu aktif dan diakses menggunakan `id`.
 14. **Kolom `subjudul` pada `Event`**: Ditiadakan dari database karena tidak diinput oleh admin di form dan dapat diturunkan langsung dari `jenis_event` di frontend.
+15. **Kolom `refund_by_admin` pada `Transaksi`**: Dihapus / ditiadakan dari database agar skema tabel `Transaksi` tetap bersih, ramping, dan tidak mencatat redundansi data admin.
+
 

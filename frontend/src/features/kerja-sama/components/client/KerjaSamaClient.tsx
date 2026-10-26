@@ -1,8 +1,10 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getKerjaSamaItems, getKerjaSamaConfig, INITIAL_KERJASAMA_ITEMS, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
+import { getKerjaSamaItems, getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_ITEMS, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
 import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
+import { kerjaSamaService } from '@/services/kerja-sama.service';
+import { getColorTheme } from '../../utils/colorThemes';
 
 export default function KerjaSamaClient() {
   const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS);
@@ -13,6 +15,32 @@ export default function KerjaSamaClient() {
     setIsMounted(true);
     setItems(getKerjaSamaItems());
     setConfig(getKerjaSamaConfig());
+
+    // Ambil data program kerja sama dari backend API resmi
+    kerjaSamaService
+      .getProgramList()
+      .then((res: any) => {
+        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped: KerjaSamaItem[] = res.data.map((p: any) => ({
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            shortName: p.short_name,
+            description: p.deskripsi,
+            pelatihanTitle: p.pelatihan_title || "",
+            pelatihanDeskripsi: p.pelatihan_deskripsi || "",
+            pelatihanImage: p.pelatihan_image || "",
+            mitraTitle: p.mitra_title || "",
+            mitraDeskripsi: p.mitra_deskripsi || "",
+            mitraImage: p.mitra_image || "",
+            color: p.warna_tema || "from-purple-500 to-indigo-600",
+            status: p.status === "NONAKTIF" ? "NONAKTIF" : "AKTIF",
+            urutan: p.urutan || 1,
+          }));
+          setItems(mapped);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Map ikon unik untuk masing-masing kategori program sesuai desain awal
@@ -33,6 +61,9 @@ export default function KerjaSamaClient() {
     pemerintah: {
       icon: "M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z",
     },
+    instansi: {
+      icon: "M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z",
+    },
     "rumah-sakit": {
       icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
     },
@@ -47,6 +78,43 @@ export default function KerjaSamaClient() {
 
   const defaultIcon = {
     icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+  };
+
+  const THEME_CLASSES: Record<
+    string,
+    {
+      topBar: string;
+      iconHover: string;
+    }
+  > = {
+    mahasiswa: {
+      topBar: "from-purple-500 to-indigo-600",
+      iconHover: "group-hover:bg-gradient-to-br group-hover:from-purple-500 group-hover:to-indigo-600",
+    },
+    sekolah: {
+      topBar: "from-blue-400 to-blue-600",
+      iconHover: "group-hover:bg-gradient-to-br group-hover:from-blue-400 group-hover:to-blue-600",
+    },
+    komunitas: {
+      topBar: "from-emerald-400 to-teal-500",
+      iconHover: "group-hover:bg-gradient-to-br group-hover:from-emerald-400 group-hover:to-teal-500",
+    },
+    perusahaan: {
+      topBar: "from-orange-400 to-red-500",
+      iconHover: "group-hover:bg-gradient-to-br group-hover:from-orange-400 group-hover:to-red-500",
+    },
+    pemerintah: {
+      topBar: "from-gray-600 to-gray-800",
+      iconHover: "group-hover:bg-gradient-to-br group-hover:from-gray-600 group-hover:to-gray-800",
+    },
+    instansi: {
+      topBar: "from-gray-600 to-gray-800",
+      iconHover: "group-hover:bg-gradient-to-br group-hover:from-gray-600 group-hover:to-gray-800",
+    },
+    "rumah-sakit": {
+      topBar: "from-pink-400 to-rose-500",
+      iconHover: "group-hover:bg-gradient-to-br group-hover:from-pink-400 group-hover:to-rose-500",
+    },
   };
 
   return (
@@ -95,15 +163,20 @@ export default function KerjaSamaClient() {
           <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12">
             {activeItems.map((item) => {
               const iconData = ICON_MAP[item.slug] || defaultIcon;
+              const colorTheme = getColorTheme(item.color);
+              const theme = {
+                topBar: colorTheme.value,
+                iconHover: colorTheme.hoverClass,
+              };
               return (
                 <Link
                   key={item.id}
                   href={`/kerja-sama/${item.slug}` as any}
-                  className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 overflow-hidden flex flex-col items-center text-center"
+                  className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 overflow-hidden flex flex-col items-center text-center cursor-pointer"
                 >
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${item.color || "from-purple-500 to-indigo-600"} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${theme.topBar} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
                   
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-gray-50 group-hover:bg-gradient-to-br ${item.color || "from-purple-500 to-indigo-600"} transition-colors duration-300 shadow-inner`}>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-gray-50 ${theme.iconHover} transition-all duration-300 shadow-inner`}>
                     <svg className="w-7 h-7 text-gray-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d={iconData.icon}></path>
                       {iconData.icon2 && <path strokeLinecap="round" strokeLinejoin="round" d={iconData.icon2}></path>}
@@ -144,12 +217,14 @@ export default function KerjaSamaClient() {
               <li>
                 Whatsapp:{" "}
                 <a
-                  href={`https://wa.me/${(currentConfig.kontak?.whatsapp || "6282123456789").replace(/\D/g, "")}`}
+                  href={`https://wa.me/${getCleanWhatsAppNumber(currentConfig.kontak?.whatsapp)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-[#561269] hover:underline font-medium"
                 >
-                  {currentConfig.kontak?.whatsapp || "+62 821-2345-6789"}
+                  {currentConfig.kontak?.whatsapp && !currentConfig.kontak.whatsapp.includes("821-2345")
+                    ? currentConfig.kontak.whatsapp
+                    : "+62 878-7878-5498"}
                 </a>
               </li>
               <li>
@@ -166,7 +241,7 @@ export default function KerjaSamaClient() {
               </li>
               <li>
                 <a
-                  href={`https://wa.me/${(currentConfig.kontak?.whatsapp || "6282123456789").replace(/\D/g, "")}?text=${encodeURIComponent(
+                  href={`https://wa.me/${getCleanWhatsAppNumber(currentConfig.kontak?.whatsapp)}?text=${encodeURIComponent(
                     "Halo Tim Partnership Empathika, saya tertarik untuk bermitra dan berdiskusi seputar Program Affiliate Empathika."
                   )}`}
                   target="_blank"

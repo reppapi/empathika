@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useTenant } from "@/hooks/useTenant"
 import { getDetailPsikolog, DetailPsikologUI } from "@/features/psikolog/data/detailDummy"
 import { DetailPsikologContent } from "@/features/psikolog/components/client/DetailPsikologContent"
 import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
@@ -25,9 +26,10 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
         const matched = parsed.filter(
           (s) =>
             s.id_psikolog === psikologId ||
-            s.id_psikolog === "psikolog-default-id" ||
-            s.id_psikolog === "1" ||
-            (psikologNama && (s.nama_psikolog === psikologNama || psikologNama.includes("Rizki")))
+            (psikologNama &&
+              (s.nama_psikolog === psikologNama ||
+                s.nama_psikolog?.toLowerCase().includes(psikologNama.toLowerCase()) ||
+                psikologNama.toLowerCase().includes(s.nama_psikolog?.toLowerCase())))
         )
         rawSlots.push(...matched)
       }
@@ -68,6 +70,7 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
 
 export default function DetailPsikologPage({ params }: PageProps) {
   const { id } = params
+  const { withBiro } = useTenant()
   const [psikolog, setPsikolog] = useState<DetailPsikologUI | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -249,7 +252,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
           Maaf, data psikolog atau konselor yang Anda cari tidak tersedia atau ID tidak valid.
         </p>
         <Link
-          href="/psikolog"
+          href={withBiro("/psikolog") as any}
           className="bg-[#502380] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-[#3d1a63] transition-colors shadow-sm"
         >
           Kembali ke Daftar Psikolog

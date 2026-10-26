@@ -235,6 +235,7 @@ export default function JadwalAdmin() {
     setSelectedDetailSession(converted)
   }
 
+
   // ── 3. Filter Layanan & Derived Values ──
   const layananOptions = useMemo(() => {
     const defaultList = [
@@ -795,6 +796,7 @@ export default function JadwalAdmin() {
         activeMenuId={activeMenuId}
         setActiveMenuId={setActiveMenuId}
         onSelectDetail={(session) => setSelectedDetailSession(session)}
+        onSelectCancel={(session) => setSessionToCancel(session)}
         onMarkCompleted={handleMarkCompleted}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
         onCopyWhatsAppPsikolog={handleCopyWhatsAppPsikologMessage}
@@ -857,6 +859,7 @@ export default function JadwalAdmin() {
         onClose={() => setSessionToCancel(null)}
         onConfirmCancel={handleCancelSession}
       />
+
 
       {/* ── Toast Notifikasi Aksi ── */}
       {actionToast && (

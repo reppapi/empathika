@@ -183,7 +183,7 @@ export default function ModalProgramForm({
                     />
                   </label>
                   <p className="text-[10px] text-gray-400 mt-1">
-                    PNG, JPG, WebP (maks. 5MB). Ambil langsung dari file laptop/HP.
+                    PNG, JPG, WebP (maks. 5MB, otomatis dioptimalkan). Ambil langsung dari file laptop/HP.
                   </p>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function ModalProgramForm({
                     />
                   </label>
                   <p className="text-[10px] text-gray-400 mt-1">
-                    PNG, JPG, WebP (maks. 5MB). Ambil langsung dari file laptop/HP.
+                    PNG, JPG, WebP (maks. 5MB, otomatis dioptimalkan). Ambil langsung dari file laptop/HP.
                   </p>
                 </div>
               </div>

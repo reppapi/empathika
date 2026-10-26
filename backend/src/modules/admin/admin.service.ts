@@ -10,50 +10,72 @@ import type {
 import bcrypt from 'bcrypt'
 import type { StatusBooking } from '@prisma/client'
 
+const mapsEmbedCache = new Map<string, string>()
+
 async function resolveGoogleMapsEmbedUrl(linkMaps?: string | null, alamat?: string | null): Promise<string> {
   const defaultEmbed =
     'https://www.google.com/maps?q=EMPATHIKA,+Layanan+Konsultasi+Psikologi,+Jl.+Cikutra+No.312,+Neglasari,+Kec.+Cibeunying+Kaler,+Kota+Bandung,+Jawa+Barat+41024&output=embed'
 
+  const cacheKey = `${linkMaps || ''}::${alamat || ''}`
+  if (mapsEmbedCache.has(cacheKey)) {
+    return mapsEmbedCache.get(cacheKey)!
+  }
+
   const raw = (linkMaps || '').trim()
+  let result = defaultEmbed
 
   // 1. Jika pengguna mem-paste iframe HTML langsung: <iframe src="..."/>
   if (raw.includes('<iframe') && raw.includes('src=')) {
     const srcMatch = raw.match(/src=["']([^"']+)["']/)
     if (srcMatch && srcMatch[1]) {
-      return srcMatch[1]
+      result = srcMatch[1]
+      mapsEmbedCache.set(cacheKey, result)
+      return result
     }
   }
 
   // 2. Jika sudah berupa embed URL resmi Google Maps
   if (raw.includes('/maps/embed')) {
-    return raw
+    result = raw
+    mapsEmbedCache.set(cacheKey, result)
+    return result
   }
 
   // 3. Jika pengguna memasukkan short link: https://maps.app.goo.gl/... atau goo.gl/maps/...
   if (raw.includes('maps.app.goo.gl') || raw.includes('goo.gl/maps')) {
     try {
-      const res = await fetch(raw, { method: 'HEAD', redirect: 'manual' })
+      const res = await fetch(raw, {
+        method: 'HEAD',
+        redirect: 'manual',
+        signal: AbortSignal.timeout(1500),
+      })
       const redirectLoc = res.headers.get('location') || ''
       if (redirectLoc) {
         // Cek nama tempat: /place/Nama+Tempat/
         const matchPlace = redirectLoc.match(/\/place\/([^/@?]+)/)
         if (matchPlace && matchPlace[1]) {
           const placeName = decodeURIComponent(matchPlace[1].replace(/\+/g, ' '))
-          return `https://www.google.com/maps?q=${encodeURIComponent(placeName)}&output=embed`
+          result = `https://www.google.com/maps?q=${encodeURIComponent(placeName)}&output=embed`
+          mapsEmbedCache.set(cacheKey, result)
+          return result
         }
         // Cek koordinat pin: !3d(-?\d+\.\d+)!4d(-?\d+\.\d+)
         const matchPin = redirectLoc.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)
         if (matchPin) {
-          return `https://www.google.com/maps?q=${matchPin[1]},${matchPin[2]}&output=embed`
+          result = `https://www.google.com/maps?q=${matchPin[1]},${matchPin[2]}&output=embed`
+          mapsEmbedCache.set(cacheKey, result)
+          return result
         }
         // Cek koordinat kamera: @(-?\d+\.\d+),(-?\d+\.\d+)
         const matchCoords = redirectLoc.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
         if (matchCoords) {
-          return `https://www.google.com/maps?q=${matchCoords[1]},${matchCoords[2]}&output=embed`
+          result = `https://www.google.com/maps?q=${matchCoords[1]},${matchCoords[2]}&output=embed`
+          mapsEmbedCache.set(cacheKey, result)
+          return result
         }
       }
     } catch {
-      // Gagal resolve, lanjut ke fallback
+      // Gagal resolve atau timeout, lanjut ke fallback
     }
   }
 
@@ -62,11 +84,15 @@ async function resolveGoogleMapsEmbedUrl(linkMaps?: string | null, alamat?: stri
     const matchPlace = raw.match(/\/place\/([^/@?]+)/)
     if (matchPlace && matchPlace[1]) {
       const placeName = decodeURIComponent(matchPlace[1].replace(/\+/g, ' '))
-      return `https://www.google.com/maps?q=${encodeURIComponent(placeName)}&output=embed`
+      result = `https://www.google.com/maps?q=${encodeURIComponent(placeName)}&output=embed`
+      mapsEmbedCache.set(cacheKey, result)
+      return result
     }
     const matchCoords = raw.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
     if (matchCoords) {
-      return `https://www.google.com/maps?q=${matchCoords[1]},${matchCoords[2]}&output=embed`
+      result = `https://www.google.com/maps?q=${matchCoords[1]},${matchCoords[2]}&output=embed`
+      mapsEmbedCache.set(cacheKey, result)
+      return result
     }
   }
 
@@ -74,17 +100,24 @@ async function resolveGoogleMapsEmbedUrl(linkMaps?: string | null, alamat?: stri
   if (raw.includes('google.com/maps') && raw.includes('q=')) {
     if (!raw.includes('output=embed')) {
       const sep = raw.includes('?') ? '&' : '?'
-      return `${raw}${sep}output=embed`
+      result = `${raw}${sep}output=embed`
+      mapsEmbedCache.set(cacheKey, result)
+      return result
     }
-    return raw
+    result = raw
+    mapsEmbedCache.set(cacheKey, result)
+    return result
   }
 
   // 6. Jika ada alamat
   if (alamat && alamat.trim()) {
-    return `https://www.google.com/maps?q=${encodeURIComponent(alamat.trim())}&output=embed`
+    result = `https://www.google.com/maps?q=${encodeURIComponent(alamat.trim())}&output=embed`
+    mapsEmbedCache.set(cacheKey, result)
+    return result
   }
 
-  return defaultEmbed
+  mapsEmbedCache.set(cacheKey, result)
+  return result
 }
 
 export class AdminService {

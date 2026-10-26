@@ -23,12 +23,22 @@ export default function AdminTambahBlogClient() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
 
-  const handleImageSelect = (file: File) => {
+  const handleImageSelect = async (file: File) => {
     if (file) {
-      setImageFile(file)
-      // Preview lokal saja — tidak disimpan ke DB
-      const localUrl = URL.createObjectURL(file)
-      setImagePreviewUrl(localUrl)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("Ukuran file gambar maksimal 10MB.")
+        return
+      }
+      try {
+        const { compressImage } = await import("@/lib/imageCompressor")
+        const compressed = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.82 })
+        setImageFile(compressed.file)
+        setImagePreviewUrl(compressed.dataUrl)
+      } catch {
+        setImageFile(file)
+        const localUrl = URL.createObjectURL(file)
+        setImagePreviewUrl(localUrl)
+      }
     }
   }
 
@@ -262,7 +272,7 @@ export default function AdminTambahBlogClient() {
                       Upload gambar poster / banner
                     </span>
                     <span className="block text-[11px] text-gray-400 mt-0.5">
-                      Format: JPG, PNG, WEBP (Max. 5MB)
+                      Format: JPG, PNG, WEBP (Maks. 5MB, otomatis dioptimalkan)
                     </span>
                   </div>
                 </label>

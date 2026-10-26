@@ -2,14 +2,19 @@
 
 import Link from "next/link"
 import { KONSELING_DATA } from "../../data/konselingData"
+import { useTenantContext } from "@/context/TenantContext"
 
 export default function KonselingClient() {
+  const { isBiro, biroProfile, withBiro } = useTenantContext()
+
   return (
     <div className="mx-auto w-full max-w-[1200px] px-6 pt-32 pb-12 lg:pt-36 lg:pb-20 font-poppins">
 
       {/* Judul Utama */}
       <h1 className="mb-8 text-center text-2xl font-bold text-[#561269] sm:text-3xl lg:mb-12 lg:text-[32px]">
-        Mulai jadwalkan konsultasi dengan kami!
+        {isBiro && biroProfile?.nama_biro
+          ? `Mulai jadwalkan konsultasi dengan ${biroProfile.nama_biro}!`
+          : "Mulai jadwalkan konsultasi dengan kami!"}
       </h1>
 
       {/* Container Putih (Sesuai Desain Mockup Layanan) */}
@@ -54,7 +59,7 @@ export default function KonselingClient() {
 
                 <div className="mt-auto pt-2">
                   <Link
-                    href={`/booking?layanan=${encodeURIComponent(item.topTitle)}`}
+                    href={withBiro(`/booking?layanan=${encodeURIComponent(item.topTitle)}`) as any}
                     className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
                   >
                     {item.btnText}

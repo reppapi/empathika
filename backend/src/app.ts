@@ -25,6 +25,7 @@ import adminRoutes from "./modules/admin/admin.route"
 import biroRoutes from "./modules/biro/biro.route"
 import uploadRoutes from "./modules/upload/upload.route"
 import kerjaSamaRoutes from "./modules/kerja-sama/kerja-sama.route"
+import invoiceRoutes from "./modules/invoice/invoice.route"
 
 const app = Fastify({ logger: true })
 
@@ -56,5 +57,6 @@ app.register(adminRoutes, { prefix: "/admin" })
 app.register(biroRoutes, { prefix: "/biro" })
 app.register(uploadRoutes, { prefix: "/upload" })
 app.register(kerjaSamaRoutes, { prefix: "/kerja-sama" })
+app.register(invoiceRoutes, { prefix: "/invoice" })
 
 export default app

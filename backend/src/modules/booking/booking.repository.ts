@@ -654,6 +654,14 @@ export class BookingRepository {
             data: { jumlah_sesi: { increment: 1 } },
           }).catch(() => { })
         }
+
+        // Kembalikan status slot jam ke TERSEDIA agar ketersediaan psikolog terbuka kembali
+        if (existing.id_jadwal) {
+          await tx.jadwalSlot.update({
+            where: { id: existing.id_jadwal },
+            data: { status: 'TERSEDIA' },
+          }).catch(() => {})
+        }
       }
 
       return updated
@@ -666,6 +674,7 @@ export class BookingRepository {
       include: {
         client: true,
         layanan: true,
+        transaksi: true,
         jadwal: {
           include: {
             psikolog: true,
@@ -803,7 +812,7 @@ export class BookingRepository {
     })
   }
 
-  async findAllBookings(params?: Record<string, unknown>) {
+  async findAllBookings(_params?: Record<string, unknown>) {
     return this.prisma.bookingKonsultasi.findMany({
       include: {
         client: true,

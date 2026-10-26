@@ -49,9 +49,22 @@ export default function AdminEditBlogClient({ slug }: Props) {
       .finally(() => setLoading(false))
   }, [slug])
 
-  const handleImageSelect = (file: File) => {
-    setNewImageFile(file)
-    setNewImagePreview(URL.createObjectURL(file))
+  const handleImageSelect = async (file: File) => {
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert("Ukuran file gambar maksimal 10MB.")
+        return
+      }
+      try {
+        const { compressImage } = await import("@/lib/imageCompressor")
+        const compressed = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.82 })
+        setNewImageFile(compressed.file)
+        setNewImagePreview(compressed.dataUrl)
+      } catch {
+        setNewImageFile(file)
+        setNewImagePreview(URL.createObjectURL(file))
+      }
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -308,7 +321,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
                       Upload gambar poster / banner
                     </span>
                     <span className="block text-[11px] text-gray-400 mt-0.5">
-                      Format: JPG, PNG, WEBP (Max. 5MB)
+                      Format: JPG, PNG, WEBP (Maks. 5MB, otomatis dioptimalkan)
                     </span>
                   </div>
                 </label>

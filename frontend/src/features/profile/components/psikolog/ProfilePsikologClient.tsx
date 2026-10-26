@@ -7,6 +7,7 @@ import Image from "next/image"
 import { AdminProfileData, RoleType } from "../../types"
 import { DEFAULT_ADMIN, DEFAULT_PSIKOLOG } from "../../data/profileData"
 import { psikologService } from "@/services/psikolog.service"
+import { uploadService } from "@/services/upload.service"
 import apiClient from "@/lib/axios"
 
 export { type AdminProfileData, type RoleType }
@@ -285,18 +286,11 @@ export default function ProfilePsikologClient({
         return
       }
 
-      // 1. Upload file foto jika pengguna memilih file baru
+      // 1. Upload file foto jika pengguna memilih file baru (otomatis terkompresi)
       let fotoUrl = form.foto
       if (selectedPhotoFile) {
-        const photoFormData = new FormData()
-        photoFormData.append("file", selectedPhotoFile)
         try {
-          const resPhoto = await apiClient.post("/upload/image", photoFormData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          })
-          if (resPhoto.data?.data?.url) {
-            fotoUrl = resPhoto.data.data.url
-          }
+          fotoUrl = await uploadService.uploadImage(selectedPhotoFile)
         } catch (uploadErr) {
           console.warn("Gagal upload foto ke backend, menggunakan foto lama/data lokal:", uploadErr)
         }
@@ -319,18 +313,11 @@ export default function ProfilePsikologClient({
         }
       }
 
-      // 3. Upload file thumbnail video (JPG/PNG) jika pengguna memilih thumbnail baru
+      // 3. Upload file thumbnail video (otomatis terkompresi) jika pengguna memilih thumbnail baru
       let thumbnailUrl = form.videoThumbnail
       if (selectedThumbnailFile) {
-        const thumbFormData = new FormData()
-        thumbFormData.append("file", selectedThumbnailFile)
         try {
-          const resThumb = await apiClient.post("/upload/image", thumbFormData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          })
-          if (resThumb.data?.data?.url) {
-            thumbnailUrl = resThumb.data.data.url
-          }
+          thumbnailUrl = await uploadService.uploadImage(selectedThumbnailFile)
         } catch (uploadErr) {
           console.warn("Gagal upload thumbnail video ke backend:", uploadErr)
         }

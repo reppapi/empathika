@@ -109,7 +109,7 @@ export default function TabHeroKontak({
               />
             </label>
             <p className="text-[11px] text-gray-400 mt-1.5">
-              Format didukung: PNG, JPG, WebP (maks. 5MB). Foto langsung tersimpan ke web client.
+              Format didukung: PNG, JPG, WebP (otomatis dikompresi & dioptimalkan untuk web).
             </p>
           </div>
         </div>

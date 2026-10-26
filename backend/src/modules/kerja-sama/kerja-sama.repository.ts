@@ -44,7 +44,6 @@ export class KerjaSamaRepository {
       },
     })
   }
-
   async findPengajuanList(query: GetPengajuanQuery) {
     const where: Prisma.PengajuanKerjaSamaWhereInput = {}
 

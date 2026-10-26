@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
 import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
+import { processAndUploadImage } from "@/lib/imageCompressor"
+import { getBiroWebsiteUrl } from "@/lib/utils"
 
 interface AdminBiroFormClientProps {
   biroId?: string
@@ -157,7 +159,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
     if (errors.slug) setErrors((prev) => ({ ...prev, slug: "" }))
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -170,10 +172,10 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       return
     }
 
-    if (file.size > 3 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       setErrors((prev) => ({
         ...prev,
-        logo: "Ukuran file logo maksimal 3 MB",
+        logo: "Ukuran file logo maksimal 5 MB",
       }))
       return
     }
@@ -184,13 +186,15 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       return next
     })
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setLogo(reader.result)
-      }
+    try {
+      const { url } = await processAndUploadImage(file)
+      setLogo(url)
+    } catch (err: any) {
+      setErrors((prev) => ({
+        ...prev,
+        logo: err?.message || "Gagal memproses gambar logo",
+      }))
     }
-    reader.readAsDataURL(file)
   }
 
   const validate = () => {
@@ -275,8 +279,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
               emailAdmin: emailAdmin.trim(),
               telepon: telepon.trim(),
               alamat: alamat.trim(),
-              websiteUrl: `https://${finalSlug}.empathika.id`,
-              dashboardUrl: `https://${finalSlug}.empathika.id/admin`,
+              websiteUrl: getBiroWebsiteUrl(finalSlug),
+              dashboardUrl: `/admin-biro`,
               statusAktivasi,
               aktivasiToken: effectiveToken,
               tokenExpiredAt: effectiveExpiry,
@@ -298,8 +302,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             alamat: alamat.trim(),
             tanggalDibuat: new Date().toISOString().split("T")[0],
             statusAktivasi,
-            websiteUrl: `https://${finalSlug}.empathika.id`,
-            dashboardUrl: `https://${finalSlug}.empathika.id/admin`,
+            websiteUrl: getBiroWebsiteUrl(finalSlug),
+            dashboardUrl: `/admin-biro`,
             aktivasiToken: effectiveToken,
             tokenExpiredAt: effectiveExpiry,
           }
@@ -319,8 +323,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           alamat: alamat.trim(),
           tanggalDibuat: today,
           statusAktivasi: "Menunggu Aktivasi",
-          websiteUrl: `https://${finalSlug}.empathika.id`,
-          dashboardUrl: `https://${finalSlug}.empathika.id/admin`,
+          websiteUrl: getBiroWebsiteUrl(finalSlug),
+          dashboardUrl: `/admin-biro`,
           aktivasiToken: effectiveToken,
           tokenExpiredAt: effectiveExpiry,
         }
@@ -505,8 +509,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                     : "border-gray-200 bg-white focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
                 }`}
               />
-              <p className="text-[11px] text-gray-400 font-mono mt-1">
-                Akses: https://{slug || "slug-biro"}.empathika.id
+              <p className="text-[11px] text-gray-500 font-mono mt-1">
+                Akses Website (Subdomain): {slug ? `${slug}.localhost:3000` : "slug-biro.localhost:3000"}
               </p>
               {errors.slug && <p className="text-xs text-red-500 mt-0.5 font-medium">{errors.slug}</p>}
             </div>

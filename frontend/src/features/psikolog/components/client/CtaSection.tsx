@@ -1,6 +1,11 @@
+"use client"
+
 import Link from "next/link"
+import { useTenant } from "@/hooks/useTenant"
 
 export function CtaSection() {
+  const { withBiro } = useTenant()
+
   return (
     <section className="w-full bg-[#EFE9F3] py-16 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8 mt-16 text-center">
       <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
@@ -16,7 +21,7 @@ export function CtaSection() {
 
         <div className="pt-2">
           <Link
-            href={"/booking" as any}
+            href={withBiro("/booking") as any}
             className="inline-flex items-center gap-2 bg-[#561269] hover:bg-[#430b53] text-white font-bold text-base sm:text-lg md:text-xl px-8 sm:px-12 py-3.5 sm:py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
           >
             <span>Daftar Konseling</span>

@@ -21,6 +21,30 @@ export class AuthController {
     })
   }
 
+  loginGoogle = async (
+    request: FastifyRequest<{ Body: { credential: string; rememberMe?: boolean } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const result = await this.service.loginWithGoogle(
+        request.body.credential,
+        request.body.rememberMe
+      )
+      return reply.code(200).send({
+        success: true,
+        message: "Login Google berhasil",
+        data: result,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 401
+      return reply.code(statusCode).send({
+        success: false,
+        error: statusCode === 403 ? "Forbidden" : "Unauthorized",
+        message: err.message || "Login Google gagal",
+      })
+    }
+  }
+
   me = async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as { id: string }
     const result = await this.service.getProfile(user.id)

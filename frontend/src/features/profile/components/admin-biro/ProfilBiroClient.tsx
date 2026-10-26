@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { LOCAL_STORAGE_KEY_BIRO, INITIAL_BIRO_LIST } from "@/features/biro/data/initialData"
 import { BiroKomunitas } from "@/features/biro/types"
 import { Building2, Mail, Phone, MapPin, Globe, Palette, ShieldCheck, Lock, CheckCircle2, AlertCircle } from "lucide-react"
+import { getBiroWebsiteUrl } from "@/lib/utils"
 
 export default function ProfilBiroClient() {
   const [biro, setBiro] = useState<BiroKomunitas>(INITIAL_BIRO_LIST[0])
@@ -125,10 +126,16 @@ export default function ProfilBiroClient() {
                 {biro.telepon}
               </span>
             )}
-            <span className="flex items-center gap-1.5 font-medium">
+            <a
+              href={getBiroWebsiteUrl(biro.slug)}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 font-medium hover:text-[#561269] hover:underline transition-colors"
+              title="Buka Website Biro (Front)"
+            >
               <Globe className="w-3.5 h-3.5 text-gray-400" />
-              {biro.slug}.empathika.id
-            </span>
+              {biro.slug}.localhost:3000
+            </a>
           </div>
         </div>
       </div>

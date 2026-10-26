@@ -7,6 +7,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { CATEGORIES } from "../../data/layananData"
 import { getLayananById, updateLayananById, AdminLayananItem } from "../../data/adminLayananData"
+import { processAndUploadImage } from "@/lib/imageCompressor"
 
 interface EditLayananViewProps {
   layananId: string
@@ -51,16 +52,13 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     setLoading(false)
   }, [layananId])
 
-  const handleImageFile = (file: File) => {
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran file poster maksimal 2MB")
-      return
+  const handleImageFile = async (file: File) => {
+    try {
+      const { url } = await processAndUploadImage(file)
+      setImagePreview(url)
+    } catch (err: any) {
+      alert(err?.message || "Gagal memproses gambar")
     }
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

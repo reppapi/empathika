@@ -5,6 +5,9 @@ export const authService = {
   login: (payload: LoginPayload) =>
     apiClient.post<AuthResponse>("/auth/login", payload).then((r) => r.data),
 
+  loginGoogle: (credential: string, rememberMe?: boolean) =>
+    apiClient.post<AuthResponse>("/auth/google", { credential, rememberMe }).then((r) => r.data),
+
   register: (payload: RegisterPayload) =>
     apiClient.post<AuthResponse>("/auth/register", payload).then((r) => r.data),
 
@@ -13,5 +16,10 @@ export const authService = {
 
   refreshToken: () =>
     apiClient.post<{ accessToken: string }>("/auth/refresh").then((r) => r.data),
+
+  setPassword: (payload: { token: string; password: string }) =>
+    apiClient
+      .post<{ success: boolean; message: string; user: any }>("/auth/set-password", payload)
+      .then((r) => r.data),
 }
 

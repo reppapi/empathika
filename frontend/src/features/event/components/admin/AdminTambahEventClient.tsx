@@ -50,10 +50,16 @@ export default function AdminTambahEventClient() {
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setPreviewUrl(URL.createObjectURL(file))
+      try {
+        const { compressImage } = await import("@/lib/imageCompressor")
+        const res = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.82 })
+        setPreviewUrl(res.dataUrl)
+      } catch {
+        setPreviewUrl(URL.createObjectURL(file))
+      }
     }
   }
 
@@ -128,7 +134,7 @@ export default function AdminTambahEventClient() {
                   <span className="text-xs font-medium">
                     Klik untuk upload gambar
                   </span>
-                  <span className="text-[10px]">PNG, JPG maks 2MB</span>
+                  <span className="text-[10px]">PNG, JPG, WebP maks 5MB (otomatis dioptimalkan)</span>
                 </div>
               )}
             </label>

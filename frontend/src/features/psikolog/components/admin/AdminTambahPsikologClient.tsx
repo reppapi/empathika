@@ -7,6 +7,7 @@ import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
+import { processAndUploadImage } from "@/lib/imageCompressor"
 import {
   validateEmail,
   validateNoTelepon,
@@ -59,11 +60,15 @@ export default function AdminTambahPsikologClient() {
   const noSippError = touched.noSipp ? validateNoSipp(noSipp, kategori, noSilp) : null
   const noSilpError = touched.noSilp ? validateNoSilp(noSilp, kategori, noSipp) : null
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const url = URL.createObjectURL(file)
-      setFoto(url)
+      try {
+        const { url } = await processAndUploadImage(file)
+        setFoto(url)
+      } catch (err: any) {
+        alert(err?.message || "Gagal memproses foto")
+      }
     }
   }
 

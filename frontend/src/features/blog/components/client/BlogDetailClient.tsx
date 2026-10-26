@@ -30,8 +30,10 @@ export default function BlogDetailClient({ slug }: Props) {
         if (!isMounted) return;
         if (detailRes?.success && detailRes.data) {
           setBlog(detailRes.data);
+          document.title = `${detailRes.data.judul} – Blog Empathika`;
         } else {
           setBlog(null);
+          document.title = 'Artikel Tidak Ditemukan – Empathika';
         }
 
         if (listRes?.success && Array.isArray(listRes.data)) {

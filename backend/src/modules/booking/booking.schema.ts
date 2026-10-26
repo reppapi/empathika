@@ -12,6 +12,7 @@ export const getJadwalPsikologMeQuerySchema = z.object({
   id_psikolog: z.string().optional(),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  id_psikolog: z.string().optional(),
 })
 
 export const createJadwalSlotSchema = z.object({

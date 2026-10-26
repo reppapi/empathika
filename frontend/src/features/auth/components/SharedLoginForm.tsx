@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, Mail, Lock, ArrowRight } from "lucide-react";
+import { setAuthCookie, removeAuthCookie } from "@/lib/cookie";
 import { DUMMY_ADMIN, DUMMY_BIRO } from "../data/dummyAuth";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { psikologService } from "@/services/psikolog.service";
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 export function LoginForm() {
   const router = useRouter();
@@ -14,8 +21,177 @@ export function LoginForm() {
   const [emailOrName, setEmailOrName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Helper untuk menyimpan token & redirect sesuai role user
+  const handleSuccessLogin = (
+    user: { id: string; nama: string; email: string; role: string },
+    accessToken: string
+  ) => {
+    if (rememberMe) {
+      // Jika "Ingat Saya" dicentang: Sesi disimpan 7 hari (7 * 24 * 60 * 60 = 604800 detik)
+      setAuthCookie("access_token", accessToken, 604800);
+      setAuthCookie("remember_me", "true", 604800);
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("remember_me", "true");
+      sessionStorage.removeItem("access_token");
+      sessionStorage.removeItem("remember_me");
+    } else {
+      // Jika TIDAK dicentang: Sesi hanya berlaku di tab/sesi aktif (otomatis terhapus saat tab atau browser ditutup)
+      setAuthCookie("access_token", accessToken);
+      removeAuthCookie("remember_me");
+      sessionStorage.setItem("access_token", accessToken);
+      sessionStorage.setItem("user_role", user.role);
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("remember_me");
+      localStorage.removeItem("empathika-auth");
+    }
+
+    setAuth(
+      {
+        id: user.id,
+        name: user.nama,
+        email: user.email,
+        role: user.role as any,
+      },
+      accessToken
+    );
+
+    if (user.role === "PSIKOLOG") {
+      if (rememberMe) {
+        localStorage.setItem("active_psikolog_id", user.id);
+        localStorage.setItem("active_psikolog_name", user.nama);
+      } else {
+        sessionStorage.setItem("active_psikolog_id", user.id);
+        sessionStorage.setItem("active_psikolog_name", user.nama);
+        localStorage.removeItem("active_psikolog_id");
+        localStorage.removeItem("active_psikolog_name");
+      }
+      router.push("/psikolog-web/jadwal" as any);
+    } else if (user.role === "ADMIN") {
+      router.push("/admin");
+    } else if (user.role === "BIRO") {
+      router.push("/admin-biro/transaksi");
+    } else {
+      router.push("/");
+    }
+
+    router.refresh();
+  };
+
+  // Proses token credential dari Google ke Backend
+  const handleGoogleCredential = async (credential: string) => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await authService.loginGoogle(credential, rememberMe);
+      if (response.success && response.data?.accessToken) {
+        handleSuccessLogin(response.data.user, response.data.accessToken);
+        return;
+      }
+      setError("Login Google gagal. Silakan coba kembali.");
+    } catch (err: any) {
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Gagal terhubung dengan layanan login Google.";
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Inisialisasi Google Identity Services SDK jika clientId tersedia
+  useEffect(() => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId || typeof window === "undefined") return;
+
+    const scriptId = "google-jssdk-client";
+    const initGsi = () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (res: { credential?: string }) => {
+            if (res?.credential) {
+              handleGoogleCredential(res.credential);
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+
+        const container = document.getElementById("google-hidden-btn-container");
+        if (container) {
+          window.google.accounts.id.renderButton(container, {
+            type: "standard",
+            theme: "outline",
+            size: "large",
+            width: "320",
+          });
+        }
+      }
+    };
+
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = initGsi;
+      document.body.appendChild(script);
+    } else {
+      initGsi();
+    }
+  }, []);
+
+  // Handler klik tombol "Lanjutkan dengan Google"
+  const handleGoogleBtnClick = () => {
+    setError("");
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+    // Coba trigger native Google prompt / button jika SDK sudah siap
+    const hiddenBtn = document
+      .getElementById("google-hidden-btn-container")
+      ?.querySelector('div[role="button"]') as HTMLElement | null;
+
+    if (hiddenBtn) {
+      hiddenBtn.click();
+      return;
+    }
+
+    if (clientId && typeof window !== "undefined" && window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt();
+        return;
+      } catch (err) {
+        console.warn("GSI prompt error:", err);
+      }
+    }
+
+    // Fallback jika NEXT_PUBLIC_GOOGLE_CLIENT_ID belum diatur
+    if (!clientId) {
+      if (process.env.NODE_ENV !== "production") {
+        const inputEmail = window.prompt(
+          "NEXT_PUBLIC_GOOGLE_CLIENT_ID belum diatur di .env.local.\n\nMode Dev: Masukkan email Google yang ingin diuji coba (contoh: psikolog@empathika.test / admin@empathika.test / biro@cendekiamuda.org):"
+        );
+        if (inputEmail && inputEmail.trim()) {
+          handleGoogleCredential(`mock-google-token:${inputEmail.trim()}`);
+        }
+        return;
+      }
+
+      setError(
+        "Koneksi Google Sign-In belum dikonfigurasi (GOOGLE_CLIENT_ID belum diatur). Silakan hubungi admin."
+      );
+      return;
+    }
+
+    setError("Sedang memuat layanan Google Sign-In, silakan coba kembali.");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,37 +213,11 @@ export function LoginForm() {
         const response = await authService.login({
           email: trimmedInput,
           password: trimmedPass,
+          rememberMe,
         });
 
         if (response.success && response.data?.accessToken) {
-          const { user, accessToken } = response.data;
-
-          document.cookie = `access_token=${accessToken}; path=/; max-age=604800; SameSite=Lax`;
-          localStorage.setItem("access_token", accessToken);
-
-          setAuth(
-            {
-              id: user.id,
-              name: user.nama,
-              email: user.email,
-              role: user.role as any,
-            },
-            accessToken
-          );
-
-          if (user.role === "PSIKOLOG") {
-            localStorage.setItem("active_psikolog_id", user.id);
-            localStorage.setItem("active_psikolog_name", user.nama);
-            router.push("/psikolog-web/jadwal" as any);
-          } else if (user.role === "ADMIN") {
-            router.push("/admin");
-          } else if (user.role === "BIRO") {
-            router.push("/admin-biro/transaksi");
-          } else {
-            router.push("/");
-          }
-
-          router.refresh();
+          handleSuccessLogin(response.data.user, response.data.accessToken);
           return;
         }
       } catch (_authErr) {
@@ -80,14 +230,10 @@ export function LoginForm() {
       trimmedInput.toLowerCase() === DUMMY_ADMIN.email.toLowerCase() &&
       trimmedPass === DUMMY_ADMIN.password
     ) {
-      document.cookie = "access_token=dummy-admin-token; path=/; max-age=604800; SameSite=Lax";
-      localStorage.setItem("access_token", "dummy-admin-token");
-      setAuth(
-        { id: "1", name: "Admin Empathika", email: trimmedInput, role: "ADMIN" },
+      handleSuccessLogin(
+        { id: "1", nama: "Admin Empathika", email: trimmedInput, role: "ADMIN" },
         "dummy-admin-token"
       );
-      router.push("/admin");
-      router.refresh();
       return;
     }
 
@@ -96,14 +242,10 @@ export function LoginForm() {
       trimmedInput.toLowerCase() === DUMMY_BIRO.email.toLowerCase() &&
       trimmedPass === DUMMY_BIRO.password
     ) {
-      document.cookie = "access_token=dummy-biro-token; path=/; max-age=604800; SameSite=Lax";
-      localStorage.setItem("access_token", "dummy-biro-token");
-      setAuth(
-        { id: "3", name: "Admin Biro Cendekia Muda", email: trimmedInput, role: "BIRO" },
+      handleSuccessLogin(
+        { id: "3", nama: "Admin Biro Cendekia Muda", email: trimmedInput, role: "BIRO" },
         "dummy-biro-token"
       );
-      router.push("/admin-biro/transaksi");
-      router.refresh();
       return;
     }
 
@@ -120,23 +262,15 @@ export function LoginForm() {
 
         if (matched) {
           const psikologName = matched.nama_gelar || matched.account?.nama || "Psikolog Empathika";
-          document.cookie = "access_token=dummy-psikolog-token; path=/; max-age=604800; SameSite=Lax";
-          localStorage.setItem("access_token", "dummy-psikolog-token");
-          localStorage.setItem("active_psikolog_id", matched.id);
-          localStorage.setItem("active_psikolog_name", psikologName);
-
-          setAuth(
+          handleSuccessLogin(
             {
               id: matched.id,
-              name: psikologName,
+              nama: psikologName,
               email: matched.account?.email || matched.email || `${trimmedInput}@empathika.com`,
               role: "PSIKOLOG",
             },
             "dummy-psikolog-token"
           );
-
-          router.push("/psikolog-web/jadwal" as any);
-          router.refresh();
           return;
         }
       }
@@ -232,9 +366,11 @@ export function LoginForm() {
               <input
                 type="checkbox"
                 id="remember"
-                className="w-4 h-4 text-[#561269] bg-gray-100 border-gray-300 rounded focus:ring-[#561269]"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 text-[#561269] bg-gray-100 border-gray-300 rounded focus:ring-[#561269] cursor-pointer"
               />
-              <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
+              <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer select-none">
                 Ingat saya di perangkat ini
               </label>
             </div>
@@ -271,7 +407,9 @@ export function LoginForm() {
             {/* Google Button */}
             <button
               type="button"
-              className="w-full flex justify-center items-center gap-3 py-3.5 px-4 rounded-full text-gray-700 font-bold bg-white border border-gray-300 hover:bg-gray-50 transition-all shadow-sm active:scale-95 cursor-pointer"
+              onClick={handleGoogleBtnClick}
+              disabled={isLoading}
+              className="w-full flex justify-center items-center gap-3 py-3.5 px-4 rounded-full text-gray-700 font-bold bg-white border border-gray-300 hover:bg-gray-50 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -281,6 +419,7 @@ export function LoginForm() {
               </svg>
               Lanjutkan dengan Google
             </button>
+            <div id="google-hidden-btn-container" className="hidden" aria-hidden="true" />
 
           </form>
         </div>

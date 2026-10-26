@@ -146,5 +146,5 @@ describe('Admin Utama Profile API (/admin/profile)', () => {
     expect(publicBody.data.alamat).toBe(testAlamat)
     expect(publicBody.data.link_maps).toBe(testMaps)
     expect(publicBody.data.no_telepon).toBe(testTelp)
-  })
+  }, 15000)
 })

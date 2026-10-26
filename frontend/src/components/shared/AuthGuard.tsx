@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { getAuthCookie, setAuthCookie, removeAuthCookie } from "@/lib/cookie"
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -19,54 +20,65 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   useEffect(() => {
     setIsMounted(true)
 
-    // 1. Cek token di localStorage dan Cookie
-    let token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+    // 1. Cek mode "Ingat Saya"
+    const isRemembered =
+      typeof window !== "undefined" &&
+      localStorage.getItem("remember_me") === "true"
 
     // Cek keberadaan nilai cookie access_token yang tidak kosong
-    let cookieToken: string | null = null
-    if (typeof document !== "undefined") {
-      const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)
-      if (match && match[1] && match[1].trim() !== "") {
-        cookieToken = decodeURIComponent(match[1].trim())
+    const cookieToken = getAuthCookie("access_token")
+
+    // Jika "Ingat Saya" dicentang: token bertahan di localStorage / cookie (7 hari)
+    // Jika TIDAK dicentang: token dicek dari sessionStorage atau cookie aktif
+    let validToken =
+      typeof window !== "undefined"
+        ? isRemembered
+          ? (localStorage.getItem("access_token") || cookieToken)
+          : (sessionStorage.getItem("access_token") || cookieToken)
+        : null
+
+    // Dual-Sync: jika mode Ingat Saya aktif, pastikan cookie dan localStorage saling tersinkronisasi
+    if (isRemembered && typeof window !== "undefined") {
+      if (!localStorage.getItem("access_token") && cookieToken) {
+        localStorage.setItem("access_token", cookieToken)
+      } else if (localStorage.getItem("access_token") && !cookieToken) {
+        setAuthCookie("access_token", localStorage.getItem("access_token")!, 604800)
       }
     }
 
-    // Dual-Sync: jika ada di cookie tapi belum ada di localStorage, sinkronkan
-    if (!token && cookieToken) {
-      token = cookieToken
-      try {
-        localStorage.setItem("access_token", cookieToken)
-      } catch {}
-    }
-
-    // Dual-Sync: jika ada di localStorage tapi cookie hilang (idle/fresh load), pulihkan cookie
-    if (token && !cookieToken && typeof document !== "undefined") {
-      document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax`
-      cookieToken = token
-    }
-
-    if (!token && !cookieToken) {
-      // Jika benar-benar tidak ada token, baru redirect ke /login
+    if (!validToken || validToken.trim() === "") {
+      // Sesi habis / tab ditutup tanpa "Ingat Saya": bersihkan sisa-sisa sesi dan lempar ke /login
+      removeAuthCookie("access_token")
+      removeAuthCookie("remember_me")
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("access_token")
+        localStorage.removeItem("remember_me")
+        localStorage.removeItem("empathika-auth")
+        sessionStorage.removeItem("access_token")
+        sessionStorage.removeItem("user_role")
+      }
       router.replace("/login")
       return
     }
 
-    // 2. Jika ada pembatasan role tertentu, cek data di authStore / localStorage
+    // 2. Jika ada pembatasan role tertentu, cek data di authStore / storage
     if (allowedRoles && allowedRoles.length > 0) {
       try {
-        const authDataStr = typeof window !== "undefined" ? localStorage.getItem("empathika-auth") : null
-        if (authDataStr) {
-          const authData = JSON.parse(authDataStr)
-          const userRole = authData?.state?.user?.role
+        let userRole: string | undefined = undefined
+        if (isRemembered) {
+          const authDataStr = typeof window !== "undefined" ? localStorage.getItem("empathika-auth") : null
+          if (authDataStr) userRole = JSON.parse(authDataStr)?.state?.user?.role
+        } else {
+          userRole = typeof window !== "undefined" ? (sessionStorage.getItem("user_role") || undefined) : undefined
+        }
 
-          // Superadmin handling: Akun ADMIN memiliki izin memantau portal psikolog dan biro
-          const isSuperAdmin = userRole === "ADMIN"
+        // Superadmin handling: Akun ADMIN memiliki izin memantau portal psikolog dan biro
+        const isSuperAdmin = userRole === "ADMIN"
 
-          if (userRole && !allowedRoles.includes(userRole) && !isSuperAdmin) {
-            // Role tidak sesuai dan bukan superadmin
-            router.replace("/login")
-            return
-          }
+        if (userRole && !allowedRoles.includes(userRole as any) && !isSuperAdmin) {
+          // Role tidak sesuai dan bukan superadmin
+          router.replace("/login")
+          return
         }
       } catch {
         // Abaikan parse error

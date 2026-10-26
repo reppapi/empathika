@@ -1,9 +1,18 @@
+"use client"
+
 /* eslint-disable @next/next/no-img-element */
 import React from 'react'
 import Link from 'next/link'
 import { CtaSection } from '@/features/psikolog/components/client/CtaSection'
+import { useTenantContext } from '@/context/TenantContext'
 
 export default function TentangKamiClient() {
+  const { isBiro, biroProfile, withBiro } = useTenantContext()
+  const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"
+  const deskripsi = isBiro && biroProfile?.deskripsi 
+    ? biroProfile.deskripsi 
+    : "Ruang yang kami bangun untuk menemani setiap langkah menuju pemahaman dan pertumbuhan diri."
+
   return (
     <div className="w-full font-sans bg-[#fbfbfb] text-gray-900 overflow-hidden pb-0 -mt-36 lg:-mt-24">
 
@@ -14,11 +23,11 @@ export default function TentangKamiClient() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center text-center">
 
           <h1 className="text-4xl md:text-5xl lg:text-[4.5rem] font-extrabold text-[#2a0835] mb-6 leading-[1.1] tracking-tight">
-            Tentang <span className="text-[#561269]">Empathika</span>
+            Tentang <span className="text-[#561269]">{brandName}</span>
           </h1>
 
           <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg lg:text-xl font-light mb-16 md:mb-24 leading-relaxed">
-            Ruang yang kami bangun untuk menemani setiap langkah menuju pemahaman dan pertumbuhan diri.
+            {deskripsi}
           </p>
 
           {/* Modern Compact Staggered Grid (Bento Style) */}
@@ -260,7 +269,7 @@ export default function TentangKamiClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1100px] mx-auto mt-10 md:mt-12">
             
             {/* 1. Konsultasi (Span 2) - Dark Theme */}
-            <Link href="/layanan?category=02" className="md:col-span-2 bg-[#491c68] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group block">
+            <Link href={withBiro("/layanan?category=02") as any} className="md:col-span-2 bg-[#491c68] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group block">
               <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-white/10 backdrop-blur-md text-white flex items-center justify-center mb-6 border border-white/20 relative z-10 group-hover:scale-110 transition-transform">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path></svg>
@@ -272,7 +281,7 @@ export default function TentangKamiClient() {
             </Link>
 
             {/* 2. Psikotes (Span 1) - Orange Glass Theme */}
-            <Link href="/layanan?category=01" className="md:col-span-1 lg:col-span-1 bg-gradient-to-br from-[#fff7f0] to-[#ffe8d6] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-orange-100 block">
+            <Link href={withBiro("/layanan?category=01") as any} className="md:col-span-1 lg:col-span-1 bg-gradient-to-br from-[#fff7f0] to-[#ffe8d6] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-orange-100 block">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-[#d97706]/10 text-[#d97706] flex items-center justify-center mb-auto border border-[#d97706]/20 group-hover:bg-[#d97706] group-hover:text-white transition-colors duration-300">
                 <svg className="w-7 h-7 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
               </div>
@@ -283,7 +292,7 @@ export default function TentangKamiClient() {
             </Link>
 
             {/* 3. Pelatihan Peer Helper (Span 1) - Soft Purple Theme */}
-            <Link href="/layanan?category=03" className="md:col-span-1 lg:col-span-1 bg-[#f9f5fa] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-[#cdb1db]/40 block">
+            <Link href={withBiro("/layanan?category=03") as any} className="md:col-span-1 lg:col-span-1 bg-[#f9f5fa] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-[#cdb1db]/40 block">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-[#8e4a9e]/10 text-[#8e4a9e] flex items-center justify-center mb-auto border border-[#8e4a9e]/20 group-hover:bg-[#8e4a9e] group-hover:text-white transition-colors duration-300">
                 <svg className="w-7 h-7 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
               </div>
@@ -294,7 +303,7 @@ export default function TentangKamiClient() {
             </Link>
 
             {/* 4. Asesmen (Span 1) - Dark Green Theme */}
-            <Link href="/layanan?category=05" className="md:col-span-1 lg:col-span-1 bg-[#1c352d] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative overflow-hidden block">
+            <Link href={withBiro("/layanan?category=05") as any} className="md:col-span-1 lg:col-span-1 bg-[#1c352d] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative overflow-hidden block">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-white/10 text-white flex items-center justify-center mb-auto border border-white/20 group-hover:bg-white group-hover:text-[#1c352d] transition-colors duration-300 relative z-10">
                 <svg className="w-7 h-7 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
               </div>
@@ -305,7 +314,7 @@ export default function TentangKamiClient() {
             </Link>
 
             {/* 5. Workshop / Seminar (Span 1) - Clean White Theme */}
-            <Link href="/layanan?category=04" className="md:col-span-2 lg:col-span-1 bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-gray-100 block">
+            <Link href={withBiro("/layanan?category=04") as any} className="md:col-span-2 lg:col-span-1 bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group border border-gray-100 block">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-gray-50 text-gray-800 flex items-center justify-center mb-auto border border-gray-100 group-hover:bg-gray-800 group-hover:text-white transition-colors duration-300">
                 <svg className="w-7 h-7 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
               </div>

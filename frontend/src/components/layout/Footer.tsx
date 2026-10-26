@@ -2,10 +2,27 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { adminService } from "@/services/admin.service";
+import { useTenantContext } from "@/context/TenantContext";
 
 export function Footer() {
+  const pathname = usePathname();
+  const { isBiro, biroProfile, withBiro } = useTenantContext();
+
+  const handleNavClick = (path: string) => {
+    if (isBiro && path.includes("#")) {
+      const hash = path.substring(path.indexOf("#"));
+      const el = document.querySelector(hash);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    } else if (isBiro && (path === "" || path === "/")) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   const [contact, setContact] = useState({
     alamat: "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
     email: "empathika889@gmail.com",
@@ -88,28 +105,68 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-12">
           
           {/* Brand & Description */}
+          {/* Brand & Description */}
           <div className="lg:col-span-2 space-y-4 md:pr-8">
-            <Link href="/" className="inline-flex items-center gap-3">
+            <Link 
+              href={withBiro("/") as any}
+              className="inline-flex items-center gap-3"
+            >
               {/* Logo (Circle) */}
-              <div className="h-14 w-14 shrink-0 rounded-full bg-[#561269]"></div>
-              <span className="text-[24px] font-extrabold tracking-widest text-[#561269] uppercase">EMPATHIKA</span>
+              <div className="h-14 w-14 shrink-0 rounded-full bg-[#561269] flex items-center justify-center text-white font-extrabold text-xl overflow-hidden">
+                {biroProfile?.logoURI ? (
+                  <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  (biroProfile?.nama_biro?.[0] || "E").toUpperCase()
+                )}
+              </div>
+              <span className="text-[22px] font-extrabold tracking-widest text-[#561269] uppercase truncate">
+                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "EMPATHIKA"}
+              </span>
             </Link>
             <p className="text-gray-600 leading-relaxed font-medium">
-              Platform psikologi dan kesehatan mental.
+              {isBiro && biroProfile?.deskripsi ? biroProfile.deskripsi : "Platform psikologi dan kesehatan mental."}
             </p>
             <p className="text-[#3B074B] font-semibold text-lg max-w-sm leading-snug">
               &quot;Menemani setiap langkahmu untuk memahami diri, bertumbuh, dan menjadi lebih baik.&quot;
             </p>
           </div>
 
-          {/* Links - Empathika */}
+          {/* Links - Empathika / Biro */}
           <div className="space-y-5">
-            <h4 className="font-bold text-[#3B074B] text-lg tracking-wide">Empathika</h4>
+            <h4 className="font-bold text-[#3B074B] text-lg tracking-wide">{isBiro ? "Tentang Biro" : "Empathika"}</h4>
             <ul className="space-y-3">
-              <li><Link href={"/tentang-kami" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Tentang Kami</Link></li>
-              <li><Link href={"/psikolog" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Psikolog</Link></li>
-              <li><Link href={"/blog" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Blog</Link></li>
-              <li><Link href={"/kerja-sama" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Mitra Kerjasama</Link></li>
+              <li>
+                <Link 
+                  href={withBiro("/tentang-kami") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Tentang Kami
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={withBiro("/psikolog") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Psikolog
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={withBiro("/blog") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={withBiro("/kerja-sama") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Mitra Kerjasama
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -117,10 +174,38 @@ export function Footer() {
           <div className="space-y-5">
             <h4 className="font-bold text-[#3B074B] text-lg tracking-wide">Layanan</h4>
             <ul className="space-y-3">
-              <li><Link href={"/konseling" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Konsultasi</Link></li>
-              <li><Link href={"/layanan" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Asesmen</Link></li>
-              <li><Link href={"/psikotes" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Psikotes</Link></li>
-              <li><Link href={"/event" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Event</Link></li>
+              <li>
+                <Link 
+                  href={withBiro("/konseling") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Konsultasi
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={withBiro("/layanan") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Asesmen
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={withBiro("/psikotes") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Psikotes
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={withBiro("/event") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Event
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -131,15 +216,29 @@ export function Footer() {
             <div className="space-y-4 pt-1">
               <div className="flex items-start gap-3 text-gray-600">
                 <MapPin className="w-5 h-5 shrink-0 mt-0.5 text-[#561269]/70" />
-                <span className="text-sm font-medium whitespace-pre-line">{contact.alamat}</span>
+                <span className="text-sm font-medium whitespace-pre-line">
+                  {isBiro && biroProfile?.alamat ? biroProfile.alamat : contact.alamat}
+                </span>
               </div>
-              <a href={`mailto:${contact.email}`} className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group">
+              <a 
+                href={`mailto:${isBiro && biroProfile?.owner?.email ? biroProfile.owner.email : contact.email}`} 
+                className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group"
+              >
                 <Mail className="w-5 h-5 shrink-0 text-[#561269]/70 group-hover:text-[#561269]" />
-                <span className="text-sm font-medium">{contact.email}</span>
+                <span className="text-sm font-medium">
+                  {isBiro && biroProfile?.owner?.email ? biroProfile.owner.email : contact.email}
+                </span>
               </a>
-              <a href={waUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group">
+              <a 
+                href={`https://wa.me/${(isBiro && biroProfile?.no_telepon ? biroProfile.no_telepon : waNumber).replace(/\D/g, "")}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group"
+              >
                 <Phone className="w-5 h-5 shrink-0 text-[#561269]/70 group-hover:text-[#561269]" />
-                <span className="text-sm font-medium">{contact.noTelepon}</span>
+                <span className="text-sm font-medium">
+                  {isBiro && biroProfile?.no_telepon ? biroProfile.no_telepon : contact.noTelepon}
+                </span>
               </a>
             </div>
           </div>
@@ -154,8 +253,18 @@ export function Footer() {
           </p>
           
           <div className="flex items-center gap-6">
-            <Link href={"/privacy-policy" as any} className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors">Privacy Policy</Link>
-            <Link href={"/terms-conditions" as any} className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors">Terms & Conditions</Link>
+            <Link 
+              href={withBiro("/privacy-policy") as any}
+              className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link 
+              href={withBiro("/terms-conditions") as any}
+              className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors"
+            >
+              Terms & Conditions
+            </Link>
           </div>
 
           <div className="flex items-center gap-4">
