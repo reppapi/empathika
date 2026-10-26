@@ -8,6 +8,7 @@
 import type { FastifyInstance } from 'fastify'
 import { InvoiceController } from './invoice.controller'
 import { adminGuard } from '../../middlewares/admin-guard'
+import { transaksiParamSchema } from './invoice.schema'
 
 export default async function invoiceRoutes(fastify: FastifyInstance) {
   const controller = new InvoiceController(fastify)
@@ -21,11 +22,7 @@ export default async function invoiceRoutes(fastify: FastifyInstance) {
       tags: ['Invoice'],
       summary: 'Ambil/terbitkan invoice untuk transaksi (lazy generate, idempotent)',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { transaksiId: { type: 'string' } },
-        required: ['transaksiId'],
-      },
+      params: transaksiParamSchema,
     },
     handler: controller.getOrCreate,
   })
@@ -39,11 +36,7 @@ export default async function invoiceRoutes(fastify: FastifyInstance) {
       tags: ['Invoice'],
       summary: 'Dapatkan URL wa.me dengan teks invoice ter-URL-encode',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { transaksiId: { type: 'string' } },
-        required: ['transaksiId'],
-      },
+      params: transaksiParamSchema,
     },
     handler: controller.getWaUrl,
   })
@@ -57,11 +50,7 @@ export default async function invoiceRoutes(fastify: FastifyInstance) {
       tags: ['Invoice'],
       summary: 'Tandai invoice sudah dikirim ke WhatsApp klien',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { transaksiId: { type: 'string' } },
-        required: ['transaksiId'],
-      },
+      params: transaksiParamSchema,
     },
     handler: controller.markSent,
   })

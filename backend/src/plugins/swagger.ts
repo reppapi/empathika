@@ -18,7 +18,18 @@ export default fp(async (fastify) => {
         },
       },
     },
-    transform: jsonSchemaTransform,
+    transform: (opts: any) => {
+      try {
+        return jsonSchemaTransform(opts)
+      } catch (err: any) {
+        fastify.log.error(
+          `[Swagger] Error parsing schema for route ${opts?.url || "unknown"}: ${err?.message}`
+        )
+        // Fallback schema to prevent whole Swagger UI from breaking with 500
+        const rawSchema = { ...opts?.schema }
+        return { schema: rawSchema, url: opts?.url }
+      }
+    },
   })
 
   fastify.register(swaggerUi, {
