@@ -1,7 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: [
+    'localhost',
+    '*.localhost',
+    '**.localhost',
+    'localhost:3000',
+    '*.localhost:3000',
+    '**.localhost:3000',
+  ],
   experimental: {
     typedRoutes: false,
+    serverActions: {
+      allowedOrigins: [
+        'localhost:3000',
+        '*.localhost:3000',
+        '*.localhost',
+      ],
+    },
   },
   images: {
     unoptimized: process.env.NODE_ENV === 'development',
