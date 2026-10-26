@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
 import { processAndUploadImage } from "@/lib/imageCompressor"
+import { getBiroWebsiteUrl } from "@/lib/utils"
 
 interface BiroFormModalProps {
   isOpen: boolean
@@ -198,7 +199,7 @@ export default function BiroFormModal({
         emailAdmin: emailAdmin.trim(),
         telepon: telepon.trim(),
         alamat: alamat.trim(),
-        websiteUrl: `/biro/${finalSlug}`,
+        websiteUrl: getBiroWebsiteUrl(finalSlug),
         dashboardUrl: `/admin-biro`,
         statusAktivasi,
       })
@@ -349,7 +350,7 @@ export default function BiroFormModal({
                 />
               </div>
               <p className="text-[11px] text-gray-500 font-mono mt-1">
-                Akses Website: /biro/{slug || "slug-biro"}
+                Akses Website (Subdomain): {slug ? `${slug}.localhost:3000` : "slug-biro.localhost:3000"}
               </p>
               {errors.slug && <p className="text-xs text-red-500 mt-0.5 font-medium">{errors.slug}</p>}
             </div>

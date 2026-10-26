@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useTenant } from "@/hooks/useTenant"
 import { Psikolog, PsikologUI } from "@/types/psikolog"
 
 interface PsikologCardProps {
@@ -13,10 +13,7 @@ interface PsikologCardProps {
 }
 
 export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }: PsikologCardProps) {
-  const pathname = usePathname()
-  const biroMatch = pathname?.match(/^\/biro\/([^/?#]+)/)
-  const isBiro = !!biroMatch
-  const biroPrefix = biroMatch ? `/biro/${biroMatch[1]}` : ""
+  const { isBiro, biroPrefix, withBiro } = useTenant()
 
   const [imgError, setImgError] = useState(false)
   const peran =
@@ -36,8 +33,8 @@ export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }:
 
   const buttonText = mode === "konseling" ? "Daftar" : "Lihat Detail"
   const buttonHref = mode === "konseling" 
-    ? `${biroPrefix}/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}` 
-    : `${biroPrefix}/psikolog/${psikolog.id}`
+    ? withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}`)
+    : withBiro(`/psikolog/${psikolog.id}`)
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_rgba(86,18,105,0.12)] transition-all duration-300 group hover:-translate-y-1 h-full justify-between">

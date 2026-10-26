@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { getAuthCookie, setAuthCookie, removeAuthCookie } from "@/lib/cookie"
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -25,38 +26,30 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       localStorage.getItem("remember_me") === "true"
 
     // Cek keberadaan nilai cookie access_token yang tidak kosong
-    let cookieToken: string | null = null
-    if (typeof document !== "undefined") {
-      const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)
-      if (match && match[1] && match[1].trim() !== "") {
-        cookieToken = decodeURIComponent(match[1].trim())
-      }
-    }
+    const cookieToken = getAuthCookie("access_token")
 
     // Jika "Ingat Saya" dicentang: token bertahan di localStorage / cookie (7 hari)
-    // Jika TIDAK dicentang: token WAJIB ada di sessionStorage (otomatis musnah saat tab / browser ditutup)
+    // Jika TIDAK dicentang: token dicek dari sessionStorage atau cookie aktif
     let validToken =
       typeof window !== "undefined"
         ? isRemembered
           ? (localStorage.getItem("access_token") || cookieToken)
-          : sessionStorage.getItem("access_token")
+          : (sessionStorage.getItem("access_token") || cookieToken)
         : null
 
     // Dual-Sync: jika mode Ingat Saya aktif, pastikan cookie dan localStorage saling tersinkronisasi
     if (isRemembered && typeof window !== "undefined") {
       if (!localStorage.getItem("access_token") && cookieToken) {
         localStorage.setItem("access_token", cookieToken)
-      } else if (localStorage.getItem("access_token") && !cookieToken && typeof document !== "undefined") {
-        document.cookie = `access_token=${localStorage.getItem("access_token")}; path=/; max-age=604800; SameSite=Lax`
+      } else if (localStorage.getItem("access_token") && !cookieToken) {
+        setAuthCookie("access_token", localStorage.getItem("access_token")!, 604800)
       }
     }
 
     if (!validToken || validToken.trim() === "") {
       // Sesi habis / tab ditutup tanpa "Ingat Saya": bersihkan sisa-sisa sesi dan lempar ke /login
-      if (typeof document !== "undefined") {
-        document.cookie = "access_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;"
-        document.cookie = "remember_me=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;"
-      }
+      removeAuthCookie("access_token")
+      removeAuthCookie("remember_me")
       if (typeof window !== "undefined") {
         localStorage.removeItem("access_token")
         localStorage.removeItem("remember_me")

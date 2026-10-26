@@ -7,6 +7,7 @@ import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
 import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
 import BiroDetailModal from "./BiroDetailModal"
 import BiroDeleteModal from "./BiroDeleteModal"
+import { getBiroWebsiteUrl } from "@/lib/utils"
 import {
   ActionButtonDetail,
   ActionButtonEdit,
@@ -49,7 +50,7 @@ export default function AdminBiroClient() {
         const parsed: BiroKomunitas[] = JSON.parse(saved)
         const sanitized = parsed.map((item) => ({
           ...item,
-          websiteUrl: `/biro/${item.slug}`,
+          websiteUrl: getBiroWebsiteUrl(item.slug),
           dashboardUrl: `/admin-biro`,
         }))
         setBiroList(sanitized)

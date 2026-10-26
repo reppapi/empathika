@@ -16,11 +16,11 @@ import { psikotesService, type PaketPsikotesApiResponse } from '@/services/psiko
 import { psikologService } from '@/services/psikolog.service'
 import { mapDbPsikologToUI } from '@/features/psikolog/utils/mapPsikolog'
 import { PsikologUI } from '@/types/psikolog'
+import { useTenantContext } from '@/context/TenantContext'
+import { biroPublicService } from '@/services/biro.service'
 
 export default function HomeClient() {
-  const pathname = usePathname()
-  const biroMatch = pathname?.match(/^\/biro\/([^/?#]+)/)
-  const biroPrefix = biroMatch ? `/biro/${biroMatch[1]}` : ""
+  const { isBiro, slug, biroProfile, biroPrefix, withBiro } = useTenantContext()
 
   const [publishedEvents, setPublishedEvents] = useState<EventItemApi[]>([])
   const [loadingEvents, setLoadingEvents] = useState(true)
@@ -119,10 +119,37 @@ export default function HomeClient() {
   }, [])
 
   useEffect(() => {
+    if (isBiro && biroProfile) {
+      setAdminProfile((prev) => ({
+        ...prev,
+        alamat: biroProfile.alamat || prev.alamat,
+        email: biroProfile.owner?.email || prev.email,
+        noTelepon: biroProfile.no_telepon || prev.noTelepon,
+      }))
+    }
+  }, [isBiro, biroProfile])
+
+  useEffect(() => {
     // Ambil data psikolog aktif langsung dari database
     const fetchHomePsychologists = async () => {
       try {
         setLoadingPsychologists(true)
+
+        // 1. Jika dalam konteks biro, ambil psikolog terafiliasi dengan biro tersebut
+        if (isBiro && slug) {
+          try {
+            const res = await biroPublicService.getPsikolog(slug)
+            if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+              const mapped = res.data.map(mapDbPsikologToUI)
+              setPsychologists(mapped)
+              return
+            }
+          } catch (e) {
+            console.warn("Gagal memuat psikolog khusus biro, fallback ke default:", e)
+          }
+        }
+
+        // 2. Default: Ambil data psikolog platform Empathika
         const dbList = await psikologService.getList()
         const mappedFromDb = Array.isArray(dbList) ? dbList.map(mapDbPsikologToUI) : []
         let combined = mappedFromDb

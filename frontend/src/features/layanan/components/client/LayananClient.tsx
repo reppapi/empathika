@@ -5,8 +5,10 @@ import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import { CATEGORIES, SERVICES_DATA } from "../../data/layananData"
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
+import { useTenantContext } from "@/context/TenantContext"
 
 export default function LayananClient() {
+  const { isBiro, slug, withBiro } = useTenantContext()
   const searchParams = useSearchParams()
   const router = useRouter()
   const categoryQuery = searchParams.get("category")
@@ -42,7 +44,7 @@ export default function LayananClient() {
 
   const handleCategoryChange = (id: string) => {
     setActiveCategory(id)
-    router.replace(`/layanan?category=${id}`, { scroll: false })
+    router.replace(withBiro(`/layanan?category=${id}`) as any, { scroll: false })
   }
 
   const renderServiceCard = (service: any, idx: number) => {
@@ -82,7 +84,7 @@ export default function LayananClient() {
 
           <div className="mt-auto pt-2">
             {(() => {
-              const destinationHref = service.href || (
+              const rawDestination = service.href || (
                 activeCategory === "04"
                   ? idx === 0
                     ? "/event/seminar"
@@ -93,6 +95,7 @@ export default function LayananClient() {
                   ? `/booking/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
                   : "/booking"
               )
+              const destinationHref = withBiro(rawDestination)
               return (
                 <Link
                   href={destinationHref as any}
