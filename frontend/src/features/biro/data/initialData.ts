@@ -1,4 +1,5 @@
 import { BiroKomunitas } from "../types"
+import { getBiroWebsiteUrl } from "@/lib/utils"
 
 export const LOCAL_STORAGE_KEY_BIRO = "empathika_admin_biro_list_v1"
 
@@ -16,7 +17,7 @@ export const INITIAL_BIRO_LIST: BiroKomunitas[] = [
     statusAktivasi: "Aktif",
     telepon: "+62 812-3456-7890",
     alamat: "Jl. Kaliurang KM 5, Sleman, D.I. Yogyakarta",
-    websiteUrl: "/biro/cendekia-muda",
+    websiteUrl: getBiroWebsiteUrl("cendekia-muda"),
     dashboardUrl: "/admin-biro",
     aktivasiToken: "act_cndk_982138",
     tanggalAktivasi: "2024-08-13",
@@ -34,7 +35,7 @@ export const INITIAL_BIRO_LIST: BiroKomunitas[] = [
     statusAktivasi: "Menunggu Aktivasi",
     telepon: "+62 821-9876-5432",
     alamat: "Gedung Pusat Pemuda Merdeka Lt. 2, Bandung, Jawa Barat",
-    websiteUrl: "/biro/jiwa-sehat-nusantara",
+    websiteUrl: getBiroWebsiteUrl("jiwa-sehat-nusantara"),
     dashboardUrl: "/admin-biro",
     aktivasiToken: "act_jsn_441209",
   },
@@ -51,7 +52,7 @@ export const INITIAL_BIRO_LIST: BiroKomunitas[] = [
     statusAktivasi: "Aktif",
     telepon: "+62 813-1122-3344",
     alamat: "South Quarter Tower C Lt. 10, Cilandak, Jakarta Selatan",
-    websiteUrl: "/biro/harmoni-insani",
+    websiteUrl: getBiroWebsiteUrl("harmoni-insani"),
     dashboardUrl: "/admin-biro",
     aktivasiToken: "act_hmn_772091",
     tanggalAktivasi: "2024-07-21",
@@ -69,7 +70,7 @@ export const INITIAL_BIRO_LIST: BiroKomunitas[] = [
     statusAktivasi: "Menunggu Aktivasi",
     telepon: "+62 857-4321-0099",
     alamat: "Jl. Danau Toba No. 14, Lowokwaru, Malang, Jawa Timur",
-    websiteUrl: "/biro/lentera-hati",
+    websiteUrl: getBiroWebsiteUrl("lentera-hati"),
     dashboardUrl: "/admin-biro",
     aktivasiToken: "act_lntr_883102",
   },
@@ -86,7 +87,7 @@ export const INITIAL_BIRO_LIST: BiroKomunitas[] = [
     statusAktivasi: "Nonaktif",
     telepon: "+62 878-5544-3322",
     alamat: "Jl. Raya Darmo No. 88, Tegalsari, Surabaya, Jawa Timur",
-    websiteUrl: "/biro/sahabat-pulih-surabaya",
+    websiteUrl: getBiroWebsiteUrl("sahabat-pulih-surabaya"),
     dashboardUrl: "/admin-biro",
     aktivasiToken: "act_shbt_100234",
     tanggalAktivasi: "2024-06-12",

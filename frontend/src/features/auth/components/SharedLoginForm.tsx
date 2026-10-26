@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, Mail, Lock, ArrowRight } from "lucide-react";
+import { setAuthCookie, removeAuthCookie } from "@/lib/cookie";
 import { DUMMY_ADMIN, DUMMY_BIRO } from "../data/dummyAuth";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
@@ -31,16 +32,16 @@ export function LoginForm() {
   ) => {
     if (rememberMe) {
       // Jika "Ingat Saya" dicentang: Sesi disimpan 7 hari (7 * 24 * 60 * 60 = 604800 detik)
-      document.cookie = `access_token=${accessToken}; path=/; max-age=604800; SameSite=Lax`;
-      document.cookie = `remember_me=true; path=/; max-age=604800; SameSite=Lax`;
+      setAuthCookie("access_token", accessToken, 604800);
+      setAuthCookie("remember_me", "true", 604800);
       localStorage.setItem("access_token", accessToken);
       localStorage.setItem("remember_me", "true");
       sessionStorage.removeItem("access_token");
       sessionStorage.removeItem("remember_me");
     } else {
       // Jika TIDAK dicentang: Sesi hanya berlaku di tab/sesi aktif (otomatis terhapus saat tab atau browser ditutup)
-      document.cookie = `access_token=${accessToken}; path=/; SameSite=Lax`;
-      document.cookie = `remember_me=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+      setAuthCookie("access_token", accessToken);
+      removeAuthCookie("remember_me");
       sessionStorage.setItem("access_token", accessToken);
       sessionStorage.setItem("user_role", user.role);
       localStorage.removeItem("access_token");

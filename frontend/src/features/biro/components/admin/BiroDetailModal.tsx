@@ -4,6 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { BiroKomunitas } from "../../types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import { getBiroWebsiteUrl } from "@/lib/utils"
 
 interface BiroDetailModalProps {
   isOpen: boolean
@@ -30,14 +31,7 @@ export default function BiroDetailModal({
       ? `${window.location.origin}/tenant-activate?token=${biro.aktivasiToken || `act_${biro.id}`}&tenant=${biro.slug}`
       : `https://empathika.id/tenant-activate?token=${biro.aktivasiToken || `act_${biro.id}`}&tenant=${biro.slug}`
 
-  const isLocalhost =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-
-  const websiteTenantUrl =
-    isLocalhost
-      ? `${window.location.origin}/biro/${biro.slug}`
-      : biro.websiteUrl || `https://${biro.slug}.empathika.id`
+  const websiteTenantUrl = getBiroWebsiteUrl(biro.slug)
 
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text)
@@ -218,9 +212,9 @@ export default function BiroDetailModal({
                   {biro.nama}
                 </h2>
                 <div className="flex items-center gap-2 text-xs text-gray-500 font-mono mt-0.5">
-                  <span>path:</span>
+                  <span>subdomain:</span>
                   <span className="font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md">
-                    /biro/{biro.slug}
+                    {biro.slug}.localhost:3000
                   </span>
                 </div>
               </div>

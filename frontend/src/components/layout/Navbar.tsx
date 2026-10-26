@@ -3,32 +3,26 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useTenantContext } from "@/context/TenantContext"
 
 export function Navbar() {
   const pathname = usePathname()
+  const { isBiro, biroProfile, withBiro } = useTenantContext()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
-  const biroMatch = pathname?.match(/^\/biro\/([^/?#]+)/)
-  const isBiro = !!biroMatch
-  const biroPrefix = biroMatch ? `/biro/${biroMatch[1]}` : ""
-
   const navLinks = [
-    { name: "home", path: isBiro ? `${biroPrefix}` : "/" },
-    { name: "layanan", path: isBiro ? `${biroPrefix}/layanan` : "/layanan" },
-    { name: "konseling", path: isBiro ? `${biroPrefix}/konseling` : "/konseling" },
-    { name: "psikolog", path: isBiro ? `${biroPrefix}/psikolog` : "/psikolog" },
-    { name: "blog", path: isBiro ? `${biroPrefix}/blog` : "/blog" },
-    { name: "kerja sama", path: isBiro ? `${biroPrefix}/kerja-sama` : "/kerja-sama" },
-    { name: "tentang kami", path: isBiro ? `${biroPrefix}/tentang-kami` : "/tentang-kami" },
+    { name: "home", path: withBiro("/") },
+    { name: "layanan", path: withBiro("/layanan") },
+    { name: "konseling", path: withBiro("/konseling") },
+    { name: "psikolog", path: withBiro("/psikolog") },
+    { name: "blog", path: withBiro("/blog") },
+    { name: "kerja sama", path: withBiro("/kerja-sama") },
+    { name: "tentang kami", path: withBiro("/tentang-kami") },
   ]
 
   const isActive = (path: string) => {
-    if (isBiro) {
-      if (path === `${biroPrefix}/konseling` && pathname === `${biroPrefix}/booking`) return true
-      return pathname === path
-    }
-    if (path === "/konseling" && pathname === "/booking") return true
+    if (path === withBiro("/konseling") && pathname === withBiro("/booking")) return true
     return pathname === path
   }
 
@@ -70,13 +64,19 @@ export function Navbar() {
           {/* ============================== */}
           <div className="hidden lg:flex items-center justify-center gap-10 xl:gap-14">
             <Link 
-              href={(isBiro ? biroPrefix : "/") as any}
+              href={withBiro("/") as any}
               className="flex items-center gap-3 transition-transform hover:scale-105"
               aria-label="Home"
             >
-              <div className="h-14 w-14 shrink-0 rounded-full bg-[#561269]"></div>
-              <span className="text-[24px] font-extrabold tracking-widest text-[#561269] uppercase">
-                EMPATHIKA
+              <div className="h-14 w-14 shrink-0 rounded-full bg-[#561269] flex items-center justify-center text-white font-extrabold text-xl overflow-hidden">
+                {biroProfile?.logoURI ? (
+                  <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  (biroProfile?.nama_biro?.[0] || "E").toUpperCase()
+                )}
+              </div>
+              <span className="text-[22px] font-extrabold tracking-widest text-[#561269] uppercase max-w-[280px] truncate">
+                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "EMPATHIKA"}
               </span>
             </Link>
 
@@ -100,7 +100,7 @@ export function Navbar() {
             </nav>
 
             <Link 
-              href={(isBiro ? `${biroPrefix}/konseling` : "/konseling") as any}
+              href={withBiro("/konseling") as any}
               className="flex h-14 shrink-0 items-center justify-center rounded-full bg-[#561269] px-6 text-[14px] font-normal lowercase tracking-wide text-white transition-transform hover:scale-105 shadow-md hover:bg-[#430b53]"
             >
               booking sesi
@@ -151,13 +151,19 @@ export function Navbar() {
           {/* Header Sidebar: Profile & Empathika */}
           <div className="px-6">
             <Link
-              href={(isBiro ? biroPrefix : "/") as any}
+              href={withBiro("/") as any}
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center gap-4"
             >
-              <div className="h-12 w-12 shrink-0 rounded-full bg-gray-300"></div>
-              <span className="text-[26px] font-extrabold tracking-widest text-white uppercase">
-                EMPATHIKA
+              <div className="h-12 w-12 shrink-0 rounded-full bg-white/20 flex items-center justify-center text-white font-extrabold text-lg overflow-hidden">
+                {biroProfile?.logoURI ? (
+                  <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  (biroProfile?.nama_biro?.[0] || "E").toUpperCase()
+                )}
+              </div>
+              <span className="text-[22px] font-extrabold tracking-widest text-white uppercase truncate">
+                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "EMPATHIKA"}
               </span>
             </Link>
             <div className="mt-6 h-[1.5px] w-full bg-white/40"></div>
@@ -187,7 +193,7 @@ export function Navbar() {
           {/* Booking Sesi (Bawah) */}
           <div className="mt-8 px-6 pb-6">
             <Link
-              href={(isBiro ? `${biroPrefix}/konseling` : "/konseling") as any}
+              href={withBiro("/konseling") as any}
               onClick={() => setIsMobileMenuOpen(false)}
               className="inline-block w-full text-center bg-white/15 hover:bg-white/25 text-white font-medium py-3 rounded-full text-[15px] transition-colors"
             >

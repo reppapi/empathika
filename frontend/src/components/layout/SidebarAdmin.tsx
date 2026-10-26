@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { removeAuthCookie } from "@/lib/cookie"
 
 export interface NavItem {
   name: string
@@ -90,8 +91,8 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
             <button
               type="button"
               onClick={() => {
-                document.cookie = "access_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
-                document.cookie = "remember_me=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                removeAuthCookie("access_token");
+                removeAuthCookie("remember_me");
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("remember_me");
                 sessionStorage.removeItem("access_token");

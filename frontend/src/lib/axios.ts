@@ -1,4 +1,5 @@
 import axios from "axios"
+import { getAuthCookie } from "./cookie"
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
@@ -6,9 +7,10 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
   timeout: 10000,
+  withCredentials: true,
 })
 
-// Request interceptor: attach access token (baca dari localStorage atau cookie)
+// Request interceptor: attach access token (baca dari localStorage, sessionStorage, atau cookie)
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const isRemembered = localStorage.getItem("remember_me") === "true"
@@ -16,11 +18,8 @@ apiClient.interceptors.request.use((config) => {
       ? localStorage.getItem("access_token")
       : sessionStorage.getItem("access_token")
 
-    if (!token && isRemembered && typeof document !== "undefined") {
-      const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)
-      if (match && match[1]) {
-        token = decodeURIComponent(match[1].trim())
-      }
+    if (!token) {
+      token = getAuthCookie("access_token")
     }
 
     if (token) config.headers.Authorization = `Bearer ${token}`

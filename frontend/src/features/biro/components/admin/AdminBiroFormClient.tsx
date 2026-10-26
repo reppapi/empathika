@@ -6,6 +6,7 @@ import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
 import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
 import { processAndUploadImage } from "@/lib/imageCompressor"
+import { getBiroWebsiteUrl } from "@/lib/utils"
 
 interface AdminBiroFormClientProps {
   biroId?: string
@@ -278,7 +279,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
               emailAdmin: emailAdmin.trim(),
               telepon: telepon.trim(),
               alamat: alamat.trim(),
-              websiteUrl: `/biro/${finalSlug}`,
+              websiteUrl: getBiroWebsiteUrl(finalSlug),
               dashboardUrl: `/admin-biro`,
               statusAktivasi,
               aktivasiToken: effectiveToken,
@@ -301,7 +302,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             alamat: alamat.trim(),
             tanggalDibuat: new Date().toISOString().split("T")[0],
             statusAktivasi,
-            websiteUrl: `/biro/${finalSlug}`,
+            websiteUrl: getBiroWebsiteUrl(finalSlug),
             dashboardUrl: `/admin-biro`,
             aktivasiToken: effectiveToken,
             tokenExpiredAt: effectiveExpiry,
@@ -322,7 +323,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           alamat: alamat.trim(),
           tanggalDibuat: today,
           statusAktivasi: "Menunggu Aktivasi",
-          websiteUrl: `/biro/${finalSlug}`,
+          websiteUrl: getBiroWebsiteUrl(finalSlug),
           dashboardUrl: `/admin-biro`,
           aktivasiToken: effectiveToken,
           tokenExpiredAt: effectiveExpiry,
@@ -509,7 +510,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                 }`}
               />
               <p className="text-[11px] text-gray-500 font-mono mt-1">
-                Akses Website: /biro/{slug || "slug-biro"}
+                Akses Website (Subdomain): {slug ? `${slug}.localhost:3000` : "slug-biro.localhost:3000"}
               </p>
               {errors.slug && <p className="text-xs text-red-500 mt-0.5 font-medium">{errors.slug}</p>}
             </div>
