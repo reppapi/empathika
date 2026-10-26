@@ -30,8 +30,14 @@ export default function BiroDetailModal({
       ? `${window.location.origin}/tenant-activate?token=${biro.aktivasiToken || `act_${biro.id}`}&tenant=${biro.slug}`
       : `https://empathika.id/tenant-activate?token=${biro.aktivasiToken || `act_${biro.id}`}&tenant=${biro.slug}`
 
+  const isLocalhost =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+
   const websiteTenantUrl =
-    biro.websiteUrl || `https://${biro.slug}.empathika.id`
+    isLocalhost
+      ? `${window.location.origin}/biro/${biro.slug}`
+      : biro.websiteUrl || `https://${biro.slug}.empathika.id`
 
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text)
@@ -212,9 +218,9 @@ export default function BiroDetailModal({
                   {biro.nama}
                 </h2>
                 <div className="flex items-center gap-2 text-xs text-gray-500 font-mono mt-0.5">
-                  <span>subdomain:</span>
+                  <span>path:</span>
                   <span className="font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md">
-                    {biro.slug}.empathika.id
+                    /biro/{biro.slug}
                   </span>
                 </div>
               </div>
@@ -283,14 +289,19 @@ export default function BiroDetailModal({
                       </span>
                     </div>
 
-                    {/* Slug / Subdomain URL */}
+                    {/* Slug & URL Website Biro */}
                     <div>
                       <span className="text-gray-400 text-[11px] font-medium block">
-                        Slug & Subdomain URL
+                        URL Website Biro
                       </span>
-                      <span className="font-mono font-semibold text-[#561269] break-all mt-0.5 block">
-                        https://{biro.slug}.empathika.id
-                      </span>
+                      <a
+                        href={websiteTenantUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono font-semibold text-[#561269] hover:underline break-all mt-0.5 block"
+                      >
+                        {websiteTenantUrl}
+                      </a>
                     </div>
 
                     {/* Kode Warna Identitas */}
@@ -420,9 +431,27 @@ export default function BiroDetailModal({
                             {copiedType === "website" ? "Tersalin!" : "Salin"}
                           </button>
                         </div>
-                        <p className="text-[11px] font-mono text-gray-600 break-all select-all bg-gray-50 p-1.5 rounded-lg">
-                          {websiteTenantUrl}
-                        </p>
+                        <div className="flex items-center gap-1.5 bg-gray-50 p-2 rounded-xl border border-gray-100">
+                          <a
+                            href={websiteTenantUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] font-mono text-[#561269] hover:underline break-all flex-1"
+                          >
+                            {websiteTenantUrl}
+                          </a>
+                          <a
+                            href={websiteTenantUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1 text-gray-400 hover:text-[#561269] shrink-0"
+                            title="Buka website di tab baru"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </div>
                       </div>
                     </div>
                   )}

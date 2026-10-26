@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 import { DATA_PSIKOLOG_DUMMY } from '@/features/psikolog/dummy'
 import { PsikologCard } from '@/features/psikolog/components/client/PsikologCard'
@@ -17,6 +18,10 @@ import { mapDbPsikologToUI } from '@/features/psikolog/utils/mapPsikolog'
 import { PsikologUI } from '@/types/psikolog'
 
 export default function HomeClient() {
+  const pathname = usePathname()
+  const biroMatch = pathname?.match(/^\/biro\/([^/?#]+)/)
+  const biroPrefix = biroMatch ? `/biro/${biroMatch[1]}` : ""
+
   const [publishedEvents, setPublishedEvents] = useState<EventItemApi[]>([])
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
@@ -231,7 +236,7 @@ export default function HomeClient() {
               {/* Tombol Aksi */}
               <div className="flex flex-wrap items-center gap-3 lg:gap-4">
                 <Link
-                  href="/konseling"
+                  href={biroPrefix ? `${biroPrefix}/konseling` : "/konseling"}
                   className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm md:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   Booking Sesi
@@ -315,7 +320,7 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* UPCOMING EVENTS SECTION */}
       {/* ======================================= */}
-      <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32">
+      <section id="event" className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32 scroll-mt-28">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#561269] mb-3">Yuk, Ikuti Event Kami</h2>
@@ -323,7 +328,7 @@ export default function HomeClient() {
               Jangan lewatkan berbagai webinar dan kelas interaktif bersama psikolog ahli untuk mendukung kesehatan mentalmu.
             </p>
           </div>
-          <Link href="/layanan?category=04" className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
+          <Link href={biroPrefix ? `${biroPrefix}/layanan?category=04` : "/layanan?category=04"} className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Event
             <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
           </Link>
@@ -416,7 +421,7 @@ export default function HomeClient() {
                         <p className="text-lg font-black text-[#561269]">{hargaTeks}</p>
                       </div>
                       <Link
-                        href={`/event/checkout?judul=${encodeURIComponent(ev.judul)}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || "Online / Sesuai Pengumuman")}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}`}
+                        href={biroPrefix ? `${biroPrefix}/event/checkout?judul=${encodeURIComponent(ev.judul)}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || "Online / Sesuai Pengumuman")}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}` : `/event/checkout?judul=${encodeURIComponent(ev.judul)}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || "Online / Sesuai Pengumuman")}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}`}
                         className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
                       >
                         Daftar
@@ -442,7 +447,7 @@ export default function HomeClient() {
               Mohon maaf, saat ini belum ada webinar atau workshop yang kami jadwalkan. Kamu bisa membaca informasi lengkap seputar rangkaian program event dan kegiatan menarik kami di halaman layanan.
             </p>
             <Link
-              href="/layanan?category=04"
+              href={biroPrefix ? `${biroPrefix}/layanan?category=04` : "/layanan?category=04"}
               className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm sm:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95"
             >
               <span>Pelajari Rangkaian Event Empathika</span>
@@ -457,7 +462,7 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* OUR SERVICES SECTION */}
       {/* ======================================= */}
-      <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32 pb-24 lg:pb-32">
+      <section id="layanan" className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-24 lg:mt-32 pb-24 lg:pb-32 scroll-mt-28">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#561269] mb-3">Jelajahi Layanan Kami</h2>
@@ -465,7 +470,7 @@ export default function HomeClient() {
               Pilih layanan psikologi dan konseling yang paling sesuai dengan kebutuhanmu saat ini. Kami siap mendengar dan membantu.
             </p>
           </div>
-          <Link href="/layanan" className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
+          <Link href={biroPrefix ? `${biroPrefix}/layanan` : "/layanan"} className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Layanan
             <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
           </Link>
@@ -486,7 +491,7 @@ export default function HomeClient() {
             <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
               Dapatkan ruang aman untuk bercerita dan mencari solusi bersama tenaga ahli. Kami menyediakan konseling individu maupun kelompok sesuai dengan kebutuhan psikologis Anda.
             </p>
-            <Link href="/layanan?category=02" className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+            <Link href={biroPrefix ? `${biroPrefix}/layanan?category=02` : "/layanan?category=02"} className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
               Lihat Detail
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
             </Link>
@@ -504,7 +509,7 @@ export default function HomeClient() {
             <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
               Program pelatihan khusus yang dirancang untuk membekali Anda dengan keterampilan dasar konseling, empati, dan cara tepat dalam mendampingi teman sebaya.
             </p>
-            <Link href="/layanan?category=03" className="text-[#561269] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+            <Link href={biroPrefix ? `${biroPrefix}/layanan?category=03` : "/layanan?category=03"} className="text-[#561269] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
               Lihat Detail
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
             </Link>
@@ -522,7 +527,7 @@ export default function HomeClient() {
             <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
               Pemetaan kondisi psikologis secara komprehensif, mulai dari minat bakat, kepribadian, hingga evaluasi kesiapan kerja menggunakan alat ukur yang valid dan terpercaya.
             </p>
-            <Link href="/layanan?category=05" className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+            <Link href={biroPrefix ? `${biroPrefix}/layanan?category=05` : "/layanan?category=05"} className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
               Lihat Detail
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
             </Link>
@@ -534,7 +539,7 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* PSYCHOLOGISTS / PROFESSIONALS SECTION */}
       {/* ======================================= */}
-      <section className="w-full bg-[#f4f2ee] pt-8 lg:pt-12 pb-12 lg:pb-16 relative overflow-hidden">
+      <section id="psikolog" className="w-full bg-[#f4f2ee] pt-8 lg:pt-12 pb-12 lg:pb-16 relative overflow-hidden scroll-mt-28">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center mb-4 md:mb-6">
           
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#561269] mb-2 tracking-tight">Kenali Psikolog Kami</h2>
@@ -640,12 +645,12 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* PSIKOTES SECTION */}
       {/* ======================================= */}
-      <section className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+      <section id="psikotes" className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 scroll-mt-28">
         <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
           <h2 className="text-2xl md:text-3xl font-semibold text-[#561269] tracking-tight">
             Kenali Dirimu dengan Psikotes <span className="font-bold">Empathika</span>
           </h2>
-          <Link href="/layanan?category=01" className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
+          <Link href={biroPrefix ? `${biroPrefix}/layanan?category=01` : "/layanan?category=01"} className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Psikotes
             <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
           </Link>
@@ -693,7 +698,7 @@ export default function HomeClient() {
 
                     <div className="mt-auto">
                       <Link
-                        href={`/psikotes/${item.id}`}
+                        href={biroPrefix ? `${biroPrefix}/psikotes/${item.id}` : `/psikotes/${item.id}`}
                         className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
                       >
                         Ikuti Tes
@@ -724,7 +729,7 @@ export default function HomeClient() {
                 <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
                 
                 <div className="mt-auto">
-                  <Link href="/psikotes/mbti" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                  <Link href={biroPrefix ? `${biroPrefix}/psikotes/mbti` : "/psikotes/mbti"} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
                     Ikuti Tes
                   </Link>
                 </div>
@@ -748,7 +753,7 @@ export default function HomeClient() {
                 <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
                 
                 <div className="mt-auto">
-                  <Link href="/psikotes/mbti-2" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                  <Link href={biroPrefix ? `${biroPrefix}/psikotes/mbti-2` : "/psikotes/mbti-2"} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
                     Ikuti Tes
                   </Link>
                 </div>
@@ -771,7 +776,7 @@ export default function HomeClient() {
                 <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Love Language: 5 Tipe Bahasa Cinta...</h3>
                 
                 <div className="mt-auto">
-                  <Link href="/psikotes/love-language" className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
+                  <Link href={biroPrefix ? `${biroPrefix}/psikotes/love-language` : "/psikotes/love-language"} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
                     Ikuti Tes
                   </Link>
                 </div>
@@ -784,7 +789,7 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* MAPS / LOCATION SECTION */}
       {/* ======================================= */}
-      <section className="w-full bg-[#f8f7f5] py-20 lg:py-28 border-t border-gray-200">
+      <section id="tentang-kami" className="w-full bg-[#f8f7f5] py-20 lg:py-28 border-t border-gray-200 scroll-mt-28">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#561269] mb-4 tracking-tight">Kunjungi Kami</h2>

@@ -2,10 +2,28 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { adminService } from "@/services/admin.service";
 
 export function Footer() {
+  const pathname = usePathname();
+  const biroMatch = pathname?.match(/^\/biro\/([^/?#]+)/);
+  const isBiro = !!biroMatch;
+  const biroPrefix = biroMatch ? `/biro/${biroMatch[1]}` : "";
+
+  const handleNavClick = (path: string) => {
+    if (isBiro && path.includes("#")) {
+      const hash = path.substring(path.indexOf("#"));
+      const el = document.querySelector(hash);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    } else if (isBiro && path === biroPrefix) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   const [contact, setContact] = useState({
     alamat: "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
     email: "empathika889@gmail.com",
@@ -89,7 +107,10 @@ export function Footer() {
           
           {/* Brand & Description */}
           <div className="lg:col-span-2 space-y-4 md:pr-8">
-            <Link href="/" className="inline-flex items-center gap-3">
+            <Link 
+              href={(isBiro ? biroPrefix : "/") as any}
+              className="inline-flex items-center gap-3"
+            >
               {/* Logo (Circle) */}
               <div className="h-14 w-14 shrink-0 rounded-full bg-[#561269]"></div>
               <span className="text-[24px] font-extrabold tracking-widest text-[#561269] uppercase">EMPATHIKA</span>
@@ -106,10 +127,38 @@ export function Footer() {
           <div className="space-y-5">
             <h4 className="font-bold text-[#3B074B] text-lg tracking-wide">Empathika</h4>
             <ul className="space-y-3">
-              <li><Link href={"/tentang-kami" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Tentang Kami</Link></li>
-              <li><Link href={"/psikolog" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Psikolog</Link></li>
-              <li><Link href={"/blog" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Blog</Link></li>
-              <li><Link href={"/kerja-sama" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Mitra Kerjasama</Link></li>
+              <li>
+                <Link 
+                  href={(isBiro ? `${biroPrefix}/tentang-kami` : "/tentang-kami") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Tentang Kami
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={(isBiro ? `${biroPrefix}/psikolog` : "/psikolog") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Psikolog
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={(isBiro ? `${biroPrefix}/blog` : "/blog") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={(isBiro ? `${biroPrefix}/kerja-sama` : "/kerja-sama") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Mitra Kerjasama
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -117,10 +166,38 @@ export function Footer() {
           <div className="space-y-5">
             <h4 className="font-bold text-[#3B074B] text-lg tracking-wide">Layanan</h4>
             <ul className="space-y-3">
-              <li><Link href={"/konseling" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Konsultasi</Link></li>
-              <li><Link href={"/layanan" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Asesmen</Link></li>
-              <li><Link href={"/psikotes" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Psikotes</Link></li>
-              <li><Link href={"/event" as any} className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]">Event</Link></li>
+              <li>
+                <Link 
+                  href={(isBiro ? `${biroPrefix}/konseling` : "/konseling") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Konsultasi
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={(isBiro ? `${biroPrefix}/layanan` : "/layanan") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Asesmen
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={(isBiro ? `${biroPrefix}/psikotes` : "/psikotes") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Psikotes
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={(isBiro ? `${biroPrefix}/event` : "/event") as any}
+                  className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
+                >
+                  Event
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -154,8 +231,18 @@ export function Footer() {
           </p>
           
           <div className="flex items-center gap-6">
-            <Link href={"/privacy-policy" as any} className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors">Privacy Policy</Link>
-            <Link href={"/terms-conditions" as any} className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors">Terms & Conditions</Link>
+            <Link 
+              href={(isBiro ? `${biroPrefix}/privacy-policy` : "/privacy-policy") as any}
+              className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link 
+              href={(isBiro ? `${biroPrefix}/terms-conditions` : "/terms-conditions") as any}
+              className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors"
+            >
+              Terms & Conditions
+            </Link>
           </div>
 
           <div className="flex items-center gap-4">

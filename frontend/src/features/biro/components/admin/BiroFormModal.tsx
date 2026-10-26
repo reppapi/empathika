@@ -198,8 +198,8 @@ export default function BiroFormModal({
         emailAdmin: emailAdmin.trim(),
         telepon: telepon.trim(),
         alamat: alamat.trim(),
-        websiteUrl: `https://${finalSlug}.empathika.id`,
-        dashboardUrl: `https://${finalSlug}.empathika.id/admin`,
+        websiteUrl: `/biro/${finalSlug}`,
+        dashboardUrl: `/admin-biro`,
         statusAktivasi,
       })
       setIsSubmitting(false)
@@ -348,8 +348,8 @@ export default function BiroFormModal({
                   }`}
                 />
               </div>
-              <p className="text-[11px] text-gray-400 font-mono mt-1">
-                Akses: https://{slug || "slug-biro"}.empathika.id
+              <p className="text-[11px] text-gray-500 font-mono mt-1">
+                Akses Website: /biro/{slug || "slug-biro"}
               </p>
               {errors.slug && <p className="text-xs text-red-500 mt-0.5 font-medium">{errors.slug}</p>}
             </div>
