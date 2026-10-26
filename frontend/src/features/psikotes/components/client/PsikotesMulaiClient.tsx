@@ -2,14 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MOCK_QUESTIONS, TEST_DATA } from "../../data/psikotesData";
 import { usePsikotesTest } from "../../hooks/usePsikotesTest";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { Loader2, AlertCircle } from "lucide-react";
 
 export default function PsikotesMulaiClient({ params }: { params: { testId: string } }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [dbData, setDbData] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState(false);
 
   useEffect(() => {
     const fetchPackage = async () => {
@@ -63,6 +68,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     goToNext,
   } = usePsikotesTest(totalQuestions, params.testId, calculateScore);
 
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#fbfbfb] flex flex-col items-center justify-center">
@@ -100,12 +106,62 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
   const handleSelectOption = (optionIdx: number) => {
     handleOptionSelect(optionIdx);
+    setLocalError(false);
     setTimeout(() => {
       goToNext();
     }, 400);
   };
 
   const isLastQuestion = currentIndex === totalQuestions - 1;
+
+  const handleFinish = async () => {
+    if (answers[currentIndex] === undefined) {
+      setLocalError(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (dbData && dbData.soal_psikotes && dbData.soal_psikotes.length > 0) {
+        // Susun payload jawaban untuk dikirim ke backend
+        const jawabanPayload = dbData.soal_psikotes.map((s, idx) => {
+          const selectedOptIdx = answers[idx] ?? 0;
+          const pilihan = s.pilihan_jawaban[selectedOptIdx];
+          return {
+            id_soal: s.id,
+            id_pilihan: pilihan ? pilihan.id : s.pilihan_jawaban[0].id,
+          };
+        });
+
+        const res = await psikotesService.submitJawaban(params.testId, {
+          jawaban: jawabanPayload,
+        });
+
+        if (res && res.success && res.data) {
+          const query = new URLSearchParams(searchParams.toString());
+          query.set("skor", String(res.data.total_skor));
+          query.set("bookingId", res.data.id_booking);
+          router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+          return;
+        }
+      }
+
+      // Fallback kalkulasi lokal jika paket mock
+      const score = calculateScore(answers);
+      const query = new URLSearchParams(searchParams.toString());
+      query.set("skor", String(score));
+      router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+    } catch (err) {
+      console.error("Gagal menyimpan jawaban psikotes ke server:", err);
+      // Tetap lanjutkan ke halaman hasil agar pengalaman user lancar
+      const score = calculateScore(answers);
+      const query = new URLSearchParams(searchParams.toString());
+      query.set("skor", String(score));
+      router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col selection:bg-[#561269] selection:text-white">
@@ -165,7 +221,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               })}
             </div>
             
-            {showError && (
+            {(showError || localError) && (
               <p className="text-red-500 font-medium text-center mt-6 animate-pulse">
                 Silakan pilih jawaban terlebih dahulu.
               </p>
@@ -176,7 +232,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           <div className="flex items-center justify-between gap-4 mt-auto pt-2">
             <button
               onClick={handlePrev}
-              disabled={currentIndex === 0}
+              disabled={currentIndex === 0 || isSubmitting}
               className={`px-6 py-3.5 md:py-4 rounded-xl font-bold transition-all duration-300 text-sm md:text-base ${
                 currentIndex === 0 
                   ? "opacity-0 pointer-events-none" 
@@ -187,16 +243,26 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             </button>
 
             <button
-              onClick={handleNext}
+              onClick={isLastQuestion ? handleFinish : handleNext}
+              disabled={isSubmitting}
               className={`px-8 py-3.5 md:py-4 rounded-xl font-bold transition-all duration-300 shadow-sm text-sm md:text-base flex items-center gap-2 ${
                 isLastQuestion
                   ? "bg-[#d97706] hover:bg-[#b46204] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
                   : "bg-[#561269] hover:bg-[#763E8B] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
-              }`}
+              } ${isSubmitting ? "opacity-80 cursor-not-allowed" : ""}`}
             >
-              {isLastQuestion ? "Selesai" : "Berikutnya"}
-              {!isLastQuestion && (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Menyimpan Hasil...</span>
+                </>
+              ) : isLastQuestion ? (
+                "Selesai"
+              ) : (
+                <>
+                  <span>Berikutnya</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+                </>
               )}
             </button>
           </div>
@@ -205,3 +271,4 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     </div>
   );
 }
+

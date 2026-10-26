@@ -4,6 +4,8 @@ import {
   createPsikotesSchema,
   updatePsikotesSchema,
   psikotesQuerySchema,
+  submitPsikotesSchema,
+  pesertaQuerySchema,
 } from './psikotes.schema'
 
 export default async function psikotesRoutes(fastify: FastifyInstance) {
@@ -27,6 +29,18 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     },
     handler: controller.getAll,
   })
+
+  // 1b. Admin: Ambil daftar peserta psikotes & statistik summary
+  fastify.get('/peserta', {
+    preHandler: [optionalAuth],
+    schema: {
+      tags: ['Psikotes'],
+      summary: 'Mendapatkan daftar peserta psikotes dan summary statistik pengerjaan',
+      querystring: pesertaQuerySchema,
+    },
+    handler: controller.getPeserta,
+  })
+
 
   // 2. Publik / Admin: Ambil detail paket psikotes beserta soal dan interpretasinya
   fastify.get('/:id', {
@@ -71,4 +85,16 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     },
     handler: controller.remove,
   })
+
+  // 6. Publik: Submit jawaban psikotes (Gratis tanpa data diri / Berbayar dengan data diri)
+  fastify.post('/:id/submit', {
+    preHandler: [optionalAuth],
+    schema: {
+      tags: ['Psikotes'],
+      summary: 'Kirimkan jawaban psikotes untuk disimpan ke database dan hitung hasil interpretasi',
+      body: submitPsikotesSchema,
+    },
+    handler: controller.submit,
+  })
 }
+

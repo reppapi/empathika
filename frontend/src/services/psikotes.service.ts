@@ -40,6 +40,38 @@ export interface PaketPsikotesApiResponse {
   }
 }
 
+export interface SubmitPsikotesPayload {
+  jawaban: Array<{ id_soal: string; id_pilihan: string }> | Record<string, string>
+  klien?: {
+    nama?: string
+    no_telepon?: string
+    usia?: number
+    jenis_kelamin?: string
+  }
+  id_biro?: string
+}
+
+export interface SubmitPsikotesResult {
+  id_booking: string
+  id_paket: string
+  judul_paket: string
+  client: {
+    id: string
+    nama: string
+    no_telepon?: string | null
+  }
+  total_skor: number
+  hasil: {
+    id: string
+    grade: string
+    judul: string
+    deskripsi: string
+    makna?: string | null
+    tips?: any
+    tanggal_selesai: string
+  }
+}
+
 export const psikotesService = {
   getList: (params?: { search?: string; status?: string; jenis_akses?: string; include_draft?: boolean | string }) =>
     apiClient.get<{ success: boolean; message: string; data: PaketPsikotesApiResponse[] }>("/psikotes", { params }).then((r) => r.data),
@@ -56,9 +88,43 @@ export const psikotesService = {
   delete: (id: string) =>
     apiClient.delete<{ success: boolean; message: string }>(`/psikotes/${id}`).then((r) => r.data),
 
-  submitJawaban: (testId: string, jawaban: Record<string, string>) =>
-    apiClient.post(`/psikotes/${testId}/submit`, { jawaban }).then((r) => r.data),
+  submitJawaban: (testId: string, payload: SubmitPsikotesPayload) =>
+    apiClient.post<{ success: boolean; message: string; data: SubmitPsikotesResult }>(`/psikotes/${testId}/submit`, payload).then((r) => r.data),
 
   getHasil: (testId: string) =>
     apiClient.get(`/psikotes/${testId}/hasil`).then((r) => r.data),
+
+  getPeserta: (params?: { search?: string; jenis_akses?: string; id_paket?: string; page?: number; limit?: number }) =>
+    apiClient
+      .get<{
+        success: boolean
+        message: string
+        data: {
+          summary: {
+            total_peserta: number
+            total_gratis: number
+            total_berbayar: number
+            total_selesai: number
+          }
+          items: Array<{
+            id: string
+            id_paket: string
+            nama_paket: string
+            jenis_akses: string
+            harga: any
+            nama_peserta: string
+            no_hp: string
+            usia: number | null
+            jenis_kelamin: string | null
+            tanggal: string
+            status: string
+            skor: string
+            total_skor: number | null
+            hasil: any
+          }>
+        }
+      }>("/psikotes/peserta", { params })
+      .then((r) => r.data),
 }
+
+
