@@ -70,6 +70,32 @@ function formatFullDateIndonesian(d: Date): string {
   return `${dayNames[d.getDay()]}, ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`
 }
 
+function isSessionPastOrCompleted(dateKey?: string, waktu?: string, status?: string): boolean {
+  if (status === "Selesai" || status === "COMPLETED") return true
+  if (!dateKey) return false
+
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
+  if (dateKey < todayKey) return true
+  if (dateKey > todayKey) return false
+
+  if (waktu) {
+    const parts = waktu.split("-").map((s) => s.trim())
+    const endTimeStr = parts[1] || parts[0]
+    if (endTimeStr) {
+      const [h, m] = endTimeStr.split(":").map(Number)
+      if (!isNaN(h) && !isNaN(m)) {
+        const currentMinutes = now.getHours() * 60 + now.getMinutes()
+        const endMinutes = h * 60 + m
+        return currentMinutes >= endMinutes
+      }
+    }
+  }
+
+  return false
+}
+
 export default function PsikologJadwalClient() {
   const today = useMemo(() => {
     const d = new Date()
@@ -563,8 +589,8 @@ export default function PsikologJadwalClient() {
                     type="button"
                     onClick={() => setSelectedMetode("Online")}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedMetode === "Online"
-                        ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
-                        : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
+                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
+                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
                       }`}
                   >
                     <Video className="w-3.5 h-3.5 text-[#561269]" />
@@ -574,8 +600,8 @@ export default function PsikologJadwalClient() {
                     type="button"
                     onClick={() => setSelectedMetode("Offline")}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedMetode === "Offline"
-                        ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
-                        : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
+                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
+                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
                       }`}
                   >
                     <Building2 className="w-3.5 h-3.5 text-[#561269]" />
@@ -585,8 +611,8 @@ export default function PsikologJadwalClient() {
                     type="button"
                     onClick={() => setSelectedMetode("Keduanya")}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedMetode === "Keduanya"
-                        ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
-                        : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
+                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
+                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
                       }`}
                   >
                     <Layers className="w-3.5 h-3.5 text-[#561269]" />
@@ -639,17 +665,16 @@ export default function PsikologJadwalClient() {
                   return (
                     <div
                       key={idx}
-                      className={`flex items-center justify-between border rounded-xl px-4 py-2.5 transition-all ${
-                        isChecked
+                      className={`flex items-center justify-between border rounded-xl px-4 py-2.5 transition-all ${isChecked
                           ? "border-[#561269] bg-purple-50/70 shadow-2xs"
                           : isAlreadyCancelled
-                          ? "border-rose-200 bg-rose-50/40"
-                          : isAlreadyOpened
-                          ? "border-purple-300 bg-purple-50/30"
-                          : isAlreadyBooked
-                          ? "border-emerald-200 bg-emerald-50/30"
-                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
-                      }`}
+                            ? "border-rose-200 bg-rose-50/40"
+                            : isAlreadyOpened
+                              ? "border-purple-300 bg-purple-50/30"
+                              : isAlreadyBooked
+                                ? "border-emerald-200 bg-emerald-50/30"
+                                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                        }`}
                     >
                       <label className="flex items-center gap-3 cursor-pointer flex-1">
                         <input
@@ -659,13 +684,12 @@ export default function PsikologJadwalClient() {
                           className="w-4 h-4 text-[#561269] focus:ring-[#561269] rounded border-gray-300 cursor-pointer"
                         />
                         <span
-                          className={`text-[13px] font-medium ${
-                            isChecked
+                          className={`text-[13px] font-medium ${isChecked
                               ? "text-[#561269] font-bold"
                               : isAlreadyCancelled
-                              ? "text-gray-600 line-through"
-                              : "text-gray-700"
-                          }`}
+                                ? "text-gray-600 line-through"
+                                : "text-gray-700"
+                            }`}
                         >
                           {time}
                         </span>
@@ -733,11 +757,10 @@ export default function PsikologJadwalClient() {
 
                 {/* Opsi Tambahan: Tentukan Jam Kustom Sendiri */}
                 <div
-                  className={`border rounded-xl px-4 py-2.5 transition-colors cursor-pointer ${
-                    isCustomTime
+                  className={`border rounded-xl px-4 py-2.5 transition-colors cursor-pointer ${isCustomTime
                       ? "border-[#561269] bg-purple-50/70 shadow-2xs"
                       : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
-                  }`}
+                    }`}
                 >
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
@@ -819,8 +842,8 @@ export default function PsikologJadwalClient() {
                 onClick={handleBooking}
                 disabled={selectedTimes.length === 0 && !isCustomTime}
                 className={`w-full font-bold py-3.5 rounded-full text-[13px] transition-all cursor-pointer ${selectedTimes.length > 0 || isCustomTime
-                    ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-sm hover:shadow-md active:scale-95"
-                    : "bg-[#d6d6d6] text-gray-500 cursor-not-allowed"
+                  ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-sm hover:shadow-md active:scale-95"
+                  : "bg-[#d6d6d6] text-gray-500 cursor-not-allowed"
                   }`}
               >
                 {selectedTimes.length > 0
@@ -912,10 +935,10 @@ export default function PsikologJadwalClient() {
                   <div
                     key={i}
                     className={`p-2.5 flex flex-col gap-2.5 ${isTodayColumn
-                        ? "bg-purple-50/25 ring-1 ring-inset ring-[#561269]/20"
-                        : wd.isSameAsSelected
-                          ? "bg-purple-50/10"
-                          : "bg-white"
+                      ? "bg-purple-50/25 ring-1 ring-inset ring-[#561269]/20"
+                      : wd.isSameAsSelected
+                        ? "bg-purple-50/10"
+                        : "bg-white"
                       }`}
                   >
                     {sessions.length > 0 ? (
@@ -956,6 +979,47 @@ export default function PsikologJadwalClient() {
 
                         // 2. Sesi Klien (Sudah Dibooking)
                         if (isClientBooking) {
+                          const isCompleted = isSessionPastOrCompleted(wd.dateKey || item.date, item.waktu, item.status)
+
+                          if (isCompleted) {
+                            return (
+                              <div
+                                key={item.id || idx}
+                                className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
+                                    <span className="text-xs font-extrabold text-gray-600">
+                                      {item.waktu}
+                                    </span>
+                                  </div>
+                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                    Selesai
+                                  </span>
+                                </div>
+                                <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700">
+                                  {item.layanan}
+                                </p>
+                                <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-500">
+                                  {item.namaKlien && (
+                                    <span>
+                                      Klien:{" "}
+                                      <strong className="text-gray-700">
+                                        {item.namaKlien}
+                                      </strong>
+                                    </span>
+                                  )}
+                                  {item.metode && (
+                                    <span className="text-[9px] text-gray-400 italic mt-0.5">
+                                      [{item.metode}]
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          }
+
                           return (
                             <div
                               key={item.id || idx}
