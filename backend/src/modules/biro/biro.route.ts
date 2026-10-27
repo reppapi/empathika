@@ -3,6 +3,8 @@ import { BiroController } from "./biro.controller"
 import { authGuard } from "../../middlewares/auth-guard"
 import {
   updateBiroAccountSchema,
+  createBiroSchema,
+  updateBiroProfileSchema,
   getPublicBiroParamsSchema,
   getPublicBiroPsikologQuerySchema,
   getPublicBiroPsikologDetailParamsSchema,
@@ -29,6 +31,37 @@ export default async function biroRoutes(fastify: FastifyInstance) {
     handler: controller.getAll,
   })
 
+  // POST /biro/admin/create - Admin membuat akun Biro baru + link aktivasi
+  fastify.post("/admin/create", {
+    schema: {
+      tags: ["Biro - Admin"],
+      summary: "Admin membuat akun Biro baru dengan link aktivasi",
+      body: createBiroSchema,
+    },
+    handler: controller.createBiro,
+  })
+
+  // GET /biro/admin/:accountId - Admin mengambil detail akun Biro berdasarkan accountId
+  fastify.get("/admin/:accountId", {
+    schema: {
+      tags: ["Biro - Admin"],
+      summary: "Admin mendapatkan detail akun Biro berdasarkan accountId",
+      params: { type: "object", properties: { accountId: { type: "string" } }, required: ["accountId"] },
+    },
+    handler: controller.getBiroById,
+  })
+
+  // PUT /biro/admin/:accountId - Admin memperbarui profil Biro
+  fastify.put("/admin/:accountId", {
+    schema: {
+      tags: ["Biro - Admin"],
+      summary: "Admin memperbarui profil Biro (nama, slug, deskripsi, dsb.)",
+      params: { type: "object", properties: { accountId: { type: "string" } }, required: ["accountId"] },
+      body: updateBiroProfileSchema,
+    },
+    handler: controller.updateBiroProfile,
+  })
+
   // GET /biro/account - Mendapatkan detail akun Biro yang sedang login
   fastify.get("/account", {
     preHandler: [authGuard],
@@ -52,9 +85,7 @@ export default async function biroRoutes(fastify: FastifyInstance) {
     handler: controller.updateAccount,
   })
 
-  // ==========================================
-  // 2. RUTE PUBLIK WEBSITE BIRO (USER / CLIENT FACING)
-  // ==========================================
+
 
   // GET /biro/public/:slug - Profil utama website biro
   fastify.get("/public/:slug", {

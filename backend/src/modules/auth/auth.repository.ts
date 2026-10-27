@@ -27,8 +27,6 @@ export class AuthRepository {
       data: {
         password: hashedPassword,
         aktif: true,
-        token_aktivasi: null,
-        token_aktivasi_exp: null,
       },
     })
   }

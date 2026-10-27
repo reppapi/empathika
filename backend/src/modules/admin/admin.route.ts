@@ -110,6 +110,17 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.updateBookingStatus,
   })
 
+  // ── Kirim Ulang Tautan Aktivasi Tenaga Ahli / Biro ──────────────
+  // Didaftarkan sebelum /:id agar tidak tertangkap rute dinamis
+  fastify.post('/resend-activation', {
+    schema: {
+      tags: ['Admin'],
+      summary: 'Kirim ulang / generate ulang token aktivasi akun tenaga ahli atau biro',
+      body: resendActivationSchema,
+    },
+    handler: controller.resendActivation,
+  })
+
   // ── Standar CRUD Admin ──────────────────────────────────────────
   fastify.get('/', {
     preHandler: [adminGuard],
@@ -133,16 +144,6 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     preHandler: [adminGuard],
     schema: { tags: ['Admin'], security: [{ bearerAuth: [] }] },
     handler: controller.update,
-  })
-
-  // ── Kirim Ulang Tautan Aktivasi Tenaga Ahli / Biro ──────────────
-  fastify.post('/resend-activation', {
-    schema: {
-      tags: ['Admin'],
-      summary: 'Kirim ulang / generate ulang token aktivasi akun tenaga ahli atau biro',
-      body: resendActivationSchema,
-    },
-    handler: controller.resendActivation,
   })
 
   fastify.delete('/:id', {

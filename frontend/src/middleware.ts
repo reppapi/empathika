@@ -52,6 +52,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = request.cookies.get("access_token")?.value
 
+  // /set-password dan /login tetap publik (matcher juga tidak mencakup keduanya)
+  if (pathname === "/set-password" || pathname.startsWith("/login") || pathname.startsWith("/psikolog/login")) {
+    return NextResponse.next()
+  }
+
   const isAdmin = adminRoutes.some((r) => pathname.startsWith(r))
 
   // Jika akses admin, biro, atau psikolog-web tanpa token valid, redirect ke login

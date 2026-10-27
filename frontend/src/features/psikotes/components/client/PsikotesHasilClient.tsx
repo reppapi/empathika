@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Compass,
   Loader2,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -74,25 +75,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
   const displayTestName = dbPackage?.judul || (TEST_DATA[params.testId as keyof typeof TEST_DATA]?.title) || resultData.testName;
 
   const dynamicResult = (() => {
-    if (params.testId === "mbti" || params.testId === "mbti-2") {
-      return {
-        prefix: "Tipe kepribadianmu adalah",
-        value: "ENFJ-A (Protagonist)",
-        color: "text-[#561269]",
-        bgColor: "bg-purple-50",
-        borderColor: "border-purple-200"
-      };
-    }
-    if (params.testId === "love-language") {
-      return {
-        prefix: "Bahasa cinta utamamu adalah",
-        value: "Words of Affirmation",
-        color: "text-[#561269]",
-        bgColor: "bg-pink-50",
-        borderColor: "border-pink-200"
-      };
-    }
-    // If we have db package
+    // 1. Prioritaskan data interpretasi dari database jika paket terdaftar di DB
     if (dbPackage) {
       if (dbInterpretasi) {
         return {
@@ -109,6 +92,26 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
         color: "text-[#561269]",
         bgColor: "bg-purple-50",
         borderColor: "border-purple-200"
+      };
+    }
+
+    // 2. Fallback mock static hanya jika route berupa mock testing lokal
+    if (params.testId === "mbti" || params.testId === "mbti-2") {
+      return {
+        prefix: "Tipe kepribadianmu adalah",
+        value: "ENFJ-A (Protagonist)",
+        color: "text-[#561269]",
+        bgColor: "bg-purple-50",
+        borderColor: "border-purple-200"
+      };
+    }
+    if (params.testId === "love-language") {
+      return {
+        prefix: "Bahasa cinta utamamu adalah",
+        value: "Words of Affirmation",
+        color: "text-[#561269]",
+        bgColor: "bg-pink-50",
+        borderColor: "border-pink-200"
       };
     }
     return resultData.result;
@@ -313,6 +316,26 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
             {/* Sidebar / CTA Column */}
             <div className="md:col-span-4 space-y-6">
+              {/* Card Upsell Paket Berbayar / Download PDF Laporan Resmi */}
+              <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/50 rounded-3xl p-6 sm:p-7 border border-purple-200/80 shadow-xs space-y-3.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#561269] bg-purple-100 px-2.5 py-1 rounded-md inline-block">
+                  Laporan Resmi (PDF)
+                </span>
+                <h3 className="text-lg font-bold text-gray-900 leading-snug">
+                  Ingin Analisis Lengkap &amp; Download Hasil PDF?
+                </h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Dapatkan pemetaan mendalam kekuatan diri, area blindspots, serta sertifikat/laporan resmi asesmen yang siap diunduh &amp; dicetak.
+                </p>
+                <Link
+                  href={`/psikotes/${params.testId}`}
+                  className="w-full py-3 px-4 rounded-xl bg-[#561269] hover:bg-[#763E8B] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition active:scale-95"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Lihat Paket Lengkap &amp; PDF</span>
+                </Link>
+              </div>
+
               {/* 5. Ajakan untuk Konsultasi */}
               <div className="bg-primary text-white rounded-3xl p-6 sm:p-8 shadow-lg sticky top-[120px]">
                 <h3 className="text-xl font-bold mb-3">Ingin memahami kondisimu lebih jauh?</h3>

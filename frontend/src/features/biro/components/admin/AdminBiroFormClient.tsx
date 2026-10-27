@@ -5,13 +5,21 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
 import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
+import { biroAdminService, BiroAccountData } from "@/services/biro.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import { getBiroWebsiteUrl } from "@/lib/utils"
+import GenerateActivationLinkButton from "@/features/psikolog/components/admin/GenerateActivationLinkButton"
+import ActivationWarningModal from "@/components/common/ActivationWarningModal"
+import {
+  formatExpiryDisplay,
+  formatRemainingTime,
+  isLinkStillValid,
+  toIsoExpiry,
+} from "@/lib/activation"
 
 interface AdminBiroFormClientProps {
   biroId?: string
 }
-
 
 export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps) {
   const router = useRouter()
@@ -30,6 +38,10 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
   const [telepon, setTelepon] = useState("")
   const [alamat, setAlamat] = useState("")
   const [statusAktivasi, setStatusAktivasi] = useState<StatusAktivasiBiro>("Menunggu Aktivasi")
+
+  // State Aktivasi & Token BE
+  const [realAccountId, setRealAccountId] = useState<string>("")
+  const [accountAktif, setAccountAktif] = useState(false)
   const [aktivasiToken, setAktivasiToken] = useState<string>("")
   const [tokenExpiredAt, setTokenExpiredAt] = useState<string>("")
   const [isCopied, setIsCopied] = useState(false)
@@ -47,14 +59,34 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       .replace(/(^-|-$)/g, "")
   }
 
-  const getActivationUrl = (tok: string, s: string) => {
-    const slugParam = s ? `&tenant=${s}` : ""
+  const getActivationUrl = (tok: string) => {
+    if (!tok) return ""
     return typeof window !== "undefined"
-      ? `${window.location.origin}/tenant-activate?token=${tok}${slugParam}`
-      : `https://empathika.id/tenant-activate?token=${tok}${slugParam}`
+      ? `${window.location.origin}/set-password?token=${tok}`
+      : `https://empathika.id/set-password?token=${tok}`
   }
 
-  const currentActivationUrl = aktivasiToken ? getActivationUrl(aktivasiToken, slug) : ""
+  const currentActivationUrl = aktivasiToken ? getActivationUrl(aktivasiToken) : ""
+
+  // State Pop-up Peringatan Link Masih Berlaku
+  const [warningOpen, setWarningOpen] = useState(false)
+  const [warningMessage, setWarningMessage] = useState("")
+  const [warningExpiry, setWarningExpiry] = useState<string | undefined>()
+  const [warningRemaining, setWarningRemaining] = useState<string | undefined>()
+  const [nowTick, setNowTick] = useState(() => Date.now())
+
+  const expiryIso = toIsoExpiry(tokenExpiredAt)
+  const linkActive = Boolean(aktivasiToken && isLinkStillValid(expiryIso))
+  const remainingMs = expiryIso ? new Date(expiryIso).getTime() - nowTick : 0
+  const remainingText = linkActive ? formatRemainingTime(remainingMs) : ""
+
+  useEffect(() => {
+    if (!linkActive) return
+    const timer = setInterval(() => {
+      setNowTick(Date.now())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [linkActive, expiryIso])
 
   const handleGenerateToken = () => {
     const newToken = `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
@@ -66,6 +98,17 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
   }
 
   const handleRegenerateToken = () => {
+    if (linkActive) {
+      const expFormatted = expiryIso ? formatExpiryDisplay(expiryIso) : undefined
+      setWarningMessage(
+        `Link aktivasi saat ini masih aktif dan berlaku hingga ${expFormatted || "3 hari"}. ` +
+        `Generate ulang baru diizinkan setelah masa berlaku habis.`
+      )
+      setWarningExpiry(expFormatted)
+      setWarningRemaining(remainingText)
+      setWarningOpen(true)
+      return
+    }
     handleGenerateToken()
   }
 
@@ -79,12 +122,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
   const handleKirimWA = (targetBiro?: BiroKomunitas | null) => {
     const targetNama = targetBiro?.nama || nama || "Biro Mitra"
     const targetTelepon = targetBiro?.telepon || telepon || ""
-    const targetSlug = targetBiro?.slug || slug || ""
-    let activeToken = targetBiro?.aktivasiToken || aktivasiToken
-    if (!activeToken) {
-      activeToken = handleGenerateToken()
-    }
-    const finalActivationUrl = getActivationUrl(activeToken, targetSlug)
+    const activeToken = targetBiro?.aktivasiToken || aktivasiToken
+    const finalActivationUrl = activeToken ? getActivationUrl(activeToken) : ""
 
     const rawPhone = targetTelepon.trim().replace(/[^0-9]/g, "")
     const waNumber = rawPhone
@@ -111,38 +150,100 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
     window.open(waUrl, "_blank")
   }
 
-  // Load existing data jika dalam mode edit
+  // Load existing data jika dalam mode edit (dari BE, fallback localStorage)
   useEffect(() => {
     if (!biroId) return
 
-    let currentList: BiroKomunitas[] = INITIAL_BIRO_LIST
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
-      if (saved) {
-        currentList = JSON.parse(saved)
+    let isMounted = true
+    setLoading(true)
+
+    const loadData = async () => {
+      let beAccount: BiroAccountData | null = null
+
+      // 1. Coba ambil dari BE
+      try {
+        const res = await biroAdminService.getById(biroId)
+        if (res?.data) {
+          beAccount = res.data
+        }
+      } catch (err) {
+        console.warn("Gagal mengambil detail biro dari BE, coba fallback:", err)
       }
-    } catch {
-      // fallback
+
+      // 2. Jika tidak dapat dari getById, coba cari dari getAllBiroAccounts
+      if (!beAccount) {
+        try {
+          const listRes = await biroAdminService.getList()
+          if (listRes?.data && Array.isArray(listRes.data)) {
+            const found = listRes.data.find(
+              (acc) =>
+                acc.id === biroId ||
+                acc.owned_biro?.some((b) => b.id === biroId || b.slug === biroId)
+            )
+            if (found) beAccount = found
+          }
+        } catch {}
+      }
+
+      if (!isMounted) return
+
+      if (beAccount) {
+        const biroProfile = beAccount.owned_biro?.[0]
+        setRealAccountId(beAccount.id)
+        setNama(biroProfile?.nama_biro || beAccount.nama || "")
+        setSlug(biroProfile?.slug || "")
+        setLogo(biroProfile?.logoURI || "")
+        setDeskripsi(biroProfile?.deskripsi || "")
+        setWarnaIdentitas(biroProfile?.warna_tema || "#561269")
+        setEmailAdmin(beAccount.email || "")
+        setTelepon(biroProfile?.no_telepon || beAccount.no_telepon || "")
+        setAlamat(biroProfile?.alamat || "")
+
+        const isAktif = Boolean(beAccount.accountAktif || beAccount.aktif)
+        setAccountAktif(isAktif)
+        setStatusAktivasi(isAktif ? "Aktif" : "Menunggu Aktivasi")
+
+        if (beAccount.tokenAktivasi) setAktivasiToken(beAccount.tokenAktivasi)
+        if (beAccount.tokenExpiredAt) setTokenExpiredAt(toIsoExpiry(beAccount.tokenExpiredAt) || "")
+        setIsSlugManuallyEdited(true)
+        setLoading(false)
+        return
+      }
+
+      // 3. Fallback localStorage jika BE belum mengembalikan
+      let currentList: BiroKomunitas[] = INITIAL_BIRO_LIST
+      try {
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
+        if (saved) currentList = JSON.parse(saved)
+      } catch {}
+
+      const found = currentList.find((b) => b.id === biroId || b.accountId === biroId)
+      if (found) {
+        setRealAccountId(found.accountId || found.id)
+        setNama(found.nama || "")
+        setSlug(found.slug || "")
+        setLogo(found.logo || "")
+        setDeskripsi(found.deskripsi || "")
+        setWarnaIdentitas(found.warnaIdentitas || "#561269")
+        setEmailAdmin(found.emailAdmin || "")
+        setTelepon(found.telepon || "")
+        setAlamat(found.alamat || "")
+        setStatusAktivasi(found.statusAktivasi || "Menunggu Aktivasi")
+        setAccountAktif(found.accountAktif || found.statusAktivasi === "Aktif")
+        setAktivasiToken(found.aktivasiToken || "")
+        setTokenExpiredAt(found.tokenExpiredAt || "")
+        setIsSlugManuallyEdited(true)
+      } else {
+        setNotFound(true)
+      }
+      setLoading(false)
     }
 
-    const found = currentList.find((b) => b.id === biroId)
-    if (found) {
-      setNama(found.nama || "")
-      setSlug(found.slug || "")
-      setLogo(found.logo || "")
-      setDeskripsi(found.deskripsi || "")
-      setWarnaIdentitas(found.warnaIdentitas || "#561269")
-      setEmailAdmin(found.emailAdmin || "")
-      setTelepon(found.telepon || "")
-      setAlamat(found.alamat || "")
-      setStatusAktivasi(found.statusAktivasi || "Menunggu Aktivasi")
-      setAktivasiToken(found.aktivasiToken || "")
-      setTokenExpiredAt(found.tokenExpiredAt || "")
-      setIsSlugManuallyEdited(true)
-    } else {
-      setNotFound(true)
+    loadData()
+
+    return () => {
+      isMounted = false
     }
-    setLoading(false)
   }, [biroId])
 
   const handleNamaChange = (val: string) => {
@@ -244,75 +345,33 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
     return Object.keys(errs).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
 
     setIsSubmitting(true)
 
     try {
-      let currentList: BiroKomunitas[] = INITIAL_BIRO_LIST
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
-      if (saved) {
-        currentList = JSON.parse(saved)
-      }
-
       const finalSlug = slug.trim() || generateSlug(nama)
-      const effectiveToken =
-        aktivasiToken || `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
-      const effectiveExpiry =
-        tokenExpiredAt || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+      const targetAccountId = realAccountId || biroId || ""
 
-      let resultBiro: BiroKomunitas
-
-      if (isEditMode && biroId) {
-        let matched: BiroKomunitas | null = null
-        const updatedList = currentList.map((item) => {
-          if (item.id === biroId) {
-            matched = {
-              ...item,
-              nama: nama.trim(),
-              slug: finalSlug,
-              logo: logo || undefined,
-              deskripsi: deskripsi.trim(),
-              warnaIdentitas: warnaIdentitas.trim().toUpperCase(),
-              emailAdmin: emailAdmin.trim(),
-              telepon: telepon.trim(),
-              alamat: alamat.trim(),
-              websiteUrl: getBiroWebsiteUrl(finalSlug),
-              dashboardUrl: `/admin-biro`,
-              statusAktivasi,
-              aktivasiToken: effectiveToken,
-              tokenExpiredAt: effectiveExpiry,
-            }
-            return matched
-          }
-          return item
+      if (isEditMode && targetAccountId) {
+        // Mode Edit: Panggil PUT ke backend
+        await biroAdminService.updateBiro(targetAccountId, {
+          nama: nama.trim(),
+          slug: finalSlug,
+          email: emailAdmin.trim(),
+          noTelepon: telepon.trim() || null,
+          alamat: alamat.trim() || null,
+          deskripsi: deskripsi.trim() || null,
+          warnaIdentitas: warnaIdentitas.trim().toUpperCase() || null,
+          logoURI: logo || null,
+          status: statusAktivasi === "Aktif" ? "ACTIVE" : statusAktivasi === "Nonaktif" ? "INACTIVE" : "PENDING",
         })
-        resultBiro =
-          matched || {
-            id: biroId,
-            nama: nama.trim(),
-            slug: finalSlug,
-            logo: logo || undefined,
-            deskripsi: deskripsi.trim(),
-            warnaIdentitas: warnaIdentitas.trim().toUpperCase(),
-            emailAdmin: emailAdmin.trim(),
-            telepon: telepon.trim(),
-            alamat: alamat.trim(),
-            tanggalDibuat: new Date().toISOString().split("T")[0],
-            statusAktivasi,
-            websiteUrl: getBiroWebsiteUrl(finalSlug),
-            dashboardUrl: `/admin-biro`,
-            aktivasiToken: effectiveToken,
-            tokenExpiredAt: effectiveExpiry,
-          }
-        localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(updatedList))
-      } else {
-        const newId = `biro-${Date.now().toString().slice(-4)}`
-        const today = new Date().toISOString().split("T")[0]
-        const newBiro: BiroKomunitas = {
-          id: newId,
+
+        const resultBiro: BiroKomunitas = {
+          id: targetAccountId,
+          accountId: targetAccountId,
           nama: nama.trim(),
           slug: finalSlug,
           logo: logo || undefined,
@@ -321,25 +380,69 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           emailAdmin: emailAdmin.trim(),
           telepon: telepon.trim(),
           alamat: alamat.trim(),
-          tanggalDibuat: today,
-          statusAktivasi: "Menunggu Aktivasi",
+          tanggalDibuat: new Date().toISOString().split("T")[0],
+          statusAktivasi,
+          accountAktif,
           websiteUrl: getBiroWebsiteUrl(finalSlug),
           dashboardUrl: `/admin-biro`,
-          aktivasiToken: effectiveToken,
-          tokenExpiredAt: effectiveExpiry,
+          aktivasiToken: aktivasiToken || undefined,
+          tokenExpiredAt: tokenExpiredAt || undefined,
         }
-        resultBiro = newBiro
-        const updatedList = [newBiro, ...currentList]
-        localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(updatedList))
-      }
 
-      setSubmittedBiro(resultBiro)
-      setAktivasiToken(effectiveToken)
-      setTokenExpiredAt(effectiveExpiry)
-      setIsSuccessModalOpen(true)
-    } catch (err) {
-      console.error(err)
-      setIsSubmitting(false)
+        setSubmittedBiro(resultBiro)
+        setIsSuccessModalOpen(true)
+      } else {
+        // Mode Tambah: Panggil POST ke backend
+        const res = await biroAdminService.createBiro({
+          nama: nama.trim(),
+          slug: finalSlug,
+          email: emailAdmin.trim(),
+          noTelepon: telepon.trim() || undefined,
+          alamat: alamat.trim() || undefined,
+          deskripsi: deskripsi.trim() || undefined,
+          warnaIdentitas: warnaIdentitas.trim().toUpperCase() || undefined,
+          logoURI: logo || undefined,
+          tokenAktivasi: aktivasiToken || undefined,
+          tokenExpiredAt: tokenExpiredAt || undefined,
+        })
+
+        const createdAccount = res?.data
+        const createdToken = createdAccount?.tokenAktivasi || ""
+        const createdExp = createdAccount?.tokenExpiredAt ? toIsoExpiry(createdAccount.tokenExpiredAt) || "" : ""
+        const createdAccId = createdAccount?.id || ""
+
+        if (createdToken) setAktivasiToken(createdToken)
+        if (createdExp) setTokenExpiredAt(createdExp)
+        if (createdAccId) setRealAccountId(createdAccId)
+
+        const newBiro: BiroKomunitas = {
+          id: createdAccId || `biro-${Date.now().toString().slice(-4)}`,
+          accountId: createdAccId,
+          nama: nama.trim(),
+          slug: finalSlug,
+          logo: logo || undefined,
+          deskripsi: deskripsi.trim(),
+          warnaIdentitas: warnaIdentitas.trim().toUpperCase(),
+          emailAdmin: emailAdmin.trim(),
+          telepon: telepon.trim(),
+          alamat: alamat.trim(),
+          tanggalDibuat: new Date().toISOString().split("T")[0],
+          statusAktivasi: "Menunggu Aktivasi",
+          accountAktif: false,
+          websiteUrl: getBiroWebsiteUrl(finalSlug),
+          dashboardUrl: `/admin-biro`,
+          aktivasiToken: createdToken || undefined,
+          tokenExpiredAt: createdExp || undefined,
+        }
+
+        setSubmittedBiro(newBiro)
+        setIsSuccessModalOpen(true)
+      }
+    } catch (err: any) {
+      console.error("Gagal menyimpan biro:", err)
+      const errorMsg =
+        err?.response?.data?.message || err?.message || "Terjadi kesalahan saat menyimpan data biro."
+      setErrors((prev) => ({ ...prev, submit: errorMsg }))
     } finally {
       setIsSubmitting(false)
     }
@@ -412,6 +515,19 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       {/* ── Container Form Utama ── */}
       <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          {/* Alert Error Submit */}
+          {errors.submit && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 flex items-start gap-3 text-red-700 shadow-xs animate-fadeIn">
+              <svg className="w-5 h-5 shrink-0 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="text-sm font-bold text-red-800">Gagal Menyimpan</p>
+                <p className="text-xs text-red-600 mt-0.5">{errors.submit}</p>
+              </div>
+            </div>
+          )}
+
           {/* Logo Biro Upload / Preview */}
           <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs">
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
@@ -576,31 +692,63 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                 </svg>
                 Tautan Aktivasi Akun Biro (3 Hari)
               </label>
-              {aktivasiToken ? (
-                <button
-                  type="button"
-                  onClick={handleRegenerateToken}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
-                  title="Buat ulang token aktivasi baru"
-                >
-                  <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Generate Ulang Link
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleGenerateToken}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
-                  title="Buat tautan aktivasi sekarang"
-                >
-                  <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Generate Tautan
-                </button>
-              )}
+
+              {isEditMode && realAccountId ? (
+                <GenerateActivationLinkButton
+                  accountId={realAccountId}
+                  accountAktif={accountAktif}
+                  tokenAktivasi={aktivasiToken}
+                  tokenExpiredAt={tokenExpiredAt}
+                  compact={true}
+                  onUpdated={(next) => {
+                    if (next.tokenAktivasi !== undefined) setAktivasiToken(next.tokenAktivasi || "")
+                    if (next.tokenExpiredAt !== undefined) setTokenExpiredAt(toIsoExpiry(next.tokenExpiredAt) || "")
+                    if (next.accountAktif !== undefined) {
+                      setAccountAktif(next.accountAktif)
+                      if (next.accountAktif) setStatusAktivasi("Aktif")
+                    }
+                    setIsCopied(false)
+                  }}
+                  onRefreshFromServer={async () => {
+                    if (realAccountId) {
+                      try {
+                        const res = await biroAdminService.getById(realAccountId)
+                        if (res?.data) {
+                          if (res.data.tokenAktivasi) setAktivasiToken(res.data.tokenAktivasi)
+                          if (res.data.tokenExpiredAt) setTokenExpiredAt(toIsoExpiry(res.data.tokenExpiredAt) || "")
+                          if (res.data.accountAktif !== undefined) setAccountAktif(res.data.accountAktif)
+                        }
+                      } catch {}
+                    }
+                  }}
+                />
+              ) : !isEditMode ? (
+                aktivasiToken ? (
+                  <button
+                    type="button"
+                    onClick={handleRegenerateToken}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
+                    title="Buat ulang token aktivasi baru"
+                  >
+                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Generate Ulang Link
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGenerateToken}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
+                    title="Buat tautan aktivasi sekarang"
+                  >
+                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Generate Tautan
+                  </button>
+                )
+              ) : null}
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -608,7 +756,11 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                 type="text"
                 readOnly
                 value={currentActivationUrl}
-                placeholder="Belum di-generate (klik 'Generate Tautan' atau link dibuat otomatis saat submit)"
+                placeholder={
+                  isEditMode
+                    ? "Belum ada link aktivasi (klik 'Generate Link' di samping)"
+                    : "Belum di-generate (klik 'Generate Tautan' atau otomatis dibuat saat submit)"
+                }
                 className="flex-1 rounded-xl border border-purple-200 bg-white px-3 py-2 text-xs font-mono text-purple-950 placeholder:text-gray-400 placeholder:font-sans focus:outline-none select-all shadow-2xs"
               />
               <button
@@ -620,6 +772,33 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                 {isCopied ? "✓ Tersalin!" : "Salin"}
               </button>
             </div>
+
+            {/* Keterangan Status Kedaluwarsa & Sisa Waktu */}
+            {aktivasiToken && (
+              <div className="rounded-xl bg-purple-100/70 border border-purple-200/90 px-3 py-2 text-[11px] space-y-1">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <span className="text-gray-600 font-medium">Batas Masa Berlaku Link:</span>
+                  <span className="font-bold text-[#561269]">
+                    {formatExpiryDisplay(expiryIso)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <span className="text-gray-600 font-medium">Status Link:</span>
+                  {linkActive ? (
+                    <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Aktif (sisa {remainingText})
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-semibold text-red-600">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                      Sudah Kedaluwarsa
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             <p className="text-[11px] text-gray-500">
               Admin biro mengatur kata sandi secara mandiri dan mengaktifkan tenant melalui tautan ini.
             </p>
@@ -817,7 +996,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                   readOnly
                   value={
                     submittedBiro?.aktivasiToken
-                      ? getActivationUrl(submittedBiro.aktivasiToken, submittedBiro.slug)
+                      ? getActivationUrl(submittedBiro.aktivasiToken)
                       : currentActivationUrl
                   }
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono text-purple-950 focus:outline-none select-all"
@@ -826,7 +1005,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                   type="button"
                   onClick={() => {
                     const url = submittedBiro?.aktivasiToken
-                      ? getActivationUrl(submittedBiro.aktivasiToken, submittedBiro.slug)
+                      ? getActivationUrl(submittedBiro.aktivasiToken)
                       : currentActivationUrl
                     if (url) {
                       navigator.clipboard.writeText(url)
@@ -866,6 +1045,15 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           </div>
         </div>
       )}
+
+      {/* Pop-up Peringatan Link Masih Berlaku (3 Hari) */}
+      <ActivationWarningModal
+        isOpen={warningOpen}
+        onClose={() => setWarningOpen(false)}
+        message={warningMessage}
+        expiryDateText={warningExpiry}
+        remainingText={warningRemaining}
+      />
     </div>
   )
 }

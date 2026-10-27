@@ -1,1 +1,1 @@
-export { default } from "../set-password/page"
+export { default } from "../../set-password/page"

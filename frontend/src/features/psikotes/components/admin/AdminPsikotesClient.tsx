@@ -112,7 +112,7 @@ function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulPsikotes
 export default function AdminPsikotesClient() {
   const [activeTab, setActiveTab] = useState<"peserta" | "paket" | "form-paket">("peserta");
   const [formTab, setFormTab] = useState<"info" | "soal" | "preview" | "interpretasi">("info");
-  const [aksesFilter, setAksesFilter] = useState<"Semua" | "Gratis" | "Berbayar">("Semua");
+  const [aksesFilter, setAksesFilter] = useState<"Berbayar" | "Semua" | "Gratis">("Berbayar");
   const [paketFilter, setPaketFilter] = useState<"Dipublikasi" | "Draf">("Dipublikasi");
   const [searchPaket, setSearchPaket] = useState("");
 
@@ -130,7 +130,52 @@ export default function AdminPsikotesClient() {
   // Core Data: Judul Psikotes and its packages
   const [judulList, setJudulList] = useState<JudulPsikotesItem[]>(INITIAL_JUDUL_LIST);
 
+  // Core Data: Peserta Realtime dari Database
+  const [pesertaList, setPesertaList] = useState<AdminPsikotesPeserta[]>(INITIAL_PESERTA_LIST);
+  const [pesertaSummary, setPesertaSummary] = useState({
+    total_peserta: 0,
+    total_gratis: 0,
+    total_berbayar: 0,
+    total_selesai: 0,
+  });
+  const [isLoadingPeserta, setIsLoadingPeserta] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadPesertaFromBackend = async () => {
+    setIsLoadingPeserta(true);
+    try {
+      const res = await psikotesService.getPeserta({ jenis_akses: "ALL" });
+      if (res && res.success && res.data) {
+        setPesertaSummary(res.data.summary);
+        if (Array.isArray(res.data.items) && res.data.items.length > 0) {
+          const mapped: AdminPsikotesPeserta[] = res.data.items.map((it: any) => ({
+            id: it.id,
+            nama: it.nama_peserta,
+            noHp: it.no_hp,
+            paket: it.nama_paket,
+            tanggal: new Date(it.tanggal).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
+            status: it.status as "Selesai" | "Berjalan",
+            skor: it.skor,
+            jenisAkses: it.jenis_akses as "Gratis" | "Berbayar",
+            usia: it.usia,
+            jenisKelamin: it.jenis_kelamin,
+            totalSkor: it.total_skor,
+            hasil: it.hasil,
+          }));
+          setPesertaList(mapped);
+        }
+      }
+    } catch (err) {
+      console.error("Gagal membaca data peserta dari server:", err);
+    } finally {
+      setIsLoadingPeserta(false);
+    }
+  };
 
   const loadDataFromBackend = async () => {
     try {
@@ -148,6 +193,7 @@ export default function AdminPsikotesClient() {
 
   useEffect(() => {
     loadDataFromBackend();
+    loadPesertaFromBackend();
   }, []);
 
   // Form State
@@ -206,8 +252,6 @@ export default function AdminPsikotesClient() {
     },
   ]);
 
-  const pesertaList = INITIAL_PESERTA_LIST;
-
   // Notification auto-dismiss
   useEffect(() => {
     if (notification) {
@@ -216,11 +260,14 @@ export default function AdminPsikotesClient() {
     }
   }, [notification]);
 
-  // Filtering Peserta
+  // Filtering Peserta (Khusus Peserta Berbayar)
   const filteredPeserta = pesertaList.filter((peserta) => {
-    if (aksesFilter === "Semua") return true;
-    return peserta.jenisAkses === aksesFilter;
+    return (
+      peserta.jenisAkses === "Berbayar" ||
+      (peserta.nama !== "Tamu Anonim" && peserta.noHp && peserta.noHp !== "—")
+    );
   });
+
 
   // Filtering Judul & Paket
   const filteredJudul = judulList.filter((item) => {
@@ -1226,17 +1273,490 @@ export default function AdminPsikotesClient() {
     }
   };
 
+  const getPesertaReportDetail = (peserta: AdminPsikotesPeserta) => {
+    const paketLower = (peserta.paket || "").toLowerCase();
+    
+    let deskripsi = peserta.hasil?.deskripsi;
+    let makna = peserta.hasil?.makna;
+    let tips: Array<{ title: string; desc: string }> = (Array.isArray(peserta.hasil?.tips) && peserta.hasil.tips.length > 0)
+      ? peserta.hasil.tips.map((t: any) => typeof t === "string" ? { title: "Rekomendasi", desc: t } : t)
+      : [];
+
+    let kekuatanUtama = [
+      "Komunikasi persuasif yang berakar pada empati tulus dan pemahaman interpersonal.",
+      "Kemampuan membangun keselarasan dan kohesi tim kerja dalam mencapai target bersama.",
+      "Ketajaman dalam merumuskan solusi strategis yang tetap berpusat pada kesejahteraan manusia."
+    ];
+    let blindspots = [
+      "Cenderung mengabaikan kebutuhan diri sendiri demi mendahulukan kepentingan atau perasaan orang lain.",
+      "Rentan mengalami kelelahan emosional (burnout) akibat terlalu menyerap beban masalah lingkungan sekitar.",
+      "Sulit menolak permintaan tambahan atau menetapkan batasan beban kerja pribadi yang tegas."
+    ];
+    let lingkunganOptimal = [
+      "Industri edukasi, psikologi, human resource, konsultasi, dan pengembangan komunitas.",
+      "Posisi strategis dengan ruang kolaborasi tim yang fleksibel, hangat, dan suportif.",
+      "Budaya organisasi yang menghargai inovasi sosial, empati, dan pengakuan personal yang transparan."
+    ];
+
+    if (paketLower.includes("love") || paketLower.includes("cinta")) {
+      if (!deskripsi) deskripsi = "Hasil asesmen komprehensif menunjukkan bahasa cinta utamamu adalah Words of Affirmation. Kamu paling merasa dihargai dan dicintai melalui kata-kata verbal yang tulus, apresiasi spesifik, dan komunikasi yang membangun.";
+      if (!makna) makna = "Pujian yang tulus, ucapan terima kasih yang jujur, dan kata-kata penyemangat memiliki dampak emosional yang mendalam bagimu dalam memperkuat ikatan hubungan interpersonal.";
+      kekuatanUtama = [
+        "Kemampuan mengekspresikan apresiasi verbal yang menyejukkan dan memvalidasi perasaan orang lain.",
+        "Sensitivitas tinggi terhadap nada bicara dan kebutuhan emosional pasangan atau sahabat.",
+        "Komunikasi afektif yang membangun rasa aman, keterbukaan, dan kepercayaan jangka panjang."
+      ];
+      blindspots = [
+        "Sangat sensitif terhadap kritik pedas, nada bicara ketus, atau sarkasme ringan dari orang terdekat.",
+        "Dapat meragukan ketulusan atau kasih sayang orang lain jika tidak dinyatakan secara verbal berulang kali.",
+        "Kerap menahan kekecewaan sendiri demi menjaga suasana verbal tetap positif di depan orang lain."
+      ];
+      lingkunganOptimal = [
+        "Lingkungan relasi personal dan kerja yang mengedepankan budaya apresiatif serta umpan balik positif.",
+        "Dinamika kelompok kerja yang saling menghargai usaha anggota tim secara transparan.",
+        "Pola interaksi yang asertif, jujur, dan bebas dari sindiran atau sarkasme pasif."
+      ];
+    } else if (paketLower.includes("karier") || paketLower.includes("karir") || paketLower.includes("minat")) {
+      if (!deskripsi) deskripsi = "Dominasi minat berfokus pada inovasi, ekspresi ide orisinal, serta komunikasi persuasif yang berakar pada empati tulus.";
+      if (!makna) makna = "Unggul dalam industri edukasi, psikologi, human resource, dan perancangan strategi kreatif dengan ruang kolaborasi tim yang fleksibel.";
+      kekuatanUtama = [
+        "Kreativitas tinggi dalam memecahkan masalah interpersonal dan operasional.",
+        "Kecerdasan emosional yang mendukung komunikasi asertif dan diplomatis.",
+        "Kemampuan mengubah konsep abstrak menjadi strategi implementatif yang menarik."
+      ];
+      blindspots = [
+        "Cenderung menghindari konfrontasi langsung meskipun ada masalah struktural yang mendesak.",
+        "Rentan overthinking terhadap ekspektasi atau pandangan orang lain terhadap hasil kerjanya.",
+        "Sering kesulitan menetapkan batasan profesional ketika urusan pekerjaan menyentuh empati emosional."
+      ];
+      lingkunganOptimal = [
+        "Industri kreatif, agensi konsultan, riset sosial, dan human capital.",
+        "Organisasi yang memiliki budaya terbuka, suportif, dan inovatif.",
+        "Posisi yang memungkinkan interaksi berkelanjutan dengan klien atau komunitas."
+      ];
+    } else {
+      if (!deskripsi) deskripsi = "Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.";
+      if (!makna) makna = "Mampu membangun keselarasan dan kohesi tim kerja, merumuskan solusi berpusat pada manusia, serta menginspirasi rekan kerja dengan empati tulus.";
+    }
+
+    if (tips.length === 0) {
+      tips = [
+        { title: "Manajemen Batasan Emosional", desc: "Luangkan waktu hening untuk merefleksikan kebutuhan pribadi sebelum merespons permintaan orang lain." },
+        { title: "Komunikasi Asertif Bertahap", desc: "Latihlah untuk menyampaikan pandangan kritis secara konstruktif tanpa rasa bersalah yang berlebihan." },
+        { title: "Fokus Pengembangan Talenta", desc: "Prioritaskan proyek-proyek kolaboratif yang menuntut empati tinggi dan kepemimpinan suportif." }
+      ];
+    }
+
+    return {
+      deskripsi,
+      makna,
+      kekuatanUtama,
+      blindspots,
+      lingkunganOptimal,
+      tips
+    };
+  };
+
+  const handleDownloadPdf = (peserta: AdminPsikotesPeserta) => {
+    const detail = getPesertaReportDetail(peserta);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const tipsHtml = detail.tips.map((t, idx) => `
+      <div style="display: flex; gap: 14px; padding: 14px 18px; border-radius: 14px; background: #f9fafb; border: 1px solid #f3f4f6; margin-bottom: 10px;">
+        <div style="width: 22px; height: 22px; border-radius: 50%; background: #561269; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; flex-shrink: 0; margin-top: 2px;">
+          ${idx + 1}
+        </div>
+        <div>
+          <div style="font-weight: 700; font-size: 13px; color: #111827;">${t.title}</div>
+          <div style="font-size: 12px; color: #4b5563; margin-top: 2px; line-height: 1.5;">${t.desc}</div>
+        </div>
+      </div>
+    `).join("");
+
+    const kekuatanHtml = detail.kekuatanUtama.map(item => `
+      <li style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #064e3b; line-height: 1.5;">
+        <span style="color: #059669; font-weight: bold;">✔</span>
+        <span>${item}</span>
+      </li>
+    `).join("");
+
+    const blindspotHtml = detail.blindspots.map(item => `
+      <li style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #881337; line-height: 1.5;">
+        <span style="color: #e11d48; font-weight: bold;">⚠</span>
+        <span>${item}</span>
+      </li>
+    `).join("");
+
+    const lingkunganHtml = detail.lingkunganOptimal.map(item => `
+      <li style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #78350f; line-height: 1.5;">
+        <span style="color: #d97706; font-weight: bold;">✦</span>
+        <span>${item}</span>
+      </li>
+    `).join("");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Laporan Hasil Psikotes - ${peserta.nama} - Empathika</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background-color: #FAFAFC;
+              color: #1f2937;
+              margin: 0;
+              padding: 0;
+              line-height: 1.6;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .no-print-bar {
+              position: sticky;
+              top: 0;
+              background: #561269;
+              color: #ffffff;
+              padding: 12px 24px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+              z-index: 9999;
+            }
+            .report-container {
+              max-width: 860px;
+              margin: 30px auto;
+              background: #ffffff;
+              border-radius: 28px;
+              border: 1px solid #e5e7eb;
+              padding: 40px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            }
+            .header-badge {
+              display: inline-block;
+              font-size: 11px;
+              font-weight: 800;
+              color: #561269;
+              text-transform: uppercase;
+              letter-spacing: 1.5px;
+              margin-bottom: 6px;
+            }
+            .report-title {
+              font-size: 26px;
+              font-weight: 800;
+              color: #111827;
+              line-height: 1.25;
+              margin: 0;
+            }
+            .client-meta-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 12px;
+              background: #f9fafb;
+              border: 1px solid #f3f4f6;
+              border-radius: 18px;
+              padding: 16px 20px;
+              margin: 24px 0 32px 0;
+            }
+            .meta-label {
+              font-size: 10px;
+              font-weight: 700;
+              color: #6b7280;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .meta-val {
+              font-size: 13px;
+              font-weight: 700;
+              color: #111827;
+              margin-top: 2px;
+            }
+            .hero-result-card {
+              background: #ffffff;
+              border-radius: 24px;
+              border: 1.5px solid #e5e7eb;
+              padding: 32px 24px;
+              text-align: center;
+              margin-bottom: 30px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            }
+            .hero-badge-title {
+              font-size: 13px;
+              font-weight: 600;
+              color: #6b7280;
+              margin-bottom: 6px;
+            }
+            .hero-score-val {
+              font-size: 38px;
+              font-weight: 900;
+              color: #561269;
+              letter-spacing: -0.5px;
+              margin: 0 0 12px 0;
+            }
+            .hero-desc {
+              font-size: 13px;
+              color: #4b5563;
+              max-width: 620px;
+              margin: 0 auto;
+              line-height: 1.6;
+            }
+            .section-box {
+              background: #ffffff;
+              border-radius: 22px;
+              border: 1px solid #e5e7eb;
+              padding: 24px 28px;
+              margin-bottom: 24px;
+            }
+            .section-heading {
+              font-size: 16px;
+              font-weight: 800;
+              color: #111827;
+              margin: 0 0 6px 0;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            .section-sub {
+              font-size: 12px;
+              color: #6b7280;
+              margin: 0 0 16px 0;
+            }
+            .two-col-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 16px;
+            }
+            .card-strength {
+              background: #ecfdf5;
+              border: 1px solid #a7f3d0;
+              border-radius: 18px;
+              padding: 20px;
+            }
+            .card-blindspot {
+              background: #fff1f2;
+              border: 1px solid #fecdd3;
+              border-radius: 18px;
+              padding: 20px;
+            }
+            .card-amber {
+              background: #fffbeb;
+              border: 1px solid #fde68a;
+              border-radius: 18px;
+              padding: 20px;
+            }
+            .signature-area {
+              margin-top: 40px;
+              padding-top: 24px;
+              border-top: 1px dashed #e5e7eb;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+            }
+            @media print {
+              .no-print-bar { display: none !important; }
+              body { background: white !important; padding: 0 !important; }
+              .report-container {
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+              }
+              @page {
+                size: A4;
+                margin: 12mm 15mm 15mm 15mm;
+              }
+              .section-box, .hero-result-card, .two-col-grid {
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print-bar">
+            <div>
+              <strong style="font-size: 14px;">Laporan Resmi Asesmen Psikotes Empathika</strong>
+              <span style="font-size: 12px; opacity: 0.85; margin-left: 8px;">(${peserta.nama} &middot; ${peserta.paket})</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button onclick="window.print()" style="background: #ffffff; color: #561269; border: none; padding: 7px 18px; border-radius: 9999px; font-weight: 700; font-size: 12px; cursor: pointer;">
+                Download / Simpan sebagai PDF
+              </button>
+              <button onclick="window.close()" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 7px 14px; border-radius: 9999px; font-size: 12px; cursor: pointer;">
+                Tutup Tab
+              </button>
+            </div>
+          </div>
+
+          <div class="report-container">
+            <!-- Header Brand -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px; border-bottom: 2px solid #561269;">
+              <div>
+                <span class="header-badge">Laporan Analisis Asesmen Psikotes</span>
+                <h1 class="report-title">${peserta.paket}</h1>
+                <p style="font-size: 12px; color: #6b7280; margin: 4px 0 0 0;">
+                  Evaluasi mendalam profil personal, gaya komunikasi, serta panduan pengembangan potensi dirimu.
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 22px; font-weight: 900; color: #561269; letter-spacing: -0.5px;">EMPATHIKA</div>
+                <div style="font-size: 11px; color: #6b7280;">Biro Psikologi &amp; Layanan Asesmen Digital</div>
+              </div>
+            </div>
+
+            <!-- Client Metadata -->
+            <div class="client-meta-grid">
+              <div>
+                <div class="meta-label">Nama Klien</div>
+                <div class="meta-val">${peserta.nama}</div>
+              </div>
+              <div>
+                <div class="meta-label">Kontak WhatsApp</div>
+                <div class="meta-val" style="color: #059669;">${peserta.noHp}</div>
+              </div>
+              <div>
+                <div class="meta-label">Tanggal Asesmen</div>
+                <div class="meta-val">${peserta.tanggal}</div>
+              </div>
+              <div>
+                <div class="meta-label">Status Verifikasi</div>
+                <div class="meta-val" style="color: #561269;">Terverifikasi Resmi</div>
+              </div>
+            </div>
+
+            <!-- 1. Hasil Utama -->
+            <div class="hero-result-card">
+              <div class="hero-badge-title">Profil Karakteristik Utama</div>
+              <h2 class="hero-score-val">${peserta.skor}</h2>
+              <p class="hero-desc">${detail.deskripsi}</p>
+            </div>
+
+            <!-- 2. Interpretasi & Implikasi -->
+            <div class="section-box">
+              <h3 class="section-heading">Interpretasi Analisis &amp; Landasan Ilmiah</h3>
+              <p style="font-size: 13px; color: #4b5563; margin: 0 0 16px 0; line-height: 1.6;">
+                ${detail.deskripsi}
+              </p>
+
+              <div style="padding: 16px 20px; border-radius: 14px; background: #faf8fb; border: 1px solid #efe7f2;">
+                <div style="font-size: 11px; font-weight: 800; color: #561269; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                  Implikasi bagi Kehidupan Sehari-hari
+                </div>
+                <p style="font-size: 12px; color: #374151; margin: 0; line-height: 1.6;">
+                  ${detail.makna}
+                </p>
+              </div>
+            </div>
+
+            <!-- 3. Karakteristik: Kekuatan Utama vs Blindspots -->
+            <div class="section-box">
+              <h3 class="section-heading">Analisis Karakteristik &amp; Dinamika Diri</h3>
+              <p class="section-sub">Pemetaan keunggulan utama serta area blindspot yang perlu kamu waspadai untuk berkembang optimal:</p>
+
+              <div class="two-col-grid">
+                <div class="card-strength">
+                  <div style="font-size: 12px; font-weight: 800; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+                    Kekuatan Utama (Core Strengths)
+                  </div>
+                  <ul style="margin: 0; padding: 0; list-style: none;">
+                    ${kekuatanHtml}
+                  </ul>
+                </div>
+
+                <div class="card-blindspot">
+                  <div style="font-size: 12px; font-weight: 800; color: #9f1239; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+                    Titik Rawan (Blindspots)
+                  </div>
+                  <ul style="margin: 0; padding: 0; list-style: none;">
+                    ${blindspotHtml}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Lingkungan & Budaya Optimal -->
+            <div class="section-box">
+              <h3 class="section-heading">Lingkungan &amp; Budaya Optimal</h3>
+              <p class="section-sub">Kondisi eksternal yang paling mendukung performa optimal dan kesejahteraan emosionalmu:</p>
+              <div class="card-amber">
+                <ul style="margin: 0; padding: 0; list-style: none;">
+                  ${lingkunganHtml}
+                </ul>
+              </div>
+            </div>
+
+            <!-- 5. Langkah Pengembangan Diri -->
+            <div class="section-box">
+              <h3 class="section-heading">Langkah Pengembangan Diri</h3>
+              <p class="section-sub">Saran praktis untuk memaksimalkan potensi dan menjaga keseimbangan energimu:</p>
+              ${tipsHtml}
+            </div>
+
+            <!-- Footer Tanda Tangan Resmi -->
+            <div class="signature-area">
+              <div style="font-size: 11px; color: #9ca3af;">
+                ID Dokumen: EMP-PSI-${String(peserta.id).padStart(6, '0')}<br/>
+                Sistem Layanan Psikotes Terverifikasi Empathika
+              </div>
+              <div style="text-align: center; width: 250px;">
+                <div style="font-size: 12px; color: #4b5563; margin-bottom: 50px;">
+                  Bandung, ${peserta.tanggal}<br/>
+                  Tim Asesor Asesmen Psikologi,
+                </div>
+                <div style="font-size: 13px; font-weight: 800; color: #111827; border-top: 1.5px solid #111827; padding-top: 6px;">
+                  Empathika Psychological Center
+                </div>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 450);
+  };
+
   // Peserta Table Columns
   const pesertaColumns: ColumnDef<AdminPsikotesPeserta>[] = [
     {
       key: "peserta",
-      header: "Peserta",
+      header: "Nama Peserta",
       render: (peserta: AdminPsikotesPeserta) => (
-        <div className="flex flex-col">
-          <span className="font-extrabold text-gray-900 leading-tight">{peserta.nama}</span>
-          <span className="text-xs text-gray-500 mt-0.5">{peserta.noHp}</span>
-        </div>
+        <span className="font-extrabold text-gray-900 leading-tight block">
+          {peserta.nama}
+        </span>
       ),
+    },
+    {
+      key: "kontak",
+      header: "Kontak",
+      render: (peserta: AdminPsikotesPeserta) => {
+        if (!peserta.noHp || peserta.noHp === "—") {
+          return <span className="text-gray-400 italic text-xs">—</span>;
+        }
+        return (
+          <a
+            href={`https://wa.me/${peserta.noHp.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-emerald-700 hover:text-emerald-800 hover:underline font-semibold text-xs sm:text-sm"
+          >
+            {peserta.noHp}
+          </a>
+        );
+      },
     },
     {
       key: "paket",
@@ -1246,19 +1766,19 @@ export default function AdminPsikotesClient() {
       ),
     },
     {
-      key: "akses",
-      header: "Akses",
+      key: "skor",
+      header: "Hasil Asesmen",
       render: (peserta: AdminPsikotesPeserta) => (
-        <AdminStatusBadge variant={peserta.jenisAkses === "Gratis" ? "success" : "warning"} className="w-28">
-          {peserta.jenisAkses}
-        </AdminStatusBadge>
+        <span className="text-xs font-bold text-[#561269] bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
+          {peserta.skor || "—"}
+        </span>
       ),
     },
     {
       key: "tanggal",
       header: "Tanggal",
       render: (peserta: AdminPsikotesPeserta) => (
-        <span className="text-gray-600 font-medium">{peserta.tanggal}</span>
+        <span className="text-gray-600 font-medium text-xs sm:text-sm">{peserta.tanggal}</span>
       ),
     },
     {
@@ -1272,6 +1792,8 @@ export default function AdminPsikotesClient() {
       ),
     },
   ];
+
+
 
   // Judul & Paket Table Columns (Note: NO EDIT BUTTON anywhere per Requirement 4!)
   const judulColumns: ColumnDef<JudulPsikotesItem>[] = [
@@ -1479,31 +2001,91 @@ export default function AdminPsikotesClient() {
       )}
 
       {/* ========================================================= */}
-      {/* 1. DAFTAR PESERTA TAB */}
+      {/* 1. DAFTAR PESERTA TAB (OPSI 2: FOKUS BERBAYAR + RINGKASAN GRATIS) */}
       {/* ========================================================= */}
       {activeTab === "peserta" && (
-        <AdminTableContainer>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-            <div className="flex items-center gap-6 sm:gap-8 border-b border-transparent overflow-x-auto pb-1 text-sm">
-              {(["Semua", "Gratis", "Berbayar"] as const).map((filter) => (
-                <AdminFilterTabItem
-                  key={filter}
-                  label={`Peserta ${filter}`}
-                  isActive={aksesFilter === filter}
-                  onClick={() => setAksesFilter(filter)}
-                />
-              ))}
+        <div className="flex flex-col gap-6">
+          {/* Metric Cards Statistik Pengerjaan Asesmen */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Klien Berbayar</span>
+                <span className="text-2xl sm:text-3xl font-extrabold text-[#561269] mt-1 block">
+                  {pesertaSummary.total_berbayar}
+                </span>
+                <span className="text-[11px] text-gray-500 mt-0.5 block">Memiliki data kontak &amp; WhatsApp</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center font-bold">
+                <DollarSign className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Tes Gratis Selesai</span>
+                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-1 block">
+                  {pesertaSummary.total_gratis}
+                </span>
+                <span className="text-[11px] text-gray-500 mt-0.5 block">Aktivitas pengerjaan publik (Lead magnet)</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                <Users className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-blue-100 shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Total Selesai Dinilai</span>
+                <span className="text-2xl sm:text-3xl font-extrabold text-blue-700 mt-1 block">
+                  {pesertaSummary.total_selesai}
+                </span>
+                <span className="text-[11px] text-gray-500 mt-0.5 block">Skor &amp; interpretasi tersimpan</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
             </div>
           </div>
 
-          <AdminDataTable
-            columns={pesertaColumns}
-            data={filteredPeserta}
-            keyExtractor={(item) => item.id}
-            emptyMessage="Belum ada data pengerjaan untuk kategori ini."
-          />
-        </AdminTableContainer>
+          <AdminTableContainer>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                  Daftar Klien Psikotes Berbayar
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Daftar klien yang menyelesaikan asesmen berbayar beserta kontak WhatsApp untuk ditindaklanjuti.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={loadPesertaFromBackend}
+                disabled={isLoadingPeserta}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-xs font-bold text-[#561269] shadow-2xs transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
+              >
+                {isLoadingPeserta ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Memperbarui data...</span>
+                  </>
+                ) : (
+                  <span>Perbarui Data Peserta</span>
+                )}
+              </button>
+            </div>
+
+            <AdminDataTable
+              columns={pesertaColumns}
+              data={filteredPeserta}
+              keyExtractor={(item) => String(item.id)}
+              emptyMessage="Belum ada data klien psikotes berbayar yang terdata."
+            />
+          </AdminTableContainer>
+
+        </div>
       )}
+
 
       {/* ========================================================= */}
       {/* 2. KELOLA PAKET TAB (Judul Psikotes & Paket List) */}
@@ -3347,289 +3929,259 @@ export default function AdminPsikotesClient() {
       {/* ========================================================= */}
       {/* 5. DETAIL PESERTA MODAL (Riwayat Hasil)                   */}
       {/* ========================================================= */}
-      {selectedPeserta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
-          <div
-            className={`bg-white rounded-3xl shadow-2xl w-full ${selectedPeserta.jenisAkses === "Berbayar" ? "max-w-4xl" : "max-w-2xl"
-              } overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]`}
-          >
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#561269]/10 text-[#561269] rounded-xl flex items-center justify-center text-sm font-bold uppercase shrink-0">
-                  {selectedPeserta.nama.substring(0, 2)}
+      {/* ========================================================= */}
+      {/* 5. DETAIL PESERTA MODAL (HASIL DOKUMEN PDF KLIEN)         */}
+      {/* ========================================================= */}
+      {selectedPeserta && (() => {
+        const detail = getPesertaReportDetail(selectedPeserta);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#561269]/10 text-[#561269] rounded-xl flex items-center justify-center text-sm font-bold uppercase shrink-0">
+                    {selectedPeserta.nama.substring(0, 2)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-base text-gray-900 leading-tight">
+                        {selectedPeserta.nama}
+                      </h3>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Selesai Dinilai
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {selectedPeserta.paket} · {selectedPeserta.tanggal}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-base text-gray-900 leading-tight">
-                    {selectedPeserta.nama}
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    {selectedPeserta.paket} · {selectedPeserta.tanggal}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <AdminStatusBadge
-                  className="w-28 text-[11px]"
-                  variant={selectedPeserta.jenisAkses === "Gratis" ? "success" : "warning"}
-                >
-                  {selectedPeserta.jenisAkses}
-                </AdminStatusBadge>
+
                 <button
+                  type="button"
                   onClick={() => setSelectedPeserta(null)}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200/50 rounded-full transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6">
-              {/* Participant Profile Banner */}
-              <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-gray-50/70 border border-gray-100">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Kontak Peserta</span>
-                  <p className="text-xs font-semibold text-gray-800">{selectedPeserta.noHp}</p>
+              {/* Modal Body (Scrollable Isi Detail) */}
+              <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-130px)]">
+                {/* Data Klien Ringkas */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-gray-50/80 border border-gray-100 text-xs">
+                  <div>
+                    <span className="text-gray-400 font-bold block uppercase tracking-wider text-[10px]">
+                      Nama Klien
+                    </span>
+                    <span className="font-bold text-gray-900 text-sm mt-0.5 block truncate">
+                      {selectedPeserta.nama}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-bold block uppercase tracking-wider text-[10px]">
+                      Kontak WhatsApp
+                    </span>
+                    <span className="font-semibold text-emerald-700 text-sm mt-0.5 block truncate">
+                      {selectedPeserta.noHp}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-bold block uppercase tracking-wider text-[10px]">
+                      Paket Psikotes
+                    </span>
+                    <span className="font-medium text-gray-800 mt-0.5 block truncate">
+                      {selectedPeserta.paket}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-bold block uppercase tracking-wider text-[10px]">
+                      Tanggal Asesmen
+                    </span>
+                    <span className="font-medium text-gray-800 mt-0.5 block">
+                      {selectedPeserta.tanggal}
+                    </span>
+                  </div>
                 </div>
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Status Pengerjaan</span>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${selectedPeserta.status === "Selesai" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-                      }`}
-                  >
-                    {selectedPeserta.status}
+
+                {/* 1. Hasil Utama (Hero Card) */}
+                <div className="bg-gradient-to-br from-purple-50/60 via-white to-purple-50/30 rounded-2xl border border-purple-100 p-6 text-center space-y-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Hasil Karakteristik Utama
                   </span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-[#561269] tracking-tight">
+                    {selectedPeserta.skor}
+                  </h2>
+                  <p className="text-xs text-gray-600 max-w-xl mx-auto leading-relaxed pt-1">
+                    {detail.deskripsi}
+                  </p>
                 </div>
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Skor / Hasil Akhir</span>
-                  <p className="text-xs font-extrabold text-[#561269]">{selectedPeserta.skor}</p>
-                </div>
-              </div>
 
-              {/* JIKA BERBAYAR: LAPORAN LENGKAP MENYESUAIKAN HASIL DI WEBSITE USER */}
-              {selectedPeserta.jenisAkses === "Berbayar" && selectedPeserta.status === "Selesai" && (() => {
-                const inter = getPesertaInterpretasi(selectedPeserta);
-                return (
-                  <div className="space-y-6 pt-2">
-                    {/* Header Laporan Resmi Berbayar */}
-                    <div className="border-b border-gray-200 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#561269] bg-purple-50 px-2.5 py-0.5 rounded-full">
-                          Laporan Analisis Asesmen Lengkap
-                        </span>
-                        <h4 className="text-base font-extrabold text-gray-900 mt-1">
-                          Evaluasi Hasil Peserta: {selectedPeserta.nama}
-                        </h4>
-                      </div>
-                      <span className="text-xs text-gray-500 font-medium">
-                        Cakupan: Analisis Komprehensif
+                {/* 2. Interpretasi & Implikasi */}
+                <div className="space-y-3.5">
+                  <div className="p-5 rounded-2xl bg-white border border-gray-200/80 space-y-2">
+                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Info className="w-4 h-4 text-[#561269]" />
+                      Interpretasi Analisis &amp; Landasan Ilmiah
+                    </h4>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {detail.deskripsi}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2]">
+                    <h5 className="text-[11px] font-bold text-[#561269] uppercase tracking-wider mb-1">
+                      Implikasi bagi Kehidupan Sehari-hari
+                    </h5>
+                    <p className="text-xs text-gray-700 leading-relaxed">
+                      {detail.makna}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3. Analisis Karakteristik: Kekuatan Utama vs Blindspots */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {/* Kekuatan Utama */}
+                  <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
+                        Kekuatan Utama (Core Strengths)
                       </span>
                     </div>
-
-                    {/* 1. Hasil Utama Card */}
-                    <div className="bg-white rounded-2xl border border-purple-200 p-6 sm:p-7 shadow-xs text-center space-y-2">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Tipe Kepribadian / Profil Teridentifikasi
-                      </p>
-                      <h3 className="text-2xl sm:text-3xl font-black text-[#561269] tracking-tight">
-                        {selectedPeserta.skor}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed pt-1">
-                        {inter.deskripsi}
-                      </p>
-                    </div>
-
-                    {/* 2. Interpretasi Analisis & Implikasi */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs space-y-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-1.5">
-                          <Info className="w-4 h-4 text-[#561269]" />
-                          Interpretasi Analisis &amp; Landasan Ilmiah
-                        </h4>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                          {inter.deskripsi}
-                        </p>
-                      </div>
-
-                      <div className="p-4 rounded-xl bg-[#FAF8FB] border border-[#EFE7F2]">
-                        <span className="text-[10px] font-bold text-[#561269] uppercase tracking-wider block mb-1">
-                          Implikasi bagi Kehidupan Sehari-hari
-                        </span>
-                        <p className="text-xs text-gray-700 leading-relaxed">
-                          {inter.makna}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* 3. Analisis Karakteristik: Kekuatan Utama vs Blindspots */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs space-y-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-1">
-                          <ShieldCheck className="w-4 h-4 text-[#561269]" />
-                          Analisis Karakteristik &amp; Dinamika Diri
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          Pemetaan keunggulan utama serta area blindspot yang perlu diperhatikan:
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/70 space-y-2">
-                          <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Kekuatan Utama (Core Strengths)
-                          </span>
-                          <ul className="space-y-1.5 text-xs text-emerald-950">
-                            {(inter.kekuatanUtama || [
-                              "Komunikasi persuasif yang berakar pada empati tulus.",
-                              "Kemampuan membangun keselarasan dan kohesi tim kerja.",
-                              "Ketajaman dalam merumuskan solusi berpusat pada manusia.",
-                            ]).map((k, i) => (
-                              <li key={i} className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
-                                <span>{k}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div className="p-4 rounded-xl bg-rose-50/50 border border-rose-200/70 space-y-2">
-                          <span className="text-[11px] font-bold text-rose-900 uppercase tracking-wider flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                            Titik Rawan (Blindspots)
-                          </span>
-                          <ul className="space-y-1.5 text-xs text-rose-950">
-                            {(inter.blindspots || [
-                              "Cenderung mengabaikan kebutuhan diri sendiri demi mendahulukan orang lain.",
-                              "Rentan mengalami kelelahan emosional saat menyerap masalah sekitar.",
-                              "Sulit menolak beban kerja tambahan atau menetapkan batasan diri yang tegas.",
-                            ]).map((b, i) => (
-                              <li key={i} className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
-                                <span>{b}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 4. Lingkungan & Budaya Kerja Optimal */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs space-y-3">
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-1">
-                          <Compass className="w-4 h-4 text-[#561269]" />
-                          Lingkungan &amp; Budaya Kerja Optimal
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          Kondisi eksternal yang paling mendukung potensi dan produktivitas:
-                        </p>
-                      </div>
-
-                      <div className="p-4 rounded-xl bg-amber-50/40 border border-amber-200/70">
-                        <ul className="space-y-1.5 text-xs text-gray-800">
-                          {(inter.lingkunganOptimal || [
-                            "Industri edukasi, psikologi, human resource, dan konsultasi.",
-                            "Posisi strategis dengan ruang kolaborasi tim yang fleksibel.",
-                            "Budaya organisasi yang menghargai inovasi dan empati.",
-                          ]).map((l, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                              <span>{l}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    {/* 5. Langkah Pengembangan Diri */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs space-y-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-1">
-                          <HeartHandshake className="w-4 h-4 text-[#561269]" />
-                          Langkah Pengembangan Diri
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          Saran praktis untuk memaksimalkan potensi peserta:
-                        </p>
-                      </div>
-
-                      <div className="space-y-2.5">
-                        {inter.saran.map((tip, index) => (
-                          <div key={index} className="flex gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
-                            <div className="flex-shrink-0 mt-0.5">
-                              <CheckCircle2 className="w-4 h-4 text-[#561269]" />
-                            </div>
-                            <div>
-                              <h5 className="text-xs font-bold text-gray-900">{tip.title}</h5>
-                              <p className="mt-0.5 text-xs text-gray-600 leading-relaxed">{tip.desc}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* 6. Card Informasi Asesmen */}
-                    <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 text-xs text-gray-700 flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <span className="font-bold text-[#561269] block">Validitas Asesmen</span>
-                        <span className="text-[11px] text-gray-500">Respon pengerjaan dinilai konsisten</span>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs font-semibold">
-                        <span>Cakupan: <strong>Analisis Komprehensif</strong></span>
-                        <span>•</span>
-                        <span>Status: <strong className="text-emerald-700">Terverifikasi</strong></span>
-                      </div>
-                    </div>
+                    <ul className="space-y-2 text-xs text-emerald-950">
+                      {detail.kekuatanUtama.map((point, pIdx) => (
+                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                );
-              })()}
 
-              {/* JIKA GRATIS: PERTAHANKAN TAMPILAN ASLI TANPA DIUBAH */}
-              {selectedPeserta.jenisAkses === "Gratis" && selectedPeserta.status === "Selesai" && (
-                <div>
-                  <h5 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-sm">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" /> Ringkasan Analisis Psikotes
-                  </h5>
-                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-700 leading-relaxed">
-                    Berdasarkan asesmen psikotes yang telah diselesaikan, peserta menunjukkan kecenderungan yang konsisten dengan profil &quot;{selectedPeserta.skor}&quot;. Hasil ini dapat dijadikan acuan dalam konsultasi lanjutan atau pengembangan diri secara mandiri.
+                  {/* Titik Rawan */}
+                  <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200/70">
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span className="text-[11px] font-bold text-rose-900 uppercase tracking-wider">
+                        Titik Rawan (Blindspots)
+                      </span>
+                    </div>
+                    <ul className="space-y-2 text-xs text-rose-950">
+                      {detail.blindspots.map((point, pIdx) => (
+                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-              )}
 
-              {/* Belum Selesai */}
-              {selectedPeserta.status !== "Selesai" && (
-                <div className="text-center p-6 border border-dashed border-gray-200 rounded-2xl">
-                  <Clock className="w-7 h-7 text-amber-500 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">Peserta masih dalam proses pengerjaan tes.</p>
+                {/* 4. Lingkungan & Budaya Kerja Optimal */}
+                <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Compass className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
+                      Lingkungan &amp; Budaya Optimal
+                    </span>
+                  </div>
+                  <ul className="space-y-2 text-xs text-gray-800">
+                    {detail.lingkunganOptimal.map((ling, lIdx) => (
+                      <li key={lIdx} className="flex items-start gap-2 leading-relaxed">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <span>{ling}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
-            </div>
 
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
-              {selectedPeserta.jenisAkses === "Berbayar" && selectedPeserta.status === "Selesai" ? (
+                {/* 5. Langkah Pengembangan Diri */}
+                <div className="p-5 rounded-2xl bg-white border border-gray-200/80 space-y-3">
+                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <HeartHandshake className="w-4 h-4 text-[#561269]" />
+                    Langkah Pengembangan Diri
+                  </h4>
+                  <div className="space-y-2">
+                    {detail.tips.map((tip, idx) => (
+                      <div key={idx} className="flex gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div className="w-5 h-5 rounded-full bg-[#561269] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <h5 className="text-xs font-bold text-gray-900">{tip.title}</h5>
+                          <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">{tip.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Card Dokumen Laporan PDF Resmi Siap Cetak/Download */}
+                <div className="p-5 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/50 via-white to-purple-50/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-11 h-11 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0 shadow-xs">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-gray-900 leading-tight">
+                        Laporan Resmi Psikotes (Format Web User).pdf
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        Dokumen evaluasi komprehensif terverifikasi siap unduh dan cetak 1:1 persis website klien.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadPdf(selectedPeserta)}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Laporan (PDF)
+                  </button>
+                </div>
+
+                {/* Quick WhatsApp Action */}
+                {selectedPeserta.noHp && selectedPeserta.noHp !== "—" && (
+                  <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <span className="text-gray-700 font-medium">
+                      Kirimkan pemberitahuan hasil asesmen resmi ini ke nomor klien?
+                    </span>
+                    <a
+                      href={`https://wa.me/${selectedPeserta.noHp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                        `Halo ${selectedPeserta.nama}, terima kasih telah menyelesaikan asesmen psikotes ${selectedPeserta.paket} di Empathika. Hasil asesmen Anda (${selectedPeserta.skor}) telah siap dan terverifikasi secara resmi.`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 font-bold text-emerald-800 hover:underline shrink-0"
+                    >
+                      Kirim WhatsApp
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/70 shrink-0">
+                <span className="text-xs text-gray-500">
+                  Dokumen resmi asesmen psikotes Empathika
+                </span>
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 text-xs font-bold transition cursor-pointer"
+                  onClick={() => setSelectedPeserta(null)}
+                  className="px-6 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-100 transition-all cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5" /> Cetak Laporan (PDF)
+                  Tutup
                 </button>
-              ) : (
-                <div></div>
-              )}
-              <button
-                onClick={() => setSelectedPeserta(null)}
-                className="px-6 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-100 transition-all cursor-pointer"
-              >
-                Tutup
-              </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
 
       {/* ========================================================= */}
       {/* 6. MODAL PREVIEW FORMAT LAPORAN USER (PAKET BERBAYAR)     */}

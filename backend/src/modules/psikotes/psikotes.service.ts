@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify'
 import { PsikotesRepository } from './psikotes.repository'
-import type { CreatePsikotesInput, UpdatePsikotesInput, PsikotesQueryInput } from './psikotes.schema'
+import type {
+  CreatePsikotesInput,
+  UpdatePsikotesInput,
+  PsikotesQueryInput,
+  SubmitPsikotesInput,
+  PesertaQueryInput,
+} from './psikotes.schema'
 
 export class PsikotesService {
   private repo: PsikotesRepository
@@ -32,4 +38,14 @@ export class PsikotesService {
   async delete(id: string) {
     return this.repo.delete(id)
   }
+
+  async submit(idPaket: string, input: SubmitPsikotesInput) {
+    return this.repo.submit(idPaket, input)
+  }
+
+  async getPeserta(params?: PesertaQueryInput) {
+    return this.repo.findPeserta(params)
+  }
 }
+
+

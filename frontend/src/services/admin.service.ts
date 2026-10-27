@@ -53,5 +53,8 @@ export const adminService = {
   }) => apiClient.put("/admin/profile", payload).then((r) => r.data),
 
   getPublicProfile: () => apiClient.get("/admin/profile/public").then((r) => r.data),
+
+  resendActivation: (accountId: string) =>
+    apiClient.post("/admin/resend-activation", { accountId }).then((r) => r.data),
 }
 

@@ -21,5 +21,13 @@ export const authService = {
     apiClient
       .post<{ success: boolean; message: string; user: any }>("/auth/set-password", payload)
       .then((r) => r.data),
+
+  checkActivation: (token: string) =>
+    apiClient
+      .get("/auth/activation", {
+        params: { token },
+        validateStatus: (status) => status < 500,
+      })
+      .then((r) => r.data),
 }
 
