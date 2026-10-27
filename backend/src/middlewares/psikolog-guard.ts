@@ -1,9 +1,11 @@
 import type { FastifyRequest, FastifyReply } from "fastify"
 
+const isDev = process.env.NODE_ENV !== "production"
+
 export async function psikologGuard(request: FastifyRequest, reply: FastifyReply) {
   try {
     const authHeader = request.headers.authorization
-    if (authHeader && authHeader.includes("dummy-")) {
+    if (isDev && authHeader && authHeader.includes("dummy-")) {
       (request as any).user = { id: "psikolog-dev", role: "PSIKOLOG" }
       return
     }
@@ -15,7 +17,7 @@ export async function psikologGuard(request: FastifyRequest, reply: FastifyReply
     }
   } catch {
     const authHeader = request.headers.authorization
-    if (authHeader && authHeader.includes("dummy-")) {
+    if (isDev && authHeader && authHeader.includes("dummy-")) {
       (request as any).user = { id: "psikolog-dev", role: "PSIKOLOG" }
       return
     }

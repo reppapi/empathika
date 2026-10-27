@@ -38,9 +38,10 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
   }
 
   return async function rateLimitGuard(request: FastifyRequest, reply: FastifyReply) {
-    // Abaikan jika testing developer memakai dummy token
+    // Abaikan jika testing developer memakai dummy token di mode development
+    const isDev = process.env.NODE_ENV !== 'production'
     const authHeader = request.headers.authorization
-    if (authHeader && authHeader.includes('dummy-')) {
+    if (isDev && authHeader && authHeader.includes('dummy-')) {
       return
     }
 
