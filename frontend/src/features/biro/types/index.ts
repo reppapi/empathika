@@ -17,6 +17,10 @@ export interface BiroKomunitas {
   aktivasiToken?: string
   tanggalAktivasi?: string
   tokenExpiredAt?: string
+  /** accountId dari tabel Account (untuk tombol generate link aktivasi) */
+  accountId?: string
+  /** Flag apakah akun sudah aktif (password sudah di-set) */
+  accountAktif?: boolean
 }
 
 export interface BiroFormData {

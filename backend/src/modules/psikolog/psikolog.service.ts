@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { PsikologRepository } from './psikolog.repository'
 import { BookingService } from '../booking/booking.service'
 import bcrypt from 'bcrypt'
+import { buildActivationMeta, withActivationAccount, issueActivationToken } from '../../utils/activation'
 import type {
   GetJadwalTersediaQuery,
   GetJadwalPsikologMeQuery,
@@ -516,21 +517,34 @@ export class PsikologService {
         throw new Error(`Email "${emailClean}" sudah digunakan oleh akun lain. Silakan gunakan email lain.`)
       }
 
-      const passwordToHash = body.password || 'Psikolog123!'
-      const hashedPassword = await bcrypt.hash(passwordToHash, 10)
-
-      account = await this.prisma.account.create({
-        data: {
-          nama: body.nama,
-          email: emailClean,
-          password: hashedPassword,
-          role: 'PSIKOLOG',
-          no_telepon: body.noTelepon || null,
-          foto: body.foto || null,
-          bio: body.bio || null,
-          aktif: body.statusAkses !== 'NONAKTIF',
-        },
-      })
+      if (account) {
+        account = await this.prisma.account.update({
+          where: { id: account.id },
+          data: {
+            nama: body.nama,
+            no_telepon: body.noTelepon || account.no_telepon,
+            foto: body.foto || account.foto,
+            bio: body.bio || account.bio,
+            role: 'PSIKOLOG',
+          },
+        })
+      } else {
+        const { token: activationToken, expiresAt: activationExpiry } = issueActivationToken()
+        account = await this.prisma.account.create({
+          data: {
+            nama: body.nama,
+            email: emailClean,
+            password: null,
+            role: 'PSIKOLOG',
+            no_telepon: body.noTelepon || null,
+            foto: body.foto || null,
+            bio: body.bio || null,
+            aktif: false,
+            token_aktivasi: activationToken,
+            token_aktivasi_exp: activationExpiry,
+          },
+        })
+      }
 
       psikolog = await this.prisma.psikolog.findUnique({
         where: { id_account: account.id },

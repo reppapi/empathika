@@ -1,5 +1,36 @@
 import { z } from "zod"
 
+// ── Schema untuk Admin: Membuat akun Biro baru ────────────────────────────────
+export const createBiroSchema = z.object({
+  nama: z.string().min(3, "Nama biro minimal 3 karakter"),
+  slug: z.string().min(2, "Slug minimal 2 karakter").regex(/^[a-z0-9-]+$/, "Slug hanya boleh huruf kecil, angka, dan tanda hubung"),
+  email: z.string().email("Format email tidak valid"),
+  noTelepon: z.string().optional(),
+  alamat: z.string().optional(),
+  deskripsi: z.string().optional(),
+  warnaIdentitas: z.string().optional(),
+  logoURI: z.string().url("Format URL logo tidak valid").optional(),
+  tokenAktivasi: z.string().optional(),
+  tokenExpiredAt: z.string().optional(),
+})
+
+export type CreateBiroInput = z.infer<typeof createBiroSchema>
+
+// ── Schema untuk Admin: Memperbarui profil Biro ───────────────────────────────
+export const updateBiroProfileSchema = z.object({
+  nama: z.string().min(3).optional(),
+  slug: z.string().min(2).regex(/^[a-z0-9-]+$/).optional(),
+  email: z.string().email().optional(),
+  noTelepon: z.string().optional().nullable(),
+  alamat: z.string().optional().nullable(),
+  deskripsi: z.string().optional().nullable(),
+  warnaIdentitas: z.string().optional().nullable(),
+  logoURI: z.string().optional().nullable(),
+  status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"]).optional(),
+})
+
+export type UpdateBiroProfileInput = z.infer<typeof updateBiroProfileSchema>
+
 export const updateBiroAccountSchema = z.object({
   email: z.string().email("Format email tidak valid").optional(),
   passwordLama: z.string().min(1, "Password lama wajib diisi jika ingin mengganti password").optional(),

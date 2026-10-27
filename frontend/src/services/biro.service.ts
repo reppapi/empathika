@@ -92,3 +92,74 @@ export const biroPublicService = {
     return res.data
   },
 }
+
+// ── Admin Biro Service (untuk dashboard admin Empathika) ──────────────────────
+export interface BiroAccountData {
+  id: string
+  nama: string
+  email: string
+  role: string
+  no_telepon?: string | null
+  aktif: boolean
+  accountAktif: boolean
+  tokenAktivasi?: string | null
+  tokenExpiredAt?: string | null
+  linkMasihBerlaku?: boolean
+  canGenerateLink?: boolean
+  owned_biro?: {
+    id: string
+    nama_biro: string
+    slug: string
+    status: string
+    logoURI?: string | null
+    warna_tema?: string | null
+    alamat?: string | null
+    deskripsi?: string | null
+    no_telepon?: string | null
+  }[]
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface CreateBiroPayload {
+  nama: string
+  slug: string
+  email: string
+  noTelepon?: string
+  alamat?: string
+  deskripsi?: string
+  warnaIdentitas?: string
+  logoURI?: string
+  tokenAktivasi?: string
+  tokenExpiredAt?: string
+}
+
+export interface UpdateBiroPayload {
+  nama?: string
+  slug?: string
+  email?: string
+  noTelepon?: string | null
+  alamat?: string | null
+  deskripsi?: string | null
+  warnaIdentitas?: string | null
+  logoURI?: string | null
+  status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING"
+}
+
+export const biroAdminService = {
+  /** Ambil semua akun Biro (untuk daftar di halaman admin) */
+  getList: () =>
+    api.get<{ success: boolean; data: BiroAccountData[] }>("/biro/accounts").then((r) => r.data),
+
+  /** Ambil detail satu akun Biro berdasarkan accountId */
+  getById: (accountId: string) =>
+    api.get<{ success: boolean; data: BiroAccountData }>(`/biro/admin/${accountId}`).then((r) => r.data),
+
+  /** Admin membuat akun Biro baru */
+  createBiro: (payload: CreateBiroPayload) =>
+    api.post<{ success: boolean; data: BiroAccountData }>("/biro/admin/create", payload).then((r) => r.data),
+
+  /** Admin memperbarui profil Biro */
+  updateBiro: (accountId: string, payload: UpdateBiroPayload) =>
+    api.put<{ success: boolean }>(`/biro/admin/${accountId}`, payload).then((r) => r.data),
+}
