@@ -40,10 +40,12 @@ export class PsikologService {
       }
     } catch { }
 
-    return list.map((item: any) => ({
-      ...item,
-      jumlah_sesi: countMap[item.id] || 0,
-    }))
+    return list.map((item: any) =>
+      this.withPsikologActivation({
+        ...item,
+        jumlah_sesi: countMap[item.id] || 0,
+      })
+    )
   }
 
   async getById(id: string) {
@@ -60,9 +62,21 @@ export class PsikologService {
       })
     } catch { }
 
-    return {
+    return this.withPsikologActivation({
       ...item,
       jumlah_sesi: bookedCount,
+    })
+  }
+
+  /** Field aktivasi di root + account, agar FE tidak bergantung pada nested-only. */
+  private withPsikologActivation(item: any) {
+    const account = withActivationAccount(item.account)
+    const meta = buildActivationMeta(item.account)
+    return {
+      ...item,
+      ...meta,
+      accountId: account?.id || item.id_account || null,
+      account,
     }
   }
 
@@ -463,7 +477,6 @@ export class PsikologService {
           foto: body.foto || existingPsikolog.account?.foto,
           bio: body.bio || existingPsikolog.account?.bio,
           role: 'PSIKOLOG',
-          aktif: body.statusAkses !== 'NONAKTIF',
         },
       })
 
@@ -611,6 +624,9 @@ export class PsikologService {
       }
     }
 
-    return psikolog
+    return {
+      ...psikolog,
+      account: withActivationAccount(psikolog.account),
+    }
   }
 }

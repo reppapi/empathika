@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff, AlertCircle, Mail, Lock, ArrowRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Mail, Lock, ArrowRight } from "lucide-react";
 import { setAuthCookie, removeAuthCookie } from "@/lib/cookie";
 import { DUMMY_ADMIN, DUMMY_BIRO } from "../data/dummyAuth";
 import { authService } from "@/services/auth.service";
@@ -17,6 +17,7 @@ declare global {
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
   const [emailOrName, setEmailOrName] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +25,16 @@ export function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
+
+  useEffect(() => {
+    const status = searchParams.get("status");
+    if (status === "activated") {
+      setInfoMessage("Kata sandi berhasil dibuat dan akun Anda telah aktif! Silakan masuk.");
+    } else if (status === "already-active") {
+      setInfoMessage("Akun sudah aktif. Silakan masuk menggunakan kata sandi Anda.");
+    }
+  }, [searchParams]);
 
   // Helper untuk menyimpan token & redirect sesuai role user
   const handleSuccessLogin = (
@@ -305,6 +316,14 @@ export function LoginForm() {
           </div>
 
           <form onSubmit={handleSubmit} className="w-full space-y-5">
+
+            {/* Info Message (Aktivasi Berhasil / Akun Sudah Aktif) */}
+            {infoMessage && (
+              <div className="p-3 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{infoMessage}</span>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (

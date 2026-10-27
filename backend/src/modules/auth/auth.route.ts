@@ -7,6 +7,7 @@ import {
   userProfileResponseSchema,
   setPasswordSchema,
   resendActivationSchema,
+  checkActivationQuerySchema,
   googleLoginSchema,
 } from "./auth.schema"
 
@@ -51,6 +52,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
       },
     },
     handler: controller.me,
+  })
+
+  // GET /auth/activation - Cek token tautan aktivasi (publik)
+  fastify.get("/activation", {
+    schema: {
+      tags: ["Auth"],
+      summary: "Memvalidasi token tautan aktivasi akun",
+      querystring: checkActivationQuerySchema,
+    },
+    handler: controller.checkActivation,
   })
 
   // POST /auth/set-password - Aktivasi akun & buat password mandiri

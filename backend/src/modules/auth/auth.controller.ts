@@ -65,8 +65,32 @@ export class AuthController {
       return reply.code(200).send(result)
     } catch (err: any) {
       return reply.code(err.statusCode || 400).send({
-        error: err.name || "Bad Request",
+        error: err.errorCode || err.name || "Bad Request",
+        errorCode: err.errorCode,
         message: err.message,
+        role: err.role,
+        alreadyActive: err.alreadyActive,
+      })
+    }
+  }
+
+  checkActivation = async (
+    request: FastifyRequest<{ Querystring: { token?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const token = request.query.token || ""
+      const result = await this.service.checkActivation(token)
+      const status = result.alreadyActive ? 409 : 200
+      return reply.code(status).send(result)
+    } catch (err: any) {
+      return reply.code(err.statusCode || 400).send({
+        error: err.errorCode || err.name || "Bad Request",
+        errorCode: err.errorCode,
+        message: err.message,
+        valid: false,
+        reason: err.reason,
+        role: err.role,
       })
     }
   }
@@ -81,8 +105,12 @@ export class AuthController {
       return reply.code(200).send(result)
     } catch (err: any) {
       return reply.code(err.statusCode || 400).send({
-        error: err.name || "Bad Request",
+        error: err.errorCode || err.name || "Bad Request",
+        errorCode: err.errorCode,
         message: err.message,
+        tokenExpiredAt: err.tokenExpiredAt,
+        remainingSeconds: err.remainingSeconds,
+        remainingFormatted: err.remainingFormatted,
       })
     }
   }
