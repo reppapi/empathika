@@ -213,7 +213,7 @@ export class BiroService {
       throw Object.assign(new Error("Akun tidak ditemukan"), { statusCode: 404 })
     }
 
-    if (account.role !== "BIRO") {
+    if ((account as any).role !== "BIRO") {
       throw Object.assign(new Error("Akun ini bukan akun Biro"), { statusCode: 400 })
     }
 
