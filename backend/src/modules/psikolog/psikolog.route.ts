@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { PsikologController } from './psikolog.controller'
 import { adminGuard } from '../../middlewares/admin-guard'
+import { psikologGuard } from '../../middlewares/psikolog-guard'
 import {
   getJadwalTersediaQuerySchema,
   getJadwalPsikologMeQuerySchema,
@@ -43,15 +44,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
   // ── 2. Rute Portal Psikolog (Login Wajib) ─────────────────────────
   // Psikolog melihat jadwal mingguan & sesi yang sudah dibooking
   fastify.get('/me/jadwal', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat prototype testing tanpa token
-        }
-      },
-    ],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Psikolog - Portal'],
       summary: 'Jadwal mingguan & agenda sesi milik psikolog yang login',
@@ -63,15 +56,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
 
   // Psikolog membuka slot jam ketersediaan baru
   fastify.post('/me/jadwal-slots', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat testing prototype tanpa token
-        }
-      },
-    ],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Psikolog - Portal'],
       summary: 'Buka slot jam ketersediaan baru',
@@ -82,15 +67,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
 
   // Psikolog menghapus slot jam yang belum dibooking
   fastify.delete('/me/jadwal-slots/:id', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat prototype testing tanpa token
-        }
-      },
-    ],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Psikolog - Portal'],
       summary: 'Hapus slot jam ketersediaan yang belum dibooking',
@@ -101,15 +78,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
 
   // Psikolog melihat profilnya sendiri
   fastify.get('/me/profile', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat prototype testing tanpa token
-        }
-      },
-    ],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Psikolog - Portal'],
       summary: 'Profil psikolog yang sedang login',
@@ -120,15 +89,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
 
   // Psikolog mengubah profilnya sendiri
   fastify.put('/me/profile', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat prototype testing tanpa token
-        }
-      },
-    ],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Psikolog - Portal'],
       summary: 'Ubah profil psikolog yang sedang login',
@@ -140,15 +101,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
 
   // ── 3. Rute Pengelolaan Psikolog oleh Admin ───────────────────────
   fastify.post('/tambah', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat prototype testing
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Psikolog - Admin'],
       summary: 'Tambah tenaga ahli baru oleh admin (buat Akun & Profil Psikolog di DB)',
@@ -164,29 +117,13 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
   })
 
   fastify.put('/:id', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch (_err) {
-          // Token opsional / abaikan jika belum login JWT
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: { tags: ['Psikolog - Admin'], security: [{ bearerAuth: [] }] },
     handler: controller.update,
   })
 
   fastify.delete('/:id', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch (_err) {
-          // Token opsional / abaikan jika belum login JWT
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: { tags: ['Psikolog - Admin'], security: [{ bearerAuth: [] }] },
     handler: controller.remove,
   })

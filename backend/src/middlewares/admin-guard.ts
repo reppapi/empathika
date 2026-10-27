@@ -11,6 +11,7 @@ export async function adminGuard(request: FastifyRequest, reply: FastifyReply) {
     const user = request.user as { role: string }
     if (user.role !== "ADMIN") {
       reply.code(403).send({ error: "Forbidden", message: "Akses ditolak - hanya untuk Admin" })
+      return reply
     }
   } catch {
     const authHeader = request.headers.authorization

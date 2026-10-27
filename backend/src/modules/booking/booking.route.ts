@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { BookingController } from './booking.controller'
 import { adminGuard } from '../../middlewares/admin-guard'
 import { authGuard } from '../../middlewares/auth-guard'
+import { psikologGuard } from '../../middlewares/psikolog-guard'
 import { createRateLimiter } from '../../middlewares/rate-limit'
 import {
   getJadwalTersediaQuerySchema,
@@ -72,15 +73,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
 
   // ── 2. Rute Jadwal Tenaga Ahli / Psikolog ─────────────────────────────────────
   fastify.get('/me/jadwal', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat prototype testing tanpa token
-        }
-      },
-    ],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Booking & Jadwal - Psikolog'],
       summary: 'Jadwal dan sesi milik psikolog yang login',
@@ -90,15 +83,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/me/jadwal-slots', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat testing prototype tanpa token
-        }
-      },
-    ],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Booking & Jadwal - Psikolog'],
       summary: 'Buka slot jam ketersediaan baru',
@@ -109,15 +94,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   })
 
   fastify.delete('/me/jadwal-slots/:id', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat prototype testing tanpa token
-        }
-      },
-    ],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Booking & Jadwal - Psikolog'],
       summary: 'Hapus slot jam ketersediaan',
@@ -128,15 +105,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
 
   // ── 3. Rute Admin ────────────────────────────────────────────────────────────
   fastify.get('/admin/overview', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut saat prototype testing tanpa token
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Booking & Jadwal - Admin'],
       summary: 'Overview jadwal dan sesi mingguan admin',
