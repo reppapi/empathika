@@ -1,4 +1,5 @@
 import type { PrismaClient, Prisma } from "@prisma/client"
+import { withActivationAccount } from "../../utils/activation"
 import bcrypt from "bcrypt"
 import { parseDateString, formatDateToString, formatTimeToString } from "../../utils/date-time"
 import { generateOrderId } from "../../utils"
@@ -97,6 +98,7 @@ export class BiroService {
         role: true,
         no_telepon: true,
         aktif: true,
+        password: true,
         token_aktivasi: true,
         token_aktivasi_exp: true,
         id_biro: true,
@@ -119,7 +121,7 @@ export class BiroService {
 
     return {
       success: true,
-      data: account,
+      data: withActivationAccount(account),
     }
   }
 
@@ -133,6 +135,7 @@ export class BiroService {
         role: true,
         no_telepon: true,
         aktif: true,
+        password: true,
         token_aktivasi: true,
         token_aktivasi_exp: true,
         id_biro: true,
@@ -151,7 +154,7 @@ export class BiroService {
 
     return {
       success: true,
-      data: accounts,
+      data: accounts.map((item) => withActivationAccount(item)),
     }
   }
 

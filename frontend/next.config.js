@@ -37,12 +37,13 @@ const nextConfig = {
       },
     ],
   },
-  // Proxy semua request /api/v1/* ke backend Fastify agar tidak 404
+  // Proxy /api/v1/* ke Fastify (route BE tanpa prefix /api/v1)
   async rewrites() {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '')
     return [
       {
         source: '/api/v1/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/:path*`,
+        destination: `${apiBase}/:path*`,
       },
     ]
   },

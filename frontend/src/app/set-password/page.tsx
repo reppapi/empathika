@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Lock, Eye, EyeOff, AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
@@ -16,8 +16,66 @@ function SetPasswordContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isChecking, setIsChecking] = useState(Boolean(token))
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
+  const [tokenValid, setTokenValid] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    const verify = async () => {
+      if (!token) {
+        setIsChecking(false)
+        setTokenValid(false)
+        setError("Token aktivasi tidak ditemukan pada URL. Silakan periksa kembali tautan yang dikirimkan oleh admin.")
+        return
+      }
+
+      setIsChecking(true)
+      setError("")
+      try {
+        const res = await authService.checkActivation(token)
+        if (!active) return
+
+        if (res?.alreadyActive || res?.reason === "already_active") {
+          router.replace("/login?status=already-active")
+          return
+        }
+
+        if (res?.valid) {
+          setTokenValid(true)
+          return
+        }
+
+        setTokenValid(false)
+        setError(
+          res?.message ||
+            "Tautan aktivasi tidak valid atau sudah tidak berlaku. Silakan hubungi admin untuk tautan baru."
+        )
+      } catch (err: any) {
+        if (!active) return
+        const alreadyActive = err.response?.data?.alreadyActive || err.response?.data?.reason === "already_active"
+        if (alreadyActive) {
+          router.replace("/login?status=already-active")
+          return
+        }
+        setTokenValid(false)
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            "Tautan aktivasi tidak valid atau telah kedaluwarsa. Silakan hubungi admin untuk tautan baru."
+        )
+      } finally {
+        if (active) setIsChecking(false)
+      }
+    }
+
+    verify()
+    return () => {
+      active = false
+    }
+  }, [token, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,12 +107,17 @@ function SetPasswordContent() {
       if (res.success) {
         setSuccessMessage(res.message || "Kata sandi berhasil dibuat dan akun Anda telah aktif!")
         setTimeout(() => {
-          router.push("/login")
+          router.push("/login?status=activated")
         }, 2500)
       } else {
         setError(res.message || "Gagal mengaktifkan akun. Silakan coba kembali.")
       }
     } catch (err: any) {
+      const alreadyActive = err.response?.data?.alreadyActive || err.response?.data?.errorCode === "ACCOUNT_ALREADY_ACTIVE"
+      if (alreadyActive) {
+        router.replace("/login?status=already-active")
+        return
+      }
       const msg =
         err.response?.data?.message ||
         err.message ||
@@ -87,24 +150,24 @@ function SetPasswordContent() {
             </p>
           </div>
 
-          {/* Token Tidak Ditemukan */}
-          {!token && (
-            <div className="w-full mb-5 p-3.5 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5">
-              <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
-              <div>
-                <p className="font-bold">Tautan Aktivasi Tidak Lengkap</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  Parameter token aktivasi tidak ditemukan. Pastikan Anda menyalin seluruh tautan dari WhatsApp.
-                </p>
-              </div>
+          {isChecking && (
+            <div className="w-full mb-5 p-3.5 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2.5">
+              <div className="w-4 h-4 border-2 border-[#561269] border-t-transparent rounded-full animate-spin" />
+              <span>Memeriksa tautan aktivasi...</span>
             </div>
           )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="w-full mb-5 p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+          {/* Token / tautan tidak valid */}
+          {!isChecking && error && (
+            <div className="w-full mb-5 p-3.5 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5">
+              <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+              <div>
+                <p className="font-bold">Tautan aktivasi tidak dapat digunakan</p>
+                <p className="text-xs text-amber-700 mt-0.5">{error}</p>
+                <Link href="/login" className="inline-block mt-3 text-xs font-bold text-[#561269] hover:underline">
+                  Kembali ke halaman masuk
+                </Link>
+              </div>
             </div>
           )}
 
@@ -122,14 +185,14 @@ function SetPasswordContent() {
               </div>
               <div className="mt-6">
                 <Link
-                  href="/login"
+                  href="/login?status=activated"
                   className="inline-flex items-center gap-2 text-sm font-bold text-[#561269] hover:underline"
                 >
                   Klik di sini jika tidak beralih otomatis <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
-          ) : (
+          ) : tokenValid && !isChecking ? (
             <form onSubmit={handleSubmit} className="w-full space-y-5">
 
               {/* Password Baru */}
@@ -219,7 +282,7 @@ function SetPasswordContent() {
               </div>
 
             </form>
-          )}
+          ) : null}
 
         </div>
       </div>

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { PsikologRepository } from './psikolog.repository'
 import { BookingService } from '../booking/booking.service'
 import bcrypt from 'bcrypt'
+import { buildActivationMeta, withActivationAccount } from '../../utils/activation'
 import type {
   GetJadwalTersediaQuery,
   GetJadwalPsikologMeQuery,
@@ -39,10 +40,12 @@ export class PsikologService {
       }
     } catch { }
 
-    return list.map((item: any) => ({
-      ...item,
-      jumlah_sesi: countMap[item.id] || 0,
-    }))
+    return list.map((item: any) =>
+      this.withPsikologActivation({
+        ...item,
+        jumlah_sesi: countMap[item.id] || 0,
+      })
+    )
   }
 
   async getById(id: string) {
@@ -59,9 +62,21 @@ export class PsikologService {
       })
     } catch { }
 
-    return {
+    return this.withPsikologActivation({
       ...item,
       jumlah_sesi: bookedCount,
+    })
+  }
+
+  /** Field aktivasi di root + account, agar FE tidak bergantung pada nested-only. */
+  private withPsikologActivation(item: any) {
+    const account = withActivationAccount(item.account)
+    const meta = buildActivationMeta(item.account)
+    return {
+      ...item,
+      ...meta,
+      accountId: account?.id || item.id_account || null,
+      account,
     }
   }
 
@@ -462,7 +477,6 @@ export class PsikologService {
           foto: body.foto || existingPsikolog.account?.foto,
           bio: body.bio || existingPsikolog.account?.bio,
           role: 'PSIKOLOG',
-          aktif: body.statusAkses !== 'NONAKTIF',
         },
       })
 
@@ -516,21 +530,31 @@ export class PsikologService {
         throw new Error(`Email "${emailClean}" sudah digunakan oleh akun lain. Silakan gunakan email lain.`)
       }
 
-      const passwordToHash = body.password || 'Psikolog123!'
-      const hashedPassword = await bcrypt.hash(passwordToHash, 10)
-
-      account = await this.prisma.account.create({
-        data: {
-          nama: body.nama,
-          email: emailClean,
-          password: hashedPassword,
-          role: 'PSIKOLOG',
-          no_telepon: body.noTelepon || null,
-          foto: body.foto || null,
-          bio: body.bio || null,
-          aktif: body.statusAkses !== 'NONAKTIF',
-        },
-      })
+      if (account) {
+        account = await this.prisma.account.update({
+          where: { id: account.id },
+          data: {
+            nama: body.nama,
+            no_telepon: body.noTelepon || account.no_telepon,
+            foto: body.foto || account.foto,
+            bio: body.bio || account.bio,
+            role: 'PSIKOLOG',
+          },
+        })
+      } else {
+        account = await this.prisma.account.create({
+          data: {
+            nama: body.nama,
+            email: emailClean,
+            password: null,
+            role: 'PSIKOLOG',
+            no_telepon: body.noTelepon || null,
+            foto: body.foto || null,
+            bio: body.bio || null,
+            aktif: false,
+          },
+        })
+      }
 
       psikolog = await this.prisma.psikolog.findUnique({
         where: { id_account: account.id },
@@ -597,6 +621,9 @@ export class PsikologService {
       }
     }
 
-    return psikolog
+    return {
+      ...psikolog,
+      account: withActivationAccount(psikolog.account),
+    }
   }
 }

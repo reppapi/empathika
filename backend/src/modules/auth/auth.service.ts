@@ -4,21 +4,13 @@ import { OAuth2Client } from "google-auth-library"
 import { env } from "../../config/env"
 import { AuthRepository } from "./auth.repository"
 import type { LoginInput } from "./auth.schema"
-
-function formatRemainingTime(ms: number): string {
-  if (ms <= 0) return "0 detik"
-  const totalSeconds = Math.floor(ms / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-
-  const parts: string[] = []
-  if (days > 0) parts.push(`${days} hari`)
-  if (hours > 0) parts.push(`${hours} jam`)
-  if (minutes > 0 && days === 0) parts.push(`${minutes} menit`)
-  if (parts.length === 0) return "kurang dari 1 menit"
-  return parts.join(" ")
-}
+import {
+  buildActivationUrl,
+  formatExpiryWib,
+  formatRemainingTime,
+  issueActivationToken,
+  withActivationAccount,
+} from "../../utils/activation"
 
 export class AuthService {
   private repo: AuthRepository
@@ -171,14 +163,74 @@ export class AuthService {
     }
   }
 
-  async setPassword(token: string, newPassword: string) {
+  async checkActivation(token: string) {
     const account = await this.repo.findByActivationToken(token)
     if (!account) {
-      throw Object.assign(new Error("Tautan aktivasi tidak valid"), { statusCode: 404 })
+      throw Object.assign(
+        new Error(
+          "Tautan aktivasi tidak valid atau sudah tidak berlaku. Silakan hubungi admin untuk tautan baru."
+        ),
+        { statusCode: 400, errorCode: "TOKEN_INVALID", reason: "invalid", valid: false }
+      )
+    }
+
+    if (account.aktif && account.password) {
+      return {
+        valid: false,
+        alreadyActive: true,
+        reason: "already_active",
+        role: account.role,
+        message: "Akun sudah aktif. Silakan masuk menggunakan kata sandi Anda.",
+      }
     }
 
     if (account.token_aktivasi_exp && new Date() > new Date(account.token_aktivasi_exp)) {
-      throw Object.assign(new Error("Tautan aktivasi telah kedaluwarsa"), { statusCode: 400 })
+      throw Object.assign(
+        new Error("Tautan aktivasi telah kedaluwarsa. Silakan hubungi admin untuk tautan baru."),
+        {
+          statusCode: 400,
+          errorCode: "TOKEN_EXPIRED",
+          reason: "expired",
+          valid: false,
+          role: account.role,
+        }
+      )
+    }
+
+    return {
+      valid: true,
+      alreadyActive: false,
+      reason: "ok",
+      role: account.role,
+      email: account.email,
+    }
+  }
+
+  async setPassword(token: string, newPassword: string) {
+    const account = await this.repo.findByActivationToken(token)
+    if (!account) {
+      throw Object.assign(
+        new Error(
+          "Tautan aktivasi tidak valid atau sudah tidak berlaku. Silakan hubungi admin untuk tautan baru."
+        ),
+        { statusCode: 400, errorCode: "TOKEN_INVALID" }
+      )
+    }
+
+    if (account.aktif && account.password) {
+      throw Object.assign(new Error("Akun sudah aktif. Silakan masuk menggunakan kata sandi Anda."), {
+        statusCode: 409,
+        errorCode: "ACCOUNT_ALREADY_ACTIVE",
+        alreadyActive: true,
+        role: account.role,
+      })
+    }
+
+    if (account.token_aktivasi_exp && new Date() > new Date(account.token_aktivasi_exp)) {
+      throw Object.assign(
+        new Error("Tautan aktivasi telah kedaluwarsa. Silakan hubungi admin untuk tautan baru."),
+        { statusCode: 400, errorCode: "TOKEN_EXPIRED", role: account.role }
+      )
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10)
@@ -207,7 +259,7 @@ export class AuthService {
       throw Object.assign(
         new Error("Akun sudah aktif. Generate ulang link aktivasi tidak diperlukan lagi."),
         {
-          statusCode: 400,
+          statusCode: 409,
           errorCode: "ACCOUNT_ALREADY_ACTIVE",
         }
       )
@@ -220,22 +272,16 @@ export class AuthService {
       if (expTime > now) {
         const remainingMs = expTime - now
         const remainingStr = formatRemainingTime(remainingMs)
-        const expDateFormatted = new Date(account.token_aktivasi_exp).toLocaleString("id-ID", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+        const expDateFormatted = formatExpiryWib(account.token_aktivasi_exp)
 
         throw Object.assign(
           new Error(
-            `Link aktivasi masih berlaku. Generate ulang baru bisa dilakukan setelah ${expDateFormatted} (tersisa ${remainingStr}).`
+            `Link aktivasi masih berlaku. Generate ulang baru bisa dilakukan setelah ${expDateFormatted}.`
           ),
           {
             statusCode: 429,
             errorCode: "LINK_STILL_ACTIVE",
-            tokenExpiredAt: account.token_aktivasi_exp,
+            tokenExpiredAt: new Date(account.token_aktivasi_exp).toISOString(),
             remainingSeconds: Math.ceil(remainingMs / 1000),
             remainingFormatted: remainingStr,
           }
@@ -244,29 +290,26 @@ export class AuthService {
     }
 
     // 3. Buat token baru masa aktif 3 hari
-    const crypto = await import("crypto")
-    const newToken = `act_${crypto.randomBytes(20).toString("hex")}`
-    const newExpiry = new Date(now + 3 * 24 * 60 * 60 * 1000)
+    const { token: newToken, expiresAt: newExpiry } = issueActivationToken()
 
     await this.repo.updateActivationToken(account.id, newToken, newExpiry)
 
-    const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:3000"
-    const activationUrl = `${frontendBaseUrl}/set-password?token=${newToken}`
+    const updated = {
+      ...account,
+      token_aktivasi: newToken,
+      token_aktivasi_exp: newExpiry,
+    }
 
     return {
       success: true,
       message: "Tautan aktivasi baru berhasil dibuat",
       token: newToken,
       tokenExpiredAt: newExpiry.toISOString(),
-      activationUrl,
-      account: {
-        id: account.id,
-        nama: account.nama,
-        email: account.email,
-        no_telepon: account.no_telepon,
-        role: account.role,
-        aktif: account.aktif,
-      },
+      activationUrl: buildActivationUrl(newToken),
+      account: withActivationAccount({
+        ...updated,
+        password: account.password,
+      }),
     }
   }
 

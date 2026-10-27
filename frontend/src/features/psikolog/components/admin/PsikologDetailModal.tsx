@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   UserCheck,
 } from "lucide-react"
+import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
 
 interface PsikologDetailModalProps {
   isOpen: boolean
@@ -26,6 +27,13 @@ interface PsikologDetailModalProps {
   psikolog: TenagaAhli | null
   onEdit: (psikolog: TenagaAhli) => void
   onToggleAkses: (psikolog: TenagaAhli, newStatus: StatusAkses) => void
+  onUpdated?: (next: {
+    tokenAktivasi?: string | null
+    tokenExpiredAt?: string | null
+    accountAktif?: boolean
+    activationUrl?: string | null
+  }) => void
+  onRefreshFromServer?: () => Promise<void>
 }
 
 export default function PsikologDetailModal({
@@ -34,6 +42,8 @@ export default function PsikologDetailModal({
   psikolog,
   onEdit,
   onToggleAkses,
+  onUpdated,
+  onRefreshFromServer,
 }: PsikologDetailModalProps) {
   const [isCopied, setIsCopied] = useState(false)
 
@@ -279,6 +289,23 @@ export default function PsikologDetailModal({
                   <span className="font-semibold text-gray-800">{psikolog.email}</span>
                 </div>
 
+                <div className="pt-2 flex items-center justify-between gap-2 border-t border-gray-100 flex-wrap">
+                  <span className="text-[11px] text-gray-500 font-medium">Tindakan Link Aktivasi:</span>
+                  <GenerateActivationLinkButton
+                    accountId={psikolog.accountId || (psikolog as any).account?.id || (psikolog as any).id_account}
+                    accountAktif={Boolean(psikolog.accountAktif || (psikolog as any).account?.accountAktif || (psikolog as any).account?.password || psikolog.statusAkses === "AKTIF" && psikolog.password)}
+                    tokenAktivasi={psikolog.tokenAktivasi}
+                    tokenExpiredAt={psikolog.tokenExpiredAt}
+                    compact={true}
+                    onUpdated={(next) => {
+                      if (onUpdated) onUpdated(next)
+                    }}
+                    onRefreshFromServer={async () => {
+                      if (onRefreshFromServer) await onRefreshFromServer()
+                    }}
+                  />
+                </div>
+
                 {activationUrl ? (
                   <div className="space-y-1.5 pt-1.5 border-t border-gray-100">
                     <div className="flex items-center justify-between gap-1 flex-wrap">
@@ -326,7 +353,7 @@ export default function PsikologDetailModal({
                 ) : (
                   <div className="pt-1.5 border-t border-gray-100">
                     <p className="text-[11px] text-gray-400">
-                      Tautan aktivasi belum dibuat. Anda dapat membuatnya di menu <span className="font-semibold text-[#561269]">Edit Profil</span>.
+                      Tautan aktivasi belum dibuat. Klik &quot;Generate Link&quot; di atas untuk membuat tautan baru.
                     </p>
                   </div>
                 )}

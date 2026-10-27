@@ -8,6 +8,7 @@ import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
+import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
 import {
   validateEmail,
   validateNoTelepon,
@@ -39,6 +40,8 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
   const [noTelepon, setNoTelepon] = useState("")
 
   // State Tautan Aktivasi & Token WhatsApp (bisa di-generate atau reset di halaman edit)
+  const [realAccountId, setRealAccountId] = useState<string>("")
+  const [accountAktif, setAccountAktif] = useState(false)
   const [activationToken, setActivationToken] = useState<string | null>(null)
   const [tokenExpiredAt, setTokenExpiredAt] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
@@ -331,6 +334,16 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       setKeahlian(keahlianArr)
       setJumlahSesi(jumlahSesiVal)
       setTanggalBergabung(tanggalBergabungVal)
+      const accId = backendData?.account?.id || backendData?.id_account || backendData?.accountId || localData?.accountId || ""
+      if (accId) setRealAccountId(accId)
+      const isAktif = Boolean(
+        backendData?.accountAktif ||
+        backendData?.account?.accountAktif ||
+        backendData?.account?.password ||
+        (backendData?.account?.aktif && backendData?.account?.password) ||
+        (statusAksesVal === "AKTIF" && passwordVal && passwordVal !== "Psikolog123!")
+      )
+      setAccountAktif(isAktif)
       if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
       if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
 
@@ -800,31 +813,33 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                   </svg>
                   Tautan Aktivasi / Reset Akun (3 Hari)
                 </label>
-                {activationToken ? (
-                  <button
-                    type="button"
-                    onClick={handleRegenerateToken}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
-                    title="Buat ulang token aktivasi baru"
-                  >
-                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Generate Ulang Link
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleGenerateToken}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#561269] hover:text-purple-950 bg-white border border-purple-200 hover:bg-purple-100/60 px-2.5 py-1 rounded-xl transition active:scale-95 cursor-pointer shadow-2xs"
-                    title="Buat tautan aktivasi sekarang"
-                  >
-                    <svg className="w-3.5 h-3.5 text-[#561269]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Generate Tautan
-                  </button>
-                )}
+                <GenerateActivationLinkButton
+                  accountId={realAccountId}
+                  accountAktif={accountAktif}
+                  tokenAktivasi={activationToken}
+                  tokenExpiredAt={tokenExpiredAt}
+                  compact={true}
+                  onUpdated={(next) => {
+                    if (next.tokenAktivasi !== undefined) setActivationToken(next.tokenAktivasi || null)
+                    if (next.tokenExpiredAt !== undefined) setTokenExpiredAt(next.tokenExpiredAt || null)
+                    if (next.accountAktif !== undefined) setAccountAktif(next.accountAktif)
+                    setIsCopied(false)
+                  }}
+                  onRefreshFromServer={async () => {
+                    if (effectiveId) {
+                      try {
+                        const res = await psikologService.getById(effectiveId)
+                        const db = res?.data || res
+                        if (db) {
+                          const tok = db.account?.token_aktivasi || db.token_aktivasi || db.tokenAktivasi
+                          const exp = db.account?.token_aktivasi_exp || db.token_expired_at || db.tokenExpiredAt
+                          if (tok) setActivationToken(tok)
+                          if (exp) setTokenExpiredAt(exp)
+                        }
+                      } catch {}
+                    }
+                  }}
+                />
               </div>
 
               {/* Input Link Display & Tombol Salin */}
