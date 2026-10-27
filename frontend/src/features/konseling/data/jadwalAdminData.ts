@@ -211,7 +211,7 @@ export function getWhatsAppPsikologUrl(session: {
       if (found && found.noTelepon) {
         phone = found.noTelepon
       }
-    } catch {}
+    } catch { }
   }
 
   if (!phone) {

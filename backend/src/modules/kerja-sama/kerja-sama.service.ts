@@ -290,11 +290,23 @@ export class KerjaSamaService {
     }
   }
 
-  async deletePengajuan(id: string) {
-    await this.repo.deletePengajuan(id)
+  async deletePengajuan(id: string, hard = false) {
+    const result = await this.repo.deletePengajuan(id, hard)
     return {
       success: true,
-      message: 'Data pengajuan kerja sama berhasil dihapus.',
+      message: hard
+        ? 'Data pengajuan kerja sama berhasil dihapus permanen dari database.'
+        : 'Data pengajuan kerja sama berhasil diarsipkan (soft-deleted). Audit trail tetap tersimpan aman.',
+      data: result,
+    }
+  }
+
+  async restorePengajuan(id: string) {
+    const result = await this.repo.restorePengajuan(id)
+    return {
+      success: true,
+      message: 'Data pengajuan kerja sama berhasil dipulihkan dari arsip.',
+      data: result,
     }
   }
 

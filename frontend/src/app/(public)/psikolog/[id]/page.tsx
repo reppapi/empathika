@@ -36,6 +36,10 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     } catch {}
   }
 
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
   const parseJam = (val: any): string => {
     if (!val) return "00:00"
     if (typeof val === "string") {
@@ -49,23 +53,70 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     return "00:00"
   }
 
-  const seen = new Set<string>()
-  const result: { waktu: string; tipe: "Online" | "Offline" }[] = []
+  const parseMinutes = (jamStr: string): number => {
+    const parts = jamStr.split(":").map(Number)
+    return (parts[0] || 0) * 60 + (parts[1] || 0)
+  }
 
-  for (const s of rawSlots) {
+  const parseDateKey = (val: any): string | null => {
+    if (!val) return null
+    if (typeof val === "string") {
+      const match = val.match(/^(\d{4}-\d{2}-\d{2})/)
+      if (match) return match[1]
+    }
+    if (val instanceof Date) {
+      return `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, "0")}-${String(val.getDate()).padStart(2, "0")}`
+    }
+    return null
+  }
+
+  // Filter slot yang belum lewat
+  const validSlots = rawSlots.filter((slot) => {
+    const statusUpper = (slot.status || "").toUpperCase()
+    if (statusUpper === "SUDAH_DIBOOKING" || statusUpper === "TIDAK_TERSEDIA" || statusUpper === "CANCELLED") {
+      return false
+    }
+
+    const slotDate = parseDateKey(slot.tanggal)
+    const jamMulai = parseJam(slot.jam_mulai)
+    const startMinutes = parseMinutes(jamMulai)
+
+    if (slotDate) {
+      if (slotDate < todayKey) return false
+      if (slotDate === todayKey && currentMinutes >= startMinutes) return false
+      return true
+    }
+
+    if (currentMinutes >= startMinutes) return false
+    return true
+  })
+
+  const seen = new Set<string>()
+  const result: { waktu: string; tipe: "Online" | "Offline"; dateKey: string; startMinutes: number }[] = []
+
+  for (const s of validSlots) {
     const start = parseJam(s.jam_mulai)
     const end = parseJam(s.jam_selesai)
     const waktu = s.label_waktu || `${start} - ${end}`
-    if (!seen.has(waktu)) {
-      seen.add(waktu)
+    const slotDateKey = parseDateKey(s.tanggal) || todayKey
+    const uniqueKey = `${slotDateKey}_${waktu}`
+
+    if (!seen.has(uniqueKey)) {
+      seen.add(uniqueKey)
       const m = (s.metode || s.tipe_jadwal || "").toUpperCase()
       const tipe: "Online" | "Offline" = m.includes("OFFLINE") ? "Offline" : "Online"
-      result.push({ waktu, tipe })
+      result.push({ waktu, tipe, dateKey: slotDateKey, startMinutes: parseMinutes(start) })
     }
   }
 
-  result.sort((a, b) => a.waktu.localeCompare(b.waktu))
-  return result.slice(0, 3)
+  result.sort((a, b) => {
+    if (a.dateKey !== b.dateKey) {
+      return a.dateKey.localeCompare(b.dateKey)
+    }
+    return a.startMinutes - b.startMinutes
+  })
+
+  return result.slice(0, 3).map((s) => ({ waktu: s.waktu, tipe: s.tipe }))
 }
 
 export default function DetailPsikologPage({ params }: PageProps) {

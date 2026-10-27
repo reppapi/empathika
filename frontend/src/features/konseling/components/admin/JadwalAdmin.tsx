@@ -310,61 +310,7 @@ export default function JadwalAdmin() {
     return { total, sedangBerlangsung, selesai, menunggu }
   }, [todaySessions, selectedLayanan])
 
-  const nearestSession = useMemo(() => {
-    const upcoming = filteredTodaySessions.find((s) => s.status === "Segera Dimulai")
-    if (upcoming) return upcoming
-    const waiting = filteredTodaySessions.find((s) => s.status === "Menunggu Jadwal")
-    if (waiting) return waiting
-    return null
-  }, [filteredTodaySessions])
-
-  // ── 4. Dynamic Time Update ──
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date()
-      const currentMinutes = now.getHours() * 60 + now.getMinutes()
-
-      setTodaySessions((prev) => {
-        let foundNearest = false
-        return prev.map((item) => {
-          if (item.status === "Dibatalkan" || item.status === "Selesai") return item
-
-          const { startMinutes, endMinutes } = parseTimeRangeMinutes(item.waktu)
-
-          if (currentMinutes >= endMinutes) {
-            return { ...item, status: "Selesai" as const, isUpcomingNearest: false }
-          }
-
-          if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
-            return {
-              ...item,
-              status: "Sedang Berlangsung" as const,
-              isUpcomingNearest: false,
-            }
-          }
-
-          if (!foundNearest) {
-            foundNearest = true
-            return {
-              ...item,
-              status: "Segera Dimulai" as const,
-              isUpcomingNearest: true,
-            }
-          }
-
-          return {
-            ...item,
-            status: "Menunggu Jadwal" as const,
-            isUpcomingNearest: false,
-          }
-        })
-      })
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  // ── 5. Calendar & Booking Configurations ──
+  // ── 4. Calendar & Date Configurations ──
   const today = useMemo(() => new Date(), [])
   const formattedSelectedDate = useMemo(() => {
     const d = date || today
@@ -379,6 +325,107 @@ export default function JadwalAdmin() {
     const day = String(d.getDate()).padStart(2, "0")
     return `${y}-${m}-${day}`
   }, [date, today])
+
+  // Helper menghitung status sesi secara dinamis berdasarkan jam lokal riil saat ini
+  const applyTimeStatusToSessions = useCallback(
+    (sessions: ClientSessionToday[], targetDateKey?: string): ClientSessionToday[] => {
+      const now = new Date()
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      const isTargetToday = !targetDateKey || targetDateKey === todayKey
+      const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+      let foundNearest = false
+
+      return sessions.map((item) => {
+        // Sesi yang dibatalkan atau sudah selesai tidak disentuh
+        if (item.status === "Dibatalkan" || (item.status as string) === "Dibatalkan (Refund)") {
+          return { ...item, isUpcomingNearest: false }
+        }
+        if (item.status === "Selesai") {
+          return { ...item, isUpcomingNearest: false }
+        }
+
+        const sessionDateKey = item.date || item.tanggal || todayKey
+
+        // Jika tanggal sesi di masa lampau (kemarin atau sebelumnya)
+        if (sessionDateKey < todayKey) {
+          return { ...item, status: "Selesai" as const, isUpcomingNearest: false }
+        }
+
+        // Jika tanggal sesi di masa depan (besok atau seterusnya)
+        if (sessionDateKey > todayKey) {
+          return { ...item, status: "Menunggu Jadwal" as const, isUpcomingNearest: false }
+        }
+
+        // Jika tanggal sesi HARI INI: cocokkan dengan jam sekarang
+        const { startMinutes, endMinutes } = parseTimeRangeMinutes(item.waktu)
+
+        // Kasus 1: Sesi sudah lewat
+        if (currentMinutes >= endMinutes) {
+          return { ...item, status: "Selesai" as const, isUpcomingNearest: false }
+        }
+
+        // Kasus 2: Sesi sedang berlangsung
+        if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+          return {
+            ...item,
+            status: "Sedang Berlangsung" as const,
+            isUpcomingNearest: false,
+          }
+        }
+
+        // Kasus 3: Sesi di masa mendatang hari ini (currentMinutes < startMinutes)
+        if (!foundNearest) {
+          foundNearest = true
+          return {
+            ...item,
+            status: "Segera Dimulai" as const,
+            isUpcomingNearest: true,
+          }
+        }
+
+        return {
+          ...item,
+          status: "Menunggu Jadwal" as const,
+          isUpcomingNearest: false,
+        }
+      })
+    },
+    []
+  )
+
+  const nearestSession = useMemo(() => {
+    // 1. Prioritas utama: sesi yang segera dimulai berikutnya hari ini
+    const upcoming = filteredTodaySessions.find((s) => s.status === "Segera Dimulai" || s.isUpcomingNearest)
+    if (upcoming) return upcoming
+
+    // 2. Prioritas kedua: sesi yang sedang berlangsung saat ini
+    const ongoing = filteredTodaySessions.find((s) => s.status === "Sedang Berlangsung")
+    if (ongoing) return ongoing
+
+    // 3. Prioritas ketiga: sesi menunggu jadwal yang jam mulainya belum lewat
+    const now = new Date()
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    const waitingFuture = filteredTodaySessions.find((s) => {
+      if (s.status !== "Menunggu Jadwal") return false
+      const { startMinutes } = parseTimeRangeMinutes(s.waktu)
+      return startMinutes > currentMinutes
+    })
+    if (waitingFuture) return waitingFuture
+
+    return null
+  }, [filteredTodaySessions])
+
+  // ── 5. Dynamic Time Update (Sinkronisasi Jam Lokal Real-Time) ──
+  useEffect(() => {
+    setTodaySessions((prev) => applyTimeStatusToSessions(prev, datePickerValue))
+
+    const interval = setInterval(() => {
+      setTodaySessions((prev) => applyTimeStatusToSessions(prev, datePickerValue))
+    }, 15000)
+
+    return () => clearInterval(interval)
+  }, [applyTimeStatusToSessions, datePickerValue])
 
   // Muat data jadwal & sesi riil langsung dari Database PostgreSQL
   const fetchJadwalData = useCallback(async () => {
@@ -411,7 +458,7 @@ export default function JadwalAdmin() {
             idTransaksi: s.idTransaksi,
             kodeTransaksi: s.kodeTransaksi,
           }))
-          setTodaySessions(mappedToday)
+          setTodaySessions(applyTimeStatusToSessions(mappedToday, datePickerValue))
         } else {
           setTodaySessions([])
         }
@@ -439,7 +486,7 @@ export default function JadwalAdmin() {
     } finally {
       setIsLoading(false)
     }
-  }, [datePickerValue])
+  }, [datePickerValue, applyTimeStatusToSessions])
 
   useEffect(() => {
     fetchJadwalData()

@@ -113,6 +113,10 @@ export default function JadwalClient() {
     const loadAllAvailableDates = async () => {
       const datesFound = new Set<string>()
 
+      const now = new Date()
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
       // 1. Ambil seluruh slot ketersediaan dari Backend Database
       try {
         const slots = await psikologService.getJadwalTersedia({
@@ -122,13 +126,21 @@ export default function JadwalClient() {
         if (Array.isArray(slots)) {
           slots.forEach((s) => {
             if (s.tanggal && s.status === "TERSEDIA") {
-              datesFound.add(s.tanggal)
+              if (s.tanggal > todayKey) {
+                datesFound.add(s.tanggal)
+              } else if (s.tanggal === todayKey) {
+                const parts = (s.jam_mulai || "").split(":").map(Number)
+                const startMinutes = (parts[0] || 0) * 60 + (parts[1] || 0)
+                if (currentMinutes < startMinutes) {
+                  datesFound.add(s.tanggal)
+                }
+              }
             }
           })
         }
       } catch {}
 
-      // 2. Ambil dari LocalStorage
+      // 2. Ambil dari LocalStorage (hanya jika berstatus TERSEDIA)
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots")
         if (raw) {
@@ -136,6 +148,7 @@ export default function JadwalClient() {
           if (Array.isArray(parsed)) {
             parsed.forEach((s: any) => {
               const matchType = !s.tipe_jadwal || s.tipe_jadwal === "KONSULTASI"
+              const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
               const matchPsi =
                 !psikologIdParam ||
                 s.id_psikolog === psikologIdParam ||
@@ -148,8 +161,16 @@ export default function JadwalClient() {
                   (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
                     psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
 
-              if (matchType && matchPsi && s.tanggal && (s.status === "TERSEDIA" || !s.status)) {
-                datesFound.add(s.tanggal)
+              if (matchType && matchPsi && s.tanggal && isTersedia) {
+                if (s.tanggal > todayKey) {
+                  datesFound.add(s.tanggal)
+                } else if (s.tanggal === todayKey) {
+                  const parts = (s.jam_mulai || "").split(":").map(Number)
+                  const startMinutes = (parts[0] || 0) * 60 + (parts[1] || 0)
+                  if (currentMinutes < startMinutes) {
+                    datesFound.add(s.tanggal)
+                  }
+                }
               }
             })
           }
@@ -217,7 +238,7 @@ export default function JadwalClient() {
     const fetchSlots = async () => {
       setIsLoadingSlots(true)
 
-      // 1. Ambil slot dari Backend API (jika ada)
+      // 1. Ambil slot dari Backend API (hanya yang berstatus TERSEDIA murni)
       let apiSlots: JadwalSlotItem[] = []
       try {
         apiSlots =
@@ -260,8 +281,10 @@ export default function JadwalClient() {
       // 3. Kumpulkan kandidat slot untuk tanggal & psikolog yang sesuai
       const candidateSlotsMap = new Map<string, JadwalSlotItem>()
 
-      // A. Masukkan slot API, diperkaya dengan metode dari localStorage
+      // A. Masukkan slot API yang statusnya murni TERSEDIA
       apiSlots.forEach((slot) => {
+        if (slot.status && slot.status !== "TERSEDIA") return
+
         const timeKey = (slot.jam_mulai || "").trim().substring(0, 5)
         const localMeta =
           localMetaMap.get(`${slot.tanggal}_${timeKey}`) ||
@@ -276,11 +299,12 @@ export default function JadwalClient() {
         })
       })
 
-      // B. Masukkan slot dari LocalStorage yang relevan dengan tanggal & psikolog
+      // B. Masukkan slot dari LocalStorage yang relevan dan TERSEDIA
       allCustomSlots
         .filter((s: any) => {
           const matchDate = s.tanggal === dateKey
           const matchType = !s.tipe_jadwal || s.tipe_jadwal === "KONSULTASI"
+          const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
           const matchPsi =
             !psikologIdParam ||
             s.id_psikolog === psikologIdParam ||
@@ -292,22 +316,40 @@ export default function JadwalClient() {
               s.nama_psikolog &&
               (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
                 psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
-          return matchDate && matchType && matchPsi
+          return matchDate && matchType && matchPsi && isTersedia
         })
         .forEach((s: any) => {
           const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
-          candidateSlotsMap.set(timeKey, {
-            ...s,
-            jam_mulai: timeKey,
-            jam_selesai: (s.jam_selesai || "").trim().substring(0, 5),
-          })
+          // Jangan menimpa jika slot API sudah ada
+          if (!candidateSlotsMap.has(timeKey)) {
+            candidateSlotsMap.set(timeKey, {
+              ...s,
+              jam_mulai: timeKey,
+              jam_selesai: (s.jam_selesai || "").trim().substring(0, 5),
+            })
+          }
         })
 
-      // 4. FILTER KETAT berdasarkan metode yang dipilih klien (Online / Offline)
+      // 4. FILTER KETAT: Status TERSEDIA, Jam belum lewat hari ini, dan Metode Konseling
+      const now = new Date()
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      const currentMinutes = now.getHours() * 60 + now.getMinutes()
       const targetMetode = metode.toLowerCase()
       const matchingSlots: JadwalSlotItem[] = []
 
       candidateSlotsMap.forEach((slot) => {
+        // Cek 1: Pastikan status murni TERSEDIA
+        if (slot.status && slot.status !== "TERSEDIA") return
+
+        // Cek 2: Jam yang sudah lewat di hari ini harus dihilangkan
+        if (dateKey === todayKey) {
+          const parts = (slot.jam_mulai || "").split(":").map(Number)
+          const startMinutes = (parts[0] || 0) * 60 + (parts[1] || 0)
+          if (currentMinutes >= startMinutes) return
+        } else if (dateKey < todayKey) {
+          return
+        }
+
         const slotMetode = (slot.metode || "Keduanya").toLowerCase()
         const isMatch =
           slotMetode === "keduanya" ||

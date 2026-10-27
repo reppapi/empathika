@@ -70,11 +70,27 @@ export class KerjaSamaController {
   }
 
   deletePengajuan = async (
+    request: FastifyRequest<{
+      Params: { id: string }
+      Querystring: { hard?: boolean | string }
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const isHard = String(request.query?.hard) === 'true' || request.query?.hard === true
+      const result = await this.service.deletePengajuan(request.params.id, isHard)
+      reply.send(result)
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ success: false, message: err.message })
+    }
+  }
+
+  restorePengajuan = async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
   ) => {
     try {
-      const result = await this.service.deletePengajuan(request.params.id)
+      const result = await this.service.restorePengajuan(request.params.id)
       reply.send(result)
     } catch (err: any) {
       reply.code(err.statusCode || 400).send({ success: false, message: err.message })

@@ -93,12 +93,12 @@ export default function JadwalHariIniSection({
                 nearestSession.status === "Selesai"
                   ? "success"
                   : nearestSession.status === "Segera Dimulai"
-                  ? "info"
-                  : nearestSession.status === "Sedang Berlangsung"
-                  ? "danger"
-                  : nearestSession.status === "Dibatalkan"
-                  ? "neutral"
-                  : "warning"
+                    ? "info"
+                    : nearestSession.status === "Sedang Berlangsung"
+                      ? "danger"
+                      : nearestSession.status === "Dibatalkan"
+                        ? "neutral"
+                        : "warning"
               }
               className="w-44"
             >
@@ -145,9 +145,8 @@ export default function JadwalHariIniSection({
 
       {/* Tabel Sesi Klien dalam Satu Hari */}
       <div
-        className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
-          todaySessionsCount > 7 ? "max-h-[480px] overflow-y-auto" : ""
-        }`}
+        className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${todaySessionsCount > 7 ? "max-h-[480px] overflow-y-auto" : ""
+          }`}
       >
         <table className="w-full text-left border-collapse min-w-[880px]">
           <thead className="sticky top-0 z-10 bg-[#D3C4D8]">
@@ -167,9 +166,8 @@ export default function JadwalHariIniSection({
                 return (
                   <tr
                     key={item.id}
-                    className={`transition-colors ${
-                      isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
-                    }`}
+                    className={`transition-colors ${isNearest ? "bg-purple-50/60 hover:bg-purple-50/90" : "hover:bg-purple-50/40"
+                      }`}
                   >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
@@ -225,12 +223,12 @@ export default function JadwalHariIniSection({
                           item.status === "Selesai"
                             ? "success"
                             : item.status === "Segera Dimulai"
-                            ? "info"
-                            : item.status === "Sedang Berlangsung"
-                            ? "danger"
-                            : item.status === "Dibatalkan"
-                            ? "neutral"
-                            : "warning"
+                              ? "info"
+                              : item.status === "Sedang Berlangsung"
+                                ? "danger"
+                                : item.status === "Dibatalkan"
+                                  ? "neutral"
+                                  : "warning"
                         }
                         className="w-44"
                       >
@@ -255,9 +253,8 @@ export default function JadwalHariIniSection({
                               onClick={() => setActiveMenuId(null)}
                             />
                             <div
-                              className={`absolute right-0 w-52 rounded-2xl bg-white shadow-xl border border-gray-100 py-2 z-40 text-left transition-all ${
-                                index >= filteredTodaySessions.length - 2 ? "bottom-full mb-2" : "top-full mt-2"
-                              }`}
+                              className={`absolute right-0 w-52 rounded-2xl bg-white shadow-xl border border-gray-100 py-2 z-40 text-left transition-all ${index >= filteredTodaySessions.length - 2 ? "bottom-full mb-2" : "top-full mt-2"
+                                }`}
                             >
                               <button
                                 type="button"

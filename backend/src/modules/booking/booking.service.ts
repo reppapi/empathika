@@ -15,6 +15,7 @@ import {
   timeStringToDate,
   formatDateToString,
   formatTimeToString,
+  calculateRefundDeadline,
 } from '../../utils/date-time'
 
 export class BookingService {
@@ -46,23 +47,11 @@ export class BookingService {
       const cleanWa = s.client.no_telepon ? s.client.no_telepon.replace(/\D/g, '') : ''
       const waNumber = cleanWa.startsWith('0') ? '62' + cleanWa.slice(1) : cleanWa
 
-      // Hitung batas refund (H-1 = 24 jam sebelum jadwal sesi)
-      // Jam di DB disimpan sebagai angka WIB (misal 13:30), konversi ke UTC absolut dengan dikurangi 7 jam
-      const sessionDate = new Date(s.jadwal.tanggal)
-      const sessionTime = new Date(s.jadwal.jam_mulai)
-      const sessionDateTime = new Date(
-        Date.UTC(
-          sessionDate.getUTCFullYear(),
-          sessionDate.getUTCMonth(),
-          sessionDate.getUTCDate(),
-          sessionTime.getUTCHours() - 7,
-          sessionTime.getUTCMinutes(),
-          0,
-          0
-        )
+      // Hitung batas refund (H-1 = 24 jam sebelum jadwal sesi) via helper terpusat
+      const { refundDeadline, isPastH1 } = calculateRefundDeadline(
+        s.jadwal.tanggal,
+        s.jadwal.jam_mulai
       )
-      const refundDeadline = new Date(sessionDateTime.getTime() - 24 * 60 * 60 * 1000)
-      const isPastH1 = Date.now() > refundDeadline.getTime()
 
       const isPaid = (s as any).transaksi?.status_pembayaran === 'PAID' || s.status === 'CONFIRMED'
       const isRefunded = (s as any).transaksi?.status_pembayaran === 'REFUNDED' || s.status === 'CANCELLED'
@@ -310,6 +299,19 @@ export class BookingService {
         if (psikolog) {
           resolvedQuery.id_psikolog = psikolog.id
         }
+      } else {
+        const psi = await (this.repo as any).prisma.psikolog.findFirst({
+          where: {
+            OR: [
+              { nama_gelar: { contains: query.id_psikolog, mode: 'insensitive' } },
+              { account: { nama: { contains: query.id_psikolog, mode: 'insensitive' } } },
+              { account: { email: { contains: query.id_psikolog, mode: 'insensitive' } } },
+            ],
+          },
+        })
+        if (psi) {
+          resolvedQuery.id_psikolog = psi.id
+        }
       }
     }
     const slots = await this.repo.findJadwalTersedia(resolvedQuery)
@@ -526,5 +528,14 @@ export class BookingService {
       message: `${result.count} sesi booking pending yang kedaluwarsa berhasil dibatalkan dan slotnya telah dikembalikan.`,
       ...result,
     }
+  }
+
+  async getMyBookings(user?: { id?: string; email?: string; no_telepon?: string }) {
+    if (!user) return []
+    return this.repo.findBookingsByClientIdentifier({
+      clientId: user.id,
+      phone: user.no_telepon,
+      email: user.email,
+    })
   }
 }

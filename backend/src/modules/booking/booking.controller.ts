@@ -29,6 +29,12 @@ export class BookingController {
     reply.send(data)
   }
 
+  getMyBookings = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = (request as any).user
+    const data = await this.service.getMyBookings(user)
+    reply.send(data)
+  }
+
   create = async (
     request: FastifyRequest<{ Body: CreateClientBookingInput }>,
     reply: FastifyReply
