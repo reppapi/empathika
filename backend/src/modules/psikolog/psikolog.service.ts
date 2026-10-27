@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { PsikologRepository } from './psikolog.repository'
 import { BookingService } from '../booking/booking.service'
 import bcrypt from 'bcrypt'
-import { buildActivationMeta, withActivationAccount } from '../../utils/activation'
+import { buildActivationMeta, withActivationAccount, issueActivationToken } from '../../utils/activation'
 import type {
   GetJadwalTersediaQuery,
   GetJadwalPsikologMeQuery,
@@ -542,6 +542,7 @@ export class PsikologService {
           },
         })
       } else {
+        const { token: activationToken, expiresAt: activationExpiry } = issueActivationToken()
         account = await this.prisma.account.create({
           data: {
             nama: body.nama,
@@ -552,6 +553,8 @@ export class PsikologService {
             foto: body.foto || null,
             bio: body.bio || null,
             aktif: false,
+            token_aktivasi: activationToken,
+            token_aktivasi_exp: activationExpiry,
           },
         })
       }

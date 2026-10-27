@@ -1,6 +1,7 @@
 import type { PrismaClient, Prisma } from "@prisma/client"
-import { withActivationAccount } from "../../utils/activation"
+import { withActivationAccount, issueActivationToken } from "../../utils/activation"
 import bcrypt from "bcrypt"
+import type { CreateBiroInput, UpdateBiroProfileInput } from "./biro.schema"
 import { parseDateString, formatDateToString, formatTimeToString } from "../../utils/date-time"
 import { generateOrderId } from "../../utils"
 import type {
@@ -145,6 +146,24 @@ export class BiroService {
             nama_biro: true,
             slug: true,
             status: true,
+            logoURI: true,
+            warna_tema: true,
+            alamat: true,
+            deskripsi: true,
+            no_telepon: true,
+          },
+        },
+        owned_biro: {
+          select: {
+            id: true,
+            nama_biro: true,
+            slug: true,
+            status: true,
+            logoURI: true,
+            warna_tema: true,
+            alamat: true,
+            deskripsi: true,
+            no_telepon: true,
           },
         },
         createdAt: true,
@@ -158,9 +177,197 @@ export class BiroService {
     }
   }
 
-  // ==========================================
-  // WEBSITE PUBLIK BIRO (CLIENT / USER FACING)
-  // ==========================================
+  async getBiroById(accountId: string) {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: {
+        id: true,
+        nama: true,
+        email: true,
+        role: true,
+        no_telepon: true,
+        aktif: true,
+        password: true,
+        token_aktivasi: true,
+        token_aktivasi_exp: true,
+        id_biro: true,
+        owned_biro: {
+          select: {
+            id: true,
+            nama_biro: true,
+            slug: true,
+            status: true,
+            logoURI: true,
+            warna_tema: true,
+            alamat: true,
+            deskripsi: true,
+            no_telepon: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
+      } as any,
+    })
+
+    if (!account) {
+      throw Object.assign(new Error("Akun tidak ditemukan"), { statusCode: 404 })
+    }
+
+    if ((account as any).role !== "BIRO") {
+      throw Object.assign(new Error("Akun ini bukan akun Biro"), { statusCode: 400 })
+    }
+
+    return {
+      success: true,
+      data: withActivationAccount(account),
+    }
+  }
+
+  async createBiro(input: CreateBiroInput) {
+    // Validasi email belum terdaftar
+    const existingEmail = await this.prisma.account.findUnique({
+      where: { email: input.email.trim().toLowerCase() },
+    })
+    if (existingEmail) {
+      throw Object.assign(new Error(`Email "${input.email}" sudah digunakan oleh akun lain`), { statusCode: 409 })
+    }
+
+    // Validasi slug belum dipakai
+    const existingSlug = await this.prisma.biro.findUnique({
+      where: { slug: input.slug },
+    })
+    if (existingSlug) {
+      throw Object.assign(new Error(`Slug "${input.slug}" sudah digunakan oleh biro lain`), { statusCode: 409 })
+    }
+
+    let activationToken: string
+    let activationExpiry: Date
+
+    if (input.tokenAktivasi) {
+      activationToken = input.tokenAktivasi
+      activationExpiry = input.tokenExpiredAt ? new Date(input.tokenExpiredAt) : issueActivationToken().expiresAt
+    } else {
+      const issued = issueActivationToken()
+      activationToken = issued.token
+      activationExpiry = issued.expiresAt
+    }
+
+    // Buat account BIRO dulu, lalu biro-nya
+    const account = await this.prisma.account.create({
+      data: {
+        nama: input.nama,
+        email: input.email.trim().toLowerCase(),
+        password: null,
+        role: "BIRO",
+        no_telepon: input.noTelepon || null,
+        aktif: false,
+        token_aktivasi: activationToken,
+        token_aktivasi_exp: activationExpiry,
+      },
+    })
+
+    const biro = await this.prisma.biro.create({
+      data: {
+        nama_biro: input.nama,
+        slug: input.slug,
+        id_account: account.id,
+        logoURI: input.logoURI || null,
+        warna_tema: input.warnaIdentitas || null,
+        alamat: input.alamat || null,
+        deskripsi: input.deskripsi || null,
+        no_telepon: input.noTelepon || null,
+        status: "PENDING",
+      },
+    })
+
+    // Hubungkan akun sebagai owner biro (sekaligus staff jika diperlukan)
+    // Account sudah jadi owner via owned_biro relation
+
+    return {
+      success: true,
+      message: "Akun biro berhasil dibuat. Link aktivasi telah digenerate.",
+      data: {
+        ...withActivationAccount(account),
+        biro: {
+          id: biro.id,
+          nama_biro: biro.nama_biro,
+          slug: biro.slug,
+          status: biro.status,
+          logoURI: biro.logoURI,
+          warna_tema: biro.warna_tema,
+          alamat: biro.alamat,
+          deskripsi: biro.deskripsi,
+        },
+      },
+    }
+  }
+
+  async updateBiroProfile(accountId: string, input: UpdateBiroProfileInput) {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      include: { owned_biro: { take: 1 } },
+    } as any)
+
+    if (!account) {
+      throw Object.assign(new Error("Akun tidak ditemukan"), { statusCode: 404 })
+    }
+
+    if ((account as any).role !== "BIRO") {
+      throw Object.assign(new Error("Akun ini bukan akun Biro"), { statusCode: 400 })
+    }
+
+    const biro = (account as any).owned_biro?.[0]
+
+    // Update email jika berubah
+    if (input.email && input.email !== account.email) {
+      const existingEmail = await this.prisma.account.findUnique({ where: { email: input.email } })
+      if (existingEmail && existingEmail.id !== accountId) {
+        throw Object.assign(new Error("Email sudah digunakan oleh akun lain"), { statusCode: 409 })
+      }
+    }
+
+    // Update slug jika berubah
+    if (input.slug && biro && input.slug !== biro.slug) {
+      const existingSlug = await this.prisma.biro.findUnique({ where: { slug: input.slug } })
+      if (existingSlug && existingSlug.id !== biro.id) {
+        throw Object.assign(new Error("Slug sudah digunakan oleh biro lain"), { statusCode: 409 })
+      }
+    }
+
+    // Update account
+    const accountUpdateData: any = {}
+    if (input.nama !== undefined) accountUpdateData.nama = input.nama
+    if (input.email !== undefined) accountUpdateData.email = input.email
+    if (input.noTelepon !== undefined) accountUpdateData.no_telepon = input.noTelepon
+
+    if (Object.keys(accountUpdateData).length > 0) {
+      await this.prisma.account.update({ where: { id: accountId }, data: accountUpdateData })
+    }
+
+    // Update biro
+    if (biro) {
+      const biroUpdateData: any = {}
+      if (input.nama !== undefined) biroUpdateData.nama_biro = input.nama
+      if (input.slug !== undefined) biroUpdateData.slug = input.slug
+      if (input.alamat !== undefined) biroUpdateData.alamat = input.alamat
+      if (input.deskripsi !== undefined) biroUpdateData.deskripsi = input.deskripsi
+      if (input.warnaIdentitas !== undefined) biroUpdateData.warna_tema = input.warnaIdentitas
+      if (input.logoURI !== undefined) biroUpdateData.logoURI = input.logoURI
+      if (input.status !== undefined) biroUpdateData.status = input.status
+      if (input.noTelepon !== undefined) biroUpdateData.no_telepon = input.noTelepon
+
+      if (Object.keys(biroUpdateData).length > 0) {
+        await this.prisma.biro.update({ where: { id: biro.id }, data: biroUpdateData })
+      }
+    }
+
+    return {
+      success: true,
+      message: "Profil biro berhasil diperbarui",
+    }
+  }
+
+
 
   /**
    * 1. Mengambil detail informasi profil publik biro berdasarkan slug

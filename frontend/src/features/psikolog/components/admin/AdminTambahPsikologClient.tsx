@@ -8,6 +8,13 @@ import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
 import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
+import ActivationWarningModal from "@/components/common/ActivationWarningModal"
+import {
+  formatExpiryDisplay,
+  formatRemainingTime,
+  isLinkStillValid,
+  toIsoExpiry,
+} from "@/lib/activation"
 import {
   validateEmail,
   validateNoTelepon,
@@ -80,6 +87,18 @@ export default function AdminTambahPsikologClient() {
 
   const currentActivationUrl = activationToken ? getActivationUrl(activationToken) : ""
 
+  // State Pop-up Peringatan Link Masih Berlaku
+  const [warningOpen, setWarningOpen] = useState(false)
+  const [warningMessage, setWarningMessage] = useState("")
+  const [warningExpiry, setWarningExpiry] = useState<string | undefined>()
+  const [warningRemaining, setWarningRemaining] = useState<string | undefined>()
+  const [nowTick, setNowTick] = useState(() => Date.now())
+
+  const expiryIso = toIsoExpiry(tokenExpiredAt)
+  const linkActive = Boolean(activationToken && isLinkStillValid(expiryIso))
+  const remainingMs = expiryIso ? new Date(expiryIso).getTime() - nowTick : 0
+  const remainingText = linkActive ? formatRemainingTime(remainingMs) : ""
+
   const handleGenerateToken = () => {
     const newToken = `act_${Math.random().toString(36).substring(2, 9)}${Date.now().toString(36)}`
     const newExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
@@ -90,6 +109,17 @@ export default function AdminTambahPsikologClient() {
   }
 
   const handleRegenerateToken = () => {
+    if (linkActive) {
+      const expFormatted = expiryIso ? formatExpiryDisplay(expiryIso) : undefined
+      setWarningMessage(
+        `Link aktivasi saat ini masih aktif dan berlaku hingga ${expFormatted || "3 hari"}. ` +
+        `Generate ulang baru diizinkan setelah masa berlaku habis.`
+      )
+      setWarningExpiry(expFormatted)
+      setWarningRemaining(remainingText)
+      setWarningOpen(true)
+      return
+    }
     handleGenerateToken()
   }
 
@@ -185,10 +215,6 @@ export default function AdminTambahPsikologClient() {
     setFormErrorAlert(null)
     setIsSubmitting(true)
 
-    // Pastikan token aktivasi sudah ter-generate saat form disubmit
-    const effectiveToken = activationToken || handleGenerateToken()
-    const effectiveExpiry = tokenExpiredAt || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-
     const newTenaga: TenagaAhli = {
       id: Date.now().toString(),
       nama: nama.trim(),
@@ -215,8 +241,8 @@ export default function AdminTambahPsikologClient() {
       foto,
       keahlian,
       tanggalBergabung: "Baru terdaftar",
-      tokenAktivasi: effectiveToken,
-      tokenExpiredAt: effectiveExpiry,
+      tokenAktivasi: undefined,
+      tokenExpiredAt: undefined,
     }
 
     try {
@@ -224,6 +250,17 @@ export default function AdminTambahPsikologClient() {
       const result = await psikologService.createPsikologBaru(newTenaga)
       if (result && result.id) {
         newTenaga.id = result.id
+      }
+      // Ambil token aktivasi dari response BE (bukan dari state lokal)
+      const beToken = result?.account?.tokenAktivasi || result?.tokenAktivasi || null
+      const beExpiry = result?.account?.tokenExpiredAt || result?.tokenExpiredAt || null
+      if (beToken) {
+        setActivationToken(beToken)
+        newTenaga.tokenAktivasi = beToken
+      }
+      if (beExpiry) {
+        setTokenExpiredAt(beExpiry)
+        newTenaga.tokenExpiredAt = beExpiry
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Gagal mendaftarkan tenaga ahli."
@@ -576,6 +613,32 @@ export default function AdminTambahPsikologClient() {
                 </button>
               </div>
 
+              {/* Keterangan Status Kedaluwarsa & Sisa Waktu */}
+              {activationToken && (
+                <div className="rounded-xl bg-purple-100/70 border border-purple-200/90 px-3 py-2 text-[11px] space-y-1">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="text-gray-600 font-medium">Batas Masa Berlaku Link:</span>
+                    <span className="font-bold text-[#561269]">
+                      {formatExpiryDisplay(expiryIso)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="text-gray-600 font-medium">Status Link:</span>
+                    {linkActive ? (
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Aktif (sisa {remainingText})
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 font-semibold text-red-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        Sudah Kedaluwarsa
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Baris Keterangan */}
               <div className="pt-0.5">
                 <p className="text-[10px] text-gray-500">
@@ -911,6 +974,15 @@ export default function AdminTambahPsikologClient() {
           </div>
         </div>
       )}
+
+      {/* Pop-up Peringatan Link Masih Berlaku (3 Hari) */}
+      <ActivationWarningModal
+        isOpen={warningOpen}
+        onClose={() => setWarningOpen(false)}
+        message={warningMessage}
+        expiryDateText={warningExpiry}
+        remainingText={warningRemaining}
+      />
     </div>
   )
 }

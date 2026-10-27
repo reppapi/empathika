@@ -2,6 +2,8 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify"
 import { BiroService } from "./biro.service"
 import type {
   UpdateBiroAccountInput,
+  CreateBiroInput,
+  UpdateBiroProfileInput,
   GetPublicBiroParams,
   GetPublicBiroPsikologQuery,
   GetPublicBiroPsikologDetailParams,
@@ -69,9 +71,42 @@ export class BiroController {
     }
   }
 
-  // ==========================================
-  // WEBSITE PUBLIK BIRO (CLIENT / USER FACING)
-  // ==========================================
+  getBiroById = async (request: FastifyRequest<{ Params: { accountId: string } }>, reply: FastifyReply) => {
+    try {
+      const { accountId } = request.params
+      const result = await this.service.getBiroById(accountId)
+      return reply.code(200).send(result)
+    } catch (err: any) {
+      const statusCode = err.statusCode || 404
+      return reply.code(statusCode).send({ error: "Error", message: err.message })
+    }
+  }
+
+  createBiro = async (request: FastifyRequest<{ Body: CreateBiroInput }>, reply: FastifyReply) => {
+    try {
+      const result = await this.service.createBiro(request.body)
+      return reply.code(201).send(result)
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({ error: "Bad Request", message: err.message })
+    }
+  }
+
+  updateBiroProfile = async (
+    request: FastifyRequest<{ Params: { accountId: string }; Body: UpdateBiroProfileInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const { accountId } = request.params
+      const result = await this.service.updateBiroProfile(accountId, request.body)
+      return reply.code(200).send(result)
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({ error: "Bad Request", message: err.message })
+    }
+  }
+
+
 
   /**
    * GET /biro/public/:slug
