@@ -18,6 +18,9 @@ import {
 import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import type { TenagaAhli } from "@/features/psikolog/types"
 import ActivationWarningModal from "@/components/common/ActivationWarningModal"
+import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
+import { psikologService } from "@/services/psikolog.service"
+import { pickActivationFromPayload } from "@/lib/activation"
 
 interface Props {
   psikologId?: string
@@ -45,94 +48,80 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
   const [remainingTimeText, setRemainingTimeText] = useState<string>("")
   const [isTokenStillActive, setIsTokenStillActive] = useState<boolean>(false)
 
-  const isAccountActive = Boolean(form?.statusAkses === "AKTIF" || (form as any)?.aktif === true)
+  const isAccountActive = Boolean(
+    (form as any)?.accountAktif ||
+    (form as any)?.account?.accountAktif ||
+    (form as any)?.account?.password ||
+    (form as any)?.aktif === true ||
+    form?.statusAkses === "AKTIF" && form?.password
+  )
+
+  const fetchPsikologData = async () => {
+    if (!id) return
+    try {
+      const res = await psikologService.getById(id)
+      const dbData = res?.data || res
+      if (dbData) {
+        const katStr = (dbData.kategori || "").toLowerCase()
+        const kategori = katStr.includes("peer")
+          ? "peer-konselor"
+          : katStr.includes("konselor")
+          ? "konselor"
+          : "psikolog"
+
+        const act = pickActivationFromPayload(dbData)
+        const mapped: TenagaAhli = {
+          id: dbData.id,
+          nama: dbData.nama_gelar || dbData.account?.nama || "Tenaga Ahli",
+          email: dbData.account?.email || "",
+          noTelepon: dbData.account?.no_telepon || "",
+          kategori,
+          statusAkses: dbData.status === "INACTIVE" ? "NONAKTIF" : "AKTIF",
+          spesialisasi: dbData.spesialisasi?.nama || "Psikologi Klinis",
+          noStr: dbData.no_str || undefined,
+          noSipp: dbData.no_sipp || undefined,
+          noSilp: dbData.no_silp || undefined,
+          pendidikanText: dbData.pendidikan || "",
+          jumlahSesi: typeof dbData.jumlah_sesi === "number" ? dbData.jumlah_sesi : 0,
+          bio: dbData.bio || "",
+          quote: dbData.quote || "",
+          instagram: dbData.instagram || "",
+          foto: dbData.foto || null,
+          keahlian: Array.isArray(dbData.keahlian)
+            ? dbData.keahlian
+            : typeof dbData.keahlian === "string"
+            ? dbData.keahlian.split(",").map((s: string) => s.trim())
+            : [],
+          tanggalBergabung: "Terdaftar di DB",
+          accountId: act.accountId || undefined,
+          accountAktif: act.accountAktif,
+          tokenAktivasi: act.tokenAktivasi || undefined,
+          tokenExpiredAt: act.tokenExpiredAt || undefined,
+        }
+
+        const accId = act.accountId || dbData.account?.id || dbData.id_account || ""
+        if (accId) setRealAccountId(accId)
+        setForm(mapped)
+        if (act.tokenAktivasi) setActivationToken(act.tokenAktivasi)
+        if (act.tokenExpiredAt) setTokenExpiredAt(act.tokenExpiredAt)
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      console.warn("Gagal mengambil data dari BE, mencoba fallback lokal:", err)
+    }
+
+    const found = INITIAL_TENAGA_AHLI.find((p) => p.id === id)
+    if (found) {
+      setForm(found)
+      if (found.tokenAktivasi) setActivationToken(found.tokenAktivasi)
+      if (found.tokenExpiredAt) setTokenExpiredAt(found.tokenExpiredAt)
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
-    let active = true
-
-    const fetchPsikolog = async () => {
-      try {
-        const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("access_token") || localStorage.getItem("token") || localStorage.getItem("admin_token")
-            : null
-
-        const res = await fetch(`/api/v1/psikolog/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
-
-        if (res.ok) {
-          const json = await res.json()
-          const dbData = json.data || json
-          if (active && dbData) {
-            const katStr = (dbData.kategori || "").toLowerCase()
-            const kategori = katStr.includes("peer")
-              ? "peer-konselor"
-              : katStr.includes("konselor")
-              ? "konselor"
-              : "psikolog"
-
-            const mapped: TenagaAhli = {
-              id: dbData.id,
-              nama: dbData.nama_gelar || dbData.account?.nama || "Tenaga Ahli",
-              email: dbData.account?.email || "",
-              noTelepon: dbData.account?.no_telepon || "",
-              kategori,
-              statusAkses: dbData.status === "INACTIVE" ? "NONAKTIF" : "AKTIF",
-              spesialisasi: dbData.spesialisasi?.nama || "Psikologi Klinis",
-              noStr: dbData.no_str || undefined,
-              noSipp: dbData.no_sipp || undefined,
-              noSilp: dbData.no_silp || undefined,
-              pendidikanText: dbData.pendidikan || "",
-              jumlahSesi: typeof dbData.jumlah_sesi === "number" ? dbData.jumlah_sesi : 0,
-              bio: dbData.bio || "",
-              quote: dbData.quote || "",
-              instagram: dbData.instagram || "",
-              foto: dbData.foto || null,
-              keahlian: Array.isArray(dbData.keahlian)
-                ? dbData.keahlian
-                : typeof dbData.keahlian === "string"
-                ? dbData.keahlian.split(",").map((s: string) => s.trim())
-                : [],
-              tanggalBergabung: "Terdaftar di DB",
-              tokenAktivasi: dbData.account?.token_aktivasi || dbData.token_aktivasi || undefined,
-              tokenExpiredAt: dbData.account?.token_aktivasi_exp || dbData.token_aktivasi_exp || undefined,
-            }
-
-            // Simpan account ID yang sebenarnya (dari tabel Account)
-            const accId = dbData.account?.id || dbData.id_account || ""
-            if (active && accId) setRealAccountId(accId)
-
-            setForm(mapped)
-            if (mapped.tokenAktivasi) {
-              setActivationToken(mapped.tokenAktivasi)
-            }
-            if (mapped.tokenExpiredAt) {
-              setTokenExpiredAt(mapped.tokenExpiredAt)
-            }
-            setLoading(false)
-            return
-          }
-        }
-      } catch (err) {
-        console.warn("Gagal mengambil data dari BE, mencoba fallback lokal:", err)
-      }
-
-      const found = INITIAL_TENAGA_AHLI.find((p) => p.id === id)
-      if (active) {
-        if (found) {
-          setForm(found)
-          if (found.tokenAktivasi) setActivationToken(found.tokenAktivasi)
-          if (found.tokenExpiredAt) setTokenExpiredAt(found.tokenExpiredAt)
-        }
-        setLoading(false)
-      }
-    }
-
-    fetchPsikolog()
-    return () => {
-      active = false
-    }
+    fetchPsikologData()
   }, [id])
 
   // Efek interval untuk menghitung sisa waktu countdown
@@ -190,77 +179,6 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
       })
     } catch {
       return isoStr
-    }
-  }
-
-  // Request generate ulang ke Backend dengan validasi server-side
-  const handleRegenerateToken = async () => {
-    // 1. Cek proteksi frontend terlebih dahulu (double-check sebelum kirim ke BE)
-    if (isTokenStillActive) {
-      setWarningMessage(
-        `Link aktivasi masih berlaku hingga ${formatExpiryDisplay(tokenExpiredAt)}. ` +
-        `Generate ulang baru bisa dilakukan setelah link kedaluwarsa.`
-      )
-      setWarningModalOpen(true)
-      return
-    }
-
-    // 2. Pastikan accountId tersedia
-    if (!realAccountId) {
-      setWarningMessage("ID akun tidak ditemukan. Coba muat ulang halaman.")
-      setWarningModalOpen(true)
-      return
-    }
-
-    try {
-      setIsSubmitting(true)
-      const authToken =
-        typeof window !== "undefined"
-          ? localStorage.getItem("access_token") || localStorage.getItem("token") || localStorage.getItem("admin_token")
-          : null
-
-      const res = await fetch("/api/v1/admin/resend-activation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify({ accountId: realAccountId }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        // Backend menolak — tampilkan pesan dari server
-        const msg = data.message || "Generate ulang link belum diizinkan oleh server."
-        setWarningMessage(msg)
-        setWarningModalOpen(true)
-        // Jika server mengirim tokenExpiredAt (artinya link masih aktif), sinkronkan state
-        if (data.tokenExpiredAt) {
-          setTokenExpiredAt(data.tokenExpiredAt)
-          // Langsung set aktif agar tombol ter-disable
-          if (new Date(data.tokenExpiredAt).getTime() > Date.now()) {
-            setIsTokenStillActive(true)
-          }
-        }
-        return
-      }
-
-      // Berhasil dibuat ulang
-      const newExpiry: string = data.tokenExpiredAt
-      setActivationToken(data.token)
-      setTokenExpiredAt(newExpiry)
-      setIsCopied(false)
-      // Langsung tandai token aktif agar tombol segera disabled tanpa menunggu interval
-      if (newExpiry && new Date(newExpiry).getTime() > Date.now()) {
-        setIsTokenStillActive(true)
-      }
-      alert("✅ Tautan aktivasi baru berhasil di-generate!")
-    } catch (err: any) {
-      setWarningMessage(err.message || "Terjadi kesalahan saat menghubungi server.")
-      setWarningModalOpen(true)
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -423,25 +341,19 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
                   {isCopied ? "Tersalin!" : "Salin Link"}
                 </button>
 
-                {/* Tombol Generate Ulang Link */}
-                <button
-                  type="button"
-                  onClick={handleRegenerateToken}
-                  disabled={isSubmitting || isTokenStillActive}
-                  title={
-                    isTokenStillActive
-                      ? `Link masih berlaku hingga ${formatExpiryDisplay(tokenExpiredAt)}`
-                      : "Buat token aktivasi baru"
-                  }
-                  className={`px-4 py-2.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition ${
-                    isTokenStillActive
-                      ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
-                      : "bg-teal-600 hover:bg-teal-700 text-white shadow-sm"
-                  }`}
-                >
-                  <Clock className="w-4 h-4" />
-                  {isSubmitting ? "Memproses..." : "Generate Ulang Link"}
-                </button>
+                {/* Tombol Generate Link dari Server dengan Countdown & Modal Error */}
+                <GenerateActivationLinkButton
+                  accountId={realAccountId}
+                  accountAktif={isAccountActive}
+                  tokenAktivasi={activationToken}
+                  tokenExpiredAt={tokenExpiredAt}
+                  onUpdated={(next) => {
+                    if (next.tokenAktivasi !== undefined) setActivationToken(next.tokenAktivasi || "")
+                    if (next.tokenExpiredAt !== undefined) setTokenExpiredAt(next.tokenExpiredAt || "")
+                    setIsCopied(false)
+                  }}
+                  onRefreshFromServer={fetchPsikologData}
+                />
 
                 <button
                   type="button"

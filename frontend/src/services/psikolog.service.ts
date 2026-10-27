@@ -25,6 +25,9 @@ export const psikologService = {
   getBySlug: (slug: string) =>
     apiClient.get<Psikolog>(`/psikolog/${slug}`).then((r) => r.data),
 
+  getById: (id: string) =>
+    apiClient.get<any>(`/psikolog/${id}`).then((r) => r.data),
+
   getJadwal: (psikologId: string) =>
     apiClient.get(`/psikolog/${psikologId}/jadwal`).then((r) => r.data),
 

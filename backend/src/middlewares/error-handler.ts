@@ -15,9 +15,27 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
 
   // Known HTTP errors
   if (error.statusCode) {
+    const extra = error as FastifyError & {
+      errorCode?: string
+      tokenExpiredAt?: Date | string
+      remainingSeconds?: number
+      remainingFormatted?: string
+      role?: string
+      alreadyActive?: boolean
+      reason?: string
+      valid?: boolean
+    }
     return reply.code(error.statusCode).send({
-      error: error.name,
+      error: extra.errorCode || error.name,
+      errorCode: extra.errorCode,
       message: error.message,
+      tokenExpiredAt: extra.tokenExpiredAt,
+      remainingSeconds: extra.remainingSeconds,
+      remainingFormatted: extra.remainingFormatted,
+      role: extra.role,
+      alreadyActive: extra.alreadyActive,
+      reason: extra.reason,
+      valid: extra.valid,
     })
   }
 

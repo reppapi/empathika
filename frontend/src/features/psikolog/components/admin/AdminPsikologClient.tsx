@@ -34,85 +34,99 @@ export default function AdminPsikologClient() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
-  useEffect(() => {
-    // 1. Ambil data tenaga ahli langsung dari database backend (termasuk nonaktif)
-    psikologService
-      .getList({ status: "ALL" })
-      .then((dbList: any[]) => {
-        if (dbList && dbList.length > 0) {
-          const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-          const localList: TenagaAhli[] = saved ? JSON.parse(saved) : []
+  const refreshPsikologList = async () => {
+    try {
+      const dbList = await psikologService.getList({ status: "ALL" })
+      if (dbList && dbList.length > 0) {
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
+        const localList: TenagaAhli[] = saved ? JSON.parse(saved) : []
 
-          const mapped: TenagaAhli[] = dbList.map((p) => {
-            const matchedLocal = localList.find(
-              (loc) =>
-                loc.id === p.id ||
-                (loc.email && p.account?.email && loc.email.toLowerCase() === p.account.email.toLowerCase())
-            )
-            const katStr = (p.kategori || "").toLowerCase()
-            const kategori: KategoriTenaga = katStr.includes("peer")
-              ? "peer-konselor"
-              : katStr.includes("konselor")
-              ? "konselor"
-              : "psikolog"
+        const mapped: TenagaAhli[] = dbList.map((p: any) => {
+          const matchedLocal = localList.find(
+            (loc) =>
+              loc.id === p.id ||
+              (loc.email && p.account?.email && loc.email.toLowerCase() === p.account.email.toLowerCase())
+          )
+          const katStr = (p.kategori || "").toLowerCase()
+          const kategori: KategoriTenaga = katStr.includes("peer")
+            ? "peer-konselor"
+            : katStr.includes("konselor")
+            ? "konselor"
+            : "psikolog"
 
-            const statusAkses: StatusAkses =
-              p.status === "INACTIVE"
-                ? "NONAKTIF"
-                : matchedLocal?.statusAkses || "AKTIF"
+          const statusAkses: StatusAkses =
+            p.status === "INACTIVE"
+              ? "NONAKTIF"
+              : matchedLocal?.statusAkses || "AKTIF"
 
-            return {
-              id: p.id,
-              nama: p.nama_gelar || p.account?.nama || matchedLocal?.nama || "Psikolog Empathika",
-              email:
-                p.account?.email ||
-                matchedLocal?.email ||
-                `${(p.nama_gelar || "psikolog").toLowerCase().replace(/[^a-z0-9]/g, "")}@empathika.com`,
-              noTelepon: p.account?.no_telepon || matchedLocal?.noTelepon || "081234567890",
-              kategori,
-              statusAkses,
-              spesialisasi: p.spesialisasi?.nama || matchedLocal?.spesialisasi || "Psikologi Klinis",
-              noStr: p.no_str || matchedLocal?.noStr || undefined,
-              noSipp: p.no_sipp || matchedLocal?.noSipp || undefined,
-              noSilp: p.no_silp || matchedLocal?.noSilp || undefined,
-              pendidikanText: p.pendidikan || matchedLocal?.pendidikanText || "Universitas Indonesia",
-              jumlahSesi: typeof p.jumlah_sesi === "number" ? p.jumlah_sesi : (matchedLocal?.jumlahSesi ?? 0),
-              bio: p.bio || matchedLocal?.bio || "",
-              quote: p.quote || matchedLocal?.quote || "",
-              instagram: p.instagram || matchedLocal?.instagram || "",
-              foto: p.foto || matchedLocal?.foto || null,
-              keahlian: Array.isArray(p.keahlian)
-                ? p.keahlian
-                : typeof p.keahlian === "string"
-                ? p.keahlian.split(",").map((s: string) => s.trim())
-                : matchedLocal?.keahlian || ["Konseling"],
-              tanggalBergabung: matchedLocal?.tanggalBergabung || "Terdaftar di DB",
-              tokenAktivasi: p.tokenAktivasi || p.token_aktivasi || matchedLocal?.tokenAktivasi || undefined,
-              tokenExpiredAt: p.tokenExpiredAt || p.token_expired_at || matchedLocal?.tokenExpiredAt || undefined,
-            }
-          })
+          const accountId = p.account?.id || p.id_account || p.accountId || undefined
+          const accountAktif = Boolean(
+            p.accountAktif ||
+            p.account?.accountAktif ||
+            p.account?.password ||
+            (p.account?.aktif && p.account?.password)
+          )
 
-          // Pertahankan juga data lokal baru yang belum ada di backend
-          const dbIds = new Set(mapped.map((m) => m.id))
-          const localOnly = localList.filter((loc) => !dbIds.has(loc.id))
-          const combined = [...localOnly, ...mapped]
+          return {
+            id: p.id,
+            nama: p.nama_gelar || p.account?.nama || matchedLocal?.nama || "Psikolog Empathika",
+            email:
+              p.account?.email ||
+              matchedLocal?.email ||
+              `${(p.nama_gelar || "psikolog").toLowerCase().replace(/[^a-z0-9]/g, "")}@empathika.com`,
+            noTelepon: p.account?.no_telepon || matchedLocal?.noTelepon || "081234567890",
+            kategori,
+            statusAkses,
+            spesialisasi: p.spesialisasi?.nama || matchedLocal?.spesialisasi || "Psikologi Klinis",
+            noStr: p.no_str || matchedLocal?.noStr || undefined,
+            noSipp: p.no_sipp || matchedLocal?.noSipp || undefined,
+            noSilp: p.no_silp || matchedLocal?.noSilp || undefined,
+            pendidikanText: p.pendidikan || matchedLocal?.pendidikanText || "Universitas Indonesia",
+            jumlahSesi: typeof p.jumlah_sesi === "number" ? p.jumlah_sesi : (matchedLocal?.jumlahSesi ?? 0),
+            bio: p.bio || matchedLocal?.bio || "",
+            quote: p.quote || matchedLocal?.quote || "",
+            instagram: p.instagram || matchedLocal?.instagram || "",
+            foto: p.foto || matchedLocal?.foto || null,
+            keahlian: Array.isArray(p.keahlian)
+              ? p.keahlian
+              : typeof p.keahlian === "string"
+              ? p.keahlian.split(",").map((s: string) => s.trim())
+              : matchedLocal?.keahlian || ["Konseling"],
+            tanggalBergabung: matchedLocal?.tanggalBergabung || "Terdaftar di DB",
+            accountId,
+            accountAktif,
+            tokenAktivasi: p.tokenAktivasi || p.token_aktivasi || p.account?.token_aktivasi || matchedLocal?.tokenAktivasi || undefined,
+            tokenExpiredAt: p.tokenExpiredAt || p.token_expired_at || p.account?.token_aktivasi_exp || matchedLocal?.tokenExpiredAt || undefined,
+          }
+        })
 
-          setDataList(combined)
-          localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(combined))
-          return
-        }
-      })
-      .catch(() => {})
+        const dbIds = new Set(mapped.map((m) => m.id))
+        const localOnly = localList.filter((loc) => !dbIds.has(loc.id))
+        const combined = [...localOnly, ...mapped]
 
-    // 2. Fallback localStorage jika offline
+        setDataList(combined)
+        localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(combined))
+        return combined
+      }
+    } catch {
+      // Offline fallback
+    }
+
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
     if (saved) {
       try {
-        setDataList(JSON.parse(saved))
+        const parsed = JSON.parse(saved)
+        setDataList(parsed)
+        return parsed
       } catch {
         setDataList([])
       }
     }
+    return []
+  }
+
+  useEffect(() => {
+    refreshPsikologList()
   }, [])
 
   const persistData = (newList: TenagaAhli[], notifMsg?: string) => {
@@ -423,6 +437,35 @@ export default function AdminPsikologClient() {
         psikolog={selectedDetailPsikolog}
         onEdit={handleOpenEdit}
         onToggleAkses={handleToggleAkses}
+        onUpdated={(next) => {
+          if (selectedDetailPsikolog) {
+            setSelectedDetailPsikolog({
+              ...selectedDetailPsikolog,
+              tokenAktivasi: next.tokenAktivasi ?? selectedDetailPsikolog.tokenAktivasi,
+              tokenExpiredAt: next.tokenExpiredAt ?? selectedDetailPsikolog.tokenExpiredAt,
+              accountAktif: next.accountAktif ?? selectedDetailPsikolog.accountAktif,
+            })
+          }
+          setDataList((prev) =>
+            prev.map((d) =>
+              d.id === selectedDetailPsikolog?.id
+                ? {
+                    ...d,
+                    tokenAktivasi: next.tokenAktivasi ?? d.tokenAktivasi,
+                    tokenExpiredAt: next.tokenExpiredAt ?? d.tokenExpiredAt,
+                    accountAktif: next.accountAktif ?? d.accountAktif,
+                  }
+                : d
+            )
+          )
+        }}
+        onRefreshFromServer={async () => {
+          const freshList = await refreshPsikologList()
+          if (selectedDetailPsikolog) {
+            const found = freshList.find((x: any) => x.id === selectedDetailPsikolog.id)
+            if (found) setSelectedDetailPsikolog(found)
+          }
+        }}
       />
     </div>
   )
