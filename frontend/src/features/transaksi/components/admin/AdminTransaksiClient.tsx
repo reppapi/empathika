@@ -252,25 +252,27 @@ function normalizeTransaksi(raw: any) {
   let jadwalDisplay = "-"
   if (jadwal.tanggal) {
     const jd = new Date(jadwal.tanggal)
-    const tglStr = jd.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
-    let jamMulai = ""
-    let jamSelesai = ""
-    if (jadwal.jam_mulai) {
-      if (typeof jadwal.jam_mulai === "string" && jadwal.jam_mulai.includes(":")) {
-        jamMulai = jadwal.jam_mulai.slice(0, 5)
-      } else {
-        const d = new Date(jadwal.jam_mulai)
-        jamMulai = d.toISOString().slice(11, 16)
+    const tglStr = jd.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+
+    const extractTime = (val: any): string => {
+      if (!val) return ""
+      if (typeof val === "string") {
+        const isoMatch = val.match(/T(\d{2}):(\d{2})/)
+        if (isoMatch) return `${isoMatch[1]}:${isoMatch[2]}`
+        const match = val.match(/(\d{1,2}):(\d{2})/)
+        if (match) return `${match[1].padStart(2, "0")}:${match[2]}`
       }
-    }
-    if (jadwal.jam_selesai) {
-      if (typeof jadwal.jam_selesai === "string" && jadwal.jam_selesai.includes(":")) {
-        jamSelesai = jadwal.jam_selesai.slice(0, 5)
-      } else {
-        const d = new Date(jadwal.jam_selesai)
-        jamSelesai = d.toISOString().slice(11, 16)
+      const d = new Date(val)
+      if (!isNaN(d.getTime())) {
+        const hh = String(d.getUTCHours()).padStart(2, "0")
+        const mm = String(d.getUTCMinutes()).padStart(2, "0")
+        return `${hh}:${mm}`
       }
+      return ""
     }
+
+    const jamMulai = extractTime(jadwal.jam_mulai)
+    const jamSelesai = extractTime(jadwal.jam_selesai)
     const jamStr = jamMulai && jamSelesai ? `, ${jamMulai} - ${jamSelesai} WIB` : jamMulai ? `, ${jamMulai} WIB` : ""
     jadwalDisplay = `${tglStr}${jamStr}`
   }
@@ -297,9 +299,12 @@ function normalizeTransaksi(raw: any) {
       }) + " WIB"
     : undefined
 
+  let cleanedOrderId = raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-"
+  cleanedOrderId = cleanedOrderId.replace(/^W-EMP-EMP-/, "W-EMP-").replace(/^EMP-EMP-/, "EMP-")
+
   return {
     id: raw.id,
-    orderId: raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-",
+    orderId: cleanedOrderId,
     orderDate: createdAt.toLocaleString("id-ID", {
       day: "2-digit",
       month: "short",
@@ -587,11 +592,11 @@ export default function AdminTransaksiClient() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             {/* ════ Kolom Kiri: List ════ */}
-            <div className="lg:col-span-7 flex flex-col rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] relative">
+            <div className="lg:col-span-7 flex flex-col rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] overflow-hidden h-full">
               {/* Header List */}
-              <div className="bg-[#EFE8F3] px-5 py-3.5 flex items-center justify-between border-b border-purple-100 rounded-t-3xl">
+              <div className="bg-[#EFE8F3] px-5 py-3.5 flex items-center justify-between border-b border-purple-100 min-h-[58px] shrink-0">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -653,7 +658,7 @@ export default function AdminTransaksiClient() {
               </div>
 
               {/* List Items */}
-              <div className="divide-y divide-gray-100 max-h-[680px] overflow-y-auto rounded-b-3xl">
+              <div className="divide-y divide-gray-100 flex-1 overflow-y-auto scroll-smooth min-h-[560px]">
                 {filteredTransaksi.length === 0 ? (
                   <div className="p-12 text-center text-gray-400 text-sm">
                     Tidak ada transaksi yang cocok dengan filter.
@@ -665,29 +670,29 @@ export default function AdminTransaksiClient() {
                       <div
                         key={item.id}
                         onClick={() => setSelectedItem(item)}
-                        className={`relative p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 ${
+                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 ${
                           isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
                         }`}
                       >
                         {isSelected && (
                           <div className="absolute inset-y-0 left-0 w-[5px] bg-[#561269]" />
                         )}
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 min-w-0">
                           <span className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{item.orderId}</span>
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="font-bold text-gray-900">{item.clientName}</span>
+                            <span className="font-bold text-gray-900 truncate">{item.clientName}</span>
                             <span className="text-gray-300">|</span>
-                            <span className="text-gray-600 font-medium text-xs sm:text-sm">{item.namaLayanan}</span>
+                            <span className="text-gray-600 font-medium text-xs sm:text-sm truncate">{item.namaLayanan}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor" className="h-3.5 w-3.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor" className="h-3.5 w-3.5 shrink-0">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
-                            <span>{item.jadwal}</span>
+                            <span className="truncate">{item.jadwal}</span>
                           </div>
                         </div>
 
-                        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1">
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1 shrink-0">
                           {item.status === "Lunas" ? (
                             <AdminStatusBadge variant="success" className="w-28">Lunas</AdminStatusBadge>
                           ) : item.status === "Refunded" ? (
@@ -709,13 +714,13 @@ export default function AdminTransaksiClient() {
             </div>
 
             {/* ════ Kolom Kanan: Detail ════ */}
-            <div className="lg:col-span-5 flex flex-col rounded-3xl border border-gray-200/90 bg-white overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)] sticky top-24">
-              <div className="bg-[#EFE8F3] px-5 py-4 border-b border-purple-100">
+            <div className="lg:col-span-5 flex flex-col rounded-3xl border border-gray-200/90 bg-white overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)] h-full">
+              <div className="bg-[#EFE8F3] px-5 py-3.5 border-b border-purple-100 min-h-[58px] flex items-center shrink-0">
                 <h3 className="text-base font-bold text-[#561269]">Detail Transaksi</h3>
               </div>
 
               {activeDetailItem ? (
-                <div className="p-6 flex flex-col gap-5">
+                <div className="p-6 flex flex-col gap-5 flex-1 justify-between overflow-y-auto">
                   {/* Order Info */}
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[11px] font-bold text-gray-400 tracking-wider uppercase">ORDER ID</span>
@@ -822,7 +827,7 @@ export default function AdminTransaksiClient() {
                   </div>
                 </div>
               ) : (
-                <div className="p-8 text-center text-gray-400 text-sm">
+                <div className="p-8 text-center text-gray-400 text-sm flex-1 flex items-center justify-center">
                   Pilih transaksi untuk melihat detail.
                 </div>
               )}

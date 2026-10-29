@@ -659,8 +659,32 @@ export default function PsikologJadwalClient() {
                     )
                     : undefined
                   const isAlreadyBooked = Boolean(bookedSession)
+                  const isTimePast = date ? isSessionPastOrCompleted(formatDateKey(date), time) : false
 
                   const isCustom = !DEFAULT_TIME_SLOTS.includes(time)
+
+                  if (isTimePast) {
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between border border-gray-100 rounded-xl px-4 py-2.5 bg-gray-50/70 opacity-50 cursor-not-allowed"
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            disabled
+                            className="w-4 h-4 rounded border-gray-200 cursor-not-allowed opacity-40"
+                          />
+                          <span className="text-[13px] font-medium text-gray-400 line-through">
+                            {time}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-gray-400 italic">
+                          Waktu telah lewat
+                        </span>
+                      </div>
+                    )
+                  }
 
                   return (
                     <div
@@ -1048,6 +1072,12 @@ export default function PsikologJadwalClient() {
                         }
 
                         // 3. Slot Terbuka (Tersedia untuk Klien)
+                        const isPastOpenSlot = isSessionPastOrCompleted(wd.dateKey || item.date, item.waktu)
+                        if (isPastOpenSlot) {
+                          // Jika hari/jam sudah lewat dan tidak ada klien yang booking, jangan tampilkan lagi sebagai slot terbuka
+                          return null
+                        }
+
                         return (
                           <div
                             key={item.id || idx}

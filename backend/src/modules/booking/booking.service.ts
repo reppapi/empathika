@@ -511,14 +511,98 @@ export class BookingService {
     return this.repo.createClientBooking(input)
   }
 
-  async getAllBookings(params?: Record<string, unknown>) {
-    return this.repo.findAllBookings(params)
+  async confirmPayment(bookingId: string) {
+    return this.repo.confirmBookingPayment(bookingId)
   }
 
-  async getBookingById(id: string) {
+  async getAllBookings(params?: Record<string, unknown>, user?: { id?: string; role?: string; id_biro?: string }) {
+    const role = (user?.role || '').toUpperCase()
+    let filterBiroId: string | undefined = undefined
+
+    // Jika Admin Biro, batasi hanya melihat booking klien dari biro tersebut
+    if (role === 'BIRO') {
+      filterBiroId = user?.id_biro || undefined
+    }
+
+    return this.repo.findAllBookings({
+      ...(params as any),
+      id_biro: filterBiroId,
+    })
+  }
+
+  async getBookingById(id: string, user?: { id?: string; role?: string; id_biro?: string }) {
+    if (!user || !user.id) {
+      throw Object.assign(new Error('Silakan login terlebih dahulu'), { statusCode: 401 })
+    }
+
     const item = await this.repo.findBookingById(id)
-    if (!item) throw new Error('Booking tidak ditemukan')
-    return item
+    if (!item) {
+      throw Object.assign(new Error('Booking tidak ditemukan'), { statusCode: 404 })
+    }
+
+    const role = (user.role || '').toUpperCase()
+
+    // 1. Super Admin: Boleh melihat semua booking
+    if (role === 'ADMIN' || role === 'SUPERADMIN') {
+      return item
+    }
+
+    // 2. Admin Biro: Hanya boleh melihat booking dari klien biro miliknya saja
+    if (role === 'BIRO') {
+      let userBiroId = user.id_biro
+      if (!userBiroId) {
+        const acc = await (this.repo as any).prisma.account.findUnique({
+          where: { id: user.id },
+          select: { id_biro: true },
+        })
+        userBiroId = acc?.id_biro
+      }
+
+      const clientBiroId = (item.client as any)?.id_biro
+
+      if (!userBiroId || userBiroId !== clientBiroId) {
+        throw Object.assign(
+          new Error('Akses ditolak - Anda hanya dapat melihat data booking dari klien biro Anda'),
+          { statusCode: 403 }
+        )
+      }
+      return item
+    }
+
+    // 3. Psikolog: Hanya boleh melihat booking jadwal miliknya sendiri
+    if (role === 'PSIKOLOG') {
+      const psikologAccount = (item.jadwal?.psikolog as any)?.id_account
+      const psikologId = item.jadwal?.id_psikolog
+
+      let isMySchedule = Boolean(
+        (psikologAccount && psikologAccount === user.id) ||
+        (psikologId && psikologId === user.id)
+      )
+
+      if (!isMySchedule) {
+        const psi = await (this.repo as any).prisma.psikolog.findUnique({
+          where: { id_account: user.id },
+          select: { id: true },
+        })
+        if (psi && psi.id === psikologId) {
+          isMySchedule = true
+        }
+      }
+
+      if (!isMySchedule) {
+        throw Object.assign(
+          new Error('Akses ditolak - Anda hanya dapat melihat data booking dari jadwal Anda sendiri'),
+          { statusCode: 403 }
+        )
+      }
+      return item
+    }
+
+    // 4. Peran lain atau publik dilarang mengakses
+    throw Object.assign(
+      new Error('Akses ditolak - Anda tidak memiliki izin untuk melihat data booking ini'),
+      { statusCode: 403 }
+    )
   }
 
   async cleanExpiredPendingBookings(maxAgeMinutes: number = 30) {

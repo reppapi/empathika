@@ -20,13 +20,17 @@ export class BookingController {
   // ── Client & Umum ────────────────────────────────────────────────────────────
 
   getAll = async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = await this.service.getAllBookings(request.query as Record<string, unknown>)
+    const data = await this.service.getAllBookings(request.query as Record<string, unknown>, (request as any).user)
     reply.send(data)
   }
 
   getById = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await this.service.getBookingById(request.params.id)
-    reply.send(data)
+    try {
+      const data = await this.service.getBookingById(request.params.id, (request as any).user)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ message: err.message })
+    }
   }
 
   getMyBookings = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -49,6 +53,18 @@ export class BookingController {
           ? 'Slot jadwal ini sudah dibooking oleh klien lain. Silakan pilih jadwal lain.'
           : err.message
       reply.code(statusCode).send({ message })
+    }
+  }
+
+  confirmPayment = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.confirmPayment(request.params.id)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 

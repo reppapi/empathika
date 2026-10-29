@@ -195,7 +195,6 @@ export default function BayarClient() {
         jam_mulai: qWaktu ? qWaktu.substring(0, 5) : undefined,
         metode: qMetodeKonseling.toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE",
         deskripsi_trauma: deskripsi.trim(),
-        status: "CONFIRMED",
         metode_pembayaran: (metodePembayaran || "QRIS").toUpperCase(),
         channel_pembayaran: selectedBank || selectedEwallet || "QRIS",
         klien: {
