@@ -21,12 +21,59 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
   // Format jadwal tersedia dari jadwal_slot dan localStorage (tanpa limit slice 3)
   let jadwalTersedia: JadwalUI[] = [];
   const rawSlots: any[] = [];
+  const bookedSlotKeys = new Set<string>();
+
+  // Mendukung format "HH:MM" string maupun ISO datetime dari Prisma
+  const parseJam = (val: any): string => {
+    if (!val) return '00:00';
+    if (typeof val === 'string') {
+      const match = val.match(/(\d{2}:\d{2})/);
+      if (match) return match[1];
+    }
+    if (val instanceof Date || (typeof val === 'string' && val.includes('T'))) {
+      const d = new Date(val);
+      return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    }
+    return '00:00';
+  };
+
+  const parseDateKey = (val: any): string | null => {
+    if (!val) return null;
+    if (typeof val === 'string') {
+      const match = val.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (match) return match[1];
+    }
+    if (val instanceof Date) {
+      return `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, '0')}-${String(val.getDate()).padStart(2, '0')}`;
+    }
+    return null;
+  };
 
   if (item.jadwal_slot && Array.isArray(item.jadwal_slot)) {
     rawSlots.push(...item.jadwal_slot);
+
+    // Kumpulkan seluruh slot yang sudah dibooking atau tidak aktif di database
+    item.jadwal_slot.forEach((s: any) => {
+      const statusUpper = (s.status || '').toUpperCase();
+      const isBooked =
+        statusUpper === 'SUDAH_DIBOOKING' ||
+        statusUpper === 'TIDAK_TERSEDIA' ||
+        statusUpper === 'CANCELLED' ||
+        Boolean(s.booking_konsultasi);
+
+      if (isBooked) {
+        const dKey = parseDateKey(s.tanggal);
+        const jKey = parseJam(s.jam_mulai);
+        if (dKey && jKey) bookedSlotKeys.add(`${dKey}_${jKey}`);
+        if (jKey) bookedSlotKeys.add(jKey);
+      }
+    });
   }
 
-  if (typeof window !== 'undefined') {
+  const hasDbSlots = Array.isArray(item.jadwal_slot) && item.jadwal_slot.length > 0;
+
+  // Hanya gunakan localStorage jika belum ada data slot riil dari database
+  if (!hasDbSlots && typeof window !== 'undefined') {
     try {
       const rawCustom = localStorage.getItem('empathika_custom_jadwal_slots');
       if (rawCustom) {
@@ -52,35 +99,9 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // Mendukung format "HH:MM" string maupun ISO datetime dari Prisma
-    const parseJam = (val: any): string => {
-      if (!val) return '00:00';
-      if (typeof val === 'string') {
-        const match = val.match(/(\d{2}:\d{2})/);
-        if (match) return match[1];
-      }
-      if (val instanceof Date || (typeof val === 'string' && val.includes('T'))) {
-        const d = new Date(val);
-        return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
-      }
-      return '00:00';
-    };
-
     const parseMinutes = (jamStr: string): number => {
       const parts = jamStr.split(':').map(Number);
       return (parts[0] || 0) * 60 + (parts[1] || 0);
-    };
-
-    const parseDateKey = (val: any): string | null => {
-      if (!val) return null;
-      if (typeof val === 'string') {
-        const match = val.match(/^(\d{4}-\d{2}-\d{2})/);
-        if (match) return match[1];
-      }
-      if (val instanceof Date) {
-        return `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, '0')}-${String(val.getDate()).padStart(2, '0')}`;
-      }
-      return null;
     };
 
     // Filter slot yang masih tersedia dan belum lewat jamnya
@@ -94,6 +115,14 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
       const slotDate = parseDateKey(slot.tanggal);
       const jamMulai = parseJam(slot.jam_mulai);
       const startMinutes = parseMinutes(jamMulai);
+
+      // Cek apakah slot ini sudah tercatat dibooking di database
+      if (slotDate && bookedSlotKeys.has(`${slotDate}_${jamMulai}`)) {
+        return false;
+      }
+      if (bookedSlotKeys.has(jamMulai)) {
+        return false;
+      }
 
       // 2. Jika ada tanggal spesifik:
       if (slotDate) {

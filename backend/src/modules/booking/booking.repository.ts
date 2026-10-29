@@ -177,6 +177,81 @@ export class BookingRepository {
   }) {
     // Otomatis lepas slot yang ditinggalkan (pending > 30 menit) agar langsung muncul lagi di kalender
     await this.cancelExpiredPendingBookings(30).catch(() => { })
+
+    // Resolusi ID psikolog jika diteruskan sebagai nama/email/slug
+    let resolvedPsikologId = params.id_psikolog
+    if (resolvedPsikologId) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(resolvedPsikologId)
+      if (!isUuid) {
+        const psi = await this.prisma.psikolog.findFirst({
+          where: {
+            OR: [
+              { nama_gelar: { contains: resolvedPsikologId, mode: 'insensitive' } },
+              { account: { nama: { contains: resolvedPsikologId, mode: 'insensitive' } } },
+              { account: { email: { contains: resolvedPsikologId, mode: 'insensitive' } } },
+            ],
+          },
+        })
+        if (psi) resolvedPsikologId = psi.id
+      }
+    }
+
+    const parsedTanggal = params.tanggal ? parseDateString(params.tanggal) : undefined
+
+    // 1. Kumpulkan seluruh slot yang SUDAH ADA booking aktifnya (bukan CANCELLED)
+    const activeBookings = await this.prisma.bookingKonsultasi.findMany({
+      where: {
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        ...(parsedTanggal ? { jadwal: { tanggal: parsedTanggal } } : {}),
+        ...(resolvedPsikologId ? { jadwal: { id_psikolog: resolvedPsikologId } } : {}),
+      },
+      select: {
+        id_jadwal: true,
+        jadwal: {
+          select: {
+            id_psikolog: true,
+            tanggal: true,
+            jam_mulai: true,
+          },
+        },
+      },
+    })
+
+    const occupiedSlotIds = new Set<string>()
+    const occupiedTimeKeys = new Set<string>()
+
+    activeBookings.forEach((b) => {
+      if (b.id_jadwal) occupiedSlotIds.add(b.id_jadwal)
+      if (b.jadwal) {
+        const dStr = formatDateToString(b.jadwal.tanggal)
+        const jStr = formatTimeToString(b.jadwal.jam_mulai)
+        occupiedTimeKeys.add(`${b.jadwal.id_psikolog}_${dStr}_${jStr}`)
+      }
+    })
+
+    // 2. Kumpulkan slot yang statusnya SUDAH_DIBOOKING atau TIDAK_TERSEDIA
+    const bookedSlots = await this.prisma.jadwalSlot.findMany({
+      where: {
+        status: { in: ['SUDAH_DIBOOKING', 'TIDAK_TERSEDIA'] as any },
+        ...(parsedTanggal ? { tanggal: parsedTanggal } : {}),
+        ...(resolvedPsikologId ? { id_psikolog: resolvedPsikologId } : {}),
+      },
+      select: {
+        id: true,
+        id_psikolog: true,
+        tanggal: true,
+        jam_mulai: true,
+      },
+    })
+
+    bookedSlots.forEach((s) => {
+      occupiedSlotIds.add(s.id)
+      const dStr = formatDateToString(s.tanggal)
+      const jStr = formatTimeToString(s.jam_mulai)
+      occupiedTimeKeys.add(`${s.id_psikolog}_${dStr}_${jStr}`)
+    })
+
+    // 3. Query slot yang berstatus TERSEDIA
     const where: Prisma.JadwalSlotWhereInput = {
       status: 'TERSEDIA',
       tipe_jadwal: params.tipe_jadwal || 'KONSULTASI',
@@ -186,40 +261,15 @@ export class BookingRepository {
       ],
     }
 
-    const now = new Date()
-    const todayStr = formatDateToString(now)
-    const todayDateOnly = parseDateString(todayStr)
-
-    if (params.tanggal) {
-      if (params.tanggal < todayStr) {
-        // Tanggal masa lampau tidak memiliki slot aktif
-        return []
-      }
-      where.tanggal = parseDateString(params.tanggal)
-    } else {
-      // Jika tanpa filter tanggal spesifik, hanya cari dari hari ini ke masa depan
-      where.tanggal = { gte: todayDateOnly }
+    if (parsedTanggal) {
+      where.tanggal = parsedTanggal
     }
 
-    if (params.id_psikolog) {
-      let resolvedId = params.id_psikolog
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(params.id_psikolog)
-      if (!isUuid) {
-        const psi = await this.prisma.psikolog.findFirst({
-          where: {
-            OR: [
-              { nama_gelar: { contains: params.id_psikolog, mode: 'insensitive' } },
-              { account: { nama: { contains: params.id_psikolog, mode: 'insensitive' } } },
-              { account: { email: { contains: params.id_psikolog, mode: 'insensitive' } } },
-            ],
-          },
-        })
-        if (psi) resolvedId = psi.id
-      }
-      where.id_psikolog = resolvedId
+    if (resolvedPsikologId) {
+      where.id_psikolog = resolvedPsikologId
     }
 
-    const slots = await this.prisma.jadwalSlot.findMany({
+    const availableCandidates = await this.prisma.jadwalSlot.findMany({
       where,
       include: {
         psikolog: {
@@ -243,18 +293,12 @@ export class BookingRepository {
       ],
     })
 
-    const nowMinutes = now.getHours() * 60 + now.getMinutes()
-
-    // Filter ketat: hilangkan slot yang tanggalnya sudah lewat atau jamnya sudah lewat di hari ini
-    return slots.filter((slot) => {
-      const slotDateStr = formatDateToString(slot.tanggal)
-      if (slotDateStr < todayStr) return false
-      if (slotDateStr === todayStr) {
-        const slotTimeStr = formatTimeToString(slot.jam_mulai)
-        const [h, m] = slotTimeStr.split(':').map(Number)
-        const slotMinutes = (h || 0) * 60 + (m || 0)
-        if (slotMinutes <= nowMinutes) return false
-      }
+    // 4. FILTER MUTLAK: Buang slot apa pun yang sudah dibooking atau berbentrok waktu!
+    return availableCandidates.filter((slot) => {
+      if (occupiedSlotIds.has(slot.id)) return false
+      const dStr = formatDateToString(slot.tanggal)
+      const jStr = formatTimeToString(slot.jam_mulai)
+      if (occupiedTimeKeys.has(`${slot.id_psikolog}_${dStr}_${jStr}`)) return false
       return true
     })
   }

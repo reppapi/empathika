@@ -16,6 +16,7 @@ async function main() {
     where: { email: 'admin@empathika.test' },
     update: {
       password: hashedAdminPassword,
+      no_telepon: '0878-7878-5498',
       aktif: true,
     },
     create: {
@@ -23,6 +24,7 @@ async function main() {
       email: 'admin@empathika.test',
       password: hashedAdminPassword,
       role: Role.ADMIN,
+      no_telepon: '0878-7878-5498',
       aktif: true,
     },
   });

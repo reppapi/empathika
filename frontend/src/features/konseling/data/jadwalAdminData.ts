@@ -13,15 +13,23 @@ export const RAW_CLIENT_SESSIONS: Omit<ClientSessionToday, "status" | "isUpcomin
 
 export const WEEK_VARIATIONS: WeeklyTemplateItem[][] = []
 
-export function parseTimeRangeMinutes(timeStr: string) {
-  const parts = timeStr.split("-").map((s) => s.trim())
-  if (parts.length < 2) return { startMinutes: 0, endMinutes: 0 }
-  const [startH, startM] = parts[0].split(":").map(Number)
-  const [endH, endM] = parts[1].split(":").map(Number)
-  return {
-    startMinutes: (startH || 0) * 60 + (startM || 0),
-    endMinutes: (endH || 0) * 60 + (endM || 0),
+export function parseTimeRangeMinutes(timeStr?: string) {
+  if (!timeStr) return { startMinutes: 0, endMinutes: 0 }
+  const cleaned = timeStr.replace(/wib/gi, "").trim()
+  const parts = cleaned.split(/[-–—]/).map((s) => s.trim())
+  if (parts.length < 2) {
+    const m = cleaned.match(/(\d{1,2})[:.](\d{2})/)
+    if (m) {
+      const mins = parseInt(m[1], 10) * 60 + parseInt(m[2], 10)
+      return { startMinutes: mins, endMinutes: mins + 60 }
+    }
+    return { startMinutes: 0, endMinutes: 0 }
   }
+  const startM = parts[0].match(/(\d{1,2})[:.](\d{2})/)
+  const endM = parts[1].match(/(\d{1,2})[:.](\d{2})/)
+  const startMinutes = startM ? parseInt(startM[1], 10) * 60 + parseInt(startM[2], 10) : 0
+  const endMinutes = endM ? parseInt(endM[1], 10) * 60 + parseInt(endM[2], 10) : startMinutes + 60
+  return { startMinutes, endMinutes }
 }
 
 export function getInitialSessionsBasedOnTime(): ClientSessionToday[] {

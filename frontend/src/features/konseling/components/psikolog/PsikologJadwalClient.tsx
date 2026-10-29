@@ -119,6 +119,33 @@ export default function PsikologJadwalClient() {
   const [bookedSessions, setBookedSessions] = useState<BookedSession[]>(INITIAL_BOOKINGS)
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null)
 
+  // Indikator tanggal yang sudah memiliki jadwal aktif di database (tanda bulatan kuning)
+  // Hanya ditampilkan untuk tanggal hari ini dan berikutnya (tanggal lampau tidak dimunculkan)
+  const datesWithSchedules = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+
+    const dates: Date[] = []
+    const dateSet = new Set<string>()
+    bookedSessions.forEach((s) => {
+      if (s.date && s.date >= todayKey && !s.isCancelled && s.status !== "Dibatalkan") {
+        dateSet.add(s.date)
+      }
+    })
+    dateSet.forEach((dateStr) => {
+      const parts = dateStr.split("-").map(Number)
+      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2])
+        d.setHours(0, 0, 0, 0)
+        if (d >= today) {
+          dates.push(d)
+        }
+      }
+    })
+    return dates
+  }, [bookedSessions])
+
   // Opsi input jam kustom sendiri
   const [isCustomTime, setIsCustomTime] = useState(false)
   const [customStart, setCustomStart] = useState("08:00")
@@ -321,16 +348,12 @@ export default function PsikologJadwalClient() {
   // Sinkronkan minggu saat memilih tanggal dari kalender dan reset pilihan jam
   const handleSelectDate = (newDate: Date | undefined) => {
     if (newDate) {
-      const check = new Date(newDate)
-      check.setHours(0, 0, 0, 0)
-      if (check >= today) {
-        setDate(newDate)
-        setCurrentWeekMonday(getMonday(newDate))
-        // Reset centang pilihan jam agar keulang bersih saat ganti tanggal
-        setSelectedTimes([])
-        setIsCustomTime(false)
-        setBookingSuccessMsg(null)
-      }
+      setDate(newDate)
+      setCurrentWeekMonday(getMonday(newDate))
+      // Reset centang pilihan jam agar keulang bersih saat ganti tanggal
+      setSelectedTimes([])
+      setIsCustomTime(false)
+      setBookingSuccessMsg(null)
     }
   }
 
@@ -531,11 +554,21 @@ export default function PsikologJadwalClient() {
                   mode="single"
                   selected={date}
                   onSelect={handleSelectDate}
-                  fromDate={today}
-                  disabled={{ before: today }}
                   fixedWeeks
                   className="w-full max-w-[320px] mx-auto bg-transparent"
+                  modifiers={{
+                    hasSchedule: datesWithSchedules,
+                  }}
+                  modifiersClassNames={{
+                    hasSchedule:
+                      "relative font-bold after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:bg-amber-400 after:rounded-full",
+                  }}
                 />
+              </div>
+
+              <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-2.5 justify-center">
+                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block shadow-2xs"></span>
+                <span>Tanggal memiliki jadwal sesi / slot</span>
               </div>
             </div>
 
@@ -659,45 +692,20 @@ export default function PsikologJadwalClient() {
                     )
                     : undefined
                   const isAlreadyBooked = Boolean(bookedSession)
-                  const isTimePast = date ? isSessionPastOrCompleted(formatDateKey(date), time) : false
-
                   const isCustom = !DEFAULT_TIME_SLOTS.includes(time)
-
-                  if (isTimePast) {
-                    return (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between border border-gray-100 rounded-xl px-4 py-2.5 bg-gray-50/70 opacity-50 cursor-not-allowed"
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            disabled
-                            className="w-4 h-4 rounded border-gray-200 cursor-not-allowed opacity-40"
-                          />
-                          <span className="text-[13px] font-medium text-gray-400 line-through">
-                            {time}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-semibold text-gray-400 italic">
-                          Waktu telah lewat
-                        </span>
-                      </div>
-                    )
-                  }
 
                   return (
                     <div
                       key={idx}
                       className={`flex items-center justify-between border rounded-xl px-4 py-2.5 transition-all ${isChecked
-                          ? "border-[#561269] bg-purple-50/70 shadow-2xs"
-                          : isAlreadyCancelled
-                            ? "border-rose-200 bg-rose-50/40"
-                            : isAlreadyOpened
-                              ? "border-purple-300 bg-purple-50/30"
-                              : isAlreadyBooked
-                                ? "border-emerald-200 bg-emerald-50/30"
-                                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                        ? "border-[#561269] bg-purple-50/70 shadow-2xs"
+                        : isAlreadyCancelled
+                          ? "border-rose-200 bg-rose-50/40"
+                          : isAlreadyOpened
+                            ? "border-purple-300 bg-purple-50/30"
+                            : isAlreadyBooked
+                              ? "border-emerald-200 bg-emerald-50/30"
+                              : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
                         }`}
                     >
                       <label className="flex items-center gap-3 cursor-pointer flex-1">
@@ -709,10 +717,10 @@ export default function PsikologJadwalClient() {
                         />
                         <span
                           className={`text-[13px] font-medium ${isChecked
-                              ? "text-[#561269] font-bold"
-                              : isAlreadyCancelled
-                                ? "text-gray-600 line-through"
-                                : "text-gray-700"
+                            ? "text-[#561269] font-bold"
+                            : isAlreadyCancelled
+                              ? "text-gray-600 line-through"
+                              : "text-gray-700"
                             }`}
                         >
                           {time}
@@ -782,8 +790,8 @@ export default function PsikologJadwalClient() {
                 {/* Opsi Tambahan: Tentukan Jam Kustom Sendiri */}
                 <div
                   className={`border rounded-xl px-4 py-2.5 transition-colors cursor-pointer ${isCustomTime
-                      ? "border-[#561269] bg-purple-50/70 shadow-2xs"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                    ? "border-[#561269] bg-purple-50/70 shadow-2xs"
+                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
                     }`}
                 >
                   <label className="flex items-center gap-3 cursor-pointer">
@@ -1073,10 +1081,6 @@ export default function PsikologJadwalClient() {
 
                         // 3. Slot Terbuka (Tersedia untuk Klien)
                         const isPastOpenSlot = isSessionPastOrCompleted(wd.dateKey || item.date, item.waktu)
-                        if (isPastOpenSlot) {
-                          // Jika hari/jam sudah lewat dan tidak ada klien yang booking, jangan tampilkan lagi sebagai slot terbuka
-                          return null
-                        }
 
                         return (
                           <div

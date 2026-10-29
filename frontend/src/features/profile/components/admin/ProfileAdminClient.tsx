@@ -46,6 +46,11 @@ export default function ProfileAdminClient({
         const savedAdmin = localStorage.getItem("empathika_admin_profile")
         if (savedAdmin) {
           const parsed = JSON.parse(savedAdmin)
+          if (parsed.noTelepon === "081234567890" || parsed.no_telepon === "081234567890") {
+            parsed.noTelepon = "0878-7878-5498"
+            parsed.no_telepon = "0878-7878-5498"
+            localStorage.setItem("empathika_admin_profile", JSON.stringify(parsed))
+          }
           setForm((prev) => ({ ...prev, ...parsed }))
         }
       } catch {}
@@ -58,10 +63,12 @@ export default function ProfileAdminClient({
           .then((res) => {
             if (res?.data) {
               const p = res.data
+              const rawTel = p.noTelepon || p.no_telepon || ""
+              const effectiveTel = !rawTel || rawTel === "081234567890" ? "0878-7878-5498" : rawTel
               const mapped: AdminProfileData = {
                 nama: p.nama || "",
                 email: p.email || "",
-                noTelepon: p.noTelepon || p.no_telepon || "",
+                noTelepon: effectiveTel,
                 bio: p.bio || "",
                 foto: p.foto || null,
                 alamat: p.alamat || "",
@@ -259,10 +266,28 @@ export default function ProfileAdminClient({
                 linkMapsEmbed: updated.linkMapsEmbed || updated.link_maps_embed,
               })
             )
+
+            // Sinkronkan ke konfigurasi kerja sama lokal
+            const currentCfgStr = localStorage.getItem("empathika_kerjasama_config")
+            if (currentCfgStr) {
+              const parsedCfg = JSON.parse(currentCfgStr)
+              const rawDigits = (mapped.noTelepon || "").replace(/\D/g, "")
+              const cleanWa = rawDigits.startsWith("0") ? "62" + rawDigits.slice(1) : rawDigits
+              parsedCfg.kontak = {
+                ...parsedCfg.kontak,
+                whatsapp: mapped.noTelepon,
+                email: mapped.email || parsedCfg.kontak?.email,
+                formAffiliate: `https://wa.me/${cleanWa}?text=Halo%20Empathika,%20saya%20tertarik%20dengan%20program%20Affiliate`,
+              }
+              localStorage.setItem("empathika_kerjasama_config", JSON.stringify(parsedCfg))
+            }
           } catch {}
         }
       } catch (backendErr) {
         console.warn("Update profil ke backend gagal/offline, tetap tersimpan lokal:", backendErr)
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("empathika_admin_profile_updated"))
       }
     } else {
       setPsikologData(form)
