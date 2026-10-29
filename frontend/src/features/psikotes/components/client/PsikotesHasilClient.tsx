@@ -325,6 +325,8 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
     }
 
     const originalScrollY = window.scrollY;
+    const prevWidth = target.style.width;
+    const prevMaxWidth = target.style.maxWidth;
 
     try {
       // Helper untuk memuat library html2pdf jika belum ada di window
@@ -357,7 +359,10 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
       // 1. Scroll ke paling atas untuk mencegah offset html2canvas
       window.scrollTo(0, 0);
 
-      // 2. Munculkan Kop Surat & Footer Asesor resmi, sembunyikan sidebar aksi (Info Asesmen & Konsultasi)
+      // 2. Aktifkan mode PDF dokumen profesional:
+      // Menghilangkan background putih card web, border luar, dan shadow yang membuat PDF terpotong/kotor
+      target.classList.add("pdf-export-mode");
+
       if (headerPdf) headerPdf.style.display = "block";
       if (footerPdf) footerPdf.style.display = "block";
       if (sidebar) sidebar.style.display = "none";
@@ -366,24 +371,44 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
         leftCol.style.gridColumn = "1 / -1";
       }
 
-      // Berikan jeda 250ms agar browser merender ulang layout sebelum di-capture
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      // Berikan jeda 300ms agar browser merender ulang layout dokumen sebelum di-capture
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       const cleanFileName = `Laporan-Resmi-Psikotes-${(peserta.nama || "Peserta").replace(/[^a-zA-Z0-9]/g, "_")}-Empathika.pdf`;
 
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: [10, 10, 10, 10], // Margin simetris presisi 10mm di setiap sisi (rata tengah sempurna)
         filename: cleanFileName,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: {
           scale: 2,
           useCORS: true,
           logging: false,
+          scrollX: 0,
           scrollY: 0,
           backgroundColor: "#ffffff",
+          onclone: (clonedDoc: any) => {
+            const clonedTarget = clonedDoc.getElementById("laporan-berbayar-container");
+            if (clonedTarget) {
+              clonedTarget.style.width = "100%";
+              clonedTarget.style.maxWidth = "100%";
+              clonedTarget.style.margin = "0 auto";
+              clonedTarget.style.padding = "0";
+              clonedTarget.style.boxSizing = "border-box";
+              if (clonedTarget.parentElement) {
+                clonedTarget.parentElement.style.width = "100%";
+                clonedTarget.parentElement.style.maxWidth = "100%";
+                clonedTarget.parentElement.style.margin = "0 auto";
+                clonedTarget.parentElement.style.padding = "0";
+              }
+            }
+          },
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"] },
+        pagebreak: {
+          mode: ["css", "legacy"],
+          avoid: [".pdf-card", ".pdf-avoid-break", ".pdf-sub-box", ".pdf-tip-item", "#laporan-pdf-footer"],
+        },
       };
 
       await html2pdf().set(opt).from(target).save();
@@ -391,7 +416,8 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
       console.error("[PDF Download Error]", err);
       window.print();
     } finally {
-      // 3. Kembalikan layout tampilan web seperti semula
+      // 3. Kembalikan layout tampilan web seperti semula secara mulus
+      target.classList.remove("pdf-export-mode");
       if (headerPdf) headerPdf.style.display = "none";
       if (footerPdf) footerPdf.style.display = "none";
       if (sidebar) sidebar.style.display = "";
@@ -579,6 +605,202 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
         strategy="afterInteractive"
       />
 
+      {/* CSS Khusus Mode Cetak & Export PDF: Dokumen Clean, Rapi, Standar A4 & Profesional */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .pdf-export-mode {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          padding: 0 !important;
+          margin: 0 auto !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+        }
+        .pdf-export-mode .pdf-main-grid {
+          display: block !important;
+          width: 100% !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+          gap: 0 !important;
+        }
+        .pdf-export-mode #laporan-kolom-kiri {
+          display: block !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+        }
+        .pdf-export-mode #laporan-pdf-header {
+          width: 100% !important;
+          margin: 0 auto 14px auto !important;
+          box-sizing: border-box !important;
+        }
+        .pdf-export-mode .pdf-card {
+          box-shadow: none !important;
+          border-radius: 10px !important;
+          border: 1px solid #E5E7EB !important;
+          padding: 14px 18px !important;
+          margin: 0 auto 12px auto !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          background: #ffffff !important;
+        }
+        .pdf-export-mode .pdf-hero-card {
+          box-shadow: none !important;
+          border-radius: 10px !important;
+          padding: 16px 20px !important;
+          margin: 0 auto 12px auto !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          background: #FAF8FB !important;
+          border-left-width: 4px !important;
+          border-left-color: #561269 !important;
+        }
+        .pdf-export-mode .pdf-result-val {
+          font-size: 22px !important;
+          font-weight: 800 !important;
+          line-height: 1.25 !important;
+          margin-bottom: 4px !important;
+          color: #561269 !important;
+        }
+        .pdf-export-mode .pdf-heading {
+          font-size: 13.5px !important;
+          font-weight: 700 !important;
+          line-height: 1.3 !important;
+          margin-bottom: 4px !important;
+          color: #111827 !important;
+        }
+        .pdf-export-mode .pdf-subheading {
+          font-size: 10px !important;
+          color: #6B7280 !important;
+          margin-bottom: 8px !important;
+        }
+        .pdf-export-mode .pdf-body {
+          font-size: 10.5px !important;
+          line-height: 1.55 !important;
+          color: #374151 !important;
+        }
+        .pdf-export-mode .pdf-grid-4 {
+          display: grid !important;
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 10px !important;
+        }
+        .pdf-export-mode .pdf-meta-box {
+          padding: 8px 12px !important;
+          border-radius: 8px !important;
+          background: #F9FAFB !important;
+          border: 1px solid #F3F4F6 !important;
+        }
+        .pdf-export-mode .pdf-meta-label {
+          font-size: 9px !important;
+          margin-bottom: 2px !important;
+          color: #6B7280 !important;
+        }
+        .pdf-export-mode .pdf-meta-val {
+          font-size: 11.5px !important;
+          font-weight: 700 !important;
+        }
+        .pdf-export-mode .pdf-sub-box {
+          padding: 10px 14px !important;
+          border-radius: 8px !important;
+        }
+        .pdf-export-mode .pdf-sub-title {
+          font-size: 10px !important;
+          margin-bottom: 4px !important;
+        }
+        .pdf-export-mode .pdf-grid-2 {
+          display: grid !important;
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 10px !important;
+        }
+        .pdf-export-mode .pdf-list-item {
+          font-size: 10px !important;
+          line-height: 1.45 !important;
+          margin-bottom: 4px !important;
+        }
+        .pdf-export-mode .pdf-tip-item {
+          padding: 8px 12px !important;
+          border-radius: 8px !important;
+          margin-bottom: 6px !important;
+          gap: 10px !important;
+        }
+        .pdf-export-mode .pdf-tip-title {
+          font-size: 11.5px !important;
+          font-weight: 700 !important;
+        }
+        .pdf-export-mode .pdf-tip-desc {
+          font-size: 10px !important;
+          line-height: 1.4 !important;
+        }
+        .pdf-export-mode .pdf-page-break-before {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .pdf-export-mode .pdf-avoid-break {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .pdf-export-mode #laporan-kolom-kiri > * + * {
+          margin-top: 10px !important;
+        }
+        .pdf-export-mode #laporan-pdf-footer {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          margin-top: 14px !important;
+          padding-top: 10px !important;
+        }
+
+        @media print {
+          .print\\:hidden { display: none !important; }
+          #laporan-pdf-header { display: block !important; }
+          #laporan-pdf-footer { display: block !important; }
+          #laporan-sidebar-aksi { display: none !important; }
+          #laporan-kolom-kiri { width: 100% !important; grid-column: 1 / -1 !important; }
+          #laporan-berbayar-container {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+          }
+          .pdf-card {
+            box-shadow: none !important;
+            border-radius: 10px !important;
+            border: 1px solid #E5E7EB !important;
+            padding: 12px 16px !important;
+            margin-bottom: 10px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .pdf-page-break-before {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .pdf-grid-4 {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 10px !important;
+          }
+          .pdf-grid-2 {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 10mm 12mm 10mm 12mm;
+          }
+        }
+      `}} />
+
       <div className="max-w-5xl mx-auto space-y-8">
         
         {/* Header Bersih & Profesional */}
@@ -625,7 +847,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           <div
             id="laporan-pdf-header"
             style={{ display: "none" }}
-            className="pb-4 mb-5 border-b-2 border-[#561269]"
+            className="pb-4 mb-5 border-b-2 border-[#561269] pdf-avoid-break"
           >
             <div className="flex justify-between items-start">
               <div>
@@ -646,17 +868,17 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           </div>
 
           {/* Card Identitas Peserta Asesmen */}
-          <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-7 shadow-xs">
+          <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-7 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900 leading-tight">
+                  <h3 className="text-sm font-bold text-gray-900 leading-tight pdf-heading">
                     Identitas Peserta Asesmen
                   </h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 pdf-subheading">
                     Data resmi peserta pengerjaan asesmen psikotes
                   </p>
                 </div>
@@ -667,39 +889,39 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pdf-grid-4">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
                   Nama Lengkap
                 </span>
-                <span className="font-extrabold text-sm text-gray-900 block truncate">
+                <span className="font-extrabold text-sm text-gray-900 block truncate pdf-meta-val">
                   {peserta.nama || "Peserta Asesmen Empathika"}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
                   Kontak WhatsApp
                 </span>
-                <span className="font-bold text-sm text-emerald-700 block truncate">
+                <span className="font-bold text-sm text-emerald-700 block truncate pdf-meta-val">
                   {peserta.noHp || "—"}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
                   Email Terdaftar
                 </span>
-                <span className="font-bold text-sm text-gray-800 block truncate">
+                <span className="font-bold text-sm text-gray-800 block truncate pdf-meta-val">
                   {peserta.email || "—"}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
                   Tanggal Asesmen
                 </span>
-                <span className="font-bold text-sm text-gray-800 block truncate">
+                <span className="font-bold text-sm text-gray-800 block truncate pdf-meta-val">
                   {peserta.tanggal}
                 </span>
               </div>
@@ -707,70 +929,70 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           </div>
 
           {/* 1. Hasil Utama (Clean & Modern Card) */}
-          <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-[#FAF8FB] rounded-xl border border-purple-200/70 p-6 sm:p-8 shadow-xs text-center border-l-4 border-l-[#561269]">
+          <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card pdf-hero-card bg-[#FAF8FB] rounded-xl border border-purple-200/70 p-6 sm:p-8 shadow-xs text-center border-l-4 border-l-[#561269]">
             {dynamicResult.prefix && (
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{dynamicResult.prefix}</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 pdf-subheading">{dynamicResult.prefix}</p>
             )}
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#561269] tracking-tight mb-2">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#561269] tracking-tight mb-2 pdf-result-val">
               {dynamicResult.value}
             </h2>
-            <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed pdf-body">
               {berbayarDetail.deskripsi}
             </p>
           </section>
 
           {/* 2. Grid Konten: Kolom Kiri (Analisis) & Kolom Kanan (Sidebar) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pdf-main-grid">
             
             {/* Kolom Kiri: Analisis Lengkap */}
             <div id="laporan-kolom-kiri" className="lg:col-span-8 space-y-8 print:w-full print:col-span-12">
               
               {/* Interpretasi Hasil & Implikasi Strategis */}
-              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2 pdf-heading">
                     <Info className="w-5 h-5 text-[#561269]" />
                     Interpretasi Hasil
                   </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <p className="text-sm text-gray-600 leading-relaxed pdf-body">
                     {berbayarDetail.deskripsi}
                   </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2]">
-                  <h4 className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-2">
+                <div className="p-5 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2] pdf-sub-box">
+                  <h4 className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-2 pdf-sub-title">
                     Makna Hasil dalam Kehidupan Sehari-hari
                   </h4>
-                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed pdf-body">
                     {berbayarDetail.makna}
                   </p>
                 </div>
               </section>
 
               {/* Analisis Karakteristik & Dinamika Diri */}
-              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
+              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2 pdf-heading">
                     <ShieldCheck className="w-5 h-5 text-[#561269]" />
                     Analisis Karakteristik &amp; Dinamika Diri
                   </h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 pdf-subheading">
                     Pemetaan potensi keunggulan serta area pengembangan diri untuk berkembang optimal:
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pdf-grid-2">
                   {/* Potensi atau Kekuatan Utama */}
-                  <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
+                  <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70 pdf-sub-box">
                     <div className="flex items-center gap-2 mb-3">
                       <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                      <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+                      <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider pdf-sub-title">
                         {berbayarDetail.judulKekuatan || "Potensi atau Kekuatan Utama"}
                       </span>
                     </div>
                     <ul className="space-y-2.5 text-xs text-emerald-950">
                       {berbayarDetail.kekuatanUtama.map((point, pIdx) => (
-                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
+                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed pdf-list-item">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
                           <span>{point}</span>
                         </li>
@@ -779,16 +1001,16 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                   </div>
 
                   {/* Area yang Perlu Dikembangkan */}
-                  <div className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200/70">
+                  <div className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200/70 pdf-sub-box">
                     <div className="flex items-center gap-2 mb-3">
                       <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span className="text-xs font-bold text-rose-900 uppercase tracking-wider">
+                      <span className="text-xs font-bold text-rose-900 uppercase tracking-wider pdf-sub-title">
                         {berbayarDetail.judulBlindspots || "Area yang Perlu Dikembangkan"}
                       </span>
                     </div>
                     <ul className="space-y-2.5 text-xs text-rose-950">
                       {berbayarDetail.blindspots.map((point, pIdx) => (
-                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
+                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed pdf-list-item">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
                           <span>{point}</span>
                         </li>
@@ -799,21 +1021,21 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               </section>
 
               {/* Kondisi atau Lingkungan yang Mendukung */}
-              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2 pdf-heading">
                     <Compass className="w-5 h-5 text-[#561269]" />
                     {berbayarDetail.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung"}
                   </h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 pdf-subheading">
                     Kondisi eksternal yang paling mendukung performa optimal dan kesejahteraan emosionalmu:
                   </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-amber-50/40 border border-amber-200/70">
+                <div className="p-5 rounded-2xl bg-amber-50/40 border border-amber-200/70 pdf-sub-box">
                   <ul className="space-y-2.5 text-xs text-gray-800">
                     {berbayarDetail.lingkunganOptimal.map((ling, lIdx) => (
-                      <li key={lIdx} className="flex items-start gap-2 leading-relaxed">
+                      <li key={lIdx} className="flex items-start gap-2 leading-relaxed pdf-list-item">
                         <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                         <span>{ling}</span>
                       </li>
@@ -823,26 +1045,26 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               </section>
 
               {/* Tips & Langkah Pengembangan Diri */}
-              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2 pdf-heading">
                     <HeartHandshake className="w-5 h-5 text-[#561269]" />
                     Langkah Pengembangan Diri
                   </h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 pdf-subheading">
                     Saran praktis untuk memaksimalkan potensi dan menjaga keseimbangan energimu:
                   </p>
                 </div>
 
                 <div className="space-y-3">
                   {(berbayarDetail.saranList || tips).map((tip, index) => (
-                    <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                    <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 pdf-tip-item">
                       <div className="flex-shrink-0 mt-0.5">
                         <CheckCircle2 className="w-5 h-5 text-[#561269]" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-gray-900">{tip.title}</h4>
-                        <p className="mt-0.5 text-xs text-gray-600 leading-relaxed">{tip.desc}</p>
+                        <h4 className="text-sm font-bold text-gray-900 pdf-tip-title">{tip.title}</h4>
+                        <p className="mt-0.5 text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip.desc}</p>
                       </div>
                     </div>
                   ))}
@@ -902,7 +1124,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           <div
             id="laporan-pdf-footer"
             style={{ display: "none" }}
-            className="pt-4 border-t border-dashed border-gray-300 mt-6 bg-white"
+            className="pt-4 border-t border-dashed border-gray-300 mt-6 bg-white pdf-avoid-break"
           >
             <div className="flex justify-between items-end">
               <div className="text-[9px] text-gray-400 leading-relaxed max-w-xs">

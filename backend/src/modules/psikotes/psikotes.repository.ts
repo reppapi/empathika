@@ -251,43 +251,150 @@ export class PsikotesRepository {
       })
 
       if (data.soal_psikotes !== undefined) {
-        await tx.soalPsikotes.deleteMany({ where: { id_paket: id } })
-        if (data.soal_psikotes.length > 0) {
-          for (const [idx, s] of data.soal_psikotes.entries()) {
-            await tx.soalPsikotes.create({
-              data: {
-                id_paket: id,
-                urutan: s.urutan ?? idx + 1,
-                pertanyaan: s.pertanyaan,
-                pilihan_jawaban: {
-                  create: s.pilihan_jawaban.map((p, pIdx) => ({
-                    label: p.label || String.fromCharCode(65 + pIdx),
-                    teks_jawaban: p.teks_jawaban,
-                    bobot: p.bobot ?? 0,
-                  })),
+        const hasJawaban = await tx.jawabanPsikotes.findFirst({
+          where: { soal_psikotes: { id_paket: id } },
+        })
+
+        if (!hasJawaban) {
+          await tx.soalPsikotes.deleteMany({ where: { id_paket: id } })
+          if (data.soal_psikotes.length > 0) {
+            for (const [idx, s] of data.soal_psikotes.entries()) {
+              await tx.soalPsikotes.create({
+                data: {
+                  id_paket: id,
+                  urutan: s.urutan ?? idx + 1,
+                  pertanyaan: s.pertanyaan,
+                  pilihan_jawaban: {
+                    create: s.pilihan_jawaban.map((p, pIdx) => ({
+                      label: p.label || String.fromCharCode(65 + pIdx),
+                      teks_jawaban: p.teks_jawaban,
+                      bobot: p.bobot ?? 0,
+                    })),
+                  },
                 },
-              },
-            })
+              })
+            }
+          }
+        } else {
+          // Jika ada riwayat jawaban peserta, perbarui pertanyaan dan pilihan yang ada in-place agar FK tidak terlanggar
+          const existingSoals = await tx.soalPsikotes.findMany({
+            where: { id_paket: id },
+            include: { pilihan_jawaban: true },
+            orderBy: { urutan: 'asc' },
+          })
+
+          for (const [idx, s] of data.soal_psikotes.entries()) {
+            const existingSoal = existingSoals[idx]
+            if (existingSoal) {
+              await tx.soalPsikotes.update({
+                where: { id: existingSoal.id },
+                data: {
+                  pertanyaan: s.pertanyaan,
+                  urutan: s.urutan ?? idx + 1,
+                },
+              })
+
+              for (const [pIdx, p] of s.pilihan_jawaban.entries()) {
+                const existingPilihan = existingSoal.pilihan_jawaban[pIdx]
+                if (existingPilihan) {
+                  await tx.pilihanJawaban.update({
+                    where: { id: existingPilihan.id },
+                    data: {
+                      teks_jawaban: p.teks_jawaban,
+                      bobot: p.bobot ?? 0,
+                      label: p.label || String.fromCharCode(65 + pIdx),
+                    },
+                  })
+                } else {
+                  await tx.pilihanJawaban.create({
+                    data: {
+                      id_soal: existingSoal.id,
+                      teks_jawaban: p.teks_jawaban,
+                      bobot: p.bobot ?? 0,
+                      label: p.label || String.fromCharCode(65 + pIdx),
+                    },
+                  })
+                }
+              }
+            } else {
+              await tx.soalPsikotes.create({
+                data: {
+                  id_paket: id,
+                  urutan: s.urutan ?? idx + 1,
+                  pertanyaan: s.pertanyaan,
+                  pilihan_jawaban: {
+                    create: s.pilihan_jawaban.map((p, pIdx) => ({
+                      label: p.label || String.fromCharCode(65 + pIdx),
+                      teks_jawaban: p.teks_jawaban,
+                      bobot: p.bobot ?? 0,
+                    })),
+                  },
+                },
+              })
+            }
           }
         }
       }
 
       if (data.interpretasi_psikotes !== undefined) {
-        await tx.interpretasiPsikotes.deleteMany({ where: { id_paket: id } })
-        if (data.interpretasi_psikotes.length > 0) {
+        const hasHasil = await tx.hasilTes.findFirst({
+          where: { interpretasi: { id_paket: id } },
+        })
+
+        if (!hasHasil) {
+          await tx.interpretasiPsikotes.deleteMany({ where: { id_paket: id } })
+          if (data.interpretasi_psikotes.length > 0) {
+            for (const [iIdx, i] of data.interpretasi_psikotes.entries()) {
+              await tx.interpretasiPsikotes.create({
+                data: {
+                  id_paket: id,
+                  min_skor: i.min_skor,
+                  max_skor: i.max_skor,
+                  grade: i.grade || `Kategori ${iIdx + 1}`,
+                  judul: i.judul,
+                  deskripsi: i.deskripsi,
+                  makna: i.makna ?? null,
+                  tips: i.tips ?? null,
+                },
+              })
+            }
+          }
+        } else {
+          // Jika ada riwayat hasil tes, perbarui interpretasi in-place agar relasi FK tidak terlanggar
+          const existingInters = await tx.interpretasiPsikotes.findMany({
+            where: { id_paket: id },
+            orderBy: { min_skor: 'asc' },
+          })
+
           for (const [iIdx, i] of data.interpretasi_psikotes.entries()) {
-            await tx.interpretasiPsikotes.create({
-              data: {
-                id_paket: id,
-                min_skor: i.min_skor,
-                max_skor: i.max_skor,
-                grade: i.grade || `Kategori ${iIdx + 1}`,
-                judul: i.judul,
-                deskripsi: i.deskripsi,
-                makna: i.makna ?? null,
-                tips: i.tips ?? null,
-              },
-            })
+            const existingInter = existingInters[iIdx]
+            if (existingInter) {
+              await tx.interpretasiPsikotes.update({
+                where: { id: existingInter.id },
+                data: {
+                  min_skor: i.min_skor,
+                  max_skor: i.max_skor,
+                  grade: i.grade || `Kategori ${iIdx + 1}`,
+                  judul: i.judul,
+                  deskripsi: i.deskripsi,
+                  makna: i.makna ?? null,
+                  tips: i.tips ?? null,
+                },
+              })
+            } else {
+              await tx.interpretasiPsikotes.create({
+                data: {
+                  id_paket: id,
+                  min_skor: i.min_skor,
+                  max_skor: i.max_skor,
+                  grade: i.grade || `Kategori ${iIdx + 1}`,
+                  judul: i.judul,
+                  deskripsi: i.deskripsi,
+                  makna: i.makna ?? null,
+                  tips: i.tips ?? null,
+                },
+              })
+            }
           }
         }
       }

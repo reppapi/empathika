@@ -91,7 +91,7 @@ export type AdminPsikotesPeserta = {
     judul: string;
     deskripsi: string;
     makna: string;
-    tips: Array<{ title: string; desc: string } | string>;
+    tips: any;
     tanggal_selesai?: string;
   } | null;
 };
