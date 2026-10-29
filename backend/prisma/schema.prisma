@@ -103,7 +103,7 @@ model Account {
   id                 String    @id @default(uuid())
   nama               String
   email              String    @unique
-  password           String?   // Hash kata sandi (nullable jika akun belum aktivasi)
+  password           String?   // Hash kata sandi
   role               Role      @default(ADMIN)
   no_telepon         String?
   foto               String?
@@ -118,6 +118,12 @@ model Account {
   token_aktivasi     String?   @unique
   token_aktivasi_exp DateTime?
   id_biro            String?
+
+  // === FIELD KEAMANAN BARU ===
+  passwordChangedAt    DateTime?
+  tokenVersion         Int                   @default(1)
+  email_change_requests EmailChangeRequest[]
+
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -127,6 +133,23 @@ model Account {
 
   @@map("accounts")
 }
+
+model EmailChangeRequest {
+  id         String    @id @default(uuid())
+  accountId  String
+  newEmail   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([expiresAt])
+  @@map("email_change_requests")
+}
+
 
 model Client {
   id            String   @id @default(uuid())
