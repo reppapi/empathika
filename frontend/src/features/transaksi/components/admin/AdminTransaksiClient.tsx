@@ -205,30 +205,66 @@ function ModalRefundTransaksi({
 // ── Helper: normalize Prisma API response → display shape ──
 function normalizeTransaksi(raw: any) {
   const booking = raw.booking_konsultasi || raw.booking || {}
+  const bookingPsikotes = raw.booking_psikotes || {}
+  const bookingEvent = raw.booking_event || {}
   const client = raw.client || raw.user || raw.klien || {}
   const layanan = booking.layanan || {}
   const jadwal = booking.jadwal || booking.jadwal_slot || {}
   const psikolog = jadwal.psikolog || booking.psikolog || {}
   const psikologAccount = psikolog.account || {}
 
-  const jenisRaw = (layanan.kategori || raw.tipe_transaksi || "konseling")
-    .toLowerCase()
-    .replace(/_/g, " ")
-
-  const jenisMap: Record<string, JenisLayanan> = {
-    konseling: "konseling",
-    konsultasi: "konseling",
-    psikotes: "psikotes",
-    "pelatihan peer helper": "pelatihan peer helper",
-    event: "event",
-    asesment: "asesment",
-    asesmen: "asesment",
+  let parsedDataPembayaran: any = null
+  if (raw.data_pembayaran) {
+    try {
+      parsedDataPembayaran =
+        typeof raw.data_pembayaran === "string"
+          ? JSON.parse(raw.data_pembayaran)
+          : raw.data_pembayaran
+    } catch {
+      parsedDataPembayaran = null
+    }
   }
-  const jenisLayanan: JenisLayanan =
-    (Object.keys(jenisMap).find((k) => jenisRaw.includes(k))
+
+  // Tentukan jenis layanan
+  const rawTipe = (raw.tipe_transaksi || "").toUpperCase()
+  let jenisLayanan: JenisLayanan = "konseling"
+  if (rawTipe === "PSIKOTES" || bookingPsikotes.id || raw.booking_psikotes) {
+    jenisLayanan = "psikotes"
+  } else if (rawTipe === "EVENT" || bookingEvent.id || raw.booking_event) {
+    jenisLayanan = "event"
+  } else {
+    const jenisRaw = (layanan.kategori || raw.tipe_transaksi || "konseling")
+      .toLowerCase()
+      .replace(/_/g, " ")
+
+    const jenisMap: Record<string, JenisLayanan> = {
+      konseling: "konseling",
+      konsultasi: "konseling",
+      psikotes: "psikotes",
+      "pelatihan peer helper": "pelatihan peer helper",
+      event: "event",
+      asesment: "asesment",
+      asesmen: "asesment",
+    }
+    jenisLayanan = (Object.keys(jenisMap).find((k) => jenisRaw.includes(k))
       ? jenisMap[Object.keys(jenisMap).find((k) => jenisRaw.includes(k))!]
       : "konseling") as JenisLayanan
+  }
 
+  // Nama layanan
+  let namaLayanan = "–"
+  if (jenisLayanan === "psikotes") {
+    namaLayanan =
+      bookingPsikotes.paket?.judul ||
+      raw.nama_layanan ||
+      "Paket Psikotes Berbayar"
+  } else if (jenisLayanan === "event") {
+    namaLayanan = bookingEvent.event?.judul || raw.nama_layanan || "Event Empathika"
+  } else {
+    namaLayanan = layanan.nama || layanan.nama_layanan || raw.nama_layanan || "–"
+  }
+
+  // Status transaksi
   const statusRaw = (raw.status_pembayaran || raw.status || "").toUpperCase()
   let status: "Lunas" | "Menunggu Pembayaran" | "Gagal" | "Refunded"
   if (statusRaw === "PAID" || statusRaw === "SUCCESS" || statusRaw === "LUNAS") {
@@ -249,44 +285,79 @@ function normalizeTransaksi(raw: any) {
   const createdAt = raw.createdAt || raw.created_at ? new Date(raw.createdAt || raw.created_at) : new Date()
   const tanggalTransaksi = createdAt.toISOString().split("T")[0]
 
+  const extractTime = (val: any): string => {
+    if (!val) return ""
+    if (typeof val === "string") {
+      const isoMatch = val.match(/T(\d{2}):(\d{2})/)
+      if (isoMatch) return `${isoMatch[1]}:${isoMatch[2]}`
+      const match = val.match(/(\d{1,2}):(\d{2})/)
+      if (match) return `${match[1].padStart(2, "0")}:${match[2]}`
+    }
+    const d = new Date(val)
+    if (!isNaN(d.getTime())) {
+      const hh = String(d.getUTCHours()).padStart(2, "0")
+      const mm = String(d.getUTCMinutes()).padStart(2, "0")
+      return `${hh}:${mm}`
+    }
+    return ""
+  }
+
   let jadwalDisplay = "-"
   if (jadwal.tanggal) {
     const jd = new Date(jadwal.tanggal)
     const tglStr = jd.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
-
-    const extractTime = (val: any): string => {
-      if (!val) return ""
-      if (typeof val === "string") {
-        const isoMatch = val.match(/T(\d{2}):(\d{2})/)
-        if (isoMatch) return `${isoMatch[1]}:${isoMatch[2]}`
-        const match = val.match(/(\d{1,2}):(\d{2})/)
-        if (match) return `${match[1].padStart(2, "0")}:${match[2]}`
-      }
-      const d = new Date(val)
-      if (!isNaN(d.getTime())) {
-        const hh = String(d.getUTCHours()).padStart(2, "0")
-        const mm = String(d.getUTCMinutes()).padStart(2, "0")
-        return `${hh}:${mm}`
-      }
-      return ""
-    }
-
     const jamMulai = extractTime(jadwal.jam_mulai)
     const jamSelesai = extractTime(jadwal.jam_selesai)
     const jamStr = jamMulai && jamSelesai ? `, ${jamMulai} - ${jamSelesai} WIB` : jamMulai ? `, ${jamMulai} WIB` : ""
     jadwalDisplay = `${tglStr}${jamStr}`
+  } else if (jenisLayanan === "psikotes") {
+    if (bookingPsikotes.hasil_tes) {
+      const tglSelesai = bookingPsikotes.hasil_tes.tanggal_selesai
+        ? new Date(bookingPsikotes.hasil_tes.tanggal_selesai).toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : ""
+      jadwalDisplay = tglSelesai ? `Tes Selesai (${tglSelesai})` : "Tes Selesai"
+    } else {
+      jadwalDisplay = "Akses Mandiri (Online Fleksibel)"
+    }
+  } else if (jenisLayanan === "event" && bookingEvent.event) {
+    const ev = bookingEvent.event
+    if (ev.tanggal) {
+      const tgl = new Date(ev.tanggal).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+      const jam = extractTime(ev.jam_mulai)
+      jadwalDisplay = `${tgl}${jam ? ` • ${jam} WIB` : ""}`
+    } else {
+      jadwalDisplay = "Event Terjadwal"
+    }
   }
 
   const total = Number(raw.total || raw.jumlah || raw.total_harga || raw.nominal || 0)
   const biaya = Number(raw.biaya_admin || raw.biaya_layanan || 0)
   const subtotal = Number(raw.subtotal || (total - biaya) || 0)
 
-  const psikologName =
+  let psikologName: string | undefined =
     psikolog.nama_gelar ||
     psikologAccount.nama ||
     psikolog.nama ||
     psikolog.name ||
     undefined
+
+  if (jenisLayanan === "psikotes") {
+    if (bookingPsikotes.hasil_tes?.interpretasi?.grade) {
+      psikologName = `Interpretasi: ${bookingPsikotes.hasil_tes.interpretasi.grade}`
+    } else {
+      psikologName = "Asesmen Mandiri Online"
+    }
+  } else if (jenisLayanan === "event") {
+    psikologName = bookingEvent.event?.nama_pembicara || "Pemateri Empathika"
+  }
 
   const paidAt = raw.tanggal_bayar || raw.paid_at
   const waktuPembayaran = paidAt
@@ -302,6 +373,48 @@ function normalizeTransaksi(raw: any) {
   let cleanedOrderId = raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-"
   cleanedOrderId = cleanedOrderId.replace(/^W-EMP-EMP-/, "W-EMP-").replace(/^EMP-EMP-/, "EMP-")
 
+  // Format metode pembayaran yang user-friendly
+  let metodePembayaranFormatted =
+    raw.channel_pembayaran || raw.metode_pembayaran || raw.payment_type || "–"
+  const rawMetode = String(raw.metode_pembayaran || "").toUpperCase()
+  if (rawMetode === "TRANSFER_BANK") {
+    metodePembayaranFormatted = raw.channel_pembayaran
+      ? `${String(raw.channel_pembayaran).toUpperCase()} Virtual Account`
+      : "Transfer Bank"
+  } else if (rawMetode === "E_WALLET") {
+    metodePembayaranFormatted = raw.channel_pembayaran
+      ? String(raw.channel_pembayaran).toUpperCase()
+      : "E-Wallet"
+  } else if (rawMetode === "QRIS") {
+    metodePembayaranFormatted = "QRIS"
+  }
+
+  const clientName =
+    client.nama ||
+    bookingPsikotes.client?.nama ||
+    bookingEvent.client?.nama ||
+    parsedDataPembayaran?.nama ||
+    client.name ||
+    "–"
+
+  const clientEmail =
+    client.email ||
+    bookingPsikotes.client?.email ||
+    bookingEvent.client?.email ||
+    parsedDataPembayaran?.email ||
+    raw.email ||
+    "–"
+
+  const clientPhone =
+    client.no_telepon ||
+    bookingPsikotes.client?.no_telepon ||
+    bookingEvent.client?.no_telepon ||
+    client.no_hp ||
+    client.phone ||
+    parsedDataPembayaran?.no_telepon ||
+    parsedDataPembayaran?.phone ||
+    "–"
+
   return {
     id: raw.id,
     orderId: cleanedOrderId,
@@ -312,19 +425,18 @@ function normalizeTransaksi(raw: any) {
       hour: "2-digit",
       minute: "2-digit",
     }) + " WIB",
-    clientName: client.nama || client.name || "–",
-    clientEmail: client.email || "–",
-    clientPhone: client.no_telepon || client.no_hp || client.phone || "–",
+    clientName,
+    clientEmail,
+    clientPhone,
     jenisLayanan,
-    namaLayanan: layanan.nama || layanan.nama_layanan || "–",
+    namaLayanan,
     psikologOrFasilitator: psikologName,
     jadwal: jadwalDisplay,
     status,
     subtotal,
     biayaLayanan: biaya,
     totalBayar: total,
-    metodePembayaran:
-      raw.channel_pembayaran || raw.metode_pembayaran || raw.payment_type || "–",
+    metodePembayaran: metodePembayaranFormatted,
     waktuPembayaran,
     tanggalTransaksi,
     // raw for refund
@@ -756,11 +868,18 @@ export default function AdminTransaksiClient() {
                       <p className="text-sm font-bold text-gray-900">{activeDetailItem.namaLayanan}</p>
                       {activeDetailItem.psikologOrFasilitator && (
                         <p className="text-gray-600">
-                          Psikolog/Fasilitator:{" "}
+                          {activeDetailItem.jenisLayanan === "psikotes"
+                            ? "Kategori: "
+                            : activeDetailItem.jenisLayanan === "event"
+                            ? "Pemateri: "
+                            : "Psikolog/Fasilitator: "}
                           <span className="font-semibold text-gray-800">{activeDetailItem.psikologOrFasilitator}</span>
                         </p>
                       )}
-                      <p className="text-gray-500 mt-0.5">Jadwal: {activeDetailItem.jadwal}</p>
+                      <p className="text-gray-500 mt-0.5">
+                        {activeDetailItem.jenisLayanan === "psikotes" ? "Akses/Status: " : "Jadwal: "}
+                        {activeDetailItem.jadwal}
+                      </p>
                     </div>
                   </div>
 
