@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Mail, Lock, ArrowRight } from "lucide-react";
 import { setAuthCookie, removeAuthCookie } from "@/lib/cookie";
-import { DUMMY_ADMIN, DUMMY_BIRO } from "../data/dummyAuth";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { psikologService } from "@/services/psikolog.service";
@@ -231,33 +230,12 @@ export function LoginForm() {
           handleSuccessLogin(response.data.user, response.data.accessToken);
           return;
         }
-      } catch (_authErr) {
-        // Lanjut ke fallback di bawah jika login API gagal
+      } catch (authErr: any) {
+        const message = authErr?.response?.data?.message || "Email atau kata sandi yang Anda masukkan salah.";
+        setError(message);
+        setIsLoading(false);
+        return;
       }
-    }
-
-    // 2. Cek Akun Admin Utama Dummy
-    if (
-      trimmedInput.toLowerCase() === DUMMY_ADMIN.email.toLowerCase() &&
-      trimmedPass === DUMMY_ADMIN.password
-    ) {
-      handleSuccessLogin(
-        { id: "1", nama: "Admin Empathika", email: trimmedInput, role: "ADMIN" },
-        "dummy-admin-token"
-      );
-      return;
-    }
-
-    // 3. Cek Akun Admin Biro Dummy
-    if (
-      trimmedInput.toLowerCase() === DUMMY_BIRO.email.toLowerCase() &&
-      trimmedPass === DUMMY_BIRO.password
-    ) {
-      handleSuccessLogin(
-        { id: "3", nama: "Admin Biro Cendekia Muda", email: trimmedInput, role: "BIRO" },
-        "dummy-biro-token"
-      );
-      return;
     }
 
     // 4. Cek Akun Psikolog dari Database (Bisa dengan Email ATAU Nama Psikolog)

@@ -20,6 +20,7 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
   let pageTitle = "Riwayat Transaksi & Pembayaran"
   if (pathname === "/admin-biro") pageTitle = "Ringkasan Operasional"
   else if (pathname?.startsWith("/admin-biro/transaksi")) pageTitle = "Riwayat Transaksi & Pembayaran"
+  else if (pathname?.startsWith("/admin-biro/pengaturan-akun")) pageTitle = "Pengaturan Akun Biro"
   else if (pathname?.startsWith("/admin-biro/profile")) pageTitle = "Pengaturan Profil Biro"
 
   return (

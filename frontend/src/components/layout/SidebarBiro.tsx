@@ -9,7 +9,7 @@ export interface NavItem {
   path: string
 }
 
-// Menu khusus Admin Biro di sidebar: Ringkasan Operasional dan Transaksi (Pengaturan Profil ada di dropdown navbar)
+// Menu khusus Admin Biro di sidebar: Ringkasan Operasional dan Transaksi (Pengaturan Akun ada di dropdown navbar)
 export const biroNavItems: NavItem[] = [
   { name: "Ringkasan Operasional", path: "/admin-biro" },
   { name: "Transaksi", path: "/admin-biro/transaksi" },
