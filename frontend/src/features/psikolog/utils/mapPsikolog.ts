@@ -48,6 +48,10 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
   }
 
   if (rawSlots.length > 0) {
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
     // Mendukung format "HH:MM" string maupun ISO datetime dari Prisma
     const parseJam = (val: any): string => {
       if (!val) return '00:00';
@@ -62,16 +66,66 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
       return '00:00';
     };
 
-    const seenTimes = new Set<string>();
-    const formattedSlots: JadwalUI[] = [];
+    const parseMinutes = (jamStr: string): number => {
+      const parts = jamStr.split(':').map(Number);
+      return (parts[0] || 0) * 60 + (parts[1] || 0);
+    };
 
-    for (const slot of rawSlots) {
+    const parseDateKey = (val: any): string | null => {
+      if (!val) return null;
+      if (typeof val === 'string') {
+        const match = val.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (match) return match[1];
+      }
+      if (val instanceof Date) {
+        return `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, '0')}-${String(val.getDate()).padStart(2, '0')}`;
+      }
+      return null;
+    };
+
+    // Filter slot yang masih tersedia dan belum lewat jamnya
+    const validSlots = rawSlots.filter((slot) => {
+      // 1. Cek status slot jika tersedia
+      const statusUpper = (slot.status || '').toUpperCase();
+      if (statusUpper === 'SUDAH_DIBOOKING' || statusUpper === 'TIDAK_TERSEDIA' || statusUpper === 'CANCELLED') {
+        return false;
+      }
+
+      const slotDate = parseDateKey(slot.tanggal);
+      const jamMulai = parseJam(slot.jam_mulai);
+      const startMinutes = parseMinutes(jamMulai);
+
+      // 2. Jika ada tanggal spesifik:
+      if (slotDate) {
+        // Hari lampau -> sudah lewat
+        if (slotDate < todayKey) return false;
+        // Hari ini -> jam mulai sudah lewat dari jam sekarang
+        if (slotDate === todayKey && currentMinutes >= startMinutes) {
+          return false;
+        }
+        return true;
+      }
+
+      // 3. Jika tanpa tanggal spesifik, asumsikan hari ini dan cek jam mulai
+      if (currentMinutes >= startMinutes) {
+        return false;
+      }
+
+      return true;
+    });
+
+    const seenTimes = new Set<string>();
+    const formattedSlots: { waktu: string; tipe: 'online' | 'offline'; dateKey: string; startMinutes: number }[] = [];
+
+    for (const slot of validSlots) {
       const jamMulai = parseJam(slot.jam_mulai);
       const jamSelesai = parseJam(slot.jam_selesai);
       const labelWaktu = slot.label_waktu || `${jamMulai} - ${jamSelesai}`;
+      const slotDateKey = parseDateKey(slot.tanggal) || todayKey;
+      const uniqueKey = `${slotDateKey}_${labelWaktu}`;
 
-      if (!seenTimes.has(labelWaktu)) {
-        seenTimes.add(labelWaktu);
+      if (!seenTimes.has(uniqueKey)) {
+        seenTimes.add(uniqueKey);
 
         const metodeRaw = (slot.metode || slot.tipe_jadwal || '').toUpperCase();
         const tipe: 'online' | 'offline' = metodeRaw.includes('OFFLINE') ? 'offline' : 'online';
@@ -79,12 +133,24 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
         formattedSlots.push({
           waktu: labelWaktu,
           tipe,
+          dateKey: slotDateKey,
+          startMinutes: parseMinutes(jamMulai),
         });
       }
     }
 
-    formattedSlots.sort((a, b) => a.waktu.localeCompare(b.waktu));
-    jadwalTersedia = formattedSlots.slice(0, 3);
+    // Urutkan jadwal yang paling dekat: tanggal terdekat -> jam terdekat
+    formattedSlots.sort((a, b) => {
+      if (a.dateKey !== b.dateKey) {
+        return a.dateKey.localeCompare(b.dateKey);
+      }
+      return a.startMinutes - b.startMinutes;
+    });
+
+    jadwalTersedia = formattedSlots.slice(0, 3).map((s) => ({
+      waktu: s.waktu,
+      tipe: s.tipe,
+    }));
   } else if (item.jadwalTersedia && Array.isArray(item.jadwalTersedia)) {
     jadwalTersedia = item.jadwalTersedia;
   } else {

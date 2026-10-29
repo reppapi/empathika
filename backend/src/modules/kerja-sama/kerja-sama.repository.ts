@@ -70,17 +70,20 @@ export class KerjaSamaRepository {
 
     const page = query.page || 1
     const limit = query.limit || 50
-    const skip = (page - 1) * limit
 
-    const [items, total] = await Promise.all([
-      this.prisma.pengajuanKerjaSama.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.pengajuanKerjaSama.count({ where }),
-    ])
+    const allMatching = await this.prisma.pengajuanKerjaSama.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Saring soft-delete secara otomatis kecuali jika include_deleted bernilai true
+    const activeItems = query.include_deleted
+      ? allMatching
+      : allMatching.filter((item: any) => !item.jawaban_detail?._soft_deleted)
+
+    const total = activeItems.length
+    const skip = (page - 1) * limit
+    const items = activeItems.slice(skip, skip + limit)
 
     return {
       items,
@@ -112,22 +115,73 @@ export class KerjaSamaRepository {
     })
   }
 
-  async deletePengajuan(id: string) {
-    return this.prisma.pengajuanKerjaSama.delete({
+  /**
+   * Soft-delete pengajuan secara default untuk menjaga audit trail dan compliance.
+   * Gunakan hardDelete = true jika ingin menghapus permanen dari database.
+   */
+  async deletePengajuan(id: string, hardDelete = false) {
+    if (hardDelete) {
+      return this.prisma.pengajuanKerjaSama.delete({
+        where: { id },
+      })
+    }
+
+    const existing = await this.prisma.pengajuanKerjaSama.findUnique({ where: { id } })
+    if (!existing) {
+      throw Object.assign(new Error('Data pengajuan tidak ditemukan'), { statusCode: 404 })
+    }
+
+    const currentDetail = (existing.jawaban_detail as any) || {}
+    const updatedDetail = {
+      ...currentDetail,
+      _soft_deleted: true,
+      _deleted_at: new Date().toISOString(),
+      _previous_status: existing.status,
+    }
+
+    return this.prisma.pengajuanKerjaSama.update({
       where: { id },
+      data: {
+        jawaban_detail: updatedDetail,
+      },
+    })
+  }
+
+  /**
+   * Mengembalikan pengajuan kerja sama yang sebelumnya di-soft-delete (diarsipkan).
+   */
+  async restorePengajuan(id: string) {
+    const existing = await this.prisma.pengajuanKerjaSama.findUnique({ where: { id } })
+    if (!existing) {
+      throw Object.assign(new Error('Data pengajuan tidak ditemukan'), { statusCode: 404 })
+    }
+
+    const currentDetail = (existing.jawaban_detail as any) || {}
+    delete currentDetail._soft_deleted
+    delete currentDetail._deleted_at
+
+    return this.prisma.pengajuanKerjaSama.update({
+      where: { id },
+      data: {
+        status: currentDetail._previous_status || existing.status,
+        jawaban_detail: Object.keys(currentDetail).length > 0 ? currentDetail : undefined,
+      },
     })
   }
 
   async countPengajuanSummary() {
-    const [total, menunggu, dihubungi, disetujui, ditolak] = await Promise.all([
-      this.prisma.pengajuanKerjaSama.count(),
-      this.prisma.pengajuanKerjaSama.count({ where: { status: 'MENUNGGU' } }),
-      this.prisma.pengajuanKerjaSama.count({ where: { status: 'DIHUBUNGI' } }),
-      this.prisma.pengajuanKerjaSama.count({ where: { status: 'DISETUJUI' } }),
-      this.prisma.pengajuanKerjaSama.count({ where: { status: 'DITOLAK' } }),
-    ])
+    const all = await this.prisma.pengajuanKerjaSama.findMany()
+    const active = all.filter((item: any) => !item.jawaban_detail?._soft_deleted)
+    const diarsipkan = all.length - active.length
 
-    return { total, menunggu, dihubungi, disetujui, ditolak }
+    return {
+      total: active.length,
+      menunggu: active.filter((item) => item.status === 'MENUNGGU').length,
+      dihubungi: active.filter((item) => item.status === 'DIHUBUNGI').length,
+      disetujui: active.filter((item) => item.status === 'DISETUJUI').length,
+      ditolak: active.filter((item) => item.status === 'DITOLAK').length,
+      diarsipkan,
+    }
   }
 
   // ── 2. Program Kerja Sama ───────────────────────────────────────────────────

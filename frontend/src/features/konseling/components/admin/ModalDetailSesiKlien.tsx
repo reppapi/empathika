@@ -232,9 +232,9 @@ export default function ModalDetailSesiKlien({
               <span className="font-bold text-amber-950">
                 {session.refundDeadline
                   ? new Date(session.refundDeadline).toLocaleString("id-ID", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }) + " WIB"
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }) + " WIB"
                   : "Maksimal 24 jam sebelum sesi"}
               </span>
             </div>
@@ -247,10 +247,10 @@ export default function ModalDetailSesiKlien({
                 {session.isRefunded || session.status === "Dibatalkan (Refund)"
                   ? "Sesi ini telah direfund sebelumnya."
                   : session.status === "Selesai"
-                  ? "Sesi telah selesai."
-                  : session.isPastH1
-                  ? "Sudah melewati batas pengajuan refund (maksimal H-1)."
-                  : "Sesi belum memenuhi syarat refund."}
+                    ? "Sesi telah selesai."
+                    : session.isPastH1
+                      ? "Sudah melewati batas pengajuan refund (maksimal H-1)."
+                      : "Sesi belum memenuhi syarat refund."}
               </p>
             )}
           </div>
@@ -263,12 +263,12 @@ export default function ModalDetailSesiKlien({
                 session.status === "Selesai"
                   ? "success"
                   : session.status === "Segera Dimulai"
-                  ? "info"
-                  : session.status === "Sedang Berlangsung"
-                  ? "danger"
-                  : session.status === "Dibatalkan" || session.status === "Dibatalkan (Refund)"
-                  ? "neutral"
-                  : "warning"
+                    ? "info"
+                    : session.status === "Sedang Berlangsung"
+                      ? "danger"
+                      : session.status === "Dibatalkan" || session.status === "Dibatalkan (Refund)"
+                        ? "neutral"
+                        : "warning"
               }
               className="w-40"
             >
@@ -327,11 +327,10 @@ export default function ModalDetailSesiKlien({
               type="button"
               onClick={() => setShowInvoice(true)}
               disabled={!canShowInvoice}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${
-                canShowInvoice
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${canShowInvoice
                   ? "border border-blue-200 text-blue-700 hover:bg-blue-50 cursor-pointer"
                   : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
-              }`}
+                }`}
               title={canShowInvoice ? "Lihat dan kirim invoice via WhatsApp" : "Invoice hanya tersedia untuk transaksi yang sudah lunas"}
             >
               <Receipt className="w-3.5 h-3.5" />

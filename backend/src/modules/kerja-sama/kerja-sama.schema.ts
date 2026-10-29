@@ -27,16 +27,26 @@ export const getPengajuanQuerySchema = z.object({
   kategori: z.string().optional(),
   tipe_formulir: z.string().optional(),
   search: z.string().optional(),
+  include_deleted: z.coerce.boolean().optional().default(false),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(50),
 })
 
 export type GetPengajuanQuery = z.infer<typeof getPengajuanQuerySchema>
 
+export const deletePengajuanQuerySchema = z.object({
+  hard: z.coerce.boolean().optional().default(false),
+})
+
+export type DeletePengajuanQuery = z.infer<typeof deletePengajuanQuerySchema>
+
 // ── 2. Skema Program Kerja Sama ──────────────────────────────────────────────
 
 export const createProgramSchema = z.object({
-  slug: z.string().min(1, 'Slug wajib diisi'),
+  slug: z
+    .string()
+    .min(1, 'Slug wajib diisi')
+    .regex(/^[a-z0-9-]+$/, 'Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung (-)'),
   title: z.string().min(1, 'Judul program wajib diisi'),
   short_name: z.string().min(1, 'Nama pendek program wajib diisi'),
   deskripsi: z.string().min(1, 'Deskripsi wajib diisi'),

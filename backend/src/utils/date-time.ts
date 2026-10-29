@@ -33,3 +33,32 @@ export function formatDateToString(date: Date | string): string {
   const day = String(d.getUTCDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+
+/**
+ * Menghitung batas waktu refund sesi (H-1 = 24 jam sebelum jadwal sesi).
+ * Jam di database disimpan dalam representasi WIB, sehingga dikurangi 7 jam untuk UTC absolut.
+ */
+export function calculateRefundDeadline(
+  tanggal: Date | string,
+  jamMulai: Date | string
+): { sessionDateTime: Date; refundDeadline: Date; isPastH1: boolean } {
+  const sessionDate = typeof tanggal === 'string' ? parseDateString(tanggal) : new Date(tanggal)
+  const sessionTime = typeof jamMulai === 'string' ? timeStringToDate(jamMulai) : new Date(jamMulai)
+
+  const sessionDateTime = new Date(
+    Date.UTC(
+      sessionDate.getUTCFullYear(),
+      sessionDate.getUTCMonth(),
+      sessionDate.getUTCDate(),
+      sessionTime.getUTCHours() - 7,
+      sessionTime.getUTCMinutes(),
+      0,
+      0
+    )
+  )
+
+  const refundDeadline = new Date(sessionDateTime.getTime() - 24 * 60 * 60 * 1000)
+  const isPastH1 = Date.now() > refundDeadline.getTime()
+
+  return { sessionDateTime, refundDeadline, isPastH1 }
+}

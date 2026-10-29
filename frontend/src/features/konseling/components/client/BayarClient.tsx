@@ -229,6 +229,23 @@ export default function BayarClient() {
         ...(selectedEwallet && { ewallet: selectedEwallet }),
       })
 
+      // Hapus slot yang baru saja dibooking dari cache lokal agar tidak pernah muncul lagi
+      try {
+        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            const updated = parsed.filter(
+              (s: any) =>
+                s.id !== qSlotId &&
+                !(s.tanggal === targetDate && (s.jam_mulai === qWaktu || s.jam_mulai?.substring(0, 5) === qWaktu?.substring(0, 5)))
+            )
+            localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(updated))
+            window.dispatchEvent(new Event("storage"))
+          }
+        }
+      } catch {}
+
       // Arahkan ke halaman pending
       router.push(`/konseling/pending?${params.toString()}`)
     } catch (err: any) {
