@@ -10,21 +10,20 @@ interface PasswordStrengthMeterProps {
 
 export function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps) {
   const rules = [
-    { label: "Minimal 8 karakter", valid: password.length >= 8 },
-    { label: "Memiliki huruf besar (A-Z)", valid: /[A-Z]/.test(password) },
-    { label: "Memiliki huruf kecil (a-z)", valid: /[a-z]/.test(password) },
-    { label: "Memiliki angka (0-9)", valid: /[0-9]/.test(password) },
-    { label: "Memiliki karakter simbol (@$!%*?&#)", valid: /[^a-zA-Z0-9]/.test(password) },
+    { label: "Minimal 8 karakter", valid: password.length >= 8, required: true },
+    { label: "Mengandung huruf (a-z)", valid: /[a-zA-Z]/.test(password), required: true },
+    { label: "Mengandung angka (0-9)", valid: /[0-9]/.test(password), required: true },
+    { label: "Huruf besar & simbol (opsional)", valid: /[A-Z]/.test(password) && /[^a-zA-Z0-9]/.test(password), required: false },
   ]
 
   const passedCount = rules.filter((r) => r.valid).length
 
   const getStrengthMeta = () => {
     if (password.length === 0) return { label: "", color: "bg-gray-200", percent: 0 }
-    if (passedCount <= 2) return { label: "Sangat Lemah", color: "bg-red-500", percent: 25 }
-    if (passedCount === 3) return { label: "Cukup", color: "bg-amber-500", percent: 50 }
-    if (passedCount === 4) return { label: "Kuat", color: "bg-blue-500", percent: 75 }
-    return { label: "Sangat Kuat", color: "bg-emerald-600", percent: 100 }
+    if (passedCount <= 1) return { label: "Sangat Lemah", color: "bg-red-500", percent: 25 }
+    if (passedCount === 2) return { label: "Lemah", color: "bg-orange-500", percent: 45 }
+    if (passedCount === 3) return { label: "Cukup (Bisa Disimpan)", color: "bg-amber-500", percent: 70 }
+    return { label: "Kuat & Aman", color: "bg-emerald-600", percent: 100 }
   }
 
   const strength = getStrengthMeta()

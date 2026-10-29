@@ -180,6 +180,18 @@ export function FormGantiPassword() {
               {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          {confirmNewPassword && newPassword !== confirmNewPassword && (
+            <p className="text-xs text-red-600 mt-1 flex items-center gap-1 font-medium">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              Kata sandi tidak cocok. Pastikan penulisan sama persis.
+            </p>
+          )}
+          {confirmNewPassword && newPassword === confirmNewPassword && (
+            <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              Kata sandi konfirmasi cocok!
+            </p>
+          )}
         </div>
 
         <div className="pt-2">

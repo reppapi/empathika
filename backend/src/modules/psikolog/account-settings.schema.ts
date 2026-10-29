@@ -31,10 +31,8 @@ export const changePasswordSchema = z
       .string({ required_error: "Password baru wajib diisi" })
       .min(8, "Password minimal 8 karakter")
       .max(72, "Password maksimal 72 karakter (batas keamanan bcrypt)")
-      .regex(/[a-z]/, "Password harus mengandung minimal 1 huruf kecil")
-      .regex(/[A-Z]/, "Password harus mengandung minimal 1 huruf besar")
-      .regex(/[0-9]/, "Password harus mengandung minimal 1 angka")
-      .regex(/[^a-zA-Z0-9]/, "Password harus mengandung minimal 1 karakter simbol"),
+      .regex(/[a-zA-Z]/, "Password harus mengandung huruf")
+      .regex(/[0-9]/, "Password harus mengandung minimal 1 angka"),
     confirmNewPassword: z
       .string({ required_error: "Konfirmasi password baru wajib diisi" })
       .min(1, "Konfirmasi password baru wajib diisi"),

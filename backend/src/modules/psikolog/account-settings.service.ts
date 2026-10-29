@@ -65,8 +65,18 @@ export class AccountSettingsService {
       throw Object.assign(new Error("Akun tidak valid atau belum diaktivasi"), { statusCode: 400 })
     }
 
-    // Verifikasi password saat ini
-    const isPasswordValid = await bcrypt.compare(input.currentPassword, account.password)
+    // Verifikasi password saat ini (support bcrypt dan plaintext legacy jika ada)
+    let isPasswordValid = false
+    try {
+      isPasswordValid = await bcrypt.compare(input.currentPassword, account.password)
+    } catch {
+      isPasswordValid = false
+    }
+
+    if (!isPasswordValid && account.password === input.currentPassword) {
+      isPasswordValid = true
+    }
+
     if (!isPasswordValid) {
       // Audit log gagal
       console.warn(`[AUDIT] Gagal re-autentikasi ganti email untuk accountId=${accountId} dari IP=${context.ip}`)
@@ -256,8 +266,18 @@ export class AccountSettingsService {
       throw Object.assign(new Error("Akun tidak ditemukan atau belum aktif"), { statusCode: 400 })
     }
 
-    // 1. Verifikasi password saat ini
-    const isPasswordCorrect = await bcrypt.compare(input.currentPassword, account.password)
+    // 1. Verifikasi password saat ini (support bcrypt dan plaintext legacy jika ada)
+    let isPasswordCorrect = false
+    try {
+      isPasswordCorrect = await bcrypt.compare(input.currentPassword, account.password)
+    } catch {
+      isPasswordCorrect = false
+    }
+
+    if (!isPasswordCorrect && account.password === input.currentPassword) {
+      isPasswordCorrect = true
+    }
+
     if (!isPasswordCorrect) {
       console.warn(`[AUDIT] Gagal re-autentikasi ganti password untuk accountId=${accountId} dari IP=${context.ip}`)
       throw Object.assign(new Error("Password lama yang Anda masukkan salah"), { statusCode: 401 })
