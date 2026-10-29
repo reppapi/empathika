@@ -11,6 +11,7 @@ import staticPlugin from "./plugins/static"
 
 // Middlewares
 import { errorHandler } from "./middlewares/error-handler"
+import { getFrontendBaseUrl } from "./utils/activation"
 
 // Routes
 import authRoutes from "./modules/auth/auth.route"
@@ -43,6 +44,15 @@ app.register(staticPlugin)
 
 // Global error handler
 app.setErrorHandler(errorHandler)
+
+// Jika tautan aktivasi terbuka di host API, arahkan ke frontend
+app.get("/set-password", async (request, reply) => {
+  const token = (request.query as { token?: string })?.token
+  const target = token
+    ? `${getFrontendBaseUrl()}/set-password?token=${encodeURIComponent(token)}`
+    : `${getFrontendBaseUrl()}/set-password`
+  return reply.redirect(target)
+})
 
 // Register routes
 app.register(authRoutes, { prefix: "/auth" })

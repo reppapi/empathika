@@ -8,21 +8,13 @@ import type {
   UpdateAdminProfileInput,
   ResendActivationInput,
 } from './admin.schema'
-
-function formatRemainingTime(ms: number): string {
-  if (ms <= 0) return '0 detik'
-  const totalSeconds = Math.floor(ms / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-
-  const parts: string[] = []
-  if (days > 0) parts.push(`${days} hari`)
-  if (hours > 0) parts.push(`${hours} jam`)
-  if (minutes > 0 && days === 0) parts.push(`${minutes} menit`)
-  if (parts.length === 0) return 'kurang dari 1 menit'
-  return parts.join(' ')
-}
+import {
+  buildActivationUrl,
+  formatExpiryWib,
+  formatRemainingTime,
+  issueActivationToken,
+  withActivationAccount,
+} from '../../utils/activation'
 
 export class AdminController {
   private service: AdminService
@@ -152,8 +144,8 @@ export class AdminController {
 
       // Validasi akun sudah aktif
       if (account.aktif && account.password) {
-        return reply.code(400).send({
-          error: 'Bad Request',
+        return reply.code(409).send({
+          error: 'Conflict',
           errorCode: 'ACCOUNT_ALREADY_ACTIVE',
           message: 'Akun sudah aktif. Tidak perlu melakukan generate ulang link aktivasi.',
         })
@@ -166,28 +158,20 @@ export class AdminController {
         if (expTime > now) {
           const remainingMs = expTime - now
           const remainingStr = formatRemainingTime(remainingMs)
-          const expDateFormatted = new Date(account.token_aktivasi_exp).toLocaleString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })
+          const expDateFormatted = formatExpiryWib(account.token_aktivasi_exp)
 
           return reply.code(429).send({
             error: 'Too Many Requests',
             errorCode: 'LINK_STILL_ACTIVE',
             message: `Link aktivasi masih berlaku. Generate ulang baru bisa dilakukan setelah ${expDateFormatted}.`,
-            tokenExpiredAt: account.token_aktivasi_exp,
+            tokenExpiredAt: new Date(account.token_aktivasi_exp).toISOString(),
             remainingSeconds: Math.ceil(remainingMs / 1000),
             remainingFormatted: remainingStr,
           })
         }
       }
 
-      const crypto = await import('crypto')
-      const newToken = `act_${crypto.randomBytes(20).toString('hex')}`
-      const newExpiry = new Date(now + 3 * 24 * 60 * 60 * 1000)
+      const { token: newToken, expiresAt: newExpiry } = issueActivationToken()
 
       await this.fastify.prisma.account.update({
         where: { id: account.id },
@@ -197,23 +181,17 @@ export class AdminController {
         },
       })
 
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-      const activationUrl = `${frontendBaseUrl}/set-password?token=${newToken}`
-
       return reply.code(200).send({
         success: true,
         message: 'Tautan aktivasi baru berhasil dibuat',
         token: newToken,
         tokenExpiredAt: newExpiry.toISOString(),
-        activationUrl,
-        account: {
-          id: account.id,
-          nama: account.nama,
-          email: account.email,
-          no_telepon: account.no_telepon,
-          role: account.role,
-          aktif: account.aktif,
-        },
+        activationUrl: buildActivationUrl(newToken),
+        account: withActivationAccount({
+          ...account,
+          token_aktivasi: newToken,
+          token_aktivasi_exp: newExpiry,
+        }),
       })
     } catch (err: any) {
       return reply.code(500).send({ error: 'Internal Server Error', message: err.message })

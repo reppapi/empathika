@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
-import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
 import BiroDetailModal from "./BiroDetailModal"
 import BiroDeleteModal from "./BiroDeleteModal"
 import { getBiroWebsiteUrl } from "@/lib/utils"
@@ -23,12 +22,49 @@ import {
   AdminStatusBadge,
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
+import { biroAdminService, BiroAccountData } from "@/services/biro.service"
+import { toIsoExpiry } from "@/lib/activation"
+
+/** Map data dari BE (BiroAccountData) ke format lokal (BiroKomunitas) */
+function mapBiroAccountToKomunitas(item: BiroAccountData): BiroKomunitas {
+  const biro = item.owned_biro?.[0]
+  const isAktif = item.accountAktif || item.aktif
+  const hasToken = Boolean(item.tokenAktivasi)
+
+  let statusAktivasi: StatusAktivasiBiro = "Menunggu Aktivasi"
+  if (isAktif) {
+    statusAktivasi = "Aktif"
+  } else if (biro?.status === "INACTIVE" || biro?.status === "SUSPENDED") {
+    statusAktivasi = "Nonaktif"
+  }
+
+  return {
+    id: biro?.id || item.id,
+    nama: biro?.nama_biro || item.nama,
+    slug: biro?.slug || "",
+    logo: biro?.logoURI || undefined,
+    deskripsi: biro?.deskripsi || "",
+    warnaIdentitas: biro?.warna_tema || "#561269",
+    emailAdmin: item.email,
+    tanggalDibuat: item.createdAt?.split("T")[0] || new Date().toISOString().split("T")[0],
+    statusAktivasi,
+    telepon: biro?.no_telepon || item.no_telepon || undefined,
+    alamat: biro?.alamat || undefined,
+    websiteUrl: biro?.slug ? getBiroWebsiteUrl(biro.slug) : undefined,
+    dashboardUrl: `/admin-biro`,
+    aktivasiToken: item.tokenAktivasi || undefined,
+    tokenExpiredAt: item.tokenExpiredAt || undefined,
+    accountId: item.id,
+    accountAktif: isAktif,
+  }
+}
 
 export default function AdminBiroClient() {
   const router = useRouter()
   const [biroList, setBiroList] = useState<BiroKomunitas[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("semua")
+  const [isLoading, setIsLoading] = useState(true)
 
   // Modal States
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -42,41 +78,29 @@ export default function AdminBiroClient() {
     type: "success" | "info"
   } | null>(null)
 
-  // Inisialisasi Data dari localStorage (Client Side)
-  useEffect(() => {
+  const showNotification = (message: string, type: "success" | "info" = "success") => {
+    setNotification({ message, type })
+    setTimeout(() => setNotification(null), 3500)
+  }
+
+  // Load data dari BE
+  const fetchBiroList = useCallback(async () => {
+    setIsLoading(true)
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
-      if (saved) {
-        const parsed: BiroKomunitas[] = JSON.parse(saved)
-        const sanitized = parsed.map((item) => ({
-          ...item,
-          websiteUrl: getBiroWebsiteUrl(item.slug),
-          dashboardUrl: `/admin-biro`,
-        }))
-        setBiroList(sanitized)
-        localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(sanitized))
-      } else {
-        setBiroList(INITIAL_BIRO_LIST)
-        localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(INITIAL_BIRO_LIST))
+      const res = await biroAdminService.getList()
+      if (res?.data && Array.isArray(res.data)) {
+        setBiroList(res.data.map(mapBiroAccountToKomunitas))
       }
-    } catch {
-      setBiroList(INITIAL_BIRO_LIST)
+    } catch (err) {
+      console.warn("Gagal mengambil data biro dari server:", err)
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
-  // Simpan perubahan ke state & localStorage
-  const persistData = (newList: BiroKomunitas[], msg?: string, type: "success" | "info" = "success") => {
-    setBiroList(newList)
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(newList))
-    } catch {
-      // ignore
-    }
-    if (msg) {
-      setNotification({ message: msg, type })
-      setTimeout(() => setNotification(null), 3500)
-    }
-  }
+  useEffect(() => {
+    fetchBiroList()
+  }, [fetchBiroList])
 
   // Filter & Search
   const filteredList = useMemo(() => {
@@ -100,7 +124,7 @@ export default function AdminBiroClient() {
   }
 
   const handleOpenEdit = (biro: BiroKomunitas) => {
-    router.push(`/admin/biro/edit/${biro.id}`)
+    router.push(`/admin/biro/edit/${biro.accountId || biro.id}`)
   }
 
   const handleOpenDetail = (biro: BiroKomunitas) => {
@@ -115,34 +139,45 @@ export default function AdminBiroClient() {
 
   const handleConfirmDelete = () => {
     if (!deletingBiro) return
-    const updatedList = biroList.filter((item) => item.id !== deletingBiro.id)
-    persistData(updatedList, `Biro "${deletingBiro.nama}" telah berhasil dihapus.`)
+    // Untuk sekarang: tutup modal dan refresh list
     setIsDeleteOpen(false)
     setDeletingBiro(null)
+    showNotification(`Biro "${deletingBiro.nama}" sedang diproses.`)
+    fetchBiroList()
   }
 
-  // Simulasi Alur Aktivasi
-  const handleSimulateAktivasi = (biro: BiroKomunitas) => {
-    const today = new Date().toISOString().split("T")[0]
-    const updatedList = biroList.map((item) =>
-      item.id === biro.id
+  // Callback ketika token diperbarui dari dalam detail modal
+  const handleBiroUpdated = (updatedAccountId: string, next: {
+    tokenAktivasi?: string | null
+    tokenExpiredAt?: string | null
+    accountAktif?: boolean
+  }) => {
+    setBiroList((prev) =>
+      prev.map((b) =>
+        b.accountId === updatedAccountId
+          ? {
+              ...b,
+              aktivasiToken: next.tokenAktivasi ?? b.aktivasiToken,
+              tokenExpiredAt: toIsoExpiry(next.tokenExpiredAt) ?? b.tokenExpiredAt,
+              accountAktif: next.accountAktif ?? b.accountAktif,
+              statusAktivasi: next.accountAktif ? "Aktif" : b.statusAktivasi,
+            }
+          : b
+      )
+    )
+
+    // Update selectedDetailBiro juga agar modal sinkron
+    setSelectedDetailBiro((prev) =>
+      prev && prev.accountId === updatedAccountId
         ? {
-            ...item,
-            statusAktivasi: "Aktif" as StatusAktivasiBiro,
-            tanggalAktivasi: today,
+            ...prev,
+            aktivasiToken: next.tokenAktivasi ?? prev.aktivasiToken,
+            tokenExpiredAt: toIsoExpiry(next.tokenExpiredAt) ?? prev.tokenExpiredAt,
+            accountAktif: next.accountAktif ?? prev.accountAktif,
+            statusAktivasi: next.accountAktif ? "Aktif" : prev.statusAktivasi,
           }
-        : item
+        : prev
     )
-    const updatedItem = {
-      ...biro,
-      statusAktivasi: "Aktif" as StatusAktivasiBiro,
-      tanggalAktivasi: today,
-    }
-    persistData(
-      updatedList,
-      `Simulasi aktivasi berhasil! Tenant "${biro.nama}" sekarang aktif.`
-    )
-    setSelectedDetailBiro(updatedItem)
   }
 
   // Statistik Counter
@@ -351,12 +386,18 @@ export default function AdminBiroClient() {
         </div>
 
         {/* Tabel Data Biro */}
-        <AdminDataTable
-          columns={columns}
-          data={filteredList}
-          keyExtractor={(item) => item.id}
-          emptyMessage="Tidak ada biro atau komunitas yang sesuai dengan pencarian / filter."
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-8 h-8 border-4 border-purple-200 border-t-[#561269] rounded-full animate-spin" />
+          </div>
+        ) : (
+          <AdminDataTable
+            columns={columns}
+            data={filteredList}
+            keyExtractor={(item) => item.accountId || item.id}
+            emptyMessage="Tidak ada biro atau komunitas yang sesuai dengan pencarian / filter."
+          />
+        )}
       </AdminTableContainer>
 
       {/* Modals */}
@@ -369,7 +410,8 @@ export default function AdminBiroClient() {
         }}
         biro={selectedDetailBiro}
         onEdit={(b) => handleOpenEdit(b)}
-        onSimulateAktivasi={handleSimulateAktivasi}
+        onBiroUpdated={handleBiroUpdated}
+        onRefreshFromServer={fetchBiroList}
       />
 
       <BiroDeleteModal

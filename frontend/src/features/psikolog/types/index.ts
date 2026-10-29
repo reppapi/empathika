@@ -24,6 +24,8 @@ export interface TenagaAhli {
   foto: string | null
   keahlian: string[]
   tanggalBergabung: string
+  accountId?: string
+  accountAktif?: boolean
   tokenAktivasi?: string
   tokenExpiredAt?: string
 }

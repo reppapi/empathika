@@ -48,6 +48,10 @@ export const resendActivationSchema = z.object({
   accountId: z.string().min(1, { message: "ID Akun wajib diisi" }),
 })
 
+export const checkActivationQuerySchema = z.object({
+  token: z.string().min(1, { message: "Token aktivasi wajib disertakan" }),
+})
+
 export type ResendActivationInput = z.infer<typeof resendActivationSchema>
 
 export const googleLoginSchema = z.object({
