@@ -6,6 +6,7 @@ import type {
   PsikotesQueryInput,
   SubmitPsikotesInput,
   PesertaQueryInput,
+  CreateBookingPsikotesInput,
 } from './psikotes.schema'
 
 export class PsikotesController {
@@ -97,6 +98,26 @@ export class PsikotesController {
       message: 'Berhasil mengambil daftar peserta psikotes',
       data,
     })
+  }
+
+  createBooking = async (
+    request: FastifyRequest<{ Body: CreateBookingPsikotesInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.createBooking(request.body)
+      return reply.code(201).send({
+        success: true,
+        message: 'Berhasil mencatat transaksi dan booking paket psikotes berbayar',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || (err.code === 'P2002' ? 409 : 400)
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal memproses booking paket psikotes',
+      })
+    }
   }
 }
 

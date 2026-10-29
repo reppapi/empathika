@@ -6,6 +6,7 @@ import {
   psikotesQuerySchema,
   submitPsikotesSchema,
   pesertaQuerySchema,
+  createBookingPsikotesSchema,
 } from './psikotes.schema'
 
 export default async function psikotesRoutes(fastify: FastifyInstance) {
@@ -84,6 +85,16 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
       security: [{ bearerAuth: [] }],
     },
     handler: controller.remove,
+  })
+
+  // 5b. Publik: Booking & Pembayaran Paket Psikotes Berbayar
+  fastify.post('/booking', {
+    schema: {
+      tags: ['Psikotes'],
+      summary: 'Mencatat pembelian paket psikotes berbayar ke tabel booking_psikotes dan transaksis',
+      body: createBookingPsikotesSchema,
+    },
+    handler: controller.createBooking,
   })
 
   // 6. Publik: Submit jawaban psikotes (Gratis tanpa data diri / Berbayar dengan data diri)

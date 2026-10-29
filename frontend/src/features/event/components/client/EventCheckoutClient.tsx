@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { psikotesService } from "@/services/psikotes.service"
 
 // ── Dummy data ────────────────────────────────────────────────────────────────
 
@@ -152,17 +153,40 @@ export default function EventCheckoutClient() {
       ...(selectedBank    && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
-    if (isPsikotes) {
+    if (isPsikotes || Boolean(testIdParam)) {
       try {
         localStorage.setItem(
           "empathika_peserta_psikotes",
           JSON.stringify({
-            nama: nama.toUpperCase(),
-            no_telepon: whatsapp,
-            email,
+            nama: nama.trim(),
+            no_telepon: whatsapp.trim(),
+            whatsapp: whatsapp.trim(),
+            email: email.trim(),
           })
         )
       } catch {}
+
+      // Simpan langsung booking & transaksi psikotes ke database via backend
+      const targetIdentifier = testIdParam || judulParam || "mbti"
+      psikotesService
+        .createBooking({
+          id_paket: targetIdentifier,
+          testId: targetIdentifier,
+          metode_pembayaran: metodePembayaran,
+          channel_pembayaran: selectedBank || selectedEwallet || "QRIS",
+          status_pembayaran: "PAID",
+          nama: nama.trim(),
+          no_telepon: whatsapp.trim(),
+          email: email.trim(),
+          klien: {
+            nama: nama.trim(),
+            no_telepon: whatsapp.trim(),
+            email: email.trim(),
+          },
+        })
+        .catch((err) => {
+          console.warn("Sinkronisasi booking psikotes ke backend:", err)
+        })
     }
 
     // Arahkan ke halaman pending dulu
