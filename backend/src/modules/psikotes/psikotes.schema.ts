@@ -3,24 +3,24 @@ import { z } from 'zod'
 export const pilihanJawabanSchema = z.object({
   id: z.string().optional(),
   label: z.string().optional().default(''),
-  teks_jawaban: z.string().min(1, 'Teks jawaban wajib diisi'),
-  bobot: z.number().int().default(0),
+  teks_jawaban: z.string().optional().default(''),
+  bobot: z.number().int().optional().default(0),
 })
 
 export const soalPsikotesSchema = z.object({
   id: z.string().optional(),
   urutan: z.number().int().optional().default(1),
-  pertanyaan: z.string().min(1, 'Pertanyaan wajib diisi'),
-  pilihan_jawaban: z.array(pilihanJawabanSchema).min(2, 'Minimal 2 pilihan jawaban'),
+  pertanyaan: z.string().optional().default(''),
+  pilihan_jawaban: z.array(pilihanJawabanSchema).optional().default([]),
 })
 
 export const interpretasiPsikotesSchema = z.object({
   id: z.string().optional(),
-  min_skor: z.number().int(),
-  max_skor: z.number().int(),
+  min_skor: z.number().int().optional().default(0),
+  max_skor: z.number().int().optional().default(0),
   grade: z.string().optional().default(''),
-  judul: z.string().min(1, 'Judul interpretasi wajib diisi'),
-  deskripsi: z.string().min(1, 'Deskripsi interpretasi wajib diisi'),
+  judul: z.string().optional().default(''),
+  deskripsi: z.string().optional().default(''),
   makna: z.string().optional().nullable(),
   tips: z.any().optional().nullable(),
 })
