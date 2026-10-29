@@ -15,10 +15,21 @@ interface MailOptions {
 
 export const mailer = {
   send: async (options: MailOptions) => {
-    if (!env.SMTP_HOST) {
-      console.log('[Mailer] SMTP tidak dikonfigurasi, skip:', options.subject)
+    // Jika SMTP User/Pass belum diset (mode dev/lokal), cetak preview dan URL verifikasi ke console terminal backend
+    if (!env.SMTP_USER || !env.SMTP_PASS) {
+      console.log(`\n================== [MAILER DEV PREVIEW] ==================`)
+      console.log(`Kepada   : ${options.to}`)
+      console.log(`Subjek   : ${options.subject}`)
+      
+      // Ambil tautan verifikasi jika ada di dalam HTML
+      const linkMatch = options.html.match(/href="([^"]+)"/)
+      if (linkMatch && linkMatch[1]) {
+        console.log(`🔗 LINK VERIFIKASI: ${linkMatch[1]}`)
+      }
+      console.log(`==========================================================\n`)
       return
     }
+
     return transporter.sendMail({
       from: env.EMAIL_FROM ?? 'noreply@empathika.id',
       ...options,

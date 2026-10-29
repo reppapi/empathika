@@ -648,24 +648,27 @@ export default function ProfilePsikologClient({
             </div>
           </div>
         </div>
+      </form>
 
-        {/* 2. KOLOM AKUN LOGIN & KEAMANAN KREDENSIAL */}
-        <div className="space-y-6">
-          <div className="border-b border-gray-200 pb-2">
-            <h3 className="text-lg font-bold text-[#561269]">
-              Keamanan Akun & Kredensial Login
-            </h3>
-            <p className="text-xs text-gray-500">
-              Perubahan email dan kata sandi diproteksi dengan verifikasi keamanan ketat (OWASP ASVS).
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            <FormGantiEmail initialEmail={form.email} />
-            <FormGantiPassword />
-          </div>
+      {/* 2. KOLOM AKUN LOGIN & KEAMANAN KREDENSIAL (Berada di luar form utama profil) */}
+      <div className="space-y-6">
+        <div className="border-b border-gray-200 pb-2">
+          <h3 className="text-lg font-bold text-[#561269]">
+            Keamanan Akun & Kredensial Login
+          </h3>
+          <p className="text-xs text-gray-500">
+            Perubahan email dan kata sandi diproteksi dengan verifikasi keamanan ketat (OWASP ASVS).
+          </p>
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <FormGantiEmail initialEmail={form.email} />
+          <FormGantiPassword />
+        </div>
+      </div>
+
+      {/* Lanjutan Form Profil (Bagian Legalitas, Layanan, Foto, dsb) */}
+      <form onSubmit={handleSave} className="space-y-6">
         {/* 3. KOLOM LEGALITAS PRAKTIK */}
         <div className="rounded-3xl border border-purple-200 bg-purple-50/40 p-6 sm:p-8 space-y-4">
           <div className="border-b border-purple-100 pb-3">

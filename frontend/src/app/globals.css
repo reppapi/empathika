@@ -17,6 +17,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   -webkit-appearance: none;
 }
 
+/* Sembunyikan icon mata bawaan browser (Edge/IE) agar tidak double dengan custom eye button */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 /* Custom Scrollbar Cantik untuk Tabel Admin */
 .admin-table-scrollbar {
   scrollbar-width: thin;

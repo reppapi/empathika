@@ -19,10 +19,8 @@ export const passwordChangeFormSchema = z
     newPassword: z
       .string()
       .min(8, "Password minimal 8 karakter")
-      .regex(/[a-z]/, "Harus mengandung huruf kecil")
-      .regex(/[A-Z]/, "Harus mengandung huruf besar")
-      .regex(/[0-9]/, "Harus mengandung angka")
-      .regex(/[^a-zA-Z0-9]/, "Harus mengandung simbol unik"),
+      .regex(/[a-zA-Z]/, "Password harus mengandung huruf")
+      .regex(/[0-9]/, "Password harus mengandung minimal 1 angka"),
     confirmNewPassword: z.string().min(1, "Konfirmasi password baru wajib diisi"),
   })
   .refine((data) => data.newPassword === data.confirmNewPassword, {
