@@ -141,11 +141,22 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
    - Dibuatkan tabel mandiri `Invoice` (`id`, `nomor @unique`, `id_transaksi @unique`, `nama_client`, `no_wa_client`, `nama_psikolog`, `judul_layanan`, `tanggal_sesi`, `jenis_sesi`, `harga`, `metode_bayar`, `tanggal_bayar`, `tanggal_terbit`, `status_kirim`, `sent_at`, `sent_by_admin`, `gagal_alasan`, `createdAt`, `updatedAt`) untuk menyimpan snapshot data transaksi konseling yang telah dibayar (PAID) atau dibatalkan (REFUNDED) saat diterbitkan, sehingga invoice resmi tetap valid meskipun data master mengalami perubahan di kemudian hari.
    - Dilengkapi relasi 1-to-1 dengan `Transaksi` (`Transaksi 1 -- 0..1 Invoice`) dan tracking status pengiriman pesan WhatsApp melalui enum `StatusPengirimanInvoice` (`BELUM_DIKIRIM`, `DIKIRIM`, `GAGAL`).
 
+35. **Mekanisme Keamanan Akun OWASP & Sesi Token Versioning (`passwordChangedAt`, `tokenVersion`)**
+   - Penambahan kolom audit `passwordChangedAt DateTime?` pada tabel `Account` untuk mencatat waktu persis perubahan kata sandi terakhir.
+   - Penambahan kolom `tokenVersion Int @default(1)` pada tabel `Account`. Fitur ini mengimplementasikan standar keamanan OWASP *Session Invalidation*: setiap kali kredensial atau password diubah, nilai `tokenVersion` dinaikkan (+1), sehingga token JWT sesi lama yang beredar di browser langsung dianggap hangus dan tidak dapat digunakan lagi oleh middleware proteksi (`psikologGuard`, `adminGuard`).
+
+36. **Model Tabel `EmailChangeRequest` untuk Siklus Pergantian Email Aman**
+   - Dibuatkan tabel mandiri **`EmailChangeRequest`** (`id`, `accountId`, `newEmail`, `tokenHash @unique`, `expiresAt`, `usedAt`, `createdAt`) untuk menangani proses pergantian email akun internal (`Account`).
+   - Mencegah penggantian email langsung di profil sebelum diverifikasi. Alur menggunakan token acak terenkripsi (hash SHA-256) dengan masa kedaluwarsa 1 jam, pembatasan *single active pending request*, serta proteksi laju request (*strict rate limiting*).
+
+37. **Format Pelaksanaan Konsultasi pada Slot Jadwal (`JadwalSlot.metode`)**
+   - Penambahan kolom **`metode String @default("ONLINE")`** (`"ONLINE"` | `"OFFLINE"`) pada tabel `JadwalSlot`. Hal ini memberikan fleksibilitas bagi tenaga ahli psikolog dan admin untuk mengalokasikan jam praktik tertentu khusus daring (Online) atau luring di klinik (Offline).
+
 ---
 
 ## 2. Diagram UML Database (Mermaid Class Diagram)
 
-Berikut adalah diagram kelas UML database lengkap yang mencakup 23 tabel, atribut PK/FK, method bisnis, dan kardinalitas relasi:
+Berikut adalah diagram kelas UML database lengkap yang mencakup 24 tabel, atribut PK/FK, method bisnis, dan kardinalitas relasi:
 
 ```mermaid
 classDiagram
@@ -172,12 +183,29 @@ classDiagram
         +string token_aktivasi
         +dateTime token_aktivasi_exp
         +string id_biro_FK
+        +dateTime passwordChangedAt
+        +int tokenVersion
         +dateTime createdAt
         +dateTime updatedAt
         +login() boolean
         +logout()
         +updateProfil()
         +gantiPassword()
+        +requestGantiEmail()
+        +verifikasiGantiEmail()
+        +revokeSemuaSesi()
+    }
+
+    class Email_Change_Request {
+        +string id_PK
+        +string accountId_FK
+        +string newEmail
+        +string tokenHash
+        +dateTime expiresAt
+        +dateTime usedAt
+        +dateTime createdAt
+        +isExpired() boolean
+        +tandaiDigunakan()
     }
 
     class Client {
@@ -267,6 +295,7 @@ classDiagram
         +string id_PK
         +string id_psikolog_FK
         +string tipe_jadwal
+        +string metode
         +date tanggal
         +time jam_mulai
         +time jam_selesai
@@ -554,6 +583,7 @@ classDiagram
     %% ========================================================
     Account "1" -- "1" Psikolog : profil
     Account "1" -- "*" Biro : owner
+    Account "1" -- "*" Email_Change_Request : email_change_requests
     Biro "1" -- "*" Account : staff
     Biro "1" -- "*" Client : client
 
@@ -619,15 +649,20 @@ classDiagram
     - Mendefinisikan enum baru `enum TipeTransaksi { KONSULTASI, EVENT, PSIKOTES }` sebagai label penanda transaksi pada struk pembayaran dan pembeda relasi polimorfik tanpa perlu query join bertingkat.
 11. **Enum `StatusPengirimanInvoice`**:
     - Mendefinisikan enum resmi `enum StatusPengirimanInvoice { BELUM_DIKIRIM, DIKIRIM, GAGAL }` untuk pelacakan alur pengiriman bukti invoice WhatsApp kepada klien.
+12. **Model `Account` (Keamanan Akun OWASP)**:
+    - Menambahkan kolom `passwordChangedAt DateTime?` dan `tokenVersion Int @default(1)` untuk mencatat riwayat perubahan kata sandi serta otomatis memutus (*revoke*) seluruh sesi aktif lama saat kredensial diperbarui.
+13. **Model `JadwalSlot` (Format Sesi Online/Offline)**:
+    - Menambahkan kolom `metode String @default("ONLINE")` (`"ONLINE"` | `"OFFLINE"`) untuk menentukan apakah slot jam praktik yang dibuka ditujukan khusus untuk sesi daring atau tatap muka di klinik.
 
 ### KATEGORI 2: PERLU DITAMBAHKAN
-1. **Tabel Baru `PengajuanKerjaSama`, `ProgramKerjaSama`, `FormulirKerjaSama`, & `Invoice`**:
+1. **Tabel Baru `PengajuanKerjaSama`, `ProgramKerjaSama`, `FormulirKerjaSama`, `Invoice`, & `EmailChangeRequest`**:
    - `PengajuanKerjaSama`: `id`, `nama_instansi`, `nama_pic`, `email`, `no_telepon`, `kategori`, `tipe_formulir`, `pesan`, `jawaban_detail Json?`, `status StatusPengajuanKerjaSama @default(MENUNGGU)`, `createdAt`, `updatedAt`.
    - `ProgramKerjaSama`: `id`, `slug @unique`, `title`, `short_name`, `deskripsi`, `pelatihan_title`, `pelatihan_deskripsi`, `pelatihan_image`, `mitra_title`, `mitra_deskripsi`, `mitra_image`, `warna_tema`, `status` ("AKTIF" | "NONAKTIF"), `urutan`, `createdAt`, `updatedAt`.
    - `FormulirKerjaSama`: `id`, `slug @unique`, `title`, `kategori_default`, `deskripsi String? @db.Text`, `pertanyaan_khusus Json`, `createdAt`, `updatedAt` (master template pertanyaan dinamis per jenis formulir agar tersinkronisasi lintas perangkat).
    - `Invoice`: `id`, `nomor @unique`, `id_transaksi @unique`, `nama_client`, `no_wa_client`, `nama_psikolog`, `judul_layanan`, `tanggal_sesi`, `jenis_sesi`, `harga Decimal(12, 2)`, `metode_bayar`, `tanggal_bayar`, `tanggal_terbit`, `status_kirim StatusPengirimanInvoice @default(BELUM_DIKIRIM)`, `sent_at`, `sent_by_admin`, `gagal_alasan`, `createdAt`, `updatedAt`.
+   - `EmailChangeRequest`: `id`, `accountId`, `newEmail`, `tokenHash @unique`, `expiresAt`, `usedAt`, `createdAt` (tabel verifikasi pergantian email ber-token kriptografi aman SHA-256 dengan masa berlaku 1 jam).
 2. **Atribut Baru pada Tabel Eksisting**:
-   - `Account`: `alamat String?`, `link_maps String?`, `bio String? @db.Text` (khusus profil Admin Utama pengelola platform).
+   - `Account`: `alamat String?`, `link_maps String?`, `bio String? @db.Text` (khusus profil Admin Utama pengelola platform), `passwordChangedAt DateTime?`, `tokenVersion Int @default(1)`.
    - `Transaksi`: `kode_transaksi String? @unique`, `tipe_transaksi TipeTransaksi`, `total Decimal @db.Decimal(12, 2)`, `channel_pembayaran String?`, `refund_at DateTime?`, `refund_reason String? @db.Text`, `refund_amount Decimal? @db.Decimal(12, 2)`, `createdAt`, `updatedAt`.
    - `Event`: `createdAt`, `updatedAt`.
    - `PaketPsikotes`: `banner_url String?`, `createdAt`, `updatedAt`.
@@ -637,7 +672,7 @@ classDiagram
    - `BookingEvent`: `kode_tiket String @unique`, `status StatusBooking @default(PENDING)`, `createdAt`, `updatedAt`.
    - `Client`: `no_telepon String?` (data vital operasional admin untuk integrasi tombol *Chat WA Klien* dan *Salin Pesan WA* pada pemantauan sesi klien harian), `usia Int?`, `jenis_kelamin String?`, `createdAt`, `updatedAt`.
    - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `video_intro_url String?`, `video_thumbnail String?`, `video_duration String?`, `profil_lengkap String? @db.Text`, `createdAt`, `updatedAt`.
-   - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")` (membedakan slot konsultasi mandiri psikolog dengan slot asesmen yang dibuka & ditugaskan psikolog/asesornya secara internal oleh Admin melalui kalender `/admin/jadwal`), `createdAt`, `updatedAt`.
+   - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")`, `metode String @default("ONLINE")` ("ONLINE" | "OFFLINE"), `createdAt`, `updatedAt`.
    - `Biro`: `deskripsi String? @db.Text`, `no_telepon String?`, `website_url String?`, `status StatusBiro @default(PENDING)`, `createdAt`, `updatedAt`.
    - `InterpretasiPsikotes`: `makna String? @db.Text`, `tips Json?` (array objek: `[{title, desc}]`).
    - `HasilTes`: `detail_skor Json?`, `createdAt`.
@@ -651,7 +686,7 @@ classDiagram
 4. **Kolom `durasi_menit` pada `PaketPsikotes`**: Ditiadakan dari database, pengerjaan psikotes bersifat fleksibel tanpa batasan waktu.
 5. **Kolom `status` pada `BookingPsikotes`**: Dihapus dari tabel `BookingPsikotes`, status hasil dipusatkan pada tabel `HasilTes`.
 6. **Kolom `kategori` pada `PaketPsikotes`**: Dihapus dari tabel `PaketPsikotes`.
-7. **Kolom `lokasi_ruangan` & `metode` pada `JadwalSlot`**: Ditiadakan dari database. `lokasi_ruangan` ditiadakan karena sesi offline langsung datang ke kantor fisik Empathika, sedangkan `metode` ("ONLINE" | "OFFLINE") dipusatkan pada tabel `BookingKonsultasi` karena ditentukan oleh pilihan klien saat pemesanan.
+7. **Kolom `lokasi_ruangan` pada `JadwalSlot`**: Ditiadakan dari database karena sesi offline langsung datang ke kantor fisik Empathika tanpa pembagian ruangan dinamis. (Adapun kolom `metode` "ONLINE" | "OFFLINE" dipertahankan pada `JadwalSlot` untuk menentukan format ketersediaan slot).
 8. **Kolom `link_meet` pada `BookingKonsultasi`**: Ditiadakan dari database, karena tautan meeting Zoom / Google Meet dibuat mandiri oleh admin secara eksternal di luar aplikasi web dan dikirimkan langsung ke klien via WhatsApp.
 9. **Kolom `nama_lengkap` dan `no_hp` pada `BookingEvent`**: Dihapus dari tabel `BookingEvent` karena redundan dengan data kontak yang tersimpan terpusat di tabel `Client`.
 10. **Tabel/Model `Testimoni`**: Ditiadakan seluruhnya dari database dan relasi `Psikolog` karena ulasan psikolog tidak dikelola secara dinamis di antarmuka web platform.

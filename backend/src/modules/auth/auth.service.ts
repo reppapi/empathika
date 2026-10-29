@@ -87,6 +87,7 @@ export class AuthService {
         email: account.email,
         role: account.role,
         nama: account.nama,
+        tokenVersion: account.tokenVersion ?? 1,
       },
       { expiresIn }
     )

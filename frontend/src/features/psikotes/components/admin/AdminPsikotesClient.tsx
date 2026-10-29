@@ -10,6 +10,7 @@ import {
   CheckCircle,
   Clock,
   ChevronLeft,
+  ChevronRight,
   Save,
   Upload,
   Trash2,
@@ -51,16 +52,25 @@ import type {
   PaketDetailItem,
   Soal,
   JenisAkses,
+  Tip,
 } from "../../types/adminPsikotes";
 
 const LOCAL_STORAGE_KEY = "empathika_admin_psikotes_judul_v5";
 
 function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulPsikotesItem[] {
-  return items.map((item) => {
+  const judulMap = new Map<string, JudulPsikotesItem>();
+
+  items.forEach((item) => {
+    // Normalisasi nama judul: hapus imbuhan label seperti "(Gratis)" atau "(Berbayar)" jika ada
+    const cleanJudul = item.judul
+      .replace(/\s*\((gratis|berbayar|free|paid|paket lengkap)\)\s*$/i, "")
+      .trim();
+    const normalizedKey = cleanJudul.toLowerCase();
+
     const paketDetail: PaketDetailItem = {
       id: item.id,
       judulId: item.id,
-      namaJudul: item.judul,
+      namaJudul: cleanJudul,
       kategori: "Umum",
       deskripsi: item.deskripsi || "",
       bannerUrl: item.banner_url || undefined,
@@ -80,16 +90,45 @@ function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulPsikotes
           bobot: String(p.bobot),
         })),
       })),
-      interpretasiList: (item.interpretasi_psikotes || []).map((i) => ({
-        id: i.id,
-        min: String(i.min_skor),
-        max: String(i.max_skor),
-        judul: i.judul,
-        kategori: i.grade || "Umum",
-        deskripsi: i.deskripsi,
-        makna: i.makna || "",
-        saran: Array.isArray(i.tips) ? i.tips : [],
-      })),
+      interpretasiList: (item.interpretasi_psikotes || []).map((i) => {
+        let saran: Tip[] = [];
+        let kekuatanUtama: string[] = [];
+        let blindspots: string[] = [];
+        let lingkunganOptimal: string[] = [];
+        let judulKekuatan = "Potensi atau Kekuatan Utama";
+        let judulBlindspots = "Area yang Perlu Dikembangkan";
+        let judulLingkungan = "Kondisi atau Lingkungan yang Mendukung";
+
+        if (Array.isArray(i.tips)) {
+          saran = i.tips;
+        } else if (i.tips && typeof i.tips === "object") {
+          const t = i.tips as any;
+          saran = Array.isArray(t.saran) ? t.saran : [];
+          kekuatanUtama = Array.isArray(t.kekuatanUtama) ? t.kekuatanUtama : [];
+          blindspots = Array.isArray(t.blindspots) ? t.blindspots : [];
+          lingkunganOptimal = Array.isArray(t.lingkunganOptimal) ? t.lingkunganOptimal : [];
+          if (t.judulKekuatan) judulKekuatan = t.judulKekuatan;
+          if (t.judulBlindspots) judulBlindspots = t.judulBlindspots;
+          if (t.judulLingkungan) judulLingkungan = t.judulLingkungan;
+        }
+
+        return {
+          id: i.id,
+          min: String(i.min_skor),
+          max: String(i.max_skor),
+          judul: i.judul,
+          kategori: i.grade || "Umum",
+          deskripsi: i.deskripsi,
+          makna: i.makna || "",
+          saran,
+          kekuatanUtama,
+          blindspots,
+          lingkunganOptimal,
+          judulKekuatan,
+          judulBlindspots,
+          judulLingkungan,
+        };
+      }),
       updatedAt: new Date(item.updatedAt).toLocaleDateString("id-ID", {
         day: "numeric",
         month: "short",
@@ -98,15 +137,35 @@ function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulPsikotes
       pesertaCount: item._count?.booking_psikotes || 0,
     };
 
-    return {
-      id: item.id,
-      judul: item.judul,
-      kategori: "Umum",
-      deskripsi: item.deskripsi || "",
-      image: item.banner_url || "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80&w=100&h=100",
-      paketList: [paketDetail],
-    };
+    if (judulMap.has(normalizedKey)) {
+      const existing = judulMap.get(normalizedKey)!;
+      const existingIdx = existing.paketList.findIndex(
+        (p) => p.id === paketDetail.id || p.jenisAkses === paketDetail.jenisAkses
+      );
+      if (existingIdx >= 0) {
+        existing.paketList[existingIdx] = paketDetail;
+      } else {
+        existing.paketList.push(paketDetail);
+      }
+      if (!existing.deskripsi && paketDetail.deskripsi) {
+        existing.deskripsi = paketDetail.deskripsi;
+      }
+      if ((!existing.image || existing.image.includes("unsplash")) && paketDetail.bannerUrl) {
+        existing.image = paketDetail.bannerUrl;
+      }
+    } else {
+      judulMap.set(normalizedKey, {
+        id: item.id,
+        judul: cleanJudul,
+        kategori: "Umum",
+        deskripsi: item.deskripsi || "",
+        image: item.banner_url || "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80&w=100&h=100",
+        paketList: [paketDetail],
+      });
+    }
   });
+
+  return Array.from(judulMap.values());
 }
 
 export default function AdminPsikotesClient() {
@@ -130,8 +189,8 @@ export default function AdminPsikotesClient() {
   // Core Data: Judul Psikotes and its packages
   const [judulList, setJudulList] = useState<JudulPsikotesItem[]>(INITIAL_JUDUL_LIST);
 
-  // Core Data: Peserta Realtime dari Database
-  const [pesertaList, setPesertaList] = useState<AdminPsikotesPeserta[]>(INITIAL_PESERTA_LIST);
+  // Core Data: Peserta Realtime dari Database (Hanya Peserta Psikotes Berbayar)
+  const [pesertaList, setPesertaList] = useState<AdminPsikotesPeserta[]>([]);
   const [pesertaSummary, setPesertaSummary] = useState({
     total_peserta: 0,
     total_gratis: 0,
@@ -140,35 +199,46 @@ export default function AdminPsikotesClient() {
   });
   const [isLoadingPeserta, setIsLoadingPeserta] = useState(false);
 
+  // Validasi Paket: Peringatan pada setiap field wajib
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const clearFieldError = (fieldName: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[fieldName]) return prev;
+      const next = { ...prev };
+      delete next[fieldName];
+      return next;
+    });
+  };
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadPesertaFromBackend = async () => {
     setIsLoadingPeserta(true);
     try {
-      const res = await psikotesService.getPeserta({ jenis_akses: "ALL" });
+      const res = await psikotesService.getPeserta({ jenis_akses: "BERBAYAR" });
       if (res && res.success && res.data) {
         setPesertaSummary(res.data.summary);
-        if (Array.isArray(res.data.items) && res.data.items.length > 0) {
-          const mapped: AdminPsikotesPeserta[] = res.data.items.map((it: any) => ({
-            id: it.id,
-            nama: it.nama_peserta,
-            noHp: it.no_hp,
-            paket: it.nama_paket,
-            tanggal: new Date(it.tanggal).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }),
-            status: it.status as "Selesai" | "Berjalan",
-            skor: it.skor,
-            jenisAkses: it.jenis_akses as "Gratis" | "Berbayar",
-            usia: it.usia,
-            jenisKelamin: it.jenis_kelamin,
-            totalSkor: it.total_skor,
-            hasil: it.hasil,
-          }));
-          setPesertaList(mapped);
-        }
+        const rawItems = Array.isArray(res.data.items) ? res.data.items : [];
+        const mapped: AdminPsikotesPeserta[] = rawItems.map((it: any) => ({
+          id: it.id,
+          nama: it.nama_peserta,
+          noHp: it.no_hp,
+          paket: it.nama_paket,
+          tanggal: new Date(it.tanggal).toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          status: it.status as "Selesai" | "Berjalan",
+          skor: it.skor,
+          jenisAkses: it.jenis_akses as "Gratis" | "Berbayar",
+          usia: it.usia,
+          jenisKelamin: it.jenis_kelamin,
+          totalSkor: it.total_skor,
+          hasil: it.hasil,
+        }));
+        setPesertaList(mapped);
       }
     } catch (err) {
       console.error("Gagal membaca data peserta dari server:", err);
@@ -207,6 +277,7 @@ export default function AdminPsikotesClient() {
   const [hasConfirmedWarning, setHasConfirmedWarning] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [pendingTab, setPendingTab] = useState<"soal" | "interpretasi" | null>(null);
+  const [showDetailInstrumen, setShowDetailInstrumen] = useState(false);
 
   const DEFAULT_BENEFITS: string[] = [""];
 
@@ -263,8 +334,8 @@ export default function AdminPsikotesClient() {
   // Filtering Peserta (Khusus Peserta Berbayar)
   const filteredPeserta = pesertaList.filter((peserta) => {
     return (
-      peserta.jenisAkses === "Berbayar" ||
-      (peserta.nama !== "Tamu Anonim" && peserta.noHp && peserta.noHp !== "—")
+      peserta.jenisAkses === "Berbayar" &&
+      peserta.nama !== "Tamu Anonim"
     );
   });
 
@@ -448,21 +519,58 @@ export default function AdminPsikotesClient() {
     return getBerbayarDefaultInterpretasi(peserta.paket, "Kepribadian")[0];
   };
 
+  // Default Universal Benefits for Paid Psychological Test Package
+  const DEFAULT_BERBAYAR_BENEFITS = [
+    "Hasil analisis sesuai jenis psikotes yang dipilih",
+    "Interpretasi hasil dan karakteristik secara mendalam",
+    "Insight mengenai potensi, kelebihan, dan area pengembangan diri",
+    "Rekomendasi dan panduan pengembangan diri sesuai hasil asesmen",
+  ];
+
+  // Default Universal Benefits for Free Psychological Test Package
+  const DEFAULT_GRATIS_BENEFITS = [
+    "Akses pengerjaan asesmen secara online tanpa biaya",
+    "Hasil skor dan profil asesmen langsung keluar",
+    "Ringkasan interpretasi hasil dan makna bagi peserta",
+    "Tips dasar dan saran aksi pengembangan praktis",
+  ];
+
+  // Helper: Blank interpretation for clean/empty form
+  const createBlankInterpretasi = (kategori: string = "", isBerbayar: boolean = false): Interpretasi => ({
+    id: Date.now(),
+    min: isBerbayar ? "" : "0",
+    max: isBerbayar ? "" : "5",
+    judul: "",
+    kategori: kategori,
+    deskripsi: "",
+    makna: "",
+    kekuatanUtama: [""],
+    blindspots: [""],
+    lingkunganOptimal: [""],
+    judulKekuatan: "Potensi atau Kekuatan Utama",
+    judulBlindspots: "Area yang Perlu Dikembangkan",
+    judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
+    saran: [{ title: "", desc: "" }],
+  });
+
   // Helper: Open form to create a new psychological test title or package
   const openFormTambah = (targetJudul?: JudulPsikotesItem, preferredAkses?: JenisAkses) => {
     setFormErrors([]);
+    setFieldErrors({});
     setIsResumingDraft(false);
     setIsEditingPublished(false);
     setHasParticipants(false);
     setHasConfirmedWarning(false);
     setActiveDraftPackageId(null);
+    setShowDetailInstrumen(false);
     setActiveTab("form-paket");
     setFormTab("info");
 
     if (targetJudul) {
-      // Adding package to an existing title
+      // Adding package to an existing title (Gratis sudah ada mau nambah Berbayar, atau sebaliknya)
       const existingGratis = targetJudul.paketList.find((p) => p.jenisAkses === "Gratis");
       const existingBerbayar = targetJudul.paketList.find((p) => p.jenisAkses === "Berbayar");
+      const existingPkg = existingGratis || existingBerbayar || targetJudul.paketList[0];
 
       let defaultAkses: JenisAkses = preferredAkses || "Berbayar";
       if (!preferredAkses) {
@@ -475,47 +583,41 @@ export default function AdminPsikotesClient() {
         judulId: targetJudul.id,
         nama: targetJudul.judul,
         kategori: targetJudul.kategori,
-        deskripsi: targetJudul.deskripsi,
-        bannerUrl: targetJudul.image || "",
-        benefits: [""],
-        waktu: defaultAkses === "Gratis" ? "15" : "30",
+        deskripsi: existingPkg?.deskripsi || targetJudul.deskripsi || "",
+        bannerUrl: existingPkg?.bannerUrl || targetJudul.image || "",
+        benefits: existingPkg?.benefits && existingPkg.benefits.length > 0 ? [...existingPkg.benefits] : [""],
+        waktu: existingPkg?.waktu ? existingPkg.waktu.replace(/[^0-9]/g, "") : (defaultAkses === "Gratis" ? "15" : "30"),
         jenisAkses: defaultAkses,
         harga: defaultAkses === "Gratis" ? "" : "Rp 50.000",
         numericHarga: defaultAkses === "Gratis" ? 0 : 50000,
         status: "Aktif",
-        jumlahSoal: 0,
+        jumlahSoal: existingPkg?.soalList?.length || 0,
         modeJudul: "ada",
       });
 
-      // Default blank questions & interpretations for separate package
-      const newSoalId = Date.now();
-      setSoalList([]);
-      setActiveSoalId(newSoalId);
-      setCurrentSoal({
-        id: newSoalId,
-        tipe: "Pilihan Ganda",
-        teks: "",
-        pilihan: [
-          { text: "", bobot: "1" },
-          { text: "", bobot: "0" },
-        ],
-      });
-      setInterpretasiList(
-        defaultAkses === "Berbayar"
-          ? getBerbayarDefaultInterpretasi(targetJudul.judul, targetJudul.kategori)
-          : [
-            {
-              id: Date.now(),
-              min: "0",
-              max: "5",
-              judul: "",
-              kategori: targetJudul.kategori,
-              deskripsi: "",
-              makna: "",
-              saran: [{ title: "", desc: "" }],
-            },
-          ]
-      );
+      // Wariskan bank soal dari paket yang sudah ada jika tersedia
+      const sourceSoals = existingPkg?.soalList && existingPkg.soalList.length > 0 ? existingPkg.soalList : [];
+      setSoalList([...sourceSoals]);
+      if (sourceSoals.length > 0) {
+        setActiveSoalId(sourceSoals[0].id);
+        setCurrentSoal(sourceSoals[0]);
+      } else {
+        const newSoalId = Date.now();
+        setActiveSoalId(newSoalId);
+        setCurrentSoal({
+          id: newSoalId,
+          tipe: "Pilihan Ganda",
+          teks: "",
+          pilihan: [
+            { text: "", bobot: "1" },
+            { text: "", bobot: "0" },
+          ],
+        });
+      }
+
+      setInterpretasiList([
+        createBlankInterpretasi(targetJudul.kategori, defaultAkses === "Berbayar"),
+      ]);
     } else {
       // Brand new test title
       const newSoalId = Date.now();
@@ -526,7 +628,7 @@ export default function AdminPsikotesClient() {
         kategori: "Kepribadian",
         deskripsi: "",
         bannerUrl: "",
-        benefits: [""],
+        benefits: [""], // Default 1 kotak input
         waktu: "15",
         jenisAkses: "Gratis",
         harga: "",
@@ -555,6 +657,12 @@ export default function AdminPsikotesClient() {
           kategori: "Kepribadian",
           deskripsi: "",
           makna: "",
+          kekuatanUtama: [""],
+          blindspots: [""],
+          lingkunganOptimal: [""],
+          judulKekuatan: "Potensi atau Kekuatan Utama",
+          judulBlindspots: "Area yang Perlu Dikembangkan",
+          judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
           saran: [{ title: "", desc: "" }],
         },
       ]);
@@ -569,6 +677,7 @@ export default function AdminPsikotesClient() {
     setHasParticipants(false);
     setHasConfirmedWarning(false);
     setActiveDraftPackageId(draftPackage.id);
+    setShowDetailInstrumen(false);
     setActiveTab("form-paket");
     setFormTab("info");
 
@@ -610,7 +719,15 @@ export default function AdminPsikotesClient() {
     }
 
     if (draftPackage.interpretasiList && draftPackage.interpretasiList.length > 0) {
-      setInterpretasiList(draftPackage.interpretasiList);
+      setInterpretasiList(
+        draftPackage.interpretasiList.map((i) => ({
+          ...i,
+          kekuatanUtama: i.kekuatanUtama && i.kekuatanUtama.length > 0 ? i.kekuatanUtama : [""],
+          blindspots: i.blindspots && i.blindspots.length > 0 ? i.blindspots : [""],
+          lingkunganOptimal: i.lingkunganOptimal && i.lingkunganOptimal.length > 0 ? i.lingkunganOptimal : [""],
+          saran: i.saran && i.saran.length > 0 ? i.saran : [{ title: "", desc: "" }],
+        }))
+      );
     } else {
       setInterpretasiList([
         {
@@ -621,6 +738,12 @@ export default function AdminPsikotesClient() {
           kategori: targetJudul.kategori,
           deskripsi: "",
           makna: "",
+          kekuatanUtama: [""],
+          blindspots: [""],
+          lingkunganOptimal: [""],
+          judulKekuatan: "Potensi atau Kekuatan Utama",
+          judulBlindspots: "Area yang Perlu Dikembangkan",
+          judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
           saran: [{ title: "", desc: "" }],
         },
       ]);
@@ -638,6 +761,7 @@ export default function AdminPsikotesClient() {
     setIsResumingDraft(false);
     setIsEditingPublished(targetPaket.status === "Aktif");
     setActiveDraftPackageId(targetPaket.id);
+    setShowDetailInstrumen(false);
 
     // Cek apakah sudah ada peserta yang mengerjakan paket ini
     const participantsExist =
@@ -694,24 +818,19 @@ export default function AdminPsikotesClient() {
     }
 
     if (targetPaket.interpretasiList && targetPaket.interpretasiList.length > 0) {
-      setInterpretasiList(targetPaket.interpretasiList);
-    } else {
       setInterpretasiList(
-        targetPaket.jenisAkses === "Berbayar"
-          ? getBerbayarDefaultInterpretasi(targetJudul.judul, targetJudul.kategori)
-          : [
-              {
-                id: Date.now(),
-                min: "0",
-                max: "5",
-                judul: "",
-                kategori: targetJudul.kategori,
-                deskripsi: "",
-                makna: "",
-                saran: [{ title: "", desc: "" }],
-              },
-            ]
+        targetPaket.interpretasiList.map((i) => ({
+          ...i,
+          kekuatanUtama: i.kekuatanUtama && i.kekuatanUtama.length > 0 ? i.kekuatanUtama : [""],
+          blindspots: i.blindspots && i.blindspots.length > 0 ? i.blindspots : [""],
+          lingkunganOptimal: i.lingkunganOptimal && i.lingkunganOptimal.length > 0 ? i.lingkunganOptimal : [""],
+          saran: i.saran && i.saran.length > 0 ? i.saran : [{ title: "", desc: "" }],
+        }))
       );
+    } else {
+      setInterpretasiList([
+        createBlankInterpretasi(targetJudul.kategori, targetPaket.jenisAkses === "Berbayar"),
+      ]);
     }
 
     setNotification({
@@ -720,8 +839,69 @@ export default function AdminPsikotesClient() {
     });
   };
 
+  // Helper: Validasi Step 1 (Informasi Paket)
+  const validateStepInfo = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (paketData.modeJudul === "baru") {
+      if (!paketData.nama.trim()) {
+        errors["nama"] = "Nama/Judul psikotes wajib diisi.";
+      }
+      if (!paketData.deskripsi.trim()) {
+        errors["deskripsi"] = "Deskripsi paket psikotes wajib diisi.";
+      }
+    } else {
+      if (!paketData.judulId) {
+        errors["judulId"] = "Pilih instrumen psikotes yang ingin ditambahkan paketnya.";
+      }
+      if (showDetailInstrumen && !paketData.deskripsi.trim()) {
+        errors["deskripsi"] = "Deskripsi paket psikotes wajib diisi.";
+      }
+    }
+
+    if (paketData.jenisAkses === "Berbayar") {
+      if (!paketData.numericHarga || paketData.numericHarga <= 0) {
+        errors["harga"] = "Harga nominal paket berbayar wajib diisi (minimal Rp 1).";
+      }
+    }
+
+    setFieldErrors((prev) => ({ ...prev, ...errors }));
+
+    if (Object.keys(errors).length > 0) {
+      setNotification({
+        type: "error",
+        message: "Harap lengkapi semua field wajib bertanda bintang (*) pada Informasi Paket.",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // Helper: Validasi Step 2 (Soal)
+  const validateStepSoal = (): boolean => {
+    if (soalList.length === 0) {
+      setFieldErrors((prev) => ({ ...prev, soalList: "Minimal harus memiliki 1 butir soal yang telah disimpan." }));
+      setNotification({
+        type: "error",
+        message: "Minimal harus memiliki 1 butir soal yang telah disimpan sebelum melanjutkan.",
+      });
+      return false;
+    }
+    return true;
+  };
+
   // Helper: Intercept Tab Switching to validate warning for packages with participants
   const handleTabSwitch = (target: "info" | "soal" | "preview" | "interpretasi") => {
+    // Validasi saat berpindah maju dari Step 1 (info)
+    if (formTab === "info" && target !== "info") {
+      if (!validateStepInfo()) return;
+    }
+
+    // Validasi saat berpindah maju dari Step 2 (soal)
+    if (formTab === "soal" && (target === "preview" || target === "interpretasi")) {
+      if (!validateStepSoal()) return;
+    }
+
     if (
       isEditingPublished &&
       hasParticipants &&
@@ -798,23 +978,46 @@ export default function AdminPsikotesClient() {
   };
 
   const removeBenefit = (idx: number) => {
-    setPaketData((prev) => ({
-      ...prev,
-      benefits: (prev.benefits || []).filter((_, i) => i !== idx),
-    }));
+    setPaketData((prev) => {
+      const filtered = (prev.benefits || []).filter((_, i) => i !== idx);
+      return {
+        ...prev,
+        benefits: filtered.length > 0 ? filtered : [""],
+      };
+    });
   };
 
   // Soal Management
   const handleSimpanSoal = () => {
+    const errs: Record<string, string> = {};
     if (!currentSoal.teks.trim()) {
-      alert("Teks pertanyaan tidak boleh kosong.");
+      errs["soal_teks"] = "Teks pertanyaan psikotes tidak boleh kosong.";
+    }
+    currentSoal.pilihan.forEach((p, idx) => {
+      if (!p.text.trim()) {
+        errs[`soal_pilihan_${idx}`] = `Pilihan ${idx + 1} tidak boleh kosong.`;
+      }
+    });
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...errs }));
+      setNotification({
+        type: "error",
+        message: "Harap lengkapi teks pertanyaan dan semua pilihan jawaban.",
+      });
       return;
     }
-    const emptyPilihan = currentSoal.pilihan.find((p) => p.text.trim() === "");
-    if (emptyPilihan) {
-      alert("Harap lengkapi teks semua pilihan jawaban.");
-      return;
-    }
+
+    // Bersihkan error soal
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next["soal_teks"];
+      delete next["soalList"];
+      Object.keys(next).forEach((k) => {
+        if (k.startsWith("soal_pilihan_")) delete next[k];
+      });
+      return next;
+    });
 
     setSoalList((prev) => {
       const idx = prev.findIndex((s) => s.id === currentSoal.id);
@@ -894,34 +1097,14 @@ export default function AdminPsikotesClient() {
 
   // Interpretasi Management
   const addInterpretasi = () => {
-    if (paketData.jenisAkses === "Berbayar") {
-      const def = getBerbayarDefaultInterpretasi(paketData.nama, paketData.kategori)[0];
-      setInterpretasiList((prev) => [
-        ...prev,
-        {
-          ...def,
-          id: Date.now(),
-          judul: "",
-        },
-      ]);
-    } else {
-      setInterpretasiList((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          min: "",
-          max: "",
-          judul: "",
-          kategori: paketData.kategori,
-          deskripsi: "",
-          makna: "",
-          saran: [{ title: "", desc: "" }],
-        },
-      ]);
-    }
+    setInterpretasiList((prev) => [
+      ...prev,
+      createBlankInterpretasi(paketData.kategori, paketData.jenisAkses === "Berbayar"),
+    ]);
   };
 
   const updateInterpretasi = (id: string | number, key: keyof Interpretasi, val: string) => {
+    clearFieldError(`interpretasi_${id}_${key}`);
     setInterpretasiList((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: val } : item)));
   };
 
@@ -929,7 +1112,7 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
-          const list = [...(item.blindspots || [])];
+          const list = [...(item.blindspots && item.blindspots.length > 0 ? item.blindspots : [""])];
           list[idx] = val;
           return { ...item, blindspots: list };
         }
@@ -942,7 +1125,7 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
-          return { ...item, blindspots: [...(item.blindspots || []), ""] };
+          return { ...item, blindspots: [...(item.blindspots && item.blindspots.length > 0 ? item.blindspots : [""]), ""] };
         }
         return item;
       })
@@ -953,7 +1136,8 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId && item.blindspots) {
-          return { ...item, blindspots: item.blindspots.filter((_, i) => i !== idx) };
+          const filtered = item.blindspots.filter((_, i) => i !== idx);
+          return { ...item, blindspots: filtered.length > 0 ? filtered : [""] };
         }
         return item;
       })
@@ -964,7 +1148,7 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
-          const list = [...(item.kekuatanUtama || [])];
+          const list = [...(item.kekuatanUtama && item.kekuatanUtama.length > 0 ? item.kekuatanUtama : [""])];
           list[idx] = val;
           return { ...item, kekuatanUtama: list };
         }
@@ -977,7 +1161,7 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
-          return { ...item, kekuatanUtama: [...(item.kekuatanUtama || []), ""] };
+          return { ...item, kekuatanUtama: [...(item.kekuatanUtama && item.kekuatanUtama.length > 0 ? item.kekuatanUtama : [""]), ""] };
         }
         return item;
       })
@@ -988,7 +1172,8 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId && item.kekuatanUtama) {
-          return { ...item, kekuatanUtama: item.kekuatanUtama.filter((_, i) => i !== idx) };
+          const filtered = item.kekuatanUtama.filter((_, i) => i !== idx);
+          return { ...item, kekuatanUtama: filtered.length > 0 ? filtered : [""] };
         }
         return item;
       })
@@ -999,7 +1184,7 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
-          const list = [...(item.lingkunganOptimal || [])];
+          const list = [...(item.lingkunganOptimal && item.lingkunganOptimal.length > 0 ? item.lingkunganOptimal : [""])];
           list[idx] = val;
           return { ...item, lingkunganOptimal: list };
         }
@@ -1012,7 +1197,7 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId) {
-          return { ...item, lingkunganOptimal: [...(item.lingkunganOptimal || []), ""] };
+          return { ...item, lingkunganOptimal: [...(item.lingkunganOptimal && item.lingkunganOptimal.length > 0 ? item.lingkunganOptimal : [""]), ""] };
         }
         return item;
       })
@@ -1023,7 +1208,8 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interId && item.lingkunganOptimal) {
-          return { ...item, lingkunganOptimal: item.lingkunganOptimal.filter((_, i) => i !== idx) };
+          const filtered = item.lingkunganOptimal.filter((_, i) => i !== idx);
+          return { ...item, lingkunganOptimal: filtered.length > 0 ? filtered : [""] };
         }
         return item;
       })
@@ -1034,7 +1220,7 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interpretasiId) {
-          return { ...item, saran: [...item.saran, { title: "", desc: "" }] };
+          return { ...item, saran: [...(item.saran && item.saran.length > 0 ? item.saran : [{ title: "", desc: "" }]), { title: "", desc: "" }] };
         }
         return item;
       })
@@ -1058,7 +1244,8 @@ export default function AdminPsikotesClient() {
     setInterpretasiList((prev) =>
       prev.map((item) => {
         if (item.id === interpretasiId) {
-          return { ...item, saran: item.saran.filter((_, i) => i !== saranIndex) };
+          const filtered = item.saran.filter((_, i) => i !== saranIndex);
+          return { ...item, saran: filtered.length > 0 ? filtered : [{ title: "", desc: "" }] };
         }
         return item;
       })
@@ -1106,7 +1293,15 @@ export default function AdminPsikotesClient() {
           judul: i.judul || `Interpretasi ${iIdx + 1}`,
           deskripsi: i.deskripsi || "Penjelasan interpretasi",
           makna: i.makna || "",
-          tips: i.saran || [],
+          tips: {
+            saran: i.saran || [],
+            kekuatanUtama: i.kekuatanUtama || [],
+            blindspots: i.blindspots || [],
+            lingkunganOptimal: i.lingkunganOptimal || [],
+            judulKekuatan: i.judulKekuatan || "Potensi atau Kekuatan Utama",
+            judulBlindspots: i.judulBlindspots || "Area yang Perlu Dikembangkan",
+            judulLingkungan: i.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung",
+          } as any,
         })),
       };
 
@@ -1151,39 +1346,88 @@ export default function AdminPsikotesClient() {
   // Publish Package (Requires all mandatory fields)
   const handlePublikasikan = async () => {
     const errors: string[] = [];
+    const newFieldErrors: Record<string, string> = {};
 
-    if (!paketData.nama.trim()) {
-      errors.push("Judul psikotes wajib diisi.");
-    }
-    if (!paketData.deskripsi.trim()) {
-      errors.push("Deskripsi paket wajib diisi.");
+    // 1. Validasi Info Paket
+    if (paketData.modeJudul === "baru") {
+      if (!paketData.nama.trim()) {
+        errors.push("Judul psikotes wajib diisi.");
+        newFieldErrors["nama"] = "Nama/Judul psikotes wajib diisi.";
+      }
+      if (!paketData.deskripsi.trim()) {
+        errors.push("Deskripsi paket wajib diisi.");
+        newFieldErrors["deskripsi"] = "Deskripsi paket psikotes wajib diisi.";
+      }
+    } else {
+      if (!paketData.judulId) {
+        errors.push("Pilih instrumen psikotes yang ingin ditambahkan paketnya.");
+        newFieldErrors["judulId"] = "Pilih instrumen psikotes yang ingin ditambahkan paketnya.";
+      }
+      if (showDetailInstrumen && !paketData.deskripsi.trim()) {
+        errors.push("Deskripsi paket wajib diisi.");
+        newFieldErrors["deskripsi"] = "Deskripsi paket psikotes wajib diisi.";
+      }
     }
 
+    if (paketData.jenisAkses === "Berbayar") {
+      if (!paketData.numericHarga || paketData.numericHarga <= 0) {
+        errors.push("Harga paket berbayar wajib diisi (minimal Rp 1).");
+        newFieldErrors["harga"] = "Harga nominal paket berbayar wajib diisi (minimal Rp 1).";
+      }
+    }
+
+    // 2. Validasi Soal
     if (soalList.length === 0) {
       errors.push("Minimal harus memiliki 1 butir soal yang telah disimpan.");
+      newFieldErrors["soalList"] = "Minimal harus memiliki 1 butir soal yang telah disimpan.";
     } else {
       const incompleteSoal = soalList.some(
         (s) => !s.teks.trim() || s.pilihan.length < 2 || s.pilihan.some((p) => !p.text.trim())
       );
       if (incompleteSoal) {
         errors.push("Terdapat butir soal yang belum lengkap (teks pertanyaan atau pilihan jawaban masih kosong).");
+        newFieldErrors["soalList"] = "Terdapat butir soal yang belum lengkap.";
       }
     }
 
+    // 3. Validasi Interpretasi
     if (interpretasiList.length === 0) {
       errors.push("Minimal harus memiliki 1 kategori interpretasi hasil.");
+      newFieldErrors["interpretasiList"] = "Minimal harus memiliki 1 kategori interpretasi hasil.";
     } else {
-      const incompleteInter = interpretasiList.some(
-        (i) => !i.judul.trim() || !i.deskripsi.trim()
-      );
-      if (incompleteInter) {
-        errors.push("Konfigurasi interpretasi hasil belum lengkap (judul hasil atau deskripsi wajib diisi).");
-      }
+      interpretasiList.forEach((i, idx) => {
+        if (!i.judul.trim()) {
+          errors.push(`Judul hasil asesmen pada interpretasi #${idx + 1} wajib diisi.`);
+          newFieldErrors[`interpretasi_${i.id}_judul`] = "Judul hasil asesmen wajib diisi.";
+        }
+        if (!i.deskripsi.trim()) {
+          errors.push(`Interpretasi hasil pada interpretasi #${idx + 1} wajib diisi.`);
+          newFieldErrors[`interpretasi_${i.id}_deskripsi`] = "Interpretasi hasil wajib diisi.";
+        }
+        if (!i.makna.trim()) {
+          errors.push(`Makna hasil pada interpretasi #${idx + 1} wajib diisi.`);
+          newFieldErrors[`interpretasi_${i.id}_makna`] = "Makna hasil wajib diisi.";
+        }
+      });
     }
+
+    setFieldErrors(newFieldErrors);
 
     if (errors.length > 0) {
       setFormErrors(errors);
+      // Pindahkan formTab ke step pertama yang bermasalah
+      if (newFieldErrors["nama"] || newFieldErrors["deskripsi"] || newFieldErrors["judulId"] || newFieldErrors["harga"]) {
+        setFormTab("info");
+      } else if (newFieldErrors["soalList"] || soalList.length === 0) {
+        setFormTab("soal");
+      } else {
+        setFormTab("interpretasi");
+      }
       handleSaveDraft(false); // Automatically keep draft safe without redirecting
+      setNotification({
+        type: "error",
+        message: "Paket belum lengkap. Periksa tanda peringatan merah pada setiap field wajib.",
+      });
       return;
     }
 
@@ -1217,7 +1461,15 @@ export default function AdminPsikotesClient() {
           judul: i.judul,
           deskripsi: i.deskripsi,
           makna: i.makna || "",
-          tips: i.saran || [],
+          tips: {
+            saran: i.saran || [],
+            kekuatanUtama: i.kekuatanUtama || [],
+            blindspots: i.blindspots || [],
+            lingkunganOptimal: i.lingkunganOptimal || [],
+            judulKekuatan: i.judulKekuatan || "Potensi atau Kekuatan Utama",
+            judulBlindspots: i.judulBlindspots || "Area yang Perlu Dikembangkan",
+            judulLingkungan: i.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung",
+          } as any,
         })),
       };
 
@@ -1248,20 +1500,30 @@ export default function AdminPsikotesClient() {
     }
   };
 
-  const handleDeleteJudul = async (id: string | number) => {
-    if (confirm("Apakah Anda yakin ingin menghapus judul psikotes ini beserta seluruh paket di dalamnya dari database?")) {
+  const handleDeleteJudul = async (target: JudulPsikotesItem | string | number) => {
+    const item = typeof target === "object" ? target : judulList.find((j) => j.id === target);
+    const title = item ? item.judul : "judul psikotes ini";
+
+    if (confirm(`Apakah Anda yakin ingin menghapus judul psikotes "${title}" beserta seluruh paket di dalamnya dari database?`)) {
       try {
-        if (typeof id === "string" && id.length > 10) {
-          await psikotesService.delete(id);
+        if (item) {
+          for (const p of item.paketList) {
+            if (typeof p.id === "string" && p.id.length > 10) {
+              await psikotesService.delete(p.id);
+            }
+          }
+        } else if (typeof target === "string" && target.length > 10) {
+          await psikotesService.delete(target);
         }
         await loadDataFromBackend();
-        setJudulList((prev) => prev.filter((j) => j.id !== id));
-        if (selectedJudul && selectedJudul.id === id) {
+        const targetId = item ? item.id : target;
+        setJudulList((prev) => prev.filter((j) => j.id !== targetId));
+        if (selectedJudul && selectedJudul.id === targetId) {
           setSelectedJudul(null);
         }
         setNotification({
           type: "info",
-          message: "Judul psikotes berhasil dihapus dari database.",
+          message: `Judul psikotes "${title}" berhasil dihapus dari database.`,
         });
       } catch (err: any) {
         console.error("Gagal menghapus:", err);
@@ -1275,68 +1537,108 @@ export default function AdminPsikotesClient() {
 
   const getPesertaReportDetail = (peserta: AdminPsikotesPeserta) => {
     const paketLower = (peserta.paket || "").toLowerCase();
+
+    // Check if there's custom interpretation saved in judulList
+    let interFound: Interpretasi | undefined;
+    for (const j of judulList) {
+      for (const p of j.paketList) {
+        if (
+          p.namaJudul.toLowerCase() === paketLower ||
+          j.judul.toLowerCase() === paketLower ||
+          paketLower.includes(j.judul.toLowerCase())
+        ) {
+          const matchInter = p.interpretasiList.find(
+            (i) =>
+              (peserta.skor && i.judul && i.judul.toLowerCase().includes(peserta.skor.toLowerCase())) ||
+              (peserta.skor && i.judul && peserta.skor.toLowerCase().includes(i.judul.toLowerCase()))
+          );
+          if (matchInter) {
+            interFound = matchInter;
+            break;
+          } else if (p.interpretasiList.length > 0) {
+            interFound = p.interpretasiList[0];
+          }
+        }
+      }
+      if (interFound) break;
+    }
     
-    let deskripsi = peserta.hasil?.deskripsi;
-    let makna = peserta.hasil?.makna;
-    let tips: Array<{ title: string; desc: string }> = (Array.isArray(peserta.hasil?.tips) && peserta.hasil.tips.length > 0)
-      ? peserta.hasil.tips.map((t: any) => typeof t === "string" ? { title: "Rekomendasi", desc: t } : t)
-      : [];
+    let deskripsi = interFound?.deskripsi || peserta.hasil?.deskripsi;
+    let makna = interFound?.makna || peserta.hasil?.makna;
+    let tips: Array<{ title: string; desc: string }> =
+      interFound?.saran && interFound.saran.length > 0
+        ? interFound.saran
+        : (Array.isArray(peserta.hasil?.tips) && peserta.hasil.tips.length > 0)
+          ? peserta.hasil.tips.map((t: any) => typeof t === "string" ? { title: "Rekomendasi", desc: t } : t)
+          : [];
 
-    let kekuatanUtama = [
-      "Komunikasi persuasif yang berakar pada empati tulus dan pemahaman interpersonal.",
-      "Kemampuan membangun keselarasan dan kohesi tim kerja dalam mencapai target bersama.",
-      "Ketajaman dalam merumuskan solusi strategis yang tetap berpusat pada kesejahteraan manusia."
-    ];
-    let blindspots = [
-      "Cenderung mengabaikan kebutuhan diri sendiri demi mendahulukan kepentingan atau perasaan orang lain.",
-      "Rentan mengalami kelelahan emosional (burnout) akibat terlalu menyerap beban masalah lingkungan sekitar.",
-      "Sulit menolak permintaan tambahan atau menetapkan batasan beban kerja pribadi yang tegas."
-    ];
-    let lingkunganOptimal = [
-      "Industri edukasi, psikologi, human resource, konsultasi, dan pengembangan komunitas.",
-      "Posisi strategis dengan ruang kolaborasi tim yang fleksibel, hangat, dan suportif.",
-      "Budaya organisasi yang menghargai inovasi sosial, empati, dan pengakuan personal yang transparan."
-    ];
+    let kekuatanUtama = interFound?.kekuatanUtama && interFound.kekuatanUtama.length > 0
+      ? interFound.kekuatanUtama
+      : [
+          "Komunikasi persuasif yang berakar pada empati tulus dan pemahaman interpersonal.",
+          "Kemampuan membangun keselarasan dan kohesi tim kerja dalam mencapai target bersama.",
+          "Ketajaman dalam merumuskan solusi strategis yang tetap berpusat pada kesejahteraan manusia."
+        ];
+    let blindspots = interFound?.blindspots && interFound.blindspots.length > 0
+      ? interFound.blindspots
+      : [
+          "Cenderung mengabaikan kebutuhan diri sendiri demi mendahulukan kepentingan atau perasaan orang lain.",
+          "Rentan mengalami kelelahan emosional (burnout) akibat terlalu menyerap beban masalah lingkungan sekitar.",
+          "Sulit menolak permintaan tambahan atau menetapkan batasan beban kerja pribadi yang tegas."
+        ];
+    let lingkunganOptimal = interFound?.lingkunganOptimal && interFound.lingkunganOptimal.length > 0
+      ? interFound.lingkunganOptimal
+      : [
+          "Industri edukasi, psikologi, human resource, konsultasi, dan pengembangan komunitas.",
+          "Posisi strategis dengan ruang kolaborasi tim yang fleksibel, hangat, dan suportif.",
+          "Budaya organisasi yang menghargai inovasi sosial, empati, dan pengakuan personal yang transparan."
+        ];
 
-    if (paketLower.includes("love") || paketLower.includes("cinta")) {
-      if (!deskripsi) deskripsi = "Hasil asesmen komprehensif menunjukkan bahasa cinta utamamu adalah Words of Affirmation. Kamu paling merasa dihargai dan dicintai melalui kata-kata verbal yang tulus, apresiasi spesifik, dan komunikasi yang membangun.";
-      if (!makna) makna = "Pujian yang tulus, ucapan terima kasih yang jujur, dan kata-kata penyemangat memiliki dampak emosional yang mendalam bagimu dalam memperkuat ikatan hubungan interpersonal.";
-      kekuatanUtama = [
-        "Kemampuan mengekspresikan apresiasi verbal yang menyejukkan dan memvalidasi perasaan orang lain.",
-        "Sensitivitas tinggi terhadap nada bicara dan kebutuhan emosional pasangan atau sahabat.",
-        "Komunikasi afektif yang membangun rasa aman, keterbukaan, dan kepercayaan jangka panjang."
-      ];
-      blindspots = [
-        "Sangat sensitif terhadap kritik pedas, nada bicara ketus, atau sarkasme ringan dari orang terdekat.",
-        "Dapat meragukan ketulusan atau kasih sayang orang lain jika tidak dinyatakan secara verbal berulang kali.",
-        "Kerap menahan kekecewaan sendiri demi menjaga suasana verbal tetap positif di depan orang lain."
-      ];
-      lingkunganOptimal = [
-        "Lingkungan relasi personal dan kerja yang mengedepankan budaya apresiatif serta umpan balik positif.",
-        "Dinamika kelompok kerja yang saling menghargai usaha anggota tim secara transparan.",
-        "Pola interaksi yang asertif, jujur, dan bebas dari sindiran atau sarkasme pasif."
-      ];
-    } else if (paketLower.includes("karier") || paketLower.includes("karir") || paketLower.includes("minat")) {
-      if (!deskripsi) deskripsi = "Dominasi minat berfokus pada inovasi, ekspresi ide orisinal, serta komunikasi persuasif yang berakar pada empati tulus.";
-      if (!makna) makna = "Unggul dalam industri edukasi, psikologi, human resource, dan perancangan strategi kreatif dengan ruang kolaborasi tim yang fleksibel.";
-      kekuatanUtama = [
-        "Kreativitas tinggi dalam memecahkan masalah interpersonal dan operasional.",
-        "Kecerdasan emosional yang mendukung komunikasi asertif dan diplomatis.",
-        "Kemampuan mengubah konsep abstrak menjadi strategi implementatif yang menarik."
-      ];
-      blindspots = [
-        "Cenderung menghindari konfrontasi langsung meskipun ada masalah struktural yang mendesak.",
-        "Rentan overthinking terhadap ekspektasi atau pandangan orang lain terhadap hasil kerjanya.",
-        "Sering kesulitan menetapkan batasan profesional ketika urusan pekerjaan menyentuh empati emosional."
-      ];
-      lingkunganOptimal = [
-        "Industri kreatif, agensi konsultan, riset sosial, dan human capital.",
-        "Organisasi yang memiliki budaya terbuka, suportif, dan inovatif.",
-        "Posisi yang memungkinkan interaksi berkelanjutan dengan klien atau komunitas."
-      ];
-    } else {
-      if (!deskripsi) deskripsi = "Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.";
-      if (!makna) makna = "Mampu membangun keselarasan dan kohesi tim kerja, merumuskan solusi berpusat pada manusia, serta menginspirasi rekan kerja dengan empati tulus.";
+    let judulKekuatan = interFound?.judulKekuatan || "Potensi atau Kekuatan Utama";
+    let judulBlindspots = interFound?.judulBlindspots || "Area yang Perlu Dikembangkan";
+    let judulLingkungan = interFound?.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung";
+
+    if (!interFound) {
+      if (paketLower.includes("love") || paketLower.includes("cinta")) {
+        if (!deskripsi) deskripsi = "Hasil asesmen komprehensif menunjukkan bahasa cinta utamamu adalah Words of Affirmation. Kamu paling merasa dihargai dan dicintai melalui kata-kata verbal yang tulus, apresiasi spesifik, dan komunikasi yang membangun.";
+        if (!makna) makna = "Pujian yang tulus, ucapan terima kasih yang jujur, dan kata-kata penyemangat memiliki dampak emosional yang mendalam bagimu dalam memperkuat ikatan hubungan interpersonal.";
+        kekuatanUtama = [
+          "Kemampuan mengekspresikan apresiasi verbal yang menyejukkan dan memvalidasi perasaan orang lain.",
+          "Sensitivitas tinggi terhadap nada bicara dan kebutuhan emosional pasangan atau sahabat.",
+          "Komunikasi afektif yang membangun rasa aman, keterbukaan, dan kepercayaan jangka panjang."
+        ];
+        blindspots = [
+          "Sangat sensitif terhadap kritik pedas, nada bicara ketus, atau sarkasme ringan dari orang terdekat.",
+          "Dapat meragukan ketulusan atau kasih sayang orang lain jika tidak dinyatakan secara verbal berulang kali.",
+          "Kerap menahan kekecewaan sendiri demi menjaga suasana verbal tetap positif di depan orang lain."
+        ];
+        lingkunganOptimal = [
+          "Lingkungan relasi personal dan kerja yang mengedepankan budaya apresiatif serta umpan balik positif.",
+          "Dinamika kelompok kerja yang saling menghargai usaha anggota tim secara transparan.",
+          "Pola interaksi yang asertif, jujur, dan bebas dari sindiran atau sarkasme pasif."
+        ];
+      } else if (paketLower.includes("karier") || paketLower.includes("karir") || paketLower.includes("minat")) {
+        if (!deskripsi) deskripsi = "Dominasi minat berfokus pada inovasi, ekspresi ide orisinal, serta komunikasi persuasif yang berakar pada empati tulus.";
+        if (!makna) makna = "Unggul dalam industri edukasi, psikologi, human resource, dan perancangan strategi kreatif dengan ruang kolaborasi tim yang fleksibel.";
+        kekuatanUtama = [
+          "Kreativitas tinggi dalam memecahkan masalah interpersonal dan operasional.",
+          "Kecerdasan emosional yang mendukung komunikasi asertif dan diplomatis.",
+          "Kemampuan mengubah konsep abstrak menjadi strategi implementatif yang menarik."
+        ];
+        blindspots = [
+          "Cenderung menghindari konfrontasi langsung meskipun ada masalah struktural yang mendesak.",
+          "Rentan overthinking terhadap ekspektasi atau pandangan orang lain terhadap hasil kerjanya.",
+          "Sering kesulitan menetapkan batasan profesional ketika urusan pekerjaan menyentuh empati emosional."
+        ];
+        lingkunganOptimal = [
+          "Industri kreatif, agensi konsultan, riset sosial, dan human capital.",
+          "Organisasi yang memiliki budaya terbuka, suportif, dan inovatif.",
+          "Posisi yang memungkinkan interaksi berkelanjutan dengan klien atau komunitas."
+        ];
+      } else {
+        if (!deskripsi) deskripsi = "Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.";
+        if (!makna) makna = "Mampu membangun keselarasan dan kohesi tim kerja, merumuskan solusi berpusat pada manusia, serta menginspirasi rekan kerja dengan empati tulus.";
+      }
     }
 
     if (tips.length === 0) {
@@ -1353,6 +1655,9 @@ export default function AdminPsikotesClient() {
       kekuatanUtama,
       blindspots,
       lingkunganOptimal,
+      judulKekuatan,
+      judulBlindspots,
+      judulLingkungan,
       tips
     };
   };
@@ -1642,14 +1947,14 @@ export default function AdminPsikotesClient() {
 
             <!-- 2. Interpretasi & Implikasi -->
             <div class="section-box">
-              <h3 class="section-heading">Interpretasi Analisis &amp; Landasan Ilmiah</h3>
+              <h3 class="section-heading">Interpretasi Hasil</h3>
               <p style="font-size: 13px; color: #4b5563; margin: 0 0 16px 0; line-height: 1.6;">
                 ${detail.deskripsi}
               </p>
 
               <div style="padding: 16px 20px; border-radius: 14px; background: #faf8fb; border: 1px solid #efe7f2;">
                 <div style="font-size: 11px; font-weight: 800; color: #561269; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-                  Implikasi bagi Kehidupan Sehari-hari
+                  Makna Hasil dalam Kehidupan Sehari-hari
                 </div>
                 <p style="font-size: 12px; color: #374151; margin: 0; line-height: 1.6;">
                   ${detail.makna}
@@ -1660,12 +1965,12 @@ export default function AdminPsikotesClient() {
             <!-- 3. Karakteristik: Kekuatan Utama vs Blindspots -->
             <div class="section-box">
               <h3 class="section-heading">Analisis Karakteristik &amp; Dinamika Diri</h3>
-              <p class="section-sub">Pemetaan keunggulan utama serta area blindspot yang perlu kamu waspadai untuk berkembang optimal:</p>
+              <p class="section-sub">Pemetaan keunggulan utama serta area pengembangan yang perlu kamu perhatikan untuk berkembang optimal:</p>
 
               <div class="two-col-grid">
                 <div class="card-strength">
                   <div style="font-size: 12px; font-weight: 800; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
-                    Kekuatan Utama (Core Strengths)
+                    ${detail.judulKekuatan || "Potensi atau Kekuatan Utama"}
                   </div>
                   <ul style="margin: 0; padding: 0; list-style: none;">
                     ${kekuatanHtml}
@@ -1674,7 +1979,7 @@ export default function AdminPsikotesClient() {
 
                 <div class="card-blindspot">
                   <div style="font-size: 12px; font-weight: 800; color: #9f1239; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
-                    Titik Rawan (Blindspots)
+                    ${detail.judulBlindspots || "Area yang Perlu Dikembangkan"}
                   </div>
                   <ul style="margin: 0; padding: 0; list-style: none;">
                     ${blindspotHtml}
@@ -1685,7 +1990,7 @@ export default function AdminPsikotesClient() {
 
             <!-- 4. Lingkungan & Budaya Optimal -->
             <div class="section-box">
-              <h3 class="section-heading">Lingkungan &amp; Budaya Optimal</h3>
+              <h3 class="section-heading">${detail.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung"}</h3>
               <p class="section-sub">Kondisi eksternal yang paling mendukung performa optimal dan kesejahteraan emosionalmu:</p>
               <div class="card-amber">
                 <ul style="margin: 0; padding: 0; list-style: none;">
@@ -1924,8 +2229,14 @@ export default function AdminPsikotesClient() {
             {/* Tombol Aksi Edit */}
             {targetEdit && (
               <ActionButtonEdit
-                onClick={() => handleEditPaket(item, targetEdit)}
-                title="Edit Paket Psikotes"
+                onClick={() => {
+                  if (item.paketList.length > 1) {
+                    setSelectedJudul(item);
+                  } else {
+                    handleEditPaket(item, targetEdit);
+                  }
+                }}
+                title={item.paketList.length > 1 ? "Kelola / Edit Paket" : "Edit Paket Psikotes"}
               />
             )}
 
@@ -1941,7 +2252,7 @@ export default function AdminPsikotesClient() {
               </button>
             )}
 
-            <ActionButtonDelete onClick={() => handleDeleteJudul(item.id)} title="Hapus Judul" />
+            <ActionButtonDelete onClick={() => handleDeleteJudul(item)} title="Hapus Judul" />
           </div>
         );
       },
@@ -1975,28 +2286,145 @@ export default function AdminPsikotesClient() {
         </div>
       )}
 
-      {/* Cards Navigation (Summary Cards) */}
+      {/* Metric Cards Statistik Pengerjaan Asesmen (Paling Atas) */}
       {activeTab !== "form-paket" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-          <AdminSummaryCard
-            label="Data Peserta &amp; Hasil Tes"
-            value={`${pesertaList.length} Peserta`}
-            description="Lihat riwayat pengerjaan dan hasil psikotes peserta Gratis maupun Berbayar."
-            icon={<Users className={`w-6 h-6 ${activeTab === "peserta" ? "text-[#561269]" : "text-blue-500"}`} />}
-            iconBgColor={activeTab === "peserta" ? "bg-purple-100 text-[#561269]" : "bg-blue-50 text-blue-500"}
-            isActive={activeTab === "peserta"}
-            onClick={() => setActiveTab("peserta")}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Klien Berbayar</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-[#561269] mt-1 block">
+                {pesertaSummary.total_berbayar}
+              </span>
+              <span className="text-[11px] text-gray-500 mt-0.5 block">Memiliki data kontak &amp; WhatsApp</span>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center font-bold">
+              <DollarSign className="w-6 h-6" />
+            </div>
+          </div>
 
-          <AdminSummaryCard
-            label="Kelola Paket Psikotes"
-            value={`${judulList.length} Judul (${totalPaketCount} Paket)`}
-            description={`Kelola paket Gratis & Berbayar terpisah. Tersedia ${totalDraftCount} draf tersimpan.`}
-            icon={<FileText className={`w-6 h-6 ${activeTab === "paket" ? "text-[#561269]" : "text-purple-600"}`} />}
-            iconBgColor={activeTab === "paket" ? "bg-purple-100 text-[#561269]" : "bg-purple-50 text-purple-600"}
-            isActive={activeTab === "paket"}
+          <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Tes Gratis Selesai</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-1 block">
+                {pesertaSummary.total_gratis}
+              </span>
+              <span className="text-[11px] text-gray-500 mt-0.5 block">Aktivitas pengerjaan publik (Lead magnet)</span>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+              <Users className="w-6 h-6" />
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-blue-100 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Total Selesai Dinilai</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-blue-700 mt-1 block">
+                {pesertaSummary.total_selesai}
+              </span>
+              <span className="text-[11px] text-gray-500 mt-0.5 block">Skor &amp; interpretasi tersimpan</span>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tombol Tab Navigasi: Peserta & Paket (Compact & Proporsional) */}
+      {activeTab !== "form-paket" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          {/* Tombol Data Peserta */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("peserta");
+              loadPesertaFromBackend();
+            }}
+            className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-150 cursor-pointer flex items-center justify-between gap-3 group active:scale-[0.99] ${
+              activeTab === "peserta"
+                ? "bg-[#D3C4D8] border-[#bca7c3] shadow-xs"
+                : "bg-white text-gray-800 border-gray-200 hover:border-[#bca7c3] hover:bg-[#D3C4D8]/20 shadow-xs"
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 transition-colors ${
+                  activeTab === "peserta"
+                    ? "bg-white/80 text-[#561269] shadow-2xs"
+                    : "bg-purple-50 text-[#561269] group-hover:bg-purple-100"
+                }`}
+              >
+                <Users className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span
+                  className={`text-[11px] font-bold uppercase tracking-wider block ${
+                    activeTab === "peserta" ? "text-[#561269]" : "text-gray-400"
+                  }`}
+                >
+                  Data Peserta &amp; Hasil Tes
+                </span>
+                <p className="text-lg font-extrabold tracking-tight truncate text-gray-900">
+                  {pesertaSummary.total_berbayar} Peserta
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <ChevronRight
+                className={`w-4 h-4 transition-transform ${
+                  activeTab === "peserta"
+                    ? "text-[#561269] translate-x-0.5"
+                    : "text-gray-400 group-hover:text-[#561269] group-hover:translate-x-0.5"
+                }`}
+              />
+            </div>
+          </button>
+
+          {/* Tombol Kelola Paket */}
+          <button
+            type="button"
             onClick={() => setActiveTab("paket")}
-          />
+            className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-150 cursor-pointer flex items-center justify-between gap-3 group active:scale-[0.99] ${
+              activeTab === "paket"
+                ? "bg-[#D3C4D8] border-[#bca7c3] shadow-xs"
+                : "bg-white text-gray-800 border-gray-200 hover:border-[#bca7c3] hover:bg-[#D3C4D8]/20 shadow-xs"
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 transition-colors ${
+                  activeTab === "paket"
+                    ? "bg-white/80 text-[#561269] shadow-2xs"
+                    : "bg-purple-50 text-[#561269] group-hover:bg-purple-100"
+                }`}
+              >
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span
+                  className={`text-[11px] font-bold uppercase tracking-wider block ${
+                    activeTab === "paket" ? "text-[#561269]" : "text-gray-400"
+                  }`}
+                >
+                  Kelola Paket Psikotes
+                </span>
+                <p className="text-lg font-extrabold tracking-tight truncate text-gray-900">
+                  {totalPaketCount} Paket
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <ChevronRight
+                className={`w-4 h-4 transition-transform ${
+                  activeTab === "paket"
+                    ? "text-[#561269] translate-x-0.5"
+                    : "text-gray-400 group-hover:text-[#561269] group-hover:translate-x-0.5"
+                }`}
+              />
+            </div>
+          </button>
         </div>
       )}
 
@@ -2005,47 +2433,6 @@ export default function AdminPsikotesClient() {
       {/* ========================================================= */}
       {activeTab === "peserta" && (
         <div className="flex flex-col gap-6">
-          {/* Metric Cards Statistik Pengerjaan Asesmen */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Klien Berbayar</span>
-                <span className="text-2xl sm:text-3xl font-extrabold text-[#561269] mt-1 block">
-                  {pesertaSummary.total_berbayar}
-                </span>
-                <span className="text-[11px] text-gray-500 mt-0.5 block">Memiliki data kontak &amp; WhatsApp</span>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center font-bold">
-                <DollarSign className="w-6 h-6" />
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Tes Gratis Selesai</span>
-                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-1 block">
-                  {pesertaSummary.total_gratis}
-                </span>
-                <span className="text-[11px] text-gray-500 mt-0.5 block">Aktivitas pengerjaan publik (Lead magnet)</span>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                <Users className="w-6 h-6" />
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-blue-100 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Total Selesai Dinilai</span>
-                <span className="text-2xl sm:text-3xl font-extrabold text-blue-700 mt-1 block">
-                  {pesertaSummary.total_selesai}
-                </span>
-                <span className="text-[11px] text-gray-500 mt-0.5 block">Skor &amp; interpretasi tersimpan</span>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
 
           <AdminTableContainer>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
@@ -2446,38 +2833,52 @@ export default function AdminPsikotesClient() {
                           <select
                             value={paketData.judulId || ""}
                             onChange={(e) => {
+                              clearFieldError("judulId");
                               const selectedId = parseInt(e.target.value, 10);
                               const found = incompleteTitles.find((j) => j.id === selectedId);
                               if (found) {
                                 const hasGratis = found.paketList.some((p) => p.jenisAkses === "Gratis");
                                 const defaultAkses: JenisAkses = hasGratis ? "Berbayar" : "Gratis";
+                                const existingPkg = found.paketList.find((p) => p.jenisAkses === "Gratis") || found.paketList.find((p) => p.jenisAkses === "Berbayar") || found.paketList[0];
                                 setPaketData((prev) => ({
                                   ...prev,
                                   judulId: found.id,
                                   nama: found.judul,
                                   kategori: found.kategori,
-                                  deskripsi: found.deskripsi,
+                                  deskripsi: existingPkg?.deskripsi || found.deskripsi,
+                                  bannerUrl: existingPkg?.bannerUrl || found.image || "",
+                                  benefits: existingPkg?.benefits && existingPkg.benefits.length > 0 ? [...existingPkg.benefits] : [""],
+                                  waktu: existingPkg?.waktu ? existingPkg.waktu.replace(/[^0-9]/g, "") : (defaultAkses === "Gratis" ? "15" : "30"),
                                   jenisAkses: defaultAkses,
                                   harga: defaultAkses === "Gratis" ? "" : "Rp 50.000",
                                   numericHarga: defaultAkses === "Gratis" ? 0 : 50000,
                                 }));
-                                if (defaultAkses === "Berbayar") {
-                                  setInterpretasiList((prev) =>
-                                    prev.length <= 1 && (!prev[0] || (!prev[0].judul && !prev[0].deskripsi))
-                                      ? getBerbayarDefaultInterpretasi(found.judul, found.kategori)
-                                      : prev
-                                  );
+                                if (existingPkg?.soalList && existingPkg.soalList.length > 0) {
+                                  setSoalList([...existingPkg.soalList]);
+                                  setActiveSoalId(existingPkg.soalList[0].id);
+                                  setCurrentSoal(existingPkg.soalList[0]);
                                 }
                               }
                             }}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none bg-white font-medium"
+                            className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none bg-white font-medium transition ${
+                              fieldErrors["judulId"]
+                                ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                                : "border-gray-300 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                            }`}
                           >
+                            <option value="">-- Pilih Judul Psikotes --</option>
                             {incompleteTitles.map((j) => (
                               <option key={j.id} value={j.id}>
                                 {j.judul}
                               </option>
                             ))}
                           </select>
+                          {fieldErrors["judulId"] && (
+                            <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                              {fieldErrors["judulId"]}
+                            </p>
+                          )}
 
                           {/* Availability Info for selected incomplete title */}
                           {(() => {
@@ -2521,45 +2922,90 @@ export default function AdminPsikotesClient() {
 
                 {/* 1.2 Form Fields */}
                 <div className="space-y-6">
-                  {/* Judul Psikotes (Kategori dihapus sesuai permintaan) */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-800">
-                      Nama/Judul Psikotes <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={paketData.nama}
-                      disabled={paketData.modeJudul === "ada"}
-                      onChange={(e) => setPaketData((prev) => ({ ...prev, nama: e.target.value }))}
-                      className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none text-sm font-medium ${paketData.modeJudul === "ada"
-                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                          : "focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                  {/* Mode Judul Ada: Tampilkan Ringkasan Instrumen & Fokus Input Harga */}
+                  {paketData.modeJudul === "ada" && (
+                    <div className="p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex items-start gap-3">
+                      <div className="p-2 bg-[#561269] text-white rounded-xl shrink-0 mt-0.5">
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold uppercase tracking-wider text-[#561269]">
+                          Menambahkan Paket {paketData.jenisAkses}
+                        </p>
+                        <h4 className="text-base font-extrabold text-gray-900">
+                          {paketData.nama}
+                        </h4>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          Informasi nama instrumen, deskripsi, gambar banner, dan poin manfaat otomatis terhubung dari paket yang sudah ada. {paketData.jenisAkses === "Berbayar" ? "Cukup tentukan harga paket di bawah untuk melanjutkan." : "Paket gratis bebas biaya pengerjaan."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Judul Psikotes (hanya input aktif jika mode judul baru) */}
+                  {paketData.modeJudul === "baru" && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-800">
+                        Nama/Judul Psikotes <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={paketData.nama}
+                        onChange={(e) => {
+                          clearFieldError("nama");
+                          setPaketData((prev) => ({ ...prev, nama: e.target.value }));
+                        }}
+                        className={`w-full px-4 py-2.5 border rounded-xl outline-none text-sm font-medium transition ${
+                          fieldErrors["nama"]
+                            ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                            : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
                         }`}
-                      placeholder="Contoh: Tes Kepribadian (MBTI)"
-                    />
-                  </div>
+                        placeholder="Contoh: Tes Kepribadian (MBTI)"
+                      />
+                      {fieldErrors["nama"] && (
+                        <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                          {fieldErrors["nama"]}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Deskripsi */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-800">
-                      Deskripsi Paket <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={paketData.deskripsi}
-                      onChange={(e) => setPaketData((prev) => ({ ...prev, deskripsi: e.target.value }))}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none text-sm"
-                      placeholder="Tuliskan tujuan asesmen, manfaat bagi peserta, dan gambaran umum tes..."
-                    ></textarea>
-                  </div>
+                  {/* Deskripsi Paket (hanya tampil langsung jika mode judul baru) */}
+                  {paketData.modeJudul === "baru" && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-800">
+                        Deskripsi Paket <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={paketData.deskripsi}
+                        onChange={(e) => {
+                          clearFieldError("deskripsi");
+                          setPaketData((prev) => ({ ...prev, deskripsi: e.target.value }));
+                        }}
+                        className={`w-full px-4 py-2.5 border rounded-xl outline-none text-sm transition ${
+                          fieldErrors["deskripsi"]
+                            ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                            : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                        }`}
+                        placeholder="Tuliskan tujuan asesmen, manfaat bagi peserta, dan gambaran umum tes..."
+                      ></textarea>
+                      {fieldErrors["deskripsi"] && (
+                        <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                          {fieldErrors["deskripsi"]}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Jenis Akses (Strictly Gratis or Berbayar - No hybrid!) */}
+                  {/* Jenis Akses */}
                   <div className="space-y-3">
                     <label className="text-sm font-semibold text-gray-800">
                       Jenis Akses Paket <span className="text-red-500">*</span>
                     </label>
 
-                    {/* Duplicate Prevention Check */}
                     {(() => {
                       if (paketData.modeJudul === "ada" && paketData.judulId) {
                         const target = judulList.find((j) => j.id === paketData.judulId);
@@ -2602,7 +3048,7 @@ export default function AdminPsikotesClient() {
                                   Paket Gratis {hasGratis && "(Sudah Ada)"}
                                 </span>
                                 <span className="text-xs text-gray-500">
-                                  Akses tanpa biaya untuk peserta dengan hasil ringkas.
+                                  Ringkasan Hasil Psikotes (Online) tanpa biaya dengan interpretasi dasar.
                                 </span>
                               </div>
                             </label>
@@ -2629,11 +3075,6 @@ export default function AdminPsikotesClient() {
                                     harga: prev.harga || "Rp 50.000",
                                     numericHarga: prev.numericHarga || 50000,
                                   }));
-                                  setInterpretasiList((prev) =>
-                                    prev.length <= 1 && (!prev[0] || (!prev[0].judul && !prev[0].deskripsi))
-                                      ? getBerbayarDefaultInterpretasi(paketData.nama, paketData.kategori)
-                                      : prev
-                                  );
                                 }}
                                 className="mt-1 text-[#561269] focus:ring-[#561269]"
                               />
@@ -2642,7 +3083,7 @@ export default function AdminPsikotesClient() {
                                   Paket Berbayar {hasBerbayar && "(Sudah Ada)"}
                                 </span>
                                 <span className="text-xs text-gray-500">
-                                  Akses komprehensif berbayar dengan laporan dan interpretasi mendalam.
+                                  Laporan Hasil Psikotes Lengkap (PDF) dengan analisis mendalam dan rekomendasi pengembangan diri.
                                 </span>
                               </div>
                             </label>
@@ -2677,7 +3118,7 @@ export default function AdminPsikotesClient() {
                             <div>
                               <span className="font-bold text-sm text-gray-900 block">Paket Gratis</span>
                               <span className="text-xs text-gray-500">
-                                Akses tanpa biaya untuk peserta dengan hasil ringkas.
+                                Ringkasan Hasil Psikotes (Online) tanpa biaya dengan interpretasi dasar.
                               </span>
                             </div>
                           </label>
@@ -2700,18 +3141,13 @@ export default function AdminPsikotesClient() {
                                   harga: prev.harga || "Rp 50.000",
                                   numericHarga: prev.numericHarga || 50000,
                                 }));
-                                setInterpretasiList((prev) =>
-                                  prev.length <= 1 && (!prev[0] || (!prev[0].judul && !prev[0].deskripsi))
-                                    ? getBerbayarDefaultInterpretasi(paketData.nama, paketData.kategori)
-                                    : prev
-                                );
                               }}
                               className="mt-1 text-[#561269] focus:ring-[#561269]"
                             />
                             <div>
                               <span className="font-bold text-sm text-gray-900 block">Paket Berbayar</span>
                               <span className="text-xs text-gray-500">
-                                Akses komprehensif berbayar dengan laporan dan interpretasi mendalam.
+                                Laporan Hasil Psikotes Lengkap (PDF) dengan analisis mendalam dan rekomendasi pengembangan diri.
                               </span>
                             </div>
                           </label>
@@ -2720,7 +3156,7 @@ export default function AdminPsikotesClient() {
                     })()}
                   </div>
 
-                  {/* Input Harga (Estimasi Waktu Pengerjaan dihapus sesuai permintaan) */}
+                  {/* Input Harga Paket */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-800 flex items-center justify-between">
                       <span>
@@ -2746,164 +3182,214 @@ export default function AdminPsikotesClient() {
                               : ""
                         }
                         disabled={paketData.jenisAkses === "Gratis"}
-                        onChange={(e) => handleHargaChange(e.target.value)}
+                        onChange={(e) => {
+                          clearFieldError("harga");
+                          handleHargaChange(e.target.value);
+                        }}
                         placeholder="Contoh: 50000"
-                        className={`flex-1 block w-full px-4 py-2.5 border border-gray-300 text-sm font-medium outline-none ${paketData.jenisAkses === "Gratis"
-                            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                            : "focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white"
-                          }`}
+                        className={`flex-1 block w-full px-4 py-2.5 border text-sm font-medium outline-none transition ${
+                          fieldErrors["harga"]
+                            ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                            : paketData.jenisAkses === "Gratis"
+                              ? "border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                              : "border-gray-300 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white"
+                        }`}
                       />
                     </div>
+                    {fieldErrors["harga"] && (
+                      <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                        {fieldErrors["harga"]}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500">
                       {paketData.jenisAkses === "Berbayar"
-                        ? "Format Rupiah baku. Paket berbayar wajib memiliki harga nominal yang valid."
-                        : "Paket gratis tidak memerlukan biaya transaksi."}
+                        ? "Format Rupiah baku. Tentukan harga nominal untuk paket berbayar ini."
+                        : "Paket gratis tidak memerlukan biaya transaksi (Rp 0)."}
                     </p>
                   </div>
 
-                  {/* Banner Upload */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-800">
-                      Upload Banner/Gambar Asesmen
-                    </label>
-                    <input
-                      id="banner-file-input"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="hidden"
-                      onChange={handleBannerUpload}
-                    />
-
-                    {paketData.bannerUrl ? (
-                      <div className="relative rounded-2xl border border-gray-200 overflow-hidden bg-gray-50 p-2">
-                        <div className="relative h-48 w-full rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
-                          <img
-                            src={paketData.bannerUrl}
-                            alt="Banner Asesmen"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between pt-2 px-1">
-                          <button
-                            type="button"
-                            onClick={() => document.getElementById("banner-file-input")?.click()}
-                            disabled={isUploadingImage}
-                            className="text-xs font-bold text-[#561269] hover:text-[#400d4f] transition-colors cursor-pointer"
-                          >
-                            Ganti Gambar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleRemoveBanner}
-                            disabled={isUploadingImage}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-700 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Hapus
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => !isUploadingImage && document.getElementById("banner-file-input")?.click()}
-                        className={`border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-[#561269]/50 transition-colors cursor-pointer ${
-                          isUploadingImage ? "opacity-60 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        {isUploadingImage ? (
-                          <>
-                            <Loader2 className="w-8 h-8 mb-2 text-[#561269] animate-spin" />
-                            <p className="text-sm font-semibold text-gray-800">Mengunggah gambar...</p>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                            <p className="text-sm font-semibold text-gray-800">Klik untuk upload atau seret gambar banner</p>
-                            <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 5MB, otomatis dioptimalkan)</p>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Poin Manfaat: Apa yang kamu dapatkan */}
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="text-sm font-semibold text-gray-800">
-                          Apa yang Kamu Dapatkan? (Poin Manfaat)
-                        </label>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          Poin-poin ini akan ditampilkan di halaman detail psikotes user.
-                        </p>
-                      </div>
+                  {/* Jika Mode Judul Ada: Toggle untuk Sesuaikan Detail (Deskripsi, Banner, Poin Manfaat) */}
+                  {paketData.modeJudul === "ada" && (
+                    <div className="pt-2 border-t border-gray-200">
                       <button
                         type="button"
-                        onClick={addBenefit}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#561269] bg-[#561269]/5 hover:bg-[#561269]/10 rounded-lg transition-colors cursor-pointer"
+                        onClick={() => setShowDetailInstrumen((prev) => !prev)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#561269] hover:underline cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Tambah Poin
+                        {showDetailInstrumen
+                          ? "▾ Sembunyikan Detail Instrumen (Deskripsi, Banner, Poin Manfaat)"
+                          : "▸ Sesuaikan Detail Instrumen (Deskripsi, Banner, Poin Manfaat)"}
                       </button>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        {showDetailInstrumen
+                          ? "Anda dapat mengubah deskripsi, banner, atau manfaat khusus untuk paket ini."
+                          : "Otomatis menggunakan deskripsi, banner, dan poin manfaat dari instrumen yang sudah ada."}
+                      </p>
                     </div>
+                  )}
 
-                    <div className="space-y-2">
-                      {(paketData.benefits || []).length === 0 ? (
-                        <p className="text-xs text-gray-400 italic py-1">
-                          Belum ada poin manfaat. Klik &quot;+ Tambah Poin&quot; untuk menambahkan.
-                        </p>
-                      ) : (
-                        (paketData.benefits || []).map((benefit, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="w-6 text-center text-xs font-bold text-gray-400">
-                              {idx + 1}.
-                            </span>
-                            <input
-                              type="text"
-                              value={benefit}
-                              onChange={(e) => updateBenefit(idx, e.target.value)}
-                              placeholder={`Contoh: Hasil skor dan interpretasi ${idx === 0 ? "karakter diri" : ""}`}
-                              className="flex-1 px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeBenefit(idx)}
-                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                              title="Hapus Poin"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))
+                  {/* Detail Tambahan: Ditampilkan jika modeJudul === 'baru' ATAU jika toggle dibuka pada modeJudul === 'ada' */}
+                  {(paketData.modeJudul === "baru" || showDetailInstrumen) && (
+                    <div className="space-y-6 pt-2">
+                      {/* Deskripsi (jika modeJudul === 'ada' dan toggle dibuka) */}
+                      {paketData.modeJudul === "ada" && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-gray-800">
+                            Deskripsi Paket <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={paketData.deskripsi}
+                            onChange={(e) => {
+                              clearFieldError("deskripsi");
+                              setPaketData((prev) => ({ ...prev, deskripsi: e.target.value }));
+                            }}
+                            className={`w-full px-4 py-2.5 border rounded-xl outline-none text-sm transition ${
+                              fieldErrors["deskripsi"]
+                                ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                                : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                            }`}
+                            placeholder="Tuliskan tujuan asesmen, manfaat bagi peserta, dan gambaran umum tes..."
+                          ></textarea>
+                          {fieldErrors["deskripsi"] && (
+                            <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                              {fieldErrors["deskripsi"]}
+                            </p>
+                          )}
+                        </div>
                       )}
+
+                      {/* Banner Upload */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-800">
+                          Upload Banner/Gambar Asesmen
+                        </label>
+                        <input
+                          id="banner-file-input"
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          onChange={handleBannerUpload}
+                        />
+
+                        {paketData.bannerUrl ? (
+                          <div className="relative rounded-2xl border border-gray-200 overflow-hidden bg-gray-50 p-2">
+                            <div className="relative h-48 w-full rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+                              <img
+                                src={paketData.bannerUrl}
+                                alt="Banner Asesmen"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between pt-2 px-1">
+                              <button
+                                type="button"
+                                onClick={() => document.getElementById("banner-file-input")?.click()}
+                                disabled={isUploadingImage}
+                                className="text-xs font-bold text-[#561269] hover:text-[#400d4f] transition-colors cursor-pointer"
+                              >
+                                Ganti Gambar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleRemoveBanner}
+                                disabled={isUploadingImage}
+                                className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-700 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Hapus
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => !isUploadingImage && document.getElementById("banner-file-input")?.click()}
+                            className={`border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-[#561269]/50 transition-colors cursor-pointer ${
+                              isUploadingImage ? "opacity-60 cursor-not-allowed" : ""
+                            }`}
+                          >
+                            {isUploadingImage ? (
+                              <>
+                                <Loader2 className="w-8 h-8 mb-2 text-[#561269] animate-spin" />
+                                <p className="text-sm font-semibold text-gray-800">Mengunggah gambar...</p>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-8 h-8 mb-2 text-gray-400" />
+                                <p className="text-sm font-semibold text-gray-800">Klik untuk upload atau seret gambar banner</p>
+                                <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 5MB, otomatis dioptimalkan)</p>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Poin Manfaat: Apa yang kamu dapatkan */}
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-semibold text-gray-800">
+                              Apa yang Kamu Dapatkan? (Poin Manfaat)
+                            </label>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              Poin-poin ini akan ditampilkan di bagian &quot;Apa yang akan kamu dapatkan?&quot; pada halaman detail psikotes user. Kosongkan jika belum ingin menambahkan.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={addBenefit}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#561269] bg-[#561269]/5 hover:bg-[#561269]/10 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Tambah Poin
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {(paketData.benefits && paketData.benefits.length > 0 ? paketData.benefits : [""]).map((benefit, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span className="w-6 text-center text-xs font-bold text-gray-400">
+                                {idx + 1}.
+                              </span>
+                              <input
+                                type="text"
+                                value={benefit}
+                                onChange={(e) => updateBenefit(idx, e.target.value)}
+                                placeholder={`Contoh: Pemetaan profil kepribadian mendalam`}
+                                className="flex-1 px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeBenefit(idx)}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                title="Hapus Poin"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Footer Buttons for Step 1 */}
-                <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-8">
+                <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100 mt-8">
                   <button
                     type="button"
-                    onClick={onSaveDraftClick}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                    onClick={() => setActiveTab("paket")}
+                    className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                   >
-                    <Save className="w-4 h-4 text-gray-500" /> Simpan sebagai Draf
+                    Batal
                   </button>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("paket")}
-                      className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleTabSwitch("soal")}
-                      className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                    >
-                      Lanjut: Pengisian Soal <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleTabSwitch("soal")}
+                    className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    Lanjut: Pengisian Soal <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
@@ -2950,10 +3436,23 @@ export default function AdminPsikotesClient() {
                         <textarea
                           rows={3}
                           value={currentSoal.teks}
-                          onChange={(e) => setCurrentSoal((prev) => ({ ...prev, teks: e.target.value }))}
-                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none bg-white text-sm"
+                          onChange={(e) => {
+                            clearFieldError("soal_teks");
+                            setCurrentSoal((prev) => ({ ...prev, teks: e.target.value }));
+                          }}
+                          className={`w-full px-4 py-2.5 border rounded-xl outline-none bg-white text-sm transition ${
+                            fieldErrors["soal_teks"]
+                              ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                              : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                          }`}
                           placeholder="Tuliskan butir pertanyaan psikotes di sini..."
                         ></textarea>
+                        {fieldErrors["soal_teks"] && (
+                          <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                            {fieldErrors["soal_teks"]}
+                          </p>
+                        )}
                       </div>
 
                       <div className="space-y-3 pt-2">
@@ -2962,33 +3461,45 @@ export default function AdminPsikotesClient() {
                           <span className="text-xs text-gray-500 font-normal">Minimal 2 pilihan jawaban</span>
                         </label>
                         {currentSoal.pilihan.map((pil, idx) => (
-                          <div key={idx} className="flex gap-3">
-                            <input
-                              type="text"
-                              value={pil.text}
-                              onChange={(e) => updatePilihan(idx, "text", e.target.value)}
-                              className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none text-sm bg-white"
-                              placeholder={`Pilihan ${idx + 1}`}
-                            />
-                            <div className="w-28 relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">
-                                Skor
-                              </span>
+                          <div key={idx} className="space-y-1">
+                            <div className="flex gap-3">
                               <input
-                                type="number"
-                                value={pil.bobot}
-                                onChange={(e) => updatePilihan(idx, "bobot", e.target.value)}
-                                className="w-full pl-12 pr-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none text-sm bg-white font-semibold"
-                                placeholder="0"
+                                type="text"
+                                value={pil.text}
+                                onChange={(e) => updatePilihan(idx, "text", e.target.value)}
+                                className={`flex-1 px-4 py-2 border rounded-xl outline-none text-sm bg-white transition ${
+                                  fieldErrors[`soal_pilihan_${idx}`]
+                                    ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                                    : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                                }`}
+                                placeholder={`Pilihan ${idx + 1}`}
                               />
+                              <div className="w-28 relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">
+                                  Skor
+                                </span>
+                                <input
+                                  type="number"
+                                  value={pil.bobot}
+                                  onChange={(e) => updatePilihan(idx, "bobot", e.target.value)}
+                                  className="w-full pl-12 pr-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none text-sm bg-white font-semibold"
+                                  placeholder="0"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removePilihan(idx)}
+                                className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors bg-white border border-gray-200 cursor-pointer"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => removePilihan(idx)}
-                              className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors bg-white border border-gray-200 cursor-pointer"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                            {fieldErrors[`soal_pilihan_${idx}`] && (
+                              <p className="text-xs text-red-600 font-semibold flex items-center gap-1 ml-1">
+                                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                                {fieldErrors[`soal_pilihan_${idx}`]}
+                              </p>
+                            )}
                           </div>
                         ))}
                         <button
@@ -3032,6 +3543,13 @@ export default function AdminPsikotesClient() {
                           {soalList.length} Soal
                         </span>
                       </div>
+
+                      {fieldErrors["soalList"] && (
+                        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          {fieldErrors["soalList"]}
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-4 gap-2 mb-6 max-h-[320px] overflow-y-auto pr-1">
                         {soalList.map((s, idx) => (
@@ -3085,28 +3603,18 @@ export default function AdminPsikotesClient() {
                 <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-8">
                   <button
                     type="button"
-                    onClick={onSaveDraftClick}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                    onClick={() => setFormTab("info")}
+                    className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                   >
-                    <Save className="w-4 h-4 text-gray-500" /> Simpan sebagai Draf
+                    Kembali ke Info
                   </button>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormTab("info")}
-                      className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                    >
-                      Kembali ke Info
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormTab("preview")}
-                      className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                    >
-                      Lanjut: Preview Soal <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormTab("preview")}
+                    className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    Lanjut: Preview Soal <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
@@ -3211,28 +3719,18 @@ export default function AdminPsikotesClient() {
                 <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-8">
                   <button
                     type="button"
-                    onClick={onSaveDraftClick}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                    onClick={() => setFormTab("soal")}
+                    className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                   >
-                    <Save className="w-4 h-4 text-gray-500" /> Simpan sebagai Draf
+                    Kembali ke Soal
                   </button>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormTab("soal")}
-                      className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                    >
-                      Kembali ke Soal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleTabSwitch("interpretasi")}
-                      className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                    >
-                      Lanjut: Interpretasi Hasil <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleTabSwitch("interpretasi")}
+                    className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    Lanjut: Interpretasi Hasil <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
@@ -3365,20 +3863,30 @@ export default function AdminPsikotesClient() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
                             <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                              {paketData.jenisAkses === "Berbayar" ? "Judul Hasil / Tipe Profil" : "Judul Hasil"}{" "}
+                              {paketData.jenisAkses === "Berbayar" ? "Judul Hasil Asesmen" : "Judul Hasil"}{" "}
                               <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={item.judul}
                               onChange={(e) => updateInterpretasi(item.id, "judul", e.target.value)}
-                              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#561269]/20 outline-none text-sm bg-white font-semibold"
+                              className={`w-full px-4 py-2 border rounded-xl outline-none text-sm bg-white font-semibold transition ${
+                                fieldErrors[`interpretasi_${item.id}_judul`]
+                                  ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                                  : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20"
+                              }`}
                               placeholder={
                                 paketData.jenisAkses === "Berbayar"
                                   ? "Misal: ENFJ-A (Protagonist) / Words of Affirmation"
                                   : "Misal: Orientasi Introvert (I) / Tingkat Stres Tinggi"
                               }
                             />
+                            {fieldErrors[`interpretasi_${item.id}_judul`] && (
+                              <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                                {fieldErrors[`interpretasi_${item.id}_judul`]}
+                              </p>
+                            )}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -3401,7 +3909,7 @@ export default function AdminPsikotesClient() {
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                             {paketData.jenisAkses === "Berbayar"
-                              ? "Interpretasi Analisis (Deskripsi Ilmiah)"
+                              ? "Interpretasi Hasil"
                               : "Deskripsi Ilmiah / Interpretasi Hasil"}{" "}
                             <span className="text-red-500">*</span>
                           </label>
@@ -3409,19 +3917,29 @@ export default function AdminPsikotesClient() {
                             rows={3}
                             value={item.deskripsi}
                             onChange={(e) => updateInterpretasi(item.id, "deskripsi", e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#561269]/20 outline-none text-sm bg-white"
+                            className={`w-full px-4 py-2 border rounded-xl outline-none text-sm bg-white transition ${
+                              fieldErrors[`interpretasi_${item.id}_deskripsi`]
+                                ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                                : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20"
+                            }`}
                             placeholder={
                               paketData.jenisAkses === "Berbayar"
                                 ? "Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis..."
                                 : "Deskripsi formal mengenai indikasi psikologis dari hasil tes ini..."
                             }
                           ></textarea>
+                          {fieldErrors[`interpretasi_${item.id}_deskripsi`] && (
+                            <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                              {fieldErrors[`interpretasi_${item.id}_deskripsi`]}
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                             {paketData.jenisAkses === "Berbayar"
-                              ? "Implikasi bagi Kehidupan Sehari-hari"
+                              ? "Makna Hasil dalam Kehidupan Sehari-hari"
                               : "Apa Artinya Bagi Peserta?"}{" "}
                             <span className="text-red-500">*</span>
                           </label>
@@ -3429,13 +3947,23 @@ export default function AdminPsikotesClient() {
                             rows={2}
                             value={item.makna}
                             onChange={(e) => updateInterpretasi(item.id, "makna", e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#561269]/20 outline-none text-sm bg-white"
+                            className={`w-full px-4 py-2 border rounded-xl outline-none text-sm bg-white transition ${
+                              fieldErrors[`interpretasi_${item.id}_makna`]
+                                ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                                : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20"
+                            }`}
                             placeholder={
                               paketData.jenisAkses === "Berbayar"
                                 ? "Mampu melihat potensi orang lain, menginspirasi perubahan positif, dan menciptakan atmosfer kerja yang kohesif serta terarah pada tujuan jangka panjang..."
                                 : "Penjelasan dengan bahasa santai dan mudah dipahami oleh peserta..."
                             }
                           ></textarea>
+                          {fieldErrors[`interpretasi_${item.id}_makna`] && (
+                            <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                              {fieldErrors[`interpretasi_${item.id}_makna`]}
+                            </p>
+                          )}
                         </div>
 
                         {/* FITUR KHUSUS BERBAYAR: Analisis Karakteristik & Dinamika Diri */}
@@ -3444,38 +3972,38 @@ export default function AdminPsikotesClient() {
                             <div>
                               <label className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
                                 <ShieldCheck className="w-4 h-4 text-[#561269]" />
-                                Analisis Karakteristik, Kekuatan &amp; Titik Rawan
+                                Analisis Karakteristik &amp; Dinamika Diri
                               </label>
                               <p className="text-[11px] text-gray-500 mt-0.5">
-                                Pemetaan mendalam keunggulan utama, area blindspot, dan lingkungan kerja optimal pada laporan resmi peserta:
+                                Judul setiap bagian dapat disesuaikan oleh admin dengan mengetik langsung pada kolom judul di bawah:
                               </p>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              {/* Kekuatan Utama */}
+                              {/* Potensi atau Kekuatan Utama */}
                               <div className="p-4 bg-emerald-50/40 rounded-xl border border-emerald-200/80 shadow-2xs space-y-2.5">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                    Kekuatan Utama (Core Strengths)
-                                  </span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <input
+                                      type="text"
+                                      value={item.judulKekuatan ?? "Potensi atau Kekuatan Utama"}
+                                      onChange={(e) => updateInterpretasi(item.id, "judulKekuatan", e.target.value)}
+                                      className="font-bold text-xs text-emerald-950 uppercase tracking-wider bg-transparent border-b border-emerald-300 focus:border-emerald-600 focus:bg-white/80 px-1 py-0.5 outline-none rounded transition w-full"
+                                      placeholder="Potensi atau Kekuatan Utama"
+                                      title="Klik untuk mengubah judul bagian ini"
+                                    />
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => addKekuatan(item.id)}
-                                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer"
+                                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer shrink-0"
                                   >
                                     <Plus className="w-3 h-3" /> Tambah Butir
                                   </button>
                                 </div>
                                 <div className="space-y-2">
-                                  {(item.kekuatanUtama && item.kekuatanUtama.length > 0
-                                    ? item.kekuatanUtama
-                                    : [
-                                      "Komunikasi persuasif yang berakar pada empati tulus.",
-                                      "Kemampuan membangun keselarasan dan kohesi tim kerja.",
-                                      "Ketajaman dalam merumuskan solusi berpusat pada manusia.",
-                                    ]
-                                  ).map((kek, kIdx) => (
+                                  {(item.kekuatanUtama && item.kekuatanUtama.length > 0 ? item.kekuatanUtama : [""]).map((kek, kIdx) => (
                                     <div key={kIdx} className="flex items-center gap-1.5">
                                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0 ml-1" />
                                       <input
@@ -3483,12 +4011,13 @@ export default function AdminPsikotesClient() {
                                         value={kek}
                                         onChange={(e) => updateKekuatan(item.id, kIdx, e.target.value)}
                                         className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-emerald-200 rounded-lg outline-none"
-                                        placeholder="Butir kekuatan utama..."
+                                        placeholder="Butir potensi atau kekuatan utama..."
                                       />
                                       <button
                                         type="button"
                                         onClick={() => removeKekuatan(item.id, kIdx)}
                                         className="p-1 text-gray-400 hover:text-red-500 rounded cursor-pointer"
+                                        title="Hapus butir"
                                       >
                                         <X className="w-3.5 h-3.5" />
                                       </button>
@@ -3497,30 +4026,30 @@ export default function AdminPsikotesClient() {
                                 </div>
                               </div>
 
-                              {/* Titik Rawan & Blindspots */}
+                              {/* Area yang Perlu Dikembangkan */}
                               <div className="p-4 bg-rose-50/40 rounded-xl border border-rose-200/80 shadow-2xs space-y-2.5">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs font-bold text-rose-900 uppercase tracking-wider flex items-center gap-1.5">
-                                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                                    Titik Rawan (Blindspots)
-                                  </span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                    <input
+                                      type="text"
+                                      value={item.judulBlindspots ?? "Area yang Perlu Dikembangkan"}
+                                      onChange={(e) => updateInterpretasi(item.id, "judulBlindspots", e.target.value)}
+                                      className="font-bold text-xs text-rose-950 uppercase tracking-wider bg-transparent border-b border-rose-300 focus:border-rose-600 focus:bg-white/80 px-1 py-0.5 outline-none rounded transition w-full"
+                                      placeholder="Area yang Perlu Dikembangkan"
+                                      title="Klik untuk mengubah judul bagian ini"
+                                    />
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => addBlindspot(item.id)}
-                                    className="text-[11px] font-bold text-rose-700 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                                    className="text-[11px] font-bold text-rose-700 hover:text-rose-800 flex items-center gap-1 cursor-pointer shrink-0"
                                   >
                                     <Plus className="w-3 h-3" /> Tambah Butir
                                   </button>
                                 </div>
                                 <div className="space-y-2">
-                                  {(item.blindspots && item.blindspots.length > 0
-                                    ? item.blindspots
-                                    : [
-                                      "Cenderung mengabaikan kebutuhan diri sendiri demi mendahulukan orang lain.",
-                                      "Rentan mengalami kelelahan emosional saat menyerap masalah sekitar.",
-                                      "Sulit menolak beban kerja tambahan atau menetapkan batasan diri yang tegas.",
-                                    ]
-                                  ).map((bl, bIdx) => (
+                                  {(item.blindspots && item.blindspots.length > 0 ? item.blindspots : [""]).map((bl, bIdx) => (
                                     <div key={bIdx} className="flex items-center gap-1.5">
                                       <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 ml-1" />
                                       <input
@@ -3528,12 +4057,13 @@ export default function AdminPsikotesClient() {
                                         value={bl}
                                         onChange={(e) => updateBlindspot(item.id, bIdx, e.target.value)}
                                         className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-rose-200 rounded-lg outline-none"
-                                        placeholder="Area blindspot yang perlu diwaspadai..."
+                                        placeholder="Butir area yang perlu dikembangkan..."
                                       />
                                       <button
                                         type="button"
                                         onClick={() => removeBlindspot(item.id, bIdx)}
                                         className="p-1 text-gray-400 hover:text-red-500 rounded cursor-pointer"
+                                        title="Hapus butir"
                                       >
                                         <X className="w-3.5 h-3.5" />
                                       </button>
@@ -3543,30 +4073,30 @@ export default function AdminPsikotesClient() {
                               </div>
                             </div>
 
-                            {/* Lingkungan Kerja Optimal */}
+                            {/* Kondisi atau Lingkungan yang Mendukung */}
                             <div className="p-4 bg-amber-50/40 rounded-xl border border-amber-200/80 shadow-2xs space-y-2.5">
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                                  <Compass className="w-3.5 h-3.5 text-amber-600" />
-                                  Lingkungan &amp; Budaya Kerja Optimal
-                                </span>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  <Compass className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                  <input
+                                    type="text"
+                                    value={item.judulLingkungan ?? "Kondisi atau Lingkungan yang Mendukung"}
+                                    onChange={(e) => updateInterpretasi(item.id, "judulLingkungan", e.target.value)}
+                                    className="font-bold text-xs text-amber-950 uppercase tracking-wider bg-transparent border-b border-amber-300 focus:border-amber-600 focus:bg-white/80 px-1 py-0.5 outline-none rounded transition w-full"
+                                    placeholder="Kondisi atau Lingkungan yang Mendukung"
+                                    title="Klik untuk mengubah judul bagian ini"
+                                  />
+                                </div>
                                 <button
                                   type="button"
                                   onClick={() => addLingkungan(item.id)}
-                                  className="text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer"
+                                  className="text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer shrink-0"
                                 >
                                   <Plus className="w-3 h-3" /> Tambah Butir
                                 </button>
                               </div>
                               <div className="space-y-2">
-                                {(item.lingkunganOptimal && item.lingkunganOptimal.length > 0
-                                  ? item.lingkunganOptimal
-                                  : [
-                                    "Industri edukasi, psikologi, human resource, dan konsultasi.",
-                                    "Posisi strategis dengan ruang kolaborasi tim yang fleksibel.",
-                                    "Budaya organisasi yang menghargai inovasi dan empati.",
-                                  ]
-                                ).map((ling, lIdx) => (
+                                {(item.lingkunganOptimal && item.lingkunganOptimal.length > 0 ? item.lingkunganOptimal : [""]).map((ling, lIdx) => (
                                   <div key={lIdx} className="flex items-center gap-1.5">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     <input
@@ -3574,12 +4104,13 @@ export default function AdminPsikotesClient() {
                                       value={ling}
                                       onChange={(e) => updateLingkungan(item.id, lIdx, e.target.value)}
                                       className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-amber-200 rounded-lg outline-none"
-                                      placeholder="Karakteristik lingkungan optimal..."
+                                      placeholder="Karakteristik kondisi / lingkungan yang mendukung..."
                                     />
                                     <button
                                       type="button"
                                       onClick={() => removeLingkungan(item.id, lIdx)}
                                       className="p-1 text-gray-400 hover:text-red-500 rounded cursor-pointer"
+                                      title="Hapus butir"
                                     >
                                       <X className="w-3.5 h-3.5" />
                                     </button>
@@ -3649,22 +4180,13 @@ export default function AdminPsikotesClient() {
 
                 {/* Final Actions for Step 4 */}
                 <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-8">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormTab("preview")}
-                      className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                    >
-                      Kembali ke Preview
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onSaveDraftClick}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
-                    >
-                      <Save className="w-4 h-4 text-gray-500" /> {isEditingPublished ? "Simpan Perubahan" : "Simpan sebagai Draf"}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormTab("preview")}
+                    className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                  >
+                    Kembali ke Preview
+                  </button>
 
                   <button
                     type="button"
@@ -3746,8 +4268,6 @@ export default function AdminPsikotesClient() {
                             <h5 className="font-extrabold text-xl text-gray-900 mb-1">Rp 0</h5>
                             <p className="text-xs text-gray-600 mb-3">{paketGratis.deskripsi}</p>
                             <div className="flex items-center gap-4 text-xs font-semibold text-gray-700 pt-2 border-t border-emerald-100">
-                              <span>Durasi: {paketGratis.waktu}</span>
-                              <span>•</span>
                               <span>Soal: {paketGratis.jumlahSoal} butir</span>
                             </div>
                           </div>
@@ -3829,8 +4349,6 @@ export default function AdminPsikotesClient() {
                             <h5 className="font-extrabold text-xl text-[#561269] mb-1">{paketBerbayar.harga}</h5>
                             <p className="text-xs text-gray-600 mb-3">{paketBerbayar.deskripsi}</p>
                             <div className="flex items-center gap-4 text-xs font-semibold text-gray-700 pt-2 border-t border-purple-100">
-                              <span>Durasi: {paketBerbayar.waktu}</span>
-                              <span>•</span>
                               <span>Soal: {paketBerbayar.jumlahSoal} butir</span>
                             </div>
                             {paketBerbayar.interpretasiList && paketBerbayar.interpretasiList.length > 0 && (
@@ -4218,12 +4736,12 @@ export default function AdminPsikotesClient() {
                 </p>
               </section>
 
-              {/* Interpretasi Analisis */}
+              {/* Interpretasi Hasil */}
               <section className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 mb-1.5 flex items-center gap-2">
                     <Info className="w-5 h-5 text-[#561269]" />
-                    Interpretasi Analisis &amp; Landasan Ilmiah
+                    Interpretasi Hasil
                   </h3>
                   <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                     {previewBerbayarModal.inter.deskripsi}
@@ -4231,7 +4749,7 @@ export default function AdminPsikotesClient() {
                 </div>
                 <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2]">
                   <h4 className="text-[10px] font-bold text-[#561269] uppercase tracking-wider mb-1">
-                    Implikasi bagi Kehidupan Sehari-hari
+                    Makna Hasil dalam Kehidupan Sehari-hari
                   </h4>
                   <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                     {previewBerbayarModal.inter.makna}
@@ -4239,7 +4757,7 @@ export default function AdminPsikotesClient() {
                 </div>
               </section>
 
-              {/* Analisis Karakteristik: Kekuatan Utama vs Blindspots */}
+              {/* Analisis Karakteristik & Dinamika Diri */}
               <section className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
@@ -4247,14 +4765,14 @@ export default function AdminPsikotesClient() {
                     Analisis Karakteristik &amp; Dinamika Diri
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Pemetaan keunggulan utama serta area blindspot yang perlu diperhatikan:
+                    Pemetaan potensi keunggulan serta area pengembangan diri:
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/70 space-y-2">
                     <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Kekuatan Utama (Core Strengths)
+                      {previewBerbayarModal.inter.judulKekuatan || "Potensi atau Kekuatan Utama"}
                     </span>
                     <ul className="space-y-2 text-xs text-emerald-950">
                       {(previewBerbayarModal.inter.kekuatanUtama || [
@@ -4272,7 +4790,7 @@ export default function AdminPsikotesClient() {
                   <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200/70 space-y-2">
                     <span className="text-[11px] font-bold text-rose-900 uppercase tracking-wider flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                      Titik Rawan (Blindspots)
+                      {previewBerbayarModal.inter.judulBlindspots || "Area yang Perlu Dikembangkan"}
                     </span>
                     <ul className="space-y-2 text-xs text-rose-950">
                       {(previewBerbayarModal.inter.blindspots || [
@@ -4290,12 +4808,12 @@ export default function AdminPsikotesClient() {
                 </div>
               </section>
 
-              {/* Lingkungan & Budaya Kerja Optimal */}
+              {/* Kondisi atau Lingkungan yang Mendukung */}
               <section className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-3">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
                     <Compass className="w-5 h-5 text-[#561269]" />
-                    Lingkungan &amp; Budaya Kerja Optimal
+                    {previewBerbayarModal.inter.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung"}
                   </h3>
                   <p className="text-xs text-gray-500">
                     Kondisi eksternal yang paling mendukung performa optimal dan kesejahteraan:

@@ -19,7 +19,6 @@ import {
   AlertTriangle,
   Compass,
   Loader2,
-  FileText,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -119,12 +118,50 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
   // Data komprehensif interpretasi untuk paket Berbayar (sinkron dengan sistem Admin)
   const berbayarDetail = (() => {
+    // 1. Cek dari database jika ada interpretasi yang cocok
+    if (dbInterpretasi) {
+      let parsedTips: any = {};
+      if (typeof dbInterpretasi.tips === "object" && dbInterpretasi.tips !== null && !Array.isArray(dbInterpretasi.tips)) {
+        parsedTips = dbInterpretasi.tips;
+      } else if (typeof dbInterpretasi.tips === "string") {
+        try {
+          parsedTips = JSON.parse(dbInterpretasi.tips);
+        } catch {}
+      }
+
+      const kekuatanUtama: string[] = Array.isArray(parsedTips.kekuatanUtama) && parsedTips.kekuatanUtama.length > 0
+        ? (parsedTips.kekuatanUtama as string[])
+        : [];
+      const blindspots: string[] = Array.isArray(parsedTips.blindspots) && parsedTips.blindspots.length > 0
+        ? (parsedTips.blindspots as string[])
+        : [];
+      const lingkunganOptimal: string[] = Array.isArray(parsedTips.lingkunganOptimal) && parsedTips.lingkunganOptimal.length > 0
+        ? (parsedTips.lingkunganOptimal as string[])
+        : [];
+
+      if (dbInterpretasi.deskripsi || kekuatanUtama.length > 0) {
+        return {
+          deskripsi: dbInterpretasi.deskripsi || "",
+          makna: dbInterpretasi.makna || "",
+          kekuatanUtama,
+          blindspots,
+          lingkunganOptimal,
+          judulKekuatan: parsedTips.judulKekuatan || "Potensi atau Kekuatan Utama",
+          judulBlindspots: parsedTips.judulBlindspots || "Area yang Perlu Dikembangkan",
+          judulLingkungan: parsedTips.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung",
+        };
+      }
+    }
+
     if (params.testId === "love-language") {
       return {
         deskripsi:
           "Hasil asesmen komprehensif menunjukkan bahasa cinta utamamu adalah Words of Affirmation. Kamu paling merasa dihargai dan dicintai melalui kata-kata verbal yang tulus, apresiasi spesifik, dan komunikasi yang membangun.",
         makna:
           "Pujian yang tulus, ucapan terima kasih yang jujur, dan kata-kata penyemangat memiliki dampak emosional yang mendalam bagimu dalam memperkuat ikatan hubungan interpersonal.",
+        judulKekuatan: "Potensi atau Kekuatan Utama",
+        judulBlindspots: "Area yang Perlu Dikembangkan",
+        judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
         kekuatanUtama: [
           "Kemampuan mengekspresikan apresiasi verbal yang menyejukkan dan memvalidasi perasaan orang lain.",
           "Sensitivitas tinggi terhadap nada bicara dan kebutuhan emosional pasangan atau sahabat.",
@@ -148,6 +185,9 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           "Dominasi minat berfokus pada inovasi, ekspresi ide orisinal, serta komunikasi persuasif yang berakar pada empati tulus.",
         makna:
           "Unggul dalam industri edukasi, psikologi, human resource, dan perancangan strategi kreatif dengan ruang kolaborasi tim yang fleksibel.",
+        judulKekuatan: "Potensi atau Kekuatan Utama",
+        judulBlindspots: "Area yang Perlu Dikembangkan",
+        judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
         kekuatanUtama: [
           "Kreativitas tinggi dalam memecahkan masalah interpersonal dan operasional.",
           "Kecerdasan emosional yang mendukung komunikasi asertif dan diplomatis.",
@@ -171,6 +211,9 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
         "Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.",
       makna:
         "Mampu membangun keselarasan dan kohesi tim kerja, merumuskan solusi berpusat pada manusia, serta menginspirasi rekan kerja dengan empati tulus.",
+      judulKekuatan: "Potensi atau Kekuatan Utama",
+      judulBlindspots: "Area yang Perlu Dikembangkan",
+      judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
       kekuatanUtama: [
         "Komunikasi persuasif yang berakar pada empati tulus dan pemahaman interpersonal.",
         "Kemampuan membangun keselarasan dan kohesi tim kerja dalam mencapai target bersama.",
@@ -316,27 +359,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
             {/* Sidebar / CTA Column */}
             <div className="md:col-span-4 space-y-6">
-              {/* Card Upsell Paket Berbayar / Download PDF Laporan Resmi */}
-              <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/50 rounded-3xl p-6 sm:p-7 border border-purple-200/80 shadow-xs space-y-3.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#561269] bg-purple-100 px-2.5 py-1 rounded-md inline-block">
-                  Laporan Resmi (PDF)
-                </span>
-                <h3 className="text-lg font-bold text-gray-900 leading-snug">
-                  Ingin Analisis Lengkap &amp; Download Hasil PDF?
-                </h3>
-                <p className="text-xs text-gray-600 leading-relaxed">
-                  Dapatkan pemetaan mendalam kekuatan diri, area blindspots, serta sertifikat/laporan resmi asesmen yang siap diunduh &amp; dicetak.
-                </p>
-                <Link
-                  href={`/psikotes/${params.testId}`}
-                  className="w-full py-3 px-4 rounded-xl bg-[#561269] hover:bg-[#763E8B] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition active:scale-95"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Lihat Paket Lengkap &amp; PDF</span>
-                </Link>
-              </div>
-
-              {/* 5. Ajakan untuk Konsultasi */}
+              {/* Ajakan untuk Konsultasi */}
               <div className="bg-primary text-white rounded-3xl p-6 sm:p-8 shadow-lg sticky top-[120px]">
                 <h3 className="text-xl font-bold mb-3">Ingin memahami kondisimu lebih jauh?</h3>
                 <p className="text-primary-foreground/90 mb-6 text-sm leading-relaxed">
@@ -467,7 +490,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                     <Info className="w-5 h-5 text-[#561269]" />
-                    Interpretasi Analisis &amp; Landasan Ilmiah
+                    Interpretasi Hasil
                   </h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
                     {berbayarDetail.deskripsi}
@@ -476,7 +499,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
                 <div className="p-5 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2]">
                   <h4 className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-2">
-                    Implikasi bagi Kehidupan Sehari-hari
+                    Makna Hasil dalam Kehidupan Sehari-hari
                   </h4>
                   <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
                     {berbayarDetail.makna}
@@ -484,7 +507,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                 </div>
               </section>
 
-              {/* Analisis Karakteristik: Kekuatan Utama vs Blindspots */}
+              {/* Analisis Karakteristik & Dinamika Diri */}
               <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
@@ -492,17 +515,17 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                     Analisis Karakteristik &amp; Dinamika Diri
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Pemetaan keunggulan utama serta area blindspot yang perlu kamu waspadai untuk berkembang optimal:
+                    Pemetaan potensi keunggulan serta area pengembangan diri untuk berkembang optimal:
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Kekuatan Utama */}
+                  {/* Potensi atau Kekuatan Utama */}
                   <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
                     <div className="flex items-center gap-2 mb-3">
                       <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
                       <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
-                        Kekuatan Utama (Core Strengths)
+                        {berbayarDetail.judulKekuatan || "Potensi atau Kekuatan Utama"}
                       </span>
                     </div>
                     <ul className="space-y-2.5 text-xs text-emerald-950">
@@ -515,12 +538,12 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                     </ul>
                   </div>
 
-                  {/* Titik Rawan & Blindspots */}
+                  {/* Area yang Perlu Dikembangkan */}
                   <div className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200/70">
                     <div className="flex items-center gap-2 mb-3">
                       <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                       <span className="text-xs font-bold text-rose-900 uppercase tracking-wider">
-                        Titik Rawan (Blindspots)
+                        {berbayarDetail.judulBlindspots || "Area yang Perlu Dikembangkan"}
                       </span>
                     </div>
                     <ul className="space-y-2.5 text-xs text-rose-950">
@@ -535,12 +558,12 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                 </div>
               </section>
 
-              {/* Lingkungan & Budaya Kerja Optimal */}
+              {/* Kondisi atau Lingkungan yang Mendukung */}
               <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
                     <Compass className="w-5 h-5 text-[#561269]" />
-                    Lingkungan &amp; Budaya Optimal
+                    {berbayarDetail.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung"}
                   </h3>
                   <p className="text-xs text-gray-500">
                     Kondisi eksternal yang paling mendukung performa optimal dan kesejahteraan emosionalmu:

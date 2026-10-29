@@ -16,6 +16,9 @@ export type Interpretasi = {
   kekuatanUtama?: string[];
   blindspots?: string[];
   lingkunganOptimal?: string[];
+  judulKekuatan?: string;
+  judulBlindspots?: string;
+  judulLingkungan?: string;
 };
 
 export type JenisAkses = "Gratis" | "Berbayar";

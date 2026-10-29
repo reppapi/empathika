@@ -62,10 +62,14 @@ export const submitPsikotesSchema = z.object({
       message: 'Minimal 1 jawaban wajib dikirimkan',
     }),
   ]),
+  nama: z.string().optional(),
+  no_telepon: z.string().optional(),
+  email: z.string().optional(),
   klien: z
     .object({
       nama: z.string().optional(),
       no_telepon: z.string().optional(),
+      email: z.string().optional(),
       usia: z.number().int().optional(),
       jenis_kelamin: z.string().optional(),
     })
