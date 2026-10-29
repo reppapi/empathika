@@ -1,10 +1,12 @@
-import type { PrismaClient } from '@prisma/client'
+import type { PrismaClient, MetodePembayaran, StatusPembayaran } from '@prisma/client'
+import { generateOrderId } from '../../utils'
 import type {
   CreatePsikotesInput,
   UpdatePsikotesInput,
   PsikotesQueryInput,
   SubmitPsikotesInput,
   PesertaQueryInput,
+  CreateBookingPsikotesInput,
 } from './psikotes.schema'
 
 export class PsikotesRepository {
@@ -555,17 +557,57 @@ export class PsikotesRepository {
       // Selalu hubungkan ke paket yang sedang dikerjakan (tidak dialihkan ke sibling paket berbayar)
       const targetBookingPaketId = paket.id
 
-      // 5. Buat entri BookingPsikotes
-      const booking = await tx.bookingPsikotes.create({
-        data: {
-          id_paket: targetBookingPaketId,
-          id_client: client.id,
-          id_transaksi: null, // Nullable untuk pengerjaan langsung
-        },
-      })
+      // 5. Cari apakah sudah ada entri BookingPsikotes yang dibuat saat transaksi/checkout (hasil_tes masih null)
+      let booking: any = null
+      const explicitBookingId = ((input as any).id_booking || (input as any).bookingId || '').trim()
 
-      // 6. Simpan seluruh butir jawaban ke tabel jawaban_psikotes
+      if (explicitBookingId) {
+        booking = await tx.bookingPsikotes.findUnique({
+          where: { id: explicitBookingId },
+          include: { hasil_tes: true },
+        })
+      }
+
+      // Jika belum ketemu dan bukan tamu anonim, cari booking terakhir milik klien ini untuk paket ini yang belum ada hasil_tes (status 'Berjalan')
+      if ((!booking || booking.hasil_tes) && client && client.nama !== 'Tamu Anonim') {
+        booking = await tx.bookingPsikotes.findFirst({
+          where: {
+            id_client: client.id,
+            OR: [
+              { id_paket: paket.id },
+              { paket: { judul: { equals: paket.judul.trim(), mode: 'insensitive' } } },
+            ],
+            hasil_tes: null,
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+      }
+
+      // Jika ada booking berjalan yang sudah ada, gunakan kembali booking tersebut (jangan buat row baru agar tidak double!)
+      if (booking && !booking.hasil_tes) {
+        if (booking.id_paket !== targetBookingPaketId) {
+          booking = await tx.bookingPsikotes.update({
+            where: { id: booking.id },
+            data: { id_paket: targetBookingPaketId },
+          })
+        }
+      } else {
+        // Buat entri BookingPsikotes baru jika memang belum pernah ada
+        booking = await tx.bookingPsikotes.create({
+          data: {
+            id_paket: targetBookingPaketId,
+            id_client: client.id,
+            id_transaksi: null,
+          },
+        })
+      }
+
+      // 6. Simpan seluruh butir jawaban ke tabel jawaban_psikotes (hapus jawaban sebelumnya jika re-submit)
       if (jawabanToInsert.length > 0) {
+        await tx.jawabanPsikotes.deleteMany({
+          where: { id_booking: booking.id },
+        })
+
         await tx.jawabanPsikotes.createMany({
           data: jawabanToInsert.map((j) => ({
             id_booking: booking.id,
@@ -576,9 +618,10 @@ export class PsikotesRepository {
         })
       }
 
-      // 7. Simpan hasil penilaian akhir ke tabel hasil_tes
-      const hasilTes = await tx.hasilTes.create({
-        data: {
+      // 7. Simpan hasil penilaian akhir ke tabel hasil_tes (upsert agar tidak terjadi duplicate key)
+      const hasilTes = await tx.hasilTes.upsert({
+        where: { id_booking: booking.id },
+        create: {
           id_booking: booking.id,
           id_interpretasi: matchedInterpretasi.id,
           total_skor: totalSkor,
@@ -586,6 +629,15 @@ export class PsikotesRepository {
             total_soal: paket.soal_psikotes.length,
             soal_dijawab: jawabanToInsert.length,
           },
+        },
+        update: {
+          id_interpretasi: matchedInterpretasi.id,
+          total_skor: totalSkor,
+          detail_skor: {
+            total_soal: paket.soal_psikotes.length,
+            soal_dijawab: jawabanToInsert.length,
+          },
+          tanggal_selesai: new Date(),
         },
         include: {
           interpretasi: true,
@@ -683,6 +735,26 @@ export class PsikotesRepository {
       }),
     ])
 
+    // Deduplikasi tampilan: jika peserta yang sama sudah memiliki entri 'Selesai' (memiliki hasil_tes) untuk paket tersebut,
+    // jangan tampilkan kembali entri duplikat 'Berjalan' (hasil_tes kosong)
+    const finishedClientPaketSet = new Set<string>()
+    for (const b of items) {
+      if (b.hasil_tes && b.client.nama !== 'Tamu Anonim') {
+        const key = `${b.id_client}_${b.paket.judul.trim().toLowerCase()}`
+        finishedClientPaketSet.add(key)
+      }
+    }
+
+    const filteredItems = items.filter((b) => {
+      if (!b.hasil_tes && b.client.nama !== 'Tamu Anonim') {
+        const key = `${b.id_client}_${b.paket.judul.trim().toLowerCase()}`
+        if (finishedClientPaketSet.has(key)) {
+          return false
+        }
+      }
+      return true
+    })
+
     return {
       summary: {
         total_peserta: totalSemua,
@@ -690,7 +762,7 @@ export class PsikotesRepository {
         total_berbayar: totalBerbayar,
         total_selesai: totalSelesai,
       },
-      items: items.map((b) => ({
+      items: filteredItems.map((b) => ({
         id: b.id,
         id_paket: b.id_paket,
         nama_paket: b.paket.judul,
@@ -717,6 +789,202 @@ export class PsikotesRepository {
           : null,
       })),
     }
+  }
+
+  async createBooking(input: CreateBookingPsikotesInput) {
+    return this.prisma.$transaction(async (tx) => {
+      const rawPaketId = (input.id_paket || input.testId || '').trim()
+      if (!rawPaketId) {
+        throw Object.assign(new Error('ID paket psikotes wajib diisi'), { statusCode: 400 })
+      }
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawPaketId)
+
+      // 1. Cari paket psikotes berdasarkan UUID atau judul
+      let paket = await tx.paketPsikotes.findFirst({
+        where: isUuid
+          ? { id: rawPaketId }
+          : {
+              OR: [
+                { judul: { equals: rawPaketId, mode: 'insensitive' } },
+                { judul: { contains: rawPaketId, mode: 'insensitive' } },
+              ],
+            },
+      })
+
+      if (!paket) {
+        throw Object.assign(
+          new Error(`Paket psikotes dengan pengidentifikasi '${rawPaketId}' tidak ditemukan`),
+          { statusCode: 404 }
+        )
+      }
+
+      // Jika paket yang ditemukan berjenis GRATIS, periksa apakah ada varian BERBAYAR dengan judul yang sama
+      if (paket.jenis_akses === 'GRATIS') {
+        const berbayarVariant = await tx.paketPsikotes.findFirst({
+          where: {
+            judul: { equals: paket.judul.trim(), mode: 'insensitive' },
+            jenis_akses: 'BERBAYAR',
+          },
+        })
+        if (berbayarVariant) {
+          paket = berbayarVariant
+        }
+      }
+
+      // 2. Normalisasi data Klien (Peserta)
+      const inputName = (input.klien?.nama || input.nama || '').trim()
+      const inputPhone = (input.klien?.no_telepon || input.no_telepon || '').trim()
+      const inputEmail = (input.klien?.email || input.email || '').trim()
+      const inputUsia = input.klien?.usia ?? null
+      const inputGender = input.klien?.jenis_kelamin || null
+      const idBiro = input.id_biro || null
+
+      if (!inputName) {
+        throw Object.assign(new Error('Nama lengkap peserta wajib diisi'), { statusCode: 400 })
+      }
+
+      let client = null
+      if (inputPhone) {
+        const digitsOnly = inputPhone.replace(/\D/g, '')
+        client = await tx.client.findFirst({
+          where: {
+            OR: [
+              { no_telepon: inputPhone },
+              ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
+            ],
+            ...(idBiro ? { id_biro: idBiro } : {}),
+          },
+        })
+      }
+
+      if (!client) {
+        client = await tx.client.create({
+          data: {
+            nama: inputName,
+            no_telepon: inputPhone || null,
+            usia: inputUsia,
+            jenis_kelamin: inputGender,
+            id_biro: idBiro,
+          },
+        })
+      } else {
+        await tx.client
+          .update({
+            where: { id: client.id },
+            data: {
+              nama: inputName || client.nama,
+              usia: inputUsia ?? client.usia,
+              jenis_kelamin: inputGender ?? client.jenis_kelamin,
+            },
+          })
+          .catch(() => {})
+      }
+
+      // 3. Tentukan nominal biaya transaksi
+      let nominal = Number(paket.harga)
+      if ((!nominal || nominal <= 0) && input.harga && Number(input.harga) > 0) {
+        nominal = Number(input.harga)
+      }
+      if (!nominal || nominal <= 0) {
+        nominal = 50000 // default tarif paket berbayar jika paket belum terisi harga di database
+      }
+
+      // 4. Normalisasi metode pembayaran ke enum Prisma
+      let metodePembayaranEnum: MetodePembayaran = 'QRIS'
+      const rawMetode = (input.metode_pembayaran || 'QRIS').toUpperCase()
+      if (rawMetode === 'TRANSFER_BANK' || rawMetode === 'BANK') {
+        metodePembayaranEnum = 'TRANSFER_BANK'
+      } else if (rawMetode === 'E_WALLET' || rawMetode === 'EWALLET') {
+        metodePembayaranEnum = 'E_WALLET'
+      } else {
+        metodePembayaranEnum = 'QRIS'
+      }
+
+      // 5. Normalisasi status pembayaran ke enum Prisma
+      const statusPembayaranEnum: StatusPembayaran =
+        (input.status_pembayaran as StatusPembayaran) || 'PAID'
+
+      // 6. Buat kode transaksi unik
+      const kodeTransaksi = input.kode_transaksi || `PSI-${generateOrderId()}`
+
+      // 7. Simpan Transaksi ke tabel transaksis
+      const transaksi = await tx.transaksi.create({
+        data: {
+          id_client: client.id,
+          kode_transaksi: kodeTransaksi,
+          tipe_transaksi: 'PSIKOTES',
+          subtotal: nominal,
+          biaya_admin: 0,
+          total: nominal,
+          metode_pembayaran: metodePembayaranEnum,
+          channel_pembayaran: input.channel_pembayaran || null,
+          status_pembayaran: statusPembayaranEnum,
+          tanggal_bayar: statusPembayaranEnum === 'PAID' ? new Date() : null,
+          data_pembayaran: inputEmail ? JSON.stringify({ email: inputEmail }) : null,
+        },
+      })
+
+      // 8. Simpan entri BookingPsikotes yang terhubung dengan Transaksi
+      const booking = await tx.bookingPsikotes.create({
+        data: {
+          id_paket: paket.id,
+          id_client: client.id,
+          id_transaksi: transaksi.id,
+        },
+        include: {
+          paket: {
+            select: {
+              id: true,
+              judul: true,
+              jenis_akses: true,
+              harga: true,
+              banner_url: true,
+            },
+          },
+          transaksi: true,
+          client: true,
+        },
+      })
+
+      return {
+        booking: {
+          id: booking.id,
+          id_paket: booking.id_paket,
+          id_transaksi: booking.id_transaksi,
+          id_client: booking.id_client,
+          createdAt: booking.createdAt,
+          updatedAt: booking.updatedAt,
+        },
+        transaksi: {
+          id: transaksi.id,
+          kode_transaksi: transaksi.kode_transaksi,
+          tipe_transaksi: transaksi.tipe_transaksi,
+          subtotal: Number(transaksi.subtotal),
+          biaya_admin: Number(transaksi.biaya_admin),
+          total: Number(transaksi.total),
+          metode_pembayaran: transaksi.metode_pembayaran,
+          channel_pembayaran: transaksi.channel_pembayaran,
+          status_pembayaran: transaksi.status_pembayaran,
+          tanggal_bayar: transaksi.tanggal_bayar,
+        },
+        paket: {
+          id: booking.paket.id,
+          judul: booking.paket.judul,
+          jenis_akses: booking.paket.jenis_akses,
+          harga: Number(booking.paket.harga),
+          banner_url: booking.paket.banner_url,
+        },
+        client: {
+          id: booking.client.id,
+          nama: booking.client.nama,
+          no_telepon: booking.client.no_telepon,
+          email: inputEmail || null,
+          usia: booking.client.usia,
+          jenis_kelamin: booking.client.jenis_kelamin,
+        },
+      }
+    })
   }
 }
 

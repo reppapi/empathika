@@ -129,6 +129,39 @@ export const psikotesService = {
         }
       }>("/psikotes/peserta", { params })
       .then((r) => r.data),
+
+  createBooking: (payload: {
+    id_paket?: string
+    testId?: string
+    metode_pembayaran?: string
+    channel_pembayaran?: string | null
+    status_pembayaran?: string
+    kode_transaksi?: string
+    harga?: number
+    nama?: string
+    no_telepon?: string
+    email?: string
+    klien?: {
+      nama?: string
+      no_telepon?: string
+      email?: string
+      usia?: number
+      jenis_kelamin?: string
+    }
+    id_biro?: string | null
+  }) =>
+    apiClient
+      .post<{
+        success: boolean
+        message: string
+        data: {
+          booking: any
+          transaksi: any
+          paket: any
+          client: any
+        }
+      }>("/psikotes/booking", payload)
+      .then((r) => r.data),
 }
 
 

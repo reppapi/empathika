@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MOCK_QUESTIONS, TEST_DATA } from "../../data/psikotesData";
 import { usePsikotesTest } from "../../hooks/usePsikotesTest";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
+import { useAuthStore } from "@/store/authStore";
 import { Loader2, AlertCircle } from "lucide-react";
 
 export default function PsikotesMulaiClient({ params }: { params: { testId: string } }) {
@@ -121,31 +122,38 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     }
 
     setIsSubmitting(true);
+    let pesertaNama = "";
+    let pesertaWa = "";
+    let pesertaEmail = "";
+
     try {
       // Ambil data diri peserta:
       // Pada psikotes gratis, peserta tidak mengisi formulir identitas (anonim).
       // Data diri hanya diambil jika paket berbayar dari pendaftaran / query parameter resmi.
       const isPaketGratis = dbData?.jenis_akses === "GRATIS" || (typeof dbData?.harga === "number" && dbData.harga === 0);
 
-      let pesertaNama = "";
-      let pesertaWa = "";
-      let pesertaEmail = "";
-
       if (!isPaketGratis) {
         pesertaNama = searchParams.get("nama") || "";
         pesertaWa = searchParams.get("whatsapp") || searchParams.get("no_telepon") || "";
         pesertaEmail = searchParams.get("email") || "";
 
-        if (!pesertaNama) {
+        if (!pesertaNama || !pesertaWa || !pesertaEmail) {
           try {
             const raw = localStorage.getItem("empathika_peserta_psikotes");
             if (raw) {
               const parsed = JSON.parse(raw);
-              if (parsed.nama) pesertaNama = parsed.nama;
-              if (parsed.no_telepon) pesertaWa = parsed.no_telepon;
-              if (parsed.email) pesertaEmail = parsed.email;
+              if (!pesertaNama && parsed.nama) pesertaNama = parsed.nama;
+              if (!pesertaWa && (parsed.no_telepon || parsed.whatsapp)) pesertaWa = parsed.no_telepon || parsed.whatsapp;
+              if (!pesertaEmail && parsed.email) pesertaEmail = parsed.email;
             }
           } catch {}
+        }
+
+        // Fallback dari user yang sedang login jika belum terisi
+        const authUser = useAuthStore.getState().user;
+        if (authUser) {
+          if (!pesertaNama && authUser.name) pesertaNama = authUser.name;
+          if (!pesertaEmail && authUser.email) pesertaEmail = authUser.email;
         }
       }
 
@@ -178,6 +186,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           query.set("bookingId", res.data.id_booking);
           if (pesertaNama) query.set("nama", pesertaNama);
           if (pesertaWa) query.set("whatsapp", pesertaWa);
+          if (pesertaEmail) query.set("email", pesertaEmail);
           router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
           return;
         }
@@ -189,6 +198,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       query.set("skor", String(score));
       if (pesertaNama) query.set("nama", pesertaNama);
       if (pesertaWa) query.set("whatsapp", pesertaWa);
+      if (pesertaEmail) query.set("email", pesertaEmail);
       router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
     } catch (err) {
       console.error("Gagal menyimpan jawaban psikotes ke server:", err);
@@ -196,6 +206,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       const score = calculateScore(answers);
       const query = new URLSearchParams(searchParams.toString());
       query.set("skor", String(score));
+      if (pesertaNama) query.set("nama", pesertaNama);
+      if (pesertaWa) query.set("whatsapp", pesertaWa);
+      if (pesertaEmail) query.set("email", pesertaEmail);
       router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
     } finally {
       setIsSubmitting(false);

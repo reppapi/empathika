@@ -90,12 +90,25 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   useEffect(() => {
     if (isPsikotes && nama && nama !== "PESERTA") {
       try {
+        let existingWa = "";
+        let existingEmail = "";
+        const rawOld = localStorage.getItem("empathika_peserta_psikotes");
+        if (rawOld) {
+          const parsed = JSON.parse(rawOld);
+          existingWa = parsed.no_telepon || parsed.whatsapp || "";
+          existingEmail = parsed.email || "";
+        }
+
+        const finalWa = searchParams.get("whatsapp") || existingWa;
+        const finalEmail = searchParams.get("email") || existingEmail;
+
         localStorage.setItem(
           "empathika_peserta_psikotes",
           JSON.stringify({
             nama,
-            no_telepon: searchParams.get("whatsapp") || "",
-            email: searchParams.get("email") || "",
+            no_telepon: finalWa,
+            whatsapp: finalWa,
+            email: finalEmail,
             orderId,
           })
         )
@@ -104,12 +117,23 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   }, [isPsikotes, nama, searchParams, orderId])
 
   const getTestStartUrl = () => {
+    let savedWa = "";
+    let savedEmail = "";
+    try {
+      const raw = localStorage.getItem("empathika_peserta_psikotes");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        savedWa = parsed.no_telepon || parsed.whatsapp || "";
+        savedEmail = parsed.email || "";
+      }
+    } catch {}
+
     const q = new URLSearchParams()
     q.set("paket", "berbayar")
     if (nama && nama !== "PESERTA") q.set("nama", nama)
-    const wa = searchParams.get("whatsapp")
+    const wa = searchParams.get("whatsapp") || savedWa
     if (wa) q.set("whatsapp", wa)
-    const em = searchParams.get("email")
+    const em = searchParams.get("email") || savedEmail
     if (em) q.set("email", em)
     if (orderId) q.set("orderId", orderId)
 

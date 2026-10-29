@@ -74,6 +74,8 @@ function PendingContent() {
     const t = setTimeout(() => {
       const params = new URLSearchParams({
         nama,
+        ...(email && { email }),
+        ...(whatsapp && { whatsapp }),
         orderId,
         tanggal,
         tahun,
@@ -90,7 +92,7 @@ function PendingContent() {
       router.push(`/event/success?${params.toString()}`)
     }, 2000)
     return () => clearTimeout(t)
-  }, [phase])
+  }, [phase, nama, email, whatsapp, orderId, tanggal, tahun, waktu, judul, subjudul, kategori, harga, metode, testId, bank, ewallet, router])
 
   const handleBackToPayment = (reason?: string) => {
     const params = new URLSearchParams({
