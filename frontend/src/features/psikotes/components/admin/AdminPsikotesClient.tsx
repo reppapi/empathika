@@ -273,11 +273,12 @@ export default function AdminPsikotesClient() {
 
   // Edit Published Package State & Participant Warning
   const [isEditingPublished, setIsEditingPublished] = useState(false);
+  const [isEditingPackage, setIsEditingPackage] = useState(false);
+  const isEditMode = Boolean(isEditingPackage || isEditingPublished || isResumingDraft || activeDraftPackageId);
   const [hasParticipants, setHasParticipants] = useState(false);
   const [hasConfirmedWarning, setHasConfirmedWarning] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [pendingTab, setPendingTab] = useState<"soal" | "interpretasi" | null>(null);
-  const [showDetailInstrumen, setShowDetailInstrumen] = useState(false);
 
   const DEFAULT_BENEFITS: string[] = [""];
 
@@ -559,10 +560,10 @@ export default function AdminPsikotesClient() {
     setFieldErrors({});
     setIsResumingDraft(false);
     setIsEditingPublished(false);
+    setIsEditingPackage(false);
     setHasParticipants(false);
     setHasConfirmedWarning(false);
     setActiveDraftPackageId(null);
-    setShowDetailInstrumen(false);
     setActiveTab("form-paket");
     setFormTab("info");
 
@@ -674,10 +675,10 @@ export default function AdminPsikotesClient() {
     setFormErrors([]);
     setIsResumingDraft(true);
     setIsEditingPublished(false);
+    setIsEditingPackage(true);
     setHasParticipants(false);
     setHasConfirmedWarning(false);
     setActiveDraftPackageId(draftPackage.id);
-    setShowDetailInstrumen(false);
     setActiveTab("form-paket");
     setFormTab("info");
 
@@ -758,10 +759,10 @@ export default function AdminPsikotesClient() {
   // Helper: Edit Published or Existing Package
   const handleEditPaket = (targetJudul: JudulPsikotesItem, targetPaket: PaketDetailItem) => {
     setFormErrors([]);
-    setIsResumingDraft(false);
+    setIsResumingDraft(targetPaket.status !== "Aktif");
     setIsEditingPublished(targetPaket.status === "Aktif");
+    setIsEditingPackage(true);
     setActiveDraftPackageId(targetPaket.id);
-    setShowDetailInstrumen(false);
 
     // Cek apakah sudah ada peserta yang mengerjakan paket ini
     const participantsExist =
@@ -843,7 +844,7 @@ export default function AdminPsikotesClient() {
   const validateStepInfo = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (paketData.modeJudul === "baru") {
+    if (isEditMode || paketData.modeJudul === "baru") {
       if (!paketData.nama.trim()) {
         errors["nama"] = "Nama/Judul psikotes wajib diisi.";
       }
@@ -854,7 +855,7 @@ export default function AdminPsikotesClient() {
       if (!paketData.judulId) {
         errors["judulId"] = "Pilih instrumen psikotes yang ingin ditambahkan paketnya.";
       }
-      if (showDetailInstrumen && !paketData.deskripsi.trim()) {
+      if (!paketData.deskripsi.trim()) {
         errors["deskripsi"] = "Deskripsi paket psikotes wajib diisi.";
       }
     }
@@ -1265,10 +1266,11 @@ export default function AdminPsikotesClient() {
   // Save Draft (Can be done anytime, even with incomplete data)
   const handleSaveDraft = async (navigateBack: boolean = true) => {
     const titleName = paketData.nama.trim() || "Draf Psikotes Tanpa Judul";
-    const packageId = (isResumingDraft || isEditingPublished) && activeDraftPackageId ? activeDraftPackageId : paketData.id;
+    const packageId = activeDraftPackageId || (typeof paketData.id === "string" && paketData.id.length > 10 ? paketData.id : null);
 
     setIsSubmitting(true);
     try {
+      const isPublishedStatus = isEditingPublished || paketData.status === "Aktif";
       const apiPayload = {
         judul: titleName,
         deskripsi: paketData.deskripsi || "Draf deskripsi paket psikotes",
@@ -1276,7 +1278,7 @@ export default function AdminPsikotesClient() {
         benefits: (paketData.benefits || []).filter((b) => b.trim().length > 0),
         jenis_akses: (paketData.jenisAkses === "Gratis" ? "GRATIS" : "BERBAYAR") as any,
         harga: paketData.jenisAkses === "Gratis" ? 0 : (paketData.numericHarga || 0),
-        status: (isEditingPublished ? "PUBLISHED" : "DRAFT") as any,
+        status: (isPublishedStatus ? "PUBLISHED" : "DRAFT") as any,
         soal_psikotes: soalList.map((s, idx) => ({
           urutan: idx + 1,
           pertanyaan: s.teks || `Pertanyaan ${idx + 1}`,
@@ -1319,21 +1321,21 @@ export default function AdminPsikotesClient() {
 
       setNotification({
         type: "success",
-        message: `Draf paket "${titleName}" berhasil disimpan ke database!`,
+        message: isPublishedStatus
+          ? `Perubahan paket "${titleName}" berhasil disimpan ke database!`
+          : `Draf paket "${titleName}" berhasil disimpan ke database!`,
       });
 
       if (navigateBack) {
         setActiveTab("paket");
+        setIsEditingPackage(false);
       }
     } catch (err: any) {
-      console.error("Gagal menyimpan draf ke database:", err);
+      console.error("Gagal menyimpan ke database:", err);
       setNotification({
         type: "error",
-        message: `Gagal menyimpan draf: ${err.response?.data?.message || err.message || "Terjadi kesalahan"}`,
+        message: `Gagal menyimpan: ${err.response?.data?.message || err.message || "Terjadi kesalahan"}`,
       });
-      if (navigateBack) {
-        setActiveTab("paket");
-      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1349,7 +1351,7 @@ export default function AdminPsikotesClient() {
     const newFieldErrors: Record<string, string> = {};
 
     // 1. Validasi Info Paket
-    if (paketData.modeJudul === "baru") {
+    if (isEditMode || paketData.modeJudul === "baru") {
       if (!paketData.nama.trim()) {
         errors.push("Judul psikotes wajib diisi.");
         newFieldErrors["nama"] = "Nama/Judul psikotes wajib diisi.";
@@ -1363,7 +1365,7 @@ export default function AdminPsikotesClient() {
         errors.push("Pilih instrumen psikotes yang ingin ditambahkan paketnya.");
         newFieldErrors["judulId"] = "Pilih instrumen psikotes yang ingin ditambahkan paketnya.";
       }
-      if (showDetailInstrumen && !paketData.deskripsi.trim()) {
+      if (!paketData.deskripsi.trim()) {
         errors.push("Deskripsi paket wajib diisi.");
         newFieldErrors["deskripsi"] = "Deskripsi paket psikotes wajib diisi.";
       }
@@ -1433,7 +1435,7 @@ export default function AdminPsikotesClient() {
 
     // Validation passed! Publish package
     const titleName = paketData.nama.trim();
-    const packageId = (isResumingDraft || isEditingPublished) && activeDraftPackageId ? activeDraftPackageId : paketData.id;
+    const packageId = activeDraftPackageId || (typeof paketData.id === "string" && paketData.id.length > 10 ? paketData.id : null);
 
     setIsSubmitting(true);
     try {
@@ -1489,6 +1491,7 @@ export default function AdminPsikotesClient() {
       });
 
       setActiveTab("paket");
+      setIsEditingPackage(false);
     } catch (err: any) {
       console.error("Gagal mempublikasikan ke database:", err);
       setNotification({
@@ -1536,120 +1539,362 @@ export default function AdminPsikotesClient() {
   };
 
   const getPesertaReportDetail = (peserta: AdminPsikotesPeserta) => {
-    const paketLower = (peserta.paket || "").toLowerCase();
+    const paketLower = (peserta.paket || "").toLowerCase().trim();
+    const skorLower = (peserta.skor || "").toLowerCase().trim();
 
-    // Check if there's custom interpretation saved in judulList
+    // 1. Ekstrak langsung dari peserta.hasil (Data Asli dari Database Hasil Tes Peserta)
+    let detailJudul = peserta.hasil?.judul && peserta.hasil.judul !== "—" ? peserta.hasil.judul : "";
+    let detailGrade = peserta.hasil?.grade && peserta.hasil.grade !== "—" ? peserta.hasil.grade : peserta.skor;
+    let deskripsi = peserta.hasil?.deskripsi && peserta.hasil.deskripsi !== "—" ? peserta.hasil.deskripsi : "";
+    let makna = peserta.hasil?.makna && peserta.hasil.makna !== "—" ? peserta.hasil.makna : "";
+
+    let kekuatanUtama: string[] = [];
+    let blindspots: string[] = [];
+    let lingkunganOptimal: string[] = [];
+    let tips: Array<{ title: string; desc: string }> = [];
+    let judulKekuatan = "Potensi atau Kekuatan Utama";
+    let judulBlindspots = "Area yang Perlu Dikembangkan";
+    let judulLingkungan = "Kondisi atau Lingkungan yang Mendukung";
+
+    // Parse tips jika disimpan dalam format objek JSON / string / array
+    if (peserta.hasil?.tips) {
+      let rawTips: any = peserta.hasil.tips;
+      if (typeof rawTips === "string") {
+        try {
+          rawTips = JSON.parse(rawTips);
+        } catch {
+          rawTips = [];
+        }
+      }
+
+      if (rawTips && typeof rawTips === "object" && !Array.isArray(rawTips)) {
+        if (Array.isArray(rawTips.kekuatanUtama) && rawTips.kekuatanUtama.length > 0) {
+          kekuatanUtama = rawTips.kekuatanUtama;
+        }
+        if (Array.isArray(rawTips.blindspots) && rawTips.blindspots.length > 0) {
+          blindspots = rawTips.blindspots;
+        }
+        if (Array.isArray(rawTips.lingkunganOptimal) && rawTips.lingkunganOptimal.length > 0) {
+          lingkunganOptimal = rawTips.lingkunganOptimal;
+        }
+        if (rawTips.judulKekuatan) judulKekuatan = rawTips.judulKekuatan;
+        if (rawTips.judulBlindspots) judulBlindspots = rawTips.judulBlindspots;
+        if (rawTips.judulLingkungan) judulLingkungan = rawTips.judulLingkungan;
+
+        if (Array.isArray(rawTips.saran) && rawTips.saran.length > 0) {
+          tips = rawTips.saran.map((s: any) =>
+            typeof s === "string" ? { title: "Rekomendasi", desc: s } : s
+          );
+        }
+      } else if (Array.isArray(rawTips) && rawTips.length > 0) {
+        tips = rawTips.map((t: any) =>
+          typeof t === "string" ? { title: "Rekomendasi", desc: t } : t
+        );
+      }
+    }
+
+    // 2. Jika ada informasi yang belum lengkap, cocokkan dengan interpretasi paket di judulList
     let interFound: Interpretasi | undefined;
     for (const j of judulList) {
       for (const p of j.paketList) {
+        const pNama = p.namaJudul.toLowerCase().trim();
+        const jJudul = j.judul.toLowerCase().trim();
         if (
-          p.namaJudul.toLowerCase() === paketLower ||
-          j.judul.toLowerCase() === paketLower ||
-          paketLower.includes(j.judul.toLowerCase())
+          pNama === paketLower ||
+          jJudul === paketLower ||
+          paketLower.includes(jJudul) ||
+          jJudul.includes(paketLower) ||
+          paketLower.includes(pNama)
         ) {
-          const matchInter = p.interpretasiList.find(
-            (i) =>
-              (peserta.skor && i.judul && i.judul.toLowerCase().includes(peserta.skor.toLowerCase())) ||
-              (peserta.skor && i.judul && peserta.skor.toLowerCase().includes(i.judul.toLowerCase()))
-          );
+          // Cari interpretasi yang benar-benar cocok dengan grade / skor peserta
+          const matchInter = p.interpretasiList.find((i) => {
+            const targetGrade = (detailGrade || peserta.skor || "").toLowerCase().trim();
+            const targetJudul = (detailJudul || "").toLowerCase().trim();
+            const iKat = (i.kategori || "").toLowerCase().trim();
+            const iJud = (i.judul || "").toLowerCase().trim();
+
+            if (targetGrade && (iKat === targetGrade || iJud.includes(targetGrade) || targetGrade.includes(iJud))) {
+              return true;
+            }
+            if (targetJudul && (iJud === targetJudul || iJud.includes(targetJudul) || targetJudul.includes(iJud))) {
+              return true;
+            }
+            if (peserta.totalSkor !== null && peserta.totalSkor !== undefined) {
+              const min = Number(i.min);
+              const max = Number(i.max);
+              if (!isNaN(min) && !isNaN(max) && peserta.totalSkor >= min && peserta.totalSkor <= max) {
+                return true;
+              }
+            }
+            return false;
+          });
+
           if (matchInter) {
             interFound = matchInter;
             break;
-          } else if (p.interpretasiList.length > 0) {
-            interFound = p.interpretasiList[0];
           }
         }
       }
       if (interFound) break;
     }
-    
-    let deskripsi = interFound?.deskripsi || peserta.hasil?.deskripsi;
-    let makna = interFound?.makna || peserta.hasil?.makna;
-    let tips: Array<{ title: string; desc: string }> =
-      interFound?.saran && interFound.saran.length > 0
-        ? interFound.saran
-        : (Array.isArray(peserta.hasil?.tips) && peserta.hasil.tips.length > 0)
-          ? peserta.hasil.tips.map((t: any) => typeof t === "string" ? { title: "Rekomendasi", desc: t } : t)
-          : [];
 
-    let kekuatanUtama = interFound?.kekuatanUtama && interFound.kekuatanUtama.length > 0
-      ? interFound.kekuatanUtama
-      : [
-          "Komunikasi persuasif yang berakar pada empati tulus dan pemahaman interpersonal.",
-          "Kemampuan membangun keselarasan dan kohesi tim kerja dalam mencapai target bersama.",
-          "Ketajaman dalam merumuskan solusi strategis yang tetap berpusat pada kesejahteraan manusia."
-        ];
-    let blindspots = interFound?.blindspots && interFound.blindspots.length > 0
-      ? interFound.blindspots
-      : [
-          "Cenderung mengabaikan kebutuhan diri sendiri demi mendahulukan kepentingan atau perasaan orang lain.",
-          "Rentan mengalami kelelahan emosional (burnout) akibat terlalu menyerap beban masalah lingkungan sekitar.",
-          "Sulit menolak permintaan tambahan atau menetapkan batasan beban kerja pribadi yang tegas."
-        ];
-    let lingkunganOptimal = interFound?.lingkunganOptimal && interFound.lingkunganOptimal.length > 0
-      ? interFound.lingkunganOptimal
-      : [
-          "Industri edukasi, psikologi, human resource, konsultasi, dan pengembangan komunitas.",
-          "Posisi strategis dengan ruang kolaborasi tim yang fleksibel, hangat, dan suportif.",
-          "Budaya organisasi yang menghargai inovasi sosial, empati, dan pengakuan personal yang transparan."
-        ];
-
-    let judulKekuatan = interFound?.judulKekuatan || "Potensi atau Kekuatan Utama";
-    let judulBlindspots = interFound?.judulBlindspots || "Area yang Perlu Dikembangkan";
-    let judulLingkungan = interFound?.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung";
-
-    if (!interFound) {
-      if (paketLower.includes("love") || paketLower.includes("cinta")) {
-        if (!deskripsi) deskripsi = "Hasil asesmen komprehensif menunjukkan bahasa cinta utamamu adalah Words of Affirmation. Kamu paling merasa dihargai dan dicintai melalui kata-kata verbal yang tulus, apresiasi spesifik, dan komunikasi yang membangun.";
-        if (!makna) makna = "Pujian yang tulus, ucapan terima kasih yang jujur, dan kata-kata penyemangat memiliki dampak emosional yang mendalam bagimu dalam memperkuat ikatan hubungan interpersonal.";
-        kekuatanUtama = [
-          "Kemampuan mengekspresikan apresiasi verbal yang menyejukkan dan memvalidasi perasaan orang lain.",
-          "Sensitivitas tinggi terhadap nada bicara dan kebutuhan emosional pasangan atau sahabat.",
-          "Komunikasi afektif yang membangun rasa aman, keterbukaan, dan kepercayaan jangka panjang."
-        ];
-        blindspots = [
-          "Sangat sensitif terhadap kritik pedas, nada bicara ketus, atau sarkasme ringan dari orang terdekat.",
-          "Dapat meragukan ketulusan atau kasih sayang orang lain jika tidak dinyatakan secara verbal berulang kali.",
-          "Kerap menahan kekecewaan sendiri demi menjaga suasana verbal tetap positif di depan orang lain."
-        ];
-        lingkunganOptimal = [
-          "Lingkungan relasi personal dan kerja yang mengedepankan budaya apresiatif serta umpan balik positif.",
-          "Dinamika kelompok kerja yang saling menghargai usaha anggota tim secara transparan.",
-          "Pola interaksi yang asertif, jujur, dan bebas dari sindiran atau sarkasme pasif."
-        ];
-      } else if (paketLower.includes("karier") || paketLower.includes("karir") || paketLower.includes("minat")) {
-        if (!deskripsi) deskripsi = "Dominasi minat berfokus pada inovasi, ekspresi ide orisinal, serta komunikasi persuasif yang berakar pada empati tulus.";
-        if (!makna) makna = "Unggul dalam industri edukasi, psikologi, human resource, dan perancangan strategi kreatif dengan ruang kolaborasi tim yang fleksibel.";
-        kekuatanUtama = [
-          "Kreativitas tinggi dalam memecahkan masalah interpersonal dan operasional.",
-          "Kecerdasan emosional yang mendukung komunikasi asertif dan diplomatis.",
-          "Kemampuan mengubah konsep abstrak menjadi strategi implementatif yang menarik."
-        ];
-        blindspots = [
-          "Cenderung menghindari konfrontasi langsung meskipun ada masalah struktural yang mendesak.",
-          "Rentan overthinking terhadap ekspektasi atau pandangan orang lain terhadap hasil kerjanya.",
-          "Sering kesulitan menetapkan batasan profesional ketika urusan pekerjaan menyentuh empati emosional."
-        ];
-        lingkunganOptimal = [
-          "Industri kreatif, agensi konsultan, riset sosial, dan human capital.",
-          "Organisasi yang memiliki budaya terbuka, suportif, dan inovatif.",
-          "Posisi yang memungkinkan interaksi berkelanjutan dengan klien atau komunitas."
-        ];
-      } else {
-        if (!deskripsi) deskripsi = "Karakteristikmu mencerminkan kecenderungan analitis yang kuat, gaya komunikasi yang terstruktur, serta orientasi tinggi terhadap pencapaian dan kolaborasi yang harmonis.";
-        if (!makna) makna = "Mampu membangun keselarasan dan kohesi tim kerja, merumuskan solusi berpusat pada manusia, serta menginspirasi rekan kerja dengan empati tulus.";
+    if (interFound) {
+      if (!detailJudul) detailJudul = interFound.judul;
+      if (!deskripsi) deskripsi = interFound.deskripsi;
+      if (!makna) makna = interFound.makna;
+      if (kekuatanUtama.length === 0 && interFound.kekuatanUtama && interFound.kekuatanUtama.length > 0) {
+        kekuatanUtama = interFound.kekuatanUtama;
+      }
+      if (blindspots.length === 0 && interFound.blindspots && interFound.blindspots.length > 0) {
+        blindspots = interFound.blindspots;
+      }
+      if (lingkunganOptimal.length === 0 && interFound.lingkunganOptimal && interFound.lingkunganOptimal.length > 0) {
+        lingkunganOptimal = interFound.lingkunganOptimal;
+      }
+      if (interFound.judulKekuatan) judulKekuatan = interFound.judulKekuatan;
+      if (interFound.judulBlindspots) judulBlindspots = interFound.judulBlindspots;
+      if (interFound.judulLingkungan) judulLingkungan = interFound.judulLingkungan;
+      if (tips.length === 0 && interFound.saran && interFound.saran.length > 0) {
+        tips = interFound.saran;
       }
     }
 
+    // 3. Fallback cerdas spesifik sesuai tes dan skor peserta (bukan generic MBTI untuk semua tes)
+    const isStres = paketLower.includes("stres") || paketLower.includes("stress") || paketLower.includes("burnout");
+    const isLove = paketLower.includes("love") || paketLower.includes("cinta") || paketLower.includes("asmara");
+    const isKarier = paketLower.includes("karier") || paketLower.includes("karir") || paketLower.includes("minat") || paketLower.includes("bakat");
+
+    if (isStres) {
+      const isHighStress =
+        skorLower.includes("tinggi") ||
+        skorLower.includes("berat") ||
+        (peserta.totalSkor !== null && peserta.totalSkor !== undefined && peserta.totalSkor >= 15);
+      const isLowStress =
+        skorLower.includes("rendah") ||
+        skorLower.includes("tenang") ||
+        skorLower.includes("resiliensi") ||
+        (peserta.totalSkor !== null && peserta.totalSkor !== undefined && peserta.totalSkor <= 7);
+
+      if (isHighStress) {
+        if (!detailJudul) detailJudul = "Beban Mental Tinggi (Indikasi Kejenuhan Ekstrem)";
+        if (!deskripsi) deskripsi = "Tingkat stres psikologis dan beban emosionalmu saat ini tergolong tinggi. Kamu tengah mengalami tekanan kognitif dan keletihan mental signifikan yang membutuhkan penanganan serta jeda pemulihan.";
+        if (!makna) makna = "Menunjukkan kondisi kelelahan psikis yang cukup mendalam. Hal ini dapat memengaruhi kestabilan mood, kualitas tidur, dan efektivitas kerja bila tidak segera diseimbangkan.";
+        judulKekuatan = "Respon Adaptif & Kesadaran Diri";
+        judulBlindspots = "Titik Rawan (Blindspots Stres)";
+        judulLingkungan = "Kondisi Pemulihan Optimal";
+        if (kekuatanUtama.length === 0) {
+          kekuatanUtama = [
+            "Kesadaran tinggi terhadap sinyal kelelahan fisik dan beban psikologis yang sedang dialami.",
+            "Dedikasi dan rasa tanggung jawab yang sangat tinggi terhadap komitmen pekerjaan atau keluarga.",
+            "Kesiapan mental untuk mencari solusi dan memulihkan kestabilan emosional secara proaktif."
+          ];
+        }
+        if (blindspots.length === 0) {
+          blindspots = [
+            "Kecenderungan menumpuk beban mental sendirian tanpa segera mendelegasikan tugas.",
+            "Sulit menolak permintaan baru sehingga batasan kapasitas diri terlewati (overwhelmed).",
+            "Pola istirahat dan tidur yang terganggu akibat pikiran yang terus bekerja tanpa jeda."
+          ];
+        }
+        if (lingkunganOptimal.length === 0) {
+          lingkunganOptimal = [
+            "Ruang kerja dengan ritme yang terprediksi dan ekspektasi beban tugas yang realistis.",
+            "Budaya tim yang suportif, minim micromanagement, dan menghargai work-life balance.",
+            "Akses mudah untuk beristirahat sejenak (micro-break) dan lingkungan kerja yang tenang."
+          ];
+        }
+        if (tips.length === 0) {
+          tips = [
+            { title: "Dekompresi Mental Terjadwal", desc: "Terapkan jeda 10-15 menit di sela aktivitas harian tanpa paparan layar gadget atau pekerjaan." },
+            { title: "Penetapan Batasan Asertif", desc: "Beranikan diri untuk mengatakan 'belum bisa saat ini' untuk permintaan di luar prioritas utama." },
+            { title: "Dukungan Profesional & Konseling", desc: "Pertimbangkan sesi konseling dengan psikolog untuk mengurai akar pemicu stres secara bertahap." }
+          ];
+        }
+      } else if (isLowStress) {
+        if (!detailJudul) detailJudul = "Resiliensi Tinggi & Keseimbangan Emosi Prima";
+        if (!deskripsi) deskripsi = "Tingkat stres psikologismu berada pada kategori rendah dan sangat terkendali. Kamu memiliki kapasitas resiliensi serta ketenangan emosi yang sangat prima dalam merespons dinamika tugas.";
+        if (!makna) makna = "Menunjukkan kestabilan psikologis yang sehat, kemampuan koping stres yang matang, serta kebiasaan menjaga keseimbangan pikiran yang berjalan efektif.";
+        judulKekuatan = "Kekuatan Regulasi Emosi";
+        judulBlindspots = "Area Waspada Stres";
+        judulLingkungan = "Kondisi Pertumbuhan Potensi";
+        if (kekuatanUtama.length === 0) {
+          kekuatanUtama = [
+            "Kapasitas regulasi emosi yang stabil dalam merespons tekanan kerja dan tantangan mendadak.",
+            "Kemampuan memilah mana hal yang berada dalam kendali diri vs di luar kendali secara objektif.",
+            "Keseimbangan energi dan fokus yang konsisten dalam menyelesaikan target harian."
+          ];
+        }
+        if (blindspots.length === 0) {
+          blindspots = [
+            "Bisa meremehkan potensi stres kumulatif jangka panjang karena merasa selalu mampu bertahan.",
+            "Terkadang kurang sensitif terhadap rekan kerja yang memiliki ambang toleransi stres lebih rendah."
+          ];
+        }
+        if (lingkunganOptimal.length === 0) {
+          lingkunganOptimal = [
+            "Lingkungan kerja dinamis yang memberikan ruang tantangan baru dan otonomi penuh.",
+            "Komunitas profesional yang berorientasi pada pencapaian kolaboratif dan inovasi."
+          ];
+        }
+        if (tips.length === 0) {
+          tips = [
+            { title: "Pertahankan Rutinitas Positif", desc: "Lanjutkan kebiasaan olahraga, pola tidur teratur, dan relaksasi yang menjaga ketenangan emosimu." },
+            { title: "Dukungan Empatis untuk Tim", desc: "Bantu rekan tim yang sedang berjuang dengan beban mental melalui pendampingan suportif." }
+          ];
+        }
+      } else {
+        // Stres Sedang
+        if (!detailJudul) detailJudul = "Tingkat Stres Moderat (Perlu Kewaspadaan Dini)";
+        if (!deskripsi) deskripsi = "Tingkat stresmu berada pada ambang moderat. Meskipun masih dapat beraktivitas secara produktif, keletihan mental mulai terasa dan perlu diimbangi dengan manajemen istirahat yang lebih disiplin.";
+        if (!makna) makna = "Sinyal alami bahwa tubuh dan pikiranmu membutuhkan penyelarasan kembali sebelum keletihan berkembang menjadi kejenuhan (burnout).";
+        judulKekuatan = "Daya Tahan Kerja";
+        judulBlindspots = "Faktor Pemicu Stres";
+        judulLingkungan = "Kondisi Kerja Seimbang";
+        if (kekuatanUtama.length === 0) {
+          kekuatanUtama = [
+            "Daya tahan mental yang cukup baik dalam menghadapi fluktuasi beban tugas harian.",
+            "Mampu menyelesaikan tanggung jawab inti meskipun merasakan tekanan berkala."
+          ];
+        }
+        if (blindspots.length === 0) {
+          blindspots = [
+            "Mulai muncul gejala keletihan fisik ringan dan penurunan konsentrasi di penghujung hari.",
+            "Kecenderungan menunda waktu istirahat hingga pekerjaan benar-benar menumpuk."
+          ];
+        }
+        if (lingkunganOptimal.length === 0) {
+          lingkunganOptimal = [
+            "Lingkungan dengan pembagian peran yang jelas dan komunikasi tim yang transparan.",
+            "Fleksibilitas waktu kerja yang memungkinkan pemulihan energi secara mandiri."
+          ];
+        }
+        if (tips.length === 0) {
+          tips = [
+            { title: "Audit Beban Kerja Mingguan", desc: "Identifikasi tugas yang bisa didelegasikan atau dipangkas untuk mengurangi beban kognitif." },
+            { title: "Manajemen Jam Istirahat", desc: "Pastikan durasi tidur malam minimal 7 jam berkualitas tanpa distraksi layar gadget." }
+          ];
+        }
+      }
+    } else if (isLove) {
+      if (skorLower.includes("quality") || skorLower.includes("waktu")) {
+        if (!detailJudul) detailJudul = "Kualitas Waktu Bersama (Quality Time)";
+        if (!deskripsi) deskripsi = "Bahasa cinta utamamu adalah Quality Time. Kamu paling merasa dihargai dan dicintai ketika seseorang memberikan perhatian penuh tanpa distraksi gadget atau kesibukan lain.";
+        if (!makna) makna = "Momen kebersamaan mendalam, percakapan tatap muka yang tulus, dan kegiatan bersama menciptakan rasa keterikatan batin yang sangat kokoh bagimu.";
+      } else if (skorLower.includes("service") || skorLower.includes("pelayanan") || skorLower.includes("tindakan")) {
+        if (!detailJudul) detailJudul = "Tindakan Nyata & Bantuan Berarti (Acts of Service)";
+        if (!deskripsi) deskripsi = "Bahasa cinta utamamu adalah Acts of Service. Tindakan nyata dan kesediaan meringankan bebanmu jauh lebih bermakna daripada sekadar kata-kata manis.";
+        if (!makna) makna = "Ketika pasangan atau orang terdekat secara sukarela membantumu dalam tugas harian, kamu merasakan ketulusan kasih sayang yang autentik.";
+      } else if (skorLower.includes("gift") || skorLower.includes("hadiah")) {
+        if (!detailJudul) detailJudul = "Hadiah Penuh Makna (Receiving Gifts)";
+        if (!deskripsi) deskripsi = "Bahasa cinta utamamu adalah Receiving Gifts. Kamu menghargai usaha, pemikiran, dan simbol kasih sayang yang terkandung di balik sebuah pemberian.";
+        if (!makna) makna = "Bagi dirimu, hadiah bukanlah tentang nilai nominal, melainkan bukti nyata bahwa seseorang mengingat dan memikirkanmu secara istimewa.";
+      } else if (skorLower.includes("touch") || skorLower.includes("sentuhan") || skorLower.includes("fisik")) {
+        if (!detailJudul) detailJudul = "Sentuhan Fisik Hangat (Physical Touch)";
+        if (!deskripsi) deskripsi = "Bahasa cinta utamamu adalah Physical Touch. Kehadiran fisik, pelukan hangat, dan sentuhan menenangkan memberikan rasa aman emosional yang kuat.";
+        if (!makna) makna = "Sentuhan fisik yang tepat menyampaikan kehangatan, penerimaan, dan dukungan tanpa perlu sepatah kata pun diucapkan.";
+      } else {
+        if (!detailJudul) detailJudul = "Kata-Kata Apresiasi Tulus (Words of Affirmation)";
+        if (!deskripsi) deskripsi = "Bahasa cinta utamamu adalah Words of Affirmation. Kamu paling merasa dihargai dan dicintai melalui kata-kata verbal yang tulus, pujian spesifik, dan komunikasi yang membangun.";
+        if (!makna) makna = "Pujian yang tulus, ucapan terima kasih yang jujur, dan kata-kata penyemangat memiliki dampak emosional yang mendalam bagimu dalam memperkuat ikatan hubungan interpersonal.";
+      }
+      judulKekuatan = "Ekspresi Emosional";
+      judulBlindspots = "Sensitivitas Relasi";
+      judulLingkungan = "Lingkungan Hubungan Sehat";
+      if (kekuatanUtama.length === 0) {
+        kekuatanUtama = [
+          "Kemampuan mengekspresikan empati yang menyejukkan dan memvalidasi perasaan orang lain.",
+          "Sensitivitas tinggi terhadap kebutuhan emosional pasangan atau orang terdekat.",
+          "Komitmen membangun ikatan yang hangat, terbuka, dan didasari rasa saling percaya."
+        ];
+      }
+      if (blindspots.length === 0) {
+        blindspots = [
+          "Kerap menahan kekecewaan sendiri demi menjaga keharmonisan suasana di depan orang lain.",
+          "Bisa merasa cemas atau meragukan ketulusan jika bahasa cinta yang dibutuhkan tidak terpenuhi."
+        ];
+      }
+      if (lingkunganOptimal.length === 0) {
+        lingkunganOptimal = [
+          "Lingkungan relasi personal yang mengedepankan komunikasi terbuka dan apresiasi timbal balik.",
+          "Pola interaksi yang asertif, jujur, dan bebas dari sindiran atau sarkasme pasif."
+        ];
+      }
+      if (tips.length === 0) {
+        tips = [
+          { title: "Komunikasikan Kebutuhan Secara Jelas", desc: "Jangan berasumsi orang lain membaca pikiranmu; sampaikan kebutuhan emosionalmu dengan bahasa yang hangat." },
+          { title: "Pahami Bahasa Cinta Pasangan", desc: "Pelajari cara pasangan mengekspresikan kasih sayangnya agar tidak terjadi kesalahpahaman persepsi." }
+        ];
+      }
+    } else if (isKarier) {
+      if (!detailJudul) detailJudul = peserta.skor ? `Profil Minat: ${peserta.skor}` : "Profil Eksplorasi Karier";
+      if (!deskripsi) deskripsi = "Dominasi minat berfokus pada inovasi, pemecahan masalah strategis, serta komunikasi persuasif yang berakar pada empati tulus.";
+      if (!makna) makna = "Unggul dalam peran yang mengkombinasikan analisis mendalam, koordinasi tim, dan penciptaan dampak nyata bagi orang banyak.";
+      judulKekuatan = "Kekuatan Profesional Utama";
+      judulBlindspots = "Tantangan Pengembangan Karier";
+      judulLingkungan = "Ekosistem Kerja Produktif";
+      if (kekuatanUtama.length === 0) {
+        kekuatanUtama = [
+          "Kreativitas tinggi dalam merumuskan strategi dan memecahkan masalah kompleks.",
+          "Kecerdasan emosional yang mendukung komunikasi asertif, diplomatis, dan kolaboratif.",
+          "Kemampuan menerjemahkan ide abstrak menjadi langkah aksi implementatif yang terukur."
+        ];
+      }
+      if (blindspots.length === 0) {
+        blindspots = [
+          "Cenderung perfeksionis dan kerap overthinking terhadap evaluasi orang lain.",
+          "Sulit menetapkan batasan profesional ketika tanggung jawab kerja menyentuh empati personal."
+        ];
+      }
+      if (lingkunganOptimal.length === 0) {
+        lingkunganOptimal = [
+          "Organisasi dengan kultur terbuka, suportif, dan menghargai ide-ide pembaruan.",
+          "Peran yang memberikan fleksibilitas serta ruang kolaborasi lintas divisi."
+        ];
+      }
+      if (tips.length === 0) {
+        tips = [
+          { title: "Perluas Jejaring Profesional", desc: "Aktif membangun koneksi di industri yang sesuai dengan profil minat dan nilai pribadimu." },
+          { title: "Kembangkan Keterampilan Khusus", desc: "Ikuti pelatihan atau sertifikasi mendalam pada bidang yang menjadi kekuatan intimu." }
+        ];
+      }
+    } else {
+      if (!detailJudul) detailJudul = peserta.skor || "Profil Karakteristik Personal";
+      if (!deskripsi) deskripsi = "Karakteristikmu mencerminkan kecenderungan analitis yang terstruktur, gaya komunikasi empatik, serta orientasi tinggi terhadap pencapaian dan kolaborasi tim.";
+      if (!makna) makna = "Mampu membangun keselarasan kerja, merumuskan solusi berpusat pada manusia, serta menginspirasi rekan dengan keteladanan yang konsisten.";
+    }
+
+    if (kekuatanUtama.length === 0) {
+      kekuatanUtama = [
+        "Komunikasi persuasif yang berakar pada empati tulus dan pemahaman interpersonal.",
+        "Kemampuan membangun keselarasan dan kohesi tim kerja dalam mencapai target bersama.",
+        "Ketajaman dalam merumuskan solusi strategis yang tetap berpusat pada kesejahteraan manusia."
+      ];
+    }
+    if (blindspots.length === 0) {
+      blindspots = [
+        "Cenderung mengabaikan kebutuhan diri sendiri demi mendahulukan kepentingan orang lain.",
+        "Rentan mengalami kelelahan emosional (burnout) jika terlalu banyak menyerap beban lingkungan.",
+        "Sulit menolak permintaan tambahan atau menetapkan batasan beban kerja pribadi yang tegas."
+      ];
+    }
+    if (lingkunganOptimal.length === 0) {
+      lingkunganOptimal = [
+        "Lingkungan kerja kolaboratif dengan budaya apresiasi yang transparan.",
+        "Posisi strategis yang memberikan kejelasan peran serta ruang inisiatif mandiri.",
+        "Budaya organisasi yang menghargai keseimbangan kerja dan kesejahteraan mental."
+      ];
+    }
     if (tips.length === 0) {
       tips = [
-        { title: "Manajemen Batasan Emosional", desc: "Luangkan waktu hening untuk merefleksikan kebutuhan pribadi sebelum merespons permintaan orang lain." },
+        { title: "Manajemen Batasan Diri", desc: "Luangkan waktu hening untuk merefleksikan kebutuhan pribadi sebelum merespons permintaan orang lain." },
         { title: "Komunikasi Asertif Bertahap", desc: "Latihlah untuk menyampaikan pandangan kritis secara konstruktif tanpa rasa bersalah yang berlebihan." },
         { title: "Fokus Pengembangan Talenta", desc: "Prioritaskan proyek-proyek kolaboratif yang menuntut empati tinggi dan kepemimpinan suportif." }
       ];
     }
 
     return {
+      judul: detailJudul,
+      grade: detailGrade,
       deskripsi,
       makna,
       kekuatanUtama,
@@ -1658,7 +1903,7 @@ export default function AdminPsikotesClient() {
       judulKekuatan,
       judulBlindspots,
       judulLingkungan,
-      tips
+      tips,
     };
   };
 
@@ -1868,7 +2113,7 @@ export default function AdminPsikotesClient() {
             }
             @media print {
               .no-print-bar { display: none !important; }
-              body { background: white !important; padding: 0 !important; }
+              body { background: white !important; padding: 0 !important; color: #1f2937 !important; }
               .report-container {
                 max-width: 100% !important;
                 margin: 0 !important;
@@ -1876,11 +2121,47 @@ export default function AdminPsikotesClient() {
                 border: none !important;
                 box-shadow: none !important;
               }
-              @page {
-                size: A4;
-                margin: 12mm 15mm 15mm 15mm;
+              .report-title {
+                font-size: 20px !important;
               }
-              .section-box, .hero-result-card, .two-col-grid {
+              .hero-score-val {
+                font-size: 24px !important;
+                margin: 0 0 6px 0 !important;
+              }
+              .hero-result-card {
+                padding: 16px 20px !important;
+                border-radius: 12px !important;
+                margin-bottom: 14px !important;
+                border: 1px solid #e5e7eb !important;
+                box-shadow: none !important;
+              }
+              .section-box {
+                padding: 14px 18px !important;
+                border-radius: 12px !important;
+                margin-bottom: 14px !important;
+                border: 1px solid #e5e7eb !important;
+                box-shadow: none !important;
+              }
+              .client-meta-grid {
+                margin: 14px 0 18px 0 !important;
+                padding: 12px 14px !important;
+                border-radius: 12px !important;
+                gap: 10px !important;
+              }
+              .card-strength, .card-blindspot, .card-amber {
+                padding: 12px 14px !important;
+                border-radius: 10px !important;
+              }
+              .signature-area {
+                margin-top: 20px !important;
+                padding-top: 14px !important;
+                page-break-inside: avoid !important;
+              }
+              @page {
+                size: A4 portrait;
+                margin: 10mm 12mm 10mm 12mm;
+              }
+              .section-box, .hero-result-card, .two-col-grid, .signature-area {
                 page-break-inside: avoid;
               }
             }
@@ -1941,7 +2222,8 @@ export default function AdminPsikotesClient() {
             <!-- 1. Hasil Utama -->
             <div class="hero-result-card">
               <div class="hero-badge-title">Profil Karakteristik Utama</div>
-              <h2 class="hero-score-val">${peserta.skor}</h2>
+              <h2 class="hero-score-val">${peserta.skor || detail.grade}</h2>
+              ${detail.judul && detail.judul !== peserta.skor && detail.judul !== detail.grade && detail.judul !== "—" ? `<div style="font-size: 15px; font-weight: 700; color: #374151; margin-bottom: 8px;">${detail.judul}</div>` : ""}
               <p class="hero-desc">${detail.deskripsi}</p>
             </div>
 
@@ -2543,6 +2825,7 @@ export default function AdminPsikotesClient() {
                 onClick={() => {
                   if (confirm("Kembali ke daftar? Perubahan yang belum Anda simpan sebagai draf tidak akan tersimpan.")) {
                     setActiveTab("paket");
+                    setIsEditingPackage(false);
                   }
                 }}
                 className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors mb-2 text-sm font-semibold cursor-pointer"
@@ -2550,8 +2833,8 @@ export default function AdminPsikotesClient() {
                 <ChevronLeft className="w-4 h-4" /> Kembali ke Daftar Psikotes
               </button>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center flex-wrap gap-3">
-                {isEditingPublished
-                  ? "Edit Paket Psikotes Dipublikasi"
+                {isEditMode
+                  ? `Edit Paket Psikotes (${paketData.jenisAkses})`
                   : isResumingDraft
                   ? "Lanjutkan Pengerjaan Draf Paket"
                   : "Kelola Paket Psikotes Baru"}
@@ -2586,9 +2869,10 @@ export default function AdminPsikotesClient() {
               <button
                 type="button"
                 onClick={onSaveDraftClick}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
               >
-                <Save className="w-4 h-4 text-gray-600" /> {isEditingPublished ? "Simpan Perubahan" : "Simpan Draf"}
+                <Save className="w-4 h-4 text-gray-600" /> {isEditMode ? "Simpan Perubahan" : "Simpan Draf"}
               </button>
             </div>
           </div>
@@ -2710,8 +2994,8 @@ export default function AdminPsikotesClient() {
             {/* ========================================== */}
             {formTab === "info" && (
               <div className="animate-in fade-in space-y-8 max-w-4xl mx-auto">
-                {/* 1.1 Mode Pemilihan Judul Psikotes */}
-                {!isResumingDraft && (
+                {/* 1.1 Mode Pemilihan Judul Psikotes (Hanya tampil saat buat paket baru, bukan saat edit) */}
+                {!isEditMode && (
                   <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-4">
                     <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
                       Target Judul Psikotes
@@ -2922,8 +3206,8 @@ export default function AdminPsikotesClient() {
 
                 {/* 1.2 Form Fields */}
                 <div className="space-y-6">
-                  {/* Mode Judul Ada: Tampilkan Ringkasan Instrumen & Fokus Input Harga */}
-                  {paketData.modeJudul === "ada" && (
+                  {/* Mode Judul Ada: Tampilkan Ringkasan Instrumen & Fokus Input Harga (Hanya saat tambah paket baru ke judul yang ada) */}
+                  {!isEditMode && paketData.modeJudul === "ada" && (
                     <div className="p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex items-start gap-3">
                       <div className="p-2 bg-[#561269] text-white rounded-xl shrink-0 mt-0.5">
                         <ShieldCheck className="w-5 h-5" />
@@ -2942,11 +3226,11 @@ export default function AdminPsikotesClient() {
                     </div>
                   )}
 
-                  {/* Judul Psikotes (hanya input aktif jika mode judul baru) */}
-                  {paketData.modeJudul === "baru" && (
+                  {/* Judul/Nama Paket Psikotes (Dapat diedit pada mode edit paket maupun pembuatan judul baru) */}
+                  {(isEditMode || paketData.modeJudul === "baru") && (
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-gray-800">
-                        Nama/Judul Psikotes <span className="text-red-500">*</span>
+                        Nama / Judul Paket Psikotes <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -2971,34 +3255,32 @@ export default function AdminPsikotesClient() {
                     </div>
                   )}
 
-                  {/* Deskripsi Paket (hanya tampil langsung jika mode judul baru) */}
-                  {paketData.modeJudul === "baru" && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-gray-800">
-                        Deskripsi Paket <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={paketData.deskripsi}
-                        onChange={(e) => {
-                          clearFieldError("deskripsi");
-                          setPaketData((prev) => ({ ...prev, deskripsi: e.target.value }));
-                        }}
-                        className={`w-full px-4 py-2.5 border rounded-xl outline-none text-sm transition ${
-                          fieldErrors["deskripsi"]
-                            ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
-                            : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
-                        }`}
-                        placeholder="Tuliskan tujuan asesmen, manfaat bagi peserta, dan gambaran umum tes..."
-                      ></textarea>
-                      {fieldErrors["deskripsi"] && (
-                        <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
-                          <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                          {fieldErrors["deskripsi"]}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  {/* Deskripsi Paket: Selalu ditampilkan langsung tanpa disembunyikan */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-800">
+                      Deskripsi Paket <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={paketData.deskripsi}
+                      onChange={(e) => {
+                        clearFieldError("deskripsi");
+                        setPaketData((prev) => ({ ...prev, deskripsi: e.target.value }));
+                      }}
+                      className={`w-full px-4 py-2.5 border rounded-xl outline-none text-sm transition ${
+                        fieldErrors["deskripsi"]
+                          ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
+                          : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                      }`}
+                      placeholder="Tuliskan tujuan asesmen, manfaat bagi peserta, dan gambaran umum tes..."
+                    ></textarea>
+                    {fieldErrors["deskripsi"] && (
+                      <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                        {fieldErrors["deskripsi"]}
+                      </p>
+                    )}
+                  </div>
 
                   {/* Jenis Akses */}
                   <div className="space-y-3">
@@ -3007,7 +3289,7 @@ export default function AdminPsikotesClient() {
                     </label>
 
                     {(() => {
-                      if (paketData.modeJudul === "ada" && paketData.judulId) {
+                      if (!isEditMode && paketData.modeJudul === "ada" && paketData.judulId) {
                         const target = judulList.find((j) => j.id === paketData.judulId);
                         const hasGratis = target?.paketList.some(
                           (p) => p.jenisAkses === "Gratis" && (!isResumingDraft || p.id !== activeDraftPackageId)
@@ -3091,7 +3373,7 @@ export default function AdminPsikotesClient() {
                         );
                       }
 
-                      // Mode Judul Baru
+                      // Mode Judul Baru atau Mode Edit
                       return (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <label
@@ -3209,187 +3491,149 @@ export default function AdminPsikotesClient() {
                     </p>
                   </div>
 
-                  {/* Jika Mode Judul Ada: Toggle untuk Sesuaikan Detail (Deskripsi, Banner, Poin Manfaat) */}
-                  {paketData.modeJudul === "ada" && (
-                    <div className="pt-2 border-t border-gray-200">
-                      <button
-                        type="button"
-                        onClick={() => setShowDetailInstrumen((prev) => !prev)}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#561269] hover:underline cursor-pointer"
-                      >
-                        {showDetailInstrumen
-                          ? "▾ Sembunyikan Detail Instrumen (Deskripsi, Banner, Poin Manfaat)"
-                          : "▸ Sesuaikan Detail Instrumen (Deskripsi, Banner, Poin Manfaat)"}
-                      </button>
-                      <p className="text-[11px] text-gray-400 mt-0.5">
-                        {showDetailInstrumen
-                          ? "Anda dapat mengubah deskripsi, banner, atau manfaat khusus untuk paket ini."
-                          : "Otomatis menggunakan deskripsi, banner, dan poin manfaat dari instrumen yang sudah ada."}
-                      </p>
-                    </div>
-                  )}
+                  {/* Banner Upload: Selalu ditampilkan langsung tanpa disembunyikan */}
+                  <div className="space-y-2 pt-2">
+                    <label className="text-sm font-semibold text-gray-800">
+                      Upload Banner/Gambar Asesmen
+                    </label>
+                    <input
+                      id="banner-file-input"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={handleBannerUpload}
+                    />
 
-                  {/* Detail Tambahan: Ditampilkan jika modeJudul === 'baru' ATAU jika toggle dibuka pada modeJudul === 'ada' */}
-                  {(paketData.modeJudul === "baru" || showDetailInstrumen) && (
-                    <div className="space-y-6 pt-2">
-                      {/* Deskripsi (jika modeJudul === 'ada' dan toggle dibuka) */}
-                      {paketData.modeJudul === "ada" && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-gray-800">
-                            Deskripsi Paket <span className="text-red-500">*</span>
-                          </label>
-                          <textarea
-                            rows={3}
-                            value={paketData.deskripsi}
-                            onChange={(e) => {
-                              clearFieldError("deskripsi");
-                              setPaketData((prev) => ({ ...prev, deskripsi: e.target.value }));
-                            }}
-                            className={`w-full px-4 py-2.5 border rounded-xl outline-none text-sm transition ${
-                              fieldErrors["deskripsi"]
-                                ? "border-red-500 bg-red-50/20 focus:ring-2 focus:ring-red-200"
-                                : "border-gray-200 focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
-                            }`}
-                            placeholder="Tuliskan tujuan asesmen, manfaat bagi peserta, dan gambaran umum tes..."
-                          ></textarea>
-                          {fieldErrors["deskripsi"] && (
-                            <p className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
-                              <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                              {fieldErrors["deskripsi"]}
-                            </p>
-                          )}
+                    {paketData.bannerUrl ? (
+                      <div className="relative rounded-2xl border border-gray-200 overflow-hidden bg-gray-50 p-2">
+                        <div className="relative h-48 w-full rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+                          <img
+                            src={paketData.bannerUrl}
+                            alt="Banner Asesmen"
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                      )}
-
-                      {/* Banner Upload */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-800">
-                          Upload Banner/Gambar Asesmen
-                        </label>
-                        <input
-                          id="banner-file-input"
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          className="hidden"
-                          onChange={handleBannerUpload}
-                        />
-
-                        {paketData.bannerUrl ? (
-                          <div className="relative rounded-2xl border border-gray-200 overflow-hidden bg-gray-50 p-2">
-                            <div className="relative h-48 w-full rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
-                              <img
-                                src={paketData.bannerUrl}
-                                alt="Banner Asesmen"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between pt-2 px-1">
-                              <button
-                                type="button"
-                                onClick={() => document.getElementById("banner-file-input")?.click()}
-                                disabled={isUploadingImage}
-                                className="text-xs font-bold text-[#561269] hover:text-[#400d4f] transition-colors cursor-pointer"
-                              >
-                                Ganti Gambar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleRemoveBanner}
-                                disabled={isUploadingImage}
-                                className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-700 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" /> Hapus
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div
-                            onClick={() => !isUploadingImage && document.getElementById("banner-file-input")?.click()}
-                            className={`border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-[#561269]/50 transition-colors cursor-pointer ${
-                              isUploadingImage ? "opacity-60 cursor-not-allowed" : ""
-                            }`}
-                          >
-                            {isUploadingImage ? (
-                              <>
-                                <Loader2 className="w-8 h-8 mb-2 text-[#561269] animate-spin" />
-                                <p className="text-sm font-semibold text-gray-800">Mengunggah gambar...</p>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                                <p className="text-sm font-semibold text-gray-800">Klik untuk upload atau seret gambar banner</p>
-                                <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 5MB, otomatis dioptimalkan)</p>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Poin Manfaat: Apa yang kamu dapatkan */}
-                      <div className="space-y-3 pt-2">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <label className="text-sm font-semibold text-gray-800">
-                              Apa yang Kamu Dapatkan? (Poin Manfaat)
-                            </label>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              Poin-poin ini akan ditampilkan di bagian &quot;Apa yang akan kamu dapatkan?&quot; pada halaman detail psikotes user. Kosongkan jika belum ingin menambahkan.
-                            </p>
-                          </div>
+                        <div className="flex items-center justify-between pt-2 px-1">
                           <button
                             type="button"
-                            onClick={addBenefit}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#561269] bg-[#561269]/5 hover:bg-[#561269]/10 rounded-lg transition-colors cursor-pointer"
+                            onClick={() => document.getElementById("banner-file-input")?.click()}
+                            disabled={isUploadingImage}
+                            className="text-xs font-bold text-[#561269] hover:text-[#400d4f] transition-colors cursor-pointer"
                           >
-                            <Plus className="w-3.5 h-3.5" /> Tambah Poin
+                            Ganti Gambar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRemoveBanner}
+                            disabled={isUploadingImage}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-700 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Hapus
                           </button>
                         </div>
-
-                        <div className="space-y-2">
-                          {(paketData.benefits && paketData.benefits.length > 0 ? paketData.benefits : [""]).map((benefit, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <span className="w-6 text-center text-xs font-bold text-gray-400">
-                                {idx + 1}.
-                              </span>
-                              <input
-                                type="text"
-                                value={benefit}
-                                onChange={(e) => updateBenefit(idx, e.target.value)}
-                                placeholder={`Contoh: Pemetaan profil kepribadian mendalam`}
-                                className="flex-1 px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeBenefit(idx)}
-                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                title="Hapus Poin"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
                       </div>
+                    ) : (
+                      <div
+                        onClick={() => !isUploadingImage && document.getElementById("banner-file-input")?.click()}
+                        className={`border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-[#561269]/50 transition-colors cursor-pointer ${
+                          isUploadingImage ? "opacity-60 cursor-not-allowed" : ""
+                        }`}
+                      >
+                        {isUploadingImage ? (
+                          <>
+                            <Loader2 className="w-8 h-8 mb-2 text-[#561269] animate-spin" />
+                            <p className="text-sm font-semibold text-gray-800">Mengunggah gambar...</p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-8 h-8 mb-2 text-gray-400" />
+                            <p className="text-sm font-semibold text-gray-800">Klik untuk upload atau seret gambar banner</p>
+                            <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 5MB, otomatis dioptimalkan)</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Poin Manfaat: Apa yang kamu dapatkan (Selalu ditampilkan langsung) */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-semibold text-gray-800">
+                          Apa yang Kamu Dapatkan? (Poin Manfaat)
+                        </label>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Poin-poin ini akan ditampilkan di bagian &quot;Apa yang akan kamu dapatkan?&quot; pada halaman detail psikotes user. Kosongkan jika belum ingin menambahkan.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addBenefit}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#561269] bg-[#561269]/5 hover:bg-[#561269]/10 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Tambah Poin
+                      </button>
                     </div>
-                  )}
+
+                    <div className="space-y-2">
+                      {(paketData.benefits && paketData.benefits.length > 0 ? paketData.benefits : [""]).map((benefit, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="w-6 text-center text-xs font-bold text-gray-400">
+                            {idx + 1}.
+                          </span>
+                          <input
+                            type="text"
+                            value={benefit}
+                            onChange={(e) => updateBenefit(idx, e.target.value)}
+                            placeholder={`Contoh: Pemetaan profil kepribadian mendalam`}
+                            className="flex-1 px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeBenefit(idx)}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Hapus Poin"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Footer Buttons for Step 1 */}
-                <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100 mt-8">
+                <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-8">
                   <button
                     type="button"
-                    onClick={() => setActiveTab("paket")}
+                    onClick={() => {
+                      setActiveTab("paket");
+                      setIsEditingPackage(false);
+                    }}
                     className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                   >
                     Batal
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleTabSwitch("soal")}
-                    className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                  >
-                    Lanjut: Pengisian Soal <ArrowRight className="w-4 h-4" />
-                  </button>
+
+                  <div className="flex items-center gap-3">
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => handleSaveDraft(true)}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#561269] hover:bg-[#400d4f] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4" /> Simpan Perubahan
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleTabSwitch("soal")}
+                      className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                      Lanjut: Pengisian Soal <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -3608,13 +3852,25 @@ export default function AdminPsikotesClient() {
                   >
                     Kembali ke Info
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormTab("preview")}
-                    className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                  >
-                    Lanjut: Preview Soal <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => handleSaveDraft(true)}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#561269] hover:bg-[#400d4f] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4" /> Simpan Perubahan
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setFormTab("preview")}
+                      className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                      Lanjut: Preview Soal <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -3724,13 +3980,25 @@ export default function AdminPsikotesClient() {
                   >
                     Kembali ke Soal
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleTabSwitch("interpretasi")}
-                    className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                  >
-                    Lanjut: Interpretasi Hasil <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {isEditMode && (
+                      <button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => handleSaveDraft(true)}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#561269] hover:bg-[#400d4f] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4" /> Simpan Perubahan
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleTabSwitch("interpretasi")}
+                      className="inline-flex items-center gap-2 px-7 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                      Lanjut: Interpretasi Hasil <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -4191,9 +4459,10 @@ export default function AdminPsikotesClient() {
                   <button
                     type="button"
                     onClick={handlePublikasikan}
-                    className="inline-flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                   >
-                    <CheckCircle className="w-4 h-4" /> {isEditingPublished ? "Simpan & Perbarui Paket" : "Publikasikan Paket"}
+                    <CheckCircle className="w-4 h-4" /> {isEditMode ? "Simpan Perubahan Paket" : "Publikasikan Paket"}
                   </button>
                 </div>
               </div>
@@ -4351,21 +4620,6 @@ export default function AdminPsikotesClient() {
                             <div className="flex items-center gap-4 text-xs font-semibold text-gray-700 pt-2 border-t border-purple-100">
                               <span>Soal: {paketBerbayar.jumlahSoal} butir</span>
                             </div>
-                            {paketBerbayar.interpretasiList && paketBerbayar.interpretasiList.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedJudul(null);
-                                  setPreviewBerbayarModal({
-                                    title: `${selectedJudul.judul} (Paket Berbayar)`,
-                                    inter: paketBerbayar.interpretasiList[0],
-                                  });
-                                }}
-                                className="w-full mt-3 py-2 px-3 rounded-xl bg-purple-100 hover:bg-purple-200 text-[#561269] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                              >
-                                <Eye className="w-3.5 h-3.5" /> Preview Format Laporan User
-                              </button>
-                            )}
                           </div>
 
                           {/* If Aktif: Edit button */}
@@ -4451,6 +4705,7 @@ export default function AdminPsikotesClient() {
       {/* 5. DETAIL PESERTA MODAL (HASIL DOKUMEN PDF KLIEN)         */}
       {/* ========================================================= */}
       {selectedPeserta && (() => {
+        const isCompleted = selectedPeserta.status === "Selesai" || Boolean(selectedPeserta.hasil);
         const detail = getPesertaReportDetail(selectedPeserta);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
@@ -4466,9 +4721,15 @@ export default function AdminPsikotesClient() {
                       <h3 className="font-bold text-base text-gray-900 leading-tight">
                         {selectedPeserta.nama}
                       </h3>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        Selesai Dinilai
-                      </span>
+                      {isCompleted ? (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          Selesai Dinilai
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                          Sedang Berjalan
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {selectedPeserta.paket} · {selectedPeserta.tanggal}
@@ -4523,162 +4784,212 @@ export default function AdminPsikotesClient() {
                   </div>
                 </div>
 
-                {/* 1. Hasil Utama (Hero Card) */}
-                <div className="bg-gradient-to-br from-purple-50/60 via-white to-purple-50/30 rounded-2xl border border-purple-100 p-6 text-center space-y-2">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Hasil Karakteristik Utama
-                  </span>
-                  <h2 className="text-2xl sm:text-3xl font-black text-[#561269] tracking-tight">
-                    {selectedPeserta.skor}
-                  </h2>
-                  <p className="text-xs text-gray-600 max-w-xl mx-auto leading-relaxed pt-1">
-                    {detail.deskripsi}
-                  </p>
-                </div>
-
-                {/* 2. Interpretasi & Implikasi */}
-                <div className="space-y-3.5">
-                  <div className="p-5 rounded-2xl bg-white border border-gray-200/80 space-y-2">
-                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <Info className="w-4 h-4 text-[#561269]" />
-                      Interpretasi Analisis &amp; Landasan Ilmiah
-                    </h4>
-                    <p className="text-xs text-gray-600 leading-relaxed">
-                      {detail.deskripsi}
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2]">
-                    <h5 className="text-[11px] font-bold text-[#561269] uppercase tracking-wider mb-1">
-                      Implikasi bagi Kehidupan Sehari-hari
-                    </h5>
-                    <p className="text-xs text-gray-700 leading-relaxed">
-                      {detail.makna}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3. Analisis Karakteristik: Kekuatan Utama vs Blindspots */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {/* Kekuatan Utama */}
-                  <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
-                    <div className="flex items-center gap-1.5 mb-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                      <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
-                        Kekuatan Utama (Core Strengths)
-                      </span>
-                    </div>
-                    <ul className="space-y-2 text-xs text-emerald-950">
-                      {detail.kekuatanUtama.map((point, pIdx) => (
-                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Titik Rawan */}
-                  <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200/70">
-                    <div className="flex items-center gap-1.5 mb-2.5">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span className="text-[11px] font-bold text-rose-900 uppercase tracking-wider">
-                        Titik Rawan (Blindspots)
-                      </span>
-                    </div>
-                    <ul className="space-y-2 text-xs text-rose-950">
-                      {detail.blindspots.map((point, pIdx) => (
-                        <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* 4. Lingkungan & Budaya Kerja Optimal */}
-                <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Compass className="w-4 h-4 text-amber-700 shrink-0" />
-                    <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
-                      Lingkungan &amp; Budaya Optimal
-                    </span>
-                  </div>
-                  <ul className="space-y-2 text-xs text-gray-800">
-                    {detail.lingkunganOptimal.map((ling, lIdx) => (
-                      <li key={lIdx} className="flex items-start gap-2 leading-relaxed">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                        <span>{ling}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* 5. Langkah Pengembangan Diri */}
-                <div className="p-5 rounded-2xl bg-white border border-gray-200/80 space-y-3">
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <HeartHandshake className="w-4 h-4 text-[#561269]" />
-                    Langkah Pengembangan Diri
-                  </h4>
-                  <div className="space-y-2">
-                    {detail.tips.map((tip, idx) => (
-                      <div key={idx} className="flex gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                        <div className="w-5 h-5 rounded-full bg-[#561269] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                          {idx + 1}
-                        </div>
-                        <div>
-                          <h5 className="text-xs font-bold text-gray-900">{tip.title}</h5>
-                          <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">{tip.desc}</p>
-                        </div>
+                {!isCompleted ? (
+                  /* Kondisi 1: Peserta Masih Sedang Berjalan (Belum Selesai) */
+                  <div className="space-y-4">
+                    <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-6 sm:p-8 text-center space-y-3">
+                      <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+                        <Clock className="w-6 h-6" />
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Card Dokumen Laporan PDF Resmi Siap Cetak/Download */}
-                <div className="p-5 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/50 via-white to-purple-50/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-11 h-11 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0 shadow-xs">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-gray-900 leading-tight">
-                        Laporan Resmi Psikotes (Format Web User).pdf
+                      <h4 className="font-bold text-gray-900 text-base">
+                        Asesmen Psikotes Masih Sedang Berjalan
                       </h4>
-                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                        Dokumen evaluasi komprehensif terverifikasi siap unduh dan cetak 1:1 persis website klien.
+                      <p className="text-xs text-gray-600 max-w-lg mx-auto leading-relaxed">
+                        Peserta ini telah terdaftar pada paket <strong>{selectedPeserta.paket}</strong> namun belum menyelesaikan pengisian instrumen tes psikotes. Hasil skor, interpretasi analisis, karakteristik diri, dan laporan resmi PDF akan otomatis terbentuk dan dapat diakses setelah peserta menyelesaikan tes.
                       </p>
                     </div>
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadPdf(selectedPeserta)}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download Laporan (PDF)
-                  </button>
-                </div>
-
-                {/* Quick WhatsApp Action */}
-                {selectedPeserta.noHp && selectedPeserta.noHp !== "—" && (
-                  <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <span className="text-gray-700 font-medium">
-                      Kirimkan pemberitahuan hasil asesmen resmi ini ke nomor klien?
-                    </span>
-                    <a
-                      href={`https://wa.me/${selectedPeserta.noHp.replace(/\D/g, "")}?text=${encodeURIComponent(
-                        `Halo ${selectedPeserta.nama}, terima kasih telah menyelesaikan asesmen psikotes ${selectedPeserta.paket} di Empathika. Hasil asesmen Anda (${selectedPeserta.skor}) telah siap dan terverifikasi secara resmi.`
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 font-bold text-emerald-800 hover:underline shrink-0"
-                    >
-                      Kirim WhatsApp
-                    </a>
+                    {selectedPeserta.noHp && selectedPeserta.noHp !== "—" && (
+                      <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <span className="text-gray-700 font-medium">
+                          Ingatkan peserta untuk menyelesaikan pengisian instrumen tes melalui WhatsApp?
+                        </span>
+                        <a
+                          href={`https://wa.me/${selectedPeserta.noHp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                            `Halo ${selectedPeserta.nama}, akses asesmen psikotes Anda (${selectedPeserta.paket}) di Empathika telah aktif. Silakan masuk ke akun atau link tes untuk menyelesaikan pengisian instrumen asesmen.`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 font-bold text-[#561269] hover:underline shrink-0"
+                        >
+                          Kirim Pengingat WhatsApp
+                        </a>
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  /* Kondisi 2: Peserta Selesai (Data Asesmen Terverifikasi) */
+                  <>
+                    {/* 1. Hasil Utama (Hero Card) */}
+                    <div className="bg-gradient-to-br from-purple-50/60 via-white to-purple-50/30 rounded-2xl border border-purple-100 p-6 text-center space-y-2">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Hasil Karakteristik Utama
+                        </span>
+                        {selectedPeserta.totalSkor !== null && selectedPeserta.totalSkor !== undefined && (
+                          <span className="text-[11px] font-bold text-purple-700 bg-purple-100/70 px-2.5 py-0.5 rounded-full border border-purple-200">
+                            Total Skor: {selectedPeserta.totalSkor}
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-black text-[#561269] tracking-tight">
+                        {selectedPeserta.skor || detail.grade}
+                      </h2>
+                      {detail.judul && detail.judul !== selectedPeserta.skor && detail.judul !== detail.grade && detail.judul !== "—" && (
+                        <h3 className="text-sm sm:text-base font-bold text-gray-800">
+                          {detail.judul}
+                        </h3>
+                      )}
+                      <p className="text-xs text-gray-600 max-w-xl mx-auto leading-relaxed pt-1">
+                        {detail.deskripsi}
+                      </p>
+                    </div>
+
+                    {/* 2. Interpretasi & Implikasi */}
+                    <div className="space-y-3.5">
+                      <div className="p-5 rounded-2xl bg-white border border-gray-200/80 space-y-2">
+                        <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                          <Info className="w-4 h-4 text-[#561269]" />
+                          Interpretasi Analisis &amp; Landasan Ilmiah
+                        </h4>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          {detail.deskripsi}
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2]">
+                        <h5 className="text-[11px] font-bold text-[#561269] uppercase tracking-wider mb-1">
+                          Implikasi bagi Kehidupan Sehari-hari
+                        </h5>
+                        <p className="text-xs text-gray-700 leading-relaxed">
+                          {detail.makna}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 3. Analisis Karakteristik: Kekuatan Utama vs Blindspots */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Kekuatan Utama */}
+                      <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                          <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
+                            {detail.judulKekuatan || "Kekuatan Utama (Core Strengths)"}
+                          </span>
+                        </div>
+                        <ul className="space-y-2 text-xs text-emerald-950">
+                          {detail.kekuatanUtama.map((point, pIdx) => (
+                            <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                              <span>{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Titik Rawan */}
+                      <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200/70">
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span className="text-[11px] font-bold text-rose-900 uppercase tracking-wider">
+                            {detail.judulBlindspots || "Titik Rawan (Blindspots)"}
+                          </span>
+                        </div>
+                        <ul className="space-y-2 text-xs text-rose-950">
+                          {detail.blindspots.map((point, pIdx) => (
+                            <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                              <span>{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* 4. Lingkungan & Budaya Kerja Optimal */}
+                    <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Compass className="w-4 h-4 text-amber-700 shrink-0" />
+                        <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
+                          {detail.judulLingkungan || "Lingkungan & Budaya Optimal"}
+                        </span>
+                      </div>
+                      <ul className="space-y-2 text-xs text-gray-800">
+                        {detail.lingkunganOptimal.map((ling, lIdx) => (
+                          <li key={lIdx} className="flex items-start gap-2 leading-relaxed">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                            <span>{ling}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* 5. Langkah Pengembangan Diri */}
+                    <div className="p-5 rounded-2xl bg-white border border-gray-200/80 space-y-3">
+                      <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <HeartHandshake className="w-4 h-4 text-[#561269]" />
+                        Langkah Pengembangan Diri
+                      </h4>
+                      <div className="space-y-2">
+                        {detail.tips.map((tip, idx) => (
+                          <div key={idx} className="flex gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                            <div className="w-5 h-5 rounded-full bg-[#561269] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <h5 className="text-xs font-bold text-gray-900">{tip.title}</h5>
+                              <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">{tip.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Card Dokumen Laporan PDF Resmi Siap Cetak/Download */}
+                    <div className="p-5 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/50 via-white to-purple-50/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-11 h-11 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0 shadow-xs">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-gray-900 leading-tight">
+                            Laporan Resmi Psikotes (Format Web User).pdf
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                            Dokumen evaluasi komprehensif terverifikasi siap unduh dan cetak 1:1 persis website klien.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadPdf(selectedPeserta)}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download Laporan (PDF)
+                      </button>
+                    </div>
+
+                    {/* Quick WhatsApp Action */}
+                    {selectedPeserta.noHp && selectedPeserta.noHp !== "—" && (
+                      <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <span className="text-gray-700 font-medium">
+                          Kirimkan pemberitahuan hasil asesmen resmi ini ke nomor klien?
+                        </span>
+                        <a
+                          href={`https://wa.me/${selectedPeserta.noHp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                            `Halo ${selectedPeserta.nama}, terima kasih telah menyelesaikan asesmen psikotes ${selectedPeserta.paket} di Empathika. Hasil asesmen Anda (${selectedPeserta.skor}${detail.judul && detail.judul !== selectedPeserta.skor ? ` - ${detail.judul}` : ""}) telah siap dan terverifikasi secara resmi.`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 font-bold text-emerald-800 hover:underline shrink-0"
+                        >
+                          Kirim WhatsApp
+                        </a>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
