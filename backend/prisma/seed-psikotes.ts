@@ -443,7 +443,8 @@ async function syncPaketWithDetails(config: {
 // ============================================================================
 // MAIN SEEDER FUNCTION
 // ============================================================================
-async function main() {
+export async function seedPsikotes(customPrisma?: PrismaClient) {
+  const p = customPrisma || prisma
   console.log('========================================================')
   console.log('🌱 MEMULAI SEEDER PSIKOTES (seed-psikotes)...')
   console.log('========================================================')
@@ -829,12 +830,14 @@ async function main() {
   console.log('========================================================\n')
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e) => {
-    console.error('❌ Error saat menjalankan seed-psikotes:', e)
-    await prisma.$disconnect()
-    process.exit(1)
-  })
+if (process.argv[1]?.includes('seed-psikotes')) {
+  seedPsikotes()
+    .then(async () => {
+      await prisma.$disconnect()
+    })
+    .catch(async (e) => {
+      console.error('❌ Error saat menjalankan seed-psikotes:', e)
+      await prisma.$disconnect()
+      process.exit(1)
+    })
+}

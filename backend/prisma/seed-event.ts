@@ -158,7 +158,8 @@ const DEMO_PESERTA_EVENT = [
 // ============================================================================
 // MAIN SEEDER FUNCTION
 // ============================================================================
-async function main() {
+export async function seedEvent(customPrisma?: PrismaClient) {
+  const p = customPrisma || prisma
   console.log('========================================================')
   console.log('🌱 MEMULAI SEEDER EVENT (seed-event)...')
   console.log('========================================================')
@@ -330,12 +331,14 @@ async function main() {
   console.log('========================================================\n')
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e) => {
-    console.error('❌ Error saat menjalankan seed-event:', e)
-    await prisma.$disconnect()
-    process.exit(1)
-  })
+if (process.argv[1]?.includes('seed-event')) {
+  seedEvent()
+    .then(async () => {
+      await prisma.$disconnect()
+    })
+    .catch(async (e) => {
+      console.error('❌ Error saat menjalankan seed-event:', e)
+      await prisma.$disconnect()
+      process.exit(1)
+    })
+}
