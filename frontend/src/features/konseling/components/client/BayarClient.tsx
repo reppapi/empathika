@@ -178,15 +178,15 @@ export default function BayarClient() {
 
     setIsSubmitting(true)
 
-    try {
-      let targetDate = qFullDate
-      if (!targetDate && qTanggal && qTahun) {
-        const parts = qTanggal.split("/")
-        if (parts.length === 2) {
-          targetDate = `${qTahun}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
-        }
+    let targetDate = qFullDate
+    if (!targetDate && qTanggal && qTahun) {
+      const parts = qTanggal.split("/")
+      if (parts.length === 2) {
+        targetDate = `${qTahun}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
       }
+    }
 
+    try {
       // Simpan langsung booking & transaksi ke PostgreSQL database
       const res: any = await bookingService.createBooking({
         id_jadwal: qSlotId || undefined,
