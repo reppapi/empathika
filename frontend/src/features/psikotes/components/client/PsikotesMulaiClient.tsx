@@ -122,6 +122,33 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
     setIsSubmitting(true);
     try {
+      // Ambil data diri peserta:
+      // Pada psikotes gratis, peserta tidak mengisi formulir identitas (anonim).
+      // Data diri hanya diambil jika paket berbayar dari pendaftaran / query parameter resmi.
+      const isPaketGratis = dbData?.jenis_akses === "GRATIS" || (typeof dbData?.harga === "number" && dbData.harga === 0);
+
+      let pesertaNama = "";
+      let pesertaWa = "";
+      let pesertaEmail = "";
+
+      if (!isPaketGratis) {
+        pesertaNama = searchParams.get("nama") || "";
+        pesertaWa = searchParams.get("whatsapp") || searchParams.get("no_telepon") || "";
+        pesertaEmail = searchParams.get("email") || "";
+
+        if (!pesertaNama) {
+          try {
+            const raw = localStorage.getItem("empathika_peserta_psikotes");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed.nama) pesertaNama = parsed.nama;
+              if (parsed.no_telepon) pesertaWa = parsed.no_telepon;
+              if (parsed.email) pesertaEmail = parsed.email;
+            }
+          } catch {}
+        }
+      }
+
       if (dbData && dbData.soal_psikotes && dbData.soal_psikotes.length > 0) {
         // Susun payload jawaban untuk dikirim ke backend
         const jawabanPayload = dbData.soal_psikotes.map((s, idx) => {
@@ -135,12 +162,22 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
         const res = await psikotesService.submitJawaban(params.testId, {
           jawaban: jawabanPayload,
+          nama: pesertaNama || undefined,
+          no_telepon: pesertaWa || undefined,
+          email: pesertaEmail || undefined,
+          klien: pesertaNama ? {
+            nama: pesertaNama,
+            no_telepon: pesertaWa || undefined,
+            email: pesertaEmail || undefined,
+          } : undefined,
         });
 
         if (res && res.success && res.data) {
           const query = new URLSearchParams(searchParams.toString());
           query.set("skor", String(res.data.total_skor));
           query.set("bookingId", res.data.id_booking);
+          if (pesertaNama) query.set("nama", pesertaNama);
+          if (pesertaWa) query.set("whatsapp", pesertaWa);
           router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
           return;
         }
@@ -150,6 +187,8 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       const score = calculateScore(answers);
       const query = new URLSearchParams(searchParams.toString());
       query.set("skor", String(score));
+      if (pesertaNama) query.set("nama", pesertaNama);
+      if (pesertaWa) query.set("whatsapp", pesertaWa);
       router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
     } catch (err) {
       console.error("Gagal menyimpan jawaban psikotes ke server:", err);

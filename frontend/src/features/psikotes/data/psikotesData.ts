@@ -1,3 +1,17 @@
+export const UNIVERSAL_PAID_BENEFITS = [
+  "Hasil analisis sesuai jenis psikotes yang dipilih",
+  "Interpretasi hasil dan karakteristik secara mendalam",
+  "Insight mengenai potensi, kelebihan, dan area pengembangan diri",
+  "Rekomendasi dan panduan pengembangan diri sesuai hasil asesmen",
+];
+
+export const UNIVERSAL_FREE_BENEFITS = [
+  "Akses pengerjaan asesmen secara online tanpa biaya",
+  "Hasil skor dan profil asesmen langsung keluar",
+  "Ringkasan interpretasi hasil dan makna bagi peserta",
+  "Tips dasar dan saran aksi pengembangan praktis",
+];
+
 export const TEST_DATA = {
   "mbti": {
     id: "mbti",
@@ -23,18 +37,9 @@ export const TEST_DATA = {
     questions: "60 Pertanyaan",
     price: 50000,
     formattedPrice: "Rp 50.000",
-    paidPackageName: "Paket Premium & Laporan Lengkap",
-    paidBenefits: [
-      "Laporan komprehensif 16 tipe kepribadian lengkap",
-      "Analisis mendalam fungsi kognitif & gaya kerja",
-      "Rekomendasi karir, jurusan & lingkungan kerja ideal",
-      "Panduan pengembangan diri & gaya komunikasi profesional"
-    ],
-    freeBenefits: [
-      "Pengerjaan 60 butir soal standar secara online",
-      "Ringkasan deskripsi tipe kepribadian utama",
-      "Akses tanpa batas waktu"
-    ]
+    paidPackageName: "Laporan Hasil Psikotes Lengkap (PDF)",
+    paidBenefits: UNIVERSAL_PAID_BENEFITS,
+    freeBenefits: UNIVERSAL_FREE_BENEFITS,
   },
   "mbti-2": {
     id: "mbti-2",
@@ -60,18 +65,9 @@ export const TEST_DATA = {
     questions: "60 Pertanyaan",
     price: 75000,
     formattedPrice: "Rp 75.000",
-    paidPackageName: "Paket Analisis Lanjutan & Rekomendasi",
-    paidBenefits: [
-      "Pemetaan spektrum introvert vs ekstrovert terperinci",
-      "Panduan manajemen stres & regulasi emosi kerja",
-      "Rencana aksi pengembangan potensi personal",
-      "Analisis interaksi tim & dinamika interpersonal"
-    ],
-    freeBenefits: [
-      "Pengerjaan 60 butir soal lanjutan secara online",
-      "Skor ringkas orientasi kepribadian",
-      "Akses fleksibel tanpa biaya"
-    ]
+    paidPackageName: "Laporan Hasil Psikotes Lengkap (PDF)",
+    paidBenefits: UNIVERSAL_PAID_BENEFITS,
+    freeBenefits: UNIVERSAL_FREE_BENEFITS,
   },
   "love-language": {
     id: "love-language",
@@ -97,18 +93,9 @@ export const TEST_DATA = {
     questions: "30 Pertanyaan",
     price: 40000,
     formattedPrice: "Rp 40.000",
-    paidPackageName: "Paket Hubungan & Panduan Relasi Lengkap",
-    paidBenefits: [
-      "Grafik persentase 5 bahasa cinta secara menyeluruh",
-      "Panduan komunikasi asertif dengan pasangan & keluarga",
-      "Lembar kerja relasi sehat dan resolusi konflik",
-      "Tips penerapan bahasa cinta dalam keseharian"
-    ],
-    freeBenefits: [
-      "Pengerjaan 30 butir soal love language",
-      "Identifikasi 1 bahasa cinta primer",
-      "Akses gratis tanpa registrasi rumit"
-    ]
+    paidPackageName: "Laporan Hasil Psikotes Lengkap (PDF)",
+    paidBenefits: UNIVERSAL_PAID_BENEFITS,
+    freeBenefits: UNIVERSAL_FREE_BENEFITS,
   }
 };
 

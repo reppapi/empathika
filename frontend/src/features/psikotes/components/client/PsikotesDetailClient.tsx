@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { TEST_DATA } from "../../data/psikotesData";
+import { TEST_DATA, UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "../../data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { Check, ShieldCheck, FileQuestion, ArrowRight } from "lucide-react";
 
@@ -46,19 +46,19 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
         questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
         price: apiData.harga || 0,
         formattedPrice: apiData.harga ? `Rp ${apiData.harga.toLocaleString("id-ID")}` : "Gratis",
-        benefits: (Array.isArray(apiData.benefits) && apiData.benefits.length > 0)
-          ? (apiData.benefits as string[])
-          : fallback.benefits,
+        benefits: Array.isArray(apiData.benefits)
+          ? (apiData.benefits as string[]).filter((b) => typeof b === "string" && b.trim().length > 0)
+          : (fallback.benefits || []),
         guidelines: fallback.guidelines,
-        freeBenefits: [
-          `Pengerjaan ${apiData.soal_psikotes?.length || 0} butir soal terstruktur`,
-          "Analisis dan interpretasi hasil langsung keluar",
-          "Akses fleksibel tanpa biaya",
-        ],
-        paidBenefits: fallback.paidBenefits,
-        paidPackageName: fallback.paidPackageName,
+        freeBenefits: UNIVERSAL_FREE_BENEFITS,
+        paidBenefits: UNIVERSAL_PAID_BENEFITS,
+        paidPackageName: "Laporan Hasil Psikotes Lengkap (PDF)",
       }
-    : fallback;
+    : {
+        ...fallback,
+        freeBenefits: UNIVERSAL_FREE_BENEFITS,
+        paidBenefits: UNIVERSAL_PAID_BENEFITS,
+      };
 
   const checkoutUrl = `/event/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
 
@@ -138,7 +138,9 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                       <span className="text-2xl font-black text-gray-900">Rp 0</span>
                       <span className="text-xs text-gray-400 font-semibold">/ Gratis</span>
                     </div>
-                    <p className="text-xs text-gray-500 mb-4">Cocok untuk pengenalan diri cepat tanpa biaya.</p>
+                    <p className="text-xs font-bold text-gray-800 mb-3">
+                      Ringkasan Hasil Psikotes (Online)
+                    </p>
                     <ul className="space-y-2 text-xs text-gray-600 mb-4">
                       {data.freeBenefits.map((item, idx) => (
                         <li key={idx} className="flex items-start gap-2">
@@ -200,9 +202,9 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                         <span className="text-xs text-gray-400 font-semibold">/ satu kali tes</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mb-4">
+                    <p className="text-xs font-bold text-gray-800 mb-3">
                       {hasPaidPackage 
-                        ? "Laporan analisis lengkap & komprehensif (PDF)." 
+                        ? "Laporan Hasil Psikotes Lengkap (PDF)" 
                         : "Paket asesmen ini saat ini hanya tersedia untuk akses gratis."}
                     </p>
                     <ul className="space-y-2 text-xs text-gray-700 mb-4">
@@ -235,22 +237,25 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
               </div>
             </div>
 
-            {/* Benefits Umum */}
-            <div>
-              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-6">Apa yang akan kamu dapatkan?</h2>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {data.benefits.map((benefit, idx) => (
-                  <li key={idx} className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full bg-[#561269]/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-[#561269]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
-                    </div>
-                    <span className="text-gray-600 font-medium leading-relaxed">{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <hr className="border-gray-100" />
+            {/* Benefits Umum (Apa yang akan kamu dapatkan) */}
+            {data.benefits && data.benefits.length > 0 && (
+              <>
+                <div>
+                  <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-6">Apa yang akan kamu dapatkan?</h2>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {data.benefits.map((benefit, idx) => (
+                      <li key={idx} className="flex items-start gap-4">
+                        <div className="w-8 h-8 rounded-full bg-[#561269]/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <svg className="w-5 h-5 text-[#561269]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <span className="text-gray-600 font-medium leading-relaxed">{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <hr className="border-gray-100" />
+              </>
+            )}
 
             {/* Guidelines */}
             <div>

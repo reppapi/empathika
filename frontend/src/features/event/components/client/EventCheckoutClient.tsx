@@ -152,6 +152,19 @@ export default function EventCheckoutClient() {
       ...(selectedBank    && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
+    if (isPsikotes) {
+      try {
+        localStorage.setItem(
+          "empathika_peserta_psikotes",
+          JSON.stringify({
+            nama: nama.toUpperCase(),
+            no_telepon: whatsapp,
+            email,
+          })
+        )
+      } catch {}
+    }
+
     // Arahkan ke halaman pending dulu
     router.push(`/event/pending?${params.toString()}`)
   }

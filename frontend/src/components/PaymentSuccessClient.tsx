@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Script from "next/script"
 import { useSearchParams } from "next/navigation"
-import { Suspense } from "react"
+import { Suspense, useEffect } from "react"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
 type PaymentType = "konseling" | "event"
@@ -87,12 +87,38 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
       judul.toLowerCase().includes("kepribadian") ||
       orderId.startsWith("PSI-"))
 
+  useEffect(() => {
+    if (isPsikotes && nama && nama !== "PESERTA") {
+      try {
+        localStorage.setItem(
+          "empathika_peserta_psikotes",
+          JSON.stringify({
+            nama,
+            no_telepon: searchParams.get("whatsapp") || "",
+            email: searchParams.get("email") || "",
+            orderId,
+          })
+        )
+      } catch {}
+    }
+  }, [isPsikotes, nama, searchParams, orderId])
+
   const getTestStartUrl = () => {
-    if (testId) return `/psikotes/${testId}/mulai?paket=berbayar`
+    const q = new URLSearchParams()
+    q.set("paket", "berbayar")
+    if (nama && nama !== "PESERTA") q.set("nama", nama)
+    const wa = searchParams.get("whatsapp")
+    if (wa) q.set("whatsapp", wa)
+    const em = searchParams.get("email")
+    if (em) q.set("email", em)
+    if (orderId) q.set("orderId", orderId)
+
+    const queryString = q.toString()
+    if (testId) return `/psikotes/${testId}/mulai?${queryString}`
     const j = judul.toLowerCase()
-    if (j.includes("love")) return "/psikotes/love-language/mulai?paket=berbayar"
-    if (j.includes("lanjutan") || j.includes("mbti-2")) return "/psikotes/mbti-2/mulai?paket=berbayar"
-    return "/psikotes/mbti/mulai?paket=berbayar"
+    if (j.includes("love")) return `/psikotes/love-language/mulai?${queryString}`
+    if (j.includes("lanjutan") || j.includes("mbti-2")) return `/psikotes/mbti-2/mulai?${queryString}`
+    return `/psikotes/mbti/mulai?${queryString}`
   }
 
   const metodeLabel =

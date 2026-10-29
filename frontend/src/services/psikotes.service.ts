@@ -42,9 +42,13 @@ export interface PaketPsikotesApiResponse {
 
 export interface SubmitPsikotesPayload {
   jawaban: Array<{ id_soal: string; id_pilihan: string }> | Record<string, string>
+  nama?: string
+  no_telepon?: string
+  email?: string
   klien?: {
     nama?: string
     no_telepon?: string
+    email?: string
     usia?: number
     jenis_kelamin?: string
   }
