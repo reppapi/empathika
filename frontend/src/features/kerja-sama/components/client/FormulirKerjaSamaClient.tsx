@@ -12,6 +12,7 @@ import {
 } from "../../data/initialData"
 import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
 import { kerjaSamaService } from "@/services/kerja-sama.service"
+import { adminService } from "@/services/admin.service"
 
 interface FormulirKerjaSamaClientProps {
   formType?: string
@@ -36,8 +37,49 @@ export default function FormulirKerjaSamaClient({
   React.useEffect(() => {
     setIsMounted(true)
     setAllFormConfigs(getFormulirConfigs())
-    const cfg = getKerjaSamaConfig()
-    setWaNumber(getCleanWhatsAppNumber(cfg?.kontak?.whatsapp))
+    
+    const refreshWaNumber = () => {
+      const cfg = getKerjaSamaConfig()
+      setWaNumber(getCleanWhatsAppNumber(cfg?.kontak?.whatsapp))
+    }
+
+    refreshWaNumber()
+
+    // Sinkronkan data profil publik admin dari backend
+    adminService
+      .getPublicProfile()
+      .then((res: any) => {
+        if (res?.data) {
+          const p = res.data
+          const phone = p.no_telepon || p.noTelepon
+          if (phone && phone !== "081234567890") {
+            try {
+              const currentAdmin = localStorage.getItem("empathika_admin_profile")
+              const parsed = currentAdmin ? JSON.parse(currentAdmin) : {}
+              localStorage.setItem(
+                "empathika_admin_profile",
+                JSON.stringify({
+                  ...parsed,
+                  noTelepon: phone,
+                  email: p.email || parsed.email,
+                })
+              )
+            } catch {}
+          }
+          refreshWaNumber()
+        }
+      })
+      .catch(() => {})
+
+    window.addEventListener("empathika_admin_profile_updated", refreshWaNumber)
+    window.addEventListener("storage", refreshWaNumber)
+    window.addEventListener("focus", refreshWaNumber)
+
+    return () => {
+      window.removeEventListener("empathika_admin_profile_updated", refreshWaNumber)
+      window.removeEventListener("storage", refreshWaNumber)
+      window.removeEventListener("focus", refreshWaNumber)
+    }
   }, [])
 
   const currentConfigs = isMounted ? allFormConfigs : INITIAL_FORMULIR_CONFIGS

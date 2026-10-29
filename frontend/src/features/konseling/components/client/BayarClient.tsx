@@ -234,11 +234,15 @@ export default function BayarClient() {
         if (raw) {
           const parsed = JSON.parse(raw)
           if (Array.isArray(parsed)) {
-            const updated = parsed.filter(
-              (s: any) =>
-                s.id !== qSlotId &&
-                !(s.tanggal === targetDate && (s.jam_mulai === qWaktu || s.jam_mulai?.substring(0, 5) === qWaktu?.substring(0, 5)))
-            )
+            const qTime5 = qWaktu ? qWaktu.trim().substring(0, 5) : ""
+            const updated = parsed.filter((s: any) => {
+              if (qSlotId && s.id === qSlotId) return false
+              const sTime5 = (s.jam_mulai || "").trim().substring(0, 5)
+              const sDate = s.tanggal || ""
+              const isMatchDate = targetDate ? sDate === targetDate : true
+              if (isMatchDate && qTime5 && sTime5 === qTime5) return false
+              return true
+            })
             localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(updated))
             window.dispatchEvent(new Event("storage"))
           }
@@ -250,6 +254,28 @@ export default function BayarClient() {
     } catch (err: any) {
       console.error("Booking error:", err)
       const msg = err?.response?.data?.message || err?.message || "Gagal memproses booking. Silakan coba lagi."
+      
+      // Jika slot ternyata sudah dibooking, bersihkan dari cache agar tidak muncul lagi
+      try {
+        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            const qTime5 = qWaktu ? qWaktu.trim().substring(0, 5) : ""
+            const updated = parsed.filter((s: any) => {
+              if (qSlotId && s.id === qSlotId) return false
+              const sTime5 = (s.jam_mulai || "").trim().substring(0, 5)
+              const sDate = s.tanggal || ""
+              const isMatchDate = targetDate ? sDate === targetDate : true
+              if (isMatchDate && qTime5 && sTime5 === qTime5) return false
+              return true
+            })
+            localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(updated))
+            window.dispatchEvent(new Event("storage"))
+          }
+        }
+      } catch {}
+
       alert(msg)
     } finally {
       setIsSubmitting(false)

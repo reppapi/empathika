@@ -331,7 +331,8 @@ export default function JadwalAdmin() {
     (sessions: ClientSessionToday[], targetDateKey?: string): ClientSessionToday[] => {
       const now = new Date()
       const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-      const isTargetToday = !targetDateKey || targetDateKey === todayKey
+      const activeDateKey = targetDateKey || todayKey
+      const isTargetToday = activeDateKey === todayKey
       const currentMinutes = now.getHours() * 60 + now.getMinutes()
 
       let foundNearest = false
@@ -345,28 +346,28 @@ export default function JadwalAdmin() {
           return { ...item, isUpcomingNearest: false }
         }
 
-        const sessionDateKey = item.date || item.tanggal || todayKey
+        const sessionDateKey = item.date || item.tanggal || activeDateKey
 
-        // Jika tanggal sesi di masa lampau (kemarin atau sebelumnya)
-        if (sessionDateKey < todayKey) {
+        // Kasus A: Jika tanggal sesi berada di hari kemarin atau tanggal yang dilihat di masa lalu
+        if (sessionDateKey < todayKey || (!isTargetToday && activeDateKey < todayKey)) {
           return { ...item, status: "Selesai" as const, isUpcomingNearest: false }
         }
 
-        // Jika tanggal sesi di masa depan (besok atau seterusnya)
-        if (sessionDateKey > todayKey) {
+        // Kasus B: Jika tanggal sesi berada di hari esok atau tanggal yang dilihat di masa depan
+        if (sessionDateKey > todayKey || (!isTargetToday && activeDateKey > todayKey)) {
           return { ...item, status: "Menunggu Jadwal" as const, isUpcomingNearest: false }
         }
 
-        // Jika tanggal sesi HARI INI: cocokkan dengan jam sekarang
+        // Kasus C: Tanggal sesi HARI INI
         const { startMinutes, endMinutes } = parseTimeRangeMinutes(item.waktu)
 
-        // Kasus 1: Sesi sudah lewat
-        if (currentMinutes >= endMinutes) {
+        // 1. Sesi sudah lewat (jam selesai <= jam sekarang) -> Mutlak Selesai
+        if (endMinutes && currentMinutes >= endMinutes) {
           return { ...item, status: "Selesai" as const, isUpcomingNearest: false }
         }
 
-        // Kasus 2: Sesi sedang berlangsung
-        if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+        // 2. Sesi sedang berlangsung (jam mulai <= sekarang < jam selesai)
+        if (startMinutes && endMinutes && currentMinutes >= startMinutes && currentMinutes < endMinutes) {
           return {
             ...item,
             status: "Sedang Berlangsung" as const,
@@ -374,19 +375,26 @@ export default function JadwalAdmin() {
           }
         }
 
-        // Kasus 3: Sesi di masa mendatang hari ini (currentMinutes < startMinutes)
-        if (!foundNearest) {
-          foundNearest = true
+        // 3. Sesi di masa mendatang hari ini (sekarang < jam mulai)
+        if (startMinutes && currentMinutes < startMinutes) {
+          if (!foundNearest) {
+            foundNearest = true
+            return {
+              ...item,
+              status: "Segera Dimulai" as const,
+              isUpcomingNearest: true,
+            }
+          }
           return {
             ...item,
-            status: "Segera Dimulai" as const,
-            isUpcomingNearest: true,
+            status: "Menunggu Jadwal" as const,
+            isUpcomingNearest: false,
           }
         }
 
         return {
           ...item,
-          status: "Menunggu Jadwal" as const,
+          status: item.status || "Menunggu Jadwal",
           isUpcomingNearest: false,
         }
       })
@@ -395,17 +403,34 @@ export default function JadwalAdmin() {
   )
 
   const nearestSession = useMemo(() => {
-    // 1. Prioritas utama: sesi yang segera dimulai berikutnya hari ini
-    const upcoming = filteredTodaySessions.find((s) => s.status === "Segera Dimulai" || s.isUpcomingNearest)
+    const now = new Date()
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
+    // Highlight Sesi Terdekat Berikutnya HANYA muncul jika admin sedang melihat jadwal hari ini
+    if (datePickerValue && datePickerValue !== todayKey) {
+      return null
+    }
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+    // 1. Prioritas utama: sesi yang segera dimulai berikutnya hari ini (jam belum lewat)
+    const upcoming = filteredTodaySessions.find((s) => {
+      if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)") return false
+      if (s.status !== "Segera Dimulai" && !s.isUpcomingNearest) return false
+      const { endMinutes } = parseTimeRangeMinutes(s.waktu)
+      return endMinutes > currentMinutes
+    })
     if (upcoming) return upcoming
 
     // 2. Prioritas kedua: sesi yang sedang berlangsung saat ini
-    const ongoing = filteredTodaySessions.find((s) => s.status === "Sedang Berlangsung")
+    const ongoing = filteredTodaySessions.find((s) => {
+      if (s.status !== "Sedang Berlangsung") return false
+      const { startMinutes, endMinutes } = parseTimeRangeMinutes(s.waktu)
+      return currentMinutes >= startMinutes && currentMinutes < endMinutes
+    })
     if (ongoing) return ongoing
 
     // 3. Prioritas ketiga: sesi menunggu jadwal yang jam mulainya belum lewat
-    const now = new Date()
-    const currentMinutes = now.getHours() * 60 + now.getMinutes()
     const waitingFuture = filteredTodaySessions.find((s) => {
       if (s.status !== "Menunggu Jadwal") return false
       const { startMinutes } = parseTimeRangeMinutes(s.waktu)
@@ -414,7 +439,7 @@ export default function JadwalAdmin() {
     if (waitingFuture) return waitingFuture
 
     return null
-  }, [filteredTodaySessions])
+  }, [filteredTodaySessions, datePickerValue])
 
   // ── 5. Dynamic Time Update (Sinkronisasi Jam Lokal Real-Time) ──
   useEffect(() => {

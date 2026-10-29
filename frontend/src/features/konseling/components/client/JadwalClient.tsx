@@ -12,15 +12,6 @@ const MONTHS = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ]
 
-// Slot waktu sesi konsultasi standar klinik
-const STANDARD_CLINIC_SLOTS = [
-  { jam_mulai: "09:00", jam_selesai: "10:00", label: "09:00 - 10:00" },
-  { jam_mulai: "10:00", jam_selesai: "11:00", label: "10:00 - 11:00" },
-  { jam_mulai: "13:00", jam_selesai: "14:00", label: "13:00 - 14:00" },
-  { jam_mulai: "13:30", jam_selesai: "14:30", label: "13:30 - 14:30" },
-  { jam_mulai: "14:30", jam_selesai: "15:30", label: "14:30 - 15:30" },
-  { jam_mulai: "15:30", jam_selesai: "16:30", label: "15:30 - 16:30" },
-]
 
 // Helper format YYYY-MM-DD
 function formatDateToKey(d: Date): string {
@@ -125,12 +116,14 @@ export default function JadwalClient() {
       const currentMinutes = now.getHours() * 60 + now.getMinutes()
 
       // 1. Ambil seluruh slot ketersediaan dari Backend Database
+      let isApiSuccess = false
       try {
         const slots = await psikologService.getJadwalTersedia({
           id_psikolog: psikologIdParam,
           tipe_jadwal: "KONSULTASI",
         })
         if (Array.isArray(slots)) {
+          isApiSuccess = true
           slots.forEach((s) => {
             if (s.tanggal && s.status === "TERSEDIA") {
               if (s.tanggal > todayKey) {
@@ -146,41 +139,43 @@ export default function JadwalClient() {
         }
       } catch {}
 
-      // 2. Ambil dari LocalStorage (hanya jika berstatus TERSEDIA)
-      try {
-        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed)) {
-            parsed.forEach((s: any) => {
-              const matchType = !s.tipe_jadwal || s.tipe_jadwal === "KONSULTASI"
-              const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
-              const matchPsi =
-                !psikologIdParam ||
-                s.id_psikolog === psikologIdParam ||
-                (selectedPsikolog &&
-                  (s.nama_psikolog === selectedPsikolog.nama_gelar ||
-                    s.nama_psikolog === selectedPsikolog.nama ||
-                    s.nama_psikolog === selectedPsikolog.account?.nama)) ||
-                (psikologNameParam &&
-                  s.nama_psikolog &&
-                  (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
-                    psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
+      // 2. Ambil dari LocalStorage HANYA jika backend API gagal/offline
+      if (!isApiSuccess) {
+        try {
+          const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (Array.isArray(parsed)) {
+              parsed.forEach((s: any) => {
+                const matchType = !s.tipe_jadwal || s.tipe_jadwal === "KONSULTASI"
+                const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
+                const matchPsi =
+                  !psikologIdParam ||
+                  s.id_psikolog === psikologIdParam ||
+                  (selectedPsikolog &&
+                    (s.nama_psikolog === selectedPsikolog.nama_gelar ||
+                      s.nama_psikolog === selectedPsikolog.nama ||
+                      s.nama_psikolog === selectedPsikolog.account?.nama)) ||
+                  (psikologNameParam &&
+                    s.nama_psikolog &&
+                    (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
+                      psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
 
-              if (matchType && matchPsi && s.tanggal && isTersedia) {
-                if (s.tanggal > todayKey) {
-                  datesFound.add(s.tanggal)
-                } else if (s.tanggal === todayKey) {
-                  const startMinutes = extractMinutes(s.jam_mulai)
-                  if (startMinutes !== -1 && currentMinutes < startMinutes) {
+                if (matchType && matchPsi && s.tanggal && isTersedia) {
+                  if (s.tanggal > todayKey) {
                     datesFound.add(s.tanggal)
+                  } else if (s.tanggal === todayKey) {
+                    const startMinutes = extractMinutes(s.jam_mulai)
+                    if (startMinutes !== -1 && currentMinutes < startMinutes) {
+                      datesFound.add(s.tanggal)
+                    }
                   }
                 }
-              }
-            })
+              })
+            }
           }
-        }
-      } catch {}
+        } catch {}
+      }
 
       if (isCancelled) return
 
@@ -245,6 +240,7 @@ export default function JadwalClient() {
 
       // 1. Ambil slot dari Backend API (hanya yang berstatus TERSEDIA murni)
       let apiSlots: JadwalSlotItem[] = []
+      let isApiSuccess = false
       try {
         apiSlots =
           (await psikologService.getJadwalTersedia({
@@ -252,11 +248,12 @@ export default function JadwalClient() {
             id_psikolog: psikologIdParam,
             tipe_jadwal: "KONSULTASI",
           })) || []
+        isApiSuccess = true
       } catch (_err) {
         apiSlots = []
       }
 
-      // 2. Ambil seluruh slot dari LocalStorage (yang dibuka oleh psikolog)
+      // 2. Ambil seluruh slot dari LocalStorage untuk metadata atau fallback
       let allCustomSlots: any[] = []
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots")
@@ -304,36 +301,37 @@ export default function JadwalClient() {
         })
       })
 
-      // B. Masukkan slot dari LocalStorage yang relevan dan TERSEDIA
-      allCustomSlots
-        .filter((s: any) => {
-          const matchDate = s.tanggal === dateKey
-          const matchType = !s.tipe_jadwal || s.tipe_jadwal === "KONSULTASI"
-          const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
-          const matchPsi =
-            !psikologIdParam ||
-            s.id_psikolog === psikologIdParam ||
-            (selectedPsikolog &&
-              (s.nama_psikolog === selectedPsikolog.nama_gelar ||
-                s.nama_psikolog === selectedPsikolog.nama ||
-                s.nama_psikolog === selectedPsikolog.account?.nama)) ||
-            (psikologNameParam &&
-              s.nama_psikolog &&
-              (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
-                psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
-          return matchDate && matchType && matchPsi && isTersedia
-        })
-        .forEach((s: any) => {
-          const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
-          // Jangan menimpa jika slot API sudah ada
-          if (!candidateSlotsMap.has(timeKey)) {
-            candidateSlotsMap.set(timeKey, {
-              ...s,
-              jam_mulai: timeKey,
-              jam_selesai: (s.jam_selesai || "").trim().substring(0, 5),
-            })
-          }
-        })
+      // B. Masukkan slot dari LocalStorage HANYA jika API backend gagal/offline
+      if (!isApiSuccess) {
+        allCustomSlots
+          .filter((s: any) => {
+            const matchDate = s.tanggal === dateKey
+            const matchType = !s.tipe_jadwal || s.tipe_jadwal === "KONSULTASI"
+            const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
+            const matchPsi =
+              !psikologIdParam ||
+              s.id_psikolog === psikologIdParam ||
+              (selectedPsikolog &&
+                (s.nama_psikolog === selectedPsikolog.nama_gelar ||
+                  s.nama_psikolog === selectedPsikolog.nama ||
+                  s.nama_psikolog === selectedPsikolog.account?.nama)) ||
+              (psikologNameParam &&
+                s.nama_psikolog &&
+                (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
+                  psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
+            return matchDate && matchType && matchPsi && isTersedia
+          })
+          .forEach((s: any) => {
+            const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
+            if (!candidateSlotsMap.has(timeKey)) {
+              candidateSlotsMap.set(timeKey, {
+                ...s,
+                jam_mulai: timeKey,
+                jam_selesai: (s.jam_selesai || "").trim().substring(0, 5),
+              })
+            }
+          })
+      }
 
       // 4. FILTER KETAT: Status TERSEDIA, Jam belum lewat hari ini, dan Metode Konseling
       const now = new Date()
@@ -683,37 +681,31 @@ export default function JadwalClient() {
                   })}
                 </div>
               ) : (
-                <div className="flex flex-col gap-2.5">
-                  <div className="grid grid-cols-3 gap-3">
-                    {STANDARD_CLINIC_SLOTS.map((slot, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        disabled
-                        className="py-2 text-xs font-semibold rounded-lg border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60"
-                      >
-                        {slot.jam_mulai}
-                      </button>
-                    ))}
+                <div className="flex flex-col items-center justify-center p-5 border border-dashed border-gray-200 rounded-xl bg-gray-50/70 text-center gap-2.5 my-2">
+                  <div className="w-9 h-9 rounded-full bg-purple-50 text-[#561269] flex items-center justify-center text-base">
+                    🕒
                   </div>
-                  <div className="flex flex-col items-center gap-2 mt-2">
-                    <p className="text-[11px] text-gray-400 italic text-center">
-                      Belum ada slot waktu {metode} yang dibuka pada tanggal ini.
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-gray-700">
+                      Tidak Ada Slot {metode} Tersedia
                     </p>
-                    {earliestAvailableDate && date && formatDateToKey(date) !== formatDateToKey(earliestAvailableDate) && (
-                      <button
-                        type="button"
-                        onClick={() => setDate(earliestAvailableDate)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FAF5FD] border border-[#C3A4CE] text-[#561269] text-xs font-semibold hover:bg-[#F3E8F7] transition-all cursor-pointer shadow-2xs"
-                      >
-                        <span>💡 Slot terdekat tersedia pada:</span>
-                        <span className="font-bold underline">
-                          {earliestAvailableDate.getDate()} {MONTHS[earliestAvailableDate.getMonth()]} {earliestAvailableDate.getFullYear()}
-                        </span>
-                        <span>&rarr;</span>
-                      </button>
-                    )}
+                    <p className="text-[11px] text-gray-400 max-w-[260px] leading-relaxed">
+                      Slot jadwal pada tanggal ini sudah dibooking atau belum dibuka oleh psikolog.
+                    </p>
                   </div>
+                  {earliestAvailableDate && date && formatDateToKey(date) !== formatDateToKey(earliestAvailableDate) && (
+                    <button
+                      type="button"
+                      onClick={() => setDate(earliestAvailableDate)}
+                      className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF5FD] border border-[#C3A4CE] text-[#561269] text-[11px] font-semibold hover:bg-[#F3E8F7] transition-all cursor-pointer shadow-2xs"
+                    >
+                      <span>💡 Slot terdekat:</span>
+                      <span className="font-bold underline">
+                        {earliestAvailableDate.getDate()} {MONTHS[earliestAvailableDate.getMonth()]} {earliestAvailableDate.getFullYear()}
+                      </span>
+                      <span>&rarr;</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>

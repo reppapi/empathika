@@ -276,11 +276,15 @@ export class AdminService {
     }
     const embedUrl = await resolveGoogleMapsEmbedUrl(admin?.link_maps, admin?.alamat)
 
+    const rawPhone = admin?.no_telepon?.trim()
+    const isLegacyDummy = !rawPhone || rawPhone === '081234567890' || rawPhone === '08123456789'
+    const officialPhone = isLegacyDummy ? '0878-7878-5498' : rawPhone
+
     return {
       nama: admin?.nama || 'Empathika',
       email: admin?.email || 'empathika889@gmail.com',
-      no_telepon: admin?.no_telepon || '0878-7878-5498',
-      noTelepon: admin?.no_telepon || '0878-7878-5498',
+      no_telepon: officialPhone,
+      noTelepon: officialPhone,
       alamat: admin?.alamat || 'Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024',
       link_maps: admin?.link_maps || 'https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw',
       linkMaps: admin?.link_maps || 'https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw',

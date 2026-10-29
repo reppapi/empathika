@@ -224,23 +224,37 @@ export function getCleanWhatsAppNumber(raw?: string): string {
 export function getKerjaSamaConfig(): KerjaSamaPageConfig {
   if (typeof window === "undefined") return INITIAL_KERJASAMA_CONFIG
   try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_KERJASAMA_CONFIG)
-    if (!saved) return INITIAL_KERJASAMA_CONFIG
-    const parsed = JSON.parse(saved)
-    // Otomatis bersihkan / perbarui jika localStorage browser klien masih menyimpan nomor dummy lama
-    if (
-      !parsed?.kontak?.whatsapp ||
-      parsed.kontak.whatsapp.includes("82123456789") ||
-      parsed.kontak.whatsapp.includes("821-2345")
-    ) {
-      parsed.kontak = {
-        ...parsed.kontak,
-        whatsapp: "+62 878-7878-5498",
-        formAffiliate: "https://wa.me/6287878785498?text=Halo%20Empathika,%20saya%20tertarik%20dengan%20program%20Affiliate",
+    let adminPhone = ""
+    let adminEmail = ""
+    try {
+      const savedAdmin = localStorage.getItem("empathika_admin_profile")
+      if (savedAdmin) {
+        const p = JSON.parse(savedAdmin)
+        const rawPhone = p.noTelepon || p.no_telepon
+        if (rawPhone && rawPhone !== "081234567890" && rawPhone !== "08123456789") {
+          adminPhone = rawPhone
+        }
+        if (p.email) adminEmail = p.email
       }
-      localStorage.setItem(LOCAL_STORAGE_KEY_KERJASAMA_CONFIG, JSON.stringify(parsed))
+    } catch {}
+
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_KERJASAMA_CONFIG)
+    const parsed = saved ? JSON.parse(saved) : INITIAL_KERJASAMA_CONFIG
+
+    const effectivePhone = adminPhone || (parsed?.kontak?.whatsapp && !parsed.kontak.whatsapp.includes("821-2345") && !parsed.kontak.whatsapp.includes("8212345") ? parsed.kontak.whatsapp : "+62 878-7878-5498")
+    const cleanNumber = getCleanWhatsAppNumber(effectivePhone)
+
+    const updatedConfig: KerjaSamaPageConfig = {
+      ...parsed,
+      kontak: {
+        ...parsed.kontak,
+        email: adminEmail || parsed.kontak?.email || "partnership@empathika.com",
+        whatsapp: effectivePhone,
+        formAffiliate: `https://wa.me/${cleanNumber}?text=Halo%20Empathika,%20saya%20tertarik%20dengan%20program%20Affiliate`,
+      },
     }
-    return parsed
+
+    return updatedConfig
   } catch {
     return INITIAL_KERJASAMA_CONFIG
   }

@@ -14,11 +14,24 @@ interface PageProps {
 
 function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBackendSlots?: any[]) {
   const rawSlots: any[] = []
+  const bookedKeys = new Set<string>()
+
   if (Array.isArray(rawBackendSlots)) {
     rawSlots.push(...rawBackendSlots)
+    rawBackendSlots.forEach((s: any) => {
+      const st = (s.status || "").toUpperCase()
+      if (st === "SUDAH_DIBOOKING" || st === "TIDAK_TERSEDIA" || st === "CANCELLED" || Boolean(s.booking_konsultasi)) {
+        const j = (s.jam_mulai || "").toString().match(/(\d{2}:\d{2})/)?.[1]
+        const d = (s.tanggal || "").toString().match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
+        if (d && j) bookedKeys.add(`${d}_${j}`)
+        if (j) bookedKeys.add(j)
+      }
+    })
   }
 
-  if (typeof window !== "undefined") {
+  const hasDbSlots = Array.isArray(rawBackendSlots) && rawBackendSlots.length > 0
+
+  if (!hasDbSlots && typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem("empathika_custom_jadwal_slots")
       if (raw) {
@@ -80,6 +93,9 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     const slotDate = parseDateKey(slot.tanggal)
     const jamMulai = parseJam(slot.jam_mulai)
     const startMinutes = parseMinutes(jamMulai)
+
+    if (slotDate && bookedKeys.has(`${slotDate}_${jamMulai}`)) return false
+    if (bookedKeys.has(jamMulai)) return false
 
     if (slotDate) {
       if (slotDate < todayKey) return false

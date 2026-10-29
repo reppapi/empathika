@@ -3,7 +3,7 @@ import { AdminProfileData } from "../types"
 export const DEFAULT_ADMIN: AdminProfileData = {
   nama: "Administrator Empathika",
   email: "admin@empathika.com",
-  noTelepon: "081234567890",
+  noTelepon: "0878-7878-5498",
   bio: "Bertanggung jawab atas operasional biro, manajemen layanan, serta koordinasi psikolog dan jadwal klien di Empathika.",
   foto: null,
   alamat: "Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 41024",

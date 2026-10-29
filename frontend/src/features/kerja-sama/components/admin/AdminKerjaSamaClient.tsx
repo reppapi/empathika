@@ -194,10 +194,12 @@ export default function AdminKerjaSamaClient() {
     // Real-time synchronization saat tab admin aktif kembali atau ada pengajuan baru
     const handleSync = () => {
       fetchLeads()
+      setConfig(getKerjaSamaConfig())
     }
 
     window.addEventListener("focus", handleSync)
     window.addEventListener("storage", handleSync)
+    window.addEventListener("empathika_admin_profile_updated", handleSync)
 
     // 2. Ambil Program Kerja Sama dari Backend API
     kerjaSamaService
@@ -229,6 +231,7 @@ export default function AdminKerjaSamaClient() {
     return () => {
       window.removeEventListener("focus", handleSync)
       window.removeEventListener("storage", handleSync)
+      window.removeEventListener("empathika_admin_profile_updated", handleSync)
     }
   }, [])
 

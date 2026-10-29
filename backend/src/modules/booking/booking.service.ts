@@ -28,7 +28,14 @@ export class BookingService {
   // ── 1. Admin: Overview & Sesi ────────────────────────────────────────────────
 
   async getJadwalOverview(query: GetAdminJadwalQuery) {
-    const selectedDate = query.date ? parseDateString(query.date) : new Date()
+    let selectedDate: Date
+    if (query.date) {
+      selectedDate = parseDateString(query.date)
+    } else {
+      const now = new Date()
+      const wibDateStr = new Date(now.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      selectedDate = parseDateString(wibDateStr)
+    }
 
     // 1. Ambil Sesi Hari Ini
     const rawTodaySessions = await this.repo.findTodaySessions(selectedDate)
@@ -346,7 +353,15 @@ export class BookingService {
       }
     }
     if (!psikolog) {
-      psikolog = await this.repo.findFirstPsikolog()
+      const psikologWithSlots = await (this.repo as any).prisma.psikolog.findFirst({
+        where: { jadwal_slot: { some: {} } },
+        include: { spesialisasi: true },
+      })
+      if (psikologWithSlots) {
+        psikolog = psikologWithSlots
+      } else {
+        psikolog = await this.repo.findFirstPsikolog()
+      }
     }
     if (!psikolog) {
       throw new Error('Data profil tenaga ahli tidak ditemukan')

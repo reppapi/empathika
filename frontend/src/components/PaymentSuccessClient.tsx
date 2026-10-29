@@ -3,7 +3,8 @@
 import Link from "next/link"
 import Script from "next/script"
 import { useSearchParams } from "next/navigation"
-import { Suspense, useEffect } from "react"
+import { Suspense, useEffect, useState } from "react"
+import { adminService } from "@/services/admin.service"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
 type PaymentType = "konseling" | "event"
@@ -145,6 +146,79 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     return `/psikotes/mbti/mulai?${queryString}`
   }
 
+  const [adminPhone, setAdminPhone] = useState<string>("+62 878-7878-5498")
+
+  useEffect(() => {
+    const syncAdminPhone = () => {
+      // 1. Cek cache lokal profil admin (instan)
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          const p = parsed.noTelepon || parsed.no_telepon
+          if (p && p !== "081234567890" && p !== "08123456789") {
+            setAdminPhone(p)
+          } else {
+            setAdminPhone("+62 878-7878-5498")
+            localStorage.setItem(
+              "empathika_admin_profile",
+              JSON.stringify({ ...parsed, noTelepon: "+62 878-7878-5498", no_telepon: "+62 878-7878-5498" })
+            )
+          }
+        }
+      } catch {}
+
+      // 2. Ambil data profil resmi terbaru dari database backend (PostgreSQL)
+      adminService
+        .getPublicProfile()
+        .then((res) => {
+          if (res?.data) {
+            const p = res.data.no_telepon || res.data.noTelepon
+            if (p && p !== "081234567890" && p !== "08123456789") {
+              setAdminPhone(p)
+              try {
+                const saved = localStorage.getItem("empathika_admin_profile")
+                const existing = saved ? JSON.parse(saved) : {}
+                localStorage.setItem(
+                  "empathika_admin_profile",
+                  JSON.stringify({ ...existing, noTelepon: p, no_telepon: p })
+                )
+              } catch {}
+            } else {
+              setAdminPhone("+62 878-7878-5498")
+            }
+          }
+        })
+        .catch(() => {})
+    }
+
+    syncAdminPhone()
+    window.addEventListener("storage", syncAdminPhone)
+    window.addEventListener("focus", syncAdminPhone)
+    window.addEventListener("empathika_admin_profile_updated", syncAdminPhone)
+
+    return () => {
+      window.removeEventListener("storage", syncAdminPhone)
+      window.removeEventListener("focus", syncAdminPhone)
+      window.removeEventListener("empathika_admin_profile_updated", syncAdminPhone)
+    }
+  }, [])
+
+  const cleanDigits = (adminPhone || "").replace(/\D/g, "")
+  const isLegacyDummy = !cleanDigits || cleanDigits === "081234567890" || cleanDigits === "6281234567890"
+  const finalWaNumber = isLegacyDummy
+    ? "6287878785498"
+    : cleanDigits.startsWith("0")
+    ? "62" + cleanDigits.slice(1)
+    : cleanDigits.startsWith("62")
+    ? cleanDigits
+    : "62" + cleanDigits
+
+  const displayWaNumber =
+    finalWaNumber === "6287878785498"
+      ? "+62 878-7878-5498"
+      : `+${finalWaNumber.slice(0, 2)} ${finalWaNumber.slice(2, 5)}-${finalWaNumber.slice(5, 9)}-${finalWaNumber.slice(9)}`
+
   const metodeLabel =
     metode === "bank"
       ? `Virtual Account Bank ${bank?.toUpperCase() ?? ""}`
@@ -153,6 +227,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
       : "QRIS"
 
   const waMessage = `Halo Admin Empathika, saya baru saja melakukan pembayaran untuk ${judul}. Order ID: ${orderId} atas nama ${nama}`
+  const waAdminUrl = `https://wa.me/${finalWaNumber}?text=${encodeURIComponent(waMessage)}`
 
   const handleDownload = () => {
     const ticket = document.getElementById("ticket-container")
@@ -313,7 +388,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                   </Link>
                 ) : (
                   <a
-                    href={`https://wa.me/6281234567890?text=${encodeURIComponent(waMessage)}`}
+                    href={waAdminUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-3 rounded-lg bg-[#25D366] text-white font-bold text-xs sm:text-sm flex justify-center items-center gap-2 hover:bg-[#1DA851] transition-colors shadow-sm"

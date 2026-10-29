@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getKerjaSamaItems, getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_ITEMS, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
 import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
 import { kerjaSamaService } from '@/services/kerja-sama.service';
+import { adminService } from '@/services/admin.service';
 
 interface DetailKerjaSamaClientProps {
   category: string;
@@ -18,6 +19,41 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
     setIsMounted(true);
     setItems(getKerjaSamaItems());
     setConfig(getKerjaSamaConfig());
+
+    const refreshConfig = () => {
+      setConfig(getKerjaSamaConfig());
+    };
+
+    // Sinkronisasi profil admin dari backend
+    adminService
+      .getPublicProfile()
+      .then((res: any) => {
+        if (res?.data) {
+          const p = res.data;
+          const phone = p.no_telepon || p.noTelepon;
+          if (phone && phone !== "081234567890") {
+            try {
+              const currentAdmin = localStorage.getItem("empathika_admin_profile");
+              const parsed = currentAdmin ? JSON.parse(currentAdmin) : {};
+              localStorage.setItem(
+                "empathika_admin_profile",
+                JSON.stringify({
+                  ...parsed,
+                  noTelepon: phone,
+                  email: p.email || parsed.email,
+                })
+              );
+            } catch {}
+          }
+          refreshConfig();
+        }
+      })
+      .catch(() => {});
+
+    // Dengar event perubahan profil admin secara real-time
+    window.addEventListener("empathika_admin_profile_updated", refreshConfig);
+    window.addEventListener("storage", refreshConfig);
+    window.addEventListener("focus", refreshConfig);
 
     kerjaSamaService
       .getProgramList()
@@ -43,6 +79,12 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
         }
       })
       .catch(() => {});
+
+    return () => {
+      window.removeEventListener("empathika_admin_profile_updated", refreshConfig);
+      window.removeEventListener("storage", refreshConfig);
+      window.removeEventListener("focus", refreshConfig);
+    };
   }, []);
 
   const activeItems = isMounted ? items : INITIAL_KERJASAMA_ITEMS;
