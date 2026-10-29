@@ -56,6 +56,13 @@ function parseDateParam(param?: string | null): Date | undefined {
   return undefined
 }
 
+function extractMinutes(timeStr?: string): number {
+  if (!timeStr) return -1
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/)
+  if (!match) return -1
+  return parseInt(match[1], 10) * 60 + parseInt(match[2], 10)
+}
+
 export default function JadwalClient() {
   const searchParams = useSearchParams()
   const initialLayanan = searchParams?.get("layanan") || "Psikolog"
@@ -129,9 +136,8 @@ export default function JadwalClient() {
               if (s.tanggal > todayKey) {
                 datesFound.add(s.tanggal)
               } else if (s.tanggal === todayKey) {
-                const parts = (s.jam_mulai || "").split(":").map(Number)
-                const startMinutes = (parts[0] || 0) * 60 + (parts[1] || 0)
-                if (currentMinutes < startMinutes) {
+                const startMinutes = extractMinutes(s.jam_mulai)
+                if (startMinutes !== -1 && currentMinutes < startMinutes) {
                   datesFound.add(s.tanggal)
                 }
               }
@@ -165,9 +171,8 @@ export default function JadwalClient() {
                 if (s.tanggal > todayKey) {
                   datesFound.add(s.tanggal)
                 } else if (s.tanggal === todayKey) {
-                  const parts = (s.jam_mulai || "").split(":").map(Number)
-                  const startMinutes = (parts[0] || 0) * 60 + (parts[1] || 0)
-                  if (currentMinutes < startMinutes) {
+                  const startMinutes = extractMinutes(s.jam_mulai)
+                  if (startMinutes !== -1 && currentMinutes < startMinutes) {
                     datesFound.add(s.tanggal)
                   }
                 }
@@ -343,9 +348,8 @@ export default function JadwalClient() {
 
         // Cek 2: Jam yang sudah lewat di hari ini harus dihilangkan
         if (dateKey === todayKey) {
-          const parts = (slot.jam_mulai || "").split(":").map(Number)
-          const startMinutes = (parts[0] || 0) * 60 + (parts[1] || 0)
-          if (currentMinutes >= startMinutes) return
+          const startMinutes = extractMinutes(slot.jam_mulai)
+          if (startMinutes !== -1 && currentMinutes >= startMinutes) return
         } else if (dateKey < todayKey) {
           return
         }

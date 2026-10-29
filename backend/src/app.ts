@@ -29,6 +29,9 @@ import kerjaSamaRoutes from "./modules/kerja-sama/kerja-sama.route"
 import invoiceRoutes from "./modules/invoice/invoice.route"
 import accountSettingsRoutes from "./modules/psikolog/account-settings.route"
 
+// Jobs
+import { startExpiredBookingCleanupJob } from "./jobs/expired-booking.job"
+
 const app = Fastify({ logger: true })
 
 // Setup Zod type provider
@@ -70,5 +73,10 @@ app.register(uploadRoutes, { prefix: "/upload" })
 app.register(kerjaSamaRoutes, { prefix: "/kerja-sama" })
 app.register(invoiceRoutes, { prefix: "/invoice" })
 app.register(accountSettingsRoutes, { prefix: "/api" })
+
+// Background Job Scheduler
+app.addHook("onReady", async () => {
+  startExpiredBookingCleanupJob(app, 10, 30)
+})
 
 export default app

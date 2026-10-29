@@ -13,7 +13,17 @@ export class TransaksiRepository {
             jadwal: {
               include: {
                 psikolog: {
-                  include: { account: true },
+                  include: {
+                    account: {
+                      select: {
+                        id: true,
+                        nama: true,
+                        email: true,
+                        no_telepon: true,
+                        foto: true,
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -36,7 +46,17 @@ export class TransaksiRepository {
             jadwal: {
               include: {
                 psikolog: {
-                  include: { account: true },
+                  include: {
+                    account: {
+                      select: {
+                        id: true,
+                        nama: true,
+                        email: true,
+                        no_telepon: true,
+                        foto: true,
+                      },
+                    },
+                  },
                 },
               },
             },

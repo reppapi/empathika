@@ -12,5 +12,8 @@ export const bookingService = {
 
   cancelBooking: (id: string) =>
     apiClient.patch(`/booking/${id}/cancel`).then((r) => r.data),
+
+  confirmPayment: (id: string) =>
+    apiClient.post(`/booking/${id}/confirm-payment`).then((r) => r.data),
 }
 

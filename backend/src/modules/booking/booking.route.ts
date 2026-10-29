@@ -44,6 +44,15 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
     handler: controller.create,
   })
 
+  // Konfirmasi pembayaran booking (simulasi checkout / webhook gateway)
+  fastify.post('/:id/confirm-payment', {
+    schema: {
+      tags: ['Booking & Jadwal'],
+      summary: 'Konfirmasi pembayaran sesi booking konseling',
+    },
+    handler: controller.confirmPayment,
+  })
+
   // Riwayat booking milik akun klien / user yang sedang login
   fastify.get('/me', {
     preHandler: [authGuard],
@@ -67,7 +76,12 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/:id', {
-    schema: { tags: ['Booking & Jadwal'], summary: 'Detail booking berdasarkan ID' },
+    preHandler: [authGuard],
+    schema: {
+      tags: ['Booking & Jadwal'],
+      summary: 'Detail booking berdasarkan ID (Super Admin, Admin Biro, atau Psikolog terkait)',
+      security: [{ bearerAuth: [] }],
+    },
     handler: controller.getById,
   })
 

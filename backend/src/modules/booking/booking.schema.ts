@@ -68,7 +68,6 @@ export const createClientBookingSchema = z.object({
   jam_mulai: z.string().optional(),
   metode: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'),
   deskripsi_trauma: z.string().optional(),
-  status: z.enum(['PENDING', 'CONFIRMED']).optional().default('CONFIRMED'),
   metode_pembayaran: z.string().optional(),
   channel_pembayaran: z.string().optional(),
   klien: z.object({

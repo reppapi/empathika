@@ -78,8 +78,10 @@ function PendingContent() {
   useEffect(() => {
     if (phase !== "confirmed") return
 
-    // Safety fallback jika booking belum sempat tersimpan di langkah checkout (hanya dipanggil maksimal 1x)
-    if (!bookingId && whatsapp && nama && !fallbackCreatedRef.current) {
+    // Konfirmasi status pembayaran di backend saat fase confirmed tercapai
+    if (bookingId) {
+      bookingService.confirmPayment(bookingId).catch(() => {})
+    } else if (whatsapp && nama && !fallbackCreatedRef.current) {
       fallbackCreatedRef.current = true
       bookingService
         .createBooking({
@@ -87,11 +89,15 @@ function PendingContent() {
           id_psikolog: psikologId || undefined,
           metode: metode.toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE",
           deskripsi_trauma: deskripsi,
-          status: "CONFIRMED",
           klien: {
             nama: nama.toUpperCase(),
             no_telepon: whatsapp,
           },
+        })
+        .then((res: any) => {
+          if (res?.id) {
+            bookingService.confirmPayment(res.id).catch(() => {})
+          }
         })
         .catch(() => {})
     }
