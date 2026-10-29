@@ -175,7 +175,7 @@ const KEJENUHAN_INTERPRETASI_BERBAYAR = [
 ]
 
 // ============================================================================
-// DATA PAKET 2: TES KEPRIBADIAN DASAR
+// DATA PAKET 2: TES KEPRIBADIAN DASAR 
 // ============================================================================
 const KEPRIBADIAN_SOAL = [
   {
@@ -306,114 +306,6 @@ const KEPRIBADIAN_INTERPRETASI_GRATIS = [
   },
 ]
 
-const KEPRIBADIAN_INTERPRETASI_BERBAYAR = [
-  {
-    min_skor: 50,
-    max_skor: 65,
-    grade: 'Introvert Reflektif',
-    judul: 'Master Analitis & Penjelajah Solusi Mendalam',
-    deskripsi: 'Analisis psikologis komprehensif mengonfirmasi kecenderungan dominan Introvert Reflektif. Anda memiliki dunia internal yang kaya, kepekaan etika yang kuat, dan daya tahan fokus yang luar biasa untuk tugas-tugas konseptual kompleks.',
-    makna: 'Keunggulan kompetitif Anda terletak pada kualitas hasil kerja yang matang, minim eror, serta integritas berpikir objektif. Anda tidak terpengaruh oleh opini sesaat dan menjadi jangkar stabilitas saat kelompok menghadapi krisis.',
-    tips: {
-      saran: [
-        {
-          title: 'Optimalkan Gaya Komunikasi Tertulis',
-          desc: 'Sampaikan ide-ide visioner Anda melalui resume tertulis atau dokumen kerja terencana agar sudut pandang mendalam Anda tersampaikan utuh.',
-        },
-        {
-          title: 'Kelola Ritme Energi Bersosialisasi',
-          desc: 'Beri jeda istirahat 15 menit di sela pertemuan beruntun agar cadangan energi analitis Anda tetap prima sepanjang hari.',
-        },
-      ],
-      blindspots: [
-        'Kecenderungan menahan kritik konstruktif karena enggan merusak keharmonisan percakapan.',
-        'Menilai diri terlalu kritis saat rencana tidak berjalan dengan sempurna.',
-      ],
-      judulKekuatan: 'Potensi atau Kekuatan Utama',
-      kekuatanUtama: [
-        'Konsentrasi mendalam dan kemampuan merumuskan solusi strategis yang teruji.',
-        'Empati personal yang tinggi serta menjadi pendengar yang dipercaya oleh rekan tim.',
-      ],
-      judulBlindspots: 'Area yang Perlu Dikembangkan',
-      judulLingkungan: 'Kondisi atau Lingkungan yang Mendukung',
-      lingkunganOptimal: [
-        'Ekosistem kerja berbasis hasil yang memberikan kebebasan waktu berpikir mandiri.',
-        'Atmosfer tim yang minim politik kantor dan mengedepankan kompetensi substantif.',
-      ],
-    },
-  },
-  {
-    min_skor: 66,
-    max_skor: 80,
-    grade: 'Ambivert Adaptif',
-    judul: 'Katalisator Kolaborasi & Negosiator Seimbang',
-    deskripsi: 'Profil psikologis Anda menunjukkan fleksibilitas kepribadian Ambivert Adaptif tingkat lanjut. Anda mampu berpindah peran secara natural antara menjadi konduktor diskusi kelompok maupun pelaksana tugas mandiri yang tekun.',
-    makna: 'Anda memiliki kecerdasan sosial situasional (situational social intelligence). Kemampuan Anda membaca kebutuhan lawan bicara membuat Anda efektif menjadi mediator konflik, pemersatu visi, dan eksekutor strategi kerja sama.',
-    tips: {
-      saran: [
-        {
-          title: 'Tentukan Batasan Waktu Sosial & Mandiri',
-          desc: 'Alokasikan blok waktu khusus untuk fokus individual tanpa distraksi pesan instan guna menjaga ketajaman berpikir strategis.',
-        },
-        {
-          title: 'Pimpin Proyek Antar-Divisi',
-          desc: 'Gunakan keluwesan komunikasi Anda untuk memimpin inisiatif yang melibatkan berbagai gaya kepribadian yang berbeda.',
-        },
-      ],
-      blindspots: [
-        'Risiko mengalami kelelahan terselubung jika terlalu sering menjadi penengah masalah orang lain.',
-        'Kadang ragu memprioritaskan preferensi pribadi di atas kepentingan kelompok.',
-      ],
-      judulKekuatan: 'Potensi atau Kekuatan Utama',
-      kekuatanUtama: [
-        'Fleksibilitas komunikasi interpersonal yang cair dan diterima di berbagai situasi.',
-        'Kemampuan menyeimbangkan antara orientasi pada orang (people) dan orientasi pada target (task).',
-      ],
-      judulBlindspots: 'Area yang Perlu Dikembangkan',
-      judulLingkungan: 'Kondisi atau Lingkungan yang Mendukung',
-      lingkunganOptimal: [
-        'Organisasi yang mendorong inovasi kolaboratif dengan hierarki komunikasi yang egaliter.',
-        'Budaya kerja fleksibel yang memberi kebebasan memilih mode kerja hybrid atau mandiri.',
-      ],
-    },
-  },
-  {
-    min_skor: 81,
-    max_skor: 100,
-    grade: 'Ekstrovert Dinamis',
-    judul: 'Pemimpin Visioner & Pembangun Jejaring Berpengaruh',
-    deskripsi: 'Hasil psikotes mendalam menunjukkan profil kepribadian Ekstrovert Dinamis berenergi tinggi. Anda memperoleh motivasi intrinsik dan ketajaman berpikir saat berinteraksi langsung, berdebat konstruktif, dan memobilisasi ide-ide besar.',
-    makna: 'Karisma komunikasi Anda mampu menyuntikkan optimisme ke dalam tim, mempercepat pengambilan keputusan, dan mengonversi peluang abstrak menjadi gerakan nyata yang berdampak luas.',
-    tips: {
-      saran: [
-        {
-          title: 'Latih Refleksi Sebelum Finalisasi',
-          desc: 'Terapkan jeda 24 jam sebelum mengesahkan komitmen baru untuk menelaah detail operasional bersama rekan analis Anda.',
-        },
-        {
-          title: 'Budayakan Pendengar Aktif',
-          desc: 'Berikan waktu bicara 2 kali lebih banyak kepada rekan tim yang pendiam sebelum Anda menyampaikan kesimpulan akhir.',
-        },
-      ],
-      blindspots: [
-        'Kurang sabar terhadap proses administratif yang berulang atau lambat.',
-        'Cenderung berasumsi orang lain memiliki kapasitas stamina sosial yang setara.',
-      ],
-      judulKekuatan: 'Potensi atau Kekuatan Utama',
-      kekuatanUtama: [
-        'Kemampuan presentasi, persuasi publik, dan pemantik semangat tim yang karismatik.',
-        'Keberanian mengambil inisiatif di tengah ketidakpastian dan membangun sinergi eksternal.',
-      ],
-      judulBlindspots: 'Area yang Perlu Dikembangkan',
-      judulLingkungan: 'Kondisi atau Lingkungan yang Mendukung',
-      lingkunganOptimal: [
-        'Lingkungan yang berorientasi pertumbuhan cepat, apresiatif terhadap inisiatif, dan penuh interaksi inspiratif.',
-        'Dukungan sistem operasional yang solid untuk mengawal eksekusi detail teknis.',
-      ],
-    },
-  },
-]
-
 // ============================================================================
 // HELPER: SYNC PAKET BESERTA SOAL & INTERPRETASI (IDEMPOTENT)
 // ============================================================================
@@ -491,7 +383,7 @@ async function syncPaketWithDetails(config: {
     console.log(`[*] Updated paket: ${config.judul} (${config.jenis_akses})`)
   }
 
-  // Jika belum ada soal atau jumlah soal berbeda, buat soal & pilihan jawaban
+  // Jika belum ada soal, buat soal & pilihan jawaban
   if (paket.soal_psikotes.length === 0) {
     for (const s of config.soal) {
       await prisma.soalPsikotes.create({
@@ -557,7 +449,40 @@ async function main() {
   console.log('========================================================')
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 1. SEED KEDUA PAKET (GRATIS & BERBAYAR)
+  // 0. BERSIHKAN VARIAN BERBAYAR DARI KEPRIBADIAN DASAR JIKA PERNAH ADA
+  // ──────────────────────────────────────────────────────────────────────────
+  const unwantedBerbayarKepribadian = await prisma.paketPsikotes.findFirst({
+    where: {
+      judul: { contains: 'Kepribadian Dasar', mode: 'insensitive' },
+      jenis_akses: JenisAksesPsikotes.BERBAYAR,
+    },
+    include: {
+      soal_psikotes: true,
+      interpretasi_psikotes: true,
+    },
+  })
+
+  if (unwantedBerbayarKepribadian) {
+    console.log('🧹 Membersihkan varian berbayar dari "Tes Kepribadian Dasar"...')
+    await prisma.interpretasiPsikotes.deleteMany({
+      where: { id_paket: unwantedBerbayarKepribadian.id },
+    })
+    for (const s of unwantedBerbayarKepribadian.soal_psikotes) {
+      await prisma.pilihanJawaban.deleteMany({ where: { id_soal: s.id } })
+    }
+    await prisma.soalPsikotes.deleteMany({
+      where: { id_paket: unwantedBerbayarKepribadian.id },
+    })
+    await prisma.paketPsikotes.delete({
+      where: { id: unwantedBerbayarKepribadian.id },
+    })
+    console.log('    ✓ Berhasil menghapus varian berbayar "Tes Kepribadian Dasar".')
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 1. SINKRONISASI PAKET PSIKOTES
+  // - Tes Tingkat Kejenuhan & Stres Harian: BERBAYAR & GRATIS
+  // - Tes Kepribadian Dasar: HANYA GRATIS
   // ──────────────────────────────────────────────────────────────────────────
 
   // 1A. Paket Kejenuhan & Stres Harian - BERBAYAR (Rp 75.000)
@@ -592,24 +517,7 @@ async function main() {
     interpretasi: KEJENUHAN_INTERPRETASI_GRATIS,
   })
 
-  // 1C. Paket Kepribadian Dasar - BERBAYAR (Rp 50.000)
-  const paketKepribadianBerbayar = await syncPaketWithDetails({
-    judul: 'Tes Kepribadian Dasar',
-    jenis_akses: JenisAksesPsikotes.BERBAYAR,
-    harga: 50000,
-    banner_url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=400&h=400',
-    deskripsi: 'Asesmen tipe kepribadian mendalam untuk memahami dinamika energi sosial, gaya komunikasi kerja, serta strategi pengembangan karir yang selaras.',
-    benefits: [
-      'Pemetaan kepribadian Introvert, Ambivert, atau Ekstrovert',
-      'Analisis gaya komunikasi dan kepemimpinan',
-      'Identifikasi blindspots dan potensi kekuatan utama',
-      'Rekomendasi lingkungan kerja yang paling mendukung pertumbuhan',
-    ],
-    soal: KEPRIBADIAN_SOAL,
-    interpretasi: KEPRIBADIAN_INTERPRETASI_BERBAYAR,
-  })
-
-  // 1D. Paket Kepribadian Dasar - GRATIS (Rp 0)
+  // 1C. Paket Kepribadian Dasar - HANYA GRATIS (Rp 0)
   const paketKepribadianGratis = await syncPaketWithDetails({
     judul: 'Tes Kepribadian Dasar',
     jenis_akses: JenisAksesPsikotes.GRATIS,
@@ -626,7 +534,7 @@ async function main() {
   })
 
   console.log('--------------------------------------------------------')
-  console.log('✅ Semua 4 varian paket psikotes siap dan sinkron.')
+  console.log('✅ Paket psikotes siap (Kejenuhan: Gratis & Berbayar | Kepribadian: Hanya Gratis).')
   console.log('--------------------------------------------------------')
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -634,10 +542,10 @@ async function main() {
   // ──────────────────────────────────────────────────────────────────────────
 
   // ──────────────────────────────────────────────────────────────────────────
-  // PESERTA 1 (BERBAYAR - SUDAH SELESAI MENGERJAKAN)
+  // PESERTA 1 (BERBAYAR - STATUS SELESAI MENGERJAKAN)
   // Nama: Ananda Pratama
   // Paket: Tes Tingkat Kejenuhan & Stres Harian (BERBAYAR - Rp 75.000)
-  // Transaksi: Lunas via BCA Virtual Account
+  // Transaksi: Lunas via BCA Virtual Account (Rp 75.000)
   // Status Pengerjaan: Selesai (Skor 4 -> Grade: Stres Tinggi)
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n👤 Menyiapkan Peserta 1: Ananda Pratama (Berbayar - Selesai)...')
@@ -698,6 +606,12 @@ async function main() {
       },
       include: { hasil_tes: true, jawaban_psikotes: true },
     })
+  } else if (booking1.id_paket !== paketKejenuhanBerbayar.id) {
+    booking1 = await prisma.bookingPsikotes.update({
+      where: { id: booking1.id },
+      data: { id_paket: paketKejenuhanBerbayar.id },
+      include: { hasil_tes: true, jawaban_psikotes: true },
+    })
   }
 
   // Jawaban Soal untuk Peserta 1 (Skor 4)
@@ -743,10 +657,10 @@ async function main() {
   console.log('    ✓ Peserta 1 (Ananda Pratama) siap: Booking + Transaksi Lunas + Hasil Tes Selesai (Grade: Stres Tinggi).')
 
   // ──────────────────────────────────────────────────────────────────────────
-  // PESERTA 2 (BERBAYAR - STATUS BERJALAN / BELUM SELESAI MENGERJAKAN)
+  // PESERTA 2 (BERBAYAR - STATUS BERJALAN / BARU BELI AKSES, BELUM SELESAI)
   // Nama: Siti Nurhaliza
-  // Paket: Tes Kepribadian Dasar (BERBAYAR - Rp 50.000)
-  // Transaksi: Lunas via QRIS
+  // Paket: Tes Tingkat Kejenuhan & Stres Harian (BERBAYAR - Rp 75.000)
+  // Transaksi: Lunas via QRIS (Rp 75.000)
   // Status Pengerjaan: Berjalan (Belum selesai, hasil_tes null)
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n👤 Menyiapkan Peserta 2: Siti Nurhaliza (Berbayar - Berjalan)...')
@@ -774,17 +688,17 @@ async function main() {
     where: { kode_transaksi: 'PSI-DEMO-002' },
     update: {
       status_pembayaran: StatusPembayaran.PAID,
-      total: 50000,
-      subtotal: 50000,
+      total: 75000,
+      subtotal: 75000,
       data_pembayaran: JSON.stringify({ email: 'siti.nurhaliza@gmail.com' }),
     },
     create: {
       kode_transaksi: 'PSI-DEMO-002',
       id_client: client2.id,
       tipe_transaksi: TipeTransaksi.PSIKOTES,
-      subtotal: 50000,
+      subtotal: 75000,
       biaya_admin: 0,
-      total: 50000,
+      total: 75000,
       metode_pembayaran: MetodePembayaran.QRIS,
       channel_pembayaran: 'qris',
       status_pembayaran: StatusPembayaran.PAID,
@@ -800,20 +714,25 @@ async function main() {
   if (!booking2) {
     booking2 = await prisma.bookingPsikotes.create({
       data: {
-        id_paket: paketKepribadianBerbayar.id,
+        id_paket: paketKejenuhanBerbayar.id,
         id_client: client2.id,
         id_transaksi: trx2.id,
       },
+    })
+  } else if (booking2.id_paket !== paketKejenuhanBerbayar.id) {
+    booking2 = await prisma.bookingPsikotes.update({
+      where: { id: booking2.id },
+      data: { id_paket: paketKejenuhanBerbayar.id },
     })
   }
   console.log('    ✓ Peserta 2 (Siti Nurhaliza) siap: Booking + Transaksi Lunas + Status Tes "Berjalan" (Akses Aktif).')
 
   // ──────────────────────────────────────────────────────────────────────────
-  // PESERTA 3 (GRATIS - SUDAH SELESAI MENGERJAKAN)
+  // PESERTA 3 (GRATIS - STATUS SELESAI MENGERJAKAN)
   // Nama: Rian Hidayat
-  // Paket: Tes Tingkat Kejenuhan & Stres Harian (GRATIS - Rp 0)
+  // Paket: Tes Kepribadian Dasar (GRATIS - Rp 0)
   // Transaksi: null (Paket Gratis)
-  // Status Pengerjaan: Selesai (Skor 1 -> Grade: Stres Rendah)
+  // Status Pengerjaan: Selesai (Skor 85 -> Grade: Ekstrovert Dinamis)
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n👤 Menyiapkan Peserta 3: Rian Hidayat (Gratis - Selesai)...')
   let client3 = await prisma.client.findFirst({
@@ -839,7 +758,7 @@ async function main() {
   let booking3 = await prisma.bookingPsikotes.findFirst({
     where: {
       id_client: client3.id,
-      id_paket: paketKejenuhanGratis.id,
+      id_paket: paketKepribadianGratis.id,
       id_transaksi: null,
     },
     include: { hasil_tes: true, jawaban_psikotes: true },
@@ -847,7 +766,7 @@ async function main() {
   if (!booking3) {
     booking3 = await prisma.bookingPsikotes.create({
       data: {
-        id_paket: paketKejenuhanGratis.id,
+        id_paket: paketKepribadianGratis.id,
         id_client: client3.id,
         id_transaksi: null,
       },
@@ -855,13 +774,13 @@ async function main() {
     })
   }
 
-  // Jawaban Soal untuk Peserta 3 (Skor 1)
+  // Jawaban Soal untuk Peserta 3 (Skor 85)
   if (booking3.jawaban_psikotes.length === 0) {
-    const soalGratis = paketKejenuhanGratis.soal_psikotes
-    // Soal 1 bobot 1, Soal 2, 3, 4, 5 bobot 0 -> total 1
-    for (let idx = 0; idx < soalGratis.length; idx++) {
-      const s = soalGratis[idx]
-      const targetBobot = idx === 0 ? 1 : 0
+    const soalKepribadian = paketKepribadianGratis.soal_psikotes
+    // Soal 1, 2, 3 bobot 20 (60), Soal 4, 5 bobot 15 (30) -> total 90 (Ekstrovert Dinamis)
+    for (let idx = 0; idx < soalKepribadian.length; idx++) {
+      const s = soalKepribadian[idx]
+      const targetBobot = idx < 3 ? 20 : 15
       const pil = s.pilihan_jawaban.find((p) => p.bobot === targetBobot) || s.pilihan_jawaban[0]
       await prisma.jawabanPsikotes.create({
         data: {
@@ -874,38 +793,39 @@ async function main() {
     }
   }
 
-  // Hasil Tes untuk Peserta 3 (Interpretasi: Stres Rendah)
+  // Hasil Tes untuk Peserta 3 (Interpretasi: Ekstrovert Dinamis)
   const interpPeserta3 =
-    paketKejenuhanGratis.interpretasi_psikotes.find(
-      (i) => 1 >= i.min_skor && 1 <= i.max_skor
-    ) || paketKejenuhanGratis.interpretasi_psikotes[0]
+    paketKepribadianGratis.interpretasi_psikotes.find(
+      (i) => 90 >= i.min_skor && 90 <= i.max_skor
+    ) || paketKepribadianGratis.interpretasi_psikotes[paketKepribadianGratis.interpretasi_psikotes.length - 1]
 
   await prisma.hasilTes.upsert({
     where: { id_booking: booking3.id },
     update: {
       id_interpretasi: interpPeserta3.id,
-      total_skor: 1,
+      total_skor: 90,
       tanggal_selesai: new Date(),
     },
     create: {
       id_booking: booking3.id,
       id_interpretasi: interpPeserta3.id,
-      total_skor: 1,
-      detail_skor: { skorMaksimal: 5, persentase: 20 },
+      total_skor: 90,
+      detail_skor: { skorMaksimal: 100, persentase: 90 },
       tanggal_selesai: new Date(),
     },
   })
-  console.log('    ✓ Peserta 3 (Rian Hidayat) siap: Booking Gratis + Hasil Tes Selesai (Grade: Stres Rendah).')
+  console.log('    ✓ Peserta 3 (Rian Hidayat) siap: Booking Gratis + Hasil Tes Selesai (Grade: Ekstrovert Dinamis).')
 
   console.log('\n========================================================')
   console.log('🎉 SEEDER PSIKOTES BERHASIL DISELESAIKAN!')
   console.log('========================================================')
-  console.log('Ringkasan Data Demo yang Tersedia:')
-  console.log('1. Paket "Tes Tingkat Kejenuhan & Stres Harian" -> Tersedia versi GRATIS (Rp 0) & BERBAYAR (Rp 75.000)')
-  console.log('2. Paket "Tes Kepribadian Dasar"              -> Tersedia versi GRATIS (Rp 0) & BERBAYAR (Rp 50.000)')
-  console.log('3. Peserta 1: Ananda Pratama                  -> Berbayar (BCA VA), Status: Selesai (Stres Tinggi)')
-  console.log('4. Peserta 2: Siti Nurhaliza                  -> Berbayar (QRIS),   Status: Berjalan (Akses Aktif)')
-  console.log('5. Peserta 3: Rian Hidayat                    -> Gratis,             Status: Selesai (Stres Rendah)')
+  console.log('Ringkasan Paket:')
+  console.log('1. "Tes Tingkat Kejenuhan & Stres Harian" -> Ada versi GRATIS (Rp 0) & BERBAYAR (Rp 75.000)')
+  console.log('2. "Tes Kepribadian Dasar"              -> HANYA versi GRATIS (Rp 0)')
+  console.log('\nRingkasan Peserta Demo:')
+  console.log('1. Ananda Pratama   -> Berbayar Kejenuhan (BCA VA), Status: Selesai (Stres Tinggi)')
+  console.log('2. Siti Nurhaliza   -> Berbayar Kejenuhan (QRIS),   Status: Berjalan (Akses Aktif)')
+  console.log('3. Rian Hidayat     -> Gratis Kepribadian Dasar,    Status: Selesai (Ekstrovert Dinamis)')
   console.log('========================================================\n')
 }
 
