@@ -1,5 +1,7 @@
 import { PrismaClient, Role, KategoriLayanan, JenisAksesPsikotes, TipeTransaksi, MetodePembayaran, StatusPembayaran } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedEvent } from './seed-event';
+import { seedPsikotes } from './seed-psikotes';
 
 const prisma = new PrismaClient();
 
@@ -623,7 +625,12 @@ async function main() {
     data: { jumlah_sesi: 1 },
   });
 
-  console.log('Seeding finished successfully.');
+  // 11. Jalankan Seeder Event & Psikotes Terintegrasi
+  console.log('\n--- Menjalankan Seeder Event & Psikotes ---');
+  await seedEvent(prisma);
+  await seedPsikotes(prisma);
+
+  console.log('\nSeeding finished successfully.');
 }
 
 main()
