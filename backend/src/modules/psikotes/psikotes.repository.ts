@@ -192,11 +192,11 @@ export class PsikotesRepository {
             ? {
                 create: data.soal_psikotes.map((s, idx) => ({
                   urutan: s.urutan ?? idx + 1,
-                  pertanyaan: s.pertanyaan,
+                  pertanyaan: s.pertanyaan || `Pertanyaan ${idx + 1}`,
                   pilihan_jawaban: {
-                    create: s.pilihan_jawaban.map((p, pIdx) => ({
+                    create: (s.pilihan_jawaban || []).map((p, pIdx) => ({
                       label: p.label || String.fromCharCode(65 + pIdx),
-                      teks_jawaban: p.teks_jawaban,
+                      teks_jawaban: p.teks_jawaban || `Pilihan ${pIdx + 1}`,
                       bobot: p.bobot ?? 0,
                     })),
                   },
@@ -207,11 +207,11 @@ export class PsikotesRepository {
           data.interpretasi_psikotes && data.interpretasi_psikotes.length > 0
             ? {
                 create: data.interpretasi_psikotes.map((i, iIdx) => ({
-                  min_skor: i.min_skor,
-                  max_skor: i.max_skor,
+                  min_skor: i.min_skor ?? 0,
+                  max_skor: i.max_skor ?? 0,
                   grade: i.grade || `Kategori ${iIdx + 1}`,
-                  judul: i.judul,
-                  deskripsi: i.deskripsi,
+                  judul: i.judul || `Interpretasi ${iIdx + 1}`,
+                  deskripsi: i.deskripsi || '',
                   makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 })),
@@ -263,11 +263,11 @@ export class PsikotesRepository {
                 data: {
                   id_paket: id,
                   urutan: s.urutan ?? idx + 1,
-                  pertanyaan: s.pertanyaan,
+                  pertanyaan: s.pertanyaan || `Pertanyaan ${idx + 1}`,
                   pilihan_jawaban: {
-                    create: s.pilihan_jawaban.map((p, pIdx) => ({
+                    create: (s.pilihan_jawaban || []).map((p, pIdx) => ({
                       label: p.label || String.fromCharCode(65 + pIdx),
-                      teks_jawaban: p.teks_jawaban,
+                      teks_jawaban: p.teks_jawaban || `Pilihan ${pIdx + 1}`,
                       bobot: p.bobot ?? 0,
                     })),
                   },
@@ -289,18 +289,18 @@ export class PsikotesRepository {
               await tx.soalPsikotes.update({
                 where: { id: existingSoal.id },
                 data: {
-                  pertanyaan: s.pertanyaan,
+                  pertanyaan: s.pertanyaan || `Pertanyaan ${idx + 1}`,
                   urutan: s.urutan ?? idx + 1,
                 },
               })
 
-              for (const [pIdx, p] of s.pilihan_jawaban.entries()) {
+              for (const [pIdx, p] of (s.pilihan_jawaban || []).entries()) {
                 const existingPilihan = existingSoal.pilihan_jawaban[pIdx]
                 if (existingPilihan) {
                   await tx.pilihanJawaban.update({
                     where: { id: existingPilihan.id },
                     data: {
-                      teks_jawaban: p.teks_jawaban,
+                      teks_jawaban: p.teks_jawaban || `Pilihan ${pIdx + 1}`,
                       bobot: p.bobot ?? 0,
                       label: p.label || String.fromCharCode(65 + pIdx),
                     },
@@ -309,7 +309,7 @@ export class PsikotesRepository {
                   await tx.pilihanJawaban.create({
                     data: {
                       id_soal: existingSoal.id,
-                      teks_jawaban: p.teks_jawaban,
+                      teks_jawaban: p.teks_jawaban || `Pilihan ${pIdx + 1}`,
                       bobot: p.bobot ?? 0,
                       label: p.label || String.fromCharCode(65 + pIdx),
                     },
@@ -321,11 +321,11 @@ export class PsikotesRepository {
                 data: {
                   id_paket: id,
                   urutan: s.urutan ?? idx + 1,
-                  pertanyaan: s.pertanyaan,
+                  pertanyaan: s.pertanyaan || `Pertanyaan ${idx + 1}`,
                   pilihan_jawaban: {
-                    create: s.pilihan_jawaban.map((p, pIdx) => ({
+                    create: (s.pilihan_jawaban || []).map((p, pIdx) => ({
                       label: p.label || String.fromCharCode(65 + pIdx),
-                      teks_jawaban: p.teks_jawaban,
+                      teks_jawaban: p.teks_jawaban || `Pilihan ${pIdx + 1}`,
                       bobot: p.bobot ?? 0,
                     })),
                   },
@@ -348,11 +348,11 @@ export class PsikotesRepository {
               await tx.interpretasiPsikotes.create({
                 data: {
                   id_paket: id,
-                  min_skor: i.min_skor,
-                  max_skor: i.max_skor,
+                  min_skor: i.min_skor ?? 0,
+                  max_skor: i.max_skor ?? 0,
                   grade: i.grade || `Kategori ${iIdx + 1}`,
-                  judul: i.judul,
-                  deskripsi: i.deskripsi,
+                  judul: i.judul || `Interpretasi ${iIdx + 1}`,
+                  deskripsi: i.deskripsi || '',
                   makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
@@ -372,11 +372,11 @@ export class PsikotesRepository {
               await tx.interpretasiPsikotes.update({
                 where: { id: existingInter.id },
                 data: {
-                  min_skor: i.min_skor,
-                  max_skor: i.max_skor,
+                  min_skor: i.min_skor ?? 0,
+                  max_skor: i.max_skor ?? 0,
                   grade: i.grade || `Kategori ${iIdx + 1}`,
-                  judul: i.judul,
-                  deskripsi: i.deskripsi,
+                  judul: i.judul || `Interpretasi ${iIdx + 1}`,
+                  deskripsi: i.deskripsi || '',
                   makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
@@ -385,11 +385,11 @@ export class PsikotesRepository {
               await tx.interpretasiPsikotes.create({
                 data: {
                   id_paket: id,
-                  min_skor: i.min_skor,
-                  max_skor: i.max_skor,
+                  min_skor: i.min_skor ?? 0,
+                  max_skor: i.max_skor ?? 0,
                   grade: i.grade || `Kategori ${iIdx + 1}`,
-                  judul: i.judul,
-                  deskripsi: i.deskripsi,
+                  judul: i.judul || `Interpretasi ${iIdx + 1}`,
+                  deskripsi: i.deskripsi || '',
                   makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
