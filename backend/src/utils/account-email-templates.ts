@@ -15,7 +15,7 @@ export const accountMailService = {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
           <h2 style="color: #561269;">Konfirmasi Perubahan Email</h2>
           <p>Halo <strong>${params.nama}</strong>,</p>
-          <p>Kami menerima permintaan untuk mengubah alamat email akun Psikolog Anda di Empathika ke alamat email ini.</p>
+          <p>Kami menerima permintaan untuk mengubah alamat email akun Empathika Anda ke alamat email ini.</p>
           <p>Silakan klik tautan verifikasi di bawah ini untuk mengonfirmasi perubahan email:</p>
           <p style="margin: 24px 0;">
             <a href="${params.verificationUrl}" style="background-color: #561269; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
@@ -42,7 +42,7 @@ export const accountMailService = {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
           <h2 style="color: #c53030;">Pemberitahuan Keamanan Akun</h2>
           <p>Halo <strong>${params.nama}</strong>,</p>
-          <p>Kami mendeteksi adanya permintaan pergantian email akun Psikolog Empathika Anda ke alamat baru (<strong>${params.newEmailMasked}</strong>).</p>
+          <p>Kami mendeteksi adanya permintaan pergantian email akun Empathika Anda ke alamat baru (<strong>${params.newEmailMasked}</strong>).</p>
           <p>Email verifikasi telah dikirimkan ke alamat email baru tersebut. Email Anda saat ini belum berubah sampai verifikasi berhasil diselesaikan.</p>
           <p><strong>Bukan Anda yang meminta ini?</strong> Harap segera hubungi Tim Admin Empathika atau login untuk segera mengganti kata sandi akun Anda.</p>
           <hr style="border: 0; border-top: 1px solid #eee; margin: 24px 0;" />

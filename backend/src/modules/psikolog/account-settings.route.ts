@@ -1,7 +1,7 @@
 // File: backend/src/modules/psikolog/account-settings.route.ts
 import type { FastifyInstance } from "fastify"
 import { AccountSettingsController } from "./account-settings.controller"
-import { psikologGuard } from "../../middlewares/psikolog-guard"
+import { accountSecurityGuard } from "../../middlewares/account-guard"
 import {
   sensitiveAccountRateLimit,
   verifyEmailRateLimit,
@@ -17,7 +17,7 @@ export default async function accountSettingsRoutes(fastify: FastifyInstance) {
 
   // 1. GET /api/psikolog/account/email/change-request - Cek status pending
   fastify.get("/psikolog/account/email/change-request", {
-    preHandler: [psikologGuard],
+    preHandler: [accountSecurityGuard],
     schema: {
       tags: ["Psikolog - Akun"],
       summary: "Mengambil status permintaan pergantian email yang aktif",
@@ -28,7 +28,7 @@ export default async function accountSettingsRoutes(fastify: FastifyInstance) {
 
   // 2. POST /api/psikolog/account/email/change-request - Request ganti email
   fastify.post("/psikolog/account/email/change-request", {
-    preHandler: [psikologGuard, sensitiveAccountRateLimit],
+    preHandler: [accountSecurityGuard, sensitiveAccountRateLimit],
     schema: {
       tags: ["Psikolog - Akun"],
       summary: "Meminta link verifikasi untuk pergantian email",
@@ -40,7 +40,7 @@ export default async function accountSettingsRoutes(fastify: FastifyInstance) {
 
   // 3. DELETE /api/psikolog/account/email/change-request - Batalkan request ganti email
   fastify.delete("/psikolog/account/email/change-request", {
-    preHandler: [psikologGuard],
+    preHandler: [accountSecurityGuard],
     schema: {
       tags: ["Psikolog - Akun"],
       summary: "Membatalkan permintaan pergantian email yang masih pending",
@@ -62,7 +62,7 @@ export default async function accountSettingsRoutes(fastify: FastifyInstance) {
 
   // 5. PATCH /api/psikolog/account/password - Ganti password
   fastify.patch("/psikolog/account/password", {
-    preHandler: [psikologGuard, sensitiveAccountRateLimit],
+    preHandler: [accountSecurityGuard, sensitiveAccountRateLimit],
     schema: {
       tags: ["Psikolog - Akun"],
       summary: "Mengganti password akun psikolog",
