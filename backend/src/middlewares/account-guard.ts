@@ -54,8 +54,8 @@ export function createAccountGuard(allowedRoles: string[]) {
 }
 
 // 1. Guard khusus untuk Pengaturan Akun Mandiri (Ganti Email & Password)
-// Jika nanti ada role baru (misal ADMIN / KLIEN), cukup tambahkan ke array ini:
-export const accountSecurityGuard = createAccountGuard(["PSIKOLOG", "BIRO"])
+// Jika nanti ada role baru (misal KLIEN), cukup tambahkan ke array ini:
+export const accountSecurityGuard = createAccountGuard(["PSIKOLOG", "BIRO", "ADMIN"])
 
 // 2. Guard khusus spesifik role PSIKOLOG (untuk rute jadwal/booking/profil internal psikolog)
 export const psikologOnlyGuard = createAccountGuard(["PSIKOLOG"])
