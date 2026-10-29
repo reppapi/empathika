@@ -29,6 +29,23 @@ export class TransaksiRepository {
             },
           },
         },
+        booking_psikotes: {
+          include: {
+            paket: true,
+            client: true,
+            hasil_tes: {
+              include: {
+                interpretasi: true,
+              },
+            },
+          },
+        },
+        booking_event: {
+          include: {
+            event: true,
+            client: true,
+          },
+        },
         invoice: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -62,6 +79,23 @@ export class TransaksiRepository {
             },
           },
         },
+        booking_psikotes: {
+          include: {
+            paket: true,
+            client: true,
+            hasil_tes: {
+              include: {
+                interpretasi: true,
+              },
+            },
+          },
+        },
+        booking_event: {
+          include: {
+            event: true,
+            client: true,
+          },
+        },
         invoice: true,
       },
     })
@@ -77,6 +111,21 @@ export class TransaksiRepository {
             jadwal: {
               include: { psikolog: true },
             },
+          },
+        },
+        booking_psikotes: {
+          include: {
+            paket: true,
+            hasil_tes: {
+              include: {
+                interpretasi: true,
+              },
+            },
+          },
+        },
+        booking_event: {
+          include: {
+            event: true,
           },
         },
         invoice: true,

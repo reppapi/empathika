@@ -65,6 +65,16 @@ export class InvoiceService {
             },
           },
         },
+        booking_psikotes: {
+          include: {
+            paket: true,
+          },
+        },
+        booking_event: {
+          include: {
+            event: true,
+          },
+        },
       },
     })
 
@@ -85,19 +95,26 @@ export class InvoiceService {
 
     // 4. Ambil data snapshot
     const booking = transaksi.booking_konsultasi
+    const bookingPsikotes = transaksi.booking_psikotes
+    const bookingEvent = transaksi.booking_event
     const jadwal = booking?.jadwal
     const psikolog = jadwal?.psikolog
-    const namaGelar = psikolog?.nama_gelar ?? psikolog?.account?.nama ?? 'Psikolog Empathika'
+    const namaGelar =
+      psikolog?.nama_gelar ??
+      psikolog?.account?.nama ??
+      (bookingPsikotes ? 'Asesmen Mandiri' : bookingEvent?.event?.nama_pembicara ?? 'Platform Empathika')
+
+    const judulLayanan =
+      booking?.layanan?.nama ??
+      bookingPsikotes?.paket?.judul ??
+      bookingEvent?.event?.judul ??
+      'Layanan Empathika'
 
     // Gabungkan tanggal dan waktu sesi menjadi DateTime lengkap
-    // Prisma menyimpan tanggal (@db.Date) dan waktu (@db.Time) terpisah;
-    // kita perlu merekonstruksi kombinasinya.
-    let tanggalSesi: Date = new Date()
+    let tanggalSesi: Date = transaksi.createdAt || new Date()
     if (jadwal?.tanggal && jadwal?.jam_mulai) {
       const tgl = new Date(jadwal.tanggal)
       const jam = new Date(jadwal.jam_mulai)
-      // tanggal dari DB: midnight UTC (karena @db.Date)
-      // jam dari DB: time sejak midnight UTC (karena @db.Time)
       tanggalSesi = new Date(
         Date.UTC(
           tgl.getUTCFullYear(),
@@ -107,6 +124,8 @@ export class InvoiceService {
           jam.getUTCMinutes()
         )
       )
+    } else if (bookingEvent?.event?.tanggal) {
+      tanggalSesi = new Date(bookingEvent.event.tanggal)
     }
 
     // 5. Generate nomor invoice (dengan retry jika race condition)
@@ -122,7 +141,7 @@ export class InvoiceService {
           nama_client: transaksi.client.nama,
           no_wa_client: transaksi.client.no_telepon ?? null,
           nama_psikolog: namaGelar,
-          judul_layanan: booking?.layanan?.nama ?? 'Konseling Empathika',
+          judul_layanan: judulLayanan,
           tanggal_sesi: tanggalSesi,
           jenis_sesi: booking?.metode ?? 'ONLINE',
           harga: transaksi.total,
