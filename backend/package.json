@@ -14,6 +14,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:seed:psikotes": "tsx prisma/seed-psikotes.ts",
+    "prisma:seed:event": "tsx prisma/seed-event.ts",
     "generate:docs": "tsx src/server.ts --export-docs"
   },
   "dependencies": {
