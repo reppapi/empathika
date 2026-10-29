@@ -65,6 +65,8 @@ export const submitPsikotesSchema = z.object({
   nama: z.string().optional(),
   no_telepon: z.string().optional(),
   email: z.string().optional(),
+  id_booking: z.string().optional(),
+  bookingId: z.string().optional(),
   klien: z
     .object({
       nama: z.string().optional(),
@@ -88,4 +90,42 @@ export const pesertaQuerySchema = z.object({
 })
 
 export type PesertaQueryInput = z.infer<typeof pesertaQuerySchema>
+
+// ── 7. Booking & Pembayaran Paket Psikotes Berbayar ──
+export const createBookingPsikotesSchema = z
+  .object({
+    id_paket: z.string().optional(),
+    testId: z.string().optional(),
+    metode_pembayaran: z.string().optional().default('QRIS'),
+    channel_pembayaran: z.string().optional().nullable(),
+    status_pembayaran: z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).optional().default('PAID'),
+    kode_transaksi: z.string().optional(),
+    harga: z.number().optional(),
+    nama: z.string().optional(),
+    no_telepon: z.string().optional(),
+    email: z.string().optional(),
+    klien: z
+      .object({
+        nama: z.string().optional(),
+        no_telepon: z.string().optional(),
+        email: z.string().optional(),
+        usia: z.number().int().optional().nullable(),
+        jenis_kelamin: z.string().optional().nullable(),
+      })
+      .optional(),
+    id_biro: z.string().optional().nullable(),
+  })
+  .refine(
+    (data) => Boolean(data.id_paket || data.testId),
+    { message: 'ID paket psikotes (id_paket atau testId) wajib diisi', path: ['id_paket'] }
+  )
+  .refine(
+    (data) => {
+      const nama = data.klien?.nama || data.nama
+      return Boolean(nama && nama.trim().length > 0)
+    },
+    { message: 'Nama lengkap peserta wajib diisi', path: ['nama'] }
+  )
+
+export type CreateBookingPsikotesInput = z.infer<typeof createBookingPsikotesSchema>
 

@@ -19,11 +19,13 @@ import {
   AlertTriangle,
   Compass,
   Loader2,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 
 import { RESULT_DATA as resultData, TEST_DATA } from "../../data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
+import { useAuthStore } from "@/store/authStore";
 
 export default function PsikotesHasilClient({ params }: { params: { testId: string } }) {
   const searchParams = useSearchParams();
@@ -31,6 +33,71 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
   const [isDownloading, setIsDownloading] = useState(false);
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
+
+  // ── Identitas Peserta ───────────────────────────────────────────────────────
+  const [peserta, setPeserta] = useState(() => {
+    const rawParamNama = searchParams.get("nama") || searchParams.get("name") || "";
+    const rawParamWa =
+      searchParams.get("whatsapp") ||
+      searchParams.get("no_telepon") ||
+      searchParams.get("phone") ||
+      searchParams.get("nohp") ||
+      searchParams.get("kontak") ||
+      "";
+    const rawParamEmail = searchParams.get("email") || searchParams.get("user_email") || "";
+    const rawBookingId = searchParams.get("bookingId") || searchParams.get("orderId") || "";
+
+    return {
+      nama: rawParamNama,
+      noHp: rawParamWa,
+      email: rawParamEmail,
+      bookingId: rawBookingId,
+      tanggal: new Date().toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    };
+  });
+
+  useEffect(() => {
+    try {
+      // 1. Cek dari localStorage pendaftaran psikotes / checkout
+      const raw = localStorage.getItem("empathika_peserta_psikotes");
+      let savedNama = "";
+      let savedWa = "";
+      let savedEmail = "";
+      let savedBookingId = "";
+
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        savedNama = parsed.nama || parsed.name || "";
+        savedWa = parsed.no_telepon || parsed.whatsapp || parsed.noHp || parsed.phone || parsed.kontak || "";
+        savedEmail = parsed.email || parsed.user_email || "";
+        savedBookingId = parsed.bookingId || parsed.orderId || "";
+      }
+
+      // 2. Cek dari akun user yang sedang login jika belum ada
+      const authUser = useAuthStore.getState().user;
+      const authNama = authUser?.name || "";
+      const authEmail = authUser?.email || "";
+
+      setPeserta((prev) => {
+        const finalNama = prev.nama || savedNama || authNama || (isPaid ? "Peserta Asesmen Empathika" : "Anonim");
+        const finalWa = prev.noHp || savedWa || "—";
+        const finalEmail = prev.email || savedEmail || authEmail || "—";
+        const finalBookingId = prev.bookingId || savedBookingId || "";
+
+        return {
+          ...prev,
+          nama: finalNama,
+          noHp: finalWa,
+          email: finalEmail,
+          bookingId: finalBookingId,
+        };
+      });
+    } catch {}
+  }, [searchParams, isPaid]);
 
   // Fetch package data from backend to get interpretasi_psikotes
   useEffect(() => {
@@ -116,7 +183,9 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
     return resultData.result;
   })();
 
-  // Data komprehensif interpretasi untuk paket Berbayar (sinkron dengan sistem Admin)
+  const { interpretation, meaning, tips, recommendations } = resultData;
+
+  // Data komprehensif interpretasi untuk paket Berbayar (sinkron dengan sistem Admin & Database)
   const berbayarDetail = (() => {
     // 1. Cek dari database jika ada interpretasi yang cocok
     if (dbInterpretasi) {
@@ -139,6 +208,10 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
         ? (parsedTips.lingkunganOptimal as string[])
         : [];
 
+      const saranList: Array<{ title: string; desc: string }> = Array.isArray(parsedTips.saran) && parsedTips.saran.length > 0
+        ? parsedTips.saran
+        : (Array.isArray(dbInterpretasi.tips) ? (dbInterpretasi.tips as any) : tips);
+
       if (dbInterpretasi.deskripsi || kekuatanUtama.length > 0) {
         return {
           deskripsi: dbInterpretasi.deskripsi || "",
@@ -149,6 +222,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           judulKekuatan: parsedTips.judulKekuatan || "Potensi atau Kekuatan Utama",
           judulBlindspots: parsedTips.judulBlindspots || "Area yang Perlu Dikembangkan",
           judulLingkungan: parsedTips.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung",
+          saranList,
         };
       }
     }
@@ -177,6 +251,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           "Dinamika kelompok kerja yang saling menghargai usaha anggota tim secara transparan.",
           "Pola interaksi yang asertif, jujur, dan bebas dari sindiran atau sarkasme pasif.",
         ],
+        saranList: tips,
       };
     }
     if (params.testId === "kesiapan-karir" || params.testId.includes("karier") || params.testId.includes("karir")) {
@@ -203,6 +278,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           "Organisasi yang memiliki budaya terbuka, suportif, dan inovatif.",
           "Posisi yang memungkinkan interaksi berkelanjutan dengan klien atau komunitas.",
         ],
+        saranList: tips,
       };
     }
     // Default MBTI / Kepribadian
@@ -229,33 +305,101 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
         "Posisi strategis dengan ruang kolaborasi tim yang fleksibel, hangat, dan suportif.",
         "Budaya organisasi yang menghargai inovasi sosial, empati, dan pengakuan personal yang transparan.",
       ],
+      saranList: tips,
     };
   })();
 
-  const { interpretation, meaning, tips, recommendations } = resultData;
-
-
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     setIsDownloading(true);
-    const element = document.getElementById("laporan-berbayar-container");
 
-    if (element && (window as any).html2canvas) {
-      ;(window as any)
-        .html2canvas(element, { scale: 2, backgroundColor: "#FFFFFF" })
-        .then((canvas: HTMLCanvasElement) => {
-          const link = document.createElement("a");
-          link.download = `Laporan-Resmi-Psikotes-${params.testId.toUpperCase()}-Empathika.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-          setIsDownloading(false);
-        })
-        .catch(() => {
-          window.print();
-          setIsDownloading(false);
-        });
-    } else {
-      // Fallback native browser print dialog (Save as PDF)
+    const target = document.getElementById("laporan-berbayar-container");
+    const sidebar = document.getElementById("laporan-sidebar-aksi");
+    const leftCol = document.getElementById("laporan-kolom-kiri");
+    const headerPdf = document.getElementById("laporan-pdf-header");
+    const footerPdf = document.getElementById("laporan-pdf-footer");
+
+    if (!target) {
       window.print();
+      setIsDownloading(false);
+      return;
+    }
+
+    const originalScrollY = window.scrollY;
+
+    try {
+      // Helper untuk memuat library html2pdf jika belum ada di window
+      const getHtml2Pdf = async (): Promise<any> => {
+        if (typeof window === "undefined") return null;
+        if ((window as any).html2pdf) return (window as any).html2pdf;
+
+        return new Promise((resolve, reject) => {
+          const existing = document.querySelector('script[src*="html2pdf"]');
+          if (existing) {
+            existing.addEventListener("load", () => resolve((window as any).html2pdf));
+            existing.addEventListener("error", reject);
+            if ((window as any).html2pdf) resolve((window as any).html2pdf);
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+          script.async = true;
+          script.onload = () => resolve((window as any).html2pdf);
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      };
+
+      const html2pdf = await getHtml2Pdf();
+      if (!html2pdf) {
+        throw new Error("Library html2pdf gagal dimuat");
+      }
+
+      // 1. Scroll ke paling atas untuk mencegah offset html2canvas
+      window.scrollTo(0, 0);
+
+      // 2. Munculkan Kop Surat & Footer Asesor resmi, sembunyikan sidebar aksi (Info Asesmen & Konsultasi)
+      if (headerPdf) headerPdf.style.display = "block";
+      if (footerPdf) footerPdf.style.display = "block";
+      if (sidebar) sidebar.style.display = "none";
+      if (leftCol) {
+        leftCol.style.width = "100%";
+        leftCol.style.gridColumn = "1 / -1";
+      }
+
+      // Berikan jeda 250ms agar browser merender ulang layout sebelum di-capture
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      const cleanFileName = `Laporan-Resmi-Psikotes-${(peserta.nama || "Peserta").replace(/[^a-zA-Z0-9]/g, "_")}-Empathika.pdf`;
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: cleanFileName,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+          backgroundColor: "#ffffff",
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] },
+      };
+
+      await html2pdf().set(opt).from(target).save();
+    } catch (err) {
+      console.error("[PDF Download Error]", err);
+      window.print();
+    } finally {
+      // 3. Kembalikan layout tampilan web seperti semula
+      if (headerPdf) headerPdf.style.display = "none";
+      if (footerPdf) footerPdf.style.display = "none";
+      if (sidebar) sidebar.style.display = "";
+      if (leftCol) {
+        leftCol.style.width = "";
+        leftCol.style.gridColumn = "";
+      }
+      window.scrollTo(0, originalScrollY);
       setIsDownloading(false);
     }
   };
@@ -431,8 +575,8 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
   return (
     <div className="min-h-screen bg-[#FAFAFC] font-poppins pt-24 pb-20 px-4 sm:px-6 lg:px-8 lg:pt-32">
       <Script
-        src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
-        strategy="lazyOnload"
+        src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+        strategy="afterInteractive"
       />
 
       <div className="max-w-5xl mx-auto space-y-8">
@@ -451,27 +595,123 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 print:hidden">
             <button
               onClick={handleDownloadPdf}
               disabled={isDownloading}
-              className="px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#6e1886] text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer"
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all active:scale-98 ${
+                isDownloading ? "bg-[#763E8B] text-white opacity-80 cursor-wait" : "bg-[#561269] hover:bg-[#6e1886] text-white cursor-pointer"
+              }`}
             >
-              <Download className="w-4 h-4" />
-              <span>{isDownloading ? "Menyiapkan PDF..." : "Download Laporan (PDF)"}</span>
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Mengunduh PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Download Laporan (PDF)</span>
+                </>
+              )}
             </button>
           </div>
         </div>
 
-        {/* ══ KONTEN UTAMA LAPORAN BERBAYAR ══ */}
-        <div id="laporan-berbayar-container" className="space-y-8">
-          
+        {/* ══ KONTEN UTAMA LAPORAN BERBAYAR (TAMPILAN WEB & PDF) ══ */}
+        <div id="laporan-berbayar-container" className="space-y-6 bg-white p-4 sm:p-8 rounded-2xl border border-gray-200/80 shadow-xs">
+
+          {/* Kop Surat Resmi Empathika khusus Dokumen PDF */}
+          <div
+            id="laporan-pdf-header"
+            style={{ display: "none" }}
+            className="pb-4 mb-5 border-b-2 border-[#561269]"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="text-xl font-black text-[#561269] tracking-tight">EMPATHIKA</div>
+                <div className="text-[10px] font-medium text-gray-500 mt-0.5">Pusat Layanan Asesmen &amp; Konsultasi Psikologi Digital</div>
+                <div className="text-[9px] text-gray-400 mt-0.5">www.empathika.id • info@empathika.id</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#561269]">
+                  Laporan Hasil Asesmen Psikotes
+                </div>
+                <div className="text-sm font-bold text-gray-900 mt-0.5">{displayTestName}</div>
+                <div className="text-[9px] font-medium text-gray-500 mt-0.5">
+                  No. Dokumen: <span className="font-mono font-bold text-gray-800">EMP-PSI-{peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Identitas Peserta Asesmen */}
+          <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-7 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 leading-tight">
+                    Identitas Peserta Asesmen
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Data resmi peserta pengerjaan asesmen psikotes
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Terverifikasi Resmi
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                  Nama Lengkap
+                </span>
+                <span className="font-extrabold text-sm text-gray-900 block truncate">
+                  {peserta.nama || "Peserta Asesmen Empathika"}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                  Kontak WhatsApp
+                </span>
+                <span className="font-bold text-sm text-emerald-700 block truncate">
+                  {peserta.noHp || "—"}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                  Email Terdaftar
+                </span>
+                <span className="font-bold text-sm text-gray-800 block truncate">
+                  {peserta.email || "—"}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                  Tanggal Asesmen
+                </span>
+                <span className="font-bold text-sm text-gray-800 block truncate">
+                  {peserta.tanggal}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* 1. Hasil Utama (Clean & Modern Card) */}
-          <section className="bg-white rounded-3xl border border-gray-200/80 p-8 sm:p-10 shadow-xs text-center">
+          <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-[#FAF8FB] rounded-xl border border-purple-200/70 p-6 sm:p-8 shadow-xs text-center border-l-4 border-l-[#561269]">
             {dynamicResult.prefix && (
-              <p className="text-sm sm:text-base font-semibold text-gray-500 mb-2">{dynamicResult.prefix}</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{dynamicResult.prefix}</p>
             )}
-            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#561269] tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#561269] tracking-tight mb-2">
               {dynamicResult.value}
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
@@ -483,10 +723,10 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* Kolom Kiri: Analisis Lengkap */}
-            <div className="lg:col-span-8 space-y-8">
+            <div id="laporan-kolom-kiri" className="lg:col-span-8 space-y-8 print:w-full print:col-span-12">
               
               {/* Interpretasi Hasil & Implikasi Strategis */}
-              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                     <Info className="w-5 h-5 text-[#561269]" />
@@ -508,7 +748,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               </section>
 
               {/* Analisis Karakteristik & Dinamika Diri */}
-              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
+              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-[#561269]" />
@@ -559,7 +799,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               </section>
 
               {/* Kondisi atau Lingkungan yang Mendukung */}
-              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
                     <Compass className="w-5 h-5 text-[#561269]" />
@@ -583,7 +823,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               </section>
 
               {/* Tips & Langkah Pengembangan Diri */}
-              <section className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
                     <HeartHandshake className="w-5 h-5 text-[#561269]" />
@@ -595,7 +835,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                 </div>
 
                 <div className="space-y-3">
-                  {tips.map((tip, index) => (
+                  {(berbayarDetail.saranList || tips).map((tip, index) => (
                     <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
                       <div className="flex-shrink-0 mt-0.5">
                         <CheckCircle2 className="w-5 h-5 text-[#561269]" />
@@ -611,8 +851,8 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
             </div>
 
-            {/* Kolom Kanan: Sidebar Aksi & Konsultasi */}
-            <div className="lg:col-span-4 space-y-6 sticky top-[120px]">
+            {/* Kolom Kanan: Sidebar Aksi & Konsultasi (TIDAK MASUK KE PDF / PRINT) */}
+            <div id="laporan-sidebar-aksi" className="lg:col-span-4 space-y-6 sticky top-[120px] print:hidden">
               
               {/* Card Ringkasan Asesmen */}
               <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4">
@@ -658,10 +898,35 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
           </div>
 
+          {/* Footer Resmi Asesor khusus Dokumen PDF */}
+          <div
+            id="laporan-pdf-footer"
+            style={{ display: "none" }}
+            className="pt-4 border-t border-dashed border-gray-300 mt-6 bg-white"
+          >
+            <div className="flex justify-between items-end">
+              <div className="text-[9px] text-gray-400 leading-relaxed max-w-xs">
+                <strong>Catatan Resmi:</strong> Dokumen ini bersifat rahasia (confidential) dan diterbitkan sebagai hasil asesmen psikometri resmi Empathika.
+                <br />
+                Verifikasi Dokumen: <span className="font-mono text-gray-600">EMP-PSI-{peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"}</span>
+              </div>
+              <div className="text-center w-52">
+                <div className="text-[10px] text-gray-600 mb-8">
+                  Bandung, {peserta.tanggal}
+                  <br />
+                  Tim Asesor Asesmen Psikologi,
+                </div>
+                <div className="text-xs font-extrabold text-gray-900 border-t border-gray-900 pt-1">
+                  Empathika Psychological Center
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        {/* Rekomendasi Tes Lainnya (Bagian Bawah) */}
-        <section className="pt-10 border-t border-gray-200 space-y-6">
+        {/* Rekomendasi Tes Lainnya (Bagian Bawah - TIDAK MASUK KE PRINT) */}
+        <section className="pt-10 border-t border-gray-200 space-y-6 print:hidden">
           <div className="text-center max-w-xl mx-auto">
             <h3 className="text-xl font-bold text-gray-900">Eksplorasi Asesmen Lainnya</h3>
             <p className="text-xs text-gray-500 mt-1">
