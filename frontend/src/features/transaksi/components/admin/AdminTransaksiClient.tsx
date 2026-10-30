@@ -704,9 +704,9 @@ export default function AdminTransaksiClient() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* ════ Kolom Kiri: List ════ */}
-            <div className="lg:col-span-7 flex flex-col rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] overflow-hidden h-full">
+            <div className="lg:col-span-7 flex flex-col rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] overflow-hidden">
               {/* Header List */}
               <div className="bg-[#EFE8F3] px-5 py-3.5 flex items-center justify-between border-b border-purple-100 min-h-[58px] shrink-0">
                 <div className="flex items-center gap-2">
@@ -770,7 +770,7 @@ export default function AdminTransaksiClient() {
               </div>
 
               {/* List Items */}
-              <div className="divide-y divide-gray-100 flex-1 overflow-y-auto scroll-smooth min-h-[560px]">
+              <div className="divide-y divide-gray-100 max-h-[640px] overflow-y-auto admin-table-scrollbar scroll-smooth">
                 {filteredTransaksi.length === 0 ? (
                   <div className="p-12 text-center text-gray-400 text-sm">
                     Tidak ada transaksi yang cocok dengan filter.
@@ -825,14 +825,17 @@ export default function AdminTransaksiClient() {
               </div>
             </div>
 
-            {/* ════ Kolom Kanan: Detail ════ */}
-            <div className="lg:col-span-5 flex flex-col rounded-3xl border border-gray-200/90 bg-white overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)] h-full">
-              <div className="bg-[#EFE8F3] px-5 py-3.5 border-b border-purple-100 min-h-[58px] flex items-center shrink-0">
+            {/* ════ Kolom Kanan: Detail Transaksi / Invoice ════ */}
+            <div className="lg:col-span-5 flex flex-col rounded-3xl border border-gray-200/90 bg-white overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)] lg:sticky lg:top-6 self-start">
+              <div className="bg-[#EFE8F3] px-5 py-3.5 border-b border-purple-100 min-h-[58px] flex items-center justify-between shrink-0">
                 <h3 className="text-base font-bold text-[#561269]">Detail Transaksi</h3>
+                <span className="text-[11px] font-bold text-[#561269] bg-white/70 px-2.5 py-0.5 rounded-full border border-purple-200">
+                  Invoice
+                </span>
               </div>
 
               {activeDetailItem ? (
-                <div className="p-6 flex flex-col gap-5 flex-1 justify-between overflow-y-auto">
+                <div className="p-6 flex flex-col gap-4 max-h-[calc(100vh-5rem)] overflow-y-auto admin-table-scrollbar">
                   {/* Order Info */}
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[11px] font-bold text-gray-400 tracking-wider uppercase">ORDER ID</span>
