@@ -140,7 +140,7 @@ function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulPsikotes
     if (judulMap.has(normalizedKey)) {
       const existing = judulMap.get(normalizedKey)!;
       const existingIdx = existing.paketList.findIndex(
-        (p) => p.id === paketDetail.id || p.jenisAkses === paketDetail.jenisAkses
+        (p) => p.id === paketDetail.id || (p.jenisAkses === paketDetail.jenisAkses && p.status === paketDetail.status)
       );
       if (existingIdx >= 0) {
         existing.paketList[existingIdx] = paketDetail;
@@ -294,7 +294,7 @@ export default function AdminPsikotesClient() {
     jenisAkses: "Gratis",
     harga: "",
     numericHarga: 0,
-    status: "Aktif",
+    status: "Draf",
     jumlahSoal: 0,
     modeJudul: "baru",
   });
@@ -357,12 +357,14 @@ export default function AdminPsikotesClient() {
     return true;
   });
 
-  // Calculate totals for summary
-  const totalPaketCount = judulList.reduce((acc, curr) => acc + curr.paketList.length, 0);
-  const totalDraftCount = judulList.reduce(
-    (acc, curr) => acc + curr.paketList.filter((p) => p.status === "Draf").length,
-    0
-  );
+  // Calculate totals for summary: dihitung berdasarkan jumlah judul paket, bukan dari varian "Paket & Akses"
+  const totalPaketCount = judulList.filter((item) =>
+    item.paketList.some((p) => p.status === "Aktif")
+  ).length || judulList.length;
+
+  const totalDraftCount = judulList.filter((item) =>
+    item.paketList.some((p) => p.status === "Draf")
+  ).length;
 
   // Helper: Default Berbayar interpretation matching user website (PsikotesHasilClient)
   const getBerbayarDefaultInterpretasi = (nama: string, kategori: string): Interpretasi[] => {
@@ -591,7 +593,7 @@ export default function AdminPsikotesClient() {
         jenisAkses: defaultAkses,
         harga: defaultAkses === "Gratis" ? "" : "Rp 50.000",
         numericHarga: defaultAkses === "Gratis" ? 0 : 50000,
-        status: "Aktif",
+        status: "Draf",
         jumlahSoal: existingPkg?.soalList?.length || 0,
         modeJudul: "ada",
       });
@@ -634,7 +636,7 @@ export default function AdminPsikotesClient() {
         jenisAkses: "Gratis",
         harga: "",
         numericHarga: 0,
-        status: "Aktif",
+        status: "Draf",
         jumlahSoal: 0,
         modeJudul: "baru",
       });
@@ -1264,13 +1266,21 @@ export default function AdminPsikotesClient() {
   };
 
   // Save Draft (Can be done anytime, even with incomplete data)
-  const handleSaveDraft = async (navigateBack: boolean = true) => {
+  const handleSaveDraft = async (
+    navigateBack: boolean = true,
+    forceStatus?: "DRAFT" | "PUBLISHED"
+  ) => {
     const titleName = paketData.nama.trim() || "Draf Psikotes Tanpa Judul";
-    const packageId = activeDraftPackageId || (typeof paketData.id === "string" && paketData.id.length > 10 ? paketData.id : null);
+    const packageId =
+      activeDraftPackageId ||
+      (typeof paketData.id === "string" && paketData.id.length > 10 ? paketData.id : null);
 
     setIsSubmitting(true);
     try {
-      const isPublishedStatus = isEditingPublished || paketData.status === "Aktif";
+      // If forceStatus is provided, honor it. Otherwise, if editing a published package, retain PUBLISHED, else DRAFT.
+      const targetStatus = forceStatus ?? (isEditingPublished ? "PUBLISHED" : "DRAFT");
+      const isPublishedStatus = targetStatus === "PUBLISHED";
+
       const apiPayload = {
         judul: titleName,
         deskripsi: paketData.deskripsi || "Draf deskripsi paket psikotes",
@@ -1278,23 +1288,32 @@ export default function AdminPsikotesClient() {
         benefits: (paketData.benefits || []).filter((b) => b.trim().length > 0),
         jenis_akses: (paketData.jenisAkses === "Gratis" ? "GRATIS" : "BERBAYAR") as any,
         harga: paketData.jenisAkses === "Gratis" ? 0 : (paketData.numericHarga || 0),
-        status: (isPublishedStatus ? "PUBLISHED" : "DRAFT") as any,
-        soal_psikotes: soalList.map((s, idx) => ({
-          urutan: idx + 1,
-          pertanyaan: s.teks || `Pertanyaan ${idx + 1}`,
-          pilihan_jawaban: s.pilihan.map((p, pIdx) => ({
-            label: String.fromCharCode(65 + pIdx),
-            teks_jawaban: p.text || `Pilihan ${pIdx + 1}`,
-            bobot: parseInt(p.bobot) || 0,
-          })),
-        })),
+        status: targetStatus as any,
+        soal_psikotes: soalList.map((s, idx) => {
+          const rawChoices = s.pilihan && s.pilihan.length > 0 ? [...s.pilihan] : [];
+          while (rawChoices.length < 2) {
+            rawChoices.push({
+              text: `Pilihan ${rawChoices.length + 1}`,
+              bobot: "0",
+            });
+          }
+          return {
+            urutan: idx + 1,
+            pertanyaan: s.teks.trim() || `Pertanyaan ${idx + 1}`,
+            pilihan_jawaban: rawChoices.map((p, pIdx) => ({
+              label: String.fromCharCode(65 + pIdx),
+              teks_jawaban: p.text.trim() || `Pilihan ${pIdx + 1}`,
+              bobot: parseInt(p.bobot) || 0,
+            })),
+          };
+        }),
         interpretasi_psikotes: interpretasiList.map((i, iIdx) => ({
           min_skor: parseInt(i.min) || 0,
           max_skor: parseInt(i.max) || 0,
           grade: i.kategori || `Grade ${iIdx + 1}`,
-          judul: i.judul || `Interpretasi ${iIdx + 1}`,
-          deskripsi: i.deskripsi || "Penjelasan interpretasi",
-          makna: i.makna || "",
+          judul: i.judul.trim() || `Interpretasi ${iIdx + 1}`,
+          deskripsi: i.deskripsi.trim() || "Penjelasan interpretasi",
+          makna: i.makna?.trim() || "",
           tips: {
             saran: i.saran || [],
             kekuatanUtama: i.kekuatanUtama || [],
@@ -1317,6 +1336,11 @@ export default function AdminPsikotesClient() {
         }
       }
 
+      setPaketData((prev) => ({
+        ...prev,
+        status: isPublishedStatus ? "Aktif" : "Draf",
+      }));
+
       await loadDataFromBackend();
 
       setNotification({
@@ -1329,6 +1353,9 @@ export default function AdminPsikotesClient() {
       if (navigateBack) {
         setActiveTab("paket");
         setIsEditingPackage(false);
+        if (!isPublishedStatus) {
+          setPaketFilter("Draf");
+        }
       }
     } catch (err: any) {
       console.error("Gagal menyimpan ke database:", err);
@@ -1342,7 +1369,7 @@ export default function AdminPsikotesClient() {
   };
 
   const onSaveDraftClick = () => {
-    handleSaveDraft(true);
+    handleSaveDraft(true, "DRAFT");
   };
 
   // Publish Package (Requires all mandatory fields)
@@ -2408,8 +2435,12 @@ export default function AdminPsikotesClient() {
       key: "paketTersedia",
       header: "Paket & Akses",
       render: (item: JudulPsikotesItem) => {
-        const gratis = item.paketList.find((p) => p.jenisAkses === "Gratis");
-        const berbayar = item.paketList.find((p) => p.jenisAkses === "Berbayar");
+        const gratis =
+          item.paketList.find((p) => p.jenisAkses === "Gratis" && (paketFilter === "Draf" ? p.status === "Draf" : p.status === "Aktif")) ||
+          item.paketList.find((p) => p.jenisAkses === "Gratis");
+        const berbayar =
+          item.paketList.find((p) => p.jenisAkses === "Berbayar" && (paketFilter === "Draf" ? p.status === "Draf" : p.status === "Aktif")) ||
+          item.paketList.find((p) => p.jenisAkses === "Berbayar");
 
         return (
           <div className="flex items-center gap-2">
@@ -2454,7 +2485,9 @@ export default function AdminPsikotesClient() {
       key: "harga",
       header: "Harga",
       render: (item: JudulPsikotesItem) => {
-        const berbayar = item.paketList.find((p) => p.jenisAkses === "Berbayar");
+        const berbayar =
+          item.paketList.find((p) => p.jenisAkses === "Berbayar" && (paketFilter === "Draf" ? p.status === "Draf" : p.status === "Aktif")) ||
+          item.paketList.find((p) => p.jenisAkses === "Berbayar");
 
         if (berbayar && berbayar.harga) {
           return (
@@ -2502,7 +2535,7 @@ export default function AdminPsikotesClient() {
       render: (item: JudulPsikotesItem) => {
         const draftPaket = item.paketList.find((p) => p.status === "Draf");
         const activePaket = item.paketList.find((p) => p.status === "Aktif");
-        const targetEdit = activePaket || draftPaket || item.paketList[0];
+        const targetEdit = paketFilter === "Draf" ? (draftPaket || activePaket) : (activePaket || draftPaket);
 
         return (
           <div className="flex items-center justify-center gap-2">
@@ -2573,7 +2606,7 @@ export default function AdminPsikotesClient() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Klien Berbayar</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Total Peserta Berbayar</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-[#561269] mt-1 block">
                 {pesertaSummary.total_berbayar}
               </span>
@@ -2586,7 +2619,7 @@ export default function AdminPsikotesClient() {
 
           <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Tes Gratis Selesai</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Total Peserta Gratis</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-1 block">
                 {pesertaSummary.total_gratis}
               </span>
@@ -2599,14 +2632,14 @@ export default function AdminPsikotesClient() {
 
           <div className="bg-white p-5 rounded-2xl border border-blue-100 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Total Selesai Dinilai</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Total Semua Peserta Psikotes</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-blue-700 mt-1 block">
-                {pesertaSummary.total_selesai}
+                {pesertaSummary.total_peserta || (pesertaSummary.total_berbayar + pesertaSummary.total_gratis)}
               </span>
-              <span className="text-[11px] text-gray-500 mt-0.5 block">Skor &amp; interpretasi tersimpan</span>
+              <span className="text-[11px] text-gray-500 mt-0.5 block">Akumulasi seluruh peserta psikotes</span>
             </div>
             <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-              <CheckCircle2 className="w-6 h-6" />
+              <TrendingUp className="w-6 h-6" />
             </div>
           </div>
         </div>
@@ -2864,16 +2897,29 @@ export default function AdminPsikotesClient() {
               </h2>
             </div>
 
-            {/* Always accessible Save Draft Button */}
+            {/* Always accessible Save Buttons */}
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onSaveDraftClick}
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                title="Simpan data saat ini sebagai Draf"
               >
-                <Save className="w-4 h-4 text-gray-600" /> {isEditMode ? "Simpan Perubahan" : "Simpan Draf"}
+                <Save className="w-4 h-4 text-amber-700" /> Simpan Sebagai Draf
               </button>
+
+              {isEditingPublished && (
+                <button
+                  type="button"
+                  onClick={() => handleSaveDraft(true, "PUBLISHED")}
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-sm font-bold shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  title="Simpan perubahan langsung ke paket aktif"
+                >
+                  <Save className="w-4 h-4 text-[#561269]" /> Simpan Perubahan
+                </button>
+              )}
             </div>
           </div>
 
@@ -3616,11 +3662,19 @@ export default function AdminPsikotesClient() {
                   </button>
 
                   <div className="flex items-center gap-3">
-                    {isEditMode && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => handleSaveDraft(true, "DRAFT")}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-full shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4 text-amber-700" /> Simpan Sebagai Draf
+                    </button>
+                    {isEditingPublished && (
                       <button
                         type="button"
                         disabled={isSubmitting}
-                        onClick={() => handleSaveDraft(true)}
+                        onClick={() => handleSaveDraft(true, "PUBLISHED")}
                         className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#561269] hover:bg-[#400d4f] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                       >
                         <Save className="w-4 h-4" /> Simpan Perubahan
@@ -3853,11 +3907,19 @@ export default function AdminPsikotesClient() {
                     Kembali ke Info
                   </button>
                   <div className="flex items-center gap-3">
-                    {isEditMode && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => handleSaveDraft(true, "DRAFT")}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-full shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4 text-amber-700" /> Simpan Sebagai Draf
+                    </button>
+                    {isEditingPublished && (
                       <button
                         type="button"
                         disabled={isSubmitting}
-                        onClick={() => handleSaveDraft(true)}
+                        onClick={() => handleSaveDraft(true, "PUBLISHED")}
                         className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#561269] hover:bg-[#400d4f] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                       >
                         <Save className="w-4 h-4" /> Simpan Perubahan
@@ -3981,11 +4043,19 @@ export default function AdminPsikotesClient() {
                     Kembali ke Soal
                   </button>
                   <div className="flex items-center gap-3">
-                    {isEditMode && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => handleSaveDraft(true, "DRAFT")}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-full shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4 text-amber-700" /> Simpan Sebagai Draf
+                    </button>
+                    {isEditingPublished && (
                       <button
                         type="button"
                         disabled={isSubmitting}
-                        onClick={() => handleSaveDraft(true)}
+                        onClick={() => handleSaveDraft(true, "PUBLISHED")}
                         className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#561269] hover:bg-[#400d4f] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                       >
                         <Save className="w-4 h-4" /> Simpan Perubahan
@@ -4456,14 +4526,25 @@ export default function AdminPsikotesClient() {
                     Kembali ke Preview
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handlePublikasikan}
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-                  >
-                    <CheckCircle className="w-4 h-4" /> {isEditMode ? "Simpan Perubahan Paket" : "Publikasikan Paket"}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => handleSaveDraft(true, "DRAFT")}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-full shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4 text-amber-700" /> Simpan Sebagai Draf
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handlePublikasikan}
+                      disabled={isSubmitting}
+                      className="inline-flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-gray-950 bg-[#EAB308] hover:bg-[#CA8A04] rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle className="w-4 h-4" /> {isEditMode && isEditingPublished ? "Simpan Perubahan Paket" : "Publikasikan Paket"}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
