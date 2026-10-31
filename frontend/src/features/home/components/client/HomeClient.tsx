@@ -506,7 +506,7 @@ export default function HomeClient() {
         {/* Services Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           
-          {/* Service Card 1 */}
+          {/* Service Card 1: Konsultasi */}
           <div className="bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
               <svg className="w-24 h-24 text-[#561269]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>
@@ -524,37 +524,37 @@ export default function HomeClient() {
             </Link>
           </div>
 
-          {/* Service Card 2 */}
+          {/* Service Card 2: Asesmen */}
           <div className="bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-              <svg className="w-24 h-24 text-[#d97706]" fill="currentColor" viewBox="0 0 24 24"><path d="M16.5 12c1.38 0 2.49-1.12 2.49-2.5S17.88 7 16.5 7C15.12 7 14 8.12 14 9.5s1.12 2.5 2.5 2.5zM9 11c1.66 0 2.99-1.34 2.99-3S10.66 5 9 5C7.34 5 6 6.34 6 8s1.34 3 3 3zm7.5 3c-1.83 0-5.5.92-5.5 2.75V19h11v-2.25c0-1.83-3.67-2.75-5.5-2.75zM9 13c-2.33 0-7 1.17-7 3.5V19h7v-2.25c0-.85.33-2.34 2.37-3.47C10.5 13.1 9.66 13 9 13z"></path></svg>
+              <svg className="w-24 h-24 text-[#d97706]" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"></path></svg>
             </div>
             <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mb-6 text-[#d97706] group-hover:bg-[#d97706] group-hover:text-white transition-colors duration-300">
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-            </div>
-            <h3 className="font-bold text-2xl text-gray-900 mb-3 relative z-10">Pelatihan Peer Helper</h3>
-            <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
-              Program pelatihan khusus yang dirancang untuk membekali Anda dengan keterampilan dasar konseling, empati, dan cara tepat dalam mendampingi teman sebaya.
-            </p>
-            <Link href={biroPrefix ? `${biroPrefix}/layanan?category=03` : "/layanan?category=03"} className="text-[#561269] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-              Lihat Detail
-              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-            </Link>
-          </div>
-
-          {/* Service Card 3 */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-              <svg className="w-24 h-24 text-[#561269]" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"></path></svg>
-            </div>
-            <div className="w-14 h-14 bg-[#561269]/10 rounded-2xl flex items-center justify-center mb-6 text-[#561269] group-hover:bg-[#561269] group-hover:text-white transition-colors duration-300">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
             </div>
             <h3 className="font-bold text-2xl text-gray-900 mb-3 relative z-10">Asesmen</h3>
             <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
               Pemetaan kondisi psikologis secara komprehensif, mulai dari minat bakat, kepribadian, hingga evaluasi kesiapan kerja menggunakan alat ukur yang valid dan terpercaya.
             </p>
-            <Link href={biroPrefix ? `${biroPrefix}/layanan?category=05` : "/layanan?category=05"} className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+            <Link href={biroPrefix ? `${biroPrefix}/layanan?category=05` : "/layanan?category=05"} className="text-[#561269] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+              Lihat Detail
+              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+            </Link>
+          </div>
+
+          {/* Service Card 3: Blog */}
+          <div className="bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
+              <svg className="w-24 h-24 text-[#561269]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"></path></svg>
+            </div>
+            <div className="w-14 h-14 bg-[#561269]/10 rounded-2xl flex items-center justify-center mb-6 text-[#561269] group-hover:bg-[#561269] group-hover:text-white transition-colors duration-300">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            </div>
+            <h3 className="font-bold text-2xl text-gray-900 mb-3 relative z-10">Blog</h3>
+            <p className="text-gray-500 text-sm mb-6 flex-1 relative z-10 leading-relaxed">
+              Temukan cerita, artikel edukatif seputar kesehatan mental, tips psikologis, dan wawasan baru dari para profesional untuk mendampingi keseharianmu.
+            </p>
+            <Link href={biroPrefix ? `${biroPrefix}/blog` : "/blog"} className="text-[#d97706] font-semibold flex items-center group-hover:translate-x-2 transition-transform duration-300 relative z-10">
               Lihat Detail
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
             </Link>
