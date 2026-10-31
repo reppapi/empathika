@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ClientSessionToday } from "@/features/konseling/types"
-import { AlertCircle, RotateCcw, X, Clock, Calendar, User, DollarSign } from "lucide-react"
+import { AlertCircle, RotateCcw, X, Clock, User, DollarSign } from "lucide-react"
 
 interface ModalRefundSesiProps {
   session: ClientSessionToday | null

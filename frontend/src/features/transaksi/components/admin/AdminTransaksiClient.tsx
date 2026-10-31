@@ -314,10 +314,10 @@ function normalizeTransaksi(raw: any) {
     if (bookingPsikotes.hasil_tes) {
       const tglSelesai = bookingPsikotes.hasil_tes.tanggal_selesai
         ? new Date(bookingPsikotes.hasil_tes.tanggal_selesai).toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
         : ""
       jadwalDisplay = tglSelesai ? `Tes Selesai (${tglSelesai})` : "Tes Selesai"
     } else {
@@ -362,12 +362,12 @@ function normalizeTransaksi(raw: any) {
   const paidAt = raw.tanggal_bayar || raw.paid_at
   const waktuPembayaran = paidAt
     ? new Date(paidAt).toLocaleString("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }) + " WIB"
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }) + " WIB"
     : undefined
 
   let cleanedOrderId = raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-"
@@ -489,7 +489,7 @@ export default function AdminTransaksiClient() {
     } finally {
       setIsLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -517,6 +517,40 @@ export default function AdminTransaksiClient() {
     return found || filteredTransaksi[0]
   }, [filteredTransaksi, selectedItem])
 
+  // Measure Detail Transaksi height so Daftar Transaksi can match it on desktop
+  const detailCardRef = useRef<HTMLDivElement>(null)
+  const [detailHeight, setDetailHeight] = useState<number | null>(null)
+  const [isLgScreen, setIsLgScreen] = useState(false)
+
+  useEffect(() => {
+    const checkLg = () => {
+      setIsLgScreen(window.innerWidth >= 1024)
+    }
+    checkLg()
+    window.addEventListener("resize", checkLg)
+    return () => window.removeEventListener("resize", checkLg)
+  }, [])
+
+  useEffect(() => {
+    const el = detailCardRef.current
+    if (!el) return
+
+    const updateHeight = () => {
+      if (el) {
+        setDetailHeight(el.offsetHeight)
+      }
+    }
+
+    updateHeight()
+
+    const ro = new ResizeObserver(() => {
+      updateHeight()
+    })
+    ro.observe(el)
+
+    return () => ro.disconnect()
+  }, [activeDetailItem])
+
   // Summary metrics
   const summaryMetrics = useMemo(() => {
     const inPeriod = allTransaksi.filter((item) => {
@@ -534,7 +568,7 @@ export default function AdminTransaksiClient() {
     if (selectedDate) pendapatanLabel = "Total Pendapatan Hari Ini"
     else if (selectedMonth) {
       const [y, m] = selectedMonth.split("-")
-      const monthNames = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
       pendapatanLabel = `Total Pendapatan ${monthNames[parseInt(m) - 1]} ${y}`
     }
 
@@ -577,7 +611,7 @@ export default function AdminTransaksiClient() {
   // Month label for select
   const getMonthLabel = (ym: string) => {
     const [y, m] = ym.split("-")
-    const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"]
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
     return `${monthNames[parseInt(m) - 1]} ${y}`
   }
 
@@ -706,18 +740,20 @@ export default function AdminTransaksiClient() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* ════ Kolom Kiri: List ════ */}
-            <div className="lg:col-span-7 flex flex-col rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div
+              className="lg:col-span-7 flex flex-col rounded-3xl border border-gray-200/90 bg-white shadow-[0_2px_15px_rgba(0,0,0,0.03)] overflow-hidden"
+              style={isLgScreen && detailHeight ? { height: `${detailHeight}px` } : undefined}
+            >
               {/* Header List */}
               <div className="bg-[#EFE8F3] px-5 py-3.5 flex items-center justify-between border-b border-purple-100 min-h-[58px] shrink-0">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedLayanan("semua")}
-                    className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all ${
-                      selectedLayanan === "semua"
+                    className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all ${selectedLayanan === "semua"
                         ? "bg-white text-[#561269]"
                         : "bg-white/70 text-gray-700 hover:bg-white"
-                    }`}
+                      }`}
                   >
                     Semua
                   </button>
@@ -749,11 +785,10 @@ export default function AdminTransaksiClient() {
                               setSelectedLayanan(opt.id)
                               setIsFilterOpen(false)
                             }}
-                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors ${
-                              selectedLayanan === opt.id
+                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors ${selectedLayanan === opt.id
                                 ? "bg-purple-50 text-[#561269] font-bold"
                                 : "text-gray-700 hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             <span>{opt.label}</span>
                             {selectedLayanan === opt.id && (
@@ -770,7 +805,7 @@ export default function AdminTransaksiClient() {
               </div>
 
               {/* List Items */}
-              <div className="divide-y divide-gray-100 max-h-[640px] overflow-y-auto admin-table-scrollbar scroll-smooth">
+              <div className="divide-y divide-gray-100 flex-1 min-h-0 max-h-[500px] lg:max-h-none overflow-y-auto admin-table-scrollbar scroll-smooth">
                 {filteredTransaksi.length === 0 ? (
                   <div className="p-12 text-center text-gray-400 text-sm">
                     Tidak ada transaksi yang cocok dengan filter.
@@ -782,9 +817,8 @@ export default function AdminTransaksiClient() {
                       <div
                         key={item.id}
                         onClick={() => setSelectedItem(item)}
-                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 ${
-                          isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
-                        }`}
+                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 ${isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
+                          }`}
                       >
                         {isSelected && (
                           <div className="absolute inset-y-0 left-0 w-[5px] bg-[#561269]" />
@@ -826,7 +860,10 @@ export default function AdminTransaksiClient() {
             </div>
 
             {/* ════ Kolom Kanan: Detail Transaksi / Invoice ════ */}
-            <div className="lg:col-span-5 flex flex-col rounded-3xl border border-gray-200/90 bg-white overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)] lg:sticky lg:top-6 self-start">
+            <div
+              ref={detailCardRef}
+              className="lg:col-span-5 flex flex-col rounded-3xl border border-gray-200/90 bg-white overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)] lg:sticky lg:top-6 self-start"
+            >
               <div className="bg-[#EFE8F3] px-5 py-3.5 border-b border-purple-100 min-h-[58px] flex items-center justify-between shrink-0">
                 <h3 className="text-base font-bold text-[#561269]">Detail Transaksi</h3>
                 <span className="text-[11px] font-bold text-[#561269] bg-white/70 px-2.5 py-0.5 rounded-full border border-purple-200">
@@ -835,7 +872,7 @@ export default function AdminTransaksiClient() {
               </div>
 
               {activeDetailItem ? (
-                <div className="p-6 flex flex-col gap-4 max-h-[calc(100vh-5rem)] overflow-y-auto admin-table-scrollbar">
+                <div className="p-6 flex flex-col gap-4">
                   {/* Order Info */}
                   <div className="flex flex-col items-center text-center">
                     <span className="text-[11px] font-bold text-gray-400 tracking-wider uppercase">ORDER ID</span>
@@ -874,8 +911,8 @@ export default function AdminTransaksiClient() {
                           {activeDetailItem.jenisLayanan === "psikotes"
                             ? "Kategori: "
                             : activeDetailItem.jenisLayanan === "event"
-                            ? "Pemateri: "
-                            : "Psikolog/Fasilitator: "}
+                              ? "Pemateri: "
+                              : "Psikolog/Fasilitator: "}
                           <span className="font-semibold text-gray-800">{activeDetailItem.psikologOrFasilitator}</span>
                         </p>
                       )}
@@ -967,9 +1004,8 @@ export default function AdminTransaksiClient() {
 
       {/* ── Toast ── */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border animate-in slide-in-from-bottom-5 ${
-          toast.type === "success" ? "bg-gray-900 border-gray-700" : "bg-red-900 border-red-700"
-        }`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border animate-in slide-in-from-bottom-5 ${toast.type === "success" ? "bg-gray-900 border-gray-700" : "bg-red-900 border-red-700"
+          }`}>
           <span>{toast.message}</span>
         </div>
       )}
