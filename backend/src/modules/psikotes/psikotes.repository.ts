@@ -775,13 +775,26 @@ export class PsikotesRepository {
   }
 
   async findPeserta(params?: PesertaQueryInput) {
-    const where: any = {}
+    // 1. Filter: HANYA peserta berbayar resmi (memiliki transaksi & bukan tamu anonim)
+    const where: any = {
+      paket: {
+        jenis_akses: 'BERBAYAR',
+      },
+      client: {
+        nama: { not: 'Tamu Anonim' },
+      },
+      id_transaksi: { not: null },
+    }
 
     if (params?.search) {
-      where.OR = [
-        { client: { nama: { contains: params.search, mode: 'insensitive' } } },
-        { client: { no_telepon: { contains: params.search, mode: 'insensitive' } } },
-        { paket: { judul: { contains: params.search, mode: 'insensitive' } } },
+      where.AND = [
+        {
+          OR: [
+            { client: { nama: { contains: params.search, mode: 'insensitive' } } },
+            { client: { no_telepon: { contains: params.search, mode: 'insensitive' } } },
+            { paket: { judul: { contains: params.search, mode: 'insensitive' } } },
+          ],
+        },
       ]
     }
 
@@ -789,34 +802,22 @@ export class PsikotesRepository {
       where.id_paket = params.id_paket
     }
 
-    if (params?.jenis_akses === 'GRATIS') {
-      where.paket = {
-        ...where.paket,
-        jenis_akses: 'GRATIS',
-      }
-    } else if (params?.jenis_akses === 'ALL') {
-      // Tidak memfilter jenis_akses
-    } else {
-      // Default: Hanya menampilkan peserta yang mengikuti psikotes berbayar
-      where.paket = {
-        ...where.paket,
-        jenis_akses: 'BERBAYAR',
-      }
+    const baseCountWhere: any = {
+      paket: { is: { jenis_akses: 'BERBAYAR' } },
+      client: { is: { nama: { not: 'Tamu Anonim' } } },
+      id_transaksi: { not: null },
     }
 
-    const [totalSemua, totalGratis, totalBerbayar, totalSelesai, items] = await Promise.all([
-      this.prisma.bookingPsikotes.count(),
+    const [totalBerbayar, totalSelesai, items] = await Promise.all([
       this.prisma.bookingPsikotes.count({
-        where: {
-          paket: { jenis_akses: 'GRATIS' },
-        },
+        where: baseCountWhere,
       }),
       this.prisma.bookingPsikotes.count({
         where: {
-          paket: { jenis_akses: 'BERBAYAR' },
+          ...baseCountWhere,
+          hasil_tes: { isNot: null },
         },
       }),
-      this.prisma.hasilTes.count(),
       this.prisma.bookingPsikotes.findMany({
         where,
         include: {
@@ -837,35 +838,34 @@ export class PsikotesRepository {
           },
         },
         orderBy: { createdAt: 'desc' },
-        take: params?.limit || 50,
-        skip: ((params?.page || 1) - 1) * (params?.limit || 50),
+        take: params?.limit || 100,
+        skip: ((params?.page || 1) - 1) * (params?.limit || 100),
       }),
     ])
 
-    // Deduplikasi tampilan: jika peserta yang sama sudah memiliki entri 'Selesai' (memiliki hasil_tes) untuk paket tersebut,
-    // jangan tampilkan kembali entri duplikat 'Berjalan' (hasil_tes kosong)
-    const finishedClientPaketSet = new Set<string>()
+    // 2. Deduplikasi tampilan per peserta & paket:
+    // Urutan query adalah createdAt: 'desc'. Booking paling baru (pertama ditemui) mewakili status sesi terbaru klien.
+    // Jika klien baru saja membayar, booking terbarunya berstatus 'Berjalan' (hasil_tes masih null).
+    // Booking terbaru ini harus tampil di tabel, dan TIDAK BOLEH ditimpa/dibuang oleh hasil tes lama!
+    const seenClientPaket = new Set<string>()
+    const filteredItems: typeof items = []
+
     for (const b of items) {
-      if (b.hasil_tes && b.client.nama !== 'Tamu Anonim') {
-        const key = `${b.id_client}_${b.paket.judul.trim().toLowerCase()}`
-        finishedClientPaketSet.add(key)
+      if (!b.client || b.client.nama === 'Tamu Anonim') continue
+      const clientKey = (b.client.no_telepon || b.id_client).trim()
+      const paketKey = b.paket.judul.trim().toLowerCase()
+      const key = `${clientKey}_${paketKey}`
+
+      if (!seenClientPaket.has(key)) {
+        seenClientPaket.add(key)
+        filteredItems.push(b)
       }
     }
 
-    const filteredItems = items.filter((b) => {
-      if (!b.hasil_tes && b.client.nama !== 'Tamu Anonim') {
-        const key = `${b.id_client}_${b.paket.judul.trim().toLowerCase()}`
-        if (finishedClientPaketSet.has(key)) {
-          return false
-        }
-      }
-      return true
-    })
-
     return {
       summary: {
-        total_peserta: totalSemua,
-        total_gratis: totalGratis,
+        total_peserta: totalBerbayar,
+        total_gratis: 0,
         total_berbayar: totalBerbayar,
         total_selesai: totalSelesai,
       },
@@ -1032,27 +1032,60 @@ export class PsikotesRepository {
         },
       })
 
-      // 8. Simpan entri BookingPsikotes yang terhubung dengan Transaksi
-      const booking = await tx.bookingPsikotes.create({
-        data: {
+      // 8. Cek apakah klien sudah memiliki booking aktif yang belum selesai (hasil_tes masih null)
+      let booking: any = await tx.bookingPsikotes.findFirst({
+        where: {
           id_paket: paket.id,
           id_client: client.id,
-          id_transaksi: transaksi.id,
+          hasil_tes: null,
         },
-        include: {
-          paket: {
-            select: {
-              id: true,
-              judul: true,
-              jenis_akses: true,
-              harga: true,
-              banner_url: true,
-            },
-          },
-          transaksi: true,
-          client: true,
-        },
+        orderBy: { createdAt: 'desc' },
       })
+
+      if (booking) {
+        // Perbarui booking yang belum dikerjakan ini dengan transaksi yang baru
+        booking = await tx.bookingPsikotes.update({
+          where: { id: booking.id },
+          data: {
+            id_transaksi: transaksi.id,
+          },
+          include: {
+            paket: {
+              select: {
+                id: true,
+                judul: true,
+                jenis_akses: true,
+                harga: true,
+                banner_url: true,
+              },
+            },
+            transaksi: true,
+            client: true,
+          },
+        })
+      } else {
+        // Buat entri BookingPsikotes baru jika belum pernah ada booking aktif yang belum selesai
+        booking = await tx.bookingPsikotes.create({
+          data: {
+            id_paket: paket.id,
+            id_client: client.id,
+            id_transaksi: transaksi.id,
+          },
+          include: {
+            paket: {
+              select: {
+                id: true,
+                judul: true,
+                jenis_akses: true,
+                harga: true,
+                banner_url: true,
+              },
+            },
+            transaksi: true,
+            client: true,
+          },
+        })
+      }
 
       return {
         booking: {

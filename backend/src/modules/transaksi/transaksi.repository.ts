@@ -4,7 +4,24 @@ export class TransaksiRepository {
   constructor(private prisma: PrismaClient) {}
 
   async findAll(_params?: { clientId?: string; status?: string }) {
+    const where: any = {
+      OR: [
+        { booking_konsultasi: { isNot: null } },
+        { booking_psikotes: { isNot: null } },
+        { booking_event: { isNot: null } },
+      ],
+    }
+
+    if (_params?.clientId) {
+      where.id_client = _params.clientId
+    }
+
+    if (_params?.status) {
+      where.status_pembayaran = _params.status as any
+    }
+
     return this.prisma.transaksi.findMany({
+      where,
       include: {
         client: true,
         booking_konsultasi: {
