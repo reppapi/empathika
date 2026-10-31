@@ -1,6 +1,9 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { TransaksiService } from './transaksi.service'
-import type { CreateTransaksiInput } from './transaksi.schema'
+import type {
+  CreateTransaksiInput,
+  CreateCheckoutTransaksiInput,
+} from './transaksi.schema'
 
 export class TransaksiController {
   private service: TransaksiService
@@ -58,9 +61,40 @@ export class TransaksiController {
     }
   }
 
+  /**
+   * Endpoint Universal Checkout (Konseling, Event, Psikotes) -> Generate Xendit Invoice
+   */
+  checkout = async (
+    request: FastifyRequest<{ Body: CreateCheckoutTransaksiInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = request.user as { id?: string } | undefined
+      const result = await this.service.createUniversalCheckout(request.body, user?.id)
+      reply.code(201).send({
+        success: true,
+        message: 'Berhasil membuat pesanan transaksi dan tautan pembayaran Xendit',
+        data: result,
+      })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({
+        error: err.name || 'Bad Request',
+        message: err.message || 'Gagal memproses transaksi checkout',
+        details: err.details,
+      })
+    }
+  }
+
   createPayment = async (request: FastifyRequest<{ Body: CreateTransaksiInput }>, reply: FastifyReply) => {
-    const user = request.user as { id: string }
-    const result = await this.service.createPayment(request.body, user.id)
-    reply.code(201).send(result)
+    try {
+      const user = request.user as { id: string }
+      const result = await this.service.createPayment(request.body, user.id)
+      reply.code(201).send(result)
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({
+        error: err.name || 'Bad Request',
+        message: err.message || 'Gagal inisiasi pembayaran',
+      })
+    }
   }
 }
