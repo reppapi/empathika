@@ -189,8 +189,8 @@ export default function EventCheckoutClient() {
         })
     }
 
-    // Arahkan ke halaman pending dulu
-    router.push(`/event/pending?${params.toString()}`)
+    // Arahkan ke halaman pending
+    router.push(isPsikotes ? `/psikotes/pending?${params.toString()}` : `/event/pending?${params.toString()}`)
   }
 
   const paymentOptions = [
