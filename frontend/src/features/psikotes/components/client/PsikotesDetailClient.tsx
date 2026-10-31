@@ -413,7 +413,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                   {/* CTA Button Gratis */}
                   <Link 
                     href={`/psikotes/${params.testId}/mulai`}
-                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#561269] hover:bg-[#763E8B] text-white font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
                   >
                     <span>Mulai Tes Gratis</span>
                     <ArrowRight className="w-4 h-4" />

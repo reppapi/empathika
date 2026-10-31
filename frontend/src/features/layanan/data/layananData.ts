@@ -1,45 +1,9 @@
 export const CATEGORIES = [
-  { id: "01", title: "Psikotes" },
-  { id: "02", title: "Konsultasi" },
-  { id: "03", title: "Pelatihan peer helper" },
-  { id: "04", title: "Event" },
+  { id: "01", title: "Konsultasi" },
+  { id: "02", title: "Psikotes" },
+  { id: "03", title: "Workshop" },
+  { id: "04", title: "Seminar" },
   { id: "05", title: "Asesmen" },
-]
-
-export const PSIKOTES_SERVICES = [
-  {
-    topTitle: "TES 16 KEPRIBADIAN",
-    topSubtitle: "(MBTI) Bahasa Indonesia",
-    bottomTitle: "Tes Online 16 Kepribadian (MBTI)...",
-    bottomDescription: "",
-    bgColor: "bg-[#f48520]",
-    titleColor: "text-white",
-    btnText: "Ikuti Tes",
-    shape: "circles",
-    href: "/psikotes/mbti",
-  },
-  {
-    topTitle: "TES ONLINE 16 KEPRIBADIAN",
-    topSubtitle: "(MBTI) Bahasa Indonesia",
-    bottomTitle: "Tes Online 16 Kepribadian (MBTI)...",
-    bottomDescription: "",
-    bgColor: "bg-[#f0d164]",
-    titleColor: "text-gray-900",
-    btnText: "Ikuti Tes",
-    shape: "circles-dark",
-    href: "/psikotes/mbti-2",
-  },
-  {
-    topTitle: "TES LOVE LANGUAGE",
-    topSubtitle: "",
-    bottomTitle: "Tes Love Language: 5 Tipe Bahasa Cinta...",
-    bottomDescription: "",
-    bgColor: "bg-[#e31e3d]",
-    titleColor: "text-white",
-    btnText: "Ikuti Tes",
-    shape: "heart",
-    href: "/psikotes/love-language",
-  },
 ]
 
 export const KONSULTASI_SERVICES = [
@@ -52,6 +16,7 @@ export const KONSULTASI_SERVICES = [
     titleColor: "text-white",
     btnText: "Booking Sesi",
     shape: "circles",
+    href: "/booking",
   },
   {
     topTitle: "PEER KONSELOR",
@@ -62,6 +27,7 @@ export const KONSULTASI_SERVICES = [
     titleColor: "text-gray-900",
     btnText: "Booking Sesi",
     shape: "circles-dark",
+    href: "/booking",
   },
   {
     topTitle: "HIPNOTERAPI",
@@ -72,6 +38,7 @@ export const KONSULTASI_SERVICES = [
     titleColor: "text-white",
     btnText: "Booking Sesi",
     shape: "heart",
+    href: "/booking",
   },
   {
     topTitle: "HOME VISIT",
@@ -82,40 +49,116 @@ export const KONSULTASI_SERVICES = [
     titleColor: "text-white",
     btnText: "Booking Sesi",
     shape: "circles",
+    href: "/booking",
   },
 ]
 
-export const EVENTS_SERVICES = [
+export const PSIKOTES_SERVICES = [
   {
-    topTitle: "SEMINAR",
-    topSubtitle: "Berbagi Wawasan Edukatif",
-    bottomTitle: "Seminar Psikologi",
-    bottomDescription: "Sesi edukatif bersama para ahli untuk membahas topik-topik menarik seputar kesehatan mental dan psikologi di masyarakat.",
-    bgColor: "bg-[#e31e3d]",
+    topTitle: "TES 16 KEPRIBADIAN",
+    topSubtitle: "(MBTI) Bahasa Indonesia",
+    bottomTitle: "Tes Online 16 Kepribadian (MBTI)",
+    bottomDescription: "Asesmen psikologi terstruktur untuk mengetahui tipe kepribadian, preferensi interaksi sosial, dan gaya kerja Anda.",
+    bgColor: "bg-[#f48520]",
     titleColor: "text-white",
-    btnText: "Lihat Detail",
+    btnText: "Ikuti Tes",
     shape: "circles",
+    href: "/psikotes/mbti",
   },
   {
-    topTitle: "WORKSHOP",
-    topSubtitle: "Pelatihan Interaktif",
-    bottomTitle: "Workshop & Pelatihan",
-    bottomDescription: "Pelatihan mendalam dan interaktif yang dirancang khusus untuk membekali peserta dengan keterampilan praktis mengelola emosi.",
+    topTitle: "TES LOVE LANGUAGE",
+    topSubtitle: "5 Bahasa Cinta",
+    bottomTitle: "Tes Love Language: 5 Tipe Bahasa Cinta",
+    bottomDescription: "Ketahui bagaimana cara Anda dan pasangan mengekspresikan serta menerima kasih sayang dalam hubungan.",
+    bgColor: "bg-[#e31e3d]",
+    titleColor: "text-white",
+    btnText: "Ikuti Tes",
+    shape: "heart",
+    href: "/psikotes/love-language",
+  },
+  {
+    topTitle: "TES KESEHATAN MENTAL",
+    topSubtitle: "Skrining Dini Stres & Cemas",
+    bottomTitle: "Skrining Awal Kesehatan Mental",
+    bottomDescription: "Evaluasi awal tingkat kecemasan, stres, dan kelelahan emosional dengan indikator psikologis terpercaya.",
     bgColor: "bg-[#561269]",
     titleColor: "text-white",
-    btnText: "Lihat Detail",
+    btnText: "Ikuti Tes",
     shape: "circles-dark",
+    href: "/psikotes",
+  },
+]
+
+export const WORKSHOP_SERVICES = [
+  {
+    topTitle: "WORKSHOP SEFT",
+    topSubtitle: "Spiritual Emotional Freedom Technique",
+    bottomTitle: "Workshop SEFT Empathika",
+    bottomDescription: "Program workshop interaktif bersama para ahli untuk melepaskan beban emosi mendalam dan meraih ketenangan batin.",
+    bgColor: "bg-[#561269]",
+    titleColor: "text-white",
+    btnText: "Lihat Workshop",
+    shape: "circles",
+    href: "/event",
+  },
+  {
+    topTitle: "REGULASI EMOSI",
+    topSubtitle: "Pelatihan Keterampilan Praktis",
+    bottomTitle: "Workshop Manajemen Stres & Regulasi Emosi",
+    bottomDescription: "Pelatihan interaktif untuk membekali peserta dengan keterampilan praktis mengelola emosi dan mencegah burnout.",
+    bgColor: "bg-[#f48520]",
+    titleColor: "text-white",
+    btnText: "Lihat Workshop",
+    shape: "circles-dark",
+    href: "/event",
+  },
+  {
+    topTitle: "PEER HELPER",
+    topSubtitle: "Pelatihan Konselor Sebaya",
+    bottomTitle: "Pelatihan & Workshop Konselor Sebaya",
+    bottomDescription: "Pelatihan pembekalan bagi siswa, mahasiswa, dan komunitas untuk menjadi pendengar aktif dan konselor sebaya yang empatik.",
+    bgColor: "bg-[#f0d164]",
+    titleColor: "text-gray-900",
+    btnText: "Lihat Workshop",
+    shape: "heart",
+    href: "/event",
+  },
+]
+
+export const SEMINAR_SERVICES = [
+  {
+    topTitle: "SEMINAR PSIKOLOGI",
+    topSubtitle: "Berbagi Wawasan Edukatif",
+    bottomTitle: "Seminar Psikologi & Kesehatan Mental",
+    bottomDescription: "Sesi edukatif bersama para ahli untuk membahas topik-topik penting seputar kesehatan mental, resiliensi, dan psikologi modern.",
+    bgColor: "bg-[#e31e3d]",
+    titleColor: "text-white",
+    btnText: "Lihat Seminar",
+    shape: "circles",
+    href: "/event",
+  },
+  {
+    topTitle: "PARENTING",
+    topSubtitle: "Tumbuh Kembang & Pengasuhan",
+    bottomTitle: "Seminar Positive Parenting",
+    bottomDescription: "Seminar interaktif bagi orang tua dan pendidik untuk mendampingi fase tumbuh kembang anak dan remaja dengan pendekatan psikologis positif.",
+    bgColor: "bg-[#561269]",
+    titleColor: "text-white",
+    btnText: "Lihat Seminar",
+    shape: "circles-dark",
+    href: "/event",
   },
   {
     topTitle: "GOES TO SCHOOL",
-    topSubtitle: "Program Edukasi Sekolah",
-    bottomTitle: "Empathika Goes to School",
-    bottomDescription: "Program kunjungan ke sekolah untuk memberikan psikoedukasi kepada siswa dan guru terkait pentingnya kesehatan mental sejak dini.",
+    topSubtitle: "Psikoedukasi Sekolah & Kampus",
+    bottomTitle: "Empathika Goes to School / Campus",
+    bottomDescription: "Program kunjungan dan seminar psikoedukasi untuk siswa, mahasiswa, dan guru terkait pentingnya kesehatan mental sejak dini.",
     bgColor: "bg-[#f48520]",
     titleColor: "text-white",
-    btnText: "Lihat Detail",
+    btnText: "Lihat Seminar",
     shape: "heart",
-  }
+    href: "/event",
+  },
 ]
 
 export const ASESMEN_SERVICES = [
@@ -128,7 +171,8 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "circles",
-    href: "/booking/asesmen?paket=Asesmen+Minat+Bakat",
+    href: "/asesmen?paket=Asesmen+Minat+Bakat",
+    bannerUrl: "https://images.unsplash.com/photo-1573497620053-ea5300f94f21?auto=format&fit=crop&w=1200&q=80",
   },
   {
     topTitle: "ASESMEN",
@@ -139,7 +183,8 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "circles-dark",
-    href: "/booking/asesmen?paket=Asesmen+Kesiapan+Sekolah",
+    href: "/asesmen?paket=Asesmen+Kesiapan+Sekolah",
+    bannerUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80",
   },
   {
     topTitle: "ASESMEN",
@@ -150,16 +195,16 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "heart",
-    href: "/booking/asesmen?paket=Asesmen+Klinis",
+    href: "/asesmen?paket=Asesmen+Klinis",
+    bannerUrl: "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?auto=format&fit=crop&w=1200&q=80",
   },
 ]
 
 // Mapping data layanan ke masing-masing kategori
 export const SERVICES_DATA: Record<string, any[]> = {
-  "01": PSIKOTES_SERVICES,
-  "02": KONSULTASI_SERVICES,
-  "03": KONSULTASI_SERVICES,
-  "04": EVENTS_SERVICES,
+  "01": KONSULTASI_SERVICES,
+  "02": PSIKOTES_SERVICES,
+  "03": WORKSHOP_SERVICES,
+  "04": SEMINAR_SERVICES,
   "05": ASESMEN_SERVICES,
 }
-

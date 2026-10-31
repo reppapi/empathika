@@ -3,7 +3,7 @@
 export interface AdminLayananItem {
   id: number
   layanan: string
-  kategoriId: string // "02" (Konsultasi), "03" (Pelatihan peer helper), "05" (Asesmen)
+  kategoriId: string // "01" (Konsultasi), "03" (Workshop), "04" (Seminar), "05" (Asesmen)
   metode: string // "Online" | "Offline" | "Online/Offline"
   weekday: string
   weekend: string
@@ -13,11 +13,11 @@ export interface AdminLayananItem {
 }
 
 export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
-  // ── Konsultasi (02) ──
+  // ── Konsultasi (01) ──
   {
     id: 1,
     layanan: "Psikolog",
-    kategoriId: "02",
+    kategoriId: "01",
     metode: "Online/Offline",
     weekday: "Rp 350.000",
     weekend: "Rp 450.000",
@@ -29,7 +29,7 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
   {
     id: 2,
     layanan: "Peer Konselor",
-    kategoriId: "02",
+    kategoriId: "01",
     metode: "Online/Offline",
     weekday: "Rp 350.000",
     weekend: "Rp 450.000",
@@ -41,7 +41,7 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
   {
     id: 3,
     layanan: "Hipnoterapi",
-    kategoriId: "02",
+    kategoriId: "01",
     metode: "Offline",
     weekday: "Rp 400.000",
     weekend: "Rp 500.000",
@@ -53,7 +53,7 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
   {
     id: 4,
     layanan: "Home Visit",
-    kategoriId: "02",
+    kategoriId: "01",
     metode: "Offline",
     weekday: "Rp 500.000",
     weekend: "Rp 600.000",
@@ -62,17 +62,17 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
       "Layanan spesial di mana psikolog kami akan langsung mengunjungi lokasi Anda demi kenyamanan, terutama bagi klien yang kesulitan mobilitas.",
     bannerUrl: "",
   },
-  // ── Pelatihan peer helper (03) ──
+  // ── Workshop (03) ──
   {
     id: 5,
-    layanan: "Pelatihan Konselor Sebaya Dasar",
+    layanan: "Workshop Regulasi Emosi & Pelatihan Konselor Sebaya",
     kategoriId: "03",
     metode: "Online/Offline",
     weekday: "Rp 350.000",
     weekend: "Rp 450.000",
     status: "Aktif",
     deskripsi:
-      "Pelatihan pembekalan dasar bagi siswa/mahasiswa/komunitas untuk menjadi pendengar aktif dan konselor sebaya yang empatik.",
+      "Pelatihan pembekalan intensif bagi siswa/mahasiswa/komunitas untuk mengelola stres dan menjadi pendengar aktif yang empatik.",
     bannerUrl: "",
   },
   // ── Asesmen (05) ──
@@ -85,8 +85,8 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
     weekend: "Rp 500.000",
     status: "Aktif",
     deskripsi:
-      "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu.",
-    bannerUrl: "",
+      "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu secara terstandar.",
+    bannerUrl: "https://images.unsplash.com/photo-1573497620053-ea5300f94f21?auto=format&fit=crop&w=1200&q=80",
   },
   {
     id: 7,
@@ -98,7 +98,19 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
     status: "Aktif",
     deskripsi:
       "Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, dan emosional dalam memasuki jenjang sekolah.",
-    bannerUrl: "",
+    bannerUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: 8,
+    layanan: "Asesmen Klinis",
+    kategoriId: "05",
+    metode: "Online/Offline",
+    weekday: "Rp 350.000",
+    weekend: "Rp 450.000",
+    status: "Aktif",
+    deskripsi:
+      "Evaluasi psikologis mendalam untuk mengidentifikasi kondisi klinis, regulasi emosi, kecemasan, dan kesehatan mental secara menyeluruh.",
+    bannerUrl: "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?auto=format&fit=crop&w=1200&q=80",
   },
 ]
 
@@ -120,44 +132,46 @@ export function getStoredLayanan(): AdminLayananItem[] {
   return INITIAL_ADMIN_LAYANAN
 }
 
-export function saveStoredLayanan(list: AdminLayananItem[]): void {
+export function saveStoredLayanan(items: AdminLayananItem[]): void {
   if (typeof window === "undefined") return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
   } catch (e) {
     console.error("Failed to save admin layanan to localStorage", e)
   }
 }
 
-export function getLayananById(id: number | string): AdminLayananItem | undefined {
-  const list = getStoredLayanan()
-  return list.find((item) => String(item.id) === String(id))
-}
-
-export function updateLayananById(
-  id: number | string,
-  updatedData: Partial<AdminLayananItem>
-): boolean {
-  const list = getStoredLayanan()
-  const idx = list.findIndex((item) => String(item.id) === String(id))
-  if (idx === -1) return false
-  list[idx] = { ...list[idx], ...updatedData }
-  saveStoredLayanan(list)
-  return true
-}
-
-export function addLayanan(newItem: Omit<AdminLayananItem, "id">): AdminLayananItem {
-  const list = getStoredLayanan()
-  const nextId = list.length > 0 ? Math.max(...list.map((l) => l.id)) + 1 : 1
-  const created: AdminLayananItem = { ...newItem, id: nextId }
-  list.push(created)
-  saveStoredLayanan(list)
+export function addLayanan(item: Omit<AdminLayananItem, "id">): AdminLayananItem {
+  const current = getStoredLayanan()
+  const nextId = current.length > 0 ? Math.max(...current.map((i) => i.id)) + 1 : 1
+  const created: AdminLayananItem = { ...item, id: nextId }
+  const updated = [created, ...current]
+  saveStoredLayanan(updated)
   return created
 }
 
-export function deleteLayananById(id: number | string): boolean {
-  const list = getStoredLayanan()
-  const filtered = list.filter((item) => String(item.id) !== String(id))
+export function updateLayananById(
+  id: number,
+  patch: Partial<Omit<AdminLayananItem, "id">>
+): AdminLayananItem | null {
+  const current = getStoredLayanan()
+  const idx = current.findIndex((i) => i.id === id)
+  if (idx === -1) return null
+  const updatedItem: AdminLayananItem = { ...current[idx], ...patch }
+  current[idx] = updatedItem
+  saveStoredLayanan([...current])
+  return updatedItem
+}
+
+export function deleteLayananById(id: number): boolean {
+  const current = getStoredLayanan()
+  const filtered = current.filter((i) => i.id !== id)
+  if (filtered.length === current.length) return false
   saveStoredLayanan(filtered)
   return true
+}
+
+export function getLayananById(id: number): AdminLayananItem | null {
+  const current = getStoredLayanan()
+  return current.find((i) => i.id === id) || null
 }

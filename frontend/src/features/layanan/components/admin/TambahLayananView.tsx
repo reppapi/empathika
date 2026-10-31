@@ -12,9 +12,11 @@ import { processAndUploadImage } from "@/lib/imageCompressor"
 export default function TambahLayananView() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialCategory = searchParams.get("category") || "02"
+  const initialCategory = searchParams.get("category") || "01"
 
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
+  const [imageUrlInput, setImageUrlInput] = useState("")
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
   const [namaLayanan, setNamaLayanan] = useState("")
   const [metode, setMetode] = useState("Online/Offline")
@@ -141,7 +143,7 @@ export default function TambahLayananView() {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white cursor-pointer"
           >
-            {CATEGORIES.filter((cat) => ["02", "03", "05"].includes(cat.id)).map((cat) => (
+            {CATEGORIES.filter((cat) => ["01", "03", "04", "05"].includes(cat.id)).map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.title}
               </option>
@@ -266,53 +268,127 @@ export default function TambahLayananView() {
             </div>
           </div>
 
-          {/* Poster / Banner Upload */}
+          {/* Foto Banner Awal / Gambar Hero Layanan */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Poster / Banner Layanan
-            </label>
-            <div
-              className={`mt-1 flex justify-center border-2 ${
-                imagePreview
-                  ? "border-solid border-gray-200 p-2"
-                  : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
-              } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
-              onClick={handleImageClick}
-              style={{ minHeight: "160px" }}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageChange}
-                accept="image/jpeg, image/png, image/webp"
-                className="hidden"
-              />
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-bold text-gray-800">
+                Foto Banner Awal / Gambar Hero Layanan
+              </label>
+              <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs">
+                <button
+                  type="button"
+                  onClick={() => setImageInputMode("file")}
+                  className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
+                    imageInputMode === "file" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageInputMode("url")}
+                  className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
+                    imageInputMode === "url" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  Tautan URL
+                </button>
+              </div>
+            </div>
 
-              {imagePreview ? (
-                <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
-                  <Image
-                    src={imagePreview}
-                    alt="Preview"
-                    width={300}
-                    height={160}
-                    className="max-h-[160px] w-auto object-contain"
+            {imageInputMode === "url" ? (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    placeholder="https://example.com/foto-banner-layanan.jpg"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
                   />
                   <button
                     type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
+                    onClick={() => {
+                      if (imageUrlInput.trim()) {
+                        setImagePreview(imageUrlInput.trim());
+                      }
+                    }}
+                    className="px-4 py-2 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
                   >
-                    <X className="w-4 h-4" />
+                    Terapkan
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-2 text-center my-auto">
-                  <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
-                  <div className="text-sm text-gray-600">Klik untuk upload gambar poster / banner</div>
-                  <p className="text-xs text-gray-500">Format: JPG, PNG, WebP (Maks. 2MB)</p>
-                </div>
-              )}
-            </div>
+                {imagePreview && (
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview Foto Hero"
+                      width={400}
+                      height={160}
+                      className="max-h-40 w-auto object-contain"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreview(null);
+                        setImageUrlInput("");
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                className={`mt-1 flex justify-center border-2 ${
+                  imagePreview
+                    ? "border-solid border-gray-200 p-2"
+                    : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
+                } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
+                onClick={handleImageClick}
+                style={{ minHeight: "160px" }}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/jpeg, image/png, image/webp"
+                  className="hidden"
+                />
+
+                {imagePreview ? (
+                  <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview Foto Hero"
+                      width={300}
+                      height={160}
+                      className="max-h-[160px] w-auto object-contain"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 text-center my-auto">
+                    <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
+                    <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
+                    <p className="text-xs text-gray-500">Format: JPG, PNG, WebP (Maks. 2MB)</p>
+                  </div>
+                )}
+              </div>
+            )}
+            <p className="text-[11px] text-gray-500 mt-1.5">
+              Foto ini akan ditampilkan sebagai gambar hero banner utama di bagian atas halaman detail layanan publik (Asesmen, Workshop, atau Konsultasi).
+            </p>
           </div>
         </div>
 

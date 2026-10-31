@@ -19,7 +19,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [loading, setLoading] = useState(true)
 
   // Form State
-  const [selectedCategory, setSelectedCategory] = useState("02")
+  const [selectedCategory, setSelectedCategory] = useState("01")
   const [namaLayanan, setNamaLayanan] = useState("")
   const [metode, setMetode] = useState("Online/Offline")
   const [status, setStatus] = useState<"Aktif" | "Nonaktif">("Aktif")
@@ -27,6 +27,8 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [hargaWeekday, setHargaWeekday] = useState("")
   const [hargaWeekend, setHargaWeekend] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
+  const [imageUrlInput, setImageUrlInput] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
   const [successMsg, setSuccessMsg] = useState(false)
 
@@ -34,7 +36,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
 
   // Load existing data
   useEffect(() => {
-    const existing = getLayananById(layananId)
+    const existing = getLayananById(Number(layananId))
     if (existing) {
       setItem(existing)
       setSelectedCategory(existing.kategoriId || "02")
@@ -48,6 +50,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       setHargaWeekday(cleanWeekday)
       setHargaWeekend(cleanWeekend)
       setImagePreview(existing.bannerUrl || null)
+      if (existing.bannerUrl) setImageUrlInput(existing.bannerUrl)
     }
     setLoading(false)
   }, [layananId])
@@ -100,7 +103,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       bannerUrl: imagePreview || "",
     }
 
-    const ok = updateLayananById(layananId, updatedData)
+    const ok = updateLayananById(Number(layananId), updatedData)
     if (ok) {
       setSuccessMsg(true)
       setTimeout(() => {
@@ -285,7 +288,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className={`${inputClass} cursor-pointer`}
               >
-                {CATEGORIES.filter((cat) => ["02", "03", "05"].includes(cat.id)).map((cat) => (
+                {CATEGORIES.filter((cat) => ["01", "03", "04", "05"].includes(cat.id)).map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.title}
                   </option>

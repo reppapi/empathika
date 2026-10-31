@@ -30,14 +30,14 @@ export default function AdminLayananView() {
   const searchParams = useSearchParams()
 
   // Kategori yang diizinkan di admin
-  const allowedCategories = ["02", "03", "05"]
+  const allowedCategories = ["01", "03", "04", "05"]
   const adminCategories = CATEGORIES.filter((cat) => allowedCategories.includes(cat.id))
 
   const categoryParam = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
   const qParam = searchParams ? (searchParams.get("q") || searchParams.get("search")) : null
 
   const [activeCategory, setActiveCategory] = useState(
-    categoryParam && allowedCategories.includes(categoryParam) ? categoryParam : adminCategories[0]?.id || "02"
+    categoryParam && allowedCategories.includes(categoryParam) ? categoryParam : adminCategories[0]?.id || "01"
   )
   const [searchQuery, setSearchQuery] = useState(qParam || "")
   const [layananList, setLayananList] = useState<AdminLayananItem[]>([])
