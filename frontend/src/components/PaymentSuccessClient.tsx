@@ -7,7 +7,7 @@ import { Suspense, useEffect, useState } from "react"
 import { adminService } from "@/services/admin.service"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
-type PaymentType = "konseling" | "event"
+export type PaymentType = "konseling" | "event" | "psikotes"
 
 interface Config {
   tanggalLabel: string
@@ -31,6 +31,13 @@ const CONFIGS: Record<PaymentType, Config> = {
     showStepper: false,
     backHref: "/",
     backLabel: "Kembali ke Home",
+  },
+  psikotes: {
+    tanggalLabel: "TANGGAL TRANSAKSI",
+    waktuLabel: "WAKTU TRANSAKSI",
+    showStepper: false,
+    backHref: "/psikotes",
+    backLabel: "Kembali ke Psikotes",
   },
 }
 
@@ -80,13 +87,13 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const testId = searchParams.get("testId")
 
   const isPsikotes =
-    type === "event" &&
-    (Boolean(testId) ||
-      kategori.toLowerCase().includes("psikotes") ||
-      judul.toLowerCase().includes("mbti") ||
-      judul.toLowerCase().includes("love language") ||
-      judul.toLowerCase().includes("kepribadian") ||
-      orderId.startsWith("PSI-"))
+    type === "psikotes" ||
+    Boolean(testId) ||
+    kategori.toLowerCase().includes("psikotes") ||
+    judul.toLowerCase().includes("mbti") ||
+    judul.toLowerCase().includes("love language") ||
+    judul.toLowerCase().includes("kepribadian") ||
+    orderId.startsWith("PSI-")
 
   useEffect(() => {
     if (isPsikotes && nama && nama !== "PESERTA") {
