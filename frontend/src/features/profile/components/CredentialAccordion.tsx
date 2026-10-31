@@ -1,4 +1,4 @@
-﻿// File: frontend/src/features/profile/components/CredentialAccordion.tsx
+// File: frontend/src/features/profile/components/CredentialAccordion.tsx
 "use client"
 
 import { useState } from "react"
@@ -34,13 +34,13 @@ export function CredentialAccordion({ email }: CredentialAccordionProps) {
             </div>
           </div>
           <svg
-            className={w-4 h-4 text-gray-400 transition-transform duration-200 }
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${openEmail ? "rotate-180" : ""}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        <div className={	ransition-all duration-300 ease-in-out overflow-hidden }>
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openEmail ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
           <div className="px-5 pb-5 pt-1 border-t border-gray-100">
             <FormGantiEmail initialEmail={email} />
           </div>
@@ -66,13 +66,13 @@ export function CredentialAccordion({ email }: CredentialAccordionProps) {
             </div>
           </div>
           <svg
-            className={w-4 h-4 text-gray-400 transition-transform duration-200 }
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${openPassword ? "rotate-180" : ""}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        <div className={	ransition-all duration-300 ease-in-out overflow-hidden }>
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openPassword ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
           <div className="px-5 pb-5 pt-1 border-t border-gray-100">
             <FormGantiPassword />
           </div>
