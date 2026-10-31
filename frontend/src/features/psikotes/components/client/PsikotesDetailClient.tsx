@@ -60,7 +60,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
         paidBenefits: UNIVERSAL_PAID_BENEFITS,
       };
 
-  const checkoutUrl = `/event/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
+  const checkoutUrl = `/psikotes/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
 
   return (
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">
