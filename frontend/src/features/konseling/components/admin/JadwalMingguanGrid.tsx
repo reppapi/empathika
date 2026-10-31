@@ -108,11 +108,7 @@ export default function JadwalMingguanGrid({
                 .filter(
                   (s) =>
                     s.date === wd.dateKey &&
-                    matchLayanan(s.layanan, selectedLayanan) &&
-                    Boolean(s.namaKlien && s.namaKlien.trim().toLowerCase() !== "tersedia") &&
-                    s.status !== "Tersedia" &&
-                    !s.isAvailableSlot &&
-                    s.layanan !== "Slot Tersedia"
+                    matchLayanan(s.layanan, selectedLayanan)
                 )
                 .sort((a, b) => a.waktu.localeCompare(b.waktu))
 
@@ -132,58 +128,171 @@ export default function JadwalMingguanGrid({
                   {sessions.length > 0 ? (
                     sessions.map((item) => {
                       const isCancelled = item.status === "Dibatalkan" || (item as any).isCancelled
+                      const isUnbooked =
+                        item.isAvailableSlot ||
+                        item.status === "Tersedia" ||
+                        !item.namaKlien ||
+                        item.namaKlien.trim().toLowerCase() === "tersedia" ||
+                        item.layanan === "Slot Tersedia"
+
+                      const { startMinutes, endMinutes } = parseTimeRangeMinutes(item.waktu)
+                      const now = new Date()
+                      const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+                      // Jika unbooked slot, jika jam mulai sudah tiba/lewat hari ini atau tanggal lampau -> sudah lewat
+                      // Jika booked session, jika jam selesai sudah tiba/lewat hari ini atau tanggal lampau -> sudah selesai
+                      const isPastTime =
+                        item.date < todayDateKey ||
+                        (item.date === todayDateKey && (
+                          isUnbooked
+                            ? (startMinutes > 0 && currentMinutes >= startMinutes)
+                            : (endMinutes > 0 && currentMinutes >= endMinutes)
+                        ))
+
                       const isSelesai =
                         item.status === "Selesai" ||
                         item.status === "COMPLETED" ||
-                        item.date < todayDateKey ||
-                        (item.date === todayDateKey && (() => {
-                          const { endMinutes } = parseTimeRangeMinutes(item.waktu)
-                          if (!endMinutes) return false
-                          const now = new Date()
-                          const currentMinutes = now.getHours() * 60 + now.getMinutes()
-                          return currentMinutes >= endMinutes
-                        })())
+                        (!isUnbooked && isPastTime)
 
+                      // 1. DIBATALKAN
+                      if (isCancelled) {
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => onSelectSession && onSelectSession(item)}
+                            className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-rose-50/80 border border-rose-200/90 text-gray-600 opacity-90"
+                          >
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full shrink-0 bg-rose-500" />
+                                <span className="text-xs font-extrabold text-rose-700 line-through">
+                                  {item.waktu}
+                                </span>
+                              </div>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                                Dibatalkan
+                              </span>
+                            </div>
+                            <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-through">
+                              {item.layanan}
+                            </p>
+                            <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600">
+                              {item.namaKlien && (
+                                <span>
+                                  Klien: <strong className="text-gray-700">{item.namaKlien}</strong>
+                                </span>
+                              )}
+                              {item.psikolog && <span>Tenaga: {item.psikolog}</span>}
+                              <span className="text-[9px] text-gray-400 italic mt-0.5">
+                                [{item.metode}]
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      }
+
+                      // 2. UNBOOKED (SLOT TERSEDIA DIBUKA TAPI TIDAK ADA YANG BOOKING)
+                      if (isUnbooked) {
+                        // Kalau jamnya sudah lewat dan tidak ada yang booking -> DIABUIN
+                        if (isPastTime) {
+                          return (
+                            <div
+                              key={item.id}
+                              className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                            >
+                              <div className="flex items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
+                                  <span className="text-xs font-extrabold text-gray-500 line-through">
+                                    {item.waktu}
+                                  </span>
+                                </div>
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                  Lewat
+                                </span>
+                              </div>
+                              <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700">
+                                Slot Tersedia (Tidak Terpakai)
+                              </p>
+                              <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-500">
+                                <span className="italic text-gray-400">Tidak ada booking</span>
+                                {item.psikolog && <span>Tenaga: {item.psikolog}</span>}
+                                {item.metode && (
+                                  <span className="text-[9px] text-gray-400 italic mt-0.5">
+                                    [{item.metode}]
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        // Slot Tersedia di Masa Depan (Masih Terbuka untuk Booking)
+                        return (
+                          <div
+                            key={item.id}
+                            className="rounded-xl p-3 flex flex-col gap-1 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8]"
+                          >
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full shrink-0 bg-[#561269]" />
+                                <span className="text-xs font-extrabold text-[#561269]">
+                                  {item.waktu}
+                                </span>
+                              </div>
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
+                                Tersedia
+                              </span>
+                            </div>
+                            <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950">
+                              Slot Tersedia
+                            </p>
+                            <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600">
+                              <span className="italic text-gray-400">Belum ada klien</span>
+                              {item.psikolog && <span>Tenaga: {item.psikolog}</span>}
+                              {item.metode && (
+                                <span className="text-[9px] text-gray-400 italic mt-0.5">
+                                  [{item.metode}]
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      }
+
+                      // 3. SESI KLIEN (SUDAH DIBOOKING)
                       return (
                         <div
                           key={item.id}
                           onClick={() => onSelectSession && onSelectSession(item)}
-                          className={`rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] ${isCancelled
-                              ? "bg-rose-50/80 border border-rose-200/90 text-gray-600 opacity-90"
-                              : isSelesai
-                                ? "bg-gray-100/85 border border-gray-200/90 text-gray-500"
-                                : "bg-[#E8F3ED] border border-[#b4d6be]"
+                          className={`rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] ${isSelesai
+                              ? "bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                              : "bg-[#E8F3ED] border border-[#b4d6be]"
                             }`}
                         >
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="flex items-center gap-1.5">
                               <span
-                                className={`w-2 h-2 rounded-full shrink-0 ${isCancelled ? "bg-rose-500" : isSelesai ? "bg-gray-400" : "bg-green-600"
+                                className={`w-2 h-2 rounded-full shrink-0 ${isSelesai ? "bg-gray-400" : "bg-green-600"
                                   }`}
                               />
                               <span
-                                className={`text-xs font-extrabold ${isCancelled
-                                    ? "text-rose-700 line-through"
-                                    : isSelesai
-                                      ? "text-gray-600"
-                                      : "text-[#185e26]"
+                                className={`text-xs font-extrabold ${isSelesai
+                                    ? "text-gray-600"
+                                    : "text-[#185e26]"
                                   }`}
                               >
                                 {item.waktu}
                               </span>
                             </div>
-                            {isCancelled ? (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
-                                Dibatalkan
-                              </span>
-                            ) : isSelesai ? (
+                            {isSelesai ? (
                               <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
                                 Selesai
                               </span>
                             ) : null}
                           </div>
                           <p
-                            className={`text-xs font-bold leading-tight mt-0.5 ${isCancelled ? "text-gray-700 line-through" : isSelesai ? "text-gray-700" : "text-gray-900"
+                            className={`text-xs font-bold leading-tight mt-0.5 ${isSelesai ? "text-gray-700" : "text-gray-900"
                               }`}
                           >
                             {item.layanan}
@@ -231,11 +340,19 @@ export default function JadwalMingguanGrid({
           <span className="text-xs font-bold text-gray-700">Sesi Aktif / Terjadwal</span>
         </div>
         <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
+          <span className="text-xs font-bold text-[#561269]">Slot Tersedia (Dibuka)</span>
+        </div>
+        <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
-          <span className="text-xs font-bold text-gray-500">Sesi Selesai (Riwayat Masa Lalu)</span>
+          <span className="text-xs font-bold text-gray-500">Sesi Selesai / Lewat (Riwayat Masa Lalu)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+          <span className="text-xs font-bold text-rose-700">Sesi Dibatalkan</span>
         </div>
         <span className="text-[11px] text-gray-400">
-          * Riwayat sesi masa lalu dapat diakses hingga 4 minggu ke belakang. Sesi minggu berikutnya muncul bila ada pemesanan (booking).
+          * Riwayat sesi dan slot masa lalu diabukan secara otomatis. Sesi minggu berikutnya muncul bila ada pemesanan (booking) atau slot dibuka.
         </span>
       </div>
     </div>

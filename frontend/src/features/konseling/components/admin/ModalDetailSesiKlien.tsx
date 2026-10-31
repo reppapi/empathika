@@ -13,7 +13,6 @@ import {
   MessageCircle,
   ExternalLink,
   Copy,
-  RotateCcw,
   Receipt,
   Clock,
   Calendar,
