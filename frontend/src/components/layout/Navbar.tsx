@@ -16,7 +16,7 @@ export function Navbar() {
     { name: "layanan", path: withBiro("/layanan") },
     { name: "konseling", path: withBiro("/konseling") },
     { name: "psikolog", path: withBiro("/psikolog") },
-    { name: "blog", path: withBiro("/blog") },
+    { name: "event", path: withBiro("/event") },
     { name: "kerja sama", path: withBiro("/kerja-sama") },
     { name: "tentang kami", path: withBiro("/tentang-kami") },
   ]
