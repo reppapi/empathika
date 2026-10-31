@@ -1,0 +1,4 @@
+-- AlterEnum
+ALTER TYPE "KategoriLayanan" ADD VALUE IF NOT EXISTS 'WORKSHOP';
+ALTER TYPE "KategoriLayanan" ADD VALUE IF NOT EXISTS 'SEMINAR';
+

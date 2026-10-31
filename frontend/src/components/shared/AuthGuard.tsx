@@ -50,14 +50,24 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       // Sesi habis / tab ditutup tanpa "Ingat Saya": bersihkan sisa-sisa sesi dan lempar ke /login
       removeAuthCookie("access_token")
       removeAuthCookie("remember_me")
+      let hadPreviousSession = false
       if (typeof window !== "undefined") {
+        hadPreviousSession = Boolean(
+          localStorage.getItem("empathika-auth") ||
+          sessionStorage.getItem("user_role") ||
+          localStorage.getItem("active_psikolog_id")
+        )
         localStorage.removeItem("access_token")
         localStorage.removeItem("remember_me")
         localStorage.removeItem("empathika-auth")
         sessionStorage.removeItem("access_token")
         sessionStorage.removeItem("user_role")
       }
-      router.replace("/login")
+      if (hadPreviousSession) {
+        router.replace("/login?status=expired")
+      } else {
+        router.replace("/login")
+      }
       return
     }
 
