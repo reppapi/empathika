@@ -171,7 +171,8 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "circles",
-    href: "/booking/asesmen?paket=Asesmen+Minat+Bakat",
+    href: "/asesmen?paket=Asesmen+Minat+Bakat",
+    bannerUrl: "https://images.unsplash.com/photo-1573497620053-ea5300f94f21?auto=format&fit=crop&w=1200&q=80",
   },
   {
     topTitle: "ASESMEN",
@@ -182,7 +183,8 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "circles-dark",
-    href: "/booking/asesmen?paket=Asesmen+Kesiapan+Sekolah",
+    href: "/asesmen?paket=Asesmen+Kesiapan+Sekolah",
+    bannerUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80",
   },
   {
     topTitle: "ASESMEN",
@@ -193,7 +195,8 @@ export const ASESMEN_SERVICES = [
     titleColor: "text-white",
     btnText: "Pilih Asesmen",
     shape: "heart",
-    href: "/booking/asesmen?paket=Asesmen+Klinis",
+    href: "/asesmen?paket=Asesmen+Klinis",
+    bannerUrl: "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?auto=format&fit=crop&w=1200&q=80",
   },
 ]
 

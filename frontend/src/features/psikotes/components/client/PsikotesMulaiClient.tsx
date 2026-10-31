@@ -93,7 +93,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           </p>
           <Link
             href="/psikotes"
-            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm"
+            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-extrabold transition shadow-sm cursor-pointer"
           >
             Kembali ke Daftar Psikotes
           </Link>
@@ -297,19 +297,17 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             <button
               onClick={isLastQuestion ? handleFinish : handleNext}
               disabled={isSubmitting}
-              className={`px-8 py-3.5 md:py-4 rounded-xl font-bold transition-all duration-300 shadow-sm text-sm md:text-base flex items-center gap-2 ${
-                isLastQuestion
-                  ? "bg-[#d97706] hover:bg-[#b46204] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
-                  : "bg-[#561269] hover:bg-[#763E8B] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
-              } ${isSubmitting ? "opacity-80 cursor-not-allowed" : ""}`}
+              className={`px-8 py-3.5 md:py-4 rounded-xl font-extrabold transition-all duration-300 text-sm md:text-base flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer ${
+                isSubmitting ? "opacity-80 cursor-not-allowed" : ""
+              }`}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-950" />
                   <span>Menyimpan Hasil...</span>
                 </>
               ) : isLastQuestion ? (
-                "Selesai"
+                <span>Selesai</span>
               ) : (
                 <>
                   <span>Berikutnya</span>

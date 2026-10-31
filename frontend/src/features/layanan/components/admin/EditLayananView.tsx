@@ -27,6 +27,8 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [hargaWeekday, setHargaWeekday] = useState("")
   const [hargaWeekend, setHargaWeekend] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
+  const [imageUrlInput, setImageUrlInput] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
   const [successMsg, setSuccessMsg] = useState(false)
 
@@ -48,6 +50,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       setHargaWeekday(cleanWeekday)
       setHargaWeekend(cleanWeekend)
       setImagePreview(existing.bannerUrl || null)
+      if (existing.bannerUrl) setImageUrlInput(existing.bannerUrl)
     }
     setLoading(false)
   }, [layananId])

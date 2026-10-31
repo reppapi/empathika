@@ -44,56 +44,57 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
       searchParams.get("nohp") ||
       searchParams.get("kontak") ||
       "";
-    const rawParamEmail = searchParams.get("email") || searchParams.get("user_email") || "";
     const rawBookingId = searchParams.get("bookingId") || searchParams.get("orderId") || "";
+
+    const todayFormatted = new Date().toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
 
     return {
       nama: rawParamNama,
       noHp: rawParamWa,
-      email: rawParamEmail,
       bookingId: rawBookingId,
-      tanggal: new Date().toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }),
+      tanggal: todayFormatted,
     };
   });
 
   useEffect(() => {
     try {
+      const todayFormatted = new Date().toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+
       // 1. Cek dari localStorage pendaftaran psikotes / checkout
       const raw = localStorage.getItem("empathika_peserta_psikotes");
       let savedNama = "";
       let savedWa = "";
-      let savedEmail = "";
       let savedBookingId = "";
 
       if (raw) {
         const parsed = JSON.parse(raw);
         savedNama = parsed.nama || parsed.name || "";
         savedWa = parsed.no_telepon || parsed.whatsapp || parsed.noHp || parsed.phone || parsed.kontak || "";
-        savedEmail = parsed.email || parsed.user_email || "";
         savedBookingId = parsed.bookingId || parsed.orderId || "";
       }
 
       // 2. Cek dari akun user yang sedang login jika belum ada
       const authUser = useAuthStore.getState().user;
       const authNama = authUser?.name || "";
-      const authEmail = authUser?.email || "";
 
       setPeserta((prev) => {
         const finalNama = prev.nama || savedNama || authNama || (isPaid ? "Peserta Asesmen Empathika" : "Anonim");
         const finalWa = prev.noHp || savedWa || "—";
-        const finalEmail = prev.email || savedEmail || authEmail || "—";
         const finalBookingId = prev.bookingId || savedBookingId || "";
 
         return {
-          ...prev,
           nama: finalNama,
           noHp: finalWa,
-          email: finalEmail,
           bookingId: finalBookingId,
+          tanggal: todayFormatted,
         };
       });
     } catch {}
@@ -537,7 +538,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
                 </p>
                 <div className="space-y-3">
                   <Link href="/konseling" className="block w-full">
-                    <Button variant="secondary" className="w-full bg-white text-primary hover:bg-gray-50 flex items-center justify-center gap-2 font-semibold">
+                    <Button variant="secondary" className="w-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 flex items-center justify-center gap-2 font-extrabold shadow-sm">
                       <Calendar className="w-4 h-4" />
                       Jadwalkan Konsultasi
                     </Button>
@@ -691,6 +692,16 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
           grid-template-columns: repeat(4, 1fr) !important;
           gap: 10px !important;
         }
+          .pdf-grid-3 {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 10px !important;
+          }
+        .pdf-export-mode .pdf-grid-3 {
+          display: grid !important;
+          grid-template-columns: repeat(3, 1fr) !important;
+          gap: 10px !important;
+        }
         .pdf-export-mode .pdf-meta-box {
           padding: 8px 12px !important;
           border-radius: 8px !important;
@@ -821,18 +832,20 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
             <button
               onClick={handleDownloadPdf}
               disabled={isDownloading}
-              className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all active:scale-98 ${
-                isDownloading ? "bg-[#763E8B] text-white opacity-80 cursor-wait" : "bg-[#561269] hover:bg-[#6e1886] text-white cursor-pointer"
+              className={`px-6 py-2.5 rounded-full font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-98 ${
+                isDownloading
+                  ? "bg-[#EAB308]/70 text-gray-950 opacity-80 cursor-wait"
+                  : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 cursor-pointer"
               }`}
             >
               {isDownloading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-950" />
                   <span>Mengunduh PDF...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4 text-gray-950" />
                   <span>Download Laporan (PDF)</span>
                 </>
               )}
@@ -889,7 +902,7 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pdf-grid-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pdf-grid-3">
               <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
                   Nama Lengkap
@@ -901,19 +914,10 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
               <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
-                  Kontak WhatsApp
+                  Nomor WhatsApp
                 </span>
                 <span className="font-bold text-sm text-emerald-700 block truncate pdf-meta-val">
                   {peserta.noHp || "—"}
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
-                  Email Terdaftar
-                </span>
-                <span className="font-bold text-sm text-gray-800 block truncate pdf-meta-val">
-                  {peserta.email || "—"}
                 </span>
               </div>
 

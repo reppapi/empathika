@@ -5045,7 +5045,7 @@ export default function AdminPsikotesClient() {
                       <button
                         type="button"
                         onClick={() => handleDownloadPdf(selectedPeserta)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-extrabold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0"
                       >
                         <Download className="w-4 h-4" />
                         Download Laporan (PDF)
