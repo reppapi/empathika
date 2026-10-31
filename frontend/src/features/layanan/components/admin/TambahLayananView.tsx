@@ -12,7 +12,7 @@ import { processAndUploadImage } from "@/lib/imageCompressor"
 export default function TambahLayananView() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialCategory = searchParams.get("category") || "02"
+  const initialCategory = searchParams.get("category") || "01"
 
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
@@ -141,7 +141,7 @@ export default function TambahLayananView() {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white cursor-pointer"
           >
-            {CATEGORIES.filter((cat) => ["02", "03", "05"].includes(cat.id)).map((cat) => (
+            {CATEGORIES.filter((cat) => ["01", "03", "04", "05"].includes(cat.id)).map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.title}
               </option>

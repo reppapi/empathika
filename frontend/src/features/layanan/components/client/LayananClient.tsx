@@ -1,20 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { CATEGORIES, SERVICES_DATA } from "../../data/layananData"
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
 import { useTenantContext } from "@/context/TenantContext"
 
 export default function LayananClient() {
-  const { isBiro, slug, withBiro } = useTenantContext()
+  const { withBiro } = useTenantContext()
   const searchParams = useSearchParams()
-  const router = useRouter()
   const categoryQuery = searchParams.get("category")
-  const [activeCategory, setActiveCategory] = useState(categoryQuery || "02") // Default ke Konsultasi
+  const [activeCategory, setActiveCategory] = useState(categoryQuery || "01") // Default ke Konsultasi
   const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
   const [loadingPsikotes, setLoadingPsikotes] = useState(true)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const fetchPsikotes = async () => {
@@ -43,8 +43,13 @@ export default function LayananClient() {
   }, [categoryQuery, activeCategory])
 
   const handleCategoryChange = (id: string) => {
+    if (id === activeCategory) return
     setActiveCategory(id)
-    router.replace(withBiro(`/layanan?category=${id}`) as any, { scroll: false })
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", withBiro(`/layanan?category=${id}`))
+    }
+    // Reset scroll posisi konten ke paling atas secara instan & rapi
+    scrollRef.current?.scrollTo({ top: 0, behavior: "instant" })
   }
 
   const renderServiceCard = (service: any, idx: number) => {
@@ -85,15 +90,13 @@ export default function LayananClient() {
           <div className="mt-auto pt-2">
             {(() => {
               const rawDestination = service.href || (
-                activeCategory === "04"
-                  ? idx === 0
-                    ? "/event/seminar"
-                    : idx === 1
-                    ? "/event/workshop"
-                    : "/event/goes-to-school"
-                  : activeCategory === "05"
-                  ? `/booking/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
-                  : "/booking"
+                activeCategory === "01"
+                  ? "/booking"
+                  : activeCategory === "02"
+                  ? "/psikotes"
+                  : activeCategory === "03" || activeCategory === "04"
+                  ? "/event"
+                  : `/booking/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
               )
               const destinationHref = withBiro(rawDestination)
               return (
@@ -111,7 +114,6 @@ export default function LayananClient() {
     );
   }
 
-
   return (
     <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[104px] lg:pb-8 lg:h-screen lg:overflow-hidden font-poppins">
 
@@ -126,7 +128,7 @@ export default function LayananClient() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className="group flex flex-col items-start text-left transition-all"
+                className="group flex flex-col items-start text-left transition-all cursor-pointer"
               >
                 <span
                   className={`font-bold transition-all duration-300 ease-out ${isActive ? "text-[28px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
@@ -149,11 +151,11 @@ export default function LayananClient() {
 
         {/* Kolom Kanan: Detail Layanan (BISA SCROLL INTERNAL) */}
         <div className="flex w-full flex-col overflow-visible py-3 lg:absolute lg:top-0 lg:right-0 lg:w-[62%] lg:h-full lg:py-0">
-          {/* Card Utama (Sesuai Desain Mockup) */}
+          {/* Card Utama */}
           <div className="flex h-full flex-col rounded-2xl border border-gray-300 bg-white shadow-[0px_4px_16px_rgba(0,0,0,0.1)] p-6 sm:p-8">
 
-            {/* Header Card Utama */}
-            <div className="mb-6 shrink-0">
+            {/* Header Card Utama - Halus & Bebas Freeze */}
+            <div key={`header-${activeCategory}`} className="mb-6 shrink-0 animate-fade-in">
               <h2 className="text-2xl font-bold text-[#561269] sm:text-3xl">
                 {CATEGORIES.find(c => c.id === activeCategory)?.title}
               </h2>
@@ -163,51 +165,55 @@ export default function LayananClient() {
             </div>
 
             {/* Area Konten Scrollable */}
-            {/* Area Konten Scrollable */}
-            <div className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar">
-              {/* Grid Layanan Kecil */}
-              {(() => {
-                const currentServices = (() => {
-                  if (activeCategory === "01") {
-                    if (publishedPsikotes.length > 0) {
-                      return publishedPsikotes.map((p, idx) => {
-                        const colors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
-                        const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
-                        const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
-                        return {
-                          topTitle: p.judul.toUpperCase(),
-                          topSubtitle: "",
-                          bottomTitle: p.judul,
-                          bottomDescription: p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
-                          bgColor: colors[idx % colors.length],
-                          titleColor: textColors[idx % textColors.length],
-                          btnText: "Ikuti Tes",
-                          shape: shapes[idx % shapes.length],
-                          href: `/psikotes/${p.id}`,
-                        }
-                      })
+            <div
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
+            >
+              <div key={`content-${activeCategory}`} className="animate-fade-in">
+                {/* Grid Layanan Kecil */}
+                {(() => {
+                  const currentServices = (() => {
+                    if (activeCategory === "02") {
+                      if (publishedPsikotes.length > 0) {
+                        return publishedPsikotes.map((p, idx) => {
+                          const colors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
+                          const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
+                          const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
+                          return {
+                            topTitle: p.judul.toUpperCase(),
+                            topSubtitle: "",
+                            bottomTitle: p.judul,
+                            bottomDescription: p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
+                            bgColor: colors[idx % colors.length],
+                            titleColor: textColors[idx % textColors.length],
+                            btnText: "Ikuti Tes",
+                            shape: shapes[idx % shapes.length],
+                            href: `/psikotes/${p.id}`,
+                          }
+                        })
+                      }
+                      return SERVICES_DATA["02"] || []
                     }
-                    return SERVICES_DATA["01"] || []
-                  }
-                  return SERVICES_DATA[activeCategory] || []
-                })()
+                    return SERVICES_DATA[activeCategory] || []
+                  })()
 
-                if (currentServices.length > 0) {
+                  if (currentServices.length > 0) {
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+                        {currentServices.map((item, idx) =>
+                          renderServiceCard(item, idx)
+                        )}
+                      </div>
+                    )
+                  }
+
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                      {currentServices.map((item, idx) =>
-                        renderServiceCard(item, idx)
-                      )}
+                    <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm border border-gray-100">
+                      Konten untuk {CATEGORIES.find(c => c.id === activeCategory)?.title} belum tersedia.
                     </div>
                   )
-                }
-
-                return (
-                  <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm border border-gray-100">
-                    Konten untuk {CATEGORIES.find(c => c.id === activeCategory)?.title} belum tersedia.
-                  </div>
-                )
-              })()}
+                })()}
+              </div>
             </div>
 
           </div>

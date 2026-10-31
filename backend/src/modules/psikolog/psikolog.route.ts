@@ -14,6 +14,23 @@ import {
 export default async function psikologRoutes(fastify: FastifyInstance) {
   const controller = new PsikologController(fastify)
 
+  const portalPsikologGuard = async (req: any, reply: any) => {
+    const authHeader = req.headers.authorization
+    // Di dev mode tanpa auth header atau dengan token dummy, izinkan lanjut untuk kemudahan testing
+    if (process.env.NODE_ENV !== 'production' && (!authHeader || authHeader.includes('dummy-'))) {
+      req.user = { id: 'psikolog-dev', role: 'PSIKOLOG' }
+      return
+    }
+    try {
+      await req.jwtVerify()
+    } catch {
+      return reply.code(401).send({
+        error: 'Unauthorized',
+        message: 'Sesi Anda telah berakhir. Silakan login kembali.',
+      })
+    }
+  }
+
   // ── 1. Rute Publik untuk Klien (Tamu) ───────────────────────────
   // Mengambil slot jadwal yang TERSEDIA berdasarkan tanggal
   fastify.get('/jadwal-tersedia', {
@@ -44,15 +61,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
   // ── 2. Rute Portal Psikolog ──────────────────────────────────────
   // Psikolog melihat jadwal mingguan & sesi yang sudah dibooking
   fastify.get('/me/jadwal', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar data jadwal psikolog dapat dimuat saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [portalPsikologGuard],
     schema: {
       tags: ['Psikolog - Portal'],
       summary: 'Jadwal mingguan & agenda sesi milik psikolog yang login',
@@ -64,15 +73,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
 
   // Psikolog membuka slot jam ketersediaan baru
   fastify.post('/me/jadwal-slots', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar pembukaan slot dapat berjalan saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [portalPsikologGuard],
     schema: {
       tags: ['Psikolog - Portal'],
       summary: 'Buka slot jam ketersediaan baru',
@@ -84,15 +85,7 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
 
   // Psikolog menghapus slot jam yang belum dibooking
   fastify.delete('/me/jadwal-slots/:id', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar penutupan slot dapat berjalan saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [portalPsikologGuard],
     schema: {
       tags: ['Psikolog - Portal'],
       summary: 'Hapus slot jam ketersediaan yang belum dibooking',
