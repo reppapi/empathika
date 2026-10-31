@@ -85,8 +85,8 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
     weekend: "Rp 500.000",
     status: "Aktif",
     deskripsi:
-      "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu.",
-    bannerUrl: "",
+      "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu secara terstandar.",
+    bannerUrl: "https://images.unsplash.com/photo-1573497620053-ea5300f94f21?auto=format&fit=crop&w=1200&q=80",
   },
   {
     id: 7,
@@ -98,7 +98,19 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
     status: "Aktif",
     deskripsi:
       "Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, dan emosional dalam memasuki jenjang sekolah.",
-    bannerUrl: "",
+    bannerUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: 8,
+    layanan: "Asesmen Klinis",
+    kategoriId: "05",
+    metode: "Online/Offline",
+    weekday: "Rp 350.000",
+    weekend: "Rp 450.000",
+    status: "Aktif",
+    deskripsi:
+      "Evaluasi psikologis mendalam untuk mengidentifikasi kondisi klinis, regulasi emosi, kecemasan, dan kesehatan mental secara menyeluruh.",
+    bannerUrl: "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?auto=format&fit=crop&w=1200&q=80",
   },
 ]
 

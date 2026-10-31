@@ -100,6 +100,16 @@ export function useEventCheckout() {
     }
     if (!whatsapp.trim()) {
       newErrors.whatsapp = "Nomor WhatsApp aktif wajib diisi."
+    } else {
+      const cleanWa = whatsapp.replace(/\D/g, "")
+      const local = cleanWa.startsWith("62") ? cleanWa.slice(2) : cleanWa
+      if (!local.startsWith("8")) {
+        newErrors.whatsapp = "Nomor tidak valid. Nomor WhatsApp harus diawali angka 8 (contoh: +62 812-xxxx-xxxx)."
+      } else if (local.length < 9) {
+        newErrors.whatsapp = "Nomor WhatsApp terlalu pendek (minimal 10 digit, contoh: +62 812-3456-7890)."
+      } else if (local.length > 13) {
+        newErrors.whatsapp = "Nomor WhatsApp terlalu panjang (maksimal 14 digit angka)."
+      }
     }
     if (!metodePembayaran) {
       newErrors.metodePembayaran = "Harap pilih salah satu metode pembayaran."
