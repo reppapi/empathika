@@ -444,6 +444,12 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
             </div>
 
             <div className="pt-2">
+              <h4 className="text-xs font-semibold text-slate-700 mb-1">Perkenalan Profil</h4>
+              <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 whitespace-pre-line leading-relaxed mb-3">
+                {form.bio || "Belum ada perkenalan profil."}
+              </p>
+            </div>
+            <div className="pt-2">
               <h4 className="text-xs font-semibold text-slate-700 mb-1">Keahlian & Topik</h4>
               <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
                 {Array.isArray(form.keahlian) ? form.keahlian.join(", ") : form.keahlian || "Belum ada catatan topik keahlian khusus."}

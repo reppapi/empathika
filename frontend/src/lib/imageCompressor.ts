@@ -15,11 +15,41 @@ export interface CompressImageResult {
   compressionRatio: number
 }
 
+export type ImagePreset =
+  | "layanan"
+  | "blog"
+  | "event"
+  | "psikolog"
+  | "biro"
+  | "psikotes"
+  | "default"
+
+/**
+ * Konfigurasi preset resolusi & kualitas per fitur
+ * Disesuaikan presisi dengan container aspect-ratio di halaman client & profil tenaga ahli.
+ */
+export const IMAGE_PRESETS: Record<ImagePreset, CompressImageOptions> = {
+  // Sesuai rasio kartu layanan & hero banner asesmen (16:9 / Landscape, max width 1200, height 675)
+  layanan: { maxWidth: 1200, maxHeight: 675, quality: 0.85, mimeType: "image/webp" },
+  // Sesuai rasio thumbnail & hero artikel blog (16:9, max width 1200, height 675)
+  blog: { maxWidth: 1200, maxHeight: 675, quality: 0.85, mimeType: "image/webp" },
+  // Sesuai banner & poster kegiatan (16:9 / 4:5, max width 1200, height 1200)
+  event: { maxWidth: 1200, maxHeight: 1200, quality: 0.85, mimeType: "image/webp" },
+  // Sesuai kartu psikolog (4:3) & avatar lingkaran detail profil (1:1, max width 800, height 800)
+  psikolog: { maxWidth: 800, maxHeight: 800, quality: 0.88, mimeType: "image/webp" },
+  // Sesuai logo biro & instansi mitra (1:1 / Horizontal transparan, max width 600, height 600)
+  biro: { maxWidth: 600, maxHeight: 600, quality: 0.88, mimeType: "image/webp" },
+  // Sesuai katalog paket psikotes (16:9, max width 1200, height 675)
+  psikotes: { maxWidth: 1200, maxHeight: 675, quality: 0.85, mimeType: "image/webp" },
+  // General standard fallback
+  default: { maxWidth: 1280, maxHeight: 1280, quality: 0.82, mimeType: "image/webp" },
+}
+
 /**
  * Kompresi gambar otomatis di sisi client (browser) sebelum diunggah atau disimpan.
- * - Mengubah resolusi secara proporsional ke batas aman (default: 1280px).
- * - Mengonversi ke WebP / JPEG teroptimasi dengan kualitas optimal (default: 0.82).
- * - Menghemat ukuran file rata-rata 70% hingga 90% tanpa mengurangi ketajaman visual.
+ * - Mengubah resolusi secara proporsional ke batas aman fitur yang ditentukan.
+ * - Mengonversi ke WebP / JPEG teroptimasi dengan kualitas optimal.
+ * - Menghemat ukuran file rata-rata 75% hingga 90% tanpa mengurangi ketajaman visual.
  */
 export async function compressImage(
   file: File,
@@ -139,25 +169,38 @@ export async function compressImage(
 
 /**
  * Memproses dan mengunggah gambar:
- * 1. Mengompresi file di browser secara instan
+ * 1. Mengompresi file di browser secara instan sesuai preset fitur (Layanan, Blog, Psikolog, Event, dll)
  * 2. Mengunggah file terkompresi ke backend API (/upload/image)
  * 3. Jika backend tidak tersedia/gagal auth, fallback ke Data URL yang sudah terkompresi aman
  */
 export async function processAndUploadImage(
   file: File,
-  onNotify?: (message: string) => void
+  presetOrNotify?: ImagePreset | CompressImageOptions | ((message: string) => void),
+  optionalPreset?: ImagePreset | CompressImageOptions
 ): Promise<{ url: string; infoText: string; compressedFile: File }> {
-  // Validasi ukuran awal maksimal 15MB
-  if (file.size > 15 * 1024 * 1024) {
-    throw new Error("Ukuran foto asli maksimal 15MB!")
+  // Validasi ukuran awal maksimal 30MB
+  if (file.size > 30 * 1024 * 1024) {
+    throw new Error("Ukuran foto asli maksimal 30MB!")
   }
 
-  onNotify?.("Mengompresi foto...")
-  const compressed = await compressImage(file, {
-    maxWidth: 1280,
-    maxHeight: 1280,
-    quality: 0.82,
-  })
+  let onNotify: ((message: string) => void) | undefined
+  let options: CompressImageOptions = IMAGE_PRESETS.default
+
+  if (typeof presetOrNotify === "function") {
+    onNotify = presetOrNotify
+    if (typeof optionalPreset === "string" && IMAGE_PRESETS[optionalPreset]) {
+      options = IMAGE_PRESETS[optionalPreset]
+    } else if (typeof optionalPreset === "object" && optionalPreset) {
+      options = optionalPreset
+    }
+  } else if (typeof presetOrNotify === "string" && IMAGE_PRESETS[presetOrNotify]) {
+    options = IMAGE_PRESETS[presetOrNotify]
+  } else if (typeof presetOrNotify === "object" && presetOrNotify) {
+    options = presetOrNotify
+  }
+
+  onNotify?.("Mengompresi foto sesuai rasio fitur...")
+  const compressed = await compressImage(file, options)
 
   const infoText = `${compressed.originalSizeKB}KB → ${compressed.compressedSizeKB}KB (-${compressed.compressionRatio}%)`
 

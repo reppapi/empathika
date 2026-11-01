@@ -292,7 +292,7 @@ export default function ProfilePsikologClient({
       let fotoUrl = form.foto
       if (selectedPhotoFile) {
         try {
-          fotoUrl = await uploadService.uploadImage(selectedPhotoFile)
+          fotoUrl = await uploadService.uploadImage(selectedPhotoFile, "psikolog")
         } catch (uploadErr) {
           console.warn("Gagal upload foto ke backend, menggunakan foto lama/data lokal:", uploadErr)
         }
@@ -508,8 +508,11 @@ export default function ProfilePsikologClient({
                 <p className="text-xs font-medium text-gray-700">
                   Ubah pas foto formal atau foto profil profesional tenaga ahli.
                 </p>
+                <p className="text-[11px] text-gray-600 font-medium">
+                  Rekomendasi pas foto: <span className="font-bold text-[#561269]">600 × 600 px (rasio 1:1 / 4:3, wajah di tengah)</span>
+                </p>
                 <p className="text-[11px] text-gray-400">
-                  Format gambar JPG, PNG, atau WEBP rasio 1:1. Maksimal ukuran file 2MB.
+                  Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi untuk kartu & profil klien
                 </p>
                 <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
                   <input
@@ -1190,9 +1193,20 @@ export default function ProfilePsikologClient({
                     PERKENALAN PROFIL
                   </h3>
                   <div className="space-y-4 text-gray-800 text-sm sm:text-base leading-relaxed">
-                    <p className="whitespace-pre-line">
-                      {form.bio || "Perkenalan profil belum dicantumkan."}
-                    </p>
+                    {form.bio && form.bio.trim() ? (
+                      form.bio
+                        .split(/\n\s*\n/)
+                        .filter(Boolean)
+                        .map((paragraf, idx) => (
+                          <p key={idx} className="whitespace-pre-line">
+                            {paragraf}
+                          </p>
+                        ))
+                    ) : (
+                      <p className="whitespace-pre-line text-gray-400 italic">
+                        Perkenalan profil belum dicantumkan.
+                      </p>
+                    )}
                   </div>
 
                   {/* Pendidikan & Lisensi */}
