@@ -125,13 +125,13 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
   const handleImageUpload = async (file: File) => {
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert("Ukuran file gambar maksimal 10MB.")
+      if (file.size > 30 * 1024 * 1024) {
+        alert("Ukuran file gambar maksimal 30MB.")
         return
       }
       try {
-        const { compressImage } = await import("@/lib/imageCompressor")
-        const compressed = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.82 })
+        const { compressImage, IMAGE_PRESETS } = await import("@/lib/imageCompressor")
+        const compressed = await compressImage(file, IMAGE_PRESETS.event)
         setImageFile(compressed.file)
         setBannerUrl(compressed.dataUrl)
       } catch {
@@ -262,9 +262,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Banner / Poster Event */}
           <div>
-            <label className={labelClass}>
-              Banner / Poster Event
-            </label>
+            <label className={labelClass}>Banner / Poster Event</label>
             <div
               onDragOver={(e) => {
                 e.preventDefault()
@@ -304,6 +302,9 @@ export default function AdminEventFormClient({ eventId }: Props) {
                     alt="Preview Poster Event"
                     className="w-full h-full object-cover rounded-xl"
                   />
+                  <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                    📐 1200 × 675 px (16:9)
+                  </div>
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <label
                       htmlFor="banner-file-upload"
@@ -345,7 +346,12 @@ export default function AdminEventFormClient({ eventId }: Props) {
                     Seret & lepas foto di sini, atau{" "}
                     <span className="text-[#561269] underline">pilih file</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, WebP maks. 5MB (otomatis dioptimalkan)</p>
+                  <p className="text-xs font-medium text-gray-600 mt-1 text-center">
+                    Rekomendasi ukuran: <strong className="text-[#561269]">1200 × 675 px (rasio 16:9)</strong>
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 text-center">
+                    Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                  </p>
                 </label>
               )}
             </div>

@@ -111,10 +111,10 @@ export default function BiroFormModal({
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 30 * 1024 * 1024) {
       setErrors((prev) => ({
         ...prev,
-        logo: "Ukuran file logo maksimal 5 MB",
+        logo: "Ukuran file logo maksimal 30 MB",
       }))
       return
     }
@@ -126,7 +126,7 @@ export default function BiroFormModal({
     })
 
     try {
-      const { url } = await processAndUploadImage(file)
+      const { url } = await processAndUploadImage(file, "biro")
       setLogo(url)
     } catch (err: any) {
       setErrors((prev) => ({
@@ -292,8 +292,11 @@ export default function BiroFormModal({
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-gray-500">
-                  Format JPG, PNG, WEBP, atau SVG (maks. 3MB).
+                <p className="text-[11px] text-gray-600 font-medium">
+                  Rekomendasi ukuran: <strong className="text-[#561269]">500 × 500 px (1:1)</strong>
+                </p>
+                <p className="text-[11px] text-gray-400">
+                  Format JPG, PNG, WEBP, atau SVG • Bebas ukuran berapa pun, otomatis dikompresi
                 </p>
                 {errors.logo && (
                   <p className="text-xs text-red-500 font-semibold">{errors.logo}</p>

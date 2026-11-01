@@ -41,7 +41,7 @@ export default function TambahLayananView() {
     const file = e.target.files?.[0]
     if (file) {
       try {
-        const { url } = await processAndUploadImage(file)
+        const { url } = await processAndUploadImage(file, "layanan")
         setImagePreview(url)
       } catch (err: any) {
         alert(err?.message || "Gagal memproses gambar")
@@ -369,6 +369,9 @@ export default function TambahLayananView() {
                       className="max-h-[160px] w-auto object-contain"
                       unoptimized
                     />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                      📐 1200 × 675 px (16:9)
+                    </div>
                     <button
                       type="button"
                       onClick={handleRemoveImage}
@@ -381,7 +384,12 @@ export default function TambahLayananView() {
                   <div className="space-y-2 text-center my-auto">
                     <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
                     <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
-                    <p className="text-xs text-gray-500">Format: JPG, PNG, WebP (Maks. 2MB)</p>
+                    <p className="text-xs font-medium text-gray-600">
+                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                    </p>
                   </div>
                 )}
               </div>

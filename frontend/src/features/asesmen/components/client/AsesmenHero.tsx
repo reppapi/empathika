@@ -1,7 +1,6 @@
 "use client"
 
 import Image from "next/image"
-import { Sparkles } from "lucide-react"
 
 interface AsesmenHeroProps {
   title: string
@@ -25,11 +24,6 @@ export function AsesmenHero({ title, subtitle, image }: AsesmenHeroProps) {
 
       {/* Content Tengah */}
       <div className="relative z-10 max-w-4xl mx-auto px-6 text-center flex flex-col items-center">
-        <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-amber-300 bg-amber-400/20 px-4 py-1.5 rounded-full mb-3 border border-amber-300/30 backdrop-blur-xs shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-          <span>Layanan Asesmen Terstandar</span>
-        </span>
-
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight mb-3 drop-shadow-md">
           {title}
         </h1>
@@ -41,4 +35,3 @@ export function AsesmenHero({ title, subtitle, image }: AsesmenHeroProps) {
     </section>
   )
 }
-

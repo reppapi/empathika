@@ -264,7 +264,7 @@ export default function ProfileAdminClient({
     const file = e.target.files?.[0]
     if (file) {
       try {
-        const { url } = await processAndUploadImage(file)
+        const { url } = await processAndUploadImage(file, "psikolog")
         setForm((prev) => ({ ...prev, foto: url }))
       } catch (err: any) {
         alert(err?.message || "Gagal memproses foto")
@@ -502,8 +502,11 @@ export default function ProfileAdminClient({
                     {role === "admin" ? "Admin Utama" : form.spesialisasi || "Psikolog / Konselor"}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 max-w-sm">
-                  Format gambar JPG, PNG, atau WEBP. Ukuran maksimal 2MB dengan rasio 1:1 untuk tampilan optimal.
+                <p className="text-xs text-gray-600 max-w-sm font-medium">
+                  Rekomendasi: <span className="font-bold text-[#561269]">600 × 600 px (rasio 1:1, wajah di tengah)</span>
+                </p>
+                <p className="text-[11px] text-gray-400">
+                  Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
                 </p>
 
                 {/* Tombol Aksi Foto */}
@@ -1252,10 +1255,19 @@ export default function ProfileAdminClient({
                   PROFIL PSIKOLOG
                 </h4>
                 <div className="space-y-2 text-xs sm:text-sm text-gray-700 leading-relaxed">
-                  {(form.profilLengkap && form.profilLengkap.length > 0) ? (
-                    form.profilLengkap.map((p, i) => <p key={i}>{p}</p>)
+                  {form.bio && form.bio.trim() ? (
+                    form.bio
+                      .split(/\n\s*\n/)
+                      .filter(Boolean)
+                      .map((p, i) => (
+                        <p key={i} className="whitespace-pre-line">
+                          {p}
+                        </p>
+                      ))
                   ) : (
-                    <p>{form.bio}</p>
+                    <p className="whitespace-pre-line text-gray-400 italic">
+                      Perkenalan profil belum dicantumkan.
+                    </p>
                   )}
                 </div>
                 {form.pendidikanText && (

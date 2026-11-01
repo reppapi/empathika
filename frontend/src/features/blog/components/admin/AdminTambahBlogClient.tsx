@@ -25,13 +25,13 @@ export default function AdminTambahBlogClient() {
 
   const handleImageSelect = async (file: File) => {
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert("Ukuran file gambar maksimal 10MB.")
+      if (file.size > 30 * 1024 * 1024) {
+        alert("Ukuran file gambar maksimal 30MB.")
         return
       }
       try {
-        const { compressImage } = await import("@/lib/imageCompressor")
-        const compressed = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.82 })
+        const { compressImage, IMAGE_PRESETS } = await import("@/lib/imageCompressor")
+        const compressed = await compressImage(file, IMAGE_PRESETS.blog)
         setImageFile(compressed.file)
         setImagePreviewUrl(compressed.dataUrl)
       } catch {
@@ -221,6 +221,9 @@ export default function AdminTambahBlogClient() {
                       className="object-cover"
                       unoptimized
                     />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                      📐 1200 × 675 px (16:9)
+                    </div>
                   </div>
                   <p className="text-[11px] text-gray-400">
                     {imageFile?.name} ({imageFile ? Math.round(imageFile.size / 1024) : 0} KB)
@@ -271,8 +274,11 @@ export default function AdminTambahBlogClient() {
                     <span className="text-xs sm:text-sm font-semibold text-gray-700">
                       Upload gambar poster / banner
                     </span>
+                    <span className="block text-xs font-medium text-gray-600 mt-1">
+                      Rekomendasi ukuran: <strong className="text-[#561269]">1200 × 675 px (rasio 16:9)</strong>
+                    </span>
                     <span className="block text-[11px] text-gray-400 mt-0.5">
-                      Format: JPG, PNG, WEBP (Maks. 5MB, otomatis dioptimalkan)
+                      Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
                     </span>
                   </div>
                 </label>

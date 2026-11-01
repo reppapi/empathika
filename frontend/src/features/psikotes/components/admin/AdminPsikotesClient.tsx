@@ -939,14 +939,14 @@ export default function AdminPsikotesClient() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert("Ukuran gambar maksimal 10MB.");
+    if (file.size > 30 * 1024 * 1024) {
+      alert("Ukuran gambar maksimal 30MB.");
       return;
     }
 
     setIsUploadingImage(true);
     try {
-      const url = await uploadService.uploadImage(file);
+      const url = await uploadService.uploadImage(file, "psikotes");
       setPaketData((prev) => ({ ...prev, bannerUrl: url }));
       setNotification({
         type: "success",
@@ -3540,7 +3540,7 @@ export default function AdminPsikotesClient() {
                   {/* Banner Upload: Selalu ditampilkan langsung tanpa disembunyikan */}
                   <div className="space-y-2 pt-2">
                     <label className="text-sm font-semibold text-gray-800">
-                      Upload Banner/Gambar Asesmen
+                      Banner / Gambar Asesmen
                     </label>
                     <input
                       id="banner-file-input"
@@ -3558,6 +3558,9 @@ export default function AdminPsikotesClient() {
                             alt="Banner Asesmen"
                             className="w-full h-full object-cover"
                           />
+                          <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                            📐 1200 × 675 px (16:9)
+                          </div>
                         </div>
                         <div className="flex items-center justify-between pt-2 px-1">
                           <button
@@ -3594,7 +3597,12 @@ export default function AdminPsikotesClient() {
                           <>
                             <Upload className="w-8 h-8 mb-2 text-gray-400" />
                             <p className="text-sm font-semibold text-gray-800">Klik untuk upload atau seret gambar banner</p>
-                            <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, atau WebP (Maks. 5MB, otomatis dioptimalkan)</p>
+                            <p className="text-xs font-medium text-gray-600 mt-1">
+                              Rekomendasi ukuran: <strong className="text-[#561269]">1200 × 675 px (rasio 16:9)</strong>
+                            </p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">
+                              Format PNG, JPG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                            </p>
                           </>
                         )}
                       </div>
