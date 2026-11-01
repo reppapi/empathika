@@ -86,8 +86,7 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
             (item.nama_gelar && s.nama_psikolog === item.nama_gelar) ||
             (item.account?.nama && s.nama_psikolog === item.account?.nama) ||
             (item.nama && s.nama_psikolog === item.nama) ||
-            (item.nama_gelar && s.nama_psikolog && (item.nama_gelar.toLowerCase().includes(s.nama_psikolog.toLowerCase()) || s.nama_psikolog.toLowerCase().includes(item.nama_gelar.toLowerCase()))) ||
-            (item.nama_gelar && item.nama_gelar.includes('Rizki'))
+            (item.nama_gelar && s.nama_psikolog && (item.nama_gelar.toLowerCase().includes(s.nama_psikolog.toLowerCase()) || s.nama_psikolog.toLowerCase().includes(item.nama_gelar.toLowerCase())))
         );
         rawSlots.push(...matchingCustom);
       }
@@ -195,15 +194,15 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
     no_sipp: item.no_sipp || item.noSipp || null,
     no_silp: item.no_silp || item.noSilp || null,
     foto: item.foto || '/images/psikolog/default.jpg',
-    bio: item.bio || 'Praktisi kesehatan mental profesional yang berdedikasi mendampingi proses pemulihan dan pertumbuhan diri klien.',
-    quote: item.quote || 'Setiap perjalanan pemulihan dimulai dari keberanian untuk mendengarkan diri sendiri.',
-    instagram: item.instagram || '@empathika.id',
-    jenisKelamin: item.jenis_kelamin || item.jenisKelamin || 'Perempuan',
-    pendidikanText: item.pendidikanText || item.pendidikan || 'Universitas Indonesia',
+    bio: item.bio || '',
+    quote: item.quote || '',
+    instagram: item.instagram || '',
+    jenisKelamin: item.jenis_kelamin || item.jenisKelamin || '',
+    pendidikanText: item.pendidikanText || item.pendidikan || '',
     keahlian: keahlianList,
     status: item.status || (item.statusAkses === 'AKTIF' ? 'ACTIVE' : 'INACTIVE'),
     jumlah_sesi: typeof item.jumlah_sesi === 'number' ? item.jumlah_sesi : (item.jumlahSesi ?? 0),
-    tarif_per_jam: Number(item.tarif_per_jam) || 150000,
+    tarif_per_jam: Number(item.tarif_per_jam) || 0,
     spesialisasi: item.spesialisasi
       ? typeof item.spesialisasi === 'string'
         ? { id: 'spec-1', nama: item.spesialisasi }
@@ -216,7 +215,7 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
           nama: item.kategori || 'Psikolog Klinis',
         },
     category,
-    experienceYears: item.pengalaman_tahun || item.experienceYears || '3 - 6 Tahun',
+    experienceYears: item.pengalaman_tahun || item.experienceYears || '',
     labelJadwal: 'Jadwal Terdekat',
     jadwalTersedia,
   };

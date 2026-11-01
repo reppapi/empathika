@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { CATEGORIES } from "../../data/layananData"
 import { getLayananById, updateLayananById, AdminLayananItem } from "../../data/adminLayananData"
 import { processAndUploadImage } from "@/lib/imageCompressor"
+import { layananService } from "@/services/layanan.service"
 
 interface EditLayananViewProps {
   layananId: string
@@ -36,7 +37,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
 
   // Load existing data
   useEffect(() => {
-    const existing = getLayananById(Number(layananId))
+    const existing = getLayananById(layananId)
     if (existing) {
       setItem(existing)
       setSelectedCategory(existing.kategoriId || "02")
@@ -45,14 +46,53 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       setStatus(existing.status)
       setDeskripsi(existing.deskripsi || "")
       // Bersihkan string harga dari prefix "Rp " dan titik pemisah jika ada untuk input angka murni
-      const cleanWeekday = existing.weekday.replace(/[^0-9]/g, "")
-      const cleanWeekend = existing.weekend.replace(/[^0-9]/g, "")
+      const cleanWeekday = String(existing.weekday || "").replace(/[^0-9]/g, "")
+      const cleanWeekend = String(existing.weekend || "").replace(/[^0-9]/g, "")
       setHargaWeekday(cleanWeekday)
       setHargaWeekend(cleanWeekend)
       setImagePreview(existing.bannerUrl || null)
       if (existing.bannerUrl) setImageUrlInput(existing.bannerUrl)
+      setLoading(false)
+    } else {
+      // Coba fetch dari backend jika tidak ada di local storage
+      layananService
+        .getById(layananId)
+        .then((res) => {
+          if (res?.data) {
+            const catMap: Record<string, string> = {
+              KONSULTASI: "01",
+              PSIKOTES: "02",
+              WORKSHOP: "03",
+              SEMINAR: "04",
+              ASESMEN: "05",
+            }
+            const d = res.data
+            const mapped: AdminLayananItem = {
+              id: d.id,
+              layanan: d.nama,
+              kategoriId: catMap[d.kategori] || "01",
+              metode: d.metode || "Online/Offline",
+              weekday: `Rp ${Number(d.harga_weekday || 0).toLocaleString("id-ID")}`,
+              weekend: `Rp ${Number(d.harga_weekend || 0).toLocaleString("id-ID")}`,
+              status: d.aktif ? "Aktif" : "Nonaktif",
+              deskripsi: d.deskripsi || "",
+              bannerUrl: d.banner_url || "",
+            }
+            setItem(mapped)
+            setSelectedCategory(mapped.kategoriId)
+            setNamaLayanan(mapped.layanan)
+            setMetode(mapped.metode)
+            setStatus(mapped.status)
+            setDeskripsi(mapped.deskripsi)
+            setHargaWeekday(String(d.harga_weekday || ""))
+            setHargaWeekend(String(d.harga_weekend || ""))
+            setImagePreview(d.banner_url || null)
+            if (d.banner_url) setImageUrlInput(d.banner_url)
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false))
     }
-    setLoading(false)
   }, [layananId])
 
   const handleImageFile = async (file: File) => {
@@ -103,7 +143,25 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       bannerUrl: imagePreview || "",
     }
 
-    const ok = updateLayananById(Number(layananId), updatedData)
+    const ok = updateLayananById(layananId, updatedData)
+
+    // Sinkronkan ke server backend database
+    layananService
+      .update(layananId, {
+        nama: namaLayanan.trim(),
+        kategoriId: selectedCategory,
+        metode,
+        status,
+        harga_weekday: hargaWeekday,
+        harga_weekend: hargaWeekend,
+        deskripsi: deskripsi.trim(),
+        banner_url: imagePreview || null,
+        aktif: status === "Aktif",
+      })
+      .catch((err) => {
+        console.warn("Gagal update ke backend database:", err?.message)
+      })
+
     if (ok) {
       setSuccessMsg(true)
       setTimeout(() => {

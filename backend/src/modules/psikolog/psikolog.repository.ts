@@ -118,7 +118,7 @@ export class PsikologRepository {
     }
 
     if (isUuid) {
-      return this.prisma.psikolog.findFirst({
+      const found = await this.prisma.psikolog.findFirst({
         where: {
           OR: [
             { id },
@@ -127,10 +127,27 @@ export class PsikologRepository {
         },
         include: detailInclude,
       })
+      if (found) return found
     }
 
-    return this.prisma.psikolog.findUnique({
-      where: { id },
+    try {
+      const byId = await this.prisma.psikolog.findUnique({
+        where: { id },
+        include: detailInclude,
+      })
+      if (byId) return byId
+    } catch {}
+
+    const cleanSearch = decodeURIComponent(id).replace(/-/g, ' ').trim()
+    return this.prisma.psikolog.findFirst({
+      where: {
+        OR: [
+          { nama_gelar: { contains: cleanSearch, mode: 'insensitive' } },
+          { account: { nama: { contains: cleanSearch, mode: 'insensitive' } } },
+          { account: { email: { equals: cleanSearch, mode: 'insensitive' } } },
+          { id_account: id },
+        ],
+      },
       include: detailInclude,
     })
   }

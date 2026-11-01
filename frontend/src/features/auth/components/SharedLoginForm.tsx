@@ -76,11 +76,14 @@ export function LoginForm() {
       if (rememberMe) {
         localStorage.setItem("active_psikolog_id", user.id);
         localStorage.setItem("active_psikolog_name", user.nama);
+        localStorage.setItem("active_psikolog_email", user.email);
       } else {
         sessionStorage.setItem("active_psikolog_id", user.id);
         sessionStorage.setItem("active_psikolog_name", user.nama);
+        sessionStorage.setItem("active_psikolog_email", user.email);
         localStorage.removeItem("active_psikolog_id");
         localStorage.removeItem("active_psikolog_name");
+        localStorage.removeItem("active_psikolog_email");
       }
       router.push("/psikolog-web/jadwal" as any);
     } else if (user.role === "ADMIN") {

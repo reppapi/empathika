@@ -8,6 +8,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { CATEGORIES } from "../../data/layananData"
 import { addLayanan } from "../../data/adminLayananData"
 import { processAndUploadImage } from "@/lib/imageCompressor"
+import { layananService } from "@/services/layanan.service"
 
 export default function TambahLayananView() {
   const router = useRouter()
@@ -80,6 +81,22 @@ export default function TambahLayananView() {
       deskripsi: deskripsi.trim(),
       bannerUrl: imagePreview || "",
     })
+
+    // Sinkronkan ke server backend database
+    layananService
+      .create({
+        nama: namaLayanan.trim(),
+        kategoriId: selectedCategory,
+        metode,
+        harga_weekday: hargaWeekday,
+        harga_weekend: hargaWeekend,
+        deskripsi: deskripsi.trim(),
+        banner_url: imagePreview || null,
+        aktif: true,
+      })
+      .catch((err) => {
+        console.warn("Gagal sync ke backend database:", err?.message)
+      })
 
     setSuccessMsg(true)
     setTimeout(() => {

@@ -1,7 +1,7 @@
 // frontend/src/features/layanan/data/adminLayananData.ts
 
 export interface AdminLayananItem {
-  id: number
+  id: number | string
   layanan: string
   kategoriId: string // "01" (Konsultasi), "03" (Workshop), "04" (Seminar), "05" (Asesmen)
   metode: string // "Online" | "Offline" | "Online/Offline"
@@ -143,7 +143,8 @@ export function saveStoredLayanan(items: AdminLayananItem[]): void {
 
 export function addLayanan(item: Omit<AdminLayananItem, "id">): AdminLayananItem {
   const current = getStoredLayanan()
-  const nextId = current.length > 0 ? Math.max(...current.map((i) => i.id)) + 1 : 1
+  const numericIds = current.map((i) => (typeof i.id === "number" ? i.id : parseInt(String(i.id).replace(/\D/g, ""), 10) || 0))
+  const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 1
   const created: AdminLayananItem = { ...item, id: nextId }
   const updated = [created, ...current]
   saveStoredLayanan(updated)
@@ -151,11 +152,11 @@ export function addLayanan(item: Omit<AdminLayananItem, "id">): AdminLayananItem
 }
 
 export function updateLayananById(
-  id: number,
+  id: number | string,
   patch: Partial<Omit<AdminLayananItem, "id">>
 ): AdminLayananItem | null {
   const current = getStoredLayanan()
-  const idx = current.findIndex((i) => i.id === id)
+  const idx = current.findIndex((i) => String(i.id) === String(id))
   if (idx === -1) return null
   const updatedItem: AdminLayananItem = { ...current[idx], ...patch }
   current[idx] = updatedItem
@@ -163,15 +164,15 @@ export function updateLayananById(
   return updatedItem
 }
 
-export function deleteLayananById(id: number): boolean {
+export function deleteLayananById(id: number | string): boolean {
   const current = getStoredLayanan()
-  const filtered = current.filter((i) => i.id !== id)
+  const filtered = current.filter((i) => String(i.id) !== String(id))
   if (filtered.length === current.length) return false
   saveStoredLayanan(filtered)
   return true
 }
 
-export function getLayananById(id: number): AdminLayananItem | null {
+export function getLayananById(id: number | string): AdminLayananItem | null {
   const current = getStoredLayanan()
-  return current.find((i) => i.id === id) || null
+  return current.find((i) => String(i.id) === String(id)) || null
 }

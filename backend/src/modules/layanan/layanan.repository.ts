@@ -1,30 +1,72 @@
-import type { PrismaClient } from '@prisma/client'
+import type { PrismaClient, Prisma, KategoriLayanan } from '@prisma/client'
 
 export class LayananRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async findAll(_params?: Record<string, unknown>) {
-    // TODO: Implement query
-    return []
+  async findAll(params?: { kategori?: string; aktif?: boolean; search?: string }) {
+    const where: Prisma.LayananWhereInput = {}
+
+    if (params?.kategori && params.kategori !== 'semua') {
+      where.kategori = params.kategori as KategoriLayanan
+    }
+
+    if (params?.aktif !== undefined) {
+      where.aktif = params.aktif
+    }
+
+    if (params?.search) {
+      where.OR = [
+        { nama: { contains: params.search, mode: 'insensitive' } },
+        { deskripsi: { contains: params.search, mode: 'insensitive' } },
+      ]
+    }
+
+    return this.prisma.layanan.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: { booking_konsultasi: true },
+        },
+      },
+    })
   }
 
-  async findById(_id: string) {
-    // TODO: Implement query
-    return null
+  async findById(id: string) {
+    return this.prisma.layanan.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { booking_konsultasi: true },
+        },
+      },
+    })
   }
 
-  async create(_data: unknown) {
-    // TODO: Implement
-    return null
+  async findByNama(nama: string) {
+    return this.prisma.layanan.findFirst({
+      where: {
+        nama: { equals: nama.trim(), mode: 'insensitive' },
+      },
+    })
   }
 
-  async update(_id: string, _data: unknown) {
-    // TODO: Implement
-    return null
+  async create(data: Prisma.LayananCreateInput) {
+    return this.prisma.layanan.create({
+      data,
+    })
   }
 
-  async delete(_id: string) {
-    // TODO: Implement
-    return null
+  async update(id: string, data: Prisma.LayananUpdateInput) {
+    return this.prisma.layanan.update({
+      where: { id },
+      data,
+    })
+  }
+
+  async delete(id: string) {
+    return this.prisma.layanan.delete({
+      where: { id },
+    })
   }
 }

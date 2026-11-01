@@ -111,7 +111,7 @@ export default function PsikologBerandaClient() {
   })
 
   const { user } = useAuthStore()
-  const [psikologName, setPsikologName] = useState<string>("Dr. Jane Doe, M.Psi., Psikolog")
+  const [psikologName, setPsikologName] = useState<string>(user?.name || "")
 
   // State Agenda Riwayat Sesi (Murni Database PostgreSQL)
   const [allBookedSlots, setAllBookedSlots] = useState<any[]>([])
@@ -136,20 +136,23 @@ export default function PsikologBerandaClient() {
         return
       }
 
-      // 3. Fallback ambil dari daftar psikolog (prioritaskan Dr. Jane Doe)
+      // 3. Fallback ambil dari daftar psikolog dari database
       const savedId = localStorage.getItem("active_psikolog_id")
       psikologService
         .getList()
         .then((list: any[]) => {
           if (list && list.length > 0) {
             const matched =
-              (!isInvalid && savedId ? list.find((p) => p.id === savedId || p.account?.id === savedId) : null) ||
-              list.find((p) => p.nama_gelar?.includes("Jane") || p.account?.email?.includes("psikolog@empathika")) ||
-              list.find((p) => p.nama_gelar?.includes("Rizki") || p.account?.email?.includes("putriqoida")) ||
-              list[0]
+              (user?.role === "PSIKOLOG" && user?.id
+                ? list.find((p) => p.id === user.id || p.account?.id === user.id)
+                : null) ||
+              (user?.role === "PSIKOLOG" && user?.email
+                ? list.find((p) => p.account?.email?.toLowerCase() === user.email.toLowerCase())
+                : null) ||
+              (!isInvalid && savedId ? list.find((p) => p.id === savedId || p.account?.id === savedId) : null)
 
             if (matched) {
-              const name = matched.nama_gelar || matched.account?.nama || "Dr. Jane Doe, M.Psi., Psikolog"
+              const name = matched.nama_gelar || matched.account?.nama || user?.name || "Tenaga Ahli"
               localStorage.setItem("active_psikolog_id", matched.id)
               localStorage.setItem("active_psikolog_name", name)
               setPsikologName(name)
@@ -175,6 +178,9 @@ export default function PsikologBerandaClient() {
           if (res.psikolog?.nama_gelar) {
             setPsikologName(res.psikolog.nama_gelar)
             localStorage.setItem("active_psikolog_name", res.psikolog.nama_gelar)
+            if (res.psikolog.kategori) {
+              localStorage.setItem("active_psikolog_kategori", res.psikolog.kategori)
+            }
             if (res.psikolog.id) {
               localStorage.setItem("active_psikolog_id", res.psikolog.id)
             }
