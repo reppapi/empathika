@@ -30,8 +30,8 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-      const savedName = localStorage.getItem("active_psikolog_name")
-      const savedId = localStorage.getItem("active_psikolog_id")
+      const savedName = localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name")
+      const savedId = localStorage.getItem("active_psikolog_id") || sessionStorage.getItem("active_psikolog_id")
       const isInvalidSaved = !savedName || savedName.toLowerCase().includes("admin")
       const found =
         (user?.role === "PSIKOLOG" && user?.email ? list.find((item) => item.email.toLowerCase() === user.email.toLowerCase()) : null) ||
@@ -132,7 +132,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
         <div className="flex-1 lg:ml-[280px] flex flex-col min-w-0 w-full transition-all duration-300">
           <AdminNavbar
             title={pageTitle}
-            adminName={currentPsikolog?.nama || "Psikolog Empathika"}
+            adminName={currentPsikolog?.nama || user?.name || "Psikolog Empathika"}
             subtitle={
               currentPsikolog?.kategori === "psikolog"
                 ? "Psikolog Resmi"

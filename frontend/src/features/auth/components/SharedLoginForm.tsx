@@ -85,7 +85,7 @@ export function LoginForm() {
         localStorage.removeItem("active_psikolog_name");
         localStorage.removeItem("active_psikolog_email");
       }
-      router.push("/psikolog-web/jadwal" as any);
+      router.push("/psikolog-web/beranda" as any);
     } else if (user.role === "ADMIN") {
       router.push("/admin");
     } else if (user.role === "BIRO") {
