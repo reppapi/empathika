@@ -11,6 +11,7 @@ import { uploadService } from "@/services/upload.service"
 import apiClient from "@/lib/axios"
 import { FormGantiEmail } from "./FormGantiEmail"
 import { FormGantiPassword } from "./FormGantiPassword"
+import { useAuthStore } from "@/store/authStore"
 
 export { type AdminProfileData, type RoleType }
 
@@ -23,7 +24,21 @@ export default function ProfilePsikologClient({
 }: ProfileClientProps) {
   const router = useRouter()
   const [adminData, setAdminData] = useState<AdminProfileData>(DEFAULT_ADMIN)
-  const [psikologData, setPsikologData] = useState<AdminProfileData>(DEFAULT_PSIKOLOG)
+  const [psikologData, setPsikologData] = useState<AdminProfileData>(() => {
+    if (typeof window !== "undefined") {
+      const savedName = localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name");
+      const authUser = useAuthStore.getState().user;
+      const displayName = (authUser?.role === "PSIKOLOG" && authUser?.name) ? authUser.name : savedName;
+      if (displayName && !displayName.toLowerCase().includes("admin")) {
+        return {
+          ...DEFAULT_PSIKOLOG,
+          nama: displayName,
+          email: authUser?.email || DEFAULT_PSIKOLOG.email,
+        };
+      }
+    }
+    return DEFAULT_PSIKOLOG;
+  })
 
   // Form input lokal berdasarkan role aktif
   const currentData = role === "admin" ? adminData : psikologData

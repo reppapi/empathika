@@ -73,16 +73,13 @@ export function LoginForm() {
     );
 
     if (user.role === "PSIKOLOG") {
-      if (rememberMe) {
-        localStorage.setItem("active_psikolog_id", user.id);
-        localStorage.setItem("active_psikolog_name", user.nama);
-      } else {
+      localStorage.setItem("active_psikolog_id", user.id);
+      localStorage.setItem("active_psikolog_name", user.nama);
+      if (!rememberMe) {
         sessionStorage.setItem("active_psikolog_id", user.id);
         sessionStorage.setItem("active_psikolog_name", user.nama);
-        localStorage.removeItem("active_psikolog_id");
-        localStorage.removeItem("active_psikolog_name");
       }
-      router.push("/psikolog-web/jadwal" as any);
+      router.push("/psikolog-web/beranda" as any);
     } else if (user.role === "ADMIN") {
       router.push("/admin");
     } else if (user.role === "BIRO") {

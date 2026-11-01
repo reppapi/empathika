@@ -111,7 +111,22 @@ export default function PsikologBerandaClient() {
   })
 
   const { user } = useAuthStore()
-  const [psikologName, setPsikologName] = useState<string>("Dr. Jane Doe, M.Psi., Psikolog")
+  const [psikologName, setPsikologName] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const savedName = localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name");
+      if (savedName && !savedName.toLowerCase().includes("admin")) return savedName;
+      try {
+        const authData = localStorage.getItem("empathika-auth");
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          if (parsed?.state?.user?.name && !parsed.state.user.name.toLowerCase().includes("admin")) {
+            return parsed.state.user.name;
+          }
+        }
+      } catch {}
+    }
+    return "";
+  })
 
   // State Agenda Riwayat Sesi (Murni Database PostgreSQL)
   const [allBookedSlots, setAllBookedSlots] = useState<any[]>([])
@@ -268,7 +283,7 @@ export default function PsikologBerandaClient() {
           <div>
             <p className="text-sm font-semibold text-[#561269]">Selamat Datang!</p>
             <h2 suppressHydrationWarning className="text-2xl font-bold text-gray-900 mt-0.5">
-              {psikologName}
+              {psikologName || user?.name || "Psikolog Empathika"}
             </h2>
           </div>
 
