@@ -38,7 +38,7 @@ export type PaketDetailItem = {
   status: StatusPaket;
   jumlahSoal: number;
   benefits?: string[];
-  soalList: Soal[];
+  soalList?: Soal[];
   interpretasiList: Interpretasi[];
   updatedAt?: string;
   pesertaCount?: number;
