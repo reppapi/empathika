@@ -33,15 +33,7 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
       waktu: "15 Menit",
       status: item.status === "PUBLISHED" ? "Aktif" : "Draf",
       jumlahSoal: item.soal_psikotes?.length || 0,
-      soalList: (item.soal_psikotes || []).map((s) => ({
-        id: s.id,
-        tipe: "Pilihan Ganda",
-        teks: s.pertanyaan,
-        pilihan: (s.pilihan_jawaban || []).map((p) => ({
-          text: p.teks_jawaban,
-          bobot: String(p.bobot),
-        })),
-      })),
+      soalList: [],
       interpretasiList: (item.interpretasi_psikotes || []).map((i) => {
         let saran: Tip[] = [];
         let kekuatanUtama: string[] = [];
