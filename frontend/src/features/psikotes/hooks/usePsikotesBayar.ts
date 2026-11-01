@@ -3,43 +3,36 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { psikotesService } from "@/services/psikotes.service"
-import { useAuthStore } from "@/store/authStore"
 
 export function usePsikotesBayar() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user } = useAuthStore()
 
   // State Form Peserta (Hanya Nama & WhatsApp)
   const [nama, setNama] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
 
   // State Metode Pembayaran
-  const [metodePembayaran, setMetodePembayaran] = useState<string | null>("qris")
+  const [metodePembayaran, setMetodePembayaran] = useState<string | null>(null)
   const [selectedBank, setSelectedBank] = useState<string | null>(null)
   const [selectedEwallet, setSelectedEwallet] = useState<string | null>(null)
 
   // State Notifikasi Gagal / Retry
   const [failedAlertDismissed, setFailedAlertDismissed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errors, setErrors] = useState<{
+    nama?: string
+    whatsapp?: string
+    metodePembayaran?: string
+    detailMetode?: string
+    [key: string]: any
+  }>({})
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
 
   const isFailed = searchParams.get("status") === "failed" && !failedAlertDismissed
   const failedReason = searchParams.get("reason") || "Pembayaran gagal diproses."
 
-  // Isi data awal dari Auth User jika tersedia
-  useEffect(() => {
-    if (user?.name && !nama) setNama(user.name)
-    try {
-      const raw = localStorage.getItem("empathika_peserta_psikotes")
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (parsed.whatsapp && !whatsapp) setWhatsapp(parsed.whatsapp)
-        if (parsed.nama && !nama && !user?.name) setNama(parsed.nama)
-      }
-    } catch {}
-  }, [user])
+  // Form pendaftaran psikotes berbayar dibiarkan kosong secara default agar peserta mengisi identitas sendiri
 
   // Prefill dari searchParams jika ada (misal kembali dari pending / retry gagal)
   useEffect(() => {
@@ -70,18 +63,35 @@ export function usePsikotesBayar() {
       setMetodePembayaran(null)
       setSelectedBank(null)
       setSelectedEwallet(null)
-    } else {
-      setMetodePembayaran(id)
-      if (id !== "bank") setSelectedBank(null)
-      if (id !== "ewallet") setSelectedEwallet(null)
+      return
+    }
+
+    setMetodePembayaran(id)
+    if (id !== "bank") setSelectedBank(null)
+    if (id !== "ewallet") setSelectedEwallet(null)
+
+    if (attemptedSubmit) {
+      setErrors((prev) => ({
+        ...prev,
+        metodePembayaran: undefined,
+        detailMetode: undefined,
+      }))
     }
   }
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault?.()
+    if (isSubmitting) return
     setAttemptedSubmit(true)
 
-    const newErrors: Record<string, string> = {}
+    const newErrors: {
+      nama?: string
+      whatsapp?: string
+      metodePembayaran?: string
+      detailMetode?: string
+      [key: string]: any
+    } = {}
+
     if (!nama.trim()) {
       newErrors.nama = "Nama lengkap wajib diisi."
     }
@@ -100,22 +110,26 @@ export function usePsikotesBayar() {
     }
 
     if (!metodePembayaran) {
-      alert("Harap pilih salah satu metode pembayaran terlebih dahulu.")
-      return
-    }
-
-    if (metodePembayaran === "bank" && !selectedBank) {
-      alert("Harap pilih bank transfer terlebih dahulu.")
-      return
-    }
-
-    if (metodePembayaran === "ewallet" && !selectedEwallet) {
-      alert("Harap pilih e-wallet terlebih dahulu.")
-      return
+      newErrors.metodePembayaran = "Harap pilih salah satu metode pembayaran."
+    } else if (metodePembayaran === "bank" && !selectedBank) {
+      newErrors.detailMetode = "Harap pilih salah satu bank tujuan transfer."
+    } else if (metodePembayaran === "ewallet" && !selectedEwallet) {
+      newErrors.detailMetode = "Harap pilih salah satu aplikasi e-wallet."
     }
 
     setErrors(newErrors)
-    if (Object.keys(newErrors).length > 0) return
+
+    if (Object.keys(newErrors).length > 0) {
+      const firstTargetId =
+        newErrors.nama || newErrors.whatsapp
+          ? "box-data-peserta"
+          : "box-metode-pembayaran"
+      const el = document.getElementById(firstTargetId)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+      return
+    }
 
     setIsSubmitting(true)
 

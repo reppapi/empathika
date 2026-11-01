@@ -17,9 +17,11 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "staging", "production", "test"]).default("development"),
   ALLOWED_ORIGINS: z.string().default("http://localhost:3000"),
   FRONTEND_URL: z.string().default("http://localhost:3000"),
-  BASE_URL: z.string().optional(), // e.g. http://localhost:3001 — untuk generate URL file upload
+  BASE_URL: z.string().optional(), // e.g. http://localhost:3001 - untuk generate URL file upload
   MIDTRANS_SERVER_KEY: z.string().optional(),
   MIDTRANS_CLIENT_KEY: z.string().optional(),
+  XENDIT_SECRET_KEY: z.string().optional(),
+  XENDIT_WEBHOOK_TOKEN: z.string().optional(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),
@@ -37,4 +39,3 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data
-
