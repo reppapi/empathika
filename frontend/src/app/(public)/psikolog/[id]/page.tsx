@@ -170,6 +170,25 @@ export default function DetailPsikologPage({ params }: PageProps) {
             tipe: (s.tipe === "Offline" ? "offline" : "online") as "online" | "offline",
           }))
 
+          let resolvedQuote = data.quote || ""
+          if (!resolvedQuote && typeof window !== "undefined") {
+            try {
+              const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+              if (saved) {
+                const list = JSON.parse(saved)
+                const localMatch = list.find((t: any) =>
+                  t.id === data.id ||
+                  t.accountId === data.id ||
+                  (t.email && (t.email === data.account?.email || t.email === data.email)) ||
+                  (t.nama && t.nama.toLowerCase() === (data.nama_gelar || data.account?.nama || "").toLowerCase())
+                )
+                if (localMatch?.quote) {
+                  resolvedQuote = localMatch.quote
+                }
+              }
+            } catch {}
+          }
+
           const mapped: DetailPsikologUI = {
             id: data.id,
             id_spesialisasi: data.id_spesialisasi || "spec",
@@ -178,14 +197,14 @@ export default function DetailPsikologPage({ params }: PageProps) {
             no_str: data.no_str || null,
             no_sipp: data.no_sipp || null,
             foto: data.foto || "/images/psikolog/default.jpg",
-            bio: data.bio || "Praktisi kesehatan mental profesional yang berdedikasi mendampingi proses pemulihan dan pertumbuhan diri klien.",
-            quote: data.quote || "Setiap perjalanan pemulihan dimulai dari keberanian untuk mendengarkan diri sendiri.",
-            instagram: data.instagram || "@empathika.id",
-            jenisKelamin: data.jenis_kelamin || "Perempuan",
-            pendidikanText: data.pendidikan || "Universitas Indonesia",
+            bio: data.bio || "",
+            quote: resolvedQuote,
+            instagram: data.instagram || "",
+            jenisKelamin: data.jenis_kelamin || "",
+            pendidikanText: data.pendidikan || "",
             status: data.status || "ACTIVE",
             jumlah_sesi: typeof data.jumlah_sesi === "number" ? data.jumlah_sesi : 0,
-            tarif_per_jam: Number(data.tarif_per_jam) || 150000,
+            tarif_per_jam: Number(data.tarif_per_jam) || 0,
             spesialisasi: data.spesialisasi
               ? {
                   id: data.spesialisasi.id || "spec-1",
@@ -196,23 +215,20 @@ export default function DetailPsikologPage({ params }: PageProps) {
                   nama: data.kategori || "Psikolog Klinis",
                 },
             category,
-            experienceYears: data.pengalaman_tahun || "3 - 6 Tahun",
+            experienceYears: data.pengalaman_tahun || "",
             keahlian: keahlianList,
-            pendidikan: [data.pendidikan || "Universitas Indonesia"],
+            pendidikan: data.pendidikan ? [data.pendidikan] : [],
             profilLengkap: (() => {
               const bioText = data.bio?.trim()
               if (!bioText) {
-                return [
-                  "Praktisi kesehatan mental profesional yang berdedikasi mendampingi proses pemulihan dan pertumbuhan diri klien.",
-                  data.quote || "Setiap manusia adalah cerita yang sedang bertumbuh, layak didengar, dihargai, dan ditemani.",
-                ]
+                return []
               }
               const paragraphs = bioText.split(/\n\s*\n/).map((p: string) => p.trim()).filter(Boolean)
               return paragraphs.length > 0 ? paragraphs : [bioText]
             })(),
-            videoIntroUrl: data.video_intro_url || "https://www.w3schools.com/html/mov_bbb.mp4",
-            videoThumbnail: data.foto || "/images/psikolog/default.jpg",
-            videoDuration: "01:30",
+            videoIntroUrl: data.video_intro_url || "",
+            videoThumbnail: data.video_thumbnail || data.foto || "/images/psikolog/default.jpg",
+            videoDuration: data.video_duration || "",
             jadwalTersedia,
             jadwalAssociate: scheduleList,
             testimoni: [
@@ -235,7 +251,15 @@ export default function DetailPsikologPage({ params }: PageProps) {
         try {
           const saved = localStorage.getItem("empathika_tenaga_ahli_data")
           const list = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-          const found = list.find((t: any) => t.id === id)
+          const cleanId = decodeURIComponent(id).toLowerCase().replace(/-/g, " ").trim()
+          const found = list.find((t: any) =>
+            t.id === id ||
+            t.accountId === id ||
+            (t.nama && t.nama.toLowerCase() === cleanId) ||
+            (t.nama && t.nama.toLowerCase().includes(cleanId)) ||
+            (cleanId.length > 2 && t.nama && cleanId.includes(t.nama.toLowerCase())) ||
+            (t.email && t.email.toLowerCase() === id.toLowerCase())
+          )
 
           if (found) {
             const dummyDetail = getDetailPsikolog(id)
@@ -245,8 +269,8 @@ export default function DetailPsikologPage({ params }: PageProps) {
               id_spesialisasi: `spec-${found.id}`,
               nama_gelar: found.nama,
               email: found.email,
-              no_str: found.noStr || null,
-              no_sipp: found.noSipp || null,
+              no_str: found.kategori === "psikolog" ? (found.noStr || null) : null,
+              no_sipp: found.kategori === "psikolog" ? (found.noSipp || null) : null,
               foto: found.foto,
               bio: found.bio,
               quote: found.quote,

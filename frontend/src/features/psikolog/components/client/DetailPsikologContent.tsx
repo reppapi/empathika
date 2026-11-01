@@ -80,7 +80,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                 <p>
                   Jumlah sesi: <span className="font-semibold text-gray-900">{psikolog.jumlah_sesi} Sesi</span>
                 </p>
-                {psikolog.no_str && (
+                {psikolog.category === "psikolog" && psikolog.no_str && (
                   <>
                     <span className="hidden sm:inline text-gray-300">•</span>
                     <p>
@@ -88,7 +88,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                     </p>
                   </>
                 )}
-                {psikolog.no_sipp && (
+                {psikolog.category === "psikolog" && psikolog.no_sipp && (
                   <>
                     <span className="hidden sm:inline text-gray-300">•</span>
                     <p>
@@ -99,22 +99,22 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
               </div>
 
               {/* Quote / Prinsip Singkat Diri */}
-              {psikolog.quote && (
-                <div className="mt-3 bg-[#FAF5FD] border-l-4 border-[#561269] p-3.5 sm:p-4 rounded-r-2xl text-left">
+              {psikolog.quote && psikolog.quote.trim() ? (
+                <div className="mt-3 bg-[#FAF5FD] border-l-4 border-[#561269] p-3.5 sm:p-4 rounded-r-2xl text-left shadow-2xs">
                   <p className="text-gray-800 text-xs sm:text-sm md:text-base italic leading-relaxed">
-                    &ldquo;{psikolog.quote}&rdquo;
+                    &ldquo;{psikolog.quote.replace(/^["“”']+|["“”']+$/g, "")}&rdquo;
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
           {/* Kolom Kanan: Video Perkenalan Diri (Video Greeting / Intro) */}
           <div className="lg:col-span-5 w-full">
             <div className="relative rounded-3xl overflow-hidden shadow-lg border border-purple-100 bg-[#3B074B] aspect-video flex items-center justify-center group">
-              {isPlayingVideo ? (
+              {isPlayingVideo && psikolog.videoIntroUrl ? (
                 <video
-                  src={psikolog.videoIntroUrl || 'https://www.w3schools.com/html/mov_bbb.mp4'}
+                  src={psikolog.videoIntroUrl}
                   controls
                   autoPlay
                   className="w-full h-full object-cover"
@@ -149,18 +149,24 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                   )}
 
                   {/* Tombol Play Interaktif */}
-                  <button
-                    type="button"
-                    onClick={() => setIsPlayingVideo(true)}
-                    className="relative z-10 flex items-center gap-3 bg-white/90 hover:bg-white text-[#561269] px-6 py-3 rounded-full font-bold text-sm sm:text-base shadow-2xl hover:scale-105 transition-all duration-200"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-[#561269] text-white flex items-center justify-center pl-0.5">
-                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
+                  {psikolog.videoIntroUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsPlayingVideo(true)}
+                      className="relative z-10 flex items-center gap-3 bg-white/90 hover:bg-white text-[#561269] px-6 py-3 rounded-full font-bold text-sm sm:text-base shadow-2xl hover:scale-105 transition-all duration-200"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-[#561269] text-white flex items-center justify-center pl-0.5">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                      <span>Tonton Video Perkenalan</span>
+                    </button>
+                  ) : (
+                    <div className="relative z-10 text-center p-4 text-white">
+                      <p className="text-xs sm:text-sm font-semibold">Video Perkenalan Belum Tersedia</p>
                     </div>
-                    <span>Tonton Video Perkenalan</span>
-                  </button>
+                  )}
                 </>
               )}
             </div>
@@ -205,7 +211,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                 </div>
               </div>
             )}
-            {(psikolog.no_str || psikolog.no_sipp) && (
+            {psikolog.category === "psikolog" && (psikolog.no_str || psikolog.no_sipp) && (
               <p className="text-sm sm:text-base text-gray-600 font-semibold">
                 Nomor Izin Praktik:{' '}
                 <span className="font-normal text-gray-800">

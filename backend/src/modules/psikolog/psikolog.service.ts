@@ -193,72 +193,35 @@ export class PsikologService {
    * Mengambil profil psikolog yang sedang login
    */
   async getMyProfile(accountId?: string) {
-    let psikolog = accountId
-      ? await this.prisma.psikolog.findUnique({
-        where: { id_account: accountId },
-        include: {
-          spesialisasi: true,
-          account: {
-            select: {
-              id: true,
-              nama: true,
-              email: true,
-              no_telepon: true,
-              foto: true,
-              bio: true,
-              role: true,
-            },
-          },
-        },
-      })
-      : null
-
-    if (!psikolog) {
-      psikolog = await this.prisma.psikolog.findFirst({
-        where: {
-          OR: [
-            { nama_gelar: { contains: 'Jane', mode: 'insensitive' } },
-            { account: { email: { contains: 'psikolog@empathika', mode: 'insensitive' } } },
-          ],
-        },
-        include: {
-          spesialisasi: true,
-          account: {
-            select: {
-              id: true,
-              nama: true,
-              email: true,
-              no_telepon: true,
-              foto: true,
-              bio: true,
-              role: true,
-            },
-          },
-        },
-      })
+    if (!accountId) {
+      throw new Error('ID akun tidak valid atau sesi login telah berakhir')
     }
 
-    if (!psikolog) {
-      psikolog = await this.prisma.psikolog.findFirst({
-        include: {
-          spesialisasi: true,
-          account: {
-            select: {
-              id: true,
-              nama: true,
-              email: true,
-              no_telepon: true,
-              foto: true,
-              bio: true,
-              role: true,
-            },
+    const psikolog = await this.prisma.psikolog.findFirst({
+      where: {
+        OR: [
+          { id_account: accountId },
+          { id: accountId },
+        ],
+      },
+      include: {
+        spesialisasi: true,
+        account: {
+          select: {
+            id: true,
+            nama: true,
+            email: true,
+            no_telepon: true,
+            foto: true,
+            bio: true,
+            role: true,
           },
         },
-      })
-    }
+      },
+    })
 
     if (!psikolog) {
-      throw new Error('Data profil psikolog tidak ditemukan')
+      throw new Error('Data profil tenaga ahli tidak ditemukan')
     }
 
     // Hitung jumlah sesi riil dari booking
@@ -282,24 +245,35 @@ export class PsikologService {
    * Mengupdate profil psikolog yang sedang login
    */
   async updateMyProfile(accountId: string | undefined, body: UpdatePsikologProfileInput) {
+    const emailClean = body.email?.trim()
     let psikolog = accountId
-      ? await this.prisma.psikolog.findUnique({
-        where: { id_account: accountId },
+      ? await this.prisma.psikolog.findFirst({
+        where: {
+          OR: [
+            { id_account: accountId },
+            { id: accountId },
+            ...(emailClean ? [{ account: { email: { equals: emailClean, mode: 'insensitive' as const } } }] : []),
+          ],
+        },
       })
       : null
 
-    if (!psikolog) {
-      psikolog = await this.prisma.psikolog.findFirst()
+    if (!psikolog && emailClean) {
+      psikolog = await this.prisma.psikolog.findFirst({
+        where: {
+          account: { email: { equals: emailClean, mode: 'insensitive' } },
+        },
+      })
     }
 
     if (!psikolog) {
-      throw new Error('Data profil psikolog tidak ditemukan')
+      throw new Error('Data profil tenaga ahli tidak ditemukan')
     }
 
     const accountUpdateData: Record<string, any> = {}
     if (body.nama !== undefined) accountUpdateData.nama = body.nama
-    if (body.email !== undefined && body.email.trim()) accountUpdateData.email = body.email.trim()
-    if (body.password !== undefined && body.password.trim()) {
+    if (emailClean) accountUpdateData.email = emailClean
+    if (body.password?.trim()) {
       accountUpdateData.password = await bcrypt.hash(body.password.trim(), 10)
     }
     if (body.no_telepon !== undefined) accountUpdateData.no_telepon = body.no_telepon
@@ -328,16 +302,16 @@ export class PsikologService {
       spesialisasiId = spec.id
     }
 
-    let keahlianStr: string | undefined = undefined
+    let keahlianStr: string | null | undefined = undefined
     if (body.keahlian !== undefined) {
-      keahlianStr = Array.isArray(body.keahlian) ? body.keahlian.join(', ') : body.keahlian
+      keahlianStr = Array.isArray(body.keahlian) ? body.keahlian.join(', ') : (body.keahlian || null)
     }
 
-    let profilLengkapStr: string | undefined = undefined
+    let profilLengkapStr: string | null | undefined = undefined
     if (body.profil_lengkap !== undefined) {
       profilLengkapStr = Array.isArray(body.profil_lengkap)
         ? body.profil_lengkap.join('\n\n')
-        : body.profil_lengkap
+        : (body.profil_lengkap || null)
     }
 
     const psikologUpdateData: Record<string, any> = {}
@@ -346,9 +320,27 @@ export class PsikologService {
     if (body.bio !== undefined) psikologUpdateData.bio = body.bio
     if (body.quote !== undefined) psikologUpdateData.quote = body.quote
     if (body.instagram !== undefined) psikologUpdateData.instagram = body.instagram
-    if (body.no_str !== undefined) psikologUpdateData.no_str = body.no_str
-    if (body.no_sipp !== undefined) psikologUpdateData.no_sipp = body.no_sipp
-    if (body.no_silp !== undefined) psikologUpdateData.no_silp = body.no_silp
+    if (body.kategori !== undefined) {
+      const kat = (body.kategori || '').toLowerCase()
+      psikologUpdateData.kategori = kat.includes('peer')
+        ? 'Peer Konselor'
+        : kat.includes('konselor')
+          ? 'Konselor'
+          : 'Psikolog Klinis'
+    }
+
+    const currentKategori = (psikologUpdateData.kategori || psikolog.kategori || '').toLowerCase()
+    const isProfesiPsikolog = !currentKategori.includes('peer') && !currentKategori.includes('konselor')
+
+    if (body.no_str !== undefined) psikologUpdateData.no_str = isProfesiPsikolog ? (body.no_str || null) : null
+    else if (!isProfesiPsikolog) psikologUpdateData.no_str = null
+
+    if (body.no_sipp !== undefined) psikologUpdateData.no_sipp = isProfesiPsikolog ? (body.no_sipp || null) : null
+    else if (!isProfesiPsikolog) psikologUpdateData.no_sipp = null
+
+    if (body.no_silp !== undefined) psikologUpdateData.no_silp = isProfesiPsikolog ? (body.no_silp || null) : null
+    else if (!isProfesiPsikolog) psikologUpdateData.no_silp = null
+
     if (spesialisasiId !== psikolog.id_spesialisasi) psikologUpdateData.id_spesialisasi = spesialisasiId
     if (keahlianStr !== undefined) psikologUpdateData.keahlian = keahlianStr
     if (body.pendidikan !== undefined) psikologUpdateData.pendidikan = body.pendidikan
@@ -413,6 +405,11 @@ export class PsikologService {
       : kat.includes('konselor')
         ? 'Konselor'
         : 'Psikolog Klinis'
+
+    const isPsikologKlinis = kategoriFormatted === 'Psikolog Klinis'
+    const finalNoStr = isPsikologKlinis ? (body.noStr || null) : null
+    const finalNoSipp = isPsikologKlinis ? (body.noSipp || null) : null
+    const finalNoSilp = isPsikologKlinis ? (body.noSilp || null) : null
 
     const keahlianStr =
       Array.isArray(body.keahlian) && body.keahlian.length > 0
@@ -486,8 +483,9 @@ export class PsikologService {
           id_spesialisasi: spesialisasi.id,
           kategori: kategoriFormatted,
           nama_gelar: body.nama,
-          no_str: body.noStr || null,
-          no_sipp: body.noSipp || null,
+          no_str: finalNoStr,
+          no_sipp: finalNoSipp,
+          no_silp: finalNoSilp,
           pendidikan: body.pendidikanText || body.pendidikan || null,
           pengalaman_tahun: pengalamanTahun,
           quote: body.quote || null,
@@ -570,8 +568,9 @@ export class PsikologService {
             id_spesialisasi: spesialisasi.id,
             kategori: kategoriFormatted,
             nama_gelar: body.nama,
-            no_str: body.noStr || null,
-            no_sipp: body.noSipp || null,
+            no_str: finalNoStr,
+            no_sipp: finalNoSipp,
+            no_silp: finalNoSilp,
             pendidikan: body.pendidikanText || body.pendidikan || null,
             pengalaman_tahun: pengalamanTahun,
             quote: body.quote || null,
@@ -599,8 +598,9 @@ export class PsikologService {
             id_spesialisasi: spesialisasi.id,
             kategori: kategoriFormatted,
             nama_gelar: body.nama,
-            no_str: body.noStr || null,
-            no_sipp: body.noSipp || null,
+            no_str: finalNoStr,
+            no_sipp: finalNoSipp,
+            no_silp: finalNoSilp,
             pendidikan: body.pendidikanText || body.pendidikan || null,
             pengalaman_tahun: pengalamanTahun,
             quote: body.quote || null,

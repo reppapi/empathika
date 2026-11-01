@@ -365,7 +365,7 @@ export function useJadwalAdmin() {
       const isTargetToday = activeDateKey === todayKey
       const currentMinutes = now.getHours() * 60 + now.getMinutes()
 
-      let foundNearest = false
+      let foundNearestStartMinutes: number | null = null
 
       return sessions.map((item) => {
         if (item.status === "Dibatalkan" || (item.status as string) === "Dibatalkan (Refund)") {
@@ -400,8 +400,10 @@ export function useJadwalAdmin() {
         }
 
         if (startMinutes && currentMinutes < startMinutes) {
-          if (!foundNearest) {
-            foundNearest = true
+          if (foundNearestStartMinutes === null) {
+            foundNearestStartMinutes = startMinutes
+          }
+          if (startMinutes === foundNearestStartMinutes) {
             return {
               ...item,
               status: "Segera Dimulai" as const,
@@ -425,40 +427,56 @@ export function useJadwalAdmin() {
     []
   )
 
-  const nearestSession = useMemo(() => {
+  const nearestSessions = useMemo(() => {
     const now = new Date()
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
 
     if (datePickerValue && datePickerValue !== todayKey) {
-      return null
+      return []
     }
 
     const currentMinutes = now.getHours() * 60 + now.getMinutes()
 
-    const upcoming = filteredTodaySessions.find((s) => {
+    // 1. Cek sesi yang sedang berlangsung saat ini (bisa multiple paralel dari psikolog berbeda)
+    const ongoing = filteredTodaySessions.filter((s) => {
+      if (s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)" || s.status === "Selesai") return false
+      if (s.status === "Sedang Berlangsung") return true
+      const { startMinutes, endMinutes } = parseTimeRangeMinutes(s.waktu)
+      return Boolean(startMinutes && endMinutes && currentMinutes >= startMinutes && currentMinutes < endMinutes)
+    })
+    if (ongoing.length > 0) return ongoing
+
+    // 2. Cek semua sesi yang segera dimulai di jam terdekat yang sama
+    const upcoming = filteredTodaySessions.filter((s) => {
       if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)") return false
       if (s.status !== "Segera Dimulai" && !s.isUpcomingNearest) return false
       const { endMinutes } = parseTimeRangeMinutes(s.waktu)
       return endMinutes > currentMinutes
     })
-    if (upcoming) return upcoming
+    if (upcoming.length > 0) return upcoming
 
-    const ongoing = filteredTodaySessions.find((s) => {
-      if (s.status !== "Sedang Berlangsung") return false
-      const { startMinutes, endMinutes } = parseTimeRangeMinutes(s.waktu)
-      return currentMinutes >= startMinutes && currentMinutes < endMinutes
-    })
-    if (ongoing) return ongoing
+    // 3. Fallback: ambil semua sesi terdekat yang belum mulai (jam paling awal berikutnya)
+    const validFuture = filteredTodaySessions
+      .filter((s) => {
+        if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)") return false
+        const { startMinutes } = parseTimeRangeMinutes(s.waktu)
+        return startMinutes && startMinutes > currentMinutes
+      })
+      .sort((a, b) => {
+        const aMin = parseTimeRangeMinutes(a.waktu).startMinutes || 0
+        const bMin = parseTimeRangeMinutes(b.waktu).startMinutes || 0
+        return aMin - bMin
+      })
 
-    const waitingFuture = filteredTodaySessions.find((s) => {
-      if (s.status !== "Menunggu Jadwal") return false
-      const { startMinutes } = parseTimeRangeMinutes(s.waktu)
-      return startMinutes > currentMinutes
-    })
-    if (waitingFuture) return waitingFuture
+    if (validFuture.length > 0) {
+      const earliestStart = parseTimeRangeMinutes(validFuture[0].waktu).startMinutes
+      return validFuture.filter((s) => parseTimeRangeMinutes(s.waktu).startMinutes === earliestStart)
+    }
 
-    return null
+    return []
   }, [filteredTodaySessions, datePickerValue])
+
+  const nearestSession = nearestSessions.length > 0 ? nearestSessions[0] : null
 
   // ── 5. Dynamic Time Update (Sinkronisasi Jam Lokal Real-Time) ──
   useEffect(() => {
@@ -804,6 +822,7 @@ export function useJadwalAdmin() {
     todaySessions,
     filteredTodaySessions,
     nearestSession,
+    nearestSessions,
     activeMenuId,
     setActiveMenuId,
 

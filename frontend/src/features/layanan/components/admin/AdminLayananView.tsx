@@ -7,9 +7,11 @@ import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2 } from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
 import {
   getStoredLayanan,
+  saveStoredLayanan,
   deleteLayananById,
   AdminLayananItem,
 } from "../../data/adminLayananData"
+import { layananService } from "@/services/layanan.service"
 import {
   ActionButtonDetail,
   ActionButtonEdit,
@@ -82,9 +84,39 @@ export default function AdminLayananView() {
     router.replace(targetUrl as any, { scroll: false })
   }
 
-  // Load data from persistent storage
+  // Load data from persistent storage & sync with backend API
   useEffect(() => {
+    // 1. Initial cached / default
     setLayananList(getStoredLayanan())
+
+    // 2. Fetch fresh from backend DB
+    layananService
+      .getAll()
+      .then((res) => {
+        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+          const catMap: Record<string, string> = {
+            KONSULTASI: "01",
+            PSIKOTES: "02",
+            WORKSHOP: "03",
+            SEMINAR: "04",
+            ASESMEN: "05",
+          }
+          const mapped: AdminLayananItem[] = res.data.map((item) => ({
+            id: item.id,
+            layanan: item.nama,
+            kategoriId: catMap[item.kategori] || "01",
+            metode: item.metode || "Online/Offline",
+            weekday: `Rp ${Number(item.harga_weekday || 0).toLocaleString("id-ID")}`,
+            weekend: `Rp ${Number(item.harga_weekend || 0).toLocaleString("id-ID")}`,
+            status: item.aktif ? "Aktif" : "Nonaktif",
+            deskripsi: item.deskripsi || "",
+            bannerUrl: item.banner_url || "",
+          }))
+          setLayananList(mapped)
+          saveStoredLayanan(mapped)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   // Handle Hapus Layanan
@@ -92,6 +124,9 @@ export default function AdminLayananView() {
     if (confirm(`Apakah Anda yakin ingin menghapus layanan "${item.layanan}"?`)) {
       deleteLayananById(item.id)
       setLayananList(getStoredLayanan())
+      if (typeof item.id === "string") {
+        layananService.delete(item.id).catch(() => {})
+      }
       setToastMsg(`Layanan "${item.layanan}" telah dihapus.`)
       setTimeout(() => setToastMsg(null), 3000)
     }

@@ -1,16 +1,17 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, ChangeEvent, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 import { AdminProfileData, RoleType } from "../../types"
-import { DEFAULT_ADMIN, DEFAULT_PSIKOLOG } from "../../data/profileData"
+import { DEFAULT_ADMIN } from "../../data/profileData"
 import { psikologService } from "@/services/psikolog.service"
 import { uploadService } from "@/services/upload.service"
 import apiClient from "@/lib/axios"
 import { FormGantiEmail } from "./FormGantiEmail"
 import { FormGantiPassword } from "./FormGantiPassword"
+import { useAuthStore } from "@/store/authStore"
 
 export { type AdminProfileData, type RoleType }
 
@@ -18,130 +19,189 @@ interface ProfileClientProps {
   role?: RoleType
 }
 
-export default function ProfilePsikologClient({
-  role = "psikolog",
-}: ProfileClientProps) {
+// ── Konstanta & Helper Pure Function ──────────────────────────────────────
+const EMPTY_TENAGA_DATA: AdminProfileData = {
+  nama: "",
+  email: "",
+  noTelepon: "",
+  bio: "",
+  foto: null,
+  kategoriProfesi: "konselor",
+  spesialisasi: "",
+  noStr: "",
+  noSipp: "",
+  noSilp: "",
+  pendidikanText: "",
+  quote: "",
+  instagram: "",
+  keahlian: [],
+  profilLengkap: [],
+}
+
+function formatDurationSeconds(durationSeconds: number): string {
+  const mins = Math.floor(durationSeconds / 60)
+  const secs = Math.floor(durationSeconds % 60)
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+}
+
+function stripOuterQuotes(text?: string): string {
+  if (!text) return ""
+  return text.replace(/^["“”']+|["“”']+$/g, "").trim()
+}
+
+// ── Komponen Utama ────────────────────────────────────────────────────────
+export default function ProfilePsikologClient({ role = "psikolog" }: ProfileClientProps) {
   const router = useRouter()
+
+  // 1. State Data Profil
   const [adminData, setAdminData] = useState<AdminProfileData>(DEFAULT_ADMIN)
-  const [psikologData, setPsikologData] = useState<AdminProfileData>(DEFAULT_PSIKOLOG)
+  const [psikologData, setPsikologData] = useState<AdminProfileData>(EMPTY_TENAGA_DATA)
+  const [form, setForm] = useState<AdminProfileData>(role === "admin" ? adminData : psikologData)
 
-  // Form input lokal berdasarkan role aktif
-  const currentData = role === "admin" ? adminData : psikologData
-  const [form, setForm] = useState<AdminProfileData>(currentData)
-
-  // Tag keahlian baru
+  // 2. State Input Tambahan & Keahlian
   const [newSkill, setNewSkill] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
 
-  // Status notifikasi simpan
+  // 3. State Notifikasi & Loading
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+
+  // 4. State Modal Preview POV Klien
   const [previewModalOpen, setPreviewModalOpen] = useState(false)
   const [isPlayingVideoPreview, setIsPlayingVideoPreview] = useState(false)
 
+  // 5. State & Refs Media Upload (Foto, Video, Thumbnail)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoFileInputRef = useRef<HTMLInputElement>(null)
   const thumbnailFileInputRef = useRef<HTMLInputElement>(null)
+
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null)
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
   const [selectedThumbnailFile, setSelectedThumbnailFile] = useState<File | null>(null)
   const [videoUploadError, setVideoUploadError] = useState<string | null>(null)
 
+  // ── Sinkronisasi Data Profil Saat Halaman Dimuat ────────────────────────
   useEffect(() => {
     if (role === "admin") {
       setForm(adminData)
-    } else {
-      // 1. Ambil dari API resmi backend psikolog
-      psikologService
-        .getMyProfile()
-        .then((res: any) => {
-          if (res) {
+      return
+    }
+
+    // 1. Ambil dari API resmi backend psikolog
+    psikologService
+      .getMyProfile()
+      .then((res: any) => {
+        if (!res) return
+
+        const kategoriClean = res.kategori?.toLowerCase() || ""
+        const kategoriProfesi: AdminProfileData["kategoriProfesi"] = kategoriClean.includes("peer")
+          ? "peer-konselor"
+          : kategoriClean.includes("konselor")
+          ? "konselor"
+          : "psikolog"
+
+        const mapped: AdminProfileData = {
+          nama: res.nama_gelar || res.account?.nama || "",
+          email: res.account?.email || "",
+          noTelepon: res.account?.no_telepon || "",
+          bio: res.bio || res.account?.bio || "",
+          foto: res.foto || res.account?.foto || null,
+          kategoriProfesi,
+          spesialisasi: res.spesialisasi?.nama || res.spesialisasi || "",
+          noStr: res.no_str || "",
+          noSipp: res.no_sipp || "",
+          noSilp: res.no_silp || "",
+          pendidikanText: res.pendidikan || "",
+          quote: res.quote || "",
+          instagram: res.instagram || "",
+          keahlian: typeof res.keahlian === "string"
+            ? res.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
+            : Array.isArray(res.keahlian)
+            ? res.keahlian
+            : [],
+          profilLengkap: res.profil_lengkap
+            ? res.profil_lengkap.split("\n\n").map((s: string) => s.trim()).filter(Boolean)
+            : [],
+          videoIntroUrl: res.video_intro_url || "",
+          videoThumbnail: res.video_thumbnail || "",
+          videoDuration: res.video_duration || "",
+        }
+
+        setPsikologData(mapped)
+        setForm(mapped)
+
+        // Cache identitas aktif untuk sinkronisasi antarkomponen
+        if (res.id) localStorage.setItem("active_psikolog_id", res.id)
+        if (mapped.nama) localStorage.setItem("active_psikolog_name", mapped.nama)
+        if (mapped.email) localStorage.setItem("active_psikolog_email", mapped.email)
+        if (mapped.kategoriProfesi) localStorage.setItem("active_psikolog_kategori", mapped.kategoriProfesi)
+      })
+      .catch(() => {
+        // 2. Fallback aman ke shared storage jika koneksi backend offline
+        try {
+          const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+          if (!saved) {
+            setForm(psikologData)
+            return
+          }
+
+          const list = JSON.parse(saved)
+          const savedId = localStorage.getItem("active_psikolog_id")
+          const savedName = localStorage.getItem("active_psikolog_name")
+          const authUser = useAuthStore.getState().user
+          const authEmail = authUser?.email || localStorage.getItem("active_psikolog_email")
+
+          const found =
+            (savedId ? list.find((d: any) => d.id === savedId || d.accountId === savedId) : null) ||
+            (authEmail ? list.find((d: any) => d.email?.toLowerCase() === authEmail.toLowerCase()) : null) ||
+            (savedName ? list.find((d: any) => d.nama?.toLowerCase().includes(savedName.toLowerCase())) : null)
+
+          if (found) {
+            const isKonselorProfesi =
+              found.kategori?.toLowerCase().includes("peer") ||
+              found.kategori?.toLowerCase().includes("konselor")
+
             const mapped: AdminProfileData = {
-              nama: res.nama_gelar || res.account?.nama || DEFAULT_PSIKOLOG.nama,
-              email: res.account?.email || DEFAULT_PSIKOLOG.email,
-              noTelepon: res.account?.no_telepon || DEFAULT_PSIKOLOG.noTelepon,
-              bio: res.bio || res.account?.bio || "",
-              foto: res.foto || res.account?.foto || null,
-              kategoriProfesi: res.kategori?.toLowerCase().includes("peer")
-                ? "peer-konselor"
-                : res.kategori?.toLowerCase().includes("konselor")
-                ? "konselor"
-                : "psikolog",
-              spesialisasi: res.spesialisasi?.nama || res.spesialisasi || "",
-              noStr: res.no_str || "",
-              noSipp: res.no_sipp || "",
-              pendidikanText: res.pendidikan || "",
-              quote: res.quote || "",
-              instagram: res.instagram || "",
-              keahlian: typeof res.keahlian === "string"
-                ? res.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
-                : Array.isArray(res.keahlian)
-                ? res.keahlian
-                : DEFAULT_PSIKOLOG.keahlian,
-              profilLengkap: res.profil_lengkap
-                ? res.profil_lengkap.split("\n\n").map((s: string) => s.trim()).filter(Boolean)
-                : DEFAULT_PSIKOLOG.profilLengkap,
-              videoIntroUrl: res.video_intro_url || "",
-              videoThumbnail: res.video_thumbnail || "",
-              videoDuration: res.video_duration || "",
+              nama: found.nama || "",
+              email: found.email || "",
+              noTelepon: found.noTelepon || "",
+              bio: found.bio || "",
+              foto: found.foto || null,
+              kategoriProfesi: found.kategori || "konselor",
+              spesialisasi: found.spesialisasi || "",
+              noStr: isKonselorProfesi ? "" : (found.noStr || ""),
+              noSipp: isKonselorProfesi ? "" : (found.noSipp || ""),
+              noSilp: isKonselorProfesi ? "" : (found.noSilp || ""),
+              pendidikanText: found.pendidikanText || "",
+              quote: found.quote || "",
+              instagram: found.instagram || "",
+              keahlian: Array.isArray(found.keahlian) ? found.keahlian : [],
+              profilLengkap: Array.isArray(found.profilLengkap) ? found.profilLengkap : [],
+              videoIntroUrl: found.videoIntroUrl || "",
+              videoThumbnail: found.videoThumbnail || "",
+              videoDuration: found.videoDuration || "",
             }
-            if (res.no_silp) {
-              (mapped as any).noSilp = res.no_silp
+
+            setPsikologData(mapped)
+            setForm(mapped)
+          } else if (authUser) {
+            const mapped: AdminProfileData = {
+              ...EMPTY_TENAGA_DATA,
+              nama: authUser.name || "",
+              email: authUser.email || "",
             }
             setPsikologData(mapped)
             setForm(mapped)
-            if (res.id) localStorage.setItem("active_psikolog_id", res.id)
-            if (mapped.nama) localStorage.setItem("active_psikolog_name", mapped.nama)
-            return
           }
-        })
-        .catch(() => {
-          // 2. Fallback ke shared storage tenaga ahli jika backend belum terkoneksi
-          try {
-            const saved = localStorage.getItem("empathika_tenaga_ahli_data")
-            if (saved) {
-              const list = JSON.parse(saved)
-              const savedId = localStorage.getItem("active_psikolog_id")
-              const savedName = localStorage.getItem("active_psikolog_name")
-              const found =
-                (savedId ? list.find((d: any) => d.id === savedId) : null) ||
-                (savedName ? list.find((d: any) => d.nama === savedName) : null) ||
-                list.find((d: any) => d.id === "1" || d.email === "putriqoida@empathika.com") ||
-                list[0]
-              if (found) {
-                const mapped: AdminProfileData = {
-                  nama: found.nama,
-                  email: found.email,
-                  noTelepon: found.noTelepon,
-                  bio: found.bio,
-                  foto: found.foto,
-                  kategoriProfesi: found.kategori,
-                  spesialisasi: found.spesialisasi,
-                  noStr: found.noStr,
-                  noSipp: found.noSipp,
-                  pendidikanText: found.pendidikanText,
-                  quote: found.quote,
-                  instagram: found.instagram,
-                  keahlian: found.keahlian,
-                  profilLengkap: DEFAULT_PSIKOLOG.profilLengkap,
-                  videoIntroUrl: DEFAULT_PSIKOLOG.videoIntroUrl,
-                  videoThumbnail: DEFAULT_PSIKOLOG.videoThumbnail,
-                  videoDuration: DEFAULT_PSIKOLOG.videoDuration,
-                }
-                setPsikologData(mapped)
-                setForm(mapped)
-                return
-              }
-            }
-          } catch {}
+        } catch {
           setForm(psikologData)
-        })
-    }
+        }
+      })
   }, [role, adminData])
 
+  // ── Handlers Perubahan Input Teks & Upload Media ─────────────────────────
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target
     setForm((prev) => ({
@@ -150,8 +210,8 @@ export default function ProfilePsikologClient({
     }))
   }
 
-  // Upload Foto
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Foto Profil
+  const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       setSelectedPhotoFile(file)
@@ -160,21 +220,20 @@ export default function ProfilePsikologClient({
     }
   }
 
-  // Hapus Foto
   const handleRemovePhoto = () => {
     setSelectedPhotoFile(null)
     setForm((prev) => ({ ...prev, foto: null }))
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  // Upload Video File (.mp4 langsung, max durasi 10 menit)
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Video Perkenalan (MP4, Maksimal 10 Menit)
+  const handleVideoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setVideoUploadError(null)
 
-    // Validasi tipe file mp4
+    // Validasi format MP4
     if (file.type !== "video/mp4" && !file.name.toLowerCase().endsWith(".mp4")) {
       setVideoUploadError("Hanya file video berformat .mp4 yang diizinkan.")
       if (videoFileInputRef.current) videoFileInputRef.current.value = ""
@@ -182,8 +241,6 @@ export default function ProfilePsikologClient({
     }
 
     const objectUrl = URL.createObjectURL(file)
-
-    // Buat elemen video sementara untuk mengecek durasi
     const tempVideo = document.createElement("video")
     tempVideo.preload = "metadata"
     tempVideo.src = objectUrl
@@ -204,11 +261,7 @@ export default function ProfilePsikologClient({
         return
       }
 
-      // Format durasi MM:SS
-      const mins = Math.floor(durationSeconds / 60)
-      const secs = Math.floor(durationSeconds % 60)
-      const formattedDuration = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-
+      const formattedDuration = formatDurationSeconds(durationSeconds)
       setSelectedVideoFile(file)
       setForm((prev) => ({
         ...prev,
@@ -224,7 +277,6 @@ export default function ProfilePsikologClient({
     }
   }
 
-  // Hapus Video
   const handleRemoveVideo = () => {
     setSelectedVideoFile(null)
     setForm((prev) => ({
@@ -236,8 +288,8 @@ export default function ProfilePsikologClient({
     if (videoFileInputRef.current) videoFileInputRef.current.value = ""
   }
 
-  // Upload Thumbnail Video (JPG/PNG foto)
-  const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Thumbnail Video
+  const handleThumbnailUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       setSelectedThumbnailFile(file)
@@ -246,14 +298,13 @@ export default function ProfilePsikologClient({
     }
   }
 
-  // Hapus Thumbnail Video
   const handleRemoveThumbnail = () => {
     setSelectedThumbnailFile(null)
     setForm((prev) => ({ ...prev, videoThumbnail: "" }))
     if (thumbnailFileInputRef.current) thumbnailFileInputRef.current.value = ""
   }
 
-  // Tambah & Hapus Keahlian (Psikolog)
+  // Tag Keahlian
   const handleAddSkill = () => {
     if (!newSkill.trim()) return
     const currentSkills = form.keahlian || []
@@ -273,8 +324,8 @@ export default function ProfilePsikologClient({
     }))
   }
 
-  // Submit / Simpan
-  const handleSave = async (e: React.FormEvent) => {
+  // ── Submit / Penyimpanan Profil ──────────────────────────────────────────
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault()
     if (isSaving) return
 
@@ -288,7 +339,7 @@ export default function ProfilePsikologClient({
         return
       }
 
-      // 1. Upload file foto jika pengguna memilih file baru (otomatis terkompresi)
+      // 1. Upload file foto baru jika ada
       let fotoUrl = form.foto
       if (selectedPhotoFile) {
         try {
@@ -298,7 +349,7 @@ export default function ProfilePsikologClient({
         }
       }
 
-      // 2. Upload file video MP4 jika pengguna memilih file baru
+      // 2. Upload file video MP4 baru jika ada
       let videoUrl = form.videoIntroUrl
       if (selectedVideoFile) {
         const videoFormData = new FormData()
@@ -315,7 +366,7 @@ export default function ProfilePsikologClient({
         }
       }
 
-      // 3. Upload file thumbnail video (otomatis terkompresi) jika pengguna memilih thumbnail baru
+      // 3. Upload thumbnail video baru jika ada
       let thumbnailUrl = form.videoThumbnail
       if (selectedThumbnailFile) {
         try {
@@ -325,39 +376,43 @@ export default function ProfilePsikologClient({
         }
       }
 
-      // 4. Siapkan payload untuk API updateMyProfile
+      // 4. Siapkan payload resmi API updateMyProfile
       const payload: Record<string, any> = {
-        nama: form.nama,
-        email: form.email,
-        no_telepon: form.noTelepon,
-        bio: form.bio,
-        spesialisasi: form.spesialisasi,
-        no_str: form.noStr,
-        no_sipp: form.noSipp,
-        no_silp: (form as any).noSilp || undefined,
-        foto: fotoUrl,
-        quote: form.quote,
-        instagram: form.instagram,
-        keahlian: form.keahlian,
-        pendidikan: form.pendidikanText,
-        video_intro_url: videoUrl,
-        video_thumbnail: thumbnailUrl,
-        video_duration: form.videoDuration,
+        nama: form.nama || undefined,
+        no_telepon: form.noTelepon || undefined,
+        bio: form.bio || undefined,
+        spesialisasi: form.spesialisasi || undefined,
+        no_str: form.noStr || null,
+        no_sipp: form.noSipp || null,
+        no_silp: form.noSilp || null,
+        foto: fotoUrl || null,
+        quote: form.quote ?? "",
+        instagram: form.instagram || null,
+        keahlian: form.keahlian || [],
+        pendidikan: form.pendidikanText || null,
+        video_intro_url: videoUrl || null,
+        video_thumbnail: thumbnailUrl || null,
+        video_duration: form.videoDuration || null,
+        kategori: form.kategoriProfesi || undefined,
+      }
+
+      if (form.email && form.email.trim()) {
+        payload.email = form.email.trim()
       }
 
       if (form.password && form.password.trim()) {
         payload.password = form.password.trim()
       }
 
-      // 5. Kirim ke backend
+      // 5. Kirim data pembaruan ke server backend
       try {
         await psikologService.updateMyProfile(payload)
       } catch (apiErr) {
         console.warn("Peringatan saat update profil ke backend:", apiErr)
       }
 
-      // 6. Update local state & shared storage sebagai cadangan
-      const updatedForm = {
+      // 6. Update local state & shared storage sebagai cadangan offline
+      const updatedForm: AdminProfileData = {
         ...form,
         foto: fotoUrl,
         videoIntroUrl: videoUrl,
@@ -372,41 +427,89 @@ export default function ProfilePsikologClient({
 
       try {
         const saved = localStorage.getItem("empathika_tenaga_ahli_data")
-        if (saved) {
-          const list = JSON.parse(saved)
-          const updated = list.map((item: any) => {
-            if (item.id === "1" || item.email === form.email) {
-              return {
-                ...item,
-                nama: form.nama,
-                email: form.email,
-                noTelepon: form.noTelepon,
-                bio: form.bio,
-                foto: fotoUrl,
-                kategori: form.kategoriProfesi || item.kategori,
-                spesialisasi: form.spesialisasi || item.spesialisasi,
-                noStr: form.noStr,
-                noSipp: form.noSipp,
-                noSilp: (form as any).noSilp,
-                pendidikanText: form.pendidikanText,
-                quote: form.quote,
-                instagram: form.instagram,
-                keahlian: form.keahlian,
-                videoIntroUrl: videoUrl,
-                videoThumbnail: thumbnailUrl,
-                videoDuration: form.videoDuration,
-              }
-            }
-            return item
-          })
-          localStorage.setItem("empathika_tenaga_ahli_data", JSON.stringify(updated))
-        }
-      } catch {}
+        const list = saved ? JSON.parse(saved) : []
+        const activeId = localStorage.getItem("active_psikolog_id")
+        const activeEmail = localStorage.getItem("active_psikolog_email")
+        const activeName = localStorage.getItem("active_psikolog_name")
 
-      setToastMessage("Profil Psikolog berhasil diperbarui!")
+        let matched = false
+        const updated = list.map((item: any) => {
+          const isMatch =
+            (activeId && (item.id === activeId || item.accountId === activeId)) ||
+            (form.email && item.email?.toLowerCase() === form.email.toLowerCase()) ||
+            (activeEmail && item.email?.toLowerCase() === activeEmail.toLowerCase()) ||
+            (form.nama && item.nama?.toLowerCase() === form.nama.toLowerCase()) ||
+            (activeName && item.nama?.toLowerCase() === activeName.toLowerCase()) ||
+            (form.nama && item.nama && (item.nama.toLowerCase().includes(form.nama.toLowerCase()) || form.nama.toLowerCase().includes(item.nama.toLowerCase()))) ||
+            (activeName && item.nama && (item.nama.toLowerCase().includes(activeName.toLowerCase()) || activeName.toLowerCase().includes(item.nama.toLowerCase())))
+
+          if (isMatch) {
+            matched = true
+            return {
+              ...item,
+              nama: form.nama || item.nama,
+              email: form.email || item.email,
+              noTelepon: form.noTelepon || item.noTelepon,
+              bio: form.bio,
+              foto: fotoUrl || item.foto,
+              kategori: form.kategoriProfesi || item.kategori,
+              spesialisasi: form.spesialisasi || item.spesialisasi,
+              noStr: form.noStr,
+              noSipp: form.noSipp,
+              noSilp: form.noSilp,
+              pendidikanText: form.pendidikanText,
+              quote: form.quote,
+              instagram: form.instagram,
+              keahlian: form.keahlian,
+              videoIntroUrl: videoUrl,
+              videoThumbnail: thumbnailUrl,
+              videoDuration: form.videoDuration,
+            }
+          }
+          return item
+        })
+
+        if (!matched) {
+          updated.push({
+            id: activeId || `tenaga_${Date.now()}`,
+            nama: form.nama,
+            email: form.email,
+            noTelepon: form.noTelepon,
+            bio: form.bio,
+            foto: fotoUrl,
+            kategori: form.kategoriProfesi,
+            spesialisasi: form.spesialisasi,
+            noStr: form.noStr,
+            noSipp: form.noSipp,
+            noSilp: form.noSilp,
+            pendidikanText: form.pendidikanText,
+            quote: form.quote,
+            instagram: form.instagram,
+            keahlian: form.keahlian,
+            videoIntroUrl: videoUrl,
+            videoThumbnail: thumbnailUrl,
+            videoDuration: form.videoDuration,
+          })
+        }
+
+        localStorage.setItem("empathika_tenaga_ahli_data", JSON.stringify(updated))
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("storage"))
+        }
+      } catch (err) {
+        console.warn("Gagal simpan cadangan lokal:", err)
+      }
+
+      const roleLabel =
+        form.kategoriProfesi === "peer-konselor"
+          ? "Peer Konselor"
+          : form.kategoriProfesi === "konselor"
+          ? "Konselor"
+          : "Psikolog"
+      setToastMessage(`Profil ${roleLabel} berhasil diperbarui!`)
       setShowToast(true)
 
-      // 6. Langsung redirect ke halaman beranda psikolog sesuai instruksi
+      // Redirect otomatis ke beranda setelah berhasil menyimpan
       setTimeout(() => {
         router.push("/psikolog-web/beranda" as any)
       }, 1000)
@@ -431,7 +534,7 @@ export default function ProfilePsikologClient({
 
   return (
     <div className="space-y-6 font-poppins pb-12">
-      {/* Toast Alert */}
+      {/* ── 1. TOAST NOTIFIKASI SUKSES ── */}
       {showToast && (
         <div className="fixed top-24 right-6 z-50 flex items-center gap-3 rounded-2xl bg-[#561269] px-5 py-4 text-white shadow-2xl transition-all animate-bounce">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
@@ -446,7 +549,7 @@ export default function ProfilePsikologClient({
         </div>
       )}
 
-      {/* Header Halaman */}
+      {/* ── 2. HEADER HALAMAN ── */}
       <div className="flex flex-col gap-2">
         <h2 className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight">
           {role === "admin" ? "Pengaturan Profil Admin Utama" : "Pengaturan Profil Psikolog"}
@@ -458,9 +561,8 @@ export default function ProfilePsikologClient({
         </p>
       </div>
 
-      {/* Form Utama */}
+      {/* ── 3. FORM BAGIAN 1: PROFIL POKOK & IDENTITAS TENAGA AHLI ── */}
       <form onSubmit={handleSave} className="space-y-6">
-        {/* 1. KOLOM PROFIL TENAGA AHLI */}
         <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-6">
           <div className="border-b border-gray-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -471,7 +573,7 @@ export default function ProfilePsikologClient({
                 Foto profil, biodata diri, riwayat pendidikan, dan kontak yang tampil pada sistem layanan.
               </p>
             </div>
-            {/* Quick Preview Client POV Button */}
+            {/* Tombol Pratinjau Tampilan Klien (POV Klien) */}
             <button
               type="button"
               onClick={() => setPreviewModalOpen(true)}
@@ -485,7 +587,7 @@ export default function ProfilePsikologClient({
             </button>
           </div>
 
-          {/* Foto Profil Tenaga Ahli */}
+          {/* Area Foto Profil */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-2">
               Foto Profil Tenaga Ahli
@@ -543,6 +645,7 @@ export default function ProfilePsikologClient({
             </div>
           </div>
 
+          {/* Grid Input Data Pokok */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
@@ -634,6 +737,20 @@ export default function ProfilePsikologClient({
                 placeholder="Prinsip konseling..."
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm italic text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
               />
+              {form.quote ? (
+                <div className="mt-2 bg-[#FAF5FD] border-l-4 border-[#561269] p-3 rounded-r-xl">
+                  <p className="text-[11px] font-semibold text-[#561269] mb-0.5">
+                    Tampilan Quote di Profil Klien:
+                  </p>
+                  <p className="text-xs italic text-gray-800 leading-relaxed">
+                    &ldquo;{stripOuterQuotes(form.quote)}&rdquo;
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Quote singkat atau prinsip konseling yang akan tampil di halaman profil klien.
+                </p>
+              )}
             </div>
 
             <div>
@@ -653,7 +770,7 @@ export default function ProfilePsikologClient({
         </div>
       </form>
 
-      {/* 2. KOLOM AKUN LOGIN & KEAMANAN KREDENSIAL (Berada di luar form utama profil) */}
+      {/* ── 4. KEAMANAN AKUN & KREDENSIAL LOGIN (Komponen Terisolasi) ── */}
       <div className="space-y-6">
         <div className="border-b border-gray-200 pb-2">
           <h3 className="text-lg font-bold text-[#561269]">
@@ -670,9 +787,9 @@ export default function ProfilePsikologClient({
         </div>
       </div>
 
-      {/* Lanjutan Form Profil (Bagian Legalitas, Layanan, Foto, dsb) */}
+      {/* ── 5. FORM BAGIAN 2: LEGALITAS, KEAHLIAN & VIDEO PERKENALAN ── */}
       <form onSubmit={handleSave} className="space-y-6">
-        {/* 3. KOLOM LEGALITAS PRAKTIK */}
+        {/* Kolom Legalitas Praktik (Khusus Psikolog) */}
         <div className="rounded-3xl border border-purple-200 bg-purple-50/40 p-6 sm:p-8 space-y-4">
           <div className="border-b border-purple-100 pb-3">
             <h3 className="text-base font-bold text-[#561269]">
@@ -725,7 +842,7 @@ export default function ProfilePsikologClient({
               <input
                 type="text"
                 name="noSilp"
-                value={(form as any).noSilp || ""}
+                value={form.noSilp || ""}
                 onChange={handleInputChange}
                 placeholder="Contoh: SILP-2024-001"
                 className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
@@ -737,7 +854,7 @@ export default function ProfilePsikologClient({
           </div>
         </div>
 
-        {/* 4. KOLOM TOPIK & KEAHLIAN KONSELING */}
+        {/* Kolom Topik & Keahlian Konseling */}
         <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-4">
           <div className="border-b border-gray-100 pb-3">
             <h3 className="text-base font-bold text-gray-900">
@@ -796,7 +913,7 @@ export default function ProfilePsikologClient({
           </div>
         </div>
 
-        {/* 5. KOLOM VIDEO PERKENALAN (UPLOAD LANGSUNG MP4 DENGAN BATAS 10 MENIT) */}
+        {/* Kolom Video Perkenalan (MP4 Langsung, Maksimal 10 Menit) */}
         <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm space-y-5">
           <div className="border-b border-gray-100 pb-3">
             <h3 className="text-base font-bold text-[#561269]">
@@ -837,7 +954,7 @@ export default function ProfilePsikologClient({
               )}
             </div>
 
-            {/* Kontrol Upload File MP4 Langsung */}
+            {/* Kontrol Upload File MP4 */}
             <div className="flex-1 space-y-3 text-center md:text-left">
               <div>
                 <p className="text-xs font-bold text-gray-800">
@@ -887,7 +1004,6 @@ export default function ProfilePsikologClient({
           {/* Sub-bagian Upload Thumbnail Video (JPG / PNG) */}
           <div className="pt-3 border-t border-gray-100">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-200/80">
-              {/* Box Thumbnail Image Preview */}
               <div className="relative w-28 h-20 sm:w-36 sm:h-24 rounded-xl overflow-hidden bg-purple-100 shrink-0 border border-purple-200 flex items-center justify-center">
                 {form.videoThumbnail ? (
                   <Image
@@ -906,7 +1022,6 @@ export default function ProfilePsikologClient({
                 )}
               </div>
 
-              {/* Kontrol Upload Thumbnail */}
               <div className="flex-1 space-y-2 text-center sm:text-left">
                 <div>
                   <p className="text-xs font-bold text-gray-800">
@@ -947,9 +1062,7 @@ export default function ProfilePsikologClient({
           </div>
         </div>
 
-
-
-        {/* BOTTOM ACTION BAR */}
+        {/* ── 6. BOTTOM ACTION BAR (TOMBOL SIMPAN UTAMA) ── */}
         <div className="sticky bottom-4 z-20 flex items-center justify-between gap-4 rounded-3xl bg-white/95 backdrop-blur-md border border-gray-200/80 p-4 sm:p-5 shadow-xl">
           <div className="hidden sm:block">
             <p className="text-xs font-bold text-gray-800">
@@ -986,7 +1099,7 @@ export default function ProfilePsikologClient({
               {isSaving ? (
                 <>
                   <svg className="w-4 h-4 animate-spin text-gray-600" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
                   Menyimpan...
@@ -1004,7 +1117,7 @@ export default function ProfilePsikologClient({
         </div>
       </form>
 
-      {/* MODAL POPUP: LIVE PREVIEW CLIENT POV (SEPERTI DI DETAIL PSIKOLOG POV KLIEN) */}
+      {/* ── 7. MODAL PRATINJAU POV KLIEN (REPLIKA 1:1 DETAIL PSIKOLOG PUBLIK) ── */}
       {previewModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl">
@@ -1035,16 +1148,13 @@ export default function ProfilePsikologClient({
               </button>
             </div>
 
-            {/* Isi Konten Replika DetailPsikologContent (tanpa hero banner & footer CTA) */}
+            {/* Isi Konten Pratinjau POV Klien */}
             <div className="bg-white">
-              {/* Main Content Container */}
               <div className="w-full px-6 sm:px-10 pt-6 pb-8 space-y-8">
                 {/* Header Profil & Video Intro di Bagian Atas */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                  
                   {/* Kolom Kiri: Foto Profil & Info Pokok */}
                   <div className="lg:col-span-7 flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-                    {/* Avatar Foto Bundar */}
                     <div className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full overflow-hidden shrink-0 bg-[#D4B2E8] flex items-center justify-center shadow-inner border-2 border-purple-100">
                       {form.foto ? (
                         <Image
@@ -1060,7 +1170,6 @@ export default function ProfilePsikologClient({
                       )}
                     </div>
 
-                    {/* Nama, Status, Sesi, dan Quote di Samping Foto */}
                     <div className="flex-1 space-y-3">
                       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                         <span className="inline-block px-3 py-1 text-xs font-semibold text-[#561269] bg-purple-100 rounded-full">
@@ -1081,7 +1190,7 @@ export default function ProfilePsikologClient({
                         <p>
                           Jumlah sesi: <span className="font-semibold text-gray-900">0 Sesi</span>
                         </p>
-                        {form.noStr && (
+                        {form.kategoriProfesi === "psikolog" && form.noStr && (
                           <>
                             <span className="hidden sm:inline text-gray-300">•</span>
                             <p>
@@ -1089,7 +1198,7 @@ export default function ProfilePsikologClient({
                             </p>
                           </>
                         )}
-                        {form.noSipp && (
+                        {form.kategoriProfesi === "psikolog" && form.noSipp && (
                           <>
                             <span className="hidden sm:inline text-gray-300">•</span>
                             <p>
@@ -1097,33 +1206,33 @@ export default function ProfilePsikologClient({
                             </p>
                           </>
                         )}
-                        {(form as any).noSilp && (
+                        {form.kategoriProfesi === "psikolog" && form.noSilp && (
                           <>
                             <span className="hidden sm:inline text-gray-300">•</span>
                             <p>
-                              No. SILP: <span className="font-semibold text-[#561269] font-mono">{(form as any).noSilp}</span>
+                              No. SILP: <span className="font-semibold text-[#561269] font-mono">{form.noSilp}</span>
                             </p>
                           </>
                         )}
                       </div>
 
-                      {/* Quote / Prinsip Singkat Diri */}
-                      {form.quote && (
-                        <div className="mt-3 bg-[#FAF5FD] border-l-4 border-[#561269] p-3.5 sm:p-4 rounded-r-2xl text-left">
+                      {/* Quote / Prinsip Diri */}
+                      {form.quote && form.quote.trim() ? (
+                        <div className="mt-3 bg-[#FAF5FD] border-l-4 border-[#561269] p-3.5 sm:p-4 rounded-r-2xl text-left shadow-2xs">
                           <p className="text-gray-800 text-xs sm:text-sm italic leading-relaxed">
-                            &ldquo;{form.quote}&rdquo;
+                            &ldquo;{stripOuterQuotes(form.quote)}&rdquo;
                           </p>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
-                  {/* Kolom Kanan: Video Perkenalan Diri (Video Greeting / Intro) */}
+                  {/* Kolom Kanan: Video Perkenalan Diri (Video Greeting) */}
                   <div className="lg:col-span-5 w-full">
                     <div className="relative rounded-3xl overflow-hidden shadow-lg border border-purple-100 bg-[#3B074B] aspect-video flex items-center justify-center group">
-                      {isPlayingVideoPreview ? (
+                      {isPlayingVideoPreview && form.videoIntroUrl ? (
                         <video
-                          src={form.videoIntroUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+                          src={form.videoIntroUrl}
                           poster={form.videoThumbnail || undefined}
                           controls
                           autoPlay
@@ -1133,7 +1242,6 @@ export default function ProfilePsikologClient({
                         </video>
                       ) : (
                         <>
-                          {/* Thumbnail Video */}
                           {form.videoThumbnail || form.foto ? (
                             <Image
                               src={form.videoThumbnail || form.foto!}
@@ -1145,20 +1253,17 @@ export default function ProfilePsikologClient({
 
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-                          {/* Badge Video Intro */}
                           <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-medium">
                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                             <span>Video Perkenalan</span>
                           </div>
 
-                          {/* Durasi */}
                           {form.videoDuration && (
                             <div className="absolute bottom-4 right-4 z-10 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-white text-[11px] font-mono">
                               {form.videoDuration}
                             </div>
                           )}
 
-                          {/* Tombol Play Interaktif */}
                           {form.videoIntroUrl ? (
                             <button
                               type="button"
@@ -1184,10 +1289,9 @@ export default function ProfilePsikologClient({
                   </div>
                 </div>
 
-                {/* Garis Horizontal Tipis */}
                 <hr className="border-gray-200" />
 
-                {/* 3. PROFIL PSIKOLOG / PERKENALAN PROFIL */}
+                {/* Perkenalan Profil & Bio */}
                 <section className="space-y-3">
                   <h3 className="text-base sm:text-lg font-bold text-[#561269] uppercase tracking-wider">
                     PERKENALAN PROFIL
@@ -1209,7 +1313,6 @@ export default function ProfilePsikologClient({
                     )}
                   </div>
 
-                  {/* Pendidikan & Lisensi */}
                   <div className="pt-2 space-y-2">
                     {form.pendidikanText && (
                       <div className="text-sm sm:text-base text-gray-600 font-semibold">
@@ -1219,7 +1322,7 @@ export default function ProfilePsikologClient({
                         </div>
                       </div>
                     )}
-                    {(form.noStr || form.noSipp) && (
+                    {form.kategoriProfesi === "psikolog" && (form.noStr || form.noSipp) && (
                       <p className="text-sm sm:text-base text-gray-600 font-semibold">
                         Nomor Izin Praktik:{" "}
                         <span className="font-normal text-gray-800">
@@ -1232,7 +1335,7 @@ export default function ProfilePsikologClient({
                   </div>
                 </section>
 
-                {/* 4. KEAHLIAN PSIKOLOG (Area of Expertise) */}
+                {/* Keahlian Konseling */}
                 <section className="space-y-3 pt-2">
                   <h3 className="text-base sm:text-lg font-bold text-[#561269] uppercase tracking-wider">
                     KEAHLIAN
@@ -1253,7 +1356,7 @@ export default function ProfilePsikologClient({
                   </div>
                 </section>
 
-                {/* 5. JADWAL PRAKTEK (Mockup Info Klien) */}
+                {/* Jadwal Praktik Info */}
                 <section className="space-y-3 pt-2 pb-2">
                   <h3 className="text-base sm:text-lg font-bold text-[#561269] uppercase tracking-wider">
                     JADWAL PRAKTEK

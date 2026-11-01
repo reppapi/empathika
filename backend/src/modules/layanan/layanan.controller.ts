@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { LayananService } from './layanan.service'
+import type { CreateLayananInput, UpdateLayananInput } from './layanan.schema'
 
 export class LayananController {
   private service: LayananService
@@ -9,27 +10,79 @@ export class LayananController {
   }
 
   getAll = async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = await this.service.getAll(request.query as Record<string, unknown>)
-    reply.send(data)
+    try {
+      const data = await this.service.getAll(request.query as Record<string, unknown>)
+      reply.send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      reply.status(err.statusCode || 500).send({
+        success: false,
+        message: err.message || 'Gagal mengambil data layanan',
+      })
+    }
   }
 
   getById = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await this.service.getById(request.params.id)
-    reply.send(data)
+    try {
+      const data = await this.service.getById(request.params.id)
+      reply.send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      reply.status(err.statusCode || 404).send({
+        success: false,
+        message: err.message || 'Layanan tidak ditemukan',
+      })
+    }
   }
 
-  create = async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = await this.service.create(request.body)
-    reply.code(201).send(data)
+  create = async (request: FastifyRequest<{ Body: CreateLayananInput }>, reply: FastifyReply) => {
+    try {
+      const data = await this.service.create(request.body)
+      reply.code(201).send({
+        success: true,
+        message: 'Layanan berhasil ditambahkan',
+        data,
+      })
+    } catch (err: any) {
+      reply.status(err.statusCode || 400).send({
+        success: false,
+        message: err.message || 'Gagal menambahkan layanan',
+      })
+    }
   }
 
-  update = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await this.service.update(request.params.id, request.body)
-    reply.send(data)
+  update = async (request: FastifyRequest<{ Params: { id: string }; Body: UpdateLayananInput }>, reply: FastifyReply) => {
+    try {
+      const data = await this.service.update(request.params.id, request.body)
+      reply.send({
+        success: true,
+        message: 'Layanan berhasil diperbarui',
+        data,
+      })
+    } catch (err: any) {
+      reply.status(err.statusCode || 400).send({
+        success: false,
+        message: err.message || 'Gagal memperbarui layanan',
+      })
+    }
   }
 
   remove = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    await this.service.delete(request.params.id)
-    reply.code(204).send()
+    try {
+      await this.service.delete(request.params.id)
+      reply.send({
+        success: true,
+        message: 'Layanan berhasil dihapus',
+      })
+    } catch (err: any) {
+      reply.status(err.statusCode || 400).send({
+        success: false,
+        message: err.message || 'Gagal menghapus layanan',
+      })
+    }
   }
 }

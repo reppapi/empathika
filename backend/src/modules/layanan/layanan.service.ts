@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { LayananRepository } from './layanan.repository'
+import type { CreateLayananInput, UpdateLayananInput } from './layanan.schema'
+import type { KategoriLayanan, Prisma } from '@prisma/client'
 
 export class LayananService {
   private repo: LayananRepository
@@ -8,25 +10,142 @@ export class LayananService {
     this.repo = new LayananRepository(fastify.prisma)
   }
 
+  private normalizeKategori(val?: string): KategoriLayanan {
+    if (!val) return 'KONSULTASI'
+    const clean = val.toUpperCase().trim()
+    if (clean === '01' || clean === 'KONSULTASI') return 'KONSULTASI'
+    if (clean === '02' || clean === 'PSIKOTES') return 'PSIKOTES'
+    if (clean === '03' || clean === 'WORKSHOP') return 'WORKSHOP'
+    if (clean === '04' || clean === 'SEMINAR') return 'SEMINAR'
+    if (clean === '05' || clean === 'ASESMEN') return 'ASESMEN'
+    if (clean === 'PELATIHAN_PEER_HELPER') return 'PELATIHAN_PEER_HELPER'
+    if (clean === 'EVENT') return 'EVENT'
+    return 'KONSULTASI'
+  }
+
+  private normalizeAktif(aktif?: boolean | string, status?: string): boolean {
+    if (typeof aktif === 'boolean') return aktif
+    if (typeof aktif === 'string') return aktif.toLowerCase() === 'aktif' || aktif.toLowerCase() === 'true'
+    if (status) return status.toLowerCase() === 'aktif'
+    return true
+  }
+
   async getAll(params?: Record<string, unknown>) {
-    return this.repo.findAll(params)
+    const queryParams: { kategori?: string; aktif?: boolean; search?: string } = {}
+    if (params?.kategori && typeof params.kategori === 'string') {
+      queryParams.kategori = this.normalizeKategori(params.kategori)
+    }
+    if (params?.aktif !== undefined) {
+      queryParams.aktif = params.aktif === 'true' || params.aktif === true
+    }
+    if (params?.search && typeof params.search === 'string') {
+      queryParams.search = params.search
+    }
+    return this.repo.findAll(queryParams)
   }
 
   async getById(id: string) {
     const item = await this.repo.findById(id)
-    if (!item) throw new Error('Layanan tidak ditemukan')
+    if (!item) throw Object.assign(new Error('Layanan tidak ditemukan'), { statusCode: 404 })
     return item
   }
 
-  async create(data: unknown) {
-    return this.repo.create(data)
+  async create(input: CreateLayananInput) {
+    const nama = (input.nama || input.layanan || '').trim()
+    if (!nama) {
+      throw Object.assign(new Error('Nama layanan wajib diisi'), { statusCode: 400 })
+    }
+
+    const existing = await this.repo.findByNama(nama)
+    if (existing) {
+      throw Object.assign(new Error(`Layanan dengan nama "${nama}" sudah terdaftar`), { statusCode: 409 })
+    }
+
+    const kategori = this.normalizeKategori(input.kategori || input.kategoriId)
+    const metode = input.metode?.trim() || 'Online/Offline'
+    const deskripsi = input.deskripsi?.trim() || ''
+    const hargaWeekday = input.harga_weekday !== undefined ? input.harga_weekday : (input.weekday !== undefined ? input.weekday : 0)
+    const hargaWeekend = input.harga_weekend !== undefined ? input.harga_weekend : (input.weekend !== undefined ? input.weekend : 0)
+    const bannerUrl = input.banner_url || input.bannerUrl || null
+    const aktif = this.normalizeAktif(input.aktif, input.status)
+
+    const createData: Prisma.LayananCreateInput = {
+      nama,
+      kategori,
+      metode,
+      deskripsi,
+      harga_weekday: hargaWeekday,
+      harga_weekend: hargaWeekend,
+      banner_url: bannerUrl,
+      aktif,
+    }
+
+    return this.repo.create(createData)
   }
 
-  async update(id: string, data: unknown) {
-    return this.repo.update(id, data)
+  async update(id: string, input: UpdateLayananInput) {
+    const existing = await this.repo.findById(id)
+    if (!existing) {
+      throw Object.assign(new Error('Layanan tidak ditemukan'), { statusCode: 404 })
+    }
+
+    const updateData: Prisma.LayananUpdateInput = {}
+
+    const nama = (input.nama || input.layanan)?.trim()
+    if (nama && nama !== existing.nama) {
+      const duplicate = await this.repo.findByNama(nama)
+      if (duplicate && duplicate.id !== id) {
+        throw Object.assign(new Error(`Layanan dengan nama "${nama}" sudah terdaftar`), { statusCode: 409 })
+      }
+      updateData.nama = nama
+    }
+
+    if (input.kategori || input.kategoriId) {
+      updateData.kategori = this.normalizeKategori(input.kategori || input.kategoriId)
+    }
+
+    if (input.metode !== undefined) {
+      updateData.metode = input.metode.trim() || 'Online/Offline'
+    }
+
+    if (input.deskripsi !== undefined) {
+      updateData.deskripsi = input.deskripsi.trim()
+    }
+
+    if (input.harga_weekday !== undefined) {
+      updateData.harga_weekday = input.harga_weekday
+    } else if (input.weekday !== undefined) {
+      updateData.harga_weekday = input.weekday
+    }
+
+    if (input.harga_weekend !== undefined) {
+      updateData.harga_weekend = input.harga_weekend
+    } else if (input.weekend !== undefined) {
+      updateData.harga_weekend = input.weekend
+    }
+
+    if (input.banner_url !== undefined || input.bannerUrl !== undefined) {
+      updateData.banner_url = input.banner_url ?? input.bannerUrl ?? null
+    }
+
+    if (input.aktif !== undefined || input.status !== undefined) {
+      updateData.aktif = this.normalizeAktif(input.aktif, input.status)
+    }
+
+    return this.repo.update(id, updateData)
   }
 
   async delete(id: string) {
+    const existing = await this.repo.findById(id)
+    if (!existing) {
+      throw Object.assign(new Error('Layanan tidak ditemukan'), { statusCode: 404 })
+    }
+
+    if (existing._count && existing._count.booking_konsultasi > 0) {
+      // Soft delete jika sudah ada riwayat booking konsultasi
+      return this.repo.update(id, { aktif: false })
+    }
+
     return this.repo.delete(id)
   }
 }
