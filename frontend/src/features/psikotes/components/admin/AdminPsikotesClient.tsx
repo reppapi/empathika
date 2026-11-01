@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Users, FileText, CheckCircle, AlertCircle, X, ChevronRight } from "lucide-react";
-import { INITIAL_JUDUL_LIST } from "../../data/adminPsikotesData";
 import { psikotesService } from "@/services/psikotes.service";
 import type {
   AdminPsikotesPeserta,
@@ -33,7 +32,7 @@ export default function AdminPsikotesClient() {
   } | null>(null);
 
   // Judul List & Peserta List
-  const [judulList, setJudulList] = useState<JudulPsikotesItem[]>(INITIAL_JUDUL_LIST);
+  const [judulList, setJudulList] = useState<JudulPsikotesItem[]>([]);
   const [pesertaList, setPesertaList] = useState<AdminPsikotesPeserta[]>([]);
   const [pesertaSummary, setPesertaSummary] = useState({
     total_peserta: 0,
