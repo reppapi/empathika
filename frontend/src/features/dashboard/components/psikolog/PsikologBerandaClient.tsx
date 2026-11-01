@@ -283,7 +283,7 @@ export default function PsikologBerandaClient() {
           <div>
             <p className="text-sm font-semibold text-[#561269]">Selamat Datang!</p>
             <h2 suppressHydrationWarning className="text-2xl font-bold text-gray-900 mt-0.5">
-              {psikologName || user?.name || "Psikolog Empathika"}
+              {psikologName || user?.name || "Tenaga Ahli Empathika"}
             </h2>
           </div>
 
