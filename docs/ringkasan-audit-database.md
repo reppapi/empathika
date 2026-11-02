@@ -216,6 +216,11 @@ classDiagram
         +string no_telepon
         +int usia
         +string jenis_kelamin
+        +string tempat_lahir
+        +dateTime tanggal_lahir
+        +string pendidikan
+        +string pekerjaan
+        +string status_pernikahan
         +dateTime createdAt
         +dateTime updatedAt
         +lihatHasilTes()
@@ -414,8 +419,19 @@ classDiagram
     %% ========================================================
     %% 5. PSIKOTES ONLINE
     %% ========================================================
+        class Alat_Ukur {
+        +string id_PK
+        +string kode
+        +string nama
+        +string kategori
+        +dateTime createdAt
+        +dateTime updatedAt
+        +ambilMetadata()
+    }
+
     class Paket_Psikotes {
         +string id_PK
+        +string id_alat_ukur_FK_nullable
         +string judul
         +string jenis_akses
         +float harga
@@ -475,9 +491,10 @@ classDiagram
     class Hasil_Tes {
         +string id_PK
         +string id_booking_FK
-        +string id_interpretasi_FK
+        +string id_interpretasi_FK_nullable
         +int total_skor
         +json detail_skor
+        +json snapshot_jawaban
         +dateTime tanggal_selesai
         +dateTime createdAt
         +hitungTotalSkor()
@@ -490,6 +507,7 @@ classDiagram
         +string id_paket_FK
         +string id_transaksi_FK_nullable
         +string id_client_FK
+        +json riwayat_kesehatan
         +dateTime createdAt
         +dateTime updatedAt
         +buatBooking()
@@ -617,6 +635,7 @@ classDiagram
     Psikolog "1" -- "*" Jadwal_Slot : slot
     Spesialisasi "1" -- "*" Psikolog : bidang
 
+    Alat_Ukur "1" -- "*" Paket_Psikotes : paket_tersedia
     Paket_Psikotes "1" -- "*" Soal_Psikotes : butir_soal
     Paket_Psikotes "1" -- "*" Interpretasi_Psikotes : skor
     Paket_Psikotes "1" -- "*" Booking_Psikotes : paket
@@ -627,7 +646,7 @@ classDiagram
 
     Booking_Psikotes "1" -- "*" Jawaban_Psikotes : lembar_jawaban
     Booking_Psikotes "1" -- "0..1" Hasil_Tes : hasil
-    Interpretasi_Psikotes "1" -- "*" Hasil_Tes : kategori_skor
+    Interpretasi_Psikotes "0..1" -- "*" Hasil_Tes : kategori_skor
 ```
 
 ---
@@ -658,17 +677,25 @@ classDiagram
    - Mengubah nama kolom (*rename*) dari camelCase `bannerURL` menjadi snake_case `banner_url String?` agar seragam dengan kolom media pada tabel `Event` dan `Layanan`.
 9. **Enum `StatusPengajuanKerjaSama`**:
    - Mendefinisikan enum resmi `StatusPengajuanKerjaSama`: `MENUNGGU`, `DIHUBUNGI`, `DISETUJUI`, `DITOLAK` untuk standarisasi alur penanganan leads kemitraan.
-10. **Enum `TipeTransaksi` (Discriminator / Label Struk)**:
+10. **Model `AlatUkur` (Master Instrumen Psikotes Baru)**:
+   - Dibuatkan tabel master `alat_ukurs` dengan kolom: `kode String @unique` (misal: "GAD-7", "DASS-21"), `nama String`, `kategori String`, `createdAt`, dan `updatedAt` sebagai jangkar penghubung engine scoring modular dengan produk paket komersial.
+11. **Penyempurnaan Model Psikotes & Klien**:
+   - `PaketPsikotes`: Menambahkan relasi `id_alat_ukur String? (nullable)` ke master `AlatUkur`.
+   - `BookingPsikotes`: Menambahkan kolom `riwayat_kesehatan Json?` untuk menampung isian skrining medis/psikologis pra-tes klien.
+   - `HasilTes`: Mengubah kolom `id_interpretasi` menjadi **nullable (`String?`)** dan menambahkan kolom `snapshot_jawaban Json?` untuk membekukan jawaban peserta secara permanen (immutable audit).
+   - `Client`: Menambahkan kolom demografis kependudukan/klien: `tempat_lahir String?`, `tanggal_lahir DateTime?`, `pendidikan String?`, `pekerjaan String?`, dan `status_pernikahan String?` agar profil demografis tersimpan terpusat dan dapat digunakan lintas layanan.
+12. **Enum `TipeTransaksi` (Discriminator / Label Struk)**:
     - Mendefinisikan enum baru `enum TipeTransaksi { KONSULTASI, EVENT, PSIKOTES }` sebagai label penanda transaksi pada struk pembayaran dan pembeda relasi polimorfik tanpa perlu query join bertingkat.
-11. **Enum `StatusPengirimanInvoice`**:
+13. **Enum `StatusPengirimanInvoice`**:
     - Mendefinisikan enum resmi `enum StatusPengirimanInvoice { BELUM_DIKIRIM, DIKIRIM, GAGAL }` untuk pelacakan alur pengiriman bukti invoice WhatsApp kepada klien.
-12. **Model `Account` (Keamanan Akun OWASP)**:
+14. **Model `Account` (Keamanan Akun OWASP)**:
     - Menambahkan kolom `passwordChangedAt DateTime?` dan `tokenVersion Int @default(1)` untuk mencatat riwayat perubahan kata sandi serta otomatis memutus (*revoke*) seluruh sesi aktif lama saat kredensial diperbarui.
-13. **Model `JadwalSlot` (Format Sesi Online/Offline)**:
+15. **Model `JadwalSlot` (Format Sesi Online/Offline)**:
     - Menambahkan kolom `metode String @default("ONLINE")` (`"ONLINE"` | `"OFFLINE"`) untuk menentukan apakah slot jam praktik yang dibuka ditujukan khusus untuk sesi daring atau tatap muka di klinik.
 
 ### KATEGORI 2: PERLU DITAMBAHKAN
-1. **Tabel Baru `PengajuanKerjaSama`, `ProgramKerjaSama`, `FormulirKerjaSama`, `Invoice`, & `EmailChangeRequest`**:
+1. **Tabel Baru `AlatUkur`, `PengajuanKerjaSama`, `ProgramKerjaSama`, `FormulirKerjaSama`, `Invoice`, & `EmailChangeRequest`**:
+   - `AlatUkur`: `id`, `kode @unique`, `nama`, `kategori`, `createdAt`, `updatedAt` (master data kode instrumen psikotes terstandar).
    - `PengajuanKerjaSama`: `id`, `nama_instansi`, `nama_pic`, `email`, `no_telepon`, `kategori`, `tipe_formulir`, `pesan`, `jawaban_detail Json?`, `status StatusPengajuanKerjaSama @default(MENUNGGU)`, `createdAt`, `updatedAt`.
    - `ProgramKerjaSama`: `id`, `slug @unique`, `title`, `short_name`, `deskripsi`, `pelatihan_title`, `pelatihan_deskripsi`, `pelatihan_image`, `mitra_title`, `mitra_deskripsi`, `mitra_image`, `warna_tema`, `status` ("AKTIF" | "NONAKTIF"), `urutan`, `createdAt`, `updatedAt`.
    - `FormulirKerjaSama`: `id`, `slug @unique`, `title`, `kategori_default`, `deskripsi String? @db.Text`, `pertanyaan_khusus Json`, `createdAt`, `updatedAt` (master template pertanyaan dinamis per jenis formulir agar tersinkronisasi lintas perangkat).
@@ -678,18 +705,18 @@ classDiagram
    - `Account`: `alamat String?`, `link_maps String?`, `bio String? @db.Text` (khusus profil Admin Utama pengelola platform), `passwordChangedAt DateTime?`, `tokenVersion Int @default(1)`.
    - `Transaksi`: `kode_transaksi String? @unique`, `tipe_transaksi TipeTransaksi`, `total Decimal @db.Decimal(12, 2)`, `channel_pembayaran String?`, `refund_at DateTime?`, `refund_reason String? @db.Text`, `refund_amount Decimal? @db.Decimal(12, 2)`, `createdAt`, `updatedAt`.
    - `Event`: `createdAt`, `updatedAt`.
-   - `PaketPsikotes`: `banner_url String?`, `createdAt`, `updatedAt`.
+   - `PaketPsikotes`: `id_alat_ukur String? (relasi ke AlatUkur)`, `banner_url String?`, `createdAt`, `updatedAt`.
    - `Layanan`: `metode String @default("Online/Offline")`, `createdAt`, `updatedAt`.
    - `BookingKonsultasi`: `id_transaksi String? (nullable untuk sesi mandiri admin / walk-in)`, `metode String ("ONLINE" | "OFFLINE")`, `deskripsi_trauma String?` (menampung keluhan awal konsultasi maupun catatan pengajuan asesmen terstandar tanpa pemilihan psikolog oleh klien), `createdAt`, `updatedAt`.
    - `ArtikelBlog`: `banner_url String?`, `createdAt`, `updatedAt`.
    - `BookingEvent`: `kode_tiket String @unique`, `status StatusBooking @default(PENDING)`, `createdAt`, `updatedAt`.
-   - `Client`: `no_telepon String?` (data vital operasional admin untuk integrasi tombol *Chat WA Klien* dan *Salin Pesan WA* pada pemantauan sesi klien harian), `usia Int?`, `jenis_kelamin String?`, `createdAt`, `updatedAt`.
+   - `Client`: `no_telepon String?`, `usia Int?`, `jenis_kelamin String?`, `tempat_lahir String?`, `tanggal_lahir DateTime?`, `pendidikan String?`, `pekerjaan String?`, `status_pernikahan String?`, `createdAt`, `updatedAt`.
    - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `video_intro_url String?`, `video_thumbnail String?`, `video_duration String?`, `profil_lengkap String? @db.Text`, `createdAt`, `updatedAt`.
    - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")`, `metode String @default("ONLINE")` ("ONLINE" | "OFFLINE"), `createdAt`, `updatedAt`.
    - `Biro`: `deskripsi String? @db.Text`, `no_telepon String?`, `website_url String?`, `status StatusBiro @default(PENDING)`, `createdAt`, `updatedAt`.
    - `InterpretasiPsikotes`: `makna String? @db.Text`, `tips Json?` (array objek: `[{title, desc}]`).
-   - `HasilTes`: `detail_skor Json?`, `createdAt`.
-   - `BookingPsikotes`: `id_transaksi String? (nullable untuk tes gratis)`, `createdAt`, `updatedAt`.
+   - `HasilTes`: `id_interpretasi String? (nullable)`, `detail_skor Json?`, `snapshot_jawaban Json?`, `createdAt`.
+   - `BookingPsikotes`: `id_transaksi String? (nullable untuk tes gratis)`, `riwayat_kesehatan Json?`, `createdAt`, `updatedAt`.
    - `JawabanPsikotes`: `skor Int` (snapshot nilai bobot opsi jawaban yang dipilih klien pada butir soal).
 
 ### KATEGORI 3: PERLU DIHAPUS / DIBERSIHKAN
