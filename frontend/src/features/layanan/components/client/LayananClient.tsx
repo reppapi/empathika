@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
@@ -236,31 +237,61 @@ export default function LayananClient() {
               <div key={`content-${activeCategory}`} className="animate-fade-in">
                 {/* Grid Layanan Kecil */}
                 {(() => {
-                  const currentServices = (() => {
-                    if (activeCategory === "02") {
-                      if (publishedPsikotes.length > 0) {
-                        return publishedPsikotes.map((p, idx) => {
-                          const colors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
-                          const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
-                          const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
-                          return {
-                            topTitle: p.judul.toUpperCase(),
-                            topSubtitle: "",
-                            bottomTitle: p.judul,
-                            bottomDescription: p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
-                            bgColor: colors[idx % colors.length],
-                            titleColor: textColors[idx % textColors.length],
-                            btnText: "Ikuti Tes",
-                            shape: shapes[idx % shapes.length],
-                            href: `/psikotes/${p.id}`,
-                          }
-                        })
-                      }
-                      return SERVICES_DATA["02"] || []
+                  if (activeCategory === "02") {
+                    if (loadingPsikotes) {
+                      return (
+                        <div className="flex flex-col items-center justify-center py-16 gap-3">
+                          <Loader2 className="w-8 h-8 text-[#561269] animate-spin" />
+                          <p className="text-sm text-gray-500 font-medium">Memuat paket psikotes...</p>
+                        </div>
+                      )
                     }
-                    return SERVICES_DATA[activeCategory] || []
-                  })()
 
+                    if (publishedPsikotes.length > 0) {
+                      const psikotesServices = publishedPsikotes.map((p, idx) => {
+                        const colors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
+                        const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
+                        const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
+                        return {
+                          topTitle: p.judul.toUpperCase(),
+                          topSubtitle: "",
+                          bottomTitle: p.judul,
+                          bottomDescription: p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
+                          bgColor: colors[idx % colors.length],
+                          titleColor: textColors[idx % textColors.length],
+                          btnText: "Ikuti Tes",
+                          shape: shapes[idx % shapes.length],
+                          href: `/psikotes/${p.id}`,
+                        }
+                      })
+
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+                          {psikotesServices.map((item, idx) =>
+                            renderServiceCard(item, idx)
+                          )}
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div className="flex flex-col items-center justify-center p-8 text-center rounded-2xl bg-white border border-gray-100 shadow-sm min-h-[220px]">
+                        <div className="w-12 h-12 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center mb-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <p className="font-bold text-gray-800 text-base mb-1">
+                          Belum Ada Paket Psikotes
+                        </p>
+                        <p className="text-sm text-gray-500 max-w-md">
+                          Saat ini belum ada paket psikotes yang tersedia atau instrumen sedang dalam pembaruan. Silakan periksa kembali nanti.
+                        </p>
+                      </div>
+                    )
+                  }
+
+                  const currentServices = SERVICES_DATA[activeCategory] || []
                   if (currentServices.length > 0) {
                     return (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">

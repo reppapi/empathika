@@ -8,7 +8,6 @@ export interface PaketPsikotesApiResponse {
   banner_url?: string | null
   deskripsi?: string | null
   status: "PUBLISHED" | "DRAFT"
-  benefits?: string[] | null
   createdAt: string
   updatedAt: string
   soal_psikotes?: Array<{

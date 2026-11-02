@@ -53,41 +53,7 @@ export const KONSULTASI_SERVICES = [
   },
 ]
 
-export const PSIKOTES_SERVICES = [
-  {
-    topTitle: "TES 16 KEPRIBADIAN",
-    topSubtitle: "(MBTI) Bahasa Indonesia",
-    bottomTitle: "Tes Online 16 Kepribadian (MBTI)",
-    bottomDescription: "Asesmen psikologi terstruktur untuk mengetahui tipe kepribadian, preferensi interaksi sosial, dan gaya kerja Anda.",
-    bgColor: "bg-[#f48520]",
-    titleColor: "text-white",
-    btnText: "Ikuti Tes",
-    shape: "circles",
-    href: "/psikotes/mbti",
-  },
-  {
-    topTitle: "TES LOVE LANGUAGE",
-    topSubtitle: "5 Bahasa Cinta",
-    bottomTitle: "Tes Love Language: 5 Tipe Bahasa Cinta",
-    bottomDescription: "Ketahui bagaimana cara Anda dan pasangan mengekspresikan serta menerima kasih sayang dalam hubungan.",
-    bgColor: "bg-[#e31e3d]",
-    titleColor: "text-white",
-    btnText: "Ikuti Tes",
-    shape: "heart",
-    href: "/psikotes/love-language",
-  },
-  {
-    topTitle: "TES KESEHATAN MENTAL",
-    topSubtitle: "Skrining Dini Stres & Cemas",
-    bottomTitle: "Skrining Awal Kesehatan Mental",
-    bottomDescription: "Evaluasi awal tingkat kecemasan, stres, dan kelelahan emosional dengan indikator psikologis terpercaya.",
-    bgColor: "bg-[#561269]",
-    titleColor: "text-white",
-    btnText: "Ikuti Tes",
-    shape: "circles-dark",
-    href: "/psikotes",
-  },
-]
+export const PSIKOTES_SERVICES: any[] = []
 
 export const WORKSHOP_SERVICES = [
   {

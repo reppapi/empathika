@@ -1,5 +1,7 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import { PsikotesController } from './psikotes.controller'
+import { adminGuard } from '../../middlewares/admin-guard'
+import { createRateLimiter } from '../../middlewares/rate-limit'
 import {
   createPsikotesSchema,
   updatePsikotesSchema,
@@ -12,13 +14,12 @@ import {
 export default async function psikotesRoutes(fastify: FastifyInstance) {
   const controller = new PsikotesController(fastify)
 
-  const optionalAuth = async (req: FastifyRequest) => {
-    try {
-      await req.jwtVerify()
-    } catch {
-      // Izinkan request jika token belum tersedia saat sesi dev
-    }
-  }
+  // Rate limiter untuk proteksi submit jawaban dari serangan brute-force / bot spam (maks 10 submit / menit per IP)
+  const submitLimiter = createRateLimiter({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: 'Terlalu banyak pengiriman jawaban tes dalam waktu singkat. Silakan tunggu 1 menit sebelum mencoba kembali.',
+  })
 
   // 1. Publik / Admin: Ambil daftar paket psikotes
   // Jika tanpa parameter status, default hanya mengembalikan yang PUBLISHED
@@ -33,15 +34,26 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
 
   // 1b. Admin: Ambil daftar peserta psikotes & statistik summary
   fastify.get('/peserta', {
-    preHandler: [optionalAuth],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Psikotes'],
       summary: 'Mendapatkan daftar peserta psikotes dan summary statistik pengerjaan',
+      security: [{ bearerAuth: [] }],
       querystring: pesertaQuerySchema,
     },
     handler: controller.getPeserta,
   })
 
+  // 1c. Admin: Pembersihan data pengerjaan tamu anonim lama (Retention Maintenance)
+  fastify.delete('/cleanup-anonim', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Psikotes'],
+      summary: 'Membersihkan data pengerjaan psikotes tamu anonim yang lebih dari N hari (Admin)',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.cleanupAnonymousGuests,
+  })
 
   // 2. Publik / Admin: Ambil detail paket psikotes beserta soal dan interpretasinya
   fastify.get('/:id', {
@@ -54,7 +66,7 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
 
   // 3. Admin: Buat paket psikotes baru (Publikasikan / Simpan Draf ke Database)
   fastify.post('/', {
-    preHandler: [optionalAuth],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Psikotes'],
       summary: 'Menyimpan paket psikotes baru ke database (Admin)',
@@ -66,7 +78,7 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
 
   // 4. Admin: Perbarui paket psikotes di database
   fastify.put('/:id', {
-    preHandler: [optionalAuth],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Psikotes'],
       summary: 'Memperbarui paket psikotes di database (Admin)',
@@ -78,7 +90,7 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
 
   // 5. Admin: Hapus paket psikotes
   fastify.delete('/:id', {
-    preHandler: [optionalAuth],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Psikotes'],
       summary: 'Menghapus paket psikotes dari database (Admin)',
@@ -97,9 +109,9 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     handler: controller.createBooking,
   })
 
-  // 6. Publik: Submit jawaban psikotes (Gratis tanpa data diri / Berbayar dengan data diri)
+  // 6. Publik: Submit jawaban psikotes (dengan Rate Limiting)
   fastify.post('/:id/submit', {
-    preHandler: [optionalAuth],
+    preHandler: [submitLimiter],
     schema: {
       tags: ['Psikotes'],
       summary: 'Kirimkan jawaban psikotes untuk disimpan ke database dan hitung hasil interpretasi',

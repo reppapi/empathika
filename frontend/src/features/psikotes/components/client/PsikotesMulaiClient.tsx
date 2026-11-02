@@ -35,12 +35,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const testTitle = dbData?.judul || "Tes Psikotes";
 
   const questions = (dbData?.soal_psikotes && dbData.soal_psikotes.length > 0)
-    ? dbData.soal_psikotes.map((s) => ({
-        id: s.id,
-        text: s.pertanyaan,
-        options: (s.pilihan_jawaban || []).map((p) => p.teks_jawaban),
-        weights: (s.pilihan_jawaban || []).map((p) => Number(p.bobot) || 0),
-      }))
+    ? dbData.soal_psikotes.map((s) => {
+        const sortedPilihan = [...(s.pilihan_jawaban || [])].sort(
+          (a, b) => (Number(a.bobot) || 0) - (Number(b.bobot) || 0)
+        );
+        return {
+          id: s.id,
+          text: s.pertanyaan,
+          options: sortedPilihan.map((p) => p.teks_jawaban),
+          weights: sortedPilihan.map((p) => Number(p.bobot) || 0),
+          pilihanList: sortedPilihan,
+        };
+      })
     : [];
 
   const totalQuestions = questions.length;
@@ -149,14 +155,14 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         }
       }
 
-      if (dbData && dbData.soal_psikotes && dbData.soal_psikotes.length > 0) {
-        // Susun payload jawaban untuk dikirim ke backend
-        const jawabanPayload = dbData.soal_psikotes.map((s, idx) => {
+      if (questions.length > 0) {
+        // Susun payload jawaban untuk dikirim ke backend sesuai urutan pilihan yang ditampilkan
+        const jawabanPayload = questions.map((q, idx) => {
           const selectedOptIdx = answers[idx] ?? 0;
-          const pilihan = s.pilihan_jawaban[selectedOptIdx];
+          const pilihan = q.pilihanList[selectedOptIdx];
           return {
-            id_soal: s.id,
-            id_pilihan: pilihan ? pilihan.id : s.pilihan_jawaban[0].id,
+            id_soal: q.id,
+            id_pilihan: pilihan ? pilihan.id : q.pilihanList[0]?.id,
           };
         });
 
@@ -179,7 +185,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (pesertaNama) query.set("nama", pesertaNama);
           if (pesertaWa) query.set("whatsapp", pesertaWa);
           if (pesertaEmail) query.set("email", pesertaEmail);
-          router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+          router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
           return;
         }
       }
@@ -191,7 +197,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       if (pesertaNama) query.set("nama", pesertaNama);
       if (pesertaWa) query.set("whatsapp", pesertaWa);
       if (pesertaEmail) query.set("email", pesertaEmail);
-      router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+      router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
     } catch (err) {
       console.error("Gagal menyimpan jawaban psikotes ke server:", err);
       // Tetap lanjutkan ke halaman hasil agar pengalaman user lancar
@@ -201,61 +207,61 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       if (pesertaNama) query.set("nama", pesertaNama);
       if (pesertaWa) query.set("whatsapp", pesertaWa);
       if (pesertaEmail) query.set("email", pesertaEmail);
-      router.push(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+      router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col selection:bg-[#561269] selection:text-white">
-      <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col">
-        {/* Header / Progress */}
-        <div className="mb-8 md:mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl md:text-2xl font-bold text-[#561269] tracking-tight">
-              {testTitle}
-            </h1>
-            <span className="text-sm font-bold text-gray-500 bg-gray-100 px-4 py-1.5 rounded-full">
-              Pertanyaan {currentIndex + 1} dari {totalQuestions}
-            </span>
-          </div>
-          
-          <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+    <div className="min-h-screen bg-[#fbfbfb] font-sans pt-28 lg:pt-36 pb-12 px-4 flex flex-col selection:bg-[#561269] selection:text-white">
+      <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col">
+        {/* Progress Bar & Indikator Soal */}
+        <div className="mb-6 md:mb-8">
+          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner mb-3">
             <div 
               className="h-full bg-gradient-to-r from-[#8e4a9e] to-[#561269] rounded-full transition-all duration-500 ease-out"
               style={{ width: `${progressPercentage}%` }}
             ></div>
           </div>
+
+          <div className="flex items-center justify-start">
+            <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wide">
+              Pertanyaan <span className="font-bold text-gray-800">{currentIndex + 1}</span> dari {totalQuestions}
+            </span>
+          </div>
         </div>
 
         {/* Question Area */}
         <div className="flex-1 flex flex-col">
-          <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-gray-100 mb-8 flex-1 flex flex-col justify-center transition-all duration-300">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 leading-tight md:leading-[1.4] text-center mb-10 md:mb-14">
-              &quot;{currentQuestion.text}&quot;
+          <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm border border-gray-100 mb-6 flex-1 flex flex-col justify-center transition-all duration-300">
+            <p className="text-xs sm:text-sm text-gray-400 font-medium text-center mb-2">
+              Dalam 2 minggu terakhir, seberapa sering kamu:
+            </p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug md:leading-normal text-center mb-6 md:mb-8">
+              {currentQuestion.text}
             </h2>
 
             {/* Options */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {currentQuestion.options.map((opt, idx) => {
                 const isSelected = answers[currentIndex] === idx;
                 return (
                   <button
                     key={idx}
                     onClick={() => handleSelectOption(idx)}
-                    className={`text-left w-full p-5 md:p-6 rounded-2xl border-2 transition-all duration-300 flex items-start gap-4 group ${
+                    className={`text-left w-full p-3.5 sm:p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-3.5 group ${
                       isSelected 
-                        ? "border-[#561269] bg-[#561269]/5 shadow-sm scale-[1.01]" 
-                        : "border-gray-100 hover:border-[#561269]/30 hover:bg-gray-50 hover:shadow-sm"
+                        ? "border-[#561269] bg-[#561269]/5 shadow-xs scale-[1.005]" 
+                        : "border-gray-100 hover:border-[#561269]/30 hover:bg-gray-50/80"
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-300 font-bold text-sm ${
+                    <div className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors duration-200 font-bold text-xs ${
                       isSelected ? "border-[#561269] bg-[#561269] text-white" : "border-gray-300 text-gray-500 group-hover:border-[#561269]/50 group-hover:text-[#561269]"
                     }`}>
                       {String.fromCharCode(65 + idx)}
                     </div>
-                    <span className={`text-base md:text-lg font-medium leading-relaxed transition-colors duration-300 ${
+                    <span className={`text-sm sm:text-base font-medium leading-relaxed transition-colors duration-200 ${
                       isSelected ? "text-[#561269]" : "text-gray-700"
                     }`}>
                       {opt}
@@ -266,21 +272,21 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             </div>
             
             {(showError || localError) && (
-              <p className="text-red-500 font-medium text-center mt-6 animate-pulse">
+              <p className="text-red-500 text-xs sm:text-sm font-medium text-center mt-5 animate-pulse">
                 Silakan pilih jawaban terlebih dahulu.
               </p>
             )}
           </div>
 
           {/* Navigation Controls */}
-          <div className="flex items-center justify-between gap-4 mt-auto pt-2">
+          <div className="flex items-center justify-between gap-3 mt-auto pt-1">
             <button
               onClick={handlePrev}
               disabled={currentIndex === 0 || isSubmitting}
-              className={`px-6 py-3.5 md:py-4 rounded-xl font-bold transition-all duration-300 text-sm md:text-base ${
+              className={`px-5 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-200 text-xs sm:text-sm ${
                 currentIndex === 0 
                   ? "opacity-0 pointer-events-none" 
-                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 shadow-xs"
               }`}
             >
               Sebelumnya
@@ -289,13 +295,13 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             <button
               onClick={isLastQuestion ? handleFinish : handleNext}
               disabled={isSubmitting}
-              className={`px-8 py-3.5 md:py-4 rounded-xl font-extrabold transition-all duration-300 text-sm md:text-base flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer ${
+              className={`px-6 py-2.5 sm:py-3 rounded-xl font-extrabold transition-all duration-200 text-xs sm:text-sm flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-sm hover:shadow-md cursor-pointer ${
                 isSubmitting ? "opacity-80 cursor-not-allowed" : ""
               }`}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin text-gray-950" />
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-950" />
                   <span>Menyimpan Hasil...</span>
                 </>
               ) : isLastQuestion ? (
@@ -303,7 +309,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               ) : (
                 <>
                   <span>Berikutnya</span>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </>
               )}
             </button>

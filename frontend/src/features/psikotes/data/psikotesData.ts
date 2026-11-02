@@ -9,5 +9,5 @@ export const UNIVERSAL_FREE_BENEFITS = [
   "Akses pengerjaan asesmen secara online tanpa biaya",
   "Hasil skor dan profil asesmen langsung keluar",
   "Ringkasan interpretasi hasil dan makna bagi peserta",
-  "Tips dasar dan saran aksi pengembangan praktis",
+  "Rekomendasi dan saran aksi pengembangan praktis",
 ];

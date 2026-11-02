@@ -406,7 +406,6 @@ model PaketPsikotes {
   banner_url  String?
   deskripsi   String?            @db.Text
   status      String             @default("PUBLISHED")
-  benefits    Json?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
@@ -428,6 +427,8 @@ model SoalPsikotes {
   pilihan_jawaban  PilihanJawaban[]
   jawaban_psikotes JawabanPsikotes[]
 
+  @@unique([id_paket, urutan])
+  @@index([id_paket])
   @@map("soal_psikotes")
 }
 
@@ -441,6 +442,7 @@ model PilihanJawaban {
   soal             SoalPsikotes      @relation(fields: [id_soal], references: [id], onDelete: Cascade)
   jawaban_psikotes JawabanPsikotes[]
 
+  @@index([id_soal])
   @@map("pilihan_jawabans")
 }
 
@@ -455,6 +457,7 @@ model JawabanPsikotes {
   soal_psikotes   SoalPsikotes    @relation(fields: [id_soal_psikotes], references: [id], onDelete: Restrict)
   pilihan_jawaban PilihanJawaban  @relation(fields: [id_pilihan_jawaban], references: [id], onDelete: Restrict)
 
+  @@unique([id_booking, id_soal_psikotes])
   @@map("jawaban_psikotes")
 }
 
@@ -472,6 +475,7 @@ model InterpretasiPsikotes {
   paket     PaketPsikotes @relation(fields: [id_paket], references: [id], onDelete: Cascade)
   hasil_tes HasilTes[]
 
+  @@index([id_paket])
   @@map("interpretasi_psikotes")
 }
 

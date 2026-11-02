@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
 import { DATA_PSIKOLOG_DUMMY } from '@/features/psikolog/dummy'
 import { PsikologCard } from '@/features/psikolog/components/client/PsikologCard'
@@ -677,13 +678,18 @@ export default function HomeClient() {
           <h2 className="text-2xl md:text-3xl font-semibold text-[#561269] tracking-tight">
             Kenali Dirimu dengan Psikotes <span className="font-bold">Empathika</span>
           </h2>
-          <Link href={biroPrefix ? `${biroPrefix}/layanan?category=01` : "/layanan?category=01"} className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
+          <Link href={biroPrefix ? `${biroPrefix}/layanan?category=02` : "/layanan?category=02"} className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Psikotes
             <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
           </Link>
         </div>
 
-        {publishedPsikotes.length > 0 ? (
+        {loadingPsikotes ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 className="w-8 h-8 text-[#561269] animate-spin" />
+            <p className="text-sm text-gray-500 font-medium">Memuat daftar psikotes...</p>
+          </div>
+        ) : publishedPsikotes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {publishedPsikotes.map((item, idx) => {
               const bgColors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
@@ -737,78 +743,28 @@ export default function HomeClient() {
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Card 1 */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
-              <div className="h-48 w-full bg-[#f48520] overflow-hidden relative">
-                <div className="absolute inset-0 flex items-start p-6">
-                  <div className="text-left w-full">
-                    <h3 className="text-white font-bold text-[28px] leading-none mb-2 uppercase drop-shadow-sm">TES 16 KEPRIBADIAN</h3>
-                    <p className="text-white text-sm font-medium drop-shadow-sm">(MBTI) Bahasa Indonesia</p>
-                  </div>
-                </div>
-                {/* Abstract decorative shapes */}
-                <div className="absolute -bottom-4 right-0 opacity-40 mix-blend-overlay">
-                   <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="white"/><circle cx="50" cy="120" r="50" fill="white"/></svg>
-                </div>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
-                
-                <div className="mt-auto">
-                  <Link href={biroPrefix ? `${biroPrefix}/psikotes/mbti` : "/psikotes/mbti"} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
-                    Ikuti Tes
-                  </Link>
-                </div>
-              </div>
+          /* Empty State: Belum ada paket psikotes */
+          <div className="w-full bg-gradient-to-br from-white via-purple-50/30 to-purple-100/20 rounded-[2.5rem] border border-purple-100/80 p-8 sm:p-12 text-center shadow-sm flex flex-col items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-purple-100/80 text-[#561269] flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
-
-            {/* Card 2 */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
-              <div className="h-48 w-full bg-[#f0d164] overflow-hidden relative">
-                <div className="absolute inset-0 flex items-start p-6">
-                  <div className="text-left w-full">
-                    <h3 className="text-gray-900 font-extrabold text-[28px] leading-[1.1] mb-2 drop-shadow-sm">Tes Online 16<br/>Kepribadian</h3>
-                    <p className="text-gray-800 text-sm font-medium drop-shadow-sm">(MBTI) Bahasa Indonesia</p>
-                  </div>
-                </div>
-                <div className="absolute -bottom-4 right-0 opacity-20 mix-blend-overlay">
-                   <svg width="200" height="150" viewBox="0 0 200 150" fill="none"><circle cx="150" cy="100" r="80" fill="black"/><circle cx="50" cy="120" r="50" fill="black"/></svg>
-                </div>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Online 16 Kepribadian (MBTI)...</h3>
-                
-                <div className="mt-auto">
-                  <Link href={biroPrefix ? `${biroPrefix}/psikotes/mbti-2` : "/psikotes/mbti-2"} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
-                    Ikuti Tes
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3 */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
-              <div className="h-48 w-full bg-[#e31e3d] overflow-hidden relative">
-                <div className="absolute inset-0 flex items-start p-6">
-                  <div className="text-left w-full">
-                    <h3 className="text-white font-extrabold text-[28px] leading-none mb-2 drop-shadow-sm uppercase">TES LOVE<br/>LANGUAGE</h3>
-                  </div>
-                </div>
-                <div className="absolute bottom-4 right-10">
-                   <svg className="w-16 h-16 text-pink-300 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                </div>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className="font-bold text-xl text-gray-900 mb-6 leading-tight">Tes Love Language: 5 Tipe Bahasa Cinta...</h3>
-                
-                <div className="mt-auto">
-                  <Link href={biroPrefix ? `${biroPrefix}/psikotes/love-language` : "/psikotes/love-language"} className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm">
-                    Ikuti Tes
-                  </Link>
-                </div>
-              </div>
-            </div>
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+              Belum Ada Paket Psikotes yang Tersedia
+            </h3>
+            <p className="text-gray-500 text-sm sm:text-base max-w-xl mb-6 leading-relaxed">
+              Instrumen tes psikologi sedang dalam persiapan atau pembaruan. Silakan kunjungi halaman layanan kami untuk informasi paket asesmen psikologis lainnya.
+            </p>
+            <Link
+              href={biroPrefix ? `${biroPrefix}/layanan?category=02` : "/layanan?category=02"}
+              className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm sm:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95"
+            >
+              <span>Pelajari Layanan Psikotes Empathika</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </Link>
           </div>
         )}
       </section>

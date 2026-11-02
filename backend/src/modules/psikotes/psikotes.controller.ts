@@ -119,6 +119,19 @@ export class PsikotesController {
       })
     }
   }
+
+  cleanupAnonymousGuests = async (
+    request: FastifyRequest<{ Querystring: { days?: string | number } }>,
+    reply: FastifyReply
+  ) => {
+    const days = request.query?.days ? Number(request.query.days) : 60
+    const result = await this.service.cleanupOldAnonymousGuests(days)
+    return reply.code(200).send({
+      success: true,
+      message: result.message,
+      data: result,
+    })
+  }
 }
 
 

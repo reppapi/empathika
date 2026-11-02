@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Script from "next/script";
 import Link from "next/link";
 import { 
@@ -21,10 +21,24 @@ import { useAuthStore } from "@/store/authStore";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [isDownloading, setIsDownloading] = useState(false);
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
+
+  // Pastikan gesture back / popstate di laptop selalu kembali ke detail psikotes, bukan ke soal
+  useEffect(() => {
+    const handlePopState = () => {
+      router.replace(`/psikotes/${params.testId}`);
+    };
+
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [params.testId, router]);
 
   // ── Identitas Peserta ───────────────────────────────────────────────────────
   const [peserta, setPeserta] = useState(() => {
@@ -130,13 +144,13 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   })();
 
   // Dynamic display name from database
-  const displayTestName = dbPackage?.judul || "Laporan Hasil Psikotes";
+  const displayTestName = dbPackage?.judul || "Tes Tingkat Kecemasan";
 
   const dynamicResult = (() => {
     if (dbPackage) {
       if (dbInterpretasi) {
         return {
-          prefix: dbInterpretasi.grade ? `Tingkat: ${dbInterpretasi.grade}` : "Hasil Asesmen:",
+          prefix: null,
           value: dbInterpretasi.judul,
           color: "text-[#561269]",
           bgColor: "bg-purple-50",
@@ -144,7 +158,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         };
       }
       return {
-        prefix: "Hasil Asesmen:",
+        prefix: null,
         value: dbPackage.judul,
         color: "text-[#561269]",
         bgColor: "bg-purple-50",
@@ -153,8 +167,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     }
 
     return {
-      prefix: "Hasil Asesmen:",
-      value: "Hasil Tes Psikotes",
+      prefix: null,
+      value: "Tes Tingkat Kecemasan",
       color: "text-[#561269]",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200"
@@ -165,11 +179,12 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const berbayarDetail = (() => {
     if (dbInterpretasi) {
       let parsedTips: any = {};
-      if (typeof dbInterpretasi.tips === "object" && dbInterpretasi.tips !== null && !Array.isArray(dbInterpretasi.tips)) {
-        parsedTips = dbInterpretasi.tips;
-      } else if (typeof dbInterpretasi.tips === "string") {
+      const rawTips = (dbInterpretasi as any)?.tips;
+      if (typeof rawTips === "object" && rawTips !== null && !Array.isArray(rawTips)) {
+        parsedTips = rawTips;
+      } else if (typeof rawTips === "string") {
         try {
-          parsedTips = JSON.parse(dbInterpretasi.tips);
+          parsedTips = JSON.parse(rawTips);
         } catch {}
       }
 
@@ -185,7 +200,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
       const saranList: Array<{ title: string; desc: string }> = Array.isArray(parsedTips.saran) && parsedTips.saran.length > 0
         ? parsedTips.saran
-        : (Array.isArray(dbInterpretasi.tips) ? (dbInterpretasi.tips as any) : []);
+        : (Array.isArray(rawTips) ? (rawTips as any) : []);
 
       return {
         deskripsi: dbInterpretasi.deskripsi || dbPackage?.deskripsi || "Asesmen psikotes telah berhasil diselesaikan.",
@@ -812,14 +827,20 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   </div>
 
                   <div className="space-y-3">
-                    {berbayarDetail.saranList.map((tip, index) => (
+                    {berbayarDetail.saranList.map((tip: any, index: number) => (
                       <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 pdf-tip-item">
                         <div className="flex-shrink-0 mt-0.5">
                           <CheckCircle2 className="w-5 h-5 text-[#561269]" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-bold text-gray-900 pdf-tip-title">{tip.title}</h4>
-                          <p className="mt-0.5 text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip.desc}</p>
+                          {typeof tip === "string" ? (
+                            <p className="text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip}</p>
+                          ) : (
+                            <>
+                              {tip.title && <h4 className="text-sm font-bold text-gray-900 pdf-tip-title">{tip.title}</h4>}
+                              {tip.desc && <p className="mt-0.5 text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip.desc}</p>}
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
