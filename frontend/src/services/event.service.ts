@@ -4,6 +4,9 @@ export interface EventItemApi {
   id: string
   judul: string
   jenis_event: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  tipe_event: "ONLINE" | "OFFLINE"
+  link_meet?: string | null
+  link_wa?: string | null
   deskripsi: string
   tanggal: string
   jam_mulai: string
@@ -11,6 +14,7 @@ export interface EventItemApi {
   lokasi: string | null
   kuota: number
   harga: number | string
+  harga_coret?: number | string | null
   banner_url: string | null
   nama_pembicara: string
   status: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -23,6 +27,9 @@ export interface EventItemApi {
 export interface CreateEventDto {
   judul: string
   jenis_event: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  tipe_event: "ONLINE" | "OFFLINE"
+  link_meet?: string | null
+  link_wa: string
   deskripsi: string
   tanggal: string // YYYY-MM-DD
   jam_mulai: string // HH:MM
@@ -30,6 +37,7 @@ export interface CreateEventDto {
   lokasi?: string | null
   kuota: number
   harga: number
+  harga_coret?: number | null
   banner_url?: string | null
   nama_pembicara: string
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -38,6 +46,9 @@ export interface CreateEventDto {
 export interface UpdateEventDto {
   judul?: string
   jenis_event?: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  tipe_event?: "ONLINE" | "OFFLINE"
+  link_meet?: string | null
+  link_wa?: string | null
   deskripsi?: string
   tanggal?: string
   jam_mulai?: string
@@ -45,6 +56,7 @@ export interface UpdateEventDto {
   lokasi?: string | null
   kuota?: number
   harga?: number
+  harga_coret?: number | null
   banner_url?: string | null
   nama_pembicara?: string
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -53,6 +65,7 @@ export interface UpdateEventDto {
 export interface EventQueryParams {
   search?: string
   jenis_event?: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  tipe_event?: "ONLINE" | "OFFLINE"
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
   page?: number
   limit?: number

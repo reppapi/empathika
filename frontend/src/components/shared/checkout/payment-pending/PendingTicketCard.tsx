@@ -33,21 +33,21 @@ export function PendingTicketCard({
         {subjudul && <p className="text-xs text-gray-500 mt-1">{subjudul}</p>}
       </div>
 
-      {/* Tanggal & Waktu */}
+      {/* Tanggal & Waktu — ukuran font diperkecil agar tidak mendominasi tiket */}
       <div className="grid grid-cols-2 gap-4 mb-5 pb-5 border-b border-dashed border-[#C3A4CE]">
         <div>
           <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">
             {config.tanggalLabel}
           </div>
-          <div className="text-2xl font-extrabold text-[#2F2F2F]">{tanggal}</div>
-          <div className="text-[8px] font-bold text-gray-500 uppercase">TAHUN {tahun}</div>
+          <div className="text-sm font-bold text-[#2F2F2F] leading-snug">{tanggal}</div>
+          <div className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">TAHUN {tahun}</div>
         </div>
         <div className="text-right">
           <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">
             {config.waktuLabel}
           </div>
-          <div className="text-2xl font-extrabold text-[#2F2F2F]">{waktu}</div>
-          <div className="text-[8px] font-bold text-gray-500 uppercase">WIB - SELESAI</div>
+          <div className="text-sm font-bold text-[#2F2F2F] leading-snug">{waktu}</div>
+          <div className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">WIB (Waktu Indonesia Barat)</div>
         </div>
       </div>
 

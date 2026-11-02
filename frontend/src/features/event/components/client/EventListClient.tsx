@@ -108,14 +108,43 @@ export function EventListClient() {
                   })
                 : "Jadwal Segera Diumumkan"
 
-              const jamTeks = ev.jam_mulai ? `${ev.jam_mulai} WIB` : "Waktu Belum Ditentukan"
+              let jamTeks = "Waktu Belum Ditentukan"
+              if (ev.jam_mulai) {
+                try {
+                  const d = new Date(ev.jam_mulai)
+                  if (!isNaN(d.getTime())) {
+                    const hh = String(d.getUTCHours()).padStart(2, "0")
+                    const mm = String(d.getUTCMinutes()).padStart(2, "0")
+                    const durasi = ev.durasi_menit || 120
+                    const totalMins = d.getUTCHours() * 60 + d.getUTCMinutes() + durasi
+                    const endH = String(Math.floor(totalMins / 60) % 24).padStart(2, "0")
+                    const endM = String(totalMins % 60).padStart(2, "0")
+                    jamTeks = `${hh}:${mm} - ${endH}:${endM}`
+                  } else if (typeof ev.jam_mulai === "string") {
+                    const timePart = ev.jam_mulai.includes("T")
+                      ? ev.jam_mulai.split("T")[1]?.slice(0, 5)
+                      : ev.jam_mulai.slice(0, 5)
+                    jamTeks = timePart ? timePart : ev.jam_mulai
+                  }
+                } catch {
+                  jamTeks = String(ev.jam_mulai)
+                }
+              }
               const hargaNum = Number(ev.harga) || 0
+              const hargaCoretNum = ev.harga_coret ? Number(ev.harga_coret) : 0
               const hargaTeks = hargaNum === 0 ? "Gratis" : `Rp ${hargaNum.toLocaleString("id-ID")}`
+              const hargaCoretTeks = hargaCoretNum > 0 ? `Rp ${hargaCoretNum.toLocaleString("id-ID")}` : null
+              const diskonPersen =
+                hargaCoretNum > hargaNum && hargaCoretNum > 0
+                  ? Math.round(((hargaCoretNum - hargaNum) / hargaCoretNum) * 100)
+                  : 0
+
               const isPast = activeTab === "PAST"
+              const isOnline = ev.tipe_event !== "OFFLINE"
 
               const checkoutHref = biroPrefix
-                ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || "Online / Sesuai Pengumuman")}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}`
-                : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || "Online / Sesuai Pengumuman")}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}`
+                ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}`
+                : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}`
 
               return (
                 <div
@@ -137,8 +166,20 @@ export function EventListClient() {
                         isPast ? "grayscale-[20%] group-hover:scale-105" : "group-hover:scale-105"
                       }`}
                     />
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">
-                      {ev.jenis_event}
+                    <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
+                      <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">
+                        {ev.jenis_event}
+                      </div>
+                      {/* Badge Online / Offline */}
+                      <div
+                        className={`backdrop-blur-sm px-3 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm tracking-wide ${
+                          isOnline
+                            ? "bg-blue-600/90 text-white"
+                            : "bg-emerald-600/90 text-white"
+                        }`}
+                      >
+                        {isOnline ? "Online" : "Offline"}
+                      </div>
                     </div>
 
                     {isPast && (
@@ -175,15 +216,15 @@ export function EventListClient() {
                         </svg>
                         <span className="truncate">{jamTeks}</span>
                       </div>
-                      {ev.lokasi && (
-                        <div className="flex items-center text-xs sm:text-sm text-gray-500">
-                          <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span className="truncate">{ev.lokasi}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center text-xs sm:text-sm text-gray-500">
+                        <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="truncate">
+                          {ev.lokasi || (isOnline ? "Google Meet (Online)" : "Lokasi Offline")}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3 mb-5">
@@ -213,11 +254,30 @@ export function EventListClient() {
                         <>
                           <div>
                             <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
-                            <p className="text-lg font-black text-[#561269]">{hargaTeks}</p>
+                            {/* Efek Psikologis: Tampilkan harga coret dan badge diskon */}
+                            {hargaCoretTeks && hargaCoretNum > hargaNum ? (
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-gray-400 line-through font-medium">
+                                    {hargaCoretTeks}
+                                  </span>
+                                  {diskonPersen > 0 && (
+                                    <span className="text-[10px] font-extrabold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100">
+                                      Hemat {diskonPersen}%
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-lg font-black text-[#561269] leading-tight">
+                                  {hargaTeks}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-lg font-black text-[#561269]">{hargaTeks}</p>
+                            )}
                           </div>
                           <Link
                             href={checkoutHref}
-                            className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
+                            className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm cursor-pointer"
                           >
                             Daftar
                           </Link>
@@ -260,4 +320,3 @@ export function EventListClient() {
     </div>
   )
 }
-

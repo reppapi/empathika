@@ -31,6 +31,8 @@ export default function EventCheckoutClient() {
     kategoriParam,
     hargaParam,
     isPsikotes,
+    bannerUrlParam,
+    tipeParam,
     handleSelectPayment,
     handleSubmit,
   } = useEventCheckout()
@@ -88,7 +90,14 @@ export default function EventCheckoutClient() {
           </div>
           <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
             <div className="relative w-full sm:w-[200px] h-[120px] rounded-2xl bg-[#E6D9E9] overflow-hidden shrink-0 border border-gray-200 flex items-center justify-center">
-              {isPsikotes ? (
+              {bannerUrlParam ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={bannerUrlParam}
+                  alt={judulParam}
+                  className="w-full h-full object-cover"
+                />
+              ) : isPsikotes ? (
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#561269" className="w-12 h-12 opacity-60">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                 </svg>
@@ -99,7 +108,20 @@ export default function EventCheckoutClient() {
               )}
             </div>
             <div className="flex flex-col w-full">
-              <div className="text-xs text-gray-500 mb-1">{kategoriParam}</div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{kategoriParam}</span>
+                {!isPsikotes && (
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      tipeParam === "Offline"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {tipeParam}
+                  </span>
+                )}
+              </div>
               <div className="text-lg font-extrabold text-[#561269] mb-2">{judulParam}</div>
               <p className="text-xs text-gray-600 mb-4 line-clamp-2">
                 {subjudulParam}

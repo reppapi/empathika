@@ -309,9 +309,20 @@ export default function AdminEventClient() {
                       </div>
                     </td>
 
-                    {/* Jenis */}
-                    <td className="py-4 px-4 font-semibold text-gray-800">
-                      {item.jenis}
+                    {/* Jenis & Tipe */}
+                    <td className="py-4 px-4">
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="font-semibold text-gray-800">{item.jenis}</span>
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            item.tipe === "Offline"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {item.tipe}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Pembicara */}
