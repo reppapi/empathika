@@ -14,6 +14,7 @@ export default function GoesToSchoolDetailClient({ id: _id, event }: Props) {
   const tanggal = event?.tanggal ?? "-"
   const waktu = event?.waktu ?? "-"
   const lokasi = event?.lokasi ?? "-"
+  const tipe = event?.tipe ?? "Offline"
 
   return (
     <div className="min-h-screen bg-white font-poppins text-gray-800 overflow-x-hidden pb-24">
@@ -25,9 +26,18 @@ export default function GoesToSchoolDetailClient({ id: _id, event }: Props) {
         </h1>
         {subjudul && <p className="mt-2 text-base md:text-lg text-[#7B2D8B] font-semibold">{subjudul}</p>}
         {/* Info pills */}
-        <div className="flex flex-wrap justify-center gap-3 mt-5">
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
           <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{tanggal}</span>
           <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{waktu}</span>
+          <span
+            className={`text-xs font-bold px-4 py-1.5 rounded-full ${
+              tipe === "Offline"
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-blue-100 text-blue-800"
+            }`}
+          >
+            {tipe}
+          </span>
           {lokasi && <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{lokasi}</span>}
         </div>
         {/* Soft decorative background element */}

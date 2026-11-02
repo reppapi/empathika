@@ -14,6 +14,9 @@ import {
   Edit,
   CheckCircle2,
   Ticket,
+  Video,
+  MessageCircle,
+  ExternalLink,
 } from "lucide-react"
 
 interface AdminEventDetailModalProps {
@@ -114,9 +117,20 @@ export default function AdminEventDetailModal({
             {/* Info Teks Event */}
             <div className="flex-1 min-w-0 flex flex-col gap-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-block rounded-xl bg-purple-100 px-3 py-1 text-xs font-bold text-[#561269]">
-                  {currentEvent.jenis}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block rounded-xl bg-purple-100 px-3 py-1 text-xs font-bold text-[#561269]">
+                    {currentEvent.jenis}
+                  </span>
+                  <span
+                    className={`inline-block rounded-xl px-3 py-1 text-xs font-bold ${
+                      currentEvent.tipe === "Offline"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {currentEvent.tipe}
+                  </span>
+                </div>
                 <AdminStatusBadge
                   className="w-28"
                   variant={
@@ -203,11 +217,18 @@ export default function AdminEventDetailModal({
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Harga Tiket</p>
-                <p className="text-xs font-bold text-gray-900 truncate">
-                  {currentEvent.harga && currentEvent.harga !== "0"
-                    ? `Rp ${parseInt(currentEvent.harga, 10).toLocaleString("id-ID")}`
-                    : "Gratis"}
-                </p>
+                <div className="flex flex-col">
+                  {currentEvent.hargaCoret && Number(currentEvent.hargaCoret) > Number(currentEvent.harga || 0) && (
+                    <span className="text-[10px] text-gray-400 line-through">
+                      Rp {parseInt(currentEvent.hargaCoret, 10).toLocaleString("id-ID")}
+                    </span>
+                  )}
+                  <p className="text-xs font-bold text-gray-900 truncate">
+                    {currentEvent.harga && currentEvent.harga !== "0"
+                      ? `Rp ${parseInt(currentEvent.harga, 10).toLocaleString("id-ID")}`
+                      : "Gratis"}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -221,6 +242,45 @@ export default function AdminEventDetailModal({
               </div>
             </div>
           </div>
+
+          {/* Akses & Link Komunikasi (Google Meet & WhatsApp) */}
+          {(currentEvent.linkMeet || currentEvent.linkWa) && (
+            <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-2xs flex flex-col gap-2.5">
+              <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">
+                Akses Link Acara & Koordinasi
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                {currentEvent.tipe === "Online" && currentEvent.linkMeet && (
+                  <a
+                    href={currentEvent.linkMeet}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100/80 text-blue-700 text-xs font-semibold border border-blue-200 transition"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <Video className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span className="truncate">Google Meet</span>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  </a>
+                )}
+                {currentEvent.linkWa && (
+                  <a
+                    href={currentEvent.linkWa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 text-xs font-semibold border border-emerald-200 transition"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="truncate">Grup WhatsApp</span>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer Modal */}

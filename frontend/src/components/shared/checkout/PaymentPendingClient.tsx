@@ -41,6 +41,9 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
   const metode = searchParams.get("metode") ?? "qris"
   const bank = searchParams.get("bank")
   const ewallet = searchParams.get("ewallet")
+  const tipe = searchParams.get("tipe")
+  const linkMeet = searchParams.get("linkMeet")
+  const linkWa = searchParams.get("linkWa")
 
   // Timer mundur 5 menit (300 detik)
   const [seconds, setSeconds] = useState(300)
@@ -142,6 +145,9 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
         ...(bank && { bank }),
         ...(ewallet && { ewallet }),
         ...(psikologName && { psikologName }),
+        ...(tipe && { tipe }),
+        ...(linkMeet && { linkMeet }),
+        ...(linkWa && { linkWa }),
       })
       router.push(`${config.successHref}?${params.toString()}`)
     }, 2000)

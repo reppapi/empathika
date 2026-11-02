@@ -15,6 +15,15 @@ export default function WorkshopDetailClient({ id: _id, event }: Props) {
   const tanggal = event?.tanggal ?? "-"
   const waktu = event?.waktu ?? "-"
   const lokasi = event?.lokasi ?? "-"
+  const tipe = event?.tipe ?? "Online"
+  const hargaNum = Number(event?.harga) || 0
+  const hargaCoretNum = event?.hargaCoret ? Number(event?.hargaCoret) : 0
+  const hargaTeks = hargaNum === 0 ? "Gratis" : `Rp ${hargaNum.toLocaleString("id-ID")}`
+  const hargaCoretTeks = hargaCoretNum > 0 ? `Rp ${hargaCoretNum.toLocaleString("id-ID")}` : null
+  const diskonPersen =
+    hargaCoretNum > hargaNum && hargaCoretNum > 0
+      ? Math.round(((hargaCoretNum - hargaNum) / hargaCoretNum) * 100)
+      : 0
 
   return (
     <div className="min-h-screen bg-white font-poppins text-gray-800 overflow-x-hidden">
@@ -29,6 +38,21 @@ export default function WorkshopDetailClient({ id: _id, event }: Props) {
               {judul}
             </h1>
             {subjudul && <p className="text-sm font-semibold text-[#7B2D8B] mb-2">{subjudul}</p>}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-[#561269]">
+                {tipe}
+              </span>
+              <span className="text-[11px] font-semibold text-gray-600">{tanggal}</span>
+              {hargaCoretTeks && hargaCoretNum > hargaNum && (
+                <span className="text-[11px] line-through text-gray-400">{hargaCoretTeks}</span>
+              )}
+              <span className="text-xs font-bold text-[#561269]">{hargaTeks}</span>
+              {diskonPersen > 0 && (
+                <span className="text-[10px] bg-red-100 text-red-600 font-bold px-1.5 py-0.2 rounded-full">
+                  -{diskonPersen}%
+                </span>
+              )}
+            </div>
             <p className="text-base text-gray-700 font-medium leading-relaxed">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
             </p>
@@ -53,7 +77,28 @@ export default function WorkshopDetailClient({ id: _id, event }: Props) {
                   <h1 className="text-5xl lg:text-[4rem] xl:text-[5rem] font-extrabold text-[#561269] mb-3 leading-tight drop-shadow-sm">
                     {judul}
                   </h1>
-                  {subjudul && <p className="text-base font-semibold text-[#7B2D8B] mb-4">{subjudul}</p>}
+                  {subjudul && <p className="text-base font-semibold text-[#7B2D8B] mb-2">{subjudul}</p>}
+                  <div className="flex flex-wrap items-center gap-2.5 mb-4">
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      tipe === "Offline" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
+                    }`}>
+                      {tipe}
+                    </span>
+                    <span className="text-xs font-semibold text-gray-600 bg-white/80 px-2.5 py-1 rounded-full shadow-2xs">
+                      {tanggal} • {waktu}
+                    </span>
+                    <div className="inline-flex items-center gap-1.5 bg-[#561269] text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                      {hargaCoretTeks && hargaCoretNum > hargaNum && (
+                        <span className="line-through text-white/60 text-[11px]">{hargaCoretTeks}</span>
+                      )}
+                      <span>{hargaTeks}</span>
+                      {diskonPersen > 0 && (
+                        <span className="bg-yellow-400 text-black text-[10px] px-1.5 py-0.5 rounded-full font-extrabold">
+                          -{diskonPersen}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <p className="text-lg xl:text-xl text-gray-700 font-medium leading-relaxed max-w-lg">
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                   </p>

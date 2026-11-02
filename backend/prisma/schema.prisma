@@ -30,6 +30,11 @@ enum JenisEvent {
   SEMINAR
 }
 
+enum TipeEvent {
+  ONLINE
+  OFFLINE
+}
+
 enum StatusEvent {
   UPCOMING
   ONGOING
@@ -354,6 +359,10 @@ model Event {
   harga          Decimal     @db.Decimal(12, 2)
   banner_url     String?
   nama_pembicara String
+  tipe_event     TipeEvent   @default(ONLINE)
+  link_meet      String?
+  link_wa        String?
+  harga_coret    Decimal?    @db.Decimal(12, 2)
   status         StatusEvent @default(UPCOMING)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
