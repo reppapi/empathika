@@ -5,16 +5,33 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { AdminEventData, mapApiToAdminEvent } from "../../data/adminEventData"
 import { eventService } from "@/services/event.service"
 import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
-import { Calendar, Loader2 } from "lucide-react"
+import { Calendar, Loader2, Sparkles, CheckCircle2 } from "lucide-react"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import AdminEventDetailModal from "./AdminEventDetailModal"
+import AdminDokumentasiEventClient from "./AdminDokumentasiEventClient"
 
 export type EventItem = AdminEventData
 
 export default function AdminEventClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // 1. Pilihan Halaman Utama: "Event Baru" vs "Event Selesai" (tersimpan di URL query param ?section=...)
+  const sectionParam = searchParams.get("section")
+  const activeSection: "baru" | "selesai" = sectionParam === "selesai" ? "selesai" : "baru"
+
+  const handleSectionChange = (section: "baru" | "selesai") => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (section === "selesai") {
+      params.set("section", "selesai")
+    } else {
+      params.delete("section")
+    }
+    router.push(`/admin/event?${params.toString()}`)
+  }
+
+  // 2. Tab Filter internal Event Baru
   const tabParam = searchParams.get("tab") as "semua" | "seminar" | "workshop" | "selesai" | null
 
   const [events, setEvents] = useState<AdminEventData[]>([])
@@ -51,8 +68,10 @@ export default function AdminEventClient() {
   }, [])
 
   useEffect(() => {
-    fetchEvents()
-  }, [fetchEvents])
+    if (activeSection === "baru") {
+      fetchEvents()
+    }
+  }, [fetchEvents, activeSection])
 
   // Delete event via API Backend
   const handleDeleteEvent = async (id: string, e: React.MouseEvent) => {
@@ -111,315 +130,329 @@ export default function AdminEventClient() {
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
-      {/* Top Bar: Metric Card (Kiri) & Tombol Tambah Event (Kanan) Sejajar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="w-full sm:w-72 md:w-80">
-          <AdminSummaryCard
-            label="Total Event Aktif"
-            value={totalEventAktif}
-            icon={<Calendar className="w-6 h-6 text-blue-500" />}
-            iconBgColor="bg-blue-50 text-blue-500"
-          />
-        </div>
+      {/* ─────────────────────────────────────────────────────────────
+          1. PILIHAN HALAMAN DI BAGIAN ATAS (Event Baru vs Event Selesai)
+          ───────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 p-1.5 bg-gray-100/90 rounded-2xl w-fit border border-gray-200/80 shadow-inner">
         <button
           type="button"
-          onClick={() => router.push("/admin/event/tambah")}
-          className="self-start sm:self-center flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
+          onClick={() => handleSectionChange("baru")}
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeSection === "baru"
+              ? "bg-[#561269] text-white shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+          }`}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.5}
-            stroke="currentColor"
-            className="h-4 w-4"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Tambah Event
+          Event Baru
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleSectionChange("selesai")}
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeSection === "selesai"
+              ? "bg-[#561269] text-white shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+          }`}
+        >
+          Event Selesai
         </button>
       </div>
 
-      {/* Main Card Table Container */}
-      <div className="w-full rounded-[1.5rem] border border-gray-200/90 bg-white p-6 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
-        {/* Header Bar: Filter Tabs & Search */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-          {/* Tabs */}
-          <div className="flex items-center gap-6 sm:gap-8 border-b border-transparent overflow-x-auto pb-1 text-sm">
-            <button
-              type="button"
-              onClick={() => setActiveTab("semua")}
-              className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
-                activeTab === "semua"
-                  ? "text-[#561269]"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Semua Event
-              {activeTab === "semua" && (
-                <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#561269]" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("seminar")}
-              className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
-                activeTab === "seminar"
-                  ? "text-[#561269]"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Seminar
-              {activeTab === "seminar" && (
-                <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#561269]" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("workshop")}
-              className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
-                activeTab === "workshop"
-                  ? "text-[#561269]"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Workshop
-              {activeTab === "workshop" && (
-                <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#561269]" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("selesai")}
-              className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
-                activeTab === "selesai"
-                  ? "text-[#561269]"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Selesai
-              {activeTab === "selesai" && (
-                <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#561269]" />
-              )}
-            </button>
-          </div>
-
-          {/* Search Input */}
-          <div className="relative w-full lg:w-72">
-            <input
-              type="text"
-              placeholder="Cari event"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-xs sm:text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269]"
-            />
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+      {/* ─────────────────────────────────────────────────────────────
+          2. KONTEN BERDASARKAN PILIHAN HALAMAN
+          ───────────────────────────────────────────────────────────── */}
+      {activeSection === "selesai" ? (
+        /* ================= TAMPILAN EVENT SELESAI ================= */
+        <AdminDokumentasiEventClient />
+      ) : (
+        /* ================= TAMPILAN EVENT BARU (ASLI) ================= */
+        <>
+          {/* Top Bar: Metric Card (Kiri) & Tombol Tambah Event (Kanan) Sejajar */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="w-full sm:w-72 md:w-80">
+              <AdminSummaryCard
+                label="Total Event Aktif"
+                value={totalEventAktif}
+                icon={<Calendar className="w-6 h-6 text-blue-500" />}
+                iconBgColor="bg-blue-50 text-blue-500"
               />
-            </svg>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/admin/event/tambah")}
+              className="self-start sm:self-center flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2.5}
+                stroke="currentColor"
+                className="h-4 w-4"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Tambah Event
+            </button>
           </div>
-        </div>
 
-        {/* Table Event */}
-        <div
-          className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
-            filteredEvents.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
-          }`}
-        >
-          <table className="w-full min-w-[760px] text-left border-collapse">
-            <thead className="sticky top-0 z-10 bg-[#D3C4D8]">
-              <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold">
-                <th className="py-4 px-5 sticky top-0 bg-[#D3C4D8] z-10">Event</th>
-                <th className="py-4 px-4 sticky top-0 bg-[#D3C4D8] z-10">Jenis</th>
-                <th className="py-4 px-4 sticky top-0 bg-[#D3C4D8] z-10">Pembicara</th>
-                <th className="py-4 px-4 sticky top-0 bg-[#D3C4D8] z-10">Tanggal</th>
-                <th className="py-4 px-4 sticky top-0 bg-[#D3C4D8] z-10">Tiket Terjual</th>
-                <th className="py-4 px-4 text-center sticky top-0 bg-[#D3C4D8] z-10">Status</th>
-                <th className="py-4 px-5 text-center sticky top-0 bg-[#D3C4D8] z-10">Aksi</th>
-              </tr>
-            </thead>
+          {/* Main Card Table Container */}
+          <div className="w-full rounded-[1.5rem] border border-gray-200/90 bg-white p-6 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+            {/* Header Bar: Filter Tabs & Search */}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+              {/* Tabs */}
+              <div className="flex items-center gap-6 sm:gap-8 border-b border-transparent overflow-x-auto pb-1 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("semua")}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
+                    activeTab === "semua"
+                      ? "text-[#561269]"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Semua Event
+                  {activeTab === "semua" && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#561269]" />
+                  )}
+                </button>
 
-            <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-14 text-center text-gray-500">
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-[#561269]" />
-                      <span>Mengambil data event terkini dari server...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredEvents.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400">
-                    Tidak ada event ditemukan di database.
-                  </td>
-                </tr>
-              ) : (
-                filteredEvents.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => setSelectedEventForModal(item)}
-                    className="hover:bg-purple-50/40 cursor-pointer transition-colors"
-                  >
-                    {/* Event (Thumbnail + Title) */}
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 rounded-xl bg-gray-200/90 shadow-inner flex items-center justify-center text-gray-400 overflow-hidden">
-                          {item.bannerUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={item.bannerUrl}
-                              alt={item.judul}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              strokeWidth={1.5}
-                              stroke="currentColor"
-                              className="w-5 h-5 opacity-40"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="font-extrabold text-gray-900 max-w-[220px] leading-tight line-clamp-2 hover:text-[#561269] transition-colors">
-                          {item.judul}
-                        </span>
-                      </div>
-                    </td>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("seminar")}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
+                    activeTab === "seminar"
+                      ? "text-[#561269]"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Seminar
+                  {activeTab === "seminar" && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#561269]" />
+                  )}
+                </button>
 
-                    {/* Jenis & Tipe */}
-                    <td className="py-4 px-4">
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="font-semibold text-gray-800">{item.jenis}</span>
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            item.tipe === "Offline"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {item.tipe}
-                        </span>
-                      </div>
-                    </td>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("workshop")}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
+                    activeTab === "workshop"
+                      ? "text-[#561269]"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Workshop
+                  {activeTab === "workshop" && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#561269]" />
+                  )}
+                </button>
 
-                    {/* Pembicara */}
-                    <td className="py-4 px-4 text-gray-700">
-                      {item.pembicara}
-                    </td>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("selesai")}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
+                    activeTab === "selesai"
+                      ? "text-[#561269]"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Selesai
+                  {activeTab === "selesai" && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#561269]" />
+                  )}
+                </button>
+              </div>
 
-                    {/* Tanggal & Jam */}
-                    <td className="py-4 px-4">
-                      <div className="flex flex-col gap-1 text-[11px] sm:text-xs text-gray-600">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={1.5}
-                            stroke="currentColor"
-                            className="h-3.5 w-3.5 text-gray-500"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
-                            />
-                          </svg>
-                          <span>{item.tanggal}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={1.5}
-                            stroke="currentColor"
-                            className="h-3.5 w-3.5 text-gray-500"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                            />
-                          </svg>
-                          <span>{item.waktu}</span>
-                        </div>
-                      </div>
-                    </td>
+              {/* Search Bar */}
+              <div className="relative w-full lg:w-72">
+                <input
+                  type="text"
+                  placeholder="Cari event"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 pl-4 pr-10 text-xs sm:text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                  />
+                </svg>
+              </div>
+            </div>
 
-                    {/* Tiket Terjual */}
-                    <td className="py-4 px-4 font-semibold text-gray-800">
-                      {item.tiketTerjual}/{item.totalTiket}
-                    </td>
-
-                    {/* Status */}
-                    <td className="py-4 px-4 text-center">
-                      {getStatusBadge(item.status)}
-                    </td>
-
-                    {/* Aksi (Detail, Edit & Hapus) */}
-                    <td
-                      className="py-4 px-5 text-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                        <ActionButtonDetail
-                          onClick={() => setSelectedEventForModal(item)}
-                          title="Lihat Detail Event"
-                        />
-                        <ActionButtonEdit
-                          onClick={(e: React.MouseEvent) => handleEditEvent(item.id, e)}
-                          title="Edit Event"
-                        />
-                        <ActionButtonDelete
-                          onClick={(e: React.MouseEvent) => handleDeleteEvent(item.id, e)}
-                          title="Hapus Event"
-                        />
-                      </div>
-                    </td>
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="bg-[#561269]/15 text-xs text-gray-800 uppercase font-extrabold tracking-wider">
+                    <th className="py-4 px-6 rounded-l-2xl">Event</th>
+                    <th className="py-4 px-4 text-center">Jenis</th>
+                    <th className="py-4 px-4">Pembicara</th>
+                    <th className="py-4 px-4">Tanggal</th>
+                    <th className="py-4 px-4 text-center">Tiket Terjual</th>
+                    <th className="py-4 px-4 text-center">Status</th>
+                    <th className="py-4 px-6 text-center rounded-r-2xl">Aksi</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-gray-400">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Loader2 className="w-6 h-6 animate-spin text-[#561269]" />
+                          <span className="text-xs">Memuat data event...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredEvents.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-gray-400 text-xs">
+                        Tidak ada data event yang ditemukan.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEvents.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-purple-50/20 transition-colors group cursor-pointer"
+                        onClick={() => setSelectedEventForModal(item)}
+                      >
+                        {/* Event Title + Banner */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-10 w-14 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={item.bannerUrl}
+                                alt={item.judul}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                            <span className="font-bold text-gray-900 group-hover:text-[#561269] transition-colors line-clamp-1 max-w-[200px]">
+                              {item.judul}
+                            </span>
+                          </div>
+                        </td>
 
-      {/* Modal Detail Event (Mengambang / Popup) */}
+                        {/* Jenis Event + Badge Online/Offline */}
+                        <td className="py-4 px-4 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-bold text-gray-800 text-xs">{item.jenis}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                item.tipe === "Offline"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-blue-100 text-blue-800"
+                              }`}
+                            >
+                              {item.tipe || "Online"}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Pembicara */}
+                        <td className="py-4 px-4 text-gray-600 text-xs font-medium">
+                          {item.pembicara}
+                        </td>
+
+                        {/* Tanggal & Waktu */}
+                        <td className="py-4 px-4 text-xs font-medium text-gray-600 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                                className="w-3.5 h-3.5 text-gray-400 shrink-0"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+                                />
+                              </svg>
+                              <span>{item.tanggal}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-500 text-[11px]">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                                className="w-3.5 h-3.5 text-gray-400 shrink-0"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                                />
+                              </svg>
+                              <span>{item.waktu}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Tiket Terjual */}
+                        <td className="py-4 px-4 text-center text-xs font-bold text-gray-800">
+                          {item.tiketTerjual}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-4 px-4 text-center">
+                          {getStatusBadge(item.status)}
+                        </td>
+
+                        {/* Aksi */}
+                        <td className="py-4 px-6 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-1">
+                            <ActionButtonDetail
+                              onClick={() => setSelectedEventForModal(item)}
+                              title="Lihat Detail Event"
+                            />
+                            <ActionButtonEdit
+                              onClick={(e) => handleEditEvent(item.id, e)}
+                              title="Edit Event"
+                            />
+                            <ActionButtonDelete
+                              onClick={(e) => handleDeleteEvent(item.id, e)}
+                              title="Hapus Event"
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Modal Detail Event (Khusus Event Baru) */}
       <AdminEventDetailModal
         isOpen={Boolean(selectedEventForModal)}
-        onClose={() => setSelectedEventForModal(null)}
         event={selectedEventForModal}
-        onEdit={(id) => {
+        onClose={() => setSelectedEventForModal(null)}
+        onEdit={(id: string) => {
           setSelectedEventForModal(null)
           router.push(`/admin/event/edit/${id}`)
         }}
-        onStatusChange={(updatedEvent) => {
-          setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)))
-          setSelectedEventForModal(updatedEvent)
+        onStatusChange={() => {
+          fetchEvents()
         }}
       />
     </div>
