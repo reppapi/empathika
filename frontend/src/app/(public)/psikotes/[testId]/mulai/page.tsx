@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import PsikotesMulaiClient from "@/features/psikotes/components/client/PsikotesMulaiClient"
+import PsikotesMulaiClient from "@/features/psikotes/components/client/catalog/PsikotesMulaiClient"
 
 export default function PsikotesMulaiPage({ params }: { params: { testId: string } }) {
   return (

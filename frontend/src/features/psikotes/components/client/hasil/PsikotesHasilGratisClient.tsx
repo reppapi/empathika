@@ -4,14 +4,16 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ChevronDown,
   Loader2,
-  HeartHandshake,
-  PhoneCall,
   RotateCcw,
+  AlertCircle,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
+import InterpretasiCard from "./InterpretasiCard";
+import CrisisHotlineCard from "./CrisisHotlineCard";
 
 function SelfCareIllustration() {
   return (
@@ -132,6 +134,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
   const [isTipsExpanded, setIsTipsExpanded] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Pastikan gesture back / popstate di laptop selalu kembali ke detail psikotes, bukan ke soal
   useEffect(() => {
@@ -147,25 +150,31 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   }, [params.testId, router]);
 
   // Fetch package data from backend to get interpretasi_psikotes
-  useEffect(() => {
-    const fetchPackage = async () => {
-      try {
-        const res = await psikotesService.getById(params.testId, { allowDraft: false });
-        if (res && res.success && res.data) {
-          setDbPackage(res.data);
-        }
-      } catch {
-        // Fallback to static data
-      } finally {
-        setIsLoadingDb(false);
+  const fetchPackage = async () => {
+    setIsLoadingDb(true);
+    setErrorMessage(null);
+    try {
+      const res = await psikotesService.getById(params.testId, { allowDraft: false });
+      if (res && res.success && res.data) {
+        setDbPackage(res.data);
+      } else {
+        setErrorMessage("Data paket psikotes tidak ditemukan.");
       }
-    };
+    } catch (err: any) {
+      console.error("Gagal mengambil data interpretasi:", err);
+      setErrorMessage("Tidak dapat terhubung ke server backend. Silakan periksa koneksi atau coba lagi.");
+    } finally {
+      setIsLoadingDb(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPackage();
   }, [params.testId]);
 
   // Match score from URL params to the interpretasi from database
   const rawSkor = searchParams.get("skor");
-  const totalSkor = rawSkor ? parseInt(rawSkor) : null;
+  const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
   const isHarmDetected = searchParams.get("harm") === "1";
 
   // ── Dynamic interpretation from database ──────────────────────────────────
@@ -173,13 +182,13 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
     if (!dbPackage) return null;
     const list = dbPackage.interpretasi_psikotes;
     if (!list || list.length === 0) return null;
-    if (totalSkor === null) return list[0];
+    if (totalSkor === null || isNaN(totalSkor)) return null;
 
     // Find exact match
     const exact = list.find((i) => totalSkor >= i.min_skor && totalSkor <= i.max_skor);
     if (exact) return exact;
 
-    // Closest tier fallback
+    // Closest tier
     const sorted = [...list].sort((a, b) => a.min_skor - b.min_skor);
     if (totalSkor < sorted[0].min_skor) return sorted[0];
     return sorted[sorted.length - 1];
@@ -195,11 +204,70 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
     );
   }
 
-  // Derive dynamic headline, interpretation text & tips directly from database
-  const headline = dbInterpretasi?.judul || "Yay, Kamu Baik-baik Saja!";
-  const interpretasiText =
-    dbInterpretasi?.deskripsi ||
-    "Berdasarkan hasil screening kesehatan mental, saat ini kondisimu tergolong stabil. Jaga terus kesehatan mental kamu ya.";
+  // Layar Error Koneksi — Jika backend mati
+  if (errorMessage) {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-red-100 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Gagal Menghubungkan ke Server</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">{errorMessage}</p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={fetchPackage}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Coba Lagi</span>
+            </button>
+            <Link
+              href={`/psikotes/${params.testId}`}
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition shadow-sm"
+            >
+              Kembali
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // DATA KRITIS: Kategori Interpretasi & Skoring
+  // Jika skor tidak valid atau kategori interpretasi belum dikonfigurasi di database,
+  // DILARANG keras memakai fallback text palsu.
+  if (!dbInterpretasi) {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {dbPackage?.judul || "Hasil Asesmen"}
+          </h2>
+          <p className="text-sm font-semibold text-gray-800 mb-2">
+            Interpretasi Skor Tidak Tersedia
+          </p>
+          <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+            Demi menjaga akurasi etis dan klinis psikotes, hasil tidak dapat disimpulkan karena kategori skor untuk hasil asesmen ini belum dikonfigurasi pada database.
+          </p>
+          <Link
+            href={`/psikotes/${params.testId}`}
+            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold transition shadow-sm cursor-pointer"
+          >
+            Kembali ke Detail Tes
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Ambil judul, deskripsi interpretasi, dan tips murni dari database
+  const headline = dbInterpretasi.judul;
+  const interpretasiText = dbInterpretasi.deskripsi || "Asesmen psikologi telah diselesaikan.";
 
   const rawTips = (dbInterpretasi as any)?.tips;
   const tipsList: any[] = Array.isArray(rawTips)
@@ -216,112 +284,16 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         <SelfCareIllustration />
 
         {/* 2. Clean Pastel Card (Bunda.id Inspired) */}
-        <div className="bg-[#e9f4f7] rounded-3xl p-6 sm:p-7 border border-[#d2ebf2] shadow-xs transition-all">
-          <button
-            type="button"
-            onClick={() => setIsTipsExpanded(!isTipsExpanded)}
-            className="w-full flex items-start justify-between text-left gap-4 cursor-pointer group"
-          >
-            <div className="space-y-2.5">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-                {headline}
-              </h2>
-              <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-normal">
-                {interpretasiText}
-              </p>
-            </div>
-            {tipsList.length > 0 && (
-              <div className="w-8 h-8 rounded-full bg-white/70 group-hover:bg-white flex items-center justify-center shrink-0 text-gray-600 transition shadow-2xs mt-0.5">
-                <ChevronDown
-                  className={`w-5 h-5 transition-transform duration-300 ${isTipsExpanded ? "rotate-180" : ""
-                    }`}
-                />
-              </div>
-            )}
-          </button>
-
-          {/* Expandable Tips */}
-          {isTipsExpanded && tipsList.length > 0 && (
-            <div className="mt-5 pt-5 border-t border-[#cde5ec] space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0e7490]">
-                Tips Untukmu!
-              </h3>
-              <div className="space-y-2.5">
-                {tipsList.map((tip, idx) => {
-                  const tipText =
-                    typeof tip === "string"
-                      ? tip
-                      : tip.title
-                        ? `${tip.title}: ${tip.desc || ""}`
-                        : tip.desc || "";
-                  return (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/80 border border-white/60 shadow-2xs"
-                    >
-                      <span className="w-5 h-5 rounded-full bg-[#0e7490] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <p className="text-xs sm:text-sm text-gray-800 leading-relaxed font-medium">
-                        {tipText}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        <InterpretasiCard
+          headline={headline}
+          interpretasiText={interpretasiText}
+          tipsList={tipsList}
+          isTipsExpanded={isTipsExpanded}
+          onToggleTips={() => setIsTipsExpanded(!isTipsExpanded)}
+        />
 
         {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol - Satu Persen Card Style) */}
-        {isHarmDetected && (
-          <div className="bg-[#fff1f2] rounded-3xl p-6 sm:p-7 border border-[#fecdd3] shadow-xs space-y-5">
-            {/* Header Section */}
-            <div className="space-y-1.5">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
-                Kamu Tidak Harus Menghadapinya Sendirian
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
-                Dari jawabanmu, kami melihat adanya tanda-tanda perasaan putus asa atau pikiran untuk menyakiti diri sendiri. Kami tahu perasaan seperti ini tidak mudah untuk dihadapi. Namun, kamu tidak harus melewatinya sendirian. Selalu ada dukungan dan bantuan profesional yang bisa kamu jangkau kapan pun kamu membutuhkannya.
-              </p>
-            </div>
-
-            {/* Sub-Card 1: Hotline Krisis (Atas) */}
-            <div className="bg-white rounded-2xl p-5 border border-[#fecdd3] shadow-2xs space-y-3">
-              <h4 className="text-sm sm:text-base font-bold text-gray-900">
-                Layanan Bantuan & Hotline Krisis Darurat:
-              </h4>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Jika kamu sedang berada dalam situasi yang membahayakan diri, segera hubungi keluarga atau orang terdekat yang kamu percaya, dan datangi IGD rumah sakit terdekat jika diperlukan.
-              </p>
-              <a
-                href="tel:119"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#e11d48] hover:bg-[#be123c] text-white font-bold text-xs sm:text-sm transition shadow-xs active:scale-98 cursor-pointer"
-              >
-                <PhoneCall className="w-4 h-4" />
-                <span>Hotline Kemenkes: 119 (ext. 8)</span>
-              </a>
-            </div>
-
-            {/* Sub-Card 2: Konsultasi Psikolog (Bawah) */}
-            <div className="bg-white rounded-2xl p-5 border border-[#fecdd3] shadow-2xs space-y-3">
-              <h4 className="text-sm sm:text-base font-bold text-gray-900">
-                Konsultasi dengan Psikolog
-              </h4>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Jika kamu merasa membutuhkan ruang aman dan pendampingan profesional untuk kondisimu saat ini, psikolog profesional Empathika siap menemanimu.
-              </p>
-              <Link href="/konseling" className="w-full block">
-                <button
-                  type="button"
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs sm:text-sm transition shadow-xs active:scale-98 cursor-pointer"
-                >
-                  <span>Konsultasi dengan Psikolog</span>
-                </button>
-              </Link>
-            </div>
-          </div>
-        )}
+        {isHarmDetected && <CrisisHotlineCard />}
 
         {/* 3. Konsultasi Purple Card (Clean, without calendar icon & without "privat aman") */}
         <div className="pt-2">

@@ -1,33 +1,39 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
-import { Loader2 } from "lucide-react"
+import { Loader2, WifiOff, RefreshCw } from "lucide-react"
 
 export default function PsikotesListClient() {
   const [tests, setTests] = useState<PaketPsikotesApiResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const fetchPublishedTests = useCallback(async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    try {
+      const res = await psikotesService.getList({
+        status: "PUBLISHED",
+      })
+      if (res && res.success && Array.isArray(res.data)) {
+        setTests(res.data)
+      } else {
+        setErrorMessage("Gagal memuat daftar paket psikotes dari server.")
+      }
+    } catch (err: any) {
+      console.error("Gagal mengambil data paket psikotes:", err)
+      setErrorMessage("Tidak dapat terhubung ke server backend. Silakan periksa koneksi atau coba lagi.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const fetchPublishedTests = async () => {
-      try {
-        const res = await psikotesService.getList({
-          status: "PUBLISHED",
-        })
-        if (res && res.success && Array.isArray(res.data)) {
-          setTests(res.data)
-        }
-      } catch (err) {
-        console.error("Gagal mengambil data paket psikotes:", err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchPublishedTests()
-  }, [])
+  }, [fetchPublishedTests])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-poppins pt-24 pb-20 sm:pt-32 sm:pb-28">
@@ -55,8 +61,27 @@ export default function PsikotesListClient() {
           </div>
         )}
 
-        {/* Empty State */}
-        {!isLoading && tests.length === 0 && (
+        {/* Error State — Jika koneksi backend mati / server down */}
+        {!isLoading && errorMessage && (
+          <div className="text-center py-12 px-6 bg-white rounded-3xl border border-red-100 p-8 shadow-xs max-w-md mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
+              <WifiOff className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Gagal Menghubungkan ke Server</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => fetchPublishedTests()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold transition shadow-sm cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Coba Lagi</span>
+            </button>
+          </div>
+        )}
+
+        {/* Empty State — Jika server aktif tetapi belum ada paket berstatus PUBLISHED */}
+        {!isLoading && !errorMessage && tests.length === 0 && (
           <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 shadow-xs max-w-xl mx-auto">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Belum ada paket psikotes yang dipublikasikan</h3>
             <p className="text-sm text-gray-500">Silakan kembali lagi nanti untuk melihat instrumen psikotes terbaru kami.</p>
@@ -64,12 +89,26 @@ export default function PsikotesListClient() {
         )}
 
         {/* Grid Card Psikotes (Clean Standard Style - No Text on Photo) */}
-        {!isLoading && tests.length > 0 && (
+        {!isLoading && !errorMessage && tests.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tests.map((test) => {
               const bannerImage =
                 test.banner_url ||
-                "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800"
+                (() => {
+                  if (process.env.NODE_ENV === "development") {
+                    console.warn(`[DEV WARNING][PsikotesList] 'banner_url' untuk paket '${test.id}' kosong di DB.`);
+                  }
+                  return "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800";
+                })();
+
+              const deskripsiText =
+                test.deskripsi ||
+                (() => {
+                  if (process.env.NODE_ENV === "development") {
+                    console.warn(`[DEV WARNING][PsikotesList] 'deskripsi' untuk paket '${test.id}' kosong di DB.`);
+                  }
+                  return "Ikuti asesmen psikologis terstandar ini untuk memahami kondisi dirimu secara lebih mendalam.";
+                })();
 
               return (
                 <div
@@ -92,9 +131,8 @@ export default function PsikotesListClient() {
                     <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
                       {test.judul}
                     </h3>
-                    {/* Deskripsi di bawah judul diambil dari test.deskripsi */}
                     <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-3">
-                      {test.deskripsi || "Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir."}
+                      {deskripsiText}
                     </p>
 
                     <div className="mt-auto pt-2">

@@ -15,6 +15,8 @@ import {
   Compass,
   Loader2,
   User,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { useAuthStore } from "@/store/authStore";
@@ -26,6 +28,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const [isDownloading, setIsDownloading] = useState(false);
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Pastikan gesture back / popstate di laptop selalu kembali ke detail psikotes, bukan ke soal
   useEffect(() => {
@@ -106,60 +109,57 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   }, [searchParams]);
 
   // Fetch package data from backend to get interpretasi_psikotes
-  useEffect(() => {
-    const fetchPackage = async () => {
-      try {
-        const res = await psikotesService.getById(params.testId, { allowDraft: false });
-        if (res && res.success && res.data) {
-          setDbPackage(res.data);
-        }
-      } catch {
-        // Fallback to static data
-      } finally {
-        setIsLoadingDb(false);
+  const fetchPackage = async () => {
+    setIsLoadingDb(true);
+    setErrorMessage(null);
+    try {
+      const res = await psikotesService.getById(params.testId, { allowDraft: false });
+      if (res && res.success && res.data) {
+        setDbPackage(res.data);
+      } else {
+        setErrorMessage("Data paket psikotes tidak ditemukan.");
       }
-    };
+    } catch (err: any) {
+      console.error("Gagal mengambil data interpretasi berbayar:", err);
+      setErrorMessage("Tidak dapat terhubung ke server backend. Silakan periksa koneksi atau coba lagi.");
+    } finally {
+      setIsLoadingDb(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPackage();
   }, [params.testId]);
 
   // Match score from URL params to the interpretasi from database
   const rawSkor = searchParams.get("skor");
-  const totalSkor = rawSkor ? parseInt(rawSkor) : null;
+  const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
     if (!dbPackage) return null;
     const list = dbPackage.interpretasi_psikotes;
     if (!list || list.length === 0) return null;
-    if (totalSkor === null) return list[0];
+    if (totalSkor === null || isNaN(totalSkor)) return null;
 
     // Find exact match
     const exact = list.find((i) => totalSkor >= i.min_skor && totalSkor <= i.max_skor);
     if (exact) return exact;
 
-    // Closest tier fallback
+    // Closest tier
     const sorted = [...list].sort((a, b) => a.min_skor - b.min_skor);
     if (totalSkor < sorted[0].min_skor) return sorted[0];
     return sorted[sorted.length - 1];
   })();
 
   // Dynamic display name from database
-  const displayTestName = dbPackage?.judul || "Tes Tingkat Kecemasan";
+  const displayTestName = dbPackage?.judul || "Laporan Hasil Psikotes";
 
   const dynamicResult = (() => {
-    if (dbPackage) {
-      if (dbInterpretasi) {
-        return {
-          prefix: null,
-          value: dbInterpretasi.judul,
-          color: "text-[#561269]",
-          bgColor: "bg-purple-50",
-          borderColor: "border-purple-200"
-        };
-      }
+    if (dbInterpretasi) {
       return {
         prefix: null,
-        value: dbPackage.judul,
+        value: dbInterpretasi.judul,
         color: "text-[#561269]",
         bgColor: "bg-purple-50",
         borderColor: "border-purple-200"
@@ -168,7 +168,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
     return {
       prefix: null,
-      value: "Tes Tingkat Kecemasan",
+      value: dbPackage?.judul || "Laporan Hasil Psikotes",
       color: "text-[#561269]",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200"
@@ -352,6 +352,67 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       <div className="min-h-screen bg-[#FAFAFC] flex flex-col items-center justify-center font-sans">
         <Loader2 className="w-10 h-10 animate-spin text-[#561269] mb-4" />
         <p className="text-sm text-gray-500 font-medium">Memuat laporan resmi psikotes...</p>
+      </div>
+    );
+  }
+
+  // Layar Error Koneksi — Jika backend mati
+  if (errorMessage) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-red-100 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Gagal Menghubungkan ke Server</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">{errorMessage}</p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={fetchPackage}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Coba Lagi</span>
+            </button>
+            <Link
+              href={`/psikotes/${params.testId}`}
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition shadow-sm"
+            >
+              Kembali
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // DATA KRITIS: Kategori Interpretasi & Skoring
+  // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
+  // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
+  if (!dbInterpretasi) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {dbPackage?.judul || "Laporan Hasil Psikotes"}
+          </h2>
+          <p className="text-sm font-semibold text-gray-800 mb-2">
+            Interpretasi Skor Belum Dikonfigurasi
+          </p>
+          <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+            Demi menjaga etika dan integritas diagnostik psikologi, laporan hasil komprehensif tidak dapat dibuat karena kategori interpretasi skor untuk instrumen ini belum dikonfigurasi di database.
+          </p>
+          <Link
+            href={`/psikotes/${params.testId}`}
+            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold transition shadow-sm cursor-pointer"
+          >
+            Kembali ke Detail Tes
+          </Link>
+        </div>
       </div>
     );
   }

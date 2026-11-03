@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "../../data/psikotesData";
+import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "@/features/psikotes/data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { Check, FileQuestion, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Check, FileQuestion, ArrowRight, Loader2, AlertCircle, WifiOff, RefreshCw } from "lucide-react";
 
 const DEFAULT_GUIDELINES = [
   "Jawab setiap pertanyaan dengan jujur sesuai dengan dirimu. Tidak ada jawaban benar atau salah.",
@@ -19,20 +19,33 @@ const DEFAULT_BANNER = "https://images.unsplash.com/photo-1543269865-cbf427effba
 export default function PsikotesDetailClient({ params }: { params: { testId: string } }) {
   const [apiData, setApiData] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const fetchDetail = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const res = await psikotesService.getById(params.testId);
+      if (res && res.success && res.data) {
+        setApiData(res.data);
+      } else {
+        setApiData(null);
+      }
+    } catch (err: any) {
+      console.error("Gagal mengambil detail paket psikotes:", err);
+      // Bedakan error jaringan/server mati vs 404
+      const status = err?.status || err?.response?.status;
+      if (status === 404) {
+        setApiData(null);
+      } else {
+        setErrorMessage("Tidak dapat terhubung ke server backend. Silakan periksa koneksi atau coba lagi.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const res = await psikotesService.getById(params.testId);
-        if (res && res.success && res.data) {
-          setApiData(res.data);
-        }
-      } catch (err) {
-        // Paket not found or network error
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchDetail();
   }, [params.testId]);
 
@@ -49,6 +62,40 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     );
   }
 
+  // Layar Error Koneksi — Jika backend mati
+  if (errorMessage) {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[120px] pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-red-100 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Gagal Menghubungkan ke Server</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            {errorMessage}
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={fetchDetail}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Coba Lagi</span>
+            </button>
+            <Link
+              href="/psikotes"
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition shadow-sm"
+            >
+              Kembali
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Layar Not Found — Jika memang tidak ada paket di DB
   if (!apiData) {
     return (
       <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[120px] pb-12 px-4 flex flex-col items-center justify-center">
@@ -71,15 +118,33 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     );
   }
 
+  // Data Non-Kritis: gunakan fallback netral + beri console.warn di mode dev
+  const bannerImage = apiData.banner_url || (() => {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[DEV WARNING][PsikotesDetail] 'banner_url' untuk paket '${params.testId}' kosong di DB.`);
+    }
+    return DEFAULT_BANNER;
+  })();
+
+  const subtitleText = apiData.deskripsi || (() => {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[DEV WARNING][PsikotesDetail] 'deskripsi' untuk paket '${params.testId}' kosong di DB.`);
+    }
+    return "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.";
+  })();
+
+  const deskripsiText = apiData.tentang_tes || apiData.deskripsi || (() => {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[DEV WARNING][PsikotesDetail] 'tentang_tes' dan 'deskripsi' untuk paket '${params.testId}' kosong di DB.`);
+    }
+    return "Asesmen ini dirancang untuk membantumu mengenali kondisi emosional dan psikologis diri secara lebih mendalam sebagai langkah awal merawat kesehatan mental.";
+  })();
+
   const data = {
-    title: apiData.judul || "Tes Tingkat Kecemasan",
-    subtitle:
-      apiData.deskripsi ||
-      "Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir.",
-    image: apiData.banner_url || DEFAULT_BANNER,
-    description:
-      apiData.tentang_tes ||
-      "Melalui tes ini, kamu bisa mengenali gejala kecemasan yang mungkin sedang dialami, seperti perasaan gelisah, kesulitan mengendalikan kekhawatiran, hingga ketegangan dalam menjalani aktivitas sehari-hari. Hasilnya dapat membantumu memahami kondisi emosional diri dan menjadi langkah awal untuk lebih memperhatikan kesehatan mental.",
+    title: apiData.judul || "Paket Psikotes Empathika",
+    subtitle: subtitleText,
+    image: bannerImage,
+    description: deskripsiText,
     questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
     price: apiData.harga || 0,
     formattedPrice: apiData.harga ? `Rp ${apiData.harga.toLocaleString("id-ID")}` : "Gratis",

@@ -140,9 +140,9 @@ export async function seedPHQ9(prisma: PrismaClient) {
     harga: 0,
     banner_url: '/images/psikotes/banner-depresi.jpg',
     deskripsi:
-      'Kenali kondisi suasana hati dan tingkat depresi yang kamu rasakan dalam dua minggu terakhir menggunakan instrumen baku PHQ-9 terstandar.',
+      'Kenali kondisi suasana hati dan pahami gejala depresi yang mungkin kamu alami berdasarkan apa yang kamu rasakan selama dua minggu terakhir. Tes ini dapat membantumu memperoleh gambaran awal mengenai kondisi emosional dan kesehatan mentalmu.',
     tentang_tes:
-      'Patient Health Questionnaire-9 (PHQ-9) dikembangkan oleh Spitzer, Kroenke & Williams pada tahun 1999, berisi 9 item yang mengukur tingkat keparahan gejala depresi berdasarkan kriteria DSM-IV. Instrumen ini dirancang untuk individu usia 18 tahun ke atas guna membantu mengenali kondisi emosional diri serta menjadi langkah awal untuk lebih memperhatikan kesehatan mental.',
+      'Melalui tes ini, kamu dapat mengenali beberapa gejala yang berkaitan dengan depresi, seperti perubahan suasana hati, kehilangan minat dalam beraktivitas, gangguan tidur, hingga perasaan tidak berharga. Hasilnya dapat menjadi langkah awal untuk lebih memahami kondisi emosional diri dan menentukan dukungan yang mungkin kamu butuhkan.',
     status: 'PUBLISHED',
   }
 
