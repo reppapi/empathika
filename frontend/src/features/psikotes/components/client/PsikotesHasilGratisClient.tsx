@@ -199,10 +199,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
           {/* Kolom Kanan: Sidebar Ajak Konsultasi */}
           <div className="md:col-span-4 sticky top-[120px]">
             <div className="bg-gradient-to-br from-[#561269] to-[#3b0a48] text-white rounded-3xl p-6 sm:p-7 shadow-md border border-purple-900/30 flex flex-col gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0 backdrop-blur-xs">
-                <Calendar className="w-5 h-5 text-[#EAB308]" />
-              </div>
-              
               <div>
                 <h3 className="text-lg font-bold text-white mb-1.5 leading-snug">Ingin Diskusi Lebih Lanjut?</h3>
                 <p className="text-purple-100/90 text-xs sm:text-sm leading-relaxed font-light">
@@ -217,9 +213,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
                     <span>Jadwalkan Konsultasi</span>
                   </button>
                 </Link>
-                <p className="text-[11px] text-purple-200/60 text-center mt-2.5 font-light">
-                  Privat, aman, & terjamin kerahasiaannya.
-                </p>
               </div>
             </div>
           </div>
