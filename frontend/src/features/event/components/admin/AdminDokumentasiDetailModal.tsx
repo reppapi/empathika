@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import { EventDokumentasiApi } from "@/services/event.service"
-import { X, Calendar, ImageIcon, ChevronLeft, ChevronRight } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, Edit } from "lucide-react"
 
 interface AdminDokumentasiDetailModalProps {
   isOpen: boolean
@@ -28,160 +28,143 @@ export default function AdminDokumentasiDetailModal({
 
   const tglTeks = item.tanggal
     ? new Date(item.tanggal).toLocaleDateString("id-ID", {
-        weekday: "long",
         day: "numeric",
-        month: "long",
+        month: "short",
         year: "numeric",
       })
-    : "-"
+    : null
 
-  const handlePrev = () => {
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))
   }
 
-  const handleNext = () => {
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div
-        className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden font-poppins border border-gray-100"
-        onClick={(e) => e.stopPropagation()}
+    /* Background transparan buram (backdrop blur) */
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 font-poppins select-none"
+    >
+      {/* Tombol Tutup (Kanan Atas) */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 rounded-full bg-black/50 hover:bg-black/80 text-white/90 hover:text-white transition-all cursor-pointer backdrop-blur-sm shadow-lg hover:scale-105"
+        title="Tutup"
       >
-        {/* Header Modal */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-[#FCFAFD]">
-          <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#561269] bg-purple-50 px-2.5 py-0.5 rounded-full">
-              Detail Dokumentasi Event
-            </span>
-            <h2 className="text-lg font-black text-gray-900 mt-1 line-clamp-1">{item.judul}</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        <X className="w-6 h-6" />
+      </button>
+
+      {/* Counter Foto (Kiri Atas) seperti 4/6 di screenshot */}
+      {hasPhotos && (
+        <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50 px-3.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white/90 text-xs sm:text-sm font-semibold tracking-wide">
+          {activePhotoIdx + 1} / {photos.length}
         </div>
+      )}
 
-        {/* Body Modal (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Gallery Viewer (Carousel / Lightbox) */}
-          {hasPhotos ? (
-            <div className="space-y-3">
-              {/* Foto Utama */}
-              <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-gray-950 flex items-center justify-center group shadow-sm">
-                {activePhoto && (
-                  <Image
-                    src={activePhoto.foto_url}
-                    alt={`${item.judul} foto ${activePhotoIdx + 1}`}
-                    fill
-                    unoptimized
-                    className="object-contain"
-                  />
-                )}
-
-                {/* Counter Tag */}
-                <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full">
-                  {activePhotoIdx + 1} / {photos.length}
-                </div>
-
-                {/* Navigasi Prev/Next */}
-                {photos.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handlePrev}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition-all opacity-80 hover:opacity-100 cursor-pointer shadow-md"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleNext}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition-all opacity-80 hover:opacity-100 cursor-pointer shadow-md"
-                    >
-                      <ChevronRight className="w-6 h-6" />
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Thumbnail Strip */}
-              {photos.length > 1 && (
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                  {photos.map((p, idx) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setActivePhotoIdx(idx)}
-                      className={`relative w-20 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
-                        activePhotoIdx === idx
-                          ? "border-[#561269] ring-2 ring-[#561269]/30 scale-105"
-                          : "border-transparent opacity-60 hover:opacity-100"
-                      }`}
-                    >
-                      <Image
-                        src={p.foto_url}
-                        alt={`Thumb ${idx + 1}`}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+      {/* Main Container Foto & Teks */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-5xl flex flex-col items-center justify-center gap-4"
+      >
+        {/* Foto Frame Utama */}
+        <div className="relative w-full max-h-[72vh] aspect-[16/10] sm:aspect-[16/9] rounded-2xl sm:rounded-3xl overflow-hidden bg-black/40 flex items-center justify-center shadow-2xl">
+          {activePhoto ? (
+            <Image
+              src={activePhoto.foto_url}
+              alt={`${item.judul} foto ${activePhotoIdx + 1}`}
+              fill
+              unoptimized
+              className="object-cover sm:object-contain"
+            />
           ) : (
-            <div className="w-full aspect-video rounded-2xl bg-gray-50 border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400">
-              <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
-              <p className="text-xs font-semibold">Tidak ada foto dokumentasi yang diunggah</p>
-            </div>
+            <div className="text-white/60 text-sm">Tidak ada foto dokumentasi</div>
           )}
 
-          {/* Info Details */}
-          <div className="bg-[#FCFAFD] rounded-2xl p-5 border border-purple-100/60 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#561269]">
-              <Calendar className="w-4 h-4 text-amber-500" />
-              <span>Tanggal Pelaksanaan: {tglTeks}</span>
-            </div>
-
-            <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                Rangkuman / Deskripsi Kegiatan
-              </p>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line font-medium">
-                {item.deskripsi}
-              </p>
-            </div>
-          </div>
+          {/* Tombol Prev / Next (Panah Bulat) */}
+          {photos.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110 z-10"
+                title="Foto Sebelumnya"
+              >
+                <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110 z-10"
+                title="Foto Selanjutnya"
+              >
+                <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-6 py-2.5 rounded-full border border-gray-200 text-gray-700 text-xs sm:text-sm font-bold hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            Tutup
-          </button>
+        {/* Teks Judul, Deskripsi, Tanggal & Tombol Edit Khusus Admin */}
+        <div className="text-center max-w-3xl px-4 flex flex-col items-center">
+          <h3 className="text-white text-sm sm:text-base md:text-lg font-bold drop-shadow-md">
+            {item.judul}
+          </h3>
+          {item.deskripsi && (
+            <p className="text-white/85 text-xs sm:text-sm mt-1 leading-relaxed line-clamp-2 drop-shadow-sm font-normal">
+              {item.deskripsi}
+            </p>
+          )}
+          {tglTeks && (
+            <p className="text-white/60 text-[11px] sm:text-xs mt-1.5 font-medium tracking-wide drop-shadow-sm">
+              {tglTeks}
+            </p>
+          )}
+
+          {/* Tombol Edit Khusus Admin */}
           <button
             type="button"
             onClick={() => {
               onClose()
               onEdit(item.id)
             }}
-            className="px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+            className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
           >
-            Edit Dokumentasi
+            <Edit className="w-3.5 h-3.5" />
+            <span>Edit Dokumentasi</span>
           </button>
         </div>
+
+        {/* Thumbnail Strip Horizontal (persis seperti deretan thumbnail di bawah pada referensi) */}
+        {photos.length > 1 && (
+          <div className="flex items-center justify-center gap-2 overflow-x-auto max-w-full px-2 py-1 scrollbar-none">
+            {photos.map((p, idx) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setActivePhotoIdx(idx)}
+                className={`relative w-14 h-10 sm:w-20 sm:h-14 rounded-lg sm:rounded-xl overflow-hidden shrink-0 transition-all cursor-pointer ${
+                  activePhotoIdx === idx
+                    ? "ring-2 ring-white scale-105 opacity-100 shadow-md"
+                    : "opacity-40 hover:opacity-80"
+                }`}
+              >
+                <Image
+                  src={p.foto_url}
+                  alt={`Thumb ${idx + 1}`}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
 }
-

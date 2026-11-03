@@ -24,6 +24,14 @@ export default function ClientDokumentasiDetailModal({
   const hasPhotos = photos.length > 0
   const activePhoto = hasPhotos ? photos[activePhotoIdx] : null
 
+  const tglTeks = item.tanggal
+    ? new Date(item.tanggal).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null
+
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation()
     setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))
@@ -82,7 +90,7 @@ export default function ClientDokumentasiDetailModal({
               <button
                 type="button"
                 onClick={handlePrev}
-                className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110"
+                className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110 z-10"
                 title="Foto Sebelumnya"
               >
                 <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -90,7 +98,7 @@ export default function ClientDokumentasiDetailModal({
               <button
                 type="button"
                 onClick={handleNext}
-                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110"
+                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110 z-10"
                 title="Foto Selanjutnya"
               >
                 <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -99,14 +107,19 @@ export default function ClientDokumentasiDetailModal({
           )}
         </div>
 
-        {/* Teks Judul & Deskripsi di bawah foto persis seperti referensi */}
+        {/* Teks Judul, Deskripsi & Tanggal di bawah foto */}
         <div className="text-center max-w-3xl px-4">
           <h3 className="text-white text-sm sm:text-base md:text-lg font-bold drop-shadow-md">
             {item.judul}
           </h3>
           {item.deskripsi && (
-            <p className="text-white/80 text-xs sm:text-sm mt-1 leading-relaxed line-clamp-2 drop-shadow-sm font-normal">
+            <p className="text-white/85 text-xs sm:text-sm mt-1 leading-relaxed line-clamp-2 drop-shadow-sm font-normal">
               {item.deskripsi}
+            </p>
+          )}
+          {tglTeks && (
+            <p className="text-white/60 text-[11px] sm:text-xs mt-1.5 font-medium tracking-wide drop-shadow-sm">
+              {tglTeks}
             </p>
           )}
         </div>
