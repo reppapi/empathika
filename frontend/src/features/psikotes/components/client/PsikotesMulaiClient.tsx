@@ -182,6 +182,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           const query = new URLSearchParams(searchParams.toString());
           query.set("skor", String(res.data.total_skor));
           query.set("bookingId", res.data.id_booking);
+          const hasHarm =
+            res.data.detail_skor?.ideMelukaiDiri ||
+            (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0);
+          if (hasHarm) {
+            query.set("harm", "1");
+          }
           if (pesertaNama) query.set("nama", pesertaNama);
           if (pesertaWa) query.set("whatsapp", pesertaWa);
           if (pesertaEmail) query.set("email", pesertaEmail);
@@ -194,6 +200,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       const score = calculateScore(answers);
       const query = new URLSearchParams(searchParams.toString());
       query.set("skor", String(score));
+      if (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0) {
+        query.set("harm", "1");
+      }
       if (pesertaNama) query.set("nama", pesertaNama);
       if (pesertaWa) query.set("whatsapp", pesertaWa);
       if (pesertaEmail) query.set("email", pesertaEmail);
@@ -204,6 +213,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       const score = calculateScore(answers);
       const query = new URLSearchParams(searchParams.toString());
       query.set("skor", String(score));
+      if (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0) {
+        query.set("harm", "1");
+      }
       if (pesertaNama) query.set("nama", pesertaNama);
       if (pesertaWa) query.set("whatsapp", pesertaWa);
       if (pesertaEmail) query.set("email", pesertaEmail);

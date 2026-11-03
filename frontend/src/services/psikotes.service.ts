@@ -7,6 +7,7 @@ export interface PaketPsikotesApiResponse {
   harga: string | number
   banner_url?: string | null
   deskripsi?: string | null
+  tentang_tes?: string | null
   status: "PUBLISHED" | "DRAFT"
   createdAt: string
   updatedAt: string
@@ -64,6 +65,7 @@ export interface SubmitPsikotesResult {
     no_telepon?: string | null
   }
   total_skor: number
+  detail_skor?: any
   hasil: {
     id: string
     grade: string

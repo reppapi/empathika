@@ -15,6 +15,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:seed:psikotes": "tsx prisma/seeds-psikotes/seed-psikotes.ts",
+    "seed:psikotes": "tsx prisma/seeds-psikotes/seed-psikotes.ts",
+    "seed:gad7": "tsx prisma/seeds-psikotes/seeds/seed-gad7.ts",
+    "seed:phq9": "tsx prisma/seeds-psikotes/seeds/seed-phq9.ts",
     "prisma:seed:event": "tsx prisma/seed-event.ts",
     "generate:docs": "tsx src/server.ts --export-docs"
   },

@@ -743,31 +743,26 @@ export default function HomeClient() {
                   key={item.id}
                   className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
                 >
-                  <div className={`h-48 w-full ${bgColor} overflow-hidden relative`}>
-                    <div className="absolute inset-0 flex items-start p-6">
-                      <div className="text-left w-full">
-                        <h3 className={`${textColor} font-bold text-2xl leading-tight mb-1 uppercase drop-shadow-sm line-clamp-2`}>
-                          {item.judul}
-                        </h3>
-                        <p className={`${textColor} text-xs font-medium opacity-90 drop-shadow-sm line-clamp-2`}>
-                          {item.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri."}
-                        </p>
-                      </div>
-                    </div>
-                    {/* Abstract decorative shapes */}
-                    <div className="absolute -bottom-4 right-0 opacity-40 mix-blend-overlay pointer-events-none">
-                      <svg width="200" height="150" viewBox="0 0 200 150" fill="none">
-                        <circle cx="150" cy="100" r="80" fill="white" />
-                        <circle cx="50" cy="120" r="50" fill="white" />
-                      </svg>
-                    </div>
+                  {/* Foto Bersih (Tanpa Tulisan Apapun) */}
+                  <div className="h-52 w-full overflow-hidden relative bg-gray-100">
+                    <Image
+                      src={
+                        item.banner_url ||
+                        "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800"
+                      }
+                      alt={item.judul}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      unoptimized
+                    />
                   </div>
+
                   <div className="p-6 flex flex-col flex-1">
                     <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
                       {item.judul}
                     </h3>
                     <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
-                      {item.deskripsi || "Tes psikologi ini dirancang untuk memberikan gambaran akurat mengenai dirimu."}
+                      {item.deskripsi || "Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir."}
                     </p>
 
                     <div className="mt-auto">

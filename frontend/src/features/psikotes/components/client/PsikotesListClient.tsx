@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
 import { Loader2 } from "lucide-react"
-
-const THEME_COLORS = ["#561269", "#1c352d", "#8e4a9e", "#0f766e", "#f48520"]
 
 export default function PsikotesListClient() {
   const [tests, setTests] = useState<PaketPsikotesApiResponse[]>([])
@@ -64,40 +63,28 @@ export default function PsikotesListClient() {
           </div>
         )}
 
-        {/* Grid Card Psikotes (Clean Standard Style) */}
+        {/* Grid Card Psikotes (Clean Standard Style - No Text on Photo) */}
         {!isLoading && tests.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tests.map((test, index) => {
-              const themeColor = THEME_COLORS[index % THEME_COLORS.length]
+            {tests.map((test) => {
+              const bannerImage =
+                test.banner_url ||
+                "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800"
 
               return (
                 <div
                   key={test.id}
                   className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
                 >
-                  {/* Header Visual Card */}
-                  <div
-                    className="h-48 w-full overflow-hidden relative"
-                    style={{ backgroundColor: themeColor }}
-                  >
-                    <div className="absolute inset-0 flex items-start p-6">
-                      <div className="text-left w-full">
-                        <h3 className="text-white font-bold text-2xl leading-tight mb-1 drop-shadow-sm line-clamp-2">
-                          {test.judul}
-                        </h3>
-                        <p className="text-white/80 text-xs font-medium line-clamp-2 drop-shadow-sm">
-                          {test.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri."}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Abstract decorative shapes */}
-                    <div className="absolute -bottom-4 right-0 opacity-40 mix-blend-overlay pointer-events-none">
-                      <svg width="200" height="150" viewBox="0 0 200 150" fill="none">
-                        <circle cx="150" cy="100" r="80" fill="white" />
-                        <circle cx="50" cy="120" r="50" fill="white" />
-                      </svg>
-                    </div>
+                  {/* Foto Bersih (Tanpa Tulisan Apapun) */}
+                  <div className="h-52 w-full overflow-hidden relative bg-gray-100">
+                    <Image
+                      src={bannerImage}
+                      alt={test.judul}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      unoptimized
+                    />
                   </div>
 
                   {/* Body Card */}
@@ -105,8 +92,9 @@ export default function PsikotesListClient() {
                     <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
                       {test.judul}
                     </h3>
+                    {/* Deskripsi di bawah judul diambil dari test.deskripsi */}
                     <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-3">
-                      {test.deskripsi || "Tes psikologi ini dirancang untuk memberikan gambaran akurat mengenai karakteristik dan potensi dirimu."}
+                      {test.deskripsi || "Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir."}
                     </p>
 
                     <div className="mt-auto pt-2">

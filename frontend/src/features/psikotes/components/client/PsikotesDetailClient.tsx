@@ -71,20 +71,15 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     );
   }
 
-  const isKecemasan =
-    apiData.judul?.toLowerCase().includes("kecemasan") ||
-    apiData.judul?.toLowerCase().includes("gad");
-
   const data = {
     title: apiData.judul || "Tes Tingkat Kecemasan",
-    subtitle: isKecemasan
-      ? "Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir."
-      : apiData.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
+    subtitle:
+      apiData.deskripsi ||
+      "Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir.",
     image: apiData.banner_url || DEFAULT_BANNER,
-    description: isKecemasan
-      ? "Tes ini dirancang untuk membantu mengenali dan memahami gejala kecemasan yang mungkin kamu alami, mulai dari perasaan gelisah, sulit mengendalikan kekhawatiran, hingga ketegangan dalam keseharian. Hasil tes dapat menjadi langkah awal untuk lebih memahami kondisi emosionalmu dan menentukan langkah selanjutnya dalam menjaga kesehatan mental."
-      : apiData.deskripsi || "Ikuti asesmen psikotes terstruktur ini untuk mengenali potensi, gaya berpikir, dan karakteristik kepribadianmu.",
-    duration: "15 Menit",
+    description:
+      apiData.tentang_tes ||
+      "Melalui tes ini, kamu bisa mengenali gejala kecemasan yang mungkin sedang dialami, seperti perasaan gelisah, kesulitan mengendalikan kekhawatiran, hingga ketegangan dalam menjalani aktivitas sehari-hari. Hasilnya dapat membantumu memahami kondisi emosional diri dan menjadi langkah awal untuk lebih memperhatikan kesehatan mental.",
     questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
     price: apiData.harga || 0,
     formattedPrice: apiData.harga ? `Rp ${apiData.harga.toLocaleString("id-ID")}` : "Gratis",
@@ -113,12 +108,14 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
         
         <div className="absolute inset-0 flex flex-col justify-end pb-16 lg:pb-20 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 tracking-tight max-w-4xl leading-[1.1] drop-shadow-md">
-            {data.title}
-          </h1>
-          <p className="text-gray-200 text-base md:text-xl font-light max-w-2xl drop-shadow-sm">
-            {data.subtitle}
-          </p>
+          <div className="px-6 sm:px-8 md:px-10">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 tracking-tight max-w-4xl leading-[1.1] drop-shadow-md">
+              {data.title}
+            </h1>
+            <p className="text-gray-200 text-base md:text-xl font-light max-w-full drop-shadow-sm leading-relaxed">
+              {data.subtitle}
+            </p>
+          </div>
         </div>
       </section>
 
