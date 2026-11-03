@@ -26,7 +26,7 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
     preHandler: [adminGuard],
     schema: {
       tags: ['Transaksi - Admin'],
-      summary: 'Admin memproses refund transaksi 100% (validasi maksimal H-1 sesi)',
+      summary: 'Admin memproses refund transaksi 70% kembali ke klien, 15% psikolog, 15% empathika (validasi maksimal H-1 sesi)',
       security: [{ bearerAuth: [] }],
       body: refundTransaksiSchema,
     },

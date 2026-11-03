@@ -67,6 +67,18 @@ function normalizeTransaksi(raw: any) {
     biayaAdmin: Number(raw.biaya_admin) || 0,
     totalBayar: Number(raw.total) || 0,
     metodePembayaran: raw.metode_pembayaran || raw.channel_pembayaran || "-",
+    isRefunded: raw.status_pembayaran === "REFUNDED",
+    refundAt: raw.refund_at
+      ? new Date(raw.refund_at).toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) + " WIB"
+      : null,
+    refundAmount: raw.refund_amount ? Number(raw.refund_amount) : null,
+    refundReason: raw.refund_reason || null,
     raw,
   }
 }
@@ -83,6 +95,8 @@ export default function AdminTransaksiBiroClient() {
   // ── Filter State ──
   const [selectedLayanan, setSelectedLayanan] = useState<JenisLayanan>("semua")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const filterBtnRef = useRef<HTMLButtonElement>(null)
+  const [filterDropdownPos, setFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>("")
   const [selectedMonth, setSelectedMonth] = useState<string>("")
 
@@ -265,7 +279,14 @@ export default function AdminTransaksiBiroClient() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsFilterOpen((prev) => !prev)}
+                ref={filterBtnRef}
+                onClick={() => {
+                  if (!isFilterOpen && filterBtnRef.current) {
+                    const rect = filterBtnRef.current.getBoundingClientRect()
+                    setFilterDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+                  }
+                  setIsFilterOpen((prev) => !prev)
+                }}
                 className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] hover:text-[#561269] transition shadow-sm"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
@@ -280,7 +301,10 @@ export default function AdminTransaksiBiroClient() {
               {isFilterOpen && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setIsFilterOpen(false)} />
-                  <div className="absolute right-0 z-30 mt-2 w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl">
+                  <div
+                    className="fixed z-[9999] w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl"
+                    style={filterDropdownPos ? { top: filterDropdownPos.top, right: filterDropdownPos.right } : {}}
+                  >
                     {LAYANAN_OPTIONS.map((opt) => (
                       <button
                         key={opt.id}
@@ -463,6 +487,42 @@ export default function AdminTransaksiBiroClient() {
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">Dibayar pada: {activeDetailItem.orderDate}</p>
                 </div>
+
+                {/* ── CARD STATUS REFUND (JIKA TRANSAKSI TELAH DI-REFUND) ── */}
+                {activeDetailItem.isRefunded && (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800">
+                          Status: Transaksi Telah Di-Refund
+                        </h4>
+                      </div>
+                      <span className="rounded-full bg-rose-100 text-rose-700 font-extrabold text-[10px] px-2.5 py-0.5">
+                        REFUND 70%
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl bg-white/90 p-3 border border-rose-100 space-y-2 text-xs">
+                      <div className="flex justify-between items-center text-gray-600">
+                        <span className="font-medium">Total Dana Dikembalikan ke Klien</span>
+                        <span className="font-extrabold text-rose-600 text-sm">
+                          Rp. {(activeDetailItem.refundAmount ?? Math.round(activeDetailItem.totalBayar * 0.7)).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-gray-500">
+                        <span>Waktu Eksekusi Refund</span>
+                        <span className="font-semibold text-gray-700">{activeDetailItem.refundAt || "-"}</span>
+                      </div>
+                      <div className="pt-2 border-t border-gray-100">
+                        <p className="text-[11px] text-gray-500 font-medium mb-1">Catatan & Alasan Refund:</p>
+                        <div className="p-2.5 rounded-lg bg-gray-50 text-[11px] text-gray-700 leading-relaxed font-mono whitespace-pre-wrap break-words border border-gray-200/60">
+                          {activeDetailItem.refundReason || "Tidak ada alasan spesifik"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Info Note Read-Only */}
                 <div className="mt-2 rounded-xl bg-purple-50/60 border border-purple-100 p-3 text-center">
