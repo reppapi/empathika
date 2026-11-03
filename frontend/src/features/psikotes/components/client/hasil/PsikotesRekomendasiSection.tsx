@@ -2,19 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { ArrowRight, Sparkles, BookOpen } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 interface PsikotesRekomendasiSectionProps {
   currentTestId: string;
 }
-
-const THEME_COLORS = [
-  { bg: "bg-[#561269]", text: "text-white", badge: "bg-white/20 text-white" },
-  { bg: "bg-[#f48520]", text: "text-white", badge: "bg-white/20 text-white" },
-  { bg: "bg-[#1c352d]", text: "text-white", badge: "bg-white/20 text-white" },
-  { bg: "bg-[#0f766e]", text: "text-white", badge: "bg-white/20 text-white" },
-];
 
 export default function PsikotesRekomendasiSection({ currentTestId }: PsikotesRekomendasiSectionProps) {
   const [recommendations, setRecommendations] = useState<PaketPsikotesApiResponse[]>([]);
@@ -46,11 +40,7 @@ export default function PsikotesRekomendasiSection({ currentTestId }: PsikotesRe
 
   return (
     <section className="space-y-8 pt-12 border-t border-gray-200 print:hidden font-sans">
-      <div className="text-center max-w-2xl mx-auto space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 text-[#561269] text-xs font-bold">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Eksplorasi Asesmen Lainnya</span>
-        </div>
+      <div className="text-center max-w-2xl mx-auto space-y-2">
         <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
           Rekomendasi Tes untuk Kamu
         </h2>
@@ -60,35 +50,38 @@ export default function PsikotesRekomendasiSection({ currentTestId }: PsikotesRe
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
-        {recommendations.map((pkg, idx) => {
-          const theme = THEME_COLORS[idx % THEME_COLORS.length];
-          const isGratis = pkg.jenis_akses === "GRATIS" || !pkg.harga || pkg.harga === 0;
+        {recommendations.map((pkg) => {
+          const bannerImage =
+            pkg.banner_url ||
+            "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800";
 
           return (
             <div
               key={pkg.id}
               className="bg-white rounded-3xl shadow-xs border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
             >
-              <div className={`h-44 w-full ${theme.bg} overflow-hidden relative flex flex-col justify-between p-6`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full ${theme.badge}`}>
-                    {isGratis ? "Gratis" : `Rp ${Number(pkg.harga).toLocaleString("id-ID")}`}
-                  </span>
-                  <BookOpen className="w-5 h-5 text-white/50" />
-                </div>
-                <div>
-                  <h3 className={`${theme.text} font-bold text-xl leading-tight line-clamp-2 drop-shadow-xs`}>
-                    {pkg.judul}
-                  </h3>
-                </div>
-                {/* Decorative background circle */}
-                <div className="absolute -bottom-6 -right-6 w-28 h-28 rounded-full bg-white/10 pointer-events-none" />
+              {/* Foto Bersih (Tanpa Tulisan Apapun) */}
+              <div className="h-44 w-full overflow-hidden relative bg-gray-100">
+                <Image
+                  src={bannerImage}
+                  alt={pkg.judul}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  unoptimized
+                />
               </div>
 
+              {/* Body Card */}
               <div className="p-6 flex flex-col flex-1 justify-between gap-6">
-                <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                  {pkg.deskripsi || "Asesmen psikologi terstruktur untuk mengenali kepribadian dan potensi diri."}
-                </p>
+                <div>
+                  <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
+                    {pkg.judul}
+                  </h3>
+                  {/* Deskripsi di bawah judul diambil dari pkg.deskripsi */}
+                  <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                    {pkg.deskripsi || "Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir."}
+                  </p>
+                </div>
 
                 <Link
                   href={`/psikotes/${pkg.id}`}

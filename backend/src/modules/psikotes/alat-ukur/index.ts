@@ -2,6 +2,10 @@ import { GAD7_CONFIG } from "./gad-7/config";
 import { GAD7_QUESTIONS, GAD7_OPTIONS, GAD7_DIFFICULTY_QUESTION } from "./gad-7/questions";
 import { calculateGAD7, GAD7CalculationResult, GAD7_LEVELS } from "./gad-7/scoring";
 
+import { PHQ9_CONFIG } from "./phq-9/config";
+import { PHQ9_QUESTIONS, PHQ9_OPTIONS, PHQ9_DIFFICULTY_QUESTION } from "./phq-9/questions";
+import { calculatePHQ9, PHQ9CalculationResult, PHQ9_LEVELS } from "./phq-9/scoring";
+
 export interface AlatUkurModule {
   config: {
     kode: string;
@@ -34,6 +38,14 @@ const registry: Record<string, AlatUkurModule> = {
     additionalQuestions: [GAD7_DIFFICULTY_QUESTION],
     levels: GAD7_LEVELS,
     calculate: calculateGAD7,
+  },
+  "PHQ-9": {
+    config: PHQ9_CONFIG,
+    questions: PHQ9_QUESTIONS,
+    options: PHQ9_OPTIONS,
+    additionalQuestions: [PHQ9_DIFFICULTY_QUESTION],
+    levels: PHQ9_LEVELS,
+    calculate: calculatePHQ9,
   },
 };
 

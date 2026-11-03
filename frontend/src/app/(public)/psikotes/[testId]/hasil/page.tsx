@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import PsikotesHasilClient from "@/features/psikotes/components/client/PsikotesHasilClient"
+import PsikotesHasilClient from "@/features/psikotes/components/client/hasil/PsikotesHasilClient"
 
 export default function PsikotesHasilPage({ params }: { params: { testId: string } }) {
   return (

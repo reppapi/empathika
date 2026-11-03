@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { usePsikotesTest } from "../../hooks/usePsikotesTest";
+import { usePsikotesTest } from "@/features/psikotes/hooks/usePsikotesTest";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { useAuthStore } from "@/store/authStore";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, WifiOff, RefreshCw } from "lucide-react";
 
 export default function PsikotesMulaiClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
@@ -15,20 +15,28 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const fetchPackage = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const res = await psikotesService.getById(params.testId);
+      if (res && res.success && res.data) {
+        setDbData(res.data);
+      } else {
+        setErrorMessage("Paket psikotes tidak ditemukan di database.");
+      }
+    } catch (err: any) {
+      console.error("Gagal mengambil instrumen psikotes:", err);
+      setErrorMessage("Tidak dapat terhubung ke server backend. Silakan periksa koneksi atau coba lagi.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPackage = async () => {
-      try {
-        const res = await psikotesService.getById(params.testId);
-        if (res && res.success && res.data) {
-          setDbData(res.data);
-        }
-      } catch (err) {
-        // Fallback to static mock if not in database
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchPackage();
   }, [params.testId]);
 
@@ -50,6 +58,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     : [];
 
   const totalQuestions = questions.length;
+
+  // Verifikasi keabsahan butir soal dari database:
+  // Data Kritis: TIDAK BOLEH ADA FALLBACK SOAL ATAU OPSI RUSAK.
+  const hasInvalidOptions = dbData?.soal_psikotes?.some(
+    (s) => !s.pertanyaan || !s.pilihan_jawaban || s.pilihan_jawaban.length < 2
+  );
 
   const calculateScore = (ans: Record<number, number>) => {
     return Object.entries(ans).reduce((sum, [qIdx, optIdx]) => {
@@ -77,21 +91,57 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     );
   }
 
-  // Jika paket belum memiliki butir soal
-  if (questions.length === 0) {
+  // Layar Error Koneksi — Jika backend mati
+  if (errorMessage) {
     return (
       <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-red-100 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Gagal Menghubungkan ke Server</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            {errorMessage}
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={fetchPackage}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Coba Lagi</span>
+            </button>
+            <Link
+              href={`/psikotes/${params.testId}`}
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition shadow-sm"
+            >
+              Kembali
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // DATA KRITIS: Integritas Klinis Soal & Opsi Jawaban
+  if (!dbData || questions.length === 0 || hasInvalidOptions) {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">{testTitle}</h2>
-          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            Belum ada soal yang tersedia untuk paket ini. Silakan hubungi admin atau pilih paket psikotes lainnya.
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{dbData?.judul || "Instrumen Psikotes"}</h2>
+          <p className="text-sm font-semibold text-gray-800 mb-2">
+            Instrumen Soal Belum Dikonfigurasi
+          </p>
+          <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+            Demi menjaga integritas dan akurasi klinis, tes ini tidak dapat dimulai karena butir pertanyaan atau opsi pilihan jawaban belum terdaftar di database. Silakan hubungi tim Empathika.
           </p>
           <Link
             href="/psikotes"
-            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-extrabold transition shadow-sm cursor-pointer"
+            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold transition shadow-sm cursor-pointer"
           >
             Kembali ke Daftar Psikotes
           </Link>
@@ -155,59 +205,58 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         }
       }
 
-      if (questions.length > 0) {
-        // Susun payload jawaban untuk dikirim ke backend sesuai urutan pilihan yang ditampilkan
-        const jawabanPayload = questions.map((q, idx) => {
-          const selectedOptIdx = answers[idx] ?? 0;
-          const pilihan = q.pilihanList[selectedOptIdx];
-          return {
-            id_soal: q.id,
-            id_pilihan: pilihan ? pilihan.id : q.pilihanList[0]?.id,
-          };
-        });
-
-        const res = await psikotesService.submitJawaban(params.testId, {
-          jawaban: jawabanPayload,
-          nama: pesertaNama || undefined,
-          no_telepon: pesertaWa || undefined,
-          email: pesertaEmail || undefined,
-          klien: pesertaNama ? {
-            nama: pesertaNama,
-            no_telepon: pesertaWa || undefined,
-            email: pesertaEmail || undefined,
-          } : undefined,
-        });
-
-        if (res && res.success && res.data) {
-          const query = new URLSearchParams(searchParams.toString());
-          query.set("skor", String(res.data.total_skor));
-          query.set("bookingId", res.data.id_booking);
-          if (pesertaNama) query.set("nama", pesertaNama);
-          if (pesertaWa) query.set("whatsapp", pesertaWa);
-          if (pesertaEmail) query.set("email", pesertaEmail);
-          router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
-          return;
-        }
+      // Validasi integritas butir soal: tidak boleh ada submit jika data soal kosong
+      if (questions.length === 0) {
+        throw new Error("Tidak ada butir soal yang dapat dikirim.");
       }
 
-      // Fallback kalkulasi lokal jika paket mock
-      const score = calculateScore(answers);
-      const query = new URLSearchParams(searchParams.toString());
-      query.set("skor", String(score));
-      if (pesertaNama) query.set("nama", pesertaNama);
-      if (pesertaWa) query.set("whatsapp", pesertaWa);
-      if (pesertaEmail) query.set("email", pesertaEmail);
-      router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
-    } catch (err) {
+      // Susun payload jawaban untuk dikirim ke backend sesuai urutan pilihan yang ditampilkan
+      const jawabanPayload = questions.map((q, idx) => {
+        const selectedOptIdx = answers[idx] ?? 0;
+        const pilihan = q.pilihanList[selectedOptIdx];
+        return {
+          id_soal: q.id,
+          id_pilihan: pilihan ? pilihan.id : q.pilihanList[0]?.id,
+        };
+      });
+
+      const res = await psikotesService.submitJawaban(params.testId, {
+        jawaban: jawabanPayload,
+        nama: pesertaNama || undefined,
+        no_telepon: pesertaWa || undefined,
+        email: pesertaEmail || undefined,
+        klien: pesertaNama ? {
+          nama: pesertaNama,
+          no_telepon: pesertaWa || undefined,
+          email: pesertaEmail || undefined,
+        } : undefined,
+      });
+
+      if (res && res.success && res.data) {
+        const query = new URLSearchParams(searchParams.toString());
+        query.set("skor", String(res.data.total_skor));
+        query.set("bookingId", res.data.id_booking);
+        const hasHarm =
+          res.data.detail_skor?.ideMelukaiDiri ||
+          (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0);
+        if (hasHarm) {
+          query.set("harm", "1");
+        }
+        if (pesertaNama) query.set("nama", pesertaNama);
+        if (pesertaWa) query.set("whatsapp", pesertaWa);
+        if (pesertaEmail) query.set("email", pesertaEmail);
+        router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+        return;
+      }
+
+      throw new Error(res?.message || "Server tidak dapat memproses jawaban psikotes.");
+    } catch (err: any) {
       console.error("Gagal menyimpan jawaban psikotes ke server:", err);
-      // Tetap lanjutkan ke halaman hasil agar pengalaman user lancar
-      const score = calculateScore(answers);
-      const query = new URLSearchParams(searchParams.toString());
-      query.set("skor", String(score));
-      if (pesertaNama) query.set("nama", pesertaNama);
-      if (pesertaWa) query.set("whatsapp", pesertaWa);
-      if (pesertaEmail) query.set("email", pesertaEmail);
-      router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+      // Data Kritis: JANGAN pura-pura berhasil dengan fallback kalkulasi lokal jika server menolak/mati.
+      // Tampilkan error agar peserta tahu dan dapat mencoba kirim ulang.
+      setSubmitError(
+        err?.message || "Terjadi kendala saat mengirim jawaban ke server. Pastikan koneksi internet stabil lalu coba lagi."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -275,6 +324,19 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               <p className="text-red-500 text-xs sm:text-sm font-medium text-center mt-5 animate-pulse">
                 Silakan pilih jawaban terlebih dahulu.
               </p>
+            )}
+
+            {submitError && (
+              <div className="mt-5 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm text-center flex flex-col items-center gap-2">
+                <p className="font-semibold">{submitError}</p>
+                <button
+                  type="button"
+                  onClick={handleFinish}
+                  className="px-4 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition cursor-pointer"
+                >
+                  Coba Kirim Ulang
+                </button>
+              </div>
             )}
           </div>
 

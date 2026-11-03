@@ -128,6 +128,7 @@ export class PsikotesRepository {
       data: {
         judul: data.judul,
         deskripsi: data.deskripsi || null,
+        tentang_tes: data.tentang_tes || null,
         banner_url: data.banner_url || null,
         jenis_akses: data.jenis_akses || 'GRATIS',
         harga: data.harga ?? 0,
@@ -190,6 +191,7 @@ export class PsikotesRepository {
         data: {
           ...(data.judul !== undefined ? { judul: data.judul } : {}),
           ...(data.deskripsi !== undefined ? { deskripsi: data.deskripsi } : {}),
+          ...(data.tentang_tes !== undefined ? { tentang_tes: data.tentang_tes } : {}),
           ...(data.banner_url !== undefined ? { banner_url: data.banner_url } : {}),
           ...(data.jenis_akses !== undefined ? { jenis_akses: data.jenis_akses } : {}),
           ...(data.harga !== undefined ? { harga: data.harga } : {}),
@@ -518,13 +520,13 @@ export class PsikotesRepository {
 
         matchedInterpretasi = {
           id: dbMatched?.id || null,
-          grade: calculationResult.grade || dbMatched?.grade || 'Hasil Tes',
-          judul: calculationResult.kategori || dbMatched?.judul || 'Hasil Asesmen',
-          deskripsi: calculationResult.deskripsi || dbMatched?.deskripsi || '',
-          makna: Array.isArray(calculationResult.catatanKlinis)
+          grade: dbMatched?.grade || calculationResult.grade || 'Hasil Tes',
+          judul: dbMatched?.judul || calculationResult.kategori || 'Hasil Asesmen',
+          deskripsi: dbMatched?.deskripsi || calculationResult.deskripsi || '',
+          makna: dbMatched?.makna || (Array.isArray(calculationResult.catatanKlinis)
             ? calculationResult.catatanKlinis.join('\n\n')
-            : (calculationResult.catatanKlinis || null),
-          tips: calculationResult.saran || (dbMatched as any)?.tips || null,
+            : (calculationResult.catatanKlinis || null)),
+          tips: (dbMatched as any)?.tips || calculationResult.saran || null,
         }
       } else {
         const interpretasiList = paket.interpretasi_psikotes || []
@@ -770,6 +772,7 @@ export class PsikotesRepository {
           no_telepon: client.no_telepon,
         },
         total_skor: totalSkor,
+        detail_skor: detailSkorPayload,
         hasil: {
           id: hasilTes.id,
           grade: matchedInterpretasi.grade,

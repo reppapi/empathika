@@ -248,30 +248,53 @@ export default function LayananClient() {
                     }
 
                     if (publishedPsikotes.length > 0) {
-                      const psikotesServices = publishedPsikotes.map((p, idx) => {
-                        const colors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
-                        const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
-                        const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
-                        return {
-                          topTitle: p.judul.toUpperCase(),
-                          topSubtitle: "",
-                          bottomTitle: p.judul,
-                          bottomDescription: p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
-                          bgColor: colors[idx % colors.length],
-                          titleColor: textColors[idx % textColors.length],
-                          btnText: "Ikuti Tes",
-                          shape: shapes[idx % shapes.length],
-                          href: `/psikotes/${p.id}`,
-                        }
-                      })
-
                       return (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                          {psikotesServices.map((item, idx) =>
-                            renderServiceCard(item, idx)
-                          )}
+                          {publishedPsikotes.map((p) => {
+                            const bannerImage =
+                              p.banner_url ||
+                              "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800";
+                            const targetHref = withBiro ? withBiro(`/psikotes/${p.id}`) : `/psikotes/${p.id}`;
+
+                            return (
+                              <div
+                                key={p.id}
+                                className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full"
+                              >
+                                {/* Foto Bersih / Banner Kartun */}
+                                <div className="h-44 sm:h-52 w-full overflow-hidden relative bg-gray-100 shrink-0">
+                                  <Image
+                                    src={bannerImage}
+                                    alt={p.judul}
+                                    fill
+                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                    unoptimized
+                                  />
+                                </div>
+
+                                {/* Konten Card */}
+                                <div className="p-5 sm:p-6 flex flex-col flex-1">
+                                  <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
+                                    {p.judul}
+                                  </h3>
+                                  <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
+                                    {p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri."}
+                                  </p>
+
+                                  <div className="mt-auto pt-2">
+                                    <Link
+                                      href={targetHref}
+                                      className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
+                                    >
+                                      Ikuti Tes
+                                    </Link>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      )
+                      );
                     }
 
                     return (

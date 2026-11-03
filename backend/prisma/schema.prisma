@@ -444,6 +444,7 @@ model PaketPsikotes {
   harga       Decimal            @db.Decimal(12, 2)
   banner_url  String?
   deskripsi   String?            @db.Text
+  tentang_tes String?            @db.Text
   status      String             @default("PUBLISHED")
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
