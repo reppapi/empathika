@@ -155,7 +155,7 @@ export default function AdminEventClient() {
               : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
           }`}
         >
-          Event Selesai
+          Event / Kolaborasi Sebelumnya
         </button>
       </div>
 

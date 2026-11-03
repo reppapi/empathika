@@ -370,7 +370,9 @@ function normalizeTransaksi(raw: any) {
     }) + " WIB"
     : undefined
 
-  let cleanedOrderId = raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-"
+  const bookingKodePesanan = booking.kode_pesanan || bookingEvent.kode_tiket || (bookingPsikotes.id ? ("EMP-PSI-" + raw.id?.slice(0, 8)?.toUpperCase()) : "") || "";
+  const rawKodeTransaksi = raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-";
+  let cleanedOrderId = bookingKodePesanan || rawKodeTransaksi;
   cleanedOrderId = cleanedOrderId.replace(/^W-EMP-EMP-/, "W-EMP-").replace(/^EMP-EMP-/, "EMP-")
 
   // Format metode pembayaran yang user-friendly
@@ -418,6 +420,9 @@ function normalizeTransaksi(raw: any) {
   return {
     id: raw.id,
     orderId: cleanedOrderId,
+    kodePesanan: bookingKodePesanan || cleanedOrderId,
+    kodeTransaksi: rawKodeTransaksi,
+    invoiceNomor: raw.invoice?.nomor || "",
     orderDate: createdAt.toLocaleString("id-ID", {
       day: "2-digit",
       month: "short",
@@ -824,7 +829,12 @@ export default function AdminTransaksiClient() {
                           <div className="absolute inset-y-0 left-0 w-[5px] bg-[#561269]" />
                         )}
                         <div className="flex flex-col gap-1 min-w-0">
-                          <span className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{item.orderId}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] font-bold tracking-wider text-[#561269] bg-purple-50 px-2 py-0.5 rounded border border-purple-200/60 uppercase">{item.kodePesanan || item.orderId}</span>
+                            {item.kodeTransaksi && item.kodeTransaksi !== (item.kodePesanan || item.orderId) && (
+                              <span className="text-[10px] font-medium text-gray-400 tracking-wide">Ref: {item.kodeTransaksi}</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-sm">
                             <span className="font-bold text-gray-900 truncate">{item.clientName}</span>
                             <span className="text-gray-300">|</span>

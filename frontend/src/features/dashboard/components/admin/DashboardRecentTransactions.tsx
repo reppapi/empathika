@@ -3,34 +3,23 @@ import Link from "next/link"
 import { ArrowRight, Wallet } from "lucide-react"
 import { RecentTransactionItem } from "../../types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
-import { DUMMY_TRANSAKSI, TransaksiItem, getTodayTransactions } from "@/features/transaksi/data/transaksiData"
+// Tidak ada lagi import dummy data
 
 interface DashboardRecentTransactionsProps {
-  transactions?: (RecentTransactionItem | TransaksiItem)[]
+  transactions?: RecentTransactionItem[]
 }
 
 export default function DashboardRecentTransactions({ transactions }: DashboardRecentTransactionsProps) {
   const displayTransactions = useMemo(() => {
-    const rawList =
-      transactions && transactions.length > 0
-        ? transactions
-        : getTodayTransactions()
-
-    return rawList.map((trx: any) => {
-      const isTransaksiItem = "orderId" in trx
-      return {
-        id: isTransaksiItem ? trx.orderId : trx.id,
-        client: isTransaksiItem ? trx.clientName : trx.client,
-        layanan: isTransaksiItem ? trx.namaLayanan : trx.layanan,
-        metode: isTransaksiItem ? trx.metodePembayaran : trx.metode,
-        total: isTransaksiItem
-          ? trx.totalBayar === 0
-            ? "Gratis"
-            : `Rp. ${trx.totalBayar.toLocaleString("id-ID")}`
-          : trx.total,
-        status: trx.status === "Menunggu Pembayaran" ? "Menunggu" : trx.status,
-      }
-    })
+    if (!transactions || transactions.length === 0) return []
+    return transactions.map((trx: any) => ({
+      id: trx.id,
+      client: trx.client,
+      layanan: trx.layanan,
+      metode: trx.metode,
+      total: trx.total,
+      status: trx.status === "Menunggu Pembayaran" ? "Menunggu" : trx.status,
+    }))
   }, [transactions])
 
   return (
