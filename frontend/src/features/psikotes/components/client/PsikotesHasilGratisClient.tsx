@@ -210,7 +210,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
 
   return (
     <div className="min-h-screen bg-[#fbfbfb] pt-24 pb-20 px-4 sm:px-6 lg:px-8 lg:pt-28 font-sans selection:bg-[#561269] selection:text-white">
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6">
 
         {/* 1. Warm Illustration */}
         <SelfCareIllustration />
@@ -273,45 +273,52 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
           )}
         </div>
 
-        {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol) */}
+        {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol - Satu Persen Card Style) */}
         {isHarmDetected && (
-          <div className="bg-red-50/90 border border-red-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-                <HeartHandshake className="w-5 h-5" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base sm:text-lg font-bold text-red-950">
-                  Kamu Tidak Harus Menghadapinya Sendirian
-                </h3>
-                <p className="text-xs sm:text-sm text-red-900/90 leading-relaxed font-normal">
-                  Dari jawabanmu, kami melihat adanya tanda-tanda perasaan putus asa atau pikiran untuk menyakiti diri sendiri. Kami tahu perasaan seperti ini tidak mudah untuk dihadapi. Namun, kamu tidak harus melewatinya sendirian. Selalu ada dukungan dan bantuan profesional yang bisa kamu jangkau kapan pun kamu membutuhkannya.
-                </p>
-              </div>
+          <div className="bg-[#fff1f2] rounded-3xl p-6 sm:p-7 border border-[#fecdd3] shadow-xs space-y-5">
+            {/* Header Section */}
+            <div className="space-y-1.5">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
+                Kamu Tidak Harus Menghadapinya Sendirian
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
+                Dari jawabanmu, kami melihat adanya tanda-tanda perasaan putus asa atau pikiran untuk menyakiti diri sendiri. Kami tahu perasaan seperti ini tidak mudah untuk dihadapi. Namun, kamu tidak harus melewatinya sendirian. Selalu ada dukungan dan bantuan profesional yang bisa kamu jangkau kapan pun kamu membutuhkannya.
+              </p>
             </div>
 
-            <div className="bg-white/95 rounded-2xl p-4 border border-red-100 space-y-2.5">
-              <p className="text-xs font-bold text-gray-800">
+            {/* Sub-Card 1: Hotline Krisis (Atas) */}
+            <div className="bg-white rounded-2xl p-5 border border-[#fecdd3] shadow-2xs space-y-3">
+              <h4 className="text-sm sm:text-base font-bold text-gray-900">
                 Layanan Bantuan & Hotline Krisis Darurat:
-              </p>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                <a
-                  href="tel:119"
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-xs"
-                >
-                  <PhoneCall className="w-4 h-4" />
-                  <span>Hotline Kemenkes: 119 (ext. 8)</span>
-                </a>
-                <Link
-                  href="/konseling"
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs transition shadow-xs"
-                >
-                  <span>Konsultasi dengan Psikolog</span>
-                </Link>
-              </div>
-              <p className="text-[11px] text-gray-500 leading-relaxed pt-1">
+              </h4>
+              <p className="text-xs text-gray-600 leading-relaxed">
                 Jika kamu sedang berada dalam situasi yang membahayakan diri, segera hubungi keluarga atau orang terdekat yang kamu percaya, dan datangi IGD rumah sakit terdekat jika diperlukan.
               </p>
+              <a
+                href="tel:119"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#e11d48] hover:bg-[#be123c] text-white font-bold text-xs sm:text-sm transition shadow-xs active:scale-98 cursor-pointer"
+              >
+                <PhoneCall className="w-4 h-4" />
+                <span>Hotline Kemenkes: 119 (ext. 8)</span>
+              </a>
+            </div>
+
+            {/* Sub-Card 2: Konsultasi Psikolog (Bawah) */}
+            <div className="bg-white rounded-2xl p-5 border border-[#fecdd3] shadow-2xs space-y-3">
+              <h4 className="text-sm sm:text-base font-bold text-gray-900">
+                Konsultasi dengan Psikolog
+              </h4>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Jika kamu merasa membutuhkan ruang aman dan pendampingan profesional untuk kondisimu saat ini, psikolog profesional Empathika siap menemanimu.
+              </p>
+              <Link href="/konseling" className="w-full block">
+                <button
+                  type="button"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs sm:text-sm transition shadow-xs active:scale-98 cursor-pointer"
+                >
+                  <span>Konsultasi dengan Psikolog</span>
+                </button>
+              </Link>
             </div>
           </div>
         )}
