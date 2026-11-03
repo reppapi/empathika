@@ -15,6 +15,15 @@ export default function EventDetailClient({ id: _id, event }: Props) {
   const waktu = event?.waktu ?? "-"
   const lokasi = event?.lokasi ?? "-"
   const deskripsi = event?.deskripsi ?? ""
+  const tipe = event?.tipe ?? "Online"
+  const hargaNum = Number(event?.harga) || 0
+  const hargaCoretNum = event?.hargaCoret ? Number(event?.hargaCoret) : 0
+  const hargaTeks = hargaNum === 0 ? "Gratis" : `Rp ${hargaNum.toLocaleString("id-ID")}`
+  const hargaCoretTeks = hargaCoretNum > 0 ? `Rp ${hargaCoretNum.toLocaleString("id-ID")}` : null
+  const diskonPersen =
+    hargaCoretNum > hargaNum && hargaCoretNum > 0
+      ? Math.round(((hargaCoretNum - hargaNum) / hargaCoretNum) * 100)
+      : 0
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#F3E8F5] to-[#B583C2] font-poppins pb-10">
@@ -59,10 +68,32 @@ export default function EventDetailClient({ id: _id, event }: Props) {
           </p>
         )}
         {/* Info pills */}
-        <div className="flex flex-wrap justify-center gap-3 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
           <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{tanggal}</span>
           <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{waktu}</span>
+          <span
+            className={`text-xs font-bold px-4 py-1.5 rounded-full ${
+              tipe === "Offline"
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-blue-100 text-blue-800"
+            }`}
+          >
+            {tipe}
+          </span>
           {lokasi && <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{lokasi}</span>}
+          {event?.harga !== undefined && (
+            <div className="inline-flex items-center gap-1.5 bg-[#561269] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-sm">
+              {hargaCoretTeks && hargaCoretNum > hargaNum && (
+                <span className="line-through text-white/60 text-[11px]">{hargaCoretTeks}</span>
+              )}
+              <span>{hargaTeks}</span>
+              {diskonPersen > 0 && (
+                <span className="bg-yellow-400 text-black text-[10px] px-1.5 py-0.5 rounded-full font-extrabold ml-0.5">
+                  -{diskonPersen}%
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

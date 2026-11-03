@@ -1,4 +1,4 @@
-import type { PrismaClient, Prisma, JenisEvent, StatusEvent } from '@prisma/client'
+import type { PrismaClient, Prisma, JenisEvent, StatusEvent, TipeEvent } from '@prisma/client'
 import type { CreateEventInput, UpdateEventInput } from './event.schema'
 
 export interface EventQueryInput {
@@ -6,6 +6,7 @@ export interface EventQueryInput {
   limit?: number
   search?: string
   jenis_event?: JenisEvent
+  tipe_event?: TipeEvent
   status?: StatusEvent
 }
 
@@ -29,6 +30,10 @@ export class EventRepository {
 
     if (query?.jenis_event) {
       where.jenis_event = query.jenis_event
+    }
+
+    if (query?.tipe_event) {
+      where.tipe_event = query.tipe_event
     }
 
     if (query?.status) {
@@ -57,6 +62,7 @@ export class EventRepository {
       items: items.map((item) => ({
         ...item,
         harga: item.harga.toString(),
+        harga_coret: item.harga_coret ? item.harga_coret.toString() : null,
         jumlah_booking: item._count.booking_event,
         sisa_kuota: item.kuota - item._count.booking_event,
       })),
@@ -84,6 +90,7 @@ export class EventRepository {
     return {
       ...item,
       harga: item.harga.toString(),
+      harga_coret: item.harga_coret ? item.harga_coret.toString() : null,
       jumlah_booking: item._count.booking_event,
       sisa_kuota: item.kuota - item._count.booking_event,
     }
@@ -94,10 +101,16 @@ export class EventRepository {
     const tanggalDate = new Date(`${data.tanggal}T00:00:00.000Z`)
     const jamMulaiDate = new Date(`1970-01-01T${data.jam_mulai}:00.000Z`)
 
+    const isOnline = data.tipe_event === 'ONLINE'
+    const linkMeet = isOnline ? (data.link_meet || null) : null
+
     const created = await this.prisma.event.create({
       data: {
         judul: data.judul,
         jenis_event: data.jenis_event,
+        tipe_event: data.tipe_event ?? 'ONLINE',
+        link_meet: linkMeet,
+        link_wa: data.link_wa || null,
         deskripsi: data.deskripsi,
         tanggal: tanggalDate,
         jam_mulai: jamMulaiDate,
@@ -105,6 +118,7 @@ export class EventRepository {
         lokasi: data.lokasi ?? null,
         kuota: data.kuota,
         harga: data.harga,
+        harga_coret: data.harga_coret !== undefined && data.harga_coret !== null ? data.harga_coret : null,
         banner_url: data.banner_url ?? null,
         nama_pembicara: data.nama_pembicara,
         status: data.status ?? 'UPCOMING',
@@ -119,6 +133,7 @@ export class EventRepository {
     return {
       ...created,
       harga: created.harga.toString(),
+      harga_coret: created.harga_coret ? created.harga_coret.toString() : null,
       jumlah_booking: created._count.booking_event,
       sisa_kuota: created.kuota - created._count.booking_event,
     }
@@ -129,6 +144,22 @@ export class EventRepository {
 
     if (data.judul !== undefined) updateData.judul = data.judul
     if (data.jenis_event !== undefined) updateData.jenis_event = data.jenis_event
+    if (data.tipe_event !== undefined) {
+      updateData.tipe_event = data.tipe_event
+      // Jika diupdate jadi OFFLINE, otomatis bersihkan link_meet
+      if (data.tipe_event === 'OFFLINE') {
+        updateData.link_meet = null
+      }
+    }
+    if (data.link_meet !== undefined) {
+      // Jika tipe_event sedang diubah jadi OFFLINE atau tidak ditentukan tetapi form mengirimkan nilai
+      if (data.tipe_event === 'OFFLINE') {
+        updateData.link_meet = null
+      } else {
+        updateData.link_meet = data.link_meet || null
+      }
+    }
+    if (data.link_wa !== undefined) updateData.link_wa = data.link_wa || null
     if (data.deskripsi !== undefined) updateData.deskripsi = data.deskripsi
     if (data.tanggal !== undefined) updateData.tanggal = new Date(`${data.tanggal}T00:00:00.000Z`)
     if (data.jam_mulai !== undefined)
@@ -137,6 +168,9 @@ export class EventRepository {
     if (data.lokasi !== undefined) updateData.lokasi = data.lokasi
     if (data.kuota !== undefined) updateData.kuota = data.kuota
     if (data.harga !== undefined) updateData.harga = data.harga
+    if (data.harga_coret !== undefined) {
+      updateData.harga_coret = data.harga_coret !== null ? data.harga_coret : null
+    }
     if (data.banner_url !== undefined) updateData.banner_url = data.banner_url
     if (data.nama_pembicara !== undefined) updateData.nama_pembicara = data.nama_pembicara
     if (data.status !== undefined) updateData.status = data.status
@@ -154,6 +188,7 @@ export class EventRepository {
     return {
       ...updated,
       harga: updated.harga.toString(),
+      harga_coret: updated.harga_coret ? updated.harga_coret.toString() : null,
       jumlah_booking: updated._count.booking_event,
       sisa_kuota: updated.kuota - updated._count.booking_event,
     }

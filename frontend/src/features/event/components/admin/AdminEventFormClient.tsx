@@ -2,13 +2,15 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { mapApiToAdminEvent } from "../../data/adminEventData"
 import { eventService, CreateEventDto, UpdateEventDto } from "@/services/event.service"
 import { uploadService } from "@/services/upload.service"
 
 export type EventFormData = {
   judul: string
   jenis: "Workshop" | "Seminar" | "Webinar"
+  tipe: "Online" | "Offline"
+  linkMeet: string
+  linkWa: string
   tanggal: string
   waktuMulai: string
   waktuSelesai: string
@@ -16,6 +18,7 @@ export type EventFormData = {
   pembicara: string
   kuota: string
   harga: string
+  hargaCoret: string
   deskripsi: string
   status: "Draft" | "Dipublikasi" | "Selesai"
 }
@@ -23,6 +26,9 @@ export type EventFormData = {
 const INITIAL_FORM: EventFormData = {
   judul: "",
   jenis: "Workshop",
+  tipe: "Online",
+  linkMeet: "",
+  linkWa: "",
   tanggal: new Date().toISOString().split("T")[0],
   waktuMulai: "09:00",
   waktuSelesai: "12:00",
@@ -30,6 +36,7 @@ const INITIAL_FORM: EventFormData = {
   pembicara: "",
   kuota: "100",
   harga: "0",
+  hargaCoret: "",
   deskripsi: "",
   status: "Dipublikasi",
 }
@@ -49,6 +56,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [loading, setLoading] = useState(isEditMode)
   const [submitting, setSubmitting] = useState(false)
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     if (!eventId) return
@@ -67,14 +75,21 @@ export default function AdminEventFormClient({ eventId }: Props) {
             }
           } catch {}
 
-          // Format waktu
+          // Format waktu mulai & hitung waktu selesai berdasarkan durasi_menit
           let waktuMulai = "09:00"
+          let waktuSelesai = "12:00"
           try {
             const t = new Date(item.jam_mulai)
             if (!isNaN(t.getTime())) {
               const hh = String(t.getUTCHours()).padStart(2, "0")
               const mm = String(t.getUTCMinutes()).padStart(2, "0")
               waktuMulai = `${hh}:${mm}`
+
+              const durasi = item.durasi_menit || 120
+              const totalMins = t.getUTCHours() * 60 + t.getUTCMinutes() + durasi
+              const endH = String(Math.floor(totalMins / 60) % 24).padStart(2, "0")
+              const endM = String(totalMins % 60).padStart(2, "0")
+              waktuSelesai = `${endH}:${endM}`
             }
           } catch {}
 
@@ -86,16 +101,22 @@ export default function AdminEventFormClient({ eventId }: Props) {
           if (item.status === "COMPLETED" || item.status === "CANCELLED") status = "Selesai"
           if (item.status === "DRAFT") status = "Draft"
 
+          const tipe: "Online" | "Offline" = item.tipe_event === "OFFLINE" ? "Offline" : "Online"
+
           setForm({
             judul: item.judul,
             jenis,
+            tipe,
+            linkMeet: tipe === "Online" ? (item.link_meet || "") : "",
+            linkWa: item.link_wa || "",
             tanggal: dateStr,
             waktuMulai,
-            waktuSelesai: "12:00",
+            waktuSelesai,
             lokasi: item.lokasi || "",
             pembicara: item.nama_pembicara,
             kuota: String(item.kuota),
             harga: String(item.harga),
+            hargaCoret: item.harga_coret ? String(item.harga_coret) : "",
             deskripsi: item.deskripsi,
             status,
           })
@@ -114,13 +135,40 @@ export default function AdminEventFormClient({ eventId }: Props) {
     loadEvent()
   }, [eventId])
 
+  const isValidUrl = (url: string) => {
+    try {
+      const parsed = new URL(url)
+      return parsed.protocol === "http:" || parsed.protocol === "https:"
+    } catch {
+      return false
+    }
+  }
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+
+    if (name === "tipe") {
+      setForm((prev) => ({
+        ...prev,
+        tipe: value as "Online" | "Offline",
+        // Mengubah tipe dari Online ke Offline harus membersihkan link gmeet
+        linkMeet: value === "Offline" ? "" : prev.linkMeet,
+      }))
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }))
+    }
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[name]
+        return next
+      })
+    }
   }
 
   const handleImageUpload = async (file: File) => {
@@ -142,8 +190,45 @@ export default function AdminEventFormClient({ eventId }: Props) {
     }
   }
 
+  const validate = (): boolean => {
+    const newErrors: { [key: string]: string } = {}
+
+    // Link WhatsApp wajib diisi & valid URL untuk online maupun offline
+    if (!form.linkWa || !form.linkWa.trim()) {
+      newErrors.linkWa = "Link grup WhatsApp wajib diisi."
+    } else if (!isValidUrl(form.linkWa.trim())) {
+      newErrors.linkWa = "Format link grup WhatsApp harus URL valid (misal: https://chat.whatsapp.com/...)"
+    }
+
+    // Jika Online, link Google Meet wajib diisi dan format URL valid
+    if (form.tipe === "Online") {
+      if (!form.linkMeet || !form.linkMeet.trim()) {
+        newErrors.linkMeet = "Link Google Meet wajib diisi untuk event online."
+      } else if (!isValidUrl(form.linkMeet.trim())) {
+        newErrors.linkMeet = "Format link Google Meet harus URL valid (misal: https://meet.google.com/...)"
+      }
+    }
+
+    // Validasi harga coret: jika diisi harus lebih besar dari harga asli
+    if (form.hargaCoret && form.hargaCoret.trim() !== "") {
+      const hargaNum = parseFloat(form.harga) || 0
+      const coretNum = parseFloat(form.hargaCoret) || 0
+      if (coretNum <= hargaNum) {
+        newErrors.hargaCoret = `Harga coret (Rp ${coretNum.toLocaleString("id-ID")}) harus lebih besar dari harga asli (Rp ${hargaNum.toLocaleString("id-ID")}).`
+      }
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validate()) {
+      return
+    }
+
     setSubmitting(true)
 
     // Map jenis form ke backend enum
@@ -155,6 +240,26 @@ export default function AdminEventFormClient({ eventId }: Props) {
     let statusEvent: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT" = "UPCOMING"
     if (form.status === "Draft") statusEvent = "DRAFT"
     if (form.status === "Selesai") statusEvent = "COMPLETED"
+
+    const tipeEvent: "ONLINE" | "OFFLINE" = form.tipe === "Offline" ? "OFFLINE" : "ONLINE"
+    const hargaNum = parseFloat(form.harga) || 0
+    const hargaCoretNum = form.hargaCoret && form.hargaCoret.trim() !== "" ? parseFloat(form.hargaCoret) : null
+    const finalMeetUrl = tipeEvent === "ONLINE" ? (form.linkMeet.trim() || null) : null
+    const finalWaUrl = form.linkWa.trim()
+
+    // Hitung durasi menit otomatis dari waktuMulai ke waktuSelesai
+    let durasiMenit = 120
+    if (form.waktuMulai && form.waktuSelesai) {
+      try {
+        const [h1, m1] = form.waktuMulai.split(":").map(Number)
+        const [h2, m2] = form.waktuSelesai.split(":").map(Number)
+        const startMinutes = h1 * 60 + m1
+        const endMinutes = h2 * 60 + m2
+        if (endMinutes > startMinutes) {
+          durasiMenit = endMinutes - startMinutes
+        }
+      } catch {}
+    }
 
     try {
       // 1. Upload file gambar jika user memilih file lokal baru
@@ -171,13 +276,17 @@ export default function AdminEventFormClient({ eventId }: Props) {
         const payload: UpdateEventDto = {
           judul: form.judul,
           jenis_event: jenisEvent,
+          tipe_event: tipeEvent,
+          link_meet: finalMeetUrl,
+          link_wa: finalWaUrl,
           deskripsi: form.deskripsi || "Deskripsi event Empathika",
           tanggal: form.tanggal,
           jam_mulai: form.waktuMulai,
-          durasi_menit: 120,
+          durasi_menit: durasiMenit,
           lokasi: form.lokasi || null,
           kuota: parseInt(form.kuota, 10) || 100,
-          harga: parseFloat(form.harga) || 0,
+          harga: hargaNum,
+          harga_coret: hargaCoretNum,
           banner_url: finalBannerUrl,
           nama_pembicara: form.pembicara,
           status: statusEvent,
@@ -187,13 +296,17 @@ export default function AdminEventFormClient({ eventId }: Props) {
         const payload: CreateEventDto = {
           judul: form.judul,
           jenis_event: jenisEvent,
+          tipe_event: tipeEvent,
+          link_meet: finalMeetUrl,
+          link_wa: finalWaUrl,
           deskripsi: form.deskripsi || "Deskripsi event Empathika",
           tanggal: form.tanggal,
           jam_mulai: form.waktuMulai,
-          durasi_menit: 120,
+          durasi_menit: durasiMenit,
           lokasi: form.lokasi || null,
           kuota: parseInt(form.kuota, 10) || 100,
-          harga: parseFloat(form.harga) || 0,
+          harga: hargaNum,
+          harga_coret: hargaCoretNum,
           banner_url: finalBannerUrl,
           nama_pembicara: form.pembicara,
           status: statusEvent,
@@ -233,34 +346,40 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16 w-full max-w-5xl mx-auto">
-      {/* Heading Form & Tombol Kembali */}
-      <div className="flex items-center gap-3">
+      {/* Top Bar: Navigasi Kembali & Judul Halaman */}
+      <div>
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#561269] transition-colors"
-          aria-label="Kembali"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#561269] font-semibold transition-colors mb-4 cursor-pointer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
-            strokeWidth={2.5}
+            strokeWidth={2}
             stroke="currentColor"
-            className="h-5 w-5"
+            className="w-4 h-4"
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
           </svg>
+          Kembali ke Event
         </button>
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
-          {isEditMode ? "Edit Event" : "Tambah Event Baru"}
+
+        <h2 className="text-2xl font-extrabold text-[#561269]">
+          {isEditMode ? "Edit Informasi Event" : "Tambah Event Baru"}
         </h2>
+        <p className="text-xs text-gray-500 mt-1">
+          {isEditMode
+            ? "Perbarui detail informasi, jadwal, tipe pelaksanaan, harga coret, atau status penayangan event."
+            : "Lengkapi formulir di bawah ini untuk menambahkan event atau workshop baru ke sistem."}
+        </p>
       </div>
 
-      {/* Container Form */}
-      <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* Banner / Poster Event */}
+      {/* Main Container Card */}
+      <div className="rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Upload Banner Section */}
           <div>
             <label className={labelClass}>Banner / Poster Event</label>
             <div
@@ -276,86 +395,79 @@ export default function AdminEventFormClient({ eventId }: Props) {
                   handleImageUpload(e.dataTransfer.files[0])
                 }
               }}
-              className={`relative flex flex-col items-center justify-center w-full min-h-[220px] rounded-2xl border-2 border-dashed transition-all cursor-pointer p-4 overflow-hidden ${
+              className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all p-6 text-center cursor-pointer overflow-hidden ${
                 isDragOver
-                  ? "border-[#561269] bg-purple-50/60"
-                  : "border-gray-300 bg-gray-50/60 hover:bg-purple-50/30 hover:border-[#561269]"
+                  ? "border-[#561269] bg-purple-50/50"
+                  : bannerUrl
+                  ? "border-purple-200 bg-gray-50"
+                  : "border-gray-200 bg-[#FCFAFD] hover:bg-gray-50 hover:border-gray-300"
               }`}
             >
               <input
-                id="banner-file-upload"
                 type="file"
                 accept="image/*"
-                className="sr-only"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
                     handleImageUpload(e.target.files[0])
                   }
                 }}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
               />
 
               {bannerUrl ? (
-                <div className="relative w-full h-56 rounded-xl overflow-hidden group">
+                <div className="relative w-full max-w-md h-48 rounded-xl overflow-hidden shadow-sm group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={bannerUrl}
-                    alt="Preview Poster Event"
-                    className="w-full h-full object-cover rounded-xl"
+                    alt="Preview Banner"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
-                    📐 1200 × 675 px (16:9)
-                  </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <label
-                      htmlFor="banner-file-upload"
-                      className="cursor-pointer bg-white text-gray-800 px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-gray-100 transition"
-                    >
-                      Ganti Foto
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setBannerUrl("")}
-                      className="bg-red-500 text-white px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-red-600 transition"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <label
-                  htmlFor="banner-file-upload"
-                  className="flex flex-col items-center justify-center cursor-pointer w-full h-full py-6"
-                >
-                  <div className="p-3 bg-purple-100 text-[#561269] rounded-full mb-3">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-2">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
                       fill="none"
                       viewBox="0 0 24 24"
+                      strokeWidth={2}
                       stroke="currentColor"
+                      className="w-4 h-4"
                     >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"
+                      />
+                    </svg>
+                    Klik atau drop untuk ganti gambar
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-[#561269]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.8}
+                      stroke="currentColor"
+                      className="w-6 h-6"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
                       />
                     </svg>
                   </div>
-                  <p className="text-sm font-semibold text-gray-700 text-center">
-                    Seret & lepas foto di sini, atau{" "}
-                    <span className="text-[#561269] underline">pilih file</span>
-                  </p>
-                  <p className="text-xs font-medium text-gray-600 mt-1 text-center">
-                    Rekomendasi ukuran: <strong className="text-[#561269]">1200 × 675 px (rasio 16:9)</strong>
-                  </p>
-                  <p className="text-[11px] text-gray-400 mt-0.5 text-center">
-                    Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
-                  </p>
-                </label>
+                  <div className="text-xs text-gray-600 font-medium">
+                    <span className="text-[#561269] font-bold">Pilih foto</span> atau tarik file ke sini
+                  </div>
+                  <p className="text-[11px] text-gray-400">PNG, JPG, JPEG hingga 10MB</p>
+                </div>
               )}
             </div>
-            <span className={helperClass}>Upload gambar poster atau banner untuk event ini</span>
+            <span className={helperClass}>
+              Banner akan ditampilkan di kartu list event dan halaman rincian
+            </span>
           </div>
 
           {/* Judul Event */}
@@ -368,19 +480,19 @@ export default function AdminEventFormClient({ eventId }: Props) {
               name="judul"
               type="text"
               required
+              placeholder="Contoh: Workshop SEFT Batch 4: Bebas Stres & Trauma"
               value={form.judul}
               onChange={handleChange}
-              placeholder="Masukkan judul event"
               className={inputClass}
             />
-            <span className={helperClass}>Contoh: AMTR : A Moment to Remember</span>
+            <span className={helperClass}>Gunakan judul yang jelas dan menarik peserta</span>
           </div>
 
           {/* Jenis Event & Status Publikasi */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             <div>
               <label htmlFor="jenis" className={labelClass}>
-                Jenis Event <span className="text-red-500">*</span>
+                Kategori Event <span className="text-red-500">*</span>
               </label>
               <select
                 id="jenis"
@@ -416,7 +528,86 @@ export default function AdminEventFormClient({ eventId }: Props) {
             </div>
           </div>
 
-          {/* Tanggal Event */}
+          {/* TIPE EVENT (Online / Offline) & LINK KOMUNIKASI */}
+          <div className="p-5 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-4">
+            <div>
+              <label htmlFor="tipe" className={labelClass}>
+                Tipe Event <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="tipe"
+                name="tipe"
+                required
+                value={form.tipe}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="Online">Online</option>
+                <option value="Offline">Offline</option>
+              </select>
+              <span className={helperClass}>
+                Pilih apakah event diselenggarakan secara online (virtual) atau offline (tatap muka)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+              {/* Kolom Link Google Meet: Tampil jika tipe Online */}
+              {form.tipe === "Online" && (
+                <div>
+                  <label htmlFor="linkMeet" className={labelClass}>
+                    Link Google Meet <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="linkMeet"
+                    name="linkMeet"
+                    type="url"
+                    required={form.tipe === "Online"}
+                    placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                    value={form.linkMeet}
+                    onChange={handleChange}
+                    className={`${inputClass} ${errors.linkMeet ? "border-red-400 bg-red-50/20" : ""}`}
+                  />
+                  {errors.linkMeet ? (
+                    <span className="block text-[11px] text-red-600 font-semibold mt-1">
+                      {errors.linkMeet}
+                    </span>
+                  ) : (
+                    <span className={helperClass}>
+                      Generate link secara manual dan tempelkan di sini (hanya untuk peserta yang telah lunas)
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Kolom Link Grup WhatsApp: Wajib untuk Online maupun Offline */}
+              <div className={form.tipe === "Offline" ? "md:col-span-2" : ""}>
+                <label htmlFor="linkWa" className={labelClass}>
+                  Link Grup WhatsApp <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="linkWa"
+                  name="linkWa"
+                  type="url"
+                  required
+                  placeholder="https://chat.whatsapp.com/invite/xxxx"
+                  value={form.linkWa}
+                  onChange={handleChange}
+                  className={`${inputClass} ${errors.linkWa ? "border-red-400 bg-red-50/20" : ""}`}
+                />
+                {errors.linkWa ? (
+                  <span className="block text-[11px] text-red-600 font-semibold mt-1">
+                    {errors.linkWa}
+                  </span>
+                ) : (
+                  <span className={helperClass}>
+                    Link grup WhatsApp koordinasi peserta (generate manual dan tempelkan di sini)
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Tanggal & Waktu Event */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             <div>
               <label htmlFor="tanggal" className={labelClass}>
@@ -508,12 +699,16 @@ export default function AdminEventFormClient({ eventId }: Props) {
                 name="lokasi"
                 type="text"
                 required
-                placeholder="Nama tempat / Link Zoom"
+                placeholder={form.tipe === "Online" ? "Google Meet / Online" : "Nama gedung, alamat venue"}
                 value={form.lokasi}
                 onChange={handleChange}
                 className={inputClass}
               />
-              <span className={helperClass}>Contoh: Jica FPMIPA UPI atau Zoom Meeting</span>
+              <span className={helperClass}>
+                {form.tipe === "Online"
+                  ? "Contoh: Google Meet (Online)"
+                  : "Contoh: Auditorium Empathika Bandung"}
+              </span>
             </div>
 
             <div>
@@ -530,12 +725,12 @@ export default function AdminEventFormClient({ eventId }: Props) {
                 onChange={handleChange}
                 className={inputClass}
               />
-              <span className={helperClass}>Contoh: nama, M.Psi., Psikolog</span>
+              <span className={helperClass}>Contoh: Sarah Melani, M.Psi., Psikolog</span>
             </div>
           </div>
 
-          {/* Kuota & Harga */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+          {/* Kuota, Harga Asli, dan Harga Coret (Efek Psikologis) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             <div>
               <label htmlFor="kuota" className={labelClass}>
                 Kuota Peserta <span className="text-red-500">*</span>
@@ -556,7 +751,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
             <div>
               <label htmlFor="harga" className={labelClass}>
-                Harga Tiket (Rp)
+                Harga Asli / Bayar (Rp) <span className="text-red-500">*</span>
               </label>
               <input
                 id="harga"
@@ -568,7 +763,32 @@ export default function AdminEventFormClient({ eventId }: Props) {
                 onChange={handleChange}
                 className={inputClass}
               />
-              <span className={helperClass}>Isi 0 untuk event gratis</span>
+              <span className={helperClass}>Harga riil yang dibayar peserta (invoice)</span>
+            </div>
+
+            <div>
+              <label htmlFor="hargaCoret" className={labelClass}>
+                Harga Coret (Rp) <span className="text-gray-400 font-normal">(Opsional)</span>
+              </label>
+              <input
+                id="hargaCoret"
+                name="hargaCoret"
+                type="number"
+                min={0}
+                placeholder="Misal: 150000"
+                value={form.hargaCoret}
+                onChange={handleChange}
+                className={`${inputClass} ${errors.hargaCoret ? "border-red-400 bg-red-50/20" : ""}`}
+              />
+              {errors.hargaCoret ? (
+                <span className="block text-[11px] text-red-600 font-semibold mt-1">
+                  {errors.hargaCoret}
+                </span>
+              ) : (
+                <span className={helperClass}>
+                  Harga pura-pura lebih tinggi untuk efek diskon psikologis
+                </span>
+              )}
             </div>
           </div>
 

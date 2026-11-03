@@ -356,7 +356,7 @@ export default function HomeClient() {
               Jangan lewatkan berbagai webinar dan kelas interaktif bersama psikolog ahli untuk mendukung kesehatan mentalmu.
             </p>
           </div>
-          <Link href={biroPrefix ? `${biroPrefix}/layanan?category=04` : "/layanan?category=04"} className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
+          <Link href={withBiro("/event") as any} className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Event
             <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
           </Link>
@@ -380,21 +380,33 @@ export default function HomeClient() {
                 }
               } catch {}
 
-              // Format jam
-              let jamTeks = "09:00 WIB"
+              // Format jam (mulai - selesai)
+              let jamTeks = "09:00"
               try {
                 const t = new Date(ev.jam_mulai)
                 if (!isNaN(t.getTime())) {
                   const hh = String(t.getUTCHours()).padStart(2, "0")
                   const mm = String(t.getUTCMinutes()).padStart(2, "0")
-                  jamTeks = `${hh}:${mm} WIB`
+                  const durasi = ev.durasi_menit || 120
+                  const totalMins = t.getUTCHours() * 60 + t.getUTCMinutes() + durasi
+                  const endH = String(Math.floor(totalMins / 60) % 24).padStart(2, "0")
+                  const endM = String(totalMins % 60).padStart(2, "0")
+                  jamTeks = `${hh}:${mm} - ${endH}:${endM}`
                 } else if (typeof ev.jam_mulai === "string") {
-                  jamTeks = `${ev.jam_mulai.slice(0, 5)} WIB`
+                  jamTeks = ev.jam_mulai.slice(0, 5)
                 }
               } catch {}
 
               const hargaNum = typeof ev.harga === "string" ? parseFloat(ev.harga) : ev.harga
+              const hargaCoretNum = ev.harga_coret ? (typeof ev.harga_coret === "string" ? parseFloat(ev.harga_coret) : ev.harga_coret) : 0
               const hargaTeks = hargaNum > 0 ? `Rp ${hargaNum.toLocaleString("id-ID")}` : "Gratis"
+              const hargaCoretTeks = hargaCoretNum > 0 ? `Rp ${hargaCoretNum.toLocaleString("id-ID")}` : null
+              const diskonPersen =
+                hargaCoretNum > hargaNum && hargaCoretNum > 0
+                  ? Math.round(((hargaCoretNum - hargaNum) / hargaCoretNum) * 100)
+                  : 0
+
+              const isOnline = ev.tipe_event !== "OFFLINE"
 
               return (
                 <div
@@ -409,8 +421,17 @@ export default function HomeClient() {
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-700"
                     />
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">
-                      {ev.jenis_event}
+                    <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
+                      <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">
+                        {ev.jenis_event}
+                      </div>
+                      <div
+                        className={`backdrop-blur-sm px-3 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm tracking-wide ${
+                          isOnline ? "bg-blue-600/90 text-white" : "bg-emerald-600/90 text-white"
+                        }`}
+                      >
+                        {isOnline ? "Online" : "Offline"}
+                      </div>
                     </div>
                   </div>
                   <div className="p-5 md:p-6 flex flex-col flex-1">
@@ -446,10 +467,30 @@ export default function HomeClient() {
                     <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
-                        <p className="text-lg font-black text-[#561269]">{hargaTeks}</p>
+                        {hargaCoretTeks && hargaCoretNum > hargaNum ? (
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-gray-400 line-through font-medium">
+                                {hargaCoretTeks}
+                              </span>
+                              {diskonPersen > 0 && (
+                                <span className="text-[10px] font-extrabold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100">
+                                  Hemat {diskonPersen}%
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-lg font-black text-[#561269] leading-tight">
+                              {hargaTeks}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-lg font-black text-[#561269]">{hargaTeks}</p>
+                        )}
                       </div>
                       <Link
-                        href={biroPrefix ? `${biroPrefix}/event/checkout?judul=${encodeURIComponent(ev.judul)}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || "Online / Sesuai Pengumuman")}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}` : `/event/checkout?judul=${encodeURIComponent(ev.judul)}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || "Online / Sesuai Pengumuman")}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}`}
+                        href={biroPrefix
+                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}`
+                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}`}
                         className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
                       >
                         Daftar
@@ -475,7 +516,7 @@ export default function HomeClient() {
               Mohon maaf, saat ini belum ada webinar atau workshop yang kami jadwalkan. Kamu bisa membaca informasi lengkap seputar rangkaian program event dan kegiatan menarik kami di halaman layanan.
             </p>
             <Link
-              href={biroPrefix ? `${biroPrefix}/layanan?category=04` : "/layanan?category=04"}
+              href={withBiro("/event") as any}
               className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm sm:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95"
             >
               <span>Pelajari Rangkaian Event Empathika</span>
