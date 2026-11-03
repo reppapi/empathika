@@ -462,10 +462,10 @@ async function main() {
 
   // 9. Create Sample Transaksi linked to the Booking
   const sampleTransaksi = await prisma.transaksi.upsert({
-    where: { kode_transaksi: 'TRX-SEED-20261024-001' },
+    where: { kode_transaksi: 'TRX-20261024-001' },
     update: {},
     create: {
-      kode_transaksi: 'TRX-SEED-20261024-001',
+      kode_transaksi: 'TRX-20261024-001',
       id_client: sampleClient.id,
       tipe_transaksi: TipeTransaksi.KONSULTASI,
       subtotal: 150000.0,
@@ -479,12 +479,12 @@ async function main() {
   });
 
   await prisma.bookingKonsultasi.upsert({
-    where: { kode_pesanan: 'EMP-KONS-SEED-01' },
+    where: { kode_pesanan: 'EMP-KONS-20261024-001' },
     update: {
       id_transaksi: sampleTransaksi.id,
     },
     create: {
-      kode_pesanan: 'EMP-KONS-SEED-01',
+      kode_pesanan: 'EMP-KONS-20261024-001',
       id_client: sampleClient.id,
       id_layanan: layananKonsultasi.id,
       id_jadwal: bookedSlot.id,

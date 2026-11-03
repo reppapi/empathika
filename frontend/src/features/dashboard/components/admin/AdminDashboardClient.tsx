@@ -10,26 +10,19 @@ import DashboardAgenda from "./DashboardAgenda"
 import DashboardTodaySessions from "./DashboardTodaySessions"
 import DashboardRecentTransactions from "./DashboardRecentTransactions"
 
-import { TodaySessionItem } from "../../types"
+import { TodaySessionItem, RecentTransactionItem } from "../../types"
 import {
   INITIAL_DASHBOARD_METRICS,
   INITIAL_AGENDA_LIST,
 } from "../../data/dashboardData"
-import {
-  TransaksiItem,
-  getTodayTransactions,
-  getTodayDateKey,
-} from "@/features/transaksi/data/transaksiData"
 import { adminService } from "@/services/admin.service"
 
 export default function AdminDashboardClient() {
   // 1. Ambil sesi konseling hari ini langsung dari Database PostgreSQL via adminService
   const [sessions, setSessions] = useState<TodaySessionItem[]>([])
 
-  // 2. Ambil transaksi pembayaran pada saat tanggal hari ini saja
-  const [transactions, setTransactions] = useState<TransaksiItem[]>(() => {
-    return getTodayTransactions()
-  })
+  // 2. State transaksi pembayaran terbaru (dari API)
+  const [transactions, setTransactions] = useState<RecentTransactionItem[]>([])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
@@ -77,24 +70,15 @@ export default function AdminDashboardClient() {
     setSessions((prev) => [item, ...prev])
 
     // 2. Tambahkan transaksi pada tanggal hari ini
-    const newTrx: TransaksiItem = {
+    // 2. Tambahkan placeholder transaksi baru ke list (pending, belum bayar)
+    const newTrx = {
       id: "trx_" + Date.now(),
-      orderId: "KL-0" + Math.floor(130 + Math.random() * 800),
-      orderDate: `Hari Ini, ${newSession.waktu.split(" - ")[0]} WIB`,
-      clientName: newSession.namaKlien,
-      clientEmail: `${newSession.namaKlien.toLowerCase().replace(/\s+/g, ".")}@gmail.com`,
-      clientPhone: newSession.kontak || "0812-0000-0000",
-      jenisLayanan: "konseling",
-      namaLayanan: newSession.layanan,
-      psikologOrFasilitator: newSession.psikolog,
-      jadwal: `Hari Ini, ${newSession.waktu}`,
-      status: "Menunggu Pembayaran",
-      subtotal: 250000,
-      biayaLayanan: 2500,
-      totalBayar: 252500,
-      metodePembayaran: "BCA Virtual Account",
-      waktuPembayaran: "-",
-      tanggalTransaksi: getTodayDateKey(),
+      client: newSession.namaKlien,
+      layanan: newSession.layanan,
+      metode: "-",
+      kategori: "Konseling",
+      total: "Menunggu",
+      status: "Menunggu Pembayaran" as const,
     }
     setTransactions((prev) => [newTrx, ...prev])
 

@@ -16,6 +16,20 @@ export function paginate(page: number, limit: number) {
   }
 }
 
-export function generateOrderId(): string {
-  return `EMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+export function generateOrderId(prefix = 'KONS'): string {
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  const rand = Math.floor(1000 + Math.random() * 9000)
+  return `EMP-${prefix}-${yyyy}${mm}${dd}-${rand}`
+}
+
+export function generateTrxId(): string {
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  const rand = Math.floor(1000 + Math.random() * 9000)
+  return `TRX-${yyyy}${mm}${dd}-${rand}`
 }
