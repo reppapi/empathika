@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Calendar, 
@@ -14,9 +14,23 @@ import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psiko
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 
 export default function PsikotesHasilGratisClient({ params }: { params: { testId: string } }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
+
+  // Pastikan gesture back / popstate di laptop selalu kembali ke detail psikotes, bukan ke soal
+  useEffect(() => {
+    const handlePopState = () => {
+      router.replace(`/psikotes/${params.testId}`);
+    };
+
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [params.testId, router]);
 
   // Fetch package data from backend to get interpretasi_psikotes
   useEffect(() => {
@@ -57,14 +71,14 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   })();
 
   // Dynamic display name from database
-  const displayTestName = dbPackage?.judul || "Laporan Hasil Psikotes";
+  const displayTestName = dbPackage?.judul || "Tes Tingkat Kecemasan";
 
   const dynamicResult = (() => {
     // 1. Prioritaskan data interpretasi dari database jika paket terdaftar di DB
     if (dbPackage) {
       if (dbInterpretasi) {
         return {
-          prefix: dbInterpretasi.grade ? `Tingkat: ${dbInterpretasi.grade}` : "Hasil Asesmen:",
+          prefix: null,
           value: dbInterpretasi.judul,
           color: "text-[#561269]",
           bgColor: "bg-purple-50",
@@ -72,7 +86,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         };
       }
       return {
-        prefix: "Hasil Asesmen:",
+        prefix: null,
         value: dbPackage.judul,
         color: "text-[#561269]",
         bgColor: "bg-purple-50",
@@ -81,8 +95,8 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
     }
 
     return {
-      prefix: "Hasil Asesmen:",
-      value: "Hasil Tes Psikotes",
+      prefix: null,
+      value: "Tes Tingkat Kecemasan",
       color: "text-[#561269]",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200"
@@ -102,108 +116,113 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   // Derive display interpretation text directly from database
   const interpretasiText = dbInterpretasi?.deskripsi || dbPackage?.deskripsi || "Asesmen psikotes telah berhasil diselesaikan.";
   const maknaTeks = dbInterpretasi?.makna || "";
-  const dbTips = (Array.isArray(dbInterpretasi?.tips) && dbInterpretasi.tips.length > 0)
-    ? (dbInterpretasi.tips as Array<{ title: string; desc: string }>)
-    : [];
+  const rawTips = (dbInterpretasi as any)?.tips;
+  const tipsList: any[] = Array.isArray(rawTips)
+    ? rawTips
+    : (rawTips && Array.isArray(rawTips.saran) ? rawTips.saran : []);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-28 pb-12 px-4 sm:px-6 lg:px-8 lg:pt-36 font-sans">
-      <div className="max-w-4xl mx-auto space-y-12">
-        {/* Header Section */}
-        <div className="text-center space-y-4">
-          <h2 className="text-sm font-semibold tracking-wide text-primary uppercase">
-            Hasil Psikotesmu (Akses Ringkas)
-          </h2>
-          <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            {displayTestName}
-          </h1>
-        </div>
-
-        {/* 1. Hasil Utama */}
+    <div className="min-h-screen bg-[#fbfbfb] pt-28 pb-16 px-4 sm:px-6 lg:px-8 lg:pt-36 font-sans selection:bg-[#561269] selection:text-white">
+      <div className="max-w-4xl mx-auto space-y-8">
+        
+        {/* Hasil Utama Sederhana */}
         <section className="flex justify-center">
-          <div className={`w-full max-w-2xl rounded-3xl border ${dynamicResult.borderColor} ${dynamicResult.bgColor} p-8 sm:p-12 text-center shadow-sm`}>
-            {dynamicResult.prefix && (
-              <p className="text-lg sm:text-xl font-medium text-gray-700 mb-3">{dynamicResult.prefix}</p>
-            )}
-            <h3 className={`text-4xl sm:text-5xl md:text-6xl font-black tracking-tight ${dynamicResult.color}`}>
+          <div className="w-full max-w-2xl rounded-3xl border border-purple-200 bg-purple-50 p-8 sm:p-12 text-center shadow-xs">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#561269]">
               {dynamicResult.value}
-            </h3>
+            </h2>
           </div>
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
-          {/* Main Content Column */}
-          <div className="md:col-span-8 space-y-10">
-            {/* 2. Interpretasi Hasil */}
-            <section className="space-y-4">
+        {/* 2. Grid Konten & Sidebar Konsultasi */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
+          
+          {/* Kolom Kiri: Detail Interpretasi & Saran */}
+          <div className="md:col-span-8 space-y-6">
+            
+            {/* Card Interpretasi Hasil */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
-                  <Info className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center shrink-0">
+                  <Info className="w-5 h-5" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Interpretasi Hasil</h2>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">Interpretasi Hasil</h2>
+                  <p className="text-xs text-gray-400">Penjelasan kondisi emosionalmu</p>
+                </div>
               </div>
-              <p className="text-lg text-gray-600 leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-normal">
                 {interpretasiText}
               </p>
-            </section>
 
-            <hr className="border-gray-200" />
-
-            {/* 3. Apa Artinya untukmu? */}
-            {maknaTeks && (
-              <section className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-900">Apa Artinya untukmu?</h2>
-                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
-                  <p className="text-gray-600 leading-relaxed text-lg">
-                    {maknaTeks}
-                  </p>
+              {maknaTeks && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Apa Artinya untukmu?</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{maknaTeks}</p>
                 </div>
-              </section>
+              )}
+            </div>
+
+            {/* Card Saran & Langkah Praktis */}
+            {tipsList.length > 0 && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">Saran & Langkah Praktis</h2>
+                    <p className="text-xs text-gray-400">Tindakan mandiri yang dapat diterapkan</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-1">
+                  {tipsList.map((tip: any, idx: number) => {
+                    const tipText = typeof tip === "string" ? tip : (tip.title ? `${tip.title}: ${tip.desc || ""}` : tip.desc || "");
+                    return (
+                      <div key={idx} className="flex items-start gap-3.5 p-3.5 sm:p-4 rounded-2xl bg-gray-50/70 border border-gray-100">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                          {idx + 1}
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium">
+                          {tipText}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
-            {/* 4. Tips atau Saran */}
-            {dbTips.length > 0 && (
-              <section className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900">Tips untukmu</h2>
-                <div className="space-y-4">
-                  {dbTips.map((tip, index) => (
-                    <div key={index} className="flex gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-gray-200 transition-colors">
-                      <div className="flex-shrink-0 mt-1">
-                        <CheckCircle2 className="w-6 h-6 text-green-500" />
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900">{tip.title}</h4>
-                        <p className="mt-1 text-gray-600 leading-relaxed">{tip.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
           </div>
 
-          {/* Sidebar / CTA Column */}
-          <div className="md:col-span-4 space-y-6">
-            {/* Ajakan untuk Konsultasi */}
-            <div className="bg-primary text-white rounded-3xl p-6 sm:p-8 shadow-lg sticky top-[120px]">
-              <h3 className="text-xl font-bold mb-3">Ingin memahami kondisimu lebih jauh?</h3>
-              <p className="text-primary-foreground/90 mb-6 text-sm leading-relaxed">
-                Hasil tes ini adalah langkah awal. Jangan ragu untuk berkonsultasi dengan psikolog profesional kami untuk mendapatkan panduan yang lebih personal.
-              </p>
-              <div className="space-y-3">
+          {/* Kolom Kanan: Sidebar Ajak Konsultasi */}
+          <div className="md:col-span-4 sticky top-[120px]">
+            <div className="bg-gradient-to-br from-[#561269] to-[#3b0a48] text-white rounded-3xl p-6 sm:p-7 shadow-md border border-purple-900/30 flex flex-col gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1.5 leading-snug">Ingin Diskusi Lebih Lanjut?</h3>
+                <p className="text-purple-100/90 text-xs sm:text-sm leading-relaxed font-light">
+                  Hasil tes ini adalah langkah awal skrining mandiri. Jika kecemasan terasa membebani, kamu bisa berdiskusi langsung bersama psikolog profesional Empathika.
+                </p>
+              </div>
+
+              <div className="pt-2">
                 <Link href="/konseling" className="block w-full">
-                  <Button variant="secondary" className="w-full bg-white text-primary hover:bg-gray-50 flex items-center justify-center gap-2 font-semibold">
-                    <Calendar className="w-4 h-4" />
-                    Jadwalkan Konsultasi
-                  </Button>
+                  <button className="w-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs sm:text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-98 cursor-pointer">
+                    <Calendar className="w-4 h-4 text-gray-950" />
+                    <span>Jadwalkan Konsultasi</span>
+                  </button>
                 </Link>
               </div>
             </div>
           </div>
+
         </div>
 
-        {/* 6. Rekomendasi Tes Dinamis dari Database */}
-        <PsikotesRekomendasiSection currentTestId={params.testId} />
+        {/* 3. Rekomendasi Tes Dinamis */}
+        <div className="pt-6">
+          <PsikotesRekomendasiSection currentTestId={params.testId} />
+        </div>
 
       </div>
     </div>

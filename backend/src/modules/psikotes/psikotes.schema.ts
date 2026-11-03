@@ -32,7 +32,6 @@ export const createPsikotesSchema = z.object({
   jenis_akses: z.enum(['GRATIS', 'BERBAYAR']).default('GRATIS'),
   harga: z.number().optional().default(0),
   status: z.enum(['PUBLISHED', 'DRAFT']).default('PUBLISHED'),
-  benefits: z.any().optional().nullable(),
   soal_psikotes: z.array(soalPsikotesSchema).optional().default([]),
   interpretasi_psikotes: z.array(interpretasiPsikotesSchema).optional().default([]),
 })

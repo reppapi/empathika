@@ -438,7 +438,6 @@ classDiagram
         +string banner_url
         +string deskripsi
         +string status
-        +json benefits
         +dateTime createdAt
         +dateTime updatedAt
         +tampilkanDetail()
@@ -451,6 +450,7 @@ classDiagram
         +string id_paket_FK
         +int urutan
         +string pertanyaan
+        +unique(id_paket_urutan)
         +tambahSoal()
         +ambilSoal()
         +tampilkanSoal()
@@ -462,6 +462,7 @@ classDiagram
         +string label
         +string teks_jawaban
         +int bobot
+        +index(id_soal)
         +ambilBobot() int
         +updatePilihan()
     }
@@ -472,6 +473,7 @@ classDiagram
         +string id_soal_psikotes_FK
         +string id_pilihan_jawaban_FK
         +int skor
+        +unique(id_booking_id_soal)
         +simpanJawaban()
     }
 
@@ -714,7 +716,7 @@ classDiagram
    - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `video_intro_url String?`, `video_thumbnail String?`, `video_duration String?`, `profil_lengkap String? @db.Text`, `createdAt`, `updatedAt`.
    - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")`, `metode String @default("ONLINE")` ("ONLINE" | "OFFLINE"), `createdAt`, `updatedAt`.
    - `Biro`: `deskripsi String? @db.Text`, `no_telepon String?`, `website_url String?`, `status StatusBiro @default(PENDING)`, `createdAt`, `updatedAt`.
-   - `InterpretasiPsikotes`: `makna String? @db.Text`, `tips Json?` (array objek: `[{title, desc}]`).
+   - `InterpretasiPsikotes`: `makna String? @db.Text`.
    - `HasilTes`: `id_interpretasi String? (nullable)`, `detail_skor Json?`, `snapshot_jawaban Json?`, `createdAt`.
    - `BookingPsikotes`: `id_transaksi String? (nullable untuk tes gratis)`, `riwayat_kesehatan Json?`, `createdAt`, `updatedAt`.
    - `JawabanPsikotes`: `skor Int` (snapshot nilai bobot opsi jawaban yang dipilih klien pada butir soal).

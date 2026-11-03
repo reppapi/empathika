@@ -26,7 +26,6 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
       kategori: "Umum",
       deskripsi: item.deskripsi || "",
       bannerUrl: item.banner_url || undefined,
-      benefits: Array.isArray(item.benefits) ? item.benefits : undefined,
       jenisAkses: item.jenis_akses === "GRATIS" ? "Gratis" : "Berbayar",
       harga: item.jenis_akses === "GRATIS" ? "Gratis" : `Rp ${Number(item.harga).toLocaleString("id-ID")}`,
       numericHarga: Number(item.harga) || 0,
@@ -43,10 +42,11 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
         let judulBlindspots = "Area yang Perlu Dikembangkan";
         let judulLingkungan = "Kondisi atau Lingkungan yang Mendukung";
 
-        if (Array.isArray(i.tips)) {
-          saran = i.tips;
-        } else if (i.tips && typeof i.tips === "object") {
-          const t = i.tips as any;
+        const rawTips = (i as any)?.tips;
+        if (Array.isArray(rawTips)) {
+          saran = rawTips;
+        } else if (rawTips && typeof rawTips === "object") {
+          const t = rawTips as any;
           saran = Array.isArray(t.saran) ? t.saran : [];
           kekuatanUtama = Array.isArray(t.kekuatanUtama) ? t.kekuatanUtama : [];
           blindspots = Array.isArray(t.blindspots) ? t.blindspots : [];
@@ -135,8 +135,9 @@ export function getPesertaReportDetail(
   let judulBlindspots = "Area yang Perlu Dikembangkan";
   let judulLingkungan = "Kondisi atau Lingkungan yang Mendukung";
 
-  if (peserta.hasil?.tips) {
-    let rawTips: any = peserta.hasil.tips;
+  const rawHasilTips = (peserta.hasil as any)?.tips;
+  if (rawHasilTips) {
+    let rawTips: any = rawHasilTips;
     if (typeof rawTips === "string") {
       try {
         rawTips = JSON.parse(rawTips);
