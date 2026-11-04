@@ -153,6 +153,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const currentQuestion = questions[currentIndex] || questions[0];
   const progressPercentage = ((currentIndex + 1) / totalQuestions) * 100;
 
+  // Periode evaluasi alat ukur klinis:
+  // DASS-42 mengevaluasi 1 minggu terakhir
+  // GAD-7 & PHQ-9 mengevaluasi 2 minggu terakhir
+  const isDASS =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
+    dbData?.judul?.toUpperCase().includes("DASS") ||
+    params.testId.toLowerCase().includes("dass");
+
+  const timeframeText = isDASS
+    ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
+    : "Dalam 2 minggu terakhir, seberapa sering kamu:";
+
   const handleSelectOption = (optionIdx: number) => {
     handleOptionSelect(optionIdx);
     setLocalError(false);
@@ -236,9 +248,29 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         const query = new URLSearchParams(searchParams.toString());
         query.set("skor", String(res.data.total_skor));
         query.set("bookingId", res.data.id_booking);
+
+        // Jika ada data subscales (DASS-42), simpan skor per dimensi ke URL
+        if (res.data.detail_skor?.subscales) {
+          const subs = res.data.detail_skor.subscales;
+          if (subs.depression?.skor !== undefined) query.set("dep", String(subs.depression.skor));
+          if (subs.anxiety?.skor !== undefined) query.set("anx", String(subs.anxiety.skor));
+          if (subs.stress?.skor !== undefined) query.set("str", String(subs.stress.skor));
+        }
+
+        // Protokol Krisis / Melukai Diri HANYA berlaku untuk instrumen PHQ-9 (Butir 9).
+        // Instrumen DASS-42 dan GAD-7 tidak memiliki butir skrining melukai diri.
+        const isPHQ9 =
+          dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
+          dbData?.judul?.toUpperCase().includes("PHQ") ||
+          params.testId.toLowerCase().includes("phq");
+
         const hasHarm =
-          res.data.detail_skor?.ideMelukaiDiri ||
-          (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0);
+          isPHQ9 &&
+          Boolean(
+            res.data.detail_skor?.ideMelukaiDiri ||
+            (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0)
+          );
+
         if (hasHarm) {
           query.set("harm", "1");
         }
@@ -285,7 +317,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         <div className="flex-1 flex flex-col">
           <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm border border-gray-100 mb-6 flex-1 flex flex-col justify-center transition-all duration-300">
             <p className="text-xs sm:text-sm text-gray-400 font-medium text-center mb-2">
-              Dalam 2 minggu terakhir, seberapa sering kamu:
+              {timeframeText}
             </p>
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug md:leading-normal text-center mb-6 md:mb-8">
               {currentQuestion.text}

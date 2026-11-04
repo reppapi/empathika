@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { seedGAD7, GAD7_SOAL, GAD7_OPSI, GAD7_INTERPRETASI } from './seeds/seed-gad7'
 import { seedPHQ9, PHQ9_SOAL, PHQ9_OPSI, PHQ9_INTERPRETASI } from './seeds/seed-phq9'
+import { seedDASS42, DASS42_SOAL, DASS42_OPSI, DASS42_INTERPRETASI } from './seeds/seed-dass42'
 
 const prisma = new PrismaClient()
 
@@ -14,6 +15,10 @@ export {
   PHQ9_SOAL,
   PHQ9_OPSI,
   PHQ9_INTERPRETASI,
+  seedDASS42,
+  DASS42_SOAL,
+  DASS42_OPSI,
+  DASS42_INTERPRETASI,
 }
 
 // ============================================================================
@@ -63,6 +68,7 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   // 2. Jalankan seeder per modul alat ukur
   const paketGAD7 = await seedGAD7(p)
   const paketPHQ9 = await seedPHQ9(p)
+  const paketDASS42 = await seedDASS42(p)
 
   console.log('\n========================================================')
   console.log('🎉 SELURUH SEEDER PSIKOTES BERHASIL DIJALANKAN!')
@@ -70,6 +76,7 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   console.log('Paket Aktif di Database:')
   console.log(`1. "${paketGAD7.judul}" -> GRATIS (Rp 0) [Alat: GAD-7]`)
   console.log(`2. "${paketPHQ9.judul}" -> GRATIS (Rp 0) [Alat: PHQ-9]`)
+  console.log(`3. "${paketDASS42.judul}" -> GRATIS (Rp 0) [Alat: DASS-42]`)
   console.log('========================================================\n')
 }
 

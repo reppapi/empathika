@@ -11,6 +11,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
+import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 import InterpretasiCard from "./InterpretasiCard";
 import CrisisHotlineCard from "./CrisisHotlineCard";
@@ -175,7 +176,34 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   // Match score from URL params to the interpretasi from database
   const rawSkor = searchParams.get("skor");
   const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
-  const isHarmDetected = searchParams.get("harm") === "1";
+
+  // Protokol darurat / Crisis Hotline HANYA untuk PHQ-9 (Butir 9 ide bunuh diri)
+  const isPHQ9 = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
+    dbPackage?.judul?.toUpperCase().includes("PHQ") ||
+    params.testId.toLowerCase().includes("phq")
+  );
+  const isHarmDetected = isPHQ9 && searchParams.get("harm") === "1";
+
+  // Dimensi DASS-42 (Depresi, Kecemasan, Stres)
+  const rawDep = searchParams.get("dep");
+  const rawAnx = searchParams.get("anx");
+  const rawStr = searchParams.get("str");
+
+  const isDASS = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
+    dbPackage?.judul?.toUpperCase().includes("DASS") ||
+    params.testId.toLowerCase().includes("dass")
+  );
+
+  const dassEvaluation = isDASS
+    ? evaluateDASS(
+        totalSkor,
+        rawDep !== null && rawDep !== "" ? parseInt(rawDep, 10) : null,
+        rawAnx !== null && rawAnx !== "" ? parseInt(rawAnx, 10) : null,
+        rawStr !== null && rawStr !== "" ? parseInt(rawStr, 10) : null
+      )
+    : null;
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
@@ -266,7 +294,19 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   }
 
   // Ambil judul, deskripsi interpretasi, dan tips murni dari database
-  const headline = dbInterpretasi.judul;
+  let headline = dbInterpretasi.judul;
+  if (isDASS) {
+    // Pastikan tidak ada istilah GPD atau rangkaian keparahan beruntun di judul
+    if (
+      !headline ||
+      /general psychological distress/i.test(headline) ||
+      /\(gpd\)/i.test(headline) ||
+      /depresi.*kecemasan.*stres/i.test(headline) ||
+      /depresi.*kecemasan.*stress/i.test(headline)
+    ) {
+      headline = "Profil Kesehatan Emosional";
+    }
+  }
   const interpretasiText = dbInterpretasi.deskripsi || "Asesmen psikologi telah diselesaikan.";
 
   const rawTips = (dbInterpretasi as any)?.tips;
@@ -290,6 +330,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
           tipsList={tipsList}
           isTipsExpanded={isTipsExpanded}
           onToggleTips={() => setIsTipsExpanded(!isTipsExpanded)}
+          dassEvaluation={dassEvaluation}
         />
 
         {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol - Satu Persen Card Style) */}

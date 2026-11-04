@@ -158,7 +158,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 })),
               }
@@ -302,7 +301,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
               })
@@ -326,7 +324,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
               })
@@ -339,7 +336,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
               })
@@ -523,9 +519,6 @@ export class PsikotesRepository {
           grade: dbMatched?.grade || calculationResult.grade || 'Hasil Tes',
           judul: dbMatched?.judul || calculationResult.kategori || 'Hasil Asesmen',
           deskripsi: dbMatched?.deskripsi || calculationResult.deskripsi || '',
-          makna: dbMatched?.makna || (Array.isArray(calculationResult.catatanKlinis)
-            ? calculationResult.catatanKlinis.join('\n\n')
-            : (calculationResult.catatanKlinis || null)),
           tips: (dbMatched as any)?.tips || calculationResult.saran || null,
         }
       } else {
@@ -778,7 +771,6 @@ export class PsikotesRepository {
           grade: matchedInterpretasi.grade,
           judul: matchedInterpretasi.judul,
           deskripsi: matchedInterpretasi.deskripsi,
-          makna: matchedInterpretasi.makna,
           tips: matchedInterpretasi.tips ?? null,
           tanggal_selesai: hasilTes.tanggal_selesai,
         },
@@ -901,7 +893,6 @@ export class PsikotesRepository {
               grade: b.hasil_tes.interpretasi?.grade || '—',
               judul: b.hasil_tes.interpretasi?.judul || '—',
               deskripsi: b.hasil_tes.interpretasi?.deskripsi || '—',
-              makna: b.hasil_tes.interpretasi?.makna || '—',
               tips: (b.hasil_tes.interpretasi as any)?.tips || [],
               tanggal_selesai: b.hasil_tes.tanggal_selesai,
             }

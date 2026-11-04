@@ -21,7 +21,6 @@ export const interpretasiPsikotesSchema = z.object({
   grade: z.string().optional().default(''),
   judul: z.string().optional().default(''),
   deskripsi: z.string().optional().default(''),
-  makna: z.string().optional().nullable(),
   tips: z.any().optional().nullable(),
 })
 

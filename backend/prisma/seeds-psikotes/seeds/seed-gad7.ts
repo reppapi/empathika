@@ -94,7 +94,7 @@ export async function seedGAD7(prisma: PrismaClient) {
 
   // 2. Produk Paket GAD-7 (Gratis)
   console.log('\n--- Menyemai Produk Paket GAD-7 (Gratis) ---')
-  const judulPaket = 'Tes Tingkat Kecemasan'
+  const judulPaket = 'Tes Kecemasan: Anxiety Test | Skrining Tingkat Kecemasanmu'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [

@@ -292,17 +292,12 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                 /* Detail Plan Gratis */
                 <div className="flex flex-col gap-5 p-5 rounded-2xl bg-emerald-50/40 border border-emerald-100">
                   <div>
-                    <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-md mb-2">
-                      Akses Standar Empathika
-                    </span>
-                    <div>
-                      <span className="text-[11px] text-gray-500 block">Biaya Pengerjaan</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-3xl sm:text-4xl font-extrabold text-emerald-700 tracking-tight">
-                          Rp 0
-                        </span>
-                        <span className="text-xs text-emerald-600 font-bold uppercase">Gratis</span>
-                      </div>
+                    <span className="text-[11px] text-gray-500 block">Biaya Pengerjaan</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl sm:text-4xl font-extrabold text-emerald-700 tracking-tight">
+                        Rp 0
+                      </span>
+                      <span className="text-xs text-emerald-600 font-bold uppercase">Gratis</span>
                     </div>
                   </div>
 

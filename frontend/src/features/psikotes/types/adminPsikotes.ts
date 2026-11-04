@@ -11,7 +11,7 @@ export type Interpretasi = {
   judul: string;
   kategori: string;
   deskripsi: string;
-  makna: string;
+  makna?: string;
   saran: Tip[];
   kekuatanUtama?: string[];
   blindspots?: string[];
@@ -88,7 +88,7 @@ export type AdminPsikotesPeserta = {
     grade: string;
     judul: string;
     deskripsi: string;
-    makna: string;
+    makna?: string;
     tips?: any;
     tanggal_selesai?: string;
   } | null;
