@@ -93,37 +93,15 @@ export const WORKSHOP_SERVICES = [
 
 export const SEMINAR_SERVICES = [
   {
-    topTitle: "SEMINAR PSIKOLOGI",
-    topSubtitle: "Berbagi Wawasan Edukatif",
-    bottomTitle: "Seminar Psikologi & Kesehatan Mental",
-    bottomDescription: "Sesi edukatif bersama para ahli untuk membahas topik-topik penting seputar kesehatan mental, resiliensi, dan psikologi modern.",
-    bgColor: "bg-[#e31e3d]",
-    titleColor: "text-white",
-    btnText: "Lihat Seminar",
-    shape: "circles",
-    href: "/event",
-  },
-  {
-    topTitle: "PARENTING",
-    topSubtitle: "Tumbuh Kembang & Pengasuhan",
-    bottomTitle: "Seminar Positive Parenting",
-    bottomDescription: "Seminar interaktif bagi orang tua dan pendidik untuk mendampingi fase tumbuh kembang anak dan remaja dengan pendekatan psikologis positif.",
+    topTitle: "SEMINAR",
+    topSubtitle: "Psikoedukasi & Healing",
+    bottomTitle: "Seminar Empathika",
+    bottomDescription: "Program seminar sebagai ruang edukatif dan reflektif untuk meningkatkan pemahaman psikologis serta kesadaran diri.",
     bgColor: "bg-[#561269]",
     titleColor: "text-white",
     btnText: "Lihat Seminar",
-    shape: "circles-dark",
-    href: "/event",
-  },
-  {
-    topTitle: "GOES TO SCHOOL",
-    topSubtitle: "Psikoedukasi Sekolah & Kampus",
-    bottomTitle: "Empathika Goes to School / Campus",
-    bottomDescription: "Program kunjungan dan seminar psikoedukasi untuk siswa, mahasiswa, dan guru terkait pentingnya kesehatan mental sejak dini.",
-    bgColor: "bg-[#f48520]",
-    titleColor: "text-white",
-    btnText: "Lihat Seminar",
-    shape: "heart",
-    href: "/event",
+    shape: "circles",
+    href: "/layanan/seminar",
   },
 ]
 
