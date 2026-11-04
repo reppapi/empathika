@@ -238,15 +238,23 @@ export class TransaksiRepository {
         }
       }
 
-      const refundAmount = Number(transaksi.total)
+      const totalTransaksi = Number(transaksi.total)
+      // Skema Refund: 70% dikembalikan ke Klien, 30% ditahan (15% Psikolog, 15% Empathika)
+      const refundClientPercentage = 0.70
+      const refundAmount = Math.round(totalTransaksi * refundClientPercentage)
+      const potonganEmpathika = Math.round(totalTransaksi * 0.15)
+      const potonganPsikolog = totalTransaksi - refundAmount - potonganEmpathika // sisa pas 15%
 
-      // 1. Update status transaksi menjadi REFUNDED
+      // Keterangan rincian disimpan di alasan refund
+      const catatanAlokasi = `[Refund 70%: Rp ${refundAmount.toLocaleString('id-ID')} | Empathika 15%: Rp ${potonganEmpathika.toLocaleString('id-ID')} | Psikolog 15%: Rp ${potonganPsikolog.toLocaleString('id-ID')}] - ${params.alasan}`
+
+      // 1. Update status transaksi menjadi REFUNDED (refund_amount mencatat dana yang dikembalikan ke klien)
       const updatedTransaksi = await tx.transaksi.update({
         where: { id: transaksi.id },
         data: {
           status_pembayaran: 'REFUNDED',
           refund_at: new Date(),
-          refund_reason: params.alasan,
+          refund_reason: catatanAlokasi,
           refund_amount: refundAmount,
         },
       })
@@ -287,7 +295,11 @@ export class TransaksiRepository {
       return {
         transaksi: updatedTransaksi,
         booking: updatedBooking,
+        totalTransaksi,
         nominalRefund: refundAmount,
+        potonganEmpathika,
+        potonganPsikolog,
+        persentaseRefund: '70%',
       }
     })
   }

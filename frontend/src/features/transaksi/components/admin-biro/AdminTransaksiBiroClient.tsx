@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import { formatOrderId } from "@/lib/utils"
 import { transaksiService } from "@/services/transaksi.service"
 
 type JenisLayanan = "semua" | "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
@@ -51,7 +52,7 @@ function normalizeTransaksi(raw: any) {
 
   return {
     id: raw.id,
-    kodePesanan: booking.kode_pesanan || booking.kode_tiket || "-",
+    kodePesanan: formatOrderId(booking.kode_pesanan || booking.kode_tiket || raw.kode_transaksi || "-"),
     kodeTransaksi: raw.kode_transaksi || "-",
     invoiceNomor: invoice.nomor || "-",
     orderDate,
@@ -67,6 +68,18 @@ function normalizeTransaksi(raw: any) {
     biayaAdmin: Number(raw.biaya_admin) || 0,
     totalBayar: Number(raw.total) || 0,
     metodePembayaran: raw.metode_pembayaran || raw.channel_pembayaran || "-",
+    isRefunded: raw.status_pembayaran === "REFUNDED",
+    refundAt: raw.refund_at
+      ? new Date(raw.refund_at).toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) + " WIB"
+      : null,
+    refundAmount: raw.refund_amount ? Number(raw.refund_amount) : null,
+    refundReason: raw.refund_reason || null,
     raw,
   }
 }
@@ -83,6 +96,8 @@ export default function AdminTransaksiBiroClient() {
   // ── Filter State ──
   const [selectedLayanan, setSelectedLayanan] = useState<JenisLayanan>("semua")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const filterBtnRef = useRef<HTMLButtonElement>(null)
+  const [filterDropdownPos, setFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>("")
   const [selectedMonth, setSelectedMonth] = useState<string>("")
 
@@ -265,7 +280,14 @@ export default function AdminTransaksiBiroClient() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsFilterOpen((prev) => !prev)}
+                ref={filterBtnRef}
+                onClick={() => {
+                  if (!isFilterOpen && filterBtnRef.current) {
+                    const rect = filterBtnRef.current.getBoundingClientRect()
+                    setFilterDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+                  }
+                  setIsFilterOpen((prev) => !prev)
+                }}
                 className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] hover:text-[#561269] transition shadow-sm"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
@@ -280,7 +302,10 @@ export default function AdminTransaksiBiroClient() {
               {isFilterOpen && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setIsFilterOpen(false)} />
-                  <div className="absolute right-0 z-30 mt-2 w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl">
+                  <div
+                    className="fixed z-[9999] w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl"
+                    style={filterDropdownPos ? { top: filterDropdownPos.top, right: filterDropdownPos.right } : {}}
+                  >
                     {LAYANAN_OPTIONS.map((opt) => (
                       <button
                         key={opt.id}
@@ -341,12 +366,13 @@ export default function AdminTransaksiBiroClient() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {/* Kode Tiket/Pesanan (readable) */}
+                        {/* ID Tiket & Order ID */}
                         <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800">
-                          {item.kodePesanan}
+                          Tiket: {item.kodePesanan}
                         </span>
-                        {/* Kode Transaksi (payment ref) */}
-                        <span className="text-[11px] text-gray-400 font-mono">Ref: {item.kodeTransaksi}</span>
+                        {item.kodeTransaksi && item.kodeTransaksi !== "-" && (
+                          <span className="text-[11px] text-gray-500 font-mono font-semibold">Order: {item.kodeTransaksi}</span>
+                        )}
                       </div>
                       <h4 className="text-sm sm:text-base font-bold text-gray-900 mt-0.5">{item.clientName}</h4>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -388,12 +414,14 @@ export default function AdminTransaksiBiroClient() {
               <div className="p-5 sm:p-6 flex flex-col gap-5">
                 {/* Section 1: Kode Tiket & Status */}
                 <div className="rounded-2xl bg-purple-50/50 border border-purple-100 p-4 flex flex-col gap-2">
-                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Kode Tiket / Pesanan</p>
-                  <p className="text-base font-extrabold text-purple-900 tracking-wide">{activeDetailItem.kodePesanan}</p>
+                  <div>
+                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">ID Tiket / Kode Pesanan</p>
+                    <p className="text-base font-extrabold text-[#561269] tracking-wide font-mono mt-0.5">{activeDetailItem.kodePesanan}</p>
+                  </div>
                   <div className="flex items-center justify-between mt-1">
                     <div>
-                      <p className="text-[10px] text-gray-400">No. Ref Transaksi</p>
-                      <p className="text-xs font-mono font-semibold text-gray-600">{activeDetailItem.kodeTransaksi}</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Order ID (Ref Transaksi)</p>
+                      <p className="text-xs font-mono font-bold text-gray-700">{activeDetailItem.kodeTransaksi}</p>
                     </div>
                     <AdminStatusBadge
                       variant={
@@ -463,6 +491,28 @@ export default function AdminTransaksiBiroClient() {
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">Dibayar pada: {activeDetailItem.orderDate}</p>
                 </div>
+
+                {/* ── KETERANGAN STATUS REFUND (TEKS BIASA) ── */}
+                {activeDetailItem.isRefunded && (
+                  <div className="pt-3 pb-1 border-t border-gray-100 flex flex-col gap-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-red-600 uppercase tracking-wide">
+                        Status: Transaksi Telah Di-Refund (70%)
+                      </span>
+                      <span className="font-bold text-red-600">
+                        Rp. {(activeDetailItem.refundAmount ?? Math.round(activeDetailItem.totalBayar * 0.7)).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-gray-500 text-[11px]">
+                      <span>Waktu Refund:</span>
+                      <span className="font-medium text-gray-700">{activeDetailItem.refundAt || "-"}</span>
+                    </div>
+                    <div className="text-[11px] text-gray-600 leading-relaxed">
+                      <span className="text-gray-500 font-medium">Alasan / Catatan Refund: </span>
+                      <span className="text-red-700 font-medium">{activeDetailItem.refundReason || "Tidak ada alasan spesifik"}</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Info Note Read-Only */}
                 <div className="mt-2 rounded-xl bg-purple-50/60 border border-purple-100 p-3 text-center">

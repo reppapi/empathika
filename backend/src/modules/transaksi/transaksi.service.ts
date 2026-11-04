@@ -41,10 +41,13 @@ export class TransaksiService {
     const result = await this.repo.refundTransaksi(params)
     return {
       success: true,
-      message: 'Refund transaksi berhasil diproses. Status telah diperbarui ke REFUNDED.',
+      message: 'Refund transaksi berhasil diproses. 70% dikembalikan ke klien, 15% dialokasikan ke psikolog, dan 15% ke Empathika.',
       transaksiId: result.transaksi.id,
       kodeTransaksi: result.transaksi.kode_transaksi,
-      nominalRefund: result.nominalRefund,
+      totalTransaksi: (result as any).totalTransaksi,
+      nominalRefund: result.nominalRefund, // 70%
+      potonganEmpathika: (result as any).potonganEmpathika, // 15%
+      potonganPsikolog: (result as any).potonganPsikolog, // 15%
       statusPembayaran: result.transaksi.status_pembayaran,
       refundAt: result.transaksi.refund_at,
       refundReason: result.transaksi.refund_reason,
@@ -224,7 +227,7 @@ export class TransaksiService {
             id_event: event.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
-            kode_tiket: `TIKET-${kodePesanan}`,
+            kode_tiket: kodePesanan,
             status: 'PENDING',
           },
         })
