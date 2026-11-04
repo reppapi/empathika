@@ -944,16 +944,16 @@ export default function AdminTransaksiClient() {
                   {/* Order Info */}
                   <div className="flex flex-col items-center text-center gap-1.5">
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200/50">
-                        ID TIKET / KODE PESANAN
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                        ID Tiket
                       </span>
-                      <span className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight mt-1 font-mono">
+                      <span className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight mt-0.5 font-mono">
                         {activeDetailItem.kodePesanan}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-gray-600">
                       <span className="font-semibold text-gray-400">Order ID:</span>
-                      <span className="font-mono font-bold text-gray-800">{activeDetailItem.kodeTransaksi || activeDetailItem.orderId}</span>
+                      <span className="font-mono font-bold text-gray-800">{activeDetailItem.kodeTransaksi}</span>
                     </div>
                     <span className="text-[11px] text-gray-400 mt-0.5">{activeDetailItem.orderDate}</span>
                   </div>
