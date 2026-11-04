@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
+import { formatOrderId } from "@/lib/utils"
 import { transaksiService } from "@/services/transaksi.service"
 
 type JenisLayanan = "semua" | "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
@@ -51,7 +52,7 @@ function normalizeTransaksi(raw: any) {
 
   return {
     id: raw.id,
-    kodePesanan: booking.kode_pesanan || booking.kode_tiket || "-",
+    kodePesanan: formatOrderId(booking.kode_pesanan || booking.kode_tiket || raw.kode_transaksi || "-"),
     kodeTransaksi: raw.kode_transaksi || "-",
     invoiceNomor: invoice.nomor || "-",
     orderDate,
@@ -365,12 +366,13 @@ export default function AdminTransaksiBiroClient() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {/* Kode Tiket/Pesanan (readable) */}
+                        {/* ID Tiket & Order ID */}
                         <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800">
-                          {item.kodePesanan}
+                          Tiket: {item.kodePesanan}
                         </span>
-                        {/* Kode Transaksi (payment ref) */}
-                        <span className="text-[11px] text-gray-400 font-mono">Ref: {item.kodeTransaksi}</span>
+                        {item.kodeTransaksi && item.kodeTransaksi !== "-" && (
+                          <span className="text-[11px] text-gray-500 font-mono font-semibold">Order: {item.kodeTransaksi}</span>
+                        )}
                       </div>
                       <h4 className="text-sm sm:text-base font-bold text-gray-900 mt-0.5">{item.clientName}</h4>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -412,12 +414,14 @@ export default function AdminTransaksiBiroClient() {
               <div className="p-5 sm:p-6 flex flex-col gap-5">
                 {/* Section 1: Kode Tiket & Status */}
                 <div className="rounded-2xl bg-purple-50/50 border border-purple-100 p-4 flex flex-col gap-2">
-                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Kode Tiket / Pesanan</p>
-                  <p className="text-base font-extrabold text-purple-900 tracking-wide">{activeDetailItem.kodePesanan}</p>
+                  <div>
+                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">ID Tiket / Kode Pesanan</p>
+                    <p className="text-base font-extrabold text-[#561269] tracking-wide font-mono mt-0.5">{activeDetailItem.kodePesanan}</p>
+                  </div>
                   <div className="flex items-center justify-between mt-1">
                     <div>
-                      <p className="text-[10px] text-gray-400">No. Ref Transaksi</p>
-                      <p className="text-xs font-mono font-semibold text-gray-600">{activeDetailItem.kodeTransaksi}</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Order ID (Ref Transaksi)</p>
+                      <p className="text-xs font-mono font-bold text-gray-700">{activeDetailItem.kodeTransaksi}</p>
                     </div>
                     <AdminStatusBadge
                       variant={
@@ -488,38 +492,24 @@ export default function AdminTransaksiBiroClient() {
                   <p className="text-[11px] text-gray-400 mt-1">Dibayar pada: {activeDetailItem.orderDate}</p>
                 </div>
 
-                {/* ── CARD STATUS REFUND (JIKA TRANSAKSI TELAH DI-REFUND) ── */}
+                {/* ── KETERANGAN STATUS REFUND (TEKS BIASA) ── */}
                 {activeDetailItem.isRefunded && (
-                  <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 flex flex-col gap-2.5">
+                  <div className="pt-3 pb-1 border-t border-gray-100 flex flex-col gap-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800">
-                          Status: Transaksi Telah Di-Refund
-                        </h4>
-                      </div>
-                      <span className="rounded-full bg-rose-100 text-rose-700 font-extrabold text-[10px] px-2.5 py-0.5">
-                        REFUND 70%
+                      <span className="font-bold text-red-600 uppercase tracking-wide">
+                        Status: Transaksi Telah Di-Refund (70%)
+                      </span>
+                      <span className="font-bold text-red-600">
+                        Rp. {(activeDetailItem.refundAmount ?? Math.round(activeDetailItem.totalBayar * 0.7)).toLocaleString("id-ID")}
                       </span>
                     </div>
-
-                    <div className="rounded-xl bg-white/90 p-3 border border-rose-100 space-y-2 text-xs">
-                      <div className="flex justify-between items-center text-gray-600">
-                        <span className="font-medium">Total Dana Dikembalikan ke Klien</span>
-                        <span className="font-extrabold text-rose-600 text-sm">
-                          Rp. {(activeDetailItem.refundAmount ?? Math.round(activeDetailItem.totalBayar * 0.7)).toLocaleString("id-ID")}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[11px] text-gray-500">
-                        <span>Waktu Eksekusi Refund</span>
-                        <span className="font-semibold text-gray-700">{activeDetailItem.refundAt || "-"}</span>
-                      </div>
-                      <div className="pt-2 border-t border-gray-100">
-                        <p className="text-[11px] text-gray-500 font-medium mb-1">Catatan & Alasan Refund:</p>
-                        <div className="p-2.5 rounded-lg bg-gray-50 text-[11px] text-gray-700 leading-relaxed font-mono whitespace-pre-wrap break-words border border-gray-200/60">
-                          {activeDetailItem.refundReason || "Tidak ada alasan spesifik"}
-                        </div>
-                      </div>
+                    <div className="flex justify-between items-center text-gray-500 text-[11px]">
+                      <span>Waktu Refund:</span>
+                      <span className="font-medium text-gray-700">{activeDetailItem.refundAt || "-"}</span>
+                    </div>
+                    <div className="text-[11px] text-gray-600 leading-relaxed">
+                      <span className="text-gray-500 font-medium">Alasan / Catatan Refund: </span>
+                      <span className="text-red-700 font-medium">{activeDetailItem.refundReason || "Tidak ada alasan spesifik"}</span>
                     </div>
                   </div>
                 )}

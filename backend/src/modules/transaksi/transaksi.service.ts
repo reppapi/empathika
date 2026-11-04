@@ -227,7 +227,7 @@ export class TransaksiService {
             id_event: event.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
-            kode_tiket: `TIKET-${kodePesanan}`,
+            kode_tiket: kodePesanan,
             status: 'PENDING',
           },
         })

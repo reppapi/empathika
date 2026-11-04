@@ -5,6 +5,7 @@ import Script from "next/script"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { adminService } from "@/services/admin.service"
+import { formatOrderId } from "@/lib/utils"
 import { Video, MessageCircle, ExternalLink } from "lucide-react"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
@@ -72,7 +73,8 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const searchParams = useSearchParams()
 
   const nama = searchParams.get("nama") ?? "PESERTA"
-  const orderId = searchParams.get("orderId") ?? "W-EMP-0000"
+  const rawOrderId = searchParams.get("orderId") ?? "W-EMP-0000"
+  const orderId = formatOrderId(rawOrderId)
   const tanggal = searchParams.get("tanggal") ?? "31/08"
   const tahun = searchParams.get("tahun") ?? "2026"
   const waktu = searchParams.get("waktu") ?? "13:30"
