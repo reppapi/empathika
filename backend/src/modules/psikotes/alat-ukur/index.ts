@@ -6,6 +6,10 @@ import { PHQ9_CONFIG } from "./phq-9/config";
 import { PHQ9_QUESTIONS, PHQ9_OPTIONS, PHQ9_DIFFICULTY_QUESTION } from "./phq-9/questions";
 import { calculatePHQ9, PHQ9CalculationResult, PHQ9_LEVELS } from "./phq-9/scoring";
 
+import { DASS42_CONFIG } from "./dass-42/config";
+import { DASS42_QUESTIONS, DASS42_OPTIONS } from "./dass-42/questions";
+import { calculateDASS42, DASS42CalculationResult, DASS42_LEVELS } from "./dass-42/scoring";
+
 export interface AlatUkurModule {
   config: {
     kode: string;
@@ -46,6 +50,13 @@ const registry: Record<string, AlatUkurModule> = {
     additionalQuestions: [PHQ9_DIFFICULTY_QUESTION],
     levels: PHQ9_LEVELS,
     calculate: calculatePHQ9,
+  },
+  "DASS-42": {
+    config: DASS42_CONFIG,
+    questions: DASS42_QUESTIONS,
+    options: DASS42_OPTIONS,
+    levels: DASS42_LEVELS,
+    calculate: calculateDASS42,
   },
 };
 
@@ -128,7 +139,6 @@ export function formatInterpretasiForAlatUkur(idPaket: string, kode: string) {
     grade: lvl.grade,
     judul: lvl.kategori,
     deskripsi: lvl.deskripsi,
-    makna: null,
     tips: lvl.saran,
     createdAt: new Date(),
     updatedAt: new Date(),

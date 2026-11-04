@@ -63,7 +63,6 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
           judul: i.judul,
           kategori: i.grade || "Umum",
           deskripsi: i.deskripsi,
-          makna: i.makna || "",
           saran,
           kekuatanUtama,
           blindspots,
@@ -125,7 +124,6 @@ export function getPesertaReportDetail(
   let detailJudul = peserta.hasil?.judul && peserta.hasil.judul !== "—" ? peserta.hasil.judul : "";
   let detailGrade = peserta.hasil?.grade && peserta.hasil.grade !== "—" ? peserta.hasil.grade : peserta.skor;
   let deskripsi = peserta.hasil?.deskripsi && peserta.hasil.deskripsi !== "—" ? peserta.hasil.deskripsi : "";
-  let makna = peserta.hasil?.makna && peserta.hasil.makna !== "—" ? peserta.hasil.makna : "";
 
   let kekuatanUtama: string[] = [];
   let blindspots: string[] = [];
@@ -219,7 +217,6 @@ export function getPesertaReportDetail(
   if (interFound) {
     if (!detailJudul) detailJudul = interFound.judul;
     if (!deskripsi) deskripsi = interFound.deskripsi;
-    if (!makna) makna = interFound.makna;
     if (kekuatanUtama.length === 0 && interFound.kekuatanUtama && interFound.kekuatanUtama.length > 0) {
       kekuatanUtama = interFound.kekuatanUtama;
     }
@@ -241,7 +238,6 @@ export function getPesertaReportDetail(
     judul: detailJudul || peserta.skor || "Profil Asesmen",
     grade: detailGrade || peserta.skor,
     deskripsi: deskripsi || "Asesmen psikotes telah diselesaikan dengan baik oleh peserta.",
-    makna,
     kekuatanUtama,
     blindspots,
     lingkunganOptimal,

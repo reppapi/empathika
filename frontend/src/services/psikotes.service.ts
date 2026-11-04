@@ -11,6 +11,12 @@ export interface PaketPsikotesApiResponse {
   status: "PUBLISHED" | "DRAFT"
   createdAt: string
   updatedAt: string
+  alat_ukur?: {
+    id: string
+    kode: string
+    nama: string
+    kategori: string
+  } | null
   soal_psikotes?: Array<{
     id: string
     id_paket: string
@@ -32,7 +38,6 @@ export interface PaketPsikotesApiResponse {
     grade: string
     judul: string
     deskripsi: string
-    makna?: string | null
     tips?: any
   }>
   _count?: {
@@ -71,7 +76,6 @@ export interface SubmitPsikotesResult {
     grade: string
     judul: string
     deskripsi: string
-    makna?: string | null
     tips?: any
     tanggal_selesai: string
   }

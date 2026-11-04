@@ -79,7 +79,13 @@ export default function PsikotesRekomendasiSection({ currentTestId }: PsikotesRe
                   </h3>
                   {/* Deskripsi di bawah judul diambil dari pkg.deskripsi */}
                   <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                    {pkg.deskripsi || "Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir."}
+                    {pkg.deskripsi ||
+                      (() => {
+                        if (process.env.NODE_ENV === "development") {
+                          console.warn(`[DEV WARNING][Rekomendasi] 'deskripsi' untuk paket '${pkg.id}' kosong di DB.`);
+                        }
+                        return "Ikuti asesmen psikologis terstandar ini untuk memahami kondisi dirimu secara lebih mendalam.";
+                      })()}
                   </p>
                 </div>
 

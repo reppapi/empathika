@@ -122,7 +122,7 @@ export async function seedPHQ9(prisma: PrismaClient) {
 
   // 2. Produk Paket PHQ-9 (Gratis)
   console.log('\n--- Menyemai Produk Paket PHQ-9 (Gratis) ---')
-  const judulPaketPHQ9 = 'Tes Tingkat Depresi'
+  const judulPaketPHQ9 = 'Tes Depresi | Skrining Gejala Depresi Awal'
   let paketPHQ9 = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [

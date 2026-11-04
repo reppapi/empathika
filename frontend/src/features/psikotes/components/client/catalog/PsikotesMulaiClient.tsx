@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePsikotesTest } from "@/features/psikotes/hooks/usePsikotesTest";
@@ -14,9 +14,19 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const [dbData, setDbData] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAdvancing, setIsAdvancing] = useState(false);
   const [localError, setLocalError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const advanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimeoutRef.current) {
+        clearTimeout(advanceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchPackage = async () => {
     setIsLoading(true);
@@ -39,8 +49,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   useEffect(() => {
     fetchPackage();
   }, [params.testId]);
-
-  const testTitle = dbData?.judul || "Tes Psikotes";
 
   const questions = (dbData?.soal_psikotes && dbData.soal_psikotes.length > 0)
     ? dbData.soal_psikotes.map((s) => {
@@ -74,6 +82,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
   const {
     currentIndex,
+    setCurrentIndex,
     answers,
     showError,
     handleOptionSelect,
@@ -94,7 +103,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   // Layar Error Koneksi — Jika backend mati
   if (errorMessage) {
     return (
-      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-28 sm:pt-32 lg:pt-36 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-red-100 shadow-sm text-center">
           <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
             <WifiOff className="w-6 h-6" />
@@ -127,7 +136,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   // DATA KRITIS: Integritas Klinis Soal & Opsi Jawaban
   if (!dbData || questions.length === 0 || hasInvalidOptions) {
     return (
-      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-28 sm:pt-32 lg:pt-36 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-6 h-6" />
@@ -153,23 +162,74 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const currentQuestion = questions[currentIndex] || questions[0];
   const progressPercentage = ((currentIndex + 1) / totalQuestions) * 100;
 
-  const handleSelectOption = (optionIdx: number) => {
-    handleOptionSelect(optionIdx);
-    setLocalError(false);
-    setTimeout(() => {
-      goToNext();
-    }, 400);
-  };
+  // Periode evaluasi alat ukur klinis:
+  // DASS-42 mengevaluasi 1 minggu terakhir
+  // GAD-7 & PHQ-9 mengevaluasi 2 minggu terakhir
+  const isDASS =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
+    dbData?.judul?.toUpperCase().includes("DASS") ||
+    params.testId.toLowerCase().includes("dass");
+
+  const timeframeText = isDASS
+    ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
+    : "Dalam 2 minggu terakhir, seberapa sering kamu:";
 
   const isLastQuestion = currentIndex === totalQuestions - 1;
 
+  const handleSelectOption = (optionIdx: number) => {
+    if (isAdvancing || isSubmitting) return;
+
+    handleOptionSelect(optionIdx);
+    setLocalError(false);
+    setSubmitError(null);
+
+    // Di butir terakhir, biarkan tombol 'Selesai' yang melakukan submit
+    if (isLastQuestion) {
+      return;
+    }
+
+    // Auto-advance dengan debouncing ketat agar tidak ada soal terlewat saat klik cepat
+    setIsAdvancing(true);
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    advanceTimeoutRef.current = setTimeout(() => {
+      goToNext();
+      setIsAdvancing(false);
+    }, 350);
+  };
+
+  const handleSafePrev = () => {
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    setIsAdvancing(false);
+    handlePrev();
+  };
+
+  const handleSafeNext = () => {
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    setIsAdvancing(false);
+    handleNext();
+  };
+
   const handleFinish = async () => {
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    setIsAdvancing(false);
+
+    // Validasi 1: Butir saat ini wajib dijawab
     if (answers[currentIndex] === undefined) {
       setLocalError(true);
       return;
     }
 
+    // Validasi 2: Integritas butir lengkap - tidak boleh ada butir terlewat
+    const missingIdx = questions.findIndex((_, idx) => answers[idx] === undefined);
+    if (missingIdx !== -1) {
+      setCurrentIndex(missingIdx);
+      setLocalError(true);
+      setSubmitError(`Pertanyaan nomor ${missingIdx + 1} belum dijawab. Mohon lengkapi seluruh pertanyaan terlebih dahulu.`);
+      return;
+    }
+
     setIsSubmitting(true);
+    setSubmitError(null);
     let pesertaNama = "";
     let pesertaWa = "";
     let pesertaEmail = "";
@@ -236,9 +296,29 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         const query = new URLSearchParams(searchParams.toString());
         query.set("skor", String(res.data.total_skor));
         query.set("bookingId", res.data.id_booking);
+
+        // Jika ada data subscales (DASS-42), simpan skor per dimensi ke URL
+        if (res.data.detail_skor?.subscales) {
+          const subs = res.data.detail_skor.subscales;
+          if (subs.depression?.skor !== undefined) query.set("dep", String(subs.depression.skor));
+          if (subs.anxiety?.skor !== undefined) query.set("anx", String(subs.anxiety.skor));
+          if (subs.stress?.skor !== undefined) query.set("str", String(subs.stress.skor));
+        }
+
+        // Protokol Krisis / Melukai Diri HANYA berlaku untuk instrumen PHQ-9 (Butir 9).
+        // Instrumen DASS-42 dan GAD-7 tidak memiliki butir skrining melukai diri.
+        const isPHQ9 =
+          dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
+          dbData?.judul?.toUpperCase().includes("PHQ") ||
+          params.testId.toLowerCase().includes("phq");
+
         const hasHarm =
-          res.data.detail_skor?.ideMelukaiDiri ||
-          (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0);
+          isPHQ9 &&
+          Boolean(
+            res.data.detail_skor?.ideMelukaiDiri ||
+            (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0)
+          );
+
         if (hasHarm) {
           query.set("harm", "1");
         }
@@ -252,8 +332,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       throw new Error(res?.message || "Server tidak dapat memproses jawaban psikotes.");
     } catch (err: any) {
       console.error("Gagal menyimpan jawaban psikotes ke server:", err);
-      // Data Kritis: JANGAN pura-pura berhasil dengan fallback kalkulasi lokal jika server menolak/mati.
-      // Tampilkan error agar peserta tahu dan dapat mencoba kirim ulang.
       setSubmitError(
         err?.message || "Terjadi kendala saat mengirim jawaban ke server. Pastikan koneksi internet stabil lalu coba lagi."
       );
@@ -263,18 +341,19 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   };
 
   return (
-    <div className="min-h-screen bg-[#fbfbfb] font-sans pt-28 lg:pt-36 pb-12 px-4 flex flex-col selection:bg-[#561269] selection:text-white">
-      <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col">
-        {/* Progress Bar & Indikator Soal */}
+    <div className="min-h-screen bg-[#fbfbfb] pt-28 sm:pt-32 lg:pt-36 pb-12 px-4 sm:px-6 lg:px-8 font-sans selection:bg-[#561269] selection:text-white flex flex-col justify-between">
+      <div className="max-w-3xl w-full mx-auto flex-1 flex flex-col">
+        {/* Top Progress Bar */}
         <div className="mb-6 md:mb-8">
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner mb-3">
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-[#8e4a9e] to-[#561269] rounded-full transition-all duration-500 ease-out"
+              className="bg-[#561269] h-full rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progressPercentage}%` }}
-            ></div>
+            />
           </div>
 
-          <div className="flex items-center justify-start">
+          <div className="mt-2.5 flex justify-between items-center text-xs text-gray-500">
             <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wide">
               Pertanyaan <span className="font-bold text-gray-800">{currentIndex + 1}</span> dari {totalQuestions}
             </span>
@@ -285,7 +364,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         <div className="flex-1 flex flex-col">
           <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm border border-gray-100 mb-6 flex-1 flex flex-col justify-center transition-all duration-300">
             <p className="text-xs sm:text-sm text-gray-400 font-medium text-center mb-2">
-              Dalam 2 minggu terakhir, seberapa sering kamu:
+              {timeframeText}
             </p>
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug md:leading-normal text-center mb-6 md:mb-8">
               {currentQuestion.text}
@@ -298,12 +377,13 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                 return (
                   <button
                     key={idx}
+                    disabled={isAdvancing || isSubmitting}
                     onClick={() => handleSelectOption(idx)}
-                    className={`text-left w-full p-3.5 sm:p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-3.5 group ${
+                    className={`text-left w-full p-3.5 sm:p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-3.5 group cursor-pointer ${
                       isSelected 
                         ? "border-[#561269] bg-[#561269]/5 shadow-xs scale-[1.005]" 
                         : "border-gray-100 hover:border-[#561269]/30 hover:bg-gray-50/80"
-                    }`}
+                    } ${isAdvancing ? "cursor-wait opacity-90" : ""}`}
                   >
                     <div className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors duration-200 font-bold text-xs ${
                       isSelected ? "border-[#561269] bg-[#561269] text-white" : "border-gray-300 text-gray-500 group-hover:border-[#561269]/50 group-hover:text-[#561269]"
@@ -343,9 +423,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           {/* Navigation Controls */}
           <div className="flex items-center justify-between gap-3 mt-auto pt-1">
             <button
-              onClick={handlePrev}
-              disabled={currentIndex === 0 || isSubmitting}
-              className={`px-5 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-200 text-xs sm:text-sm ${
+              onClick={handleSafePrev}
+              disabled={currentIndex === 0 || isSubmitting || isAdvancing}
+              className={`px-5 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-200 text-xs sm:text-sm cursor-pointer ${
                 currentIndex === 0 
                   ? "opacity-0 pointer-events-none" 
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 shadow-xs"
@@ -355,10 +435,10 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             </button>
 
             <button
-              onClick={isLastQuestion ? handleFinish : handleNext}
-              disabled={isSubmitting}
+              onClick={isLastQuestion ? handleFinish : handleSafeNext}
+              disabled={isSubmitting || isAdvancing}
               className={`px-6 py-2.5 sm:py-3 rounded-xl font-extrabold transition-all duration-200 text-xs sm:text-sm flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-sm hover:shadow-md cursor-pointer ${
-                isSubmitting ? "opacity-80 cursor-not-allowed" : ""
+                isSubmitting || isAdvancing ? "opacity-80 cursor-not-allowed" : ""
               }`}
             >
               {isSubmitting ? (
@@ -381,4 +461,3 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     </div>
   );
 }
-

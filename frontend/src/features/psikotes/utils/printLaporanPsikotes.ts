@@ -278,19 +278,6 @@ export function printLaporanPsikotes(
           </div>
 
           ${
-            detail.makna
-              ? `
-            <div class="section-box" style="background: #faf8fb; border-color: #efe7f2;">
-              <div class="section-title" style="color: #561269;">Makna Hasil bagi Kehidupan Sehari-hari</div>
-              <div style="font-size: 13px; color: #4b5563; line-height: 1.6;">
-                ${detail.makna}
-              </div>
-            </div>
-          `
-              : ""
-          }
-
-          ${
             detail.kekuatanUtama.length > 0 || detail.blindspots.length > 0
               ? `
             <div class="grid-two-cols">
