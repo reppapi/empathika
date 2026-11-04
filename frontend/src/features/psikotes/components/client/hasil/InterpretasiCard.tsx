@@ -22,6 +22,7 @@ export default function InterpretasiCard({
 }: InterpretasiCardProps) {
   // Pastikan headline tidak menampilkan jargon GPD atau rangkaian keparahan beruntun
   const cleanHeadline = (() => {
+    if (dassEvaluation) return dassEvaluation.headline;
     if (!headline) return "Profil Kesehatan Emosional";
     if (
       /general psychological distress/i.test(headline) ||
@@ -34,6 +35,9 @@ export default function InterpretasiCard({
     return headline;
   })();
 
+  const effectiveIntroText = dassEvaluation ? dassEvaluation.introText : interpretasiText;
+  const effectiveTips = dassEvaluation?.tips && dassEvaluation.tips.length > 0 ? dassEvaluation.tips : tipsList;
+
   return (
     <div className="bg-[#e9f4f7] rounded-3xl p-6 sm:p-7 border border-[#d2ebf2] shadow-xs transition-all">
       {/* 1. Header Ringkasan Skor & Interpretasi */}
@@ -43,7 +47,7 @@ export default function InterpretasiCard({
             {cleanHeadline}
           </h2>
           <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-normal">
-            {interpretasiText}
+            {effectiveIntroText}
           </p>
         </div>
       </div>
@@ -88,7 +92,7 @@ export default function InterpretasiCard({
       )}
 
       {/* 3. Expandable Tips Button & List */}
-      {tipsList.length > 0 && (
+      {effectiveTips.length > 0 && (
         <div className="mt-6 pt-5 border-t border-[#cde5ec]">
           <button
             type="button"
@@ -109,13 +113,10 @@ export default function InterpretasiCard({
 
           {isTipsExpanded && (
             <div className="mt-4 space-y-2.5">
-              {tipsList.map((tip, idx) => {
-                const tipText =
-                  typeof tip === "string"
-                    ? tip
-                    : tip.title
-                      ? `${tip.title}: ${tip.desc || ""}`
-                      : tip.desc || "";
+              {effectiveTips.map((tip, idx) => {
+                const tipTitle = typeof tip === "string" ? "" : tip.title || "";
+                const tipDesc = typeof tip === "string" ? tip : tip.desc || "";
+
                 return (
                   <div
                     key={idx}
@@ -124,9 +125,16 @@ export default function InterpretasiCard({
                     <span className="w-5 h-5 rounded-full bg-[#0e7490] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                       {idx + 1}
                     </span>
-                    <p className="text-xs sm:text-sm text-gray-800 leading-relaxed font-medium">
-                      {tipText}
-                    </p>
+                    <div className="space-y-0.5">
+                      {tipTitle && (
+                        <p className="text-xs sm:text-sm font-bold text-gray-900 leading-snug">
+                          {tipTitle}
+                        </p>
+                      )}
+                      <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
+                        {tipDesc}
+                      </p>
+                    </div>
                   </div>
                 );
               })}

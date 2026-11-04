@@ -48,6 +48,7 @@ export function usePsikotesTest(
 
   return {
     currentIndex,
+    setCurrentIndex,
     answers,
     showError,
     handleOptionSelect,

@@ -178,13 +178,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
   const dynamicResult = (() => {
     if (isDASS) {
-      const rawVal = dbInterpretasi?.judul || dassEvaluation?.gpdKategori || "Kondisi Emosional Normal";
-      const cleanVal = /general psychological distress|\(gpd\)|depresi.*kecemasan.*stres/i.test(rawVal)
-        ? "Profil Kesehatan Emosional"
-        : rawVal;
       return {
         prefix: "DASS-42 • SKRINING KESEHATAN EMOSIONAL",
-        value: cleanVal,
+        value: "Profil Kesehatan Emosional",
         color: "text-[#561269]",
         bgColor: "bg-purple-50",
         borderColor: "border-purple-200"
@@ -233,9 +229,12 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         ? (parsedTips.lingkunganOptimal as string[])
         : [];
 
-      const saranList: Array<{ title: string; desc: string }> = Array.isArray(parsedTips.saran) && parsedTips.saran.length > 0
-        ? parsedTips.saran
-        : (Array.isArray(rawTips) ? (rawTips as any) : []);
+      const saranList: Array<{ title: string; desc: string }> =
+        isDASS && dassEvaluation?.tips?.length
+          ? dassEvaluation.tips
+          : Array.isArray(parsedTips.saran) && parsedTips.saran.length > 0
+            ? parsedTips.saran
+            : (Array.isArray(rawTips) ? (rawTips as any) : []);
 
       return {
         deskripsi: dbInterpretasi.deskripsi || dbPackage?.deskripsi || "Asesmen psikotes telah berhasil diselesaikan.",
@@ -790,15 +789,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {dynamicResult.value}
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed pdf-body">
-              {berbayarDetail.deskripsi}
+              {isDASS && dassEvaluation ? dassEvaluation.introText : berbayarDetail.deskripsi}
             </p>
-            {dassEvaluation && (
-              <div className="mt-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-purple-200 text-xs font-bold text-gray-800 shadow-2xs">
-                  Total Skor: <strong className="text-[#561269]">{dassEvaluation.totalGPD}</strong> / 126
-                </span>
-              </div>
-            )}
           </section>
 
           {/* 2. Grid Konten: Kolom Kiri (Analisis) & Kolom Kanan (Sidebar) */}
