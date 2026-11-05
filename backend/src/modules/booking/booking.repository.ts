@@ -1,6 +1,6 @@
 import type { PrismaClient, Prisma, StatusBooking, StatusSlot, StatusPembayaran } from '@prisma/client'
 import { parseDateString, timeStringToDate, formatDateToString, formatTimeToString, calculateRefundDeadline } from '../../utils/date-time'
-import { generateOrderId } from '../../utils'
+import { generateOrderId, generateTrxId } from '../../utils'
 
 export class BookingRepository {
   constructor(private prisma: PrismaClient) { }
@@ -443,7 +443,7 @@ export class BookingRepository {
       })
 
       // 3. Buat BookingKonsultasi langsung CONFIRMED (admin direct)
-      const kode_pesanan = `ADM-${generateOrderId()}`
+      const kode_pesanan = generateOrderId('ADM')
       const booking = await tx.bookingKonsultasi.create({
         data: {
           kode_pesanan,
@@ -743,11 +743,12 @@ export class BookingRepository {
       const paymentStatus: StatusPembayaran = 'PENDING'
 
       // 5. Buat Transaksi
-      const kode_pesanan = `W-${generateOrderId()}`
+      const kode_pesanan = generateOrderId('KONS')
+      const kode_transaksi = generateTrxId()
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
-          kode_transaksi: kode_pesanan,
+          kode_transaksi,
           tipe_transaksi: 'KONSULTASI',
           subtotal: nominal,
           biaya_admin: 0,
@@ -1144,3 +1145,4 @@ export class BookingRepository {
     })
   }
 }
+

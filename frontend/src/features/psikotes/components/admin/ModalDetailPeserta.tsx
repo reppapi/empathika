@@ -157,18 +157,6 @@ export default function ModalDetailPeserta({
                 </p>
               </div>
 
-              {/* Makna Hasil */}
-              {detail.makna && (
-                <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2] space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#561269]">
-                    Makna Hasil dalam Kehidupan Sehari-hari
-                  </span>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    {detail.makna}
-                  </p>
-                </div>
-              )}
-
               {/* Potensi & Area Pengembangan */}
               {(detail.kekuatanUtama.length > 0 || detail.blindspots.length > 0) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

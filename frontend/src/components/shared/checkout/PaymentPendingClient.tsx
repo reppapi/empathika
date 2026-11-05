@@ -11,6 +11,7 @@ import { PendingStepper } from "./payment-pending/PendingStepper"
 import { PendingStatusSection } from "./payment-pending/PendingStatusSection"
 import { PendingTicketCard } from "./payment-pending/PendingTicketCard"
 import { PendingBottomWarning } from "./payment-pending/PendingBottomWarning"
+import { formatOrderId } from "@/lib/utils"
 
 export type { PaymentPendingType }
 
@@ -23,7 +24,8 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
   const email = searchParams.get("email") ?? ""
   const whatsapp = searchParams.get("whatsapp") ?? ""
   const deskripsi = searchParams.get("deskripsi") ?? ""
-  const orderId = searchParams.get("orderId") ?? "W-EMP-0000"
+  const rawOrderId = searchParams.get("orderId") ?? "W-EMP-0000"
+  const orderId = formatOrderId(rawOrderId)
   const bookingId = searchParams.get("bookingId") ?? ""
   const slotId = searchParams.get("slotId") ?? ""
   const psikologId = searchParams.get("psikologId") ?? ""
@@ -41,6 +43,9 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
   const metode = searchParams.get("metode") ?? "qris"
   const bank = searchParams.get("bank")
   const ewallet = searchParams.get("ewallet")
+  const tipe = searchParams.get("tipe")
+  const linkMeet = searchParams.get("linkMeet")
+  const linkWa = searchParams.get("linkWa")
 
   // Timer mundur 5 menit (300 detik)
   const [seconds, setSeconds] = useState(300)
@@ -142,6 +147,9 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
         ...(bank && { bank }),
         ...(ewallet && { ewallet }),
         ...(psikologName && { psikologName }),
+        ...(tipe && { tipe }),
+        ...(linkMeet && { linkMeet }),
+        ...(linkWa && { linkWa }),
       })
       router.push(`${config.successHref}?${params.toString()}`)
     }, 2000)

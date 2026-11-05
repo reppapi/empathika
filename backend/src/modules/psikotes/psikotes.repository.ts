@@ -8,6 +8,13 @@ import type {
   PesertaQueryInput,
   CreateBookingPsikotesInput,
 } from './psikotes.schema'
+import {
+  getAlatUkur,
+  getSoalDanOpsiAlatUkur,
+  hitungSkorAlatUkur,
+  formatSoalPsikotesForAlatUkur,
+  formatInterpretasiForAlatUkur,
+} from './alat-ukur'
 
 export class PsikotesRepository {
   constructor(private prisma: PrismaClient) {}
@@ -41,11 +48,14 @@ export class PsikotesRepository {
       include: {
         soal_psikotes: {
           include: {
-            pilihan_jawaban: true,
+            pilihan_jawaban: {
+              orderBy: { bobot: 'asc' },
+            },
           },
           orderBy: { urutan: 'asc' },
         },
         interpretasi_psikotes: true,
+        alat_ukur: true,
         _count: {
           select: {
             booking_psikotes: true,
@@ -55,51 +65,20 @@ export class PsikotesRepository {
       orderBy: { createdAt: 'desc' },
     })
 
-    // Jika dipanggil oleh Admin (status ALL atau includeDraft), kembalikan data per record apa adanya
-    if (params?.status === 'ALL' || includeDraft) {
-      return rawList
-    }
-
-    // Untuk website publik/user:
-    // Jika dalam 1 judul paket terdapat opsi Gratis dan Berbayar, satukan menjadi 1 card
-    // di mana harga paket berbayar disematkan sehingga di dalam card/detail tetap ada pilihan gratis dan berbayar.
-    const map = new Map<string, any>()
-
+    // Jika paket terhubung dengan alat ukur baku (Code-First), lengkapi butir soal & interpretasi
     for (const item of rawList) {
-      const key = (item.judul || '').trim().toLowerCase()
-      const existing = map.get(key)
-
-      if (!existing) {
-        map.set(key, { ...item })
-      } else {
-        // Jika ada varian gratis dan berbayar dalam 1 judul:
-        // 1. Ambil harga dari paket berbayar jika existing masih 0
-        if (Number(item.harga) > 0 && Number(existing.harga) === 0) {
-          existing.harga = item.harga
+      if (item.alat_ukur) {
+        if (!item.soal_psikotes || item.soal_psikotes.length === 0) {
+          item.soal_psikotes = formatSoalPsikotesForAlatUkur(item.id, item.alat_ukur.kode) as any
         }
-        // 2. Lengkapi soal jika existing kosong tapi item punya soal
-        if ((!existing.soal_psikotes || existing.soal_psikotes.length === 0) && item.soal_psikotes && item.soal_psikotes.length > 0) {
-          existing.soal_psikotes = item.soal_psikotes
-        }
-        // 3. Lengkapi interpretasi jika existing kosong
-        if ((!existing.interpretasi_psikotes || existing.interpretasi_psikotes.length === 0) && item.interpretasi_psikotes && item.interpretasi_psikotes.length > 0) {
-          existing.interpretasi_psikotes = item.interpretasi_psikotes
-        }
-        // 4. Lengkapi benefits jika existing kosong
-        if (!existing.benefits && item.benefits) {
-          existing.benefits = item.benefits
-        }
-        // 5. Lengkapi deskripsi dan banner jika existing kosong
-        if (!existing.deskripsi && item.deskripsi) {
-          existing.deskripsi = item.deskripsi
-        }
-        if (!existing.banner_url && item.banner_url) {
-          existing.banner_url = item.banner_url
+        if (!item.interpretasi_psikotes || item.interpretasi_psikotes.length === 0) {
+          item.interpretasi_psikotes = formatInterpretasiForAlatUkur(item.id, item.alat_ukur.kode) as any
         }
       }
     }
 
-    return Array.from(map.values())
+    // Kembalikan data paket apa adanya (1 paket = 1 jenis akses mandiri)
+    return rawList
   }
 
   async findById(id: string, allowDraft: boolean = false) {
@@ -113,11 +92,14 @@ export class PsikotesRepository {
       include: {
         soal_psikotes: {
           include: {
-            pilihan_jawaban: true,
+            pilihan_jawaban: {
+              orderBy: { bobot: 'asc' },
+            },
           },
           orderBy: { urutan: 'asc' },
         },
         interpretasi_psikotes: true,
+        alat_ukur: true,
         _count: {
           select: {
             booking_psikotes: true,
@@ -128,49 +110,13 @@ export class PsikotesRepository {
 
     if (!item) return null
 
-    // Cari paket pasangan dengan judul yang sama (misal versi gratis atau berbayar)
-    const sibling = await this.prisma.paketPsikotes.findFirst({
-      where: {
-        id: { not: item.id },
-        judul: { equals: item.judul.trim(), mode: 'insensitive' },
-        status: allowDraft ? undefined : 'PUBLISHED',
-      },
-      include: {
-        soal_psikotes: {
-          include: {
-            pilihan_jawaban: true,
-          },
-          orderBy: { urutan: 'asc' },
-        },
-        interpretasi_psikotes: true,
-        _count: {
-          select: {
-            booking_psikotes: true,
-          },
-        },
-      },
-    })
-
-    if (sibling) {
-      // Jika paket yang dibuka adalah Gratis dan ada versi Berbayar,
-      // sematkan harga dari versi berbayar agar frontend menampilkan opsi Paket Berbayar di samping Akses Gratis
-      if (Number(sibling.harga) > 0 && Number(item.harga) === 0) {
-        item.harga = sibling.harga
+    // Jika paket terhubung dengan alat ukur baku (Code-First), lengkapi butir soal & interpretasi
+    if (item.alat_ukur) {
+      if (!item.soal_psikotes || item.soal_psikotes.length === 0) {
+        item.soal_psikotes = formatSoalPsikotesForAlatUkur(item.id, item.alat_ukur.kode) as any
       }
-
-      // Lengkapi soal jika di paket ini kosong tetapi sibling punya soal
-      if ((!item.soal_psikotes || item.soal_psikotes.length === 0) && sibling.soal_psikotes && sibling.soal_psikotes.length > 0) {
-        item.soal_psikotes = sibling.soal_psikotes
-      }
-
-      // Lengkapi interpretasi jika di paket ini kosong
-      if ((!item.interpretasi_psikotes || item.interpretasi_psikotes.length === 0) && sibling.interpretasi_psikotes && sibling.interpretasi_psikotes.length > 0) {
-        item.interpretasi_psikotes = sibling.interpretasi_psikotes
-      }
-
-      // Lengkapi benefits jika kosong
-      if (!item.benefits && sibling.benefits) {
-        item.benefits = sibling.benefits
+      if (!item.interpretasi_psikotes || item.interpretasi_psikotes.length === 0) {
+        item.interpretasi_psikotes = formatInterpretasiForAlatUkur(item.id, item.alat_ukur.kode) as any
       }
     }
 
@@ -182,11 +128,11 @@ export class PsikotesRepository {
       data: {
         judul: data.judul,
         deskripsi: data.deskripsi || null,
+        tentang_tes: data.tentang_tes || null,
         banner_url: data.banner_url || null,
         jenis_akses: data.jenis_akses || 'GRATIS',
         harga: data.harga ?? 0,
         status: data.status || 'PUBLISHED',
-        benefits: data.benefits ?? null,
         soal_psikotes:
           data.soal_psikotes && data.soal_psikotes.length > 0
             ? {
@@ -212,7 +158,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 })),
               }
@@ -221,11 +166,14 @@ export class PsikotesRepository {
       include: {
         soal_psikotes: {
           include: {
-            pilihan_jawaban: true,
+            pilihan_jawaban: {
+              orderBy: { bobot: 'asc' },
+            },
           },
           orderBy: { urutan: 'asc' },
         },
         interpretasi_psikotes: true,
+        alat_ukur: true,
       },
     })
   }
@@ -242,11 +190,11 @@ export class PsikotesRepository {
         data: {
           ...(data.judul !== undefined ? { judul: data.judul } : {}),
           ...(data.deskripsi !== undefined ? { deskripsi: data.deskripsi } : {}),
+          ...(data.tentang_tes !== undefined ? { tentang_tes: data.tentang_tes } : {}),
           ...(data.banner_url !== undefined ? { banner_url: data.banner_url } : {}),
           ...(data.jenis_akses !== undefined ? { jenis_akses: data.jenis_akses } : {}),
           ...(data.harga !== undefined ? { harga: data.harga } : {}),
           ...(data.status !== undefined ? { status: data.status } : {}),
-          ...(data.benefits !== undefined ? { benefits: data.benefits } : {}),
         },
       })
 
@@ -353,7 +301,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
               })
@@ -377,7 +324,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
               })
@@ -390,7 +336,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  makna: i.makna ?? null,
                   tips: i.tips ?? null,
                 },
               })
@@ -403,10 +348,15 @@ export class PsikotesRepository {
         where: { id },
         include: {
           soal_psikotes: {
-            include: { pilihan_jawaban: true },
+            include: {
+              pilihan_jawaban: {
+                orderBy: { bobot: 'asc' },
+              },
+            },
             orderBy: { urutan: 'asc' },
           },
           interpretasi_psikotes: true,
+        alat_ukur: true,
         },
       })
     })
@@ -473,10 +423,14 @@ export class PsikotesRepository {
         include: {
           soal_psikotes: {
             include: {
-              pilihan_jawaban: true,
+              pilihan_jawaban: {
+                orderBy: { bobot: 'asc' },
+              },
             },
+            orderBy: { urutan: 'asc' },
           },
           interpretasi_psikotes: true,
+        alat_ukur: true,
         },
       })
 
@@ -484,19 +438,15 @@ export class PsikotesRepository {
         throw new Error('Paket psikotes tidak ditemukan')
       }
 
-      // Cari sibling dengan judul yang sama jika ada (untuk melengkapi soal/interpretasi antar varian gratis & berbayar)
-      const sibling = await tx.paketPsikotes.findFirst({
-        where: {
-          id: { not: paket.id },
-          judul: { equals: paket.judul.trim(), mode: 'insensitive' },
-        },
-        include: {
-          soal_psikotes: {
-            include: { pilihan_jawaban: true },
-          },
-          interpretasi_psikotes: true,
-        },
-      })
+      // Jika paket terhubung dengan alat ukur baku (Code-First), lengkapi butir soal & interpretasi
+      if (paket.alat_ukur) {
+        if (!paket.soal_psikotes || paket.soal_psikotes.length === 0) {
+          paket.soal_psikotes = formatSoalPsikotesForAlatUkur(paket.id, paket.alat_ukur.kode) as any
+        }
+        if (!paket.interpretasi_psikotes || paket.interpretasi_psikotes.length === 0) {
+          paket.interpretasi_psikotes = formatInterpretasiForAlatUkur(paket.id, paket.alat_ukur.kode) as any
+        }
+      }
 
       // 2. Normalisasi format jawaban (baik array [{ id_soal, id_pilihan }] maupun record { [id_soal]: id_pilihan })
       const normalizedAnswers: Array<{ id_soal: string; id_pilihan: string }> = []
@@ -517,15 +467,6 @@ export class PsikotesRepository {
           pilihanMap.set(pil.id, pil)
         }
       }
-      if (sibling) {
-        for (const soal of sibling.soal_psikotes) {
-          for (const pil of soal.pilihan_jawaban) {
-            if (!pilihanMap.has(pil.id)) {
-              pilihanMap.set(pil.id, pil)
-            }
-          }
-        }
-      }
 
       let totalSkor = 0
       const jawabanToInsert: Array<{ id_soal_psikotes: string; id_pilihan_jawaban: string; skor: number }> = []
@@ -541,39 +482,76 @@ export class PsikotesRepository {
         })
       }
 
-      // 3. Tentukan interpretasi hasil berdasarkan skor
-      let matchedInterpretasi = null
-      const interpretasiList = (paket.interpretasi_psikotes && paket.interpretasi_psikotes.length > 0)
-        ? paket.interpretasi_psikotes
-        : (sibling?.interpretasi_psikotes || [])
+      // Jika paket terhubung dengan alat ukur baku (Code-First / Hybrid), hitung skor & diagnosa dengan engine alat ukur
+      let calculationResult: any = null
+      if (paket.alat_ukur) {
+        const jawabanMap: Record<number | string, number> = {}
+        for (let idx = 0; idx < normalizedAnswers.length; idx++) {
+          const ans = normalizedAnswers[idx]
+          const pil = pilihanMap.get(ans.id_pilihan)
+          const skor = pil ? pil.bobot : 0
+          // Ambil urutan nomor soal dari database jika ada, atau fallback ke indeks
+          const soalObj = paket.soal_psikotes.find((s) => s.id === ans.id_soal)
+          const qNumMatch = ans.id_soal.match(/q-(\d+)/i) || ans.id_soal.match(/(\d+)$/)
+          const qNum = soalObj?.urutan ?? (qNumMatch ? parseInt(qNumMatch[1], 10) : idx + 1)
+          jawabanMap[qNum] = skor
+        }
+        try {
+          calculationResult = hitungSkorAlatUkur(paket.alat_ukur.kode, jawabanMap)
+          if (calculationResult && typeof calculationResult.totalSkor === 'number') {
+            totalSkor = calculationResult.totalSkor
+          }
+        } catch (err) {
+          console.warn(`[PSIKOTES] Gagal hitung skor modul ${paket.alat_ukur.kode}:`, err)
+        }
+      }
 
-      if (interpretasiList.length > 0) {
-        // Cari rentang persis
-        matchedInterpretasi = interpretasiList.find(
+      // 3. Tentukan interpretasi hasil berdasarkan skor
+      let matchedInterpretasi: any = null
+      if (calculationResult) {
+        // Cari interpretasi yang cocok dari tabel DB jika ada
+        const dbMatched = paket.interpretasi_psikotes.find(
           (i) => totalSkor >= i.min_skor && totalSkor <= i.max_skor
         )
 
-        if (!matchedInterpretasi) {
-          // Cari tier terdekat jika skor di luar min/max
-          const sorted = [...interpretasiList].sort((a, b) => a.min_skor - b.min_skor)
-          if (totalSkor < sorted[0].min_skor) {
-            matchedInterpretasi = sorted[0]
-          } else {
-            matchedInterpretasi = sorted[sorted.length - 1]
-          }
+        matchedInterpretasi = {
+          id: dbMatched?.id || null,
+          grade: dbMatched?.grade || calculationResult.grade || 'Hasil Tes',
+          judul: dbMatched?.judul || calculationResult.kategori || 'Hasil Asesmen',
+          deskripsi: dbMatched?.deskripsi || calculationResult.deskripsi || '',
+          tips: (dbMatched as any)?.tips || calculationResult.saran || null,
         }
       } else {
-        // Buat 1 interpretasi default jika paket belum memiliki data interpretasi
-        matchedInterpretasi = await tx.interpretasiPsikotes.create({
-          data: {
-            id_paket: paket.id,
-            min_skor: 0,
-            max_skor: 1000,
-            grade: 'Hasil Umum',
-            judul: 'Hasil Asesmen Psikotes',
-            deskripsi: 'Tes telah diselesaikan dengan baik.',
-          },
-        })
+        const interpretasiList = paket.interpretasi_psikotes || []
+
+        if (interpretasiList.length > 0) {
+          // Cari rentang persis
+          matchedInterpretasi = interpretasiList.find(
+            (i) => totalSkor >= i.min_skor && totalSkor <= i.max_skor
+          )
+
+          if (!matchedInterpretasi) {
+            // Cari tier terdekat jika skor di luar min/max
+            const sorted = [...interpretasiList].sort((a, b) => a.min_skor - b.min_skor)
+            if (totalSkor < sorted[0].min_skor) {
+              matchedInterpretasi = sorted[0]
+            } else {
+              matchedInterpretasi = sorted[sorted.length - 1]
+            }
+          }
+        } else {
+          // Buat 1 interpretasi default jika paket belum memiliki data interpretasi
+          matchedInterpretasi = await tx.interpretasiPsikotes.create({
+            data: {
+              id_paket: paket.id,
+              min_skor: 0,
+              max_skor: 1000,
+              grade: 'Hasil Umum',
+              judul: 'Hasil Asesmen Psikotes',
+              deskripsi: 'Tes telah diselesaikan dengan baik.',
+            },
+          })
+        }
       }
 
       // 4. Data Diri Klien (Gratis = selalu Tamu Anonim tanpa identitas, Berbayar = dengan data diri resmi)
@@ -608,6 +586,11 @@ export class PsikotesRepository {
               no_telepon: inputPhone || client.no_telepon,
               usia: input.klien?.usia ?? client.usia,
               jenis_kelamin: input.klien?.jenis_kelamin ?? client.jenis_kelamin,
+              tempat_lahir: (input.klien as any)?.tempat_lahir ?? client.tempat_lahir,
+              tanggal_lahir: (input.klien as any)?.tanggal_lahir ? new Date((input.klien as any).tanggal_lahir) : client.tanggal_lahir,
+              pendidikan: (input.klien as any)?.pendidikan ?? client.pendidikan,
+              pekerjaan: (input.klien as any)?.pekerjaan ?? client.pekerjaan,
+              status_pernikahan: (input.klien as any)?.status_pernikahan ?? client.status_pernikahan,
             },
           })
         } else {
@@ -617,6 +600,11 @@ export class PsikotesRepository {
               no_telepon: inputPhone || null,
               usia: input.klien?.usia || null,
               jenis_kelamin: input.klien?.jenis_kelamin || null,
+              tempat_lahir: (input.klien as any)?.tempat_lahir || null,
+              tanggal_lahir: (input.klien as any)?.tanggal_lahir ? new Date((input.klien as any).tanggal_lahir) : null,
+              pendidikan: (input.klien as any)?.pendidikan || null,
+              pekerjaan: (input.klien as any)?.pekerjaan || null,
+              status_pernikahan: (input.klien as any)?.status_pernikahan || null,
               id_biro: input.id_biro || null,
             },
           })
@@ -695,7 +683,15 @@ export class PsikotesRepository {
         if (booking.id_paket !== targetBookingPaketId) {
           booking = await tx.bookingPsikotes.update({
             where: { id: booking.id },
-            data: { id_paket: targetBookingPaketId },
+            data: {
+              id_paket: targetBookingPaketId,
+              riwayat_kesehatan: (input as any).riwayat_kesehatan || booking.riwayat_kesehatan,
+            },
+          })
+        } else if ((input as any).riwayat_kesehatan) {
+          booking = await tx.bookingPsikotes.update({
+            where: { id: booking.id },
+            data: { riwayat_kesehatan: (input as any).riwayat_kesehatan },
           })
         }
       } else {
@@ -705,45 +701,53 @@ export class PsikotesRepository {
             id_paket: targetBookingPaketId,
             id_client: client.id,
             id_transaksi: null,
+            riwayat_kesehatan: (input as any).riwayat_kesehatan || null,
           },
         })
       }
 
-      // 6. Simpan seluruh butir jawaban ke tabel jawaban_psikotes (hapus jawaban sebelumnya jika re-submit)
+      // 6. Simpan butir jawaban ke tabel jawaban_psikotes jika soal berasal dari database asli
       if (jawabanToInsert.length > 0) {
-        await tx.jawabanPsikotes.deleteMany({
-          where: { id_booking: booking.id },
-        })
+        const isRealDbQuestions = paket.soal_psikotes.some(
+          (s) => s.id === jawabanToInsert[0].id_soal_psikotes && !s.id.includes('-q-')
+        )
 
-        await tx.jawabanPsikotes.createMany({
-          data: jawabanToInsert.map((j) => ({
-            id_booking: booking.id,
-            id_soal_psikotes: j.id_soal_psikotes,
-            id_pilihan_jawaban: j.id_pilihan_jawaban,
-            skor: j.skor,
-          })),
-        })
+        if (isRealDbQuestions) {
+          await tx.jawabanPsikotes.deleteMany({
+            where: { id_booking: booking.id },
+          })
+
+          await tx.jawabanPsikotes.createMany({
+            data: jawabanToInsert.map((j) => ({
+              id_booking: booking.id,
+              id_soal_psikotes: j.id_soal_psikotes,
+              id_pilihan_jawaban: j.id_pilihan_jawaban,
+              skor: j.skor,
+            })),
+          })
+        }
       }
 
       // 7. Simpan hasil penilaian akhir ke tabel hasil_tes (upsert agar tidak terjadi duplicate key)
+      const detailSkorPayload = calculationResult || {
+        total_soal: paket.soal_psikotes.length,
+        soal_dijawab: jawabanToInsert.length,
+      }
+
       const hasilTes = await tx.hasilTes.upsert({
         where: { id_booking: booking.id },
         create: {
           id_booking: booking.id,
-          id_interpretasi: matchedInterpretasi.id,
+          id_interpretasi: matchedInterpretasi?.id || null,
           total_skor: totalSkor,
-          detail_skor: {
-            total_soal: paket.soal_psikotes.length,
-            soal_dijawab: jawabanToInsert.length,
-          },
+          detail_skor: detailSkorPayload,
+          snapshot_jawaban: input.jawaban as any,
         },
         update: {
-          id_interpretasi: matchedInterpretasi.id,
+          id_interpretasi: matchedInterpretasi?.id || null,
           total_skor: totalSkor,
-          detail_skor: {
-            total_soal: paket.soal_psikotes.length,
-            soal_dijawab: jawabanToInsert.length,
-          },
+          detail_skor: detailSkorPayload,
+          snapshot_jawaban: input.jawaban as any,
           tanggal_selesai: new Date(),
         },
         include: {
@@ -761,13 +765,13 @@ export class PsikotesRepository {
           no_telepon: client.no_telepon,
         },
         total_skor: totalSkor,
+        detail_skor: detailSkorPayload,
         hasil: {
           id: hasilTes.id,
           grade: matchedInterpretasi.grade,
           judul: matchedInterpretasi.judul,
           deskripsi: matchedInterpretasi.deskripsi,
-          makna: matchedInterpretasi.makna,
-          tips: matchedInterpretasi.tips,
+          tips: matchedInterpretasi.tips ?? null,
           tanggal_selesai: hasilTes.tanggal_selesai,
         },
       }
@@ -889,8 +893,7 @@ export class PsikotesRepository {
               grade: b.hasil_tes.interpretasi?.grade || '—',
               judul: b.hasil_tes.interpretasi?.judul || '—',
               deskripsi: b.hasil_tes.interpretasi?.deskripsi || '—',
-              makna: b.hasil_tes.interpretasi?.makna || '—',
-              tips: b.hasil_tes.interpretasi?.tips || [],
+              tips: (b.hasil_tes.interpretasi as any)?.tips || [],
               tanggal_selesai: b.hasil_tes.tanggal_selesai,
             }
           : null,
@@ -1123,6 +1126,51 @@ export class PsikotesRepository {
           usia: booking.client.usia,
           jenis_kelamin: booking.client.jenis_kelamin,
         },
+      }
+    })
+  }
+
+  /**
+   * Pembersihan berkala data pengerjaan psikotes tamu anonim (Retention Lifecycle).
+   * Hanya menghapus data tamu anonim gratis yang usianya lebih dari `daysOld` (default: 60 hari).
+   * Data pengerjaan peserta berbayar resmi TIDAK PERNAH disentuh/dihapus.
+   */
+  async cleanupOldAnonymousGuests(daysOld: number = 60) {
+    const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000)
+
+    const oldGuestBookings = await this.prisma.bookingPsikotes.findMany({
+      where: {
+        createdAt: { lt: cutoffDate },
+        paket: { jenis_akses: 'GRATIS' },
+        client: { nama: 'Tamu Anonim' },
+        id_transaksi: null,
+      },
+      select: { id: true, id_client: true },
+    })
+
+    if (oldGuestBookings.length === 0) {
+      return { deletedCount: 0, message: 'Tidak ada data tamu anonim lama yang perlu dibersihkan.' }
+    }
+
+    const bookingIds = oldGuestBookings.map((b) => b.id)
+    const clientIds = Array.from(new Set(oldGuestBookings.map((b) => b.id_client)))
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.hasilTes.deleteMany({ where: { id_booking: { in: bookingIds } } })
+      await tx.jawabanPsikotes.deleteMany({ where: { id_booking: { in: bookingIds } } })
+      const res = await tx.bookingPsikotes.deleteMany({ where: { id: { in: bookingIds } } })
+
+      // Bersihkan record client Tamu Anonim yang sudah tidak memiliki booking aktif
+      for (const cId of clientIds) {
+        const remaining = await tx.bookingPsikotes.count({ where: { id_client: cId } })
+        if (remaining === 0) {
+          await tx.client.delete({ where: { id: cId } }).catch(() => {})
+        }
+      }
+
+      return {
+        deletedCount: res.count,
+        message: `Berhasil membersihkan ${res.count} riwayat pengerjaan tamu anonim yang lebih dari ${daysOld} hari.`,
       }
     })
   }

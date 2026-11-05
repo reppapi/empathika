@@ -5,6 +5,8 @@ import Script from "next/script"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { adminService } from "@/services/admin.service"
+import { formatOrderId } from "@/lib/utils"
+import { Video, MessageCircle, ExternalLink } from "lucide-react"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
 export type PaymentType = "konseling" | "event" | "psikotes"
@@ -71,7 +73,8 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const searchParams = useSearchParams()
 
   const nama = searchParams.get("nama") ?? "PESERTA"
-  const orderId = searchParams.get("orderId") ?? "W-EMP-0000"
+  const rawOrderId = searchParams.get("orderId") ?? "W-EMP-0000"
+  const orderId = formatOrderId(rawOrderId)
   const tanggal = searchParams.get("tanggal") ?? "31/08"
   const tahun = searchParams.get("tahun") ?? "2026"
   const waktu = searchParams.get("waktu") ?? "13:30"
@@ -83,6 +86,10 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const bank = searchParams.get("bank")
   const ewallet = searchParams.get("ewallet")
   const kategori = searchParams.get("kategori") ?? ""
+  const tipe = searchParams.get("tipe") ?? "Online"
+  const linkMeet = searchParams.get("linkMeet")
+  const linkWa = searchParams.get("linkWa")
+  const isOnlineEvent = type === "event" && tipe !== "Offline"
 
   const testId = searchParams.get("testId")
 
@@ -316,23 +323,21 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                 {subjudul && <p className="text-xs text-gray-500 mt-1">{subjudul}</p>}
               </div>
 
-              {/* Tanggal & Waktu */}
+              {/* Tanggal & Waktu — ukuran font diperkecil agar tidak mendominasi tiket */}
               <div className="grid grid-cols-2 gap-4 mb-5 pb-5 border-b border-dashed border-[#C3A4CE]">
                 <div>
                   <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">
                     {isPsikotes ? "TANGGAL TRANSAKSI" : cfg.tanggalLabel}
                   </div>
-                  <div className="text-2xl font-extrabold text-[#2F2F2F]">{tanggal}</div>
-                  <div className="text-[8px] font-bold text-gray-500 uppercase">TAHUN {tahun}</div>
+                  <div className="text-sm font-bold text-[#2F2F2F] leading-snug">{tanggal}</div>
+                  <div className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">TAHUN {tahun}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">
                     {isPsikotes ? "WAKTU TRANSAKSI" : cfg.waktuLabel}
                   </div>
-                  <div className="text-2xl font-extrabold text-[#2F2F2F]">{waktu}</div>
-                  <div className="text-[8px] font-bold text-gray-500 uppercase">
-                    {isPsikotes ? "WIB · AKTIF" : "WIB - SELESAI"}
-                  </div>
+                  <div className="text-sm font-bold text-[#2F2F2F] leading-snug">{waktu}</div>
+                  <div className="text-[8px] font-bold text-gray-500 uppercase mt-0.5">WIB (Waktu Indonesia Barat)</div>
                 </div>
               </div>
 
@@ -366,6 +371,28 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                   LUNAS
                 </span>
               </div>
+
+              {/* Akses Event: hanya Google Meet (di dalam tiket).
+                  Tombol Gabung Grup WhatsApp dipindahkan ke luar tiket (Action Buttons). */}
+              {type === "event" && isOnlineEvent && linkMeet && (
+                <div className="pt-3.5 mt-3 border-t border-dashed border-[#DCD0E1] flex flex-col gap-2">
+                  <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
+                    Akses Event Anda
+                  </div>
+                  <a
+                    href={linkMeet}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-between shadow-sm transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Video className="w-4 h-4 shrink-0" />
+                      <span>Gabung Google Meet</span>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -381,6 +408,8 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                 <p className="text-[10px] text-gray-500 mb-2 font-medium">
                   {isPsikotes
                     ? "Pembayaran paket psikotes berhasil! Silakan klik tombol di bawah untuk langsung mulai tes."
+                    : type === "event" && linkWa
+                    ? "Bergabunglah ke grup WhatsApp untuk info event terbaru dan pengumuman penting."
                     : "Hubungi kontak ini setelah anda selesai melakukan pembayaran!"}
                 </p>
                 {isPsikotes ? (
@@ -393,7 +422,19 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                     </svg>
                   </Link>
-                ) : (
+                ) : type === "event" && linkWa ? (
+                  /* Tombol Gabung Grup WhatsApp — hanya muncul jika event memiliki link WA */
+                  <a
+                    href={linkWa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 rounded-lg bg-[#25D366] text-white font-bold text-xs sm:text-sm flex justify-center items-center gap-2 hover:bg-[#1DA851] transition-colors shadow-sm"
+                  >
+                    <MessageCircle className="w-4 h-4 shrink-0" />
+                    Gabung Grup WhatsApp
+                  </a>
+                ) : !isPsikotes ? (
+                  /* Tombol Chat WA Admin — hanya untuk konseling & psikotes (bukan event) */
                   <a
                     href={waAdminUrl}
                     target="_blank"
@@ -405,7 +446,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                     </svg>
                     Chat WA Admin
                   </a>
-                )}
+                ) : null}
               </div>
             </div>
 

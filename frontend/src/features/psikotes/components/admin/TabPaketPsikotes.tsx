@@ -17,6 +17,9 @@ export interface TabPaketPsikotesProps {
   onSearchChange: (val: string) => void;
   onSelectJudul: (judul: JudulPsikotesItem) => void;
   onDeleteJudul: (judul: JudulPsikotesItem) => void;
+  isLoading?: boolean;
+  errorMessage?: string | null;
+  onRetry?: () => void;
 }
 
 export default function TabPaketPsikotes({
@@ -25,6 +28,9 @@ export default function TabPaketPsikotes({
   onSearchChange,
   onSelectJudul,
   onDeleteJudul,
+  isLoading = false,
+  errorMessage = null,
+  onRetry,
 }: TabPaketPsikotesProps) {
   const filteredJudul = judulList.filter((item) => {
     if (!searchQuery) return true;
@@ -195,12 +201,29 @@ export default function TabPaketPsikotes({
         </div>
       </div>
 
-      <AdminDataTable
-        columns={columns}
-        data={filteredJudul}
-        keyExtractor={(item) => String(item.id)}
-        emptyMessage="Tidak ada paket psikotes yang ditemukan."
-      />
+      {errorMessage ? (
+        <div className="p-8 rounded-2xl bg-amber-50/70 border border-amber-200 text-center space-y-3">
+          <p className="text-sm text-amber-800 font-medium">{errorMessage}</p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="px-4 py-2 rounded-xl bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-xs cursor-pointer"
+            >
+              Coba Muat Ulang
+            </button>
+          )}
+        </div>
+      ) : (
+        <AdminDataTable
+          columns={columns}
+          data={filteredJudul}
+          keyExtractor={(item) => String(item.id)}
+          isLoading={isLoading}
+          loadingMessage="Memuat daftar paket psikotes..."
+          emptyMessage="Tidak ada paket psikotes yang ditemukan. Pastikan seeder database telah dijalankan."
+        />
+      )}
     </div>
   );
 }

@@ -26,7 +26,6 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
       kategori: "Umum",
       deskripsi: item.deskripsi || "",
       bannerUrl: item.banner_url || undefined,
-      benefits: Array.isArray(item.benefits) ? item.benefits : undefined,
       jenisAkses: item.jenis_akses === "GRATIS" ? "Gratis" : "Berbayar",
       harga: item.jenis_akses === "GRATIS" ? "Gratis" : `Rp ${Number(item.harga).toLocaleString("id-ID")}`,
       numericHarga: Number(item.harga) || 0,
@@ -43,10 +42,11 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
         let judulBlindspots = "Area yang Perlu Dikembangkan";
         let judulLingkungan = "Kondisi atau Lingkungan yang Mendukung";
 
-        if (Array.isArray(i.tips)) {
-          saran = i.tips;
-        } else if (i.tips && typeof i.tips === "object") {
-          const t = i.tips as any;
+        const rawTips = (i as any)?.tips;
+        if (Array.isArray(rawTips)) {
+          saran = rawTips;
+        } else if (rawTips && typeof rawTips === "object") {
+          const t = rawTips as any;
           saran = Array.isArray(t.saran) ? t.saran : [];
           kekuatanUtama = Array.isArray(t.kekuatanUtama) ? t.kekuatanUtama : [];
           blindspots = Array.isArray(t.blindspots) ? t.blindspots : [];
@@ -63,7 +63,6 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
           judul: i.judul,
           kategori: i.grade || "Umum",
           deskripsi: i.deskripsi,
-          makna: i.makna || "",
           saran,
           kekuatanUtama,
           blindspots,
@@ -125,7 +124,6 @@ export function getPesertaReportDetail(
   let detailJudul = peserta.hasil?.judul && peserta.hasil.judul !== "—" ? peserta.hasil.judul : "";
   let detailGrade = peserta.hasil?.grade && peserta.hasil.grade !== "—" ? peserta.hasil.grade : peserta.skor;
   let deskripsi = peserta.hasil?.deskripsi && peserta.hasil.deskripsi !== "—" ? peserta.hasil.deskripsi : "";
-  let makna = peserta.hasil?.makna && peserta.hasil.makna !== "—" ? peserta.hasil.makna : "";
 
   let kekuatanUtama: string[] = [];
   let blindspots: string[] = [];
@@ -135,8 +133,9 @@ export function getPesertaReportDetail(
   let judulBlindspots = "Area yang Perlu Dikembangkan";
   let judulLingkungan = "Kondisi atau Lingkungan yang Mendukung";
 
-  if (peserta.hasil?.tips) {
-    let rawTips: any = peserta.hasil.tips;
+  const rawHasilTips = (peserta.hasil as any)?.tips;
+  if (rawHasilTips) {
+    let rawTips: any = rawHasilTips;
     if (typeof rawTips === "string") {
       try {
         rawTips = JSON.parse(rawTips);
@@ -218,7 +217,6 @@ export function getPesertaReportDetail(
   if (interFound) {
     if (!detailJudul) detailJudul = interFound.judul;
     if (!deskripsi) deskripsi = interFound.deskripsi;
-    if (!makna) makna = interFound.makna;
     if (kekuatanUtama.length === 0 && interFound.kekuatanUtama && interFound.kekuatanUtama.length > 0) {
       kekuatanUtama = interFound.kekuatanUtama;
     }
@@ -240,7 +238,6 @@ export function getPesertaReportDetail(
     judul: detailJudul || peserta.skor || "Profil Asesmen",
     grade: detailGrade || peserta.skor,
     deskripsi: deskripsi || "Asesmen psikotes telah diselesaikan dengan baik oleh peserta.",
-    makna,
     kekuatanUtama,
     blindspots,
     lingkunganOptimal,

@@ -6,14 +6,7 @@ import type {
 } from './transaksi.schema'
 import { paymentService } from './payment/payment.service'
 import { env } from '../../config/env'
-
-function generateRandomNumberString(length: number): string {
-  let res = ''
-  for (let i = 0; i < length; i++) {
-    res += Math.floor(Math.random() * 10).toString()
-  }
-  return res
-}
+import { generateOrderId, generateTrxId } from '../../utils'
 
 export class TransaksiService {
   private repo: TransaksiRepository
@@ -48,10 +41,13 @@ export class TransaksiService {
     const result = await this.repo.refundTransaksi(params)
     return {
       success: true,
-      message: 'Refund transaksi berhasil diproses. Status telah diperbarui ke REFUNDED.',
+      message: 'Refund transaksi berhasil diproses. 70% dikembalikan ke klien, 15% dialokasikan ke psikolog, dan 15% ke Empathika.',
       transaksiId: result.transaksi.id,
       kodeTransaksi: result.transaksi.kode_transaksi,
-      nominalRefund: result.nominalRefund,
+      totalTransaksi: (result as any).totalTransaksi,
+      nominalRefund: result.nominalRefund, // 70%
+      potonganEmpathika: (result as any).potonganEmpathika, // 15%
+      potonganPsikolog: (result as any).potonganPsikolog, // 15%
       statusPembayaran: result.transaksi.status_pembayaran,
       refundAt: result.transaksi.refund_at,
       refundReason: result.transaksi.refund_reason,
@@ -101,23 +97,15 @@ export class TransaksiService {
             jenis_kelamin: input.jenis_kelamin,
           },
         })
-      } else {
-        // Update nama jika belum ada
-        if (input.nama.trim() && !client.nama) {
-          await tx.client.update({
-            where: { id: client.id },
-            data: { nama: input.nama.trim() },
-          }).catch(() => {})
-        }
       }
 
       let nominal = 0
       let deskripsiTagihan = ''
       let kodePesanan = ''
+      const kodeTransaksi = generateTrxId()
 
       // ── TIPE 1: KONSELING ───────────────────────────────────────────
       if (input.tipe === 'KONSELING') {
-        // Cari slot jadwal
         const slot = await tx.jadwalSlot.findUnique({
           where: { id: input.id_item },
           include: { psikolog: true },
@@ -130,23 +118,20 @@ export class TransaksiService {
           throw Object.assign(new Error('Slot jadwal ini sudah dibooking. Silakan pilih slot lain.'), { statusCode: 409 })
         }
 
-        // Ambil info layanan
         const layanan = await tx.layanan.findFirst({ where: { aktif: true } })
         nominal = layanan?.harga_weekday ? Number(layanan.harga_weekday) : 200000
-        kodePesanan = `W-${generateRandomNumberString(6)}`
+        kodePesanan = generateOrderId('KONS')
         deskripsiTagihan = `Konseling Psikologi (${slot.psikolog?.nama_gelar || 'Psikolog'}) - ${kodePesanan}`
 
-        // Update status slot
         await tx.jadwalSlot.update({
           where: { id: slot.id },
           data: { status: 'SUDAH_DIBOOKING' },
         })
 
-        // Buat Transaksi
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
-            kode_transaksi: kodePesanan,
+            kode_transaksi: kodeTransaksi,
             tipe_transaksi: 'KONSULTASI',
             subtotal: nominal,
             biaya_admin: 0,
@@ -157,7 +142,6 @@ export class TransaksiService {
           },
         })
 
-        // Buat BookingKonsultasi
         const bookingKonsul = await tx.bookingKonsultasi.create({
           data: {
             kode_pesanan: kodePesanan,
@@ -171,9 +155,8 @@ export class TransaksiService {
           },
         })
 
-        // Buat invoice Xendit
         const invoice = await paymentService.createInvoice({
-          externalId: kodePesanan,
+          externalId: kodeTransaksi,
           amount: nominal,
           payerEmail: input.email || undefined,
           description: deskripsiTagihan,
@@ -186,7 +169,6 @@ export class TransaksiService {
           failureRedirectUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/konseling/bayar?orderId=${kodePesanan}&status=failed`,
         })
 
-        // Simpan data invoice di transaksi
         await tx.transaksi.update({
           where: { id: transaksi.id },
           data: {
@@ -223,14 +205,13 @@ export class TransaksiService {
         }
 
         nominal = Number(event.harga)
-        kodePesanan = `EVT-${generateRandomNumberString(6)}`
+        kodePesanan = generateOrderId('EVT')
         deskripsiTagihan = `Pendaftaran Event: ${event.judul} - ${kodePesanan}`
 
-        // Buat Transaksi
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
-            kode_transaksi: kodePesanan,
+            kode_transaksi: kodeTransaksi,
             tipe_transaksi: 'EVENT',
             subtotal: nominal,
             biaya_admin: 0,
@@ -241,20 +222,18 @@ export class TransaksiService {
           },
         })
 
-        // Buat BookingEvent
         const bookingEvent = await tx.bookingEvent.create({
           data: {
             id_event: event.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
-            kode_tiket: `TIKET-${kodePesanan}`,
+            kode_tiket: kodePesanan,
             status: 'PENDING',
           },
         })
 
-        // Buat invoice Xendit
         const invoice = await paymentService.createInvoice({
-          externalId: kodePesanan,
+          externalId: kodeTransaksi,
           amount: nominal,
           payerEmail: input.email || undefined,
           description: deskripsiTagihan,
@@ -304,7 +283,6 @@ export class TransaksiService {
           throw Object.assign(new Error(`Paket psikotes '${input.id_item}' tidak ditemukan`), { statusCode: 404 })
         }
 
-        // Jika gratis, cari versi berbayar jika ada
         if (paket.jenis_akses === 'GRATIS') {
           const berbayar = await tx.paketPsikotes.findFirst({
             where: {
@@ -316,14 +294,13 @@ export class TransaksiService {
         }
 
         nominal = Number(paket.harga) > 0 ? Number(paket.harga) : 50000
-        kodePesanan = `PSI-${generateRandomNumberString(6)}`
+        kodePesanan = generateOrderId('PSI')
         deskripsiTagihan = `Tes Psikotes Premium: ${paket.judul} - ${kodePesanan}`
 
-        // Buat Transaksi
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
-            kode_transaksi: kodePesanan,
+            kode_transaksi: kodeTransaksi,
             tipe_transaksi: 'PSIKOTES',
             subtotal: nominal,
             biaya_admin: 0,
@@ -334,7 +311,6 @@ export class TransaksiService {
           },
         })
 
-        // Buat BookingPsikotes
         const bookingPsikotes = await tx.bookingPsikotes.create({
           data: {
             id_paket: paket.id,
@@ -343,9 +319,8 @@ export class TransaksiService {
           },
         })
 
-        // Buat invoice Xendit
         const invoice = await paymentService.createInvoice({
-          externalId: kodePesanan,
+          externalId: kodeTransaksi,
           amount: nominal,
           payerEmail: input.email || undefined,
           description: deskripsiTagihan,
@@ -385,7 +360,6 @@ export class TransaksiService {
    * Endpoint legacy createPayment: buat invoice Xendit untuk booking konsultasi yang sudah ada
    */
   async createPayment(input: CreateTransaksiInput, clientId: string) {
-    // Cari booking konsultasi yang bersangkutan
     const booking = await this.prisma.bookingKonsultasi.findUnique({
       where: { id: input.bookingId },
       include: {
@@ -413,7 +387,7 @@ export class TransaksiService {
         jumlah: nominal,
         metode_pembayaran: input.paymentMethod,
         tipe_transaksi: 'KONSULTASI',
-        kode_transaksi: booking.kode_pesanan,
+        kode_transaksi: generateTrxId(),
       })
 
       await this.prisma.bookingKonsultasi.update({
@@ -422,20 +396,18 @@ export class TransaksiService {
       })
     }
 
-    // Inisiasi Xendit Invoice
     const invoice = await paymentService.createInvoice({
       externalId: transaksi.kode_transaksi || transaksi.id,
       amount: Number(transaksi.total),
-      description: `Konseling Psikologi (${booking.jadwal?.psikolog?.nama_gelar || 'Psikolog'}) - ${transaksi.kode_transaksi}`,
+      description: `Konseling Psikologi (${booking.jadwal?.psikolog?.nama_gelar || 'Psikolog'}) - ${booking.kode_pesanan}`,
       customer: {
         given_names: booking.client?.nama,
         mobile_number: booking.client?.no_telepon,
       },
-      successRedirectUrl: `${env.FRONTEND_URL}/konseling/success?orderId=${transaksi.kode_transaksi}&status=success`,
-      failureRedirectUrl: `${env.FRONTEND_URL}/konseling/bayar?orderId=${transaksi.kode_transaksi}&status=failed`,
+      successRedirectUrl: `${env.FRONTEND_URL}/konseling/success?orderId=${booking.kode_pesanan}&status=success`,
+      failureRedirectUrl: `${env.FRONTEND_URL}/konseling/bayar?orderId=${booking.kode_pesanan}&status=failed`,
     })
 
-    // Simpan info invoice URL ke data pembayaran
     await this.prisma.transaksi.update({
       where: { id: transaksi.id },
       data: {
@@ -449,29 +421,69 @@ export class TransaksiService {
 
     return {
       transaksi,
-      paymentUrl: invoice.invoice_url,
+      invoiceUrl: invoice.invoice_url,
       invoiceId: invoice.id,
     }
   }
 
-  /**
-   * Menangani Callback Webhook dari Xendit (Invoice Callback)
-   */
-  async handleWebhook(payload: Record<string, unknown>) {
-    // Format payload Xendit Invoice:
-    // { id, external_id, status: 'PAID' | 'EXPIRED' | 'PENDING', payment_method, payment_channel, paid_amount, paid_at, ... }
-    const externalId = (payload.external_id || payload.id || payload.transaction_id) as string
-    const status = ((payload.status || payload.transaction_status) as string || '').toUpperCase()
+  async handleWebhook(payload: any) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const invoiceId = payload.id
+      const externalId = payload.external_id
+      const status = payload.status
 
-    let mappedStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' = 'PENDING'
-    if (status === 'PAID' || status === 'SETTLED' || status === 'COMPLETED') {
-      mappedStatus = 'PAID'
-    } else if (status === 'EXPIRED' || status === 'FAILED' || status === 'CANCELLED') {
-      mappedStatus = 'FAILED'
-    }
+      const transaksi = await tx.transaksi.findFirst({
+        where: {
+          OR: [
+            { kode_transaksi: externalId },
+            { id: externalId },
+            { data_pembayaran: { contains: invoiceId } },
+          ],
+        },
+        include: {
+          booking_konsultasi: true,
+          booking_event: true,
+          booking_psikotes: true,
+        },
+      })
 
-    console.log(`[Xendit Webhook] Menerima update status invoice '${externalId}' -> ${status} (mapped: ${mappedStatus})`)
+      if (!transaksi) {
+        return
+      }
 
-    return this.repo.updateStatus(externalId, mappedStatus, payload)
+      let newStatus: any = 'PENDING'
+      if (status === 'PAID' || status === 'SETTLED') {
+        newStatus = 'PAID'
+      } else if (status === 'EXPIRED') {
+        newStatus = 'FAILED'
+      }
+
+      await tx.transaksi.update({
+        where: { id: transaksi.id },
+        data: {
+          status_pembayaran: newStatus,
+          tanggal_bayar: newStatus === 'PAID' ? new Date() : undefined,
+          channel_pembayaran: payload.payment_channel || transaksi.channel_pembayaran,
+        },
+      })
+
+      if (transaksi.booking_konsultasi) {
+        await tx.bookingKonsultasi.update({
+          where: { id: transaksi.booking_konsultasi.id },
+          data: {
+            status: newStatus === 'PAID' ? 'CONFIRMED' : newStatus === 'FAILED' ? 'CANCELLED' : 'PENDING',
+          },
+        })
+      }
+
+      if (transaksi.booking_event) {
+        await tx.bookingEvent.update({
+          where: { id: transaksi.booking_event.id },
+          data: {
+            status: newStatus === 'PAID' ? 'CONFIRMED' : newStatus === 'FAILED' ? 'CANCELLED' : 'PENDING',
+          },
+        })
+      }
+    })
   }
 }

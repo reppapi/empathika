@@ -14,6 +14,11 @@ export class WebhookController {
     const callbackToken = request.headers['x-callback-token'] as string | undefined
     const payload = request.body as Record<string, unknown>
 
+    // Guard: body harus berisi id (payload Xendit wajib)
+    if (!payload || !payload['id']) {
+      return reply.code(400).send({ error: 'Bad Request', message: 'Payload webhook tidak valid atau kosong' })
+    }
+
     const isValid = paymentService.verifyWebhookSignature(callbackToken)
     if (!isValid) {
       request.log.warn('[Xendit Webhook] Token callback tidak valid')
@@ -22,7 +27,7 @@ export class WebhookController {
 
     try {
       await this.transaksiService.handleWebhook(payload)
-      return reply.code(200).send({ received: true })
+      return reply.code(200).send({ received: true, message: 'Webhook berhasil diproses' })
     } catch (err: any) {
       request.log.error(err, '[Xendit Webhook] Error memproses webhook callback')
       return reply.code(500).send({ error: 'Internal Server Error', message: err.message })

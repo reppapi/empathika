@@ -42,3 +42,15 @@ export function getBiroWebsiteUrl(slug: string): string {
   return `https://${slug}.empathika.com`
 }
 
+/**
+ * Membersihkan dan memformat Order ID / ID Tiket agar selalu tampil konsisten diawali EMP-
+ * Menghapus awalan TIKET- jika ada dan menormalkan duplikasi prefix.
+ */
+export function formatOrderId(id?: string | null): string {
+  if (!id) return "-"
+  return String(id)
+    .trim()
+    .replace(/^TIKET-/i, "")
+    .replace(/^W-EMP-EMP-/, "W-EMP-")
+    .replace(/^EMP-EMP-/, "EMP-")
+}

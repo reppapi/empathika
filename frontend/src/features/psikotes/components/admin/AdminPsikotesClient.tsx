@@ -41,6 +41,8 @@ export default function AdminPsikotesClient() {
     total_selesai: 0,
   });
   const [isLoadingPeserta, setIsLoadingPeserta] = useState(false);
+  const [isLoadingPaket, setIsLoadingPaket] = useState(false);
+  const [loadPaketError, setLoadPaketError] = useState<string | null>(null);
 
   const loadPesertaFromBackend = async () => {
     setIsLoadingPeserta(true);
@@ -77,6 +79,8 @@ export default function AdminPsikotesClient() {
   };
 
   const loadDataFromBackend = async () => {
+    setIsLoadingPaket(true);
+    setLoadPaketError(null);
     try {
       const res = await psikotesService.getList({ status: "ALL", include_draft: true });
       if (res && res.success && Array.isArray(res.data)) {
@@ -85,8 +89,22 @@ export default function AdminPsikotesClient() {
       }
     } catch (err) {
       console.error("Gagal membaca data paket dari server:", err);
+      setLoadPaketError("Gagal terhubung ke backend. Pastikan server backend dan database lokal telah menyala.");
+    } finally {
+      setIsLoadingPaket(false);
     }
   };
+
+  // Baca URL query parameter saat pertama kali dibuka (misal /admin/psikotes?tab=paket)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "paket" || tabParam === "peserta") {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     loadDataFromBackend();
@@ -318,6 +336,9 @@ export default function AdminPsikotesClient() {
           onSearchChange={setSearchPaket}
           onSelectJudul={setSelectedJudul}
           onDeleteJudul={handleDeleteJudul}
+          isLoading={isLoadingPaket}
+          errorMessage={loadPaketError}
+          onRetry={loadDataFromBackend}
         />
       )}
 

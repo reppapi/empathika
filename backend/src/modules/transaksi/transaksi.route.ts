@@ -1,10 +1,12 @@
 import type { FastifyInstance } from 'fastify'
+import { z } from 'zod'
 import { TransaksiController } from './transaksi.controller'
 import { WebhookController } from './payment/webhook.controller'
 import {
   createTransaksiSchema,
   createCheckoutTransaksiSchema,
   refundTransaksiSchema,
+  webhookXenditSchema,
 } from './transaksi.schema'
 import { authGuard } from '../../middlewares/auth-guard'
 import { adminGuard } from '../../middlewares/admin-guard'
@@ -24,7 +26,7 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
     preHandler: [adminGuard],
     schema: {
       tags: ['Transaksi - Admin'],
-      summary: 'Admin memproses refund transaksi 100% (validasi maksimal H-1 sesi)',
+      summary: 'Admin memproses refund transaksi 70% kembali ke klien, 15% psikolog, 15% empathika (validasi maksimal H-1 sesi)',
       security: [{ bearerAuth: [] }],
       body: refundTransaksiSchema,
     },
@@ -64,7 +66,14 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
   fastify.post('/webhook', {
     schema: {
       tags: ['Transaksi - Webhook'],
-      summary: 'Menerima webhook callback status pembayaran dari Xendit (x-callback-token)',
+      summary: 'Menerima webhook callback status pembayaran dari Xendit (x-callback-token). Untuk testing: kosongkan header x-callback-token jika XENDIT_WEBHOOK_TOKEN belum diset di .env.',
+      body: webhookXenditSchema,
+      response: {
+        200: z.object({
+          received: z.boolean(),
+          message: z.string().optional(),
+        }),
+      },
     },
     handler: webhookCtrl.handle,
   })

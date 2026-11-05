@@ -1,7 +1,7 @@
 import { PrismaClient, Role, KategoriLayanan, JenisAksesPsikotes, TipeTransaksi, MetodePembayaran, StatusPembayaran } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { seedEvent } from './seed-event';
-import { seedPsikotes } from './seed-psikotes';
+import { seedPsikotes } from './seeds-psikotes';
 
 const prisma = new PrismaClient();
 
@@ -441,154 +441,8 @@ async function main() {
     });
   }
 
-  // 7. Create Paket Psikotes
-  let paketPsikotes = await prisma.paketPsikotes.findFirst({
-    where: { judul: 'Tes Kepribadian Dasar' },
-    include: { soal_psikotes: true },
-  });
-
-  const kepribadianPayload = {
-    judul: 'Tes Kepribadian Dasar',
-    jenis_akses: JenisAksesPsikotes.GRATIS,
-    harga: 0,
-    status: 'PUBLISHED',
-    deskripsi: 'Asesmen psikologi terstruktur untuk mengetahui kecenderungan tipe kepribadian, gaya energi sosial, serta pola pengambilan keputusan sehari-hari.',
-    benefits: [
-      'Mengetahui kecenderungan kepribadian Introvert vs Ekstrovert',
-      'Memahami gaya komunikasi dan pengambilan keputusan',
-      'Rekomendasi tips pengembangan diri yang aplikatif',
-    ],
-  };
-
-  const kepribadianSoal = [
-    {
-      urutan: 1,
-      pertanyaan: 'Ketika energi Anda terkuras setelah seharian beraktivitas, bagaimana cara terbaik Anda memulihkan energi?',
-      pilihan_jawaban: [
-        { label: 'A', teks_jawaban: 'Menghabiskan waktu sendirian dengan membaca, menonton, atau istirahat tenang di kamar.', bobot: 10 },
-        { label: 'B', teks_jawaban: 'Berkumpul, mengobrol santai, atau nongkrong bersama teman-teman dekat.', bobot: 20 },
-        { label: 'C', teks_jawaban: 'Membagi waktu seimbang: me-time sejenak lalu berinteraksi santai dengan orang rumah.', bobot: 15 },
-      ],
-    },
-    {
-      urutan: 2,
-      pertanyaan: 'Dalam situasi kelompok baru atau menghadiri acara sosial, Anda cenderung:',
-      pilihan_jawaban: [
-        { label: 'A', teks_jawaban: 'Menunggu disapa terlebih dahulu dan mengamati suasana sekitar sebelum mulai membaur.', bobot: 10 },
-        { label: 'B', teks_jawaban: 'Percaya diri memulai percakapan dan senang berkenalan dengan orang-orang baru.', bobot: 20 },
-        { label: 'C', teks_jawaban: 'Fokus berinteraksi intens hanya dengan orang yang sudah Anda kenal sebelumnya.', bobot: 15 },
-      ],
-    },
-    {
-      urutan: 3,
-      pertanyaan: 'Ketika harus mengambil keputusan penting dalam hidup atau pekerjaan, Anda lebih mengutamakan:',
-      pilihan_jawaban: [
-        { label: 'A', teks_jawaban: 'Nilai personal, empati, perasaan orang yang terdampak, serta menjaga keharmonisan.', bobot: 10 },
-        { label: 'B', teks_jawaban: 'Logika murni, data objektif, efisiensi, dan analisa fakta rasional.', bobot: 20 },
-        { label: 'C', teks_jawaban: 'Keseimbangan antara pertimbangan logika fakta dan intuisi kata hati.', bobot: 15 },
-      ],
-    },
-    {
-      urutan: 4,
-      pertanyaan: 'Bagaimana pendekatan Anda terhadap rencana atau jadwal kegiatan harian?',
-      pilihan_jawaban: [
-        { label: 'A', teks_jawaban: 'Lebih santai, fleksibel, spontan, dan menyesuaikan situasi atau mood saat itu.', bobot: 10 },
-        { label: 'B', teks_jawaban: 'Menyukai rencana yang terstruktur, terjadwal rapi, dan jelas to-do list-nya.', bobot: 20 },
-        { label: 'C', teks_jawaban: 'Membuat jadwal garis besar namun tetap terbuka pada perubahan mendadak.', bobot: 15 },
-      ],
-    },
-    {
-      urutan: 5,
-      pertanyaan: 'Ketika menghadapi perbedaan pendapat atau perdebatan dengan orang lain, sikap Anda biasanya:',
-      pilihan_jawaban: [
-        { label: 'A', teks_jawaban: 'Mengambil jeda waktu sejenak untuk memikirkan sudut pandang lawan bicara secara tenang.', bobot: 10 },
-        { label: 'B', teks_jawaban: 'Mengutarakan argumen secara langsung, lugas, dan terbuka agar masalah segera tuntas.', bobot: 20 },
-        { label: 'C', teks_jawaban: 'Mencari titik temu kompromi yang aman agar tidak merusak hubungan baik.', bobot: 15 },
-      ],
-    },
-  ];
-
-  const kepribadianInterpretasi = [
-    {
-      min_skor: 50,
-      max_skor: 65,
-      grade: 'Introvert Reflektif',
-      judul: 'Tipe Introvert yang Penuh Pertimbangan & Mandiri',
-      deskripsi: 'Anda memiliki kecenderungan kepribadian introvert yang kuat. Anda mendapatkan energi utama dari ketenangan, refleksi diri, dan kenyamanan lingkungan yang akrab serta intim.',
-      makna: 'Anda adalah pemikir yang mendalam, teliti, mandiri, dan pendengar yang sangat berempati. Anda lebih menghargai percakapan bermakna daripada obrolan basa-basi.',
-      tips: [
-        { title: 'Jaga Batasan Energi Mental', desc: 'Sediakan waktu me-time berkualitas setelah berinteraksi di lingkungan sosial yang ramai agar terhindar dari social burnout.' },
-        { title: 'Komunikasikan Kebutuhan Ruang', desc: 'Beri tahu orang terdekat saat Anda butuh waktu untuk berpikir mandiri sebelum mengambil keputusan.' },
-      ],
-    },
-    {
-      min_skor: 66,
-      max_skor: 80,
-      grade: 'Ambivert Adaptif',
-      judul: 'Tipe Ambivert yang Seimbang & Fleksibel',
-      deskripsi: 'Anda memiliki keseimbangan dinamis antara sifat introvert dan ekstrovert. Anda mampu beradaptasi dan menyesuaikan energi sosial dengan sangat fleksibel tergantung situasi.',
-      makna: 'Anda memiliki kemampuan komunikasi yang luwes: bisa menjadi pendengar yang penuh perhatian, sekaligus bisa menjadi pembicara yang menarik saat dibutuhkan.',
-      tips: [
-        { title: 'Pahami Kapasitas Harian', desc: 'Kenali sinyal tubuh apakah hari ini Anda sedang butuh bersosialisasi aktif atau justru butuh keheningan untuk memulihkan fokus.' },
-        { title: 'Manfaatkan Kepekaan Sosial', desc: 'Gaya adaptif Anda merupakan modal kepemimpinan yang sangat baik untuk menjadi jembatan antar berbagai karakter orang.' },
-      ],
-    },
-    {
-      min_skor: 81,
-      max_skor: 100,
-      grade: 'Ekstrovert Dinamis',
-      judul: 'Tipe Ekstrovert yang Energik & Komunikatif',
-      deskripsi: 'Anda mendapatkan stimulasi dan energi maksimal saat berinteraksi, bertukar pikiran, dan berkolaborasi dalam dinamika sosial yang aktif dan produktif.',
-      makna: 'Anda ekspresif, bersemangat, percaya diri, dan mudah mencairkan suasana. Anda senang menginisiasi kolaborasi baru dan menggerakkan lingkungan sekitar.',
-      tips: [
-        { title: 'Sediakan Waktu Refleksi Tenang', desc: 'Biasakan meluangkan waktu sejenak untuk menimbang keputusan penting tanpa terburu-buru oleh antusiasme spontan.' },
-        { title: 'Beri Ruang untuk yang Pendiam', desc: 'Ajak rekan yang lebih pasif untuk turut menyuarakan pendapatnya dalam diskusi kelompok.' },
-      ],
-    },
-  ];
-
-  if (!paketPsikotes) {
-    paketPsikotes = await prisma.paketPsikotes.create({
-      data: kepribadianPayload,
-      include: { soal_psikotes: true },
-    });
-  } else {
-    paketPsikotes = await prisma.paketPsikotes.update({
-      where: { id: paketPsikotes.id },
-      data: kepribadianPayload,
-      include: { soal_psikotes: true },
-    });
-  }
-
-  if (paketPsikotes.soal_psikotes.length === 0) {
-    for (const s of kepribadianSoal) {
-      await prisma.soalPsikotes.create({
-        data: {
-          id_paket: paketPsikotes.id,
-          urutan: s.urutan,
-          pertanyaan: s.pertanyaan,
-          pilihan_jawaban: { create: s.pilihan_jawaban },
-        },
-      });
-    }
-
-    for (const i of kepribadianInterpretasi) {
-      await prisma.interpretasiPsikotes.create({
-        data: {
-          id_paket: paketPsikotes.id,
-          min_skor: i.min_skor,
-          max_skor: i.max_skor,
-          grade: i.grade,
-          judul: i.judul,
-          deskripsi: i.deskripsi,
-          makna: i.makna,
-          tips: i.tips,
-        },
-      });
-    }
-  }
-
-  console.log(`Created/found paket psikotes: ${paketPsikotes.judul}`);
+  // 7. Seed Paket Psikotes (GAD-7 Hybrid & Bersihkan Legacy)
+  await seedPsikotes(prisma);
 
   // 8. Create Sample Booking for the first psychologist
   const firstPsi = createdPsikologs[0];
@@ -608,10 +462,10 @@ async function main() {
 
   // 9. Create Sample Transaksi linked to the Booking
   const sampleTransaksi = await prisma.transaksi.upsert({
-    where: { kode_transaksi: 'TRX-SEED-20261024-001' },
+    where: { kode_transaksi: 'TRX-20261024-001' },
     update: {},
     create: {
-      kode_transaksi: 'TRX-SEED-20261024-001',
+      kode_transaksi: 'TRX-20261024-001',
       id_client: sampleClient.id,
       tipe_transaksi: TipeTransaksi.KONSULTASI,
       subtotal: 150000.0,
@@ -625,12 +479,12 @@ async function main() {
   });
 
   await prisma.bookingKonsultasi.upsert({
-    where: { kode_pesanan: 'EMP-KONS-SEED-01' },
+    where: { kode_pesanan: 'EMP-KONS-20261024-001' },
     update: {
       id_transaksi: sampleTransaksi.id,
     },
     create: {
-      kode_pesanan: 'EMP-KONS-SEED-01',
+      kode_pesanan: 'EMP-KONS-20261024-001',
       id_client: sampleClient.id,
       id_layanan: layananKonsultasi.id,
       id_jadwal: bookedSlot.id,
@@ -673,10 +527,9 @@ async function main() {
     data: { jumlah_sesi: 1 },
   });
 
-  // 11. Jalankan Seeder Event & Psikotes Terintegrasi
-  console.log('\n--- Menjalankan Seeder Event & Psikotes ---');
+  // 11. Jalankan Seeder Event Terintegrasi
+  console.log('\n--- Menjalankan Seeder Event ---');
   await seedEvent(prisma);
-  await seedPsikotes(prisma);
 
   console.log('\nSeeding finished successfully.');
 }

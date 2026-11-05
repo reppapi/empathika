@@ -51,6 +51,10 @@ export class PsikotesService {
   async getPeserta(params?: PesertaQueryInput) {
     return this.repo.findPeserta(params)
   }
+
+  async cleanupOldAnonymousGuests(daysOld?: number) {
+    return this.repo.cleanupOldAnonymousGuests(daysOld)
+  }
 }
 
 

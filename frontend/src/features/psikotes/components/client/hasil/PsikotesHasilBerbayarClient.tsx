@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Script from "next/script";
 import Link from "next/link";
 import { 
@@ -15,16 +15,34 @@ import {
   Compass,
   Loader2,
   User,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { useAuthStore } from "@/store/authStore";
+import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [isDownloading, setIsDownloading] = useState(false);
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Pastikan gesture back / popstate di laptop selalu kembali ke detail psikotes, bukan ke soal
+  useEffect(() => {
+    const handlePopState = () => {
+      router.replace(`/psikotes/${params.testId}`);
+    };
+
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [params.testId, router]);
 
   // ── Identitas Peserta ───────────────────────────────────────────────────────
   const [peserta, setPeserta] = useState(() => {
@@ -92,38 +110,64 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   }, [searchParams]);
 
   // Fetch package data from backend to get interpretasi_psikotes
-  useEffect(() => {
-    const fetchPackage = async () => {
-      try {
-        const res = await psikotesService.getById(params.testId, { allowDraft: false });
-        if (res && res.success && res.data) {
-          setDbPackage(res.data);
-        }
-      } catch {
-        // Fallback to static data
-      } finally {
-        setIsLoadingDb(false);
+  const fetchPackage = async () => {
+    setIsLoadingDb(true);
+    setErrorMessage(null);
+    try {
+      const res = await psikotesService.getById(params.testId, { allowDraft: false });
+      if (res && res.success && res.data) {
+        setDbPackage(res.data);
+      } else {
+        setErrorMessage("Data paket psikotes tidak ditemukan.");
       }
-    };
+    } catch (err: any) {
+      console.error("Gagal mengambil data interpretasi berbayar:", err);
+      setErrorMessage("Tidak dapat terhubung ke server backend. Silakan periksa koneksi atau coba lagi.");
+    } finally {
+      setIsLoadingDb(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPackage();
   }, [params.testId]);
 
   // Match score from URL params to the interpretasi from database
   const rawSkor = searchParams.get("skor");
-  const totalSkor = rawSkor ? parseInt(rawSkor) : null;
+  const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
+
+  // Dimensi DASS-42 (Depresi, Kecemasan, Stres)
+  const rawDep = searchParams.get("dep");
+  const rawAnx = searchParams.get("anx");
+  const rawStr = searchParams.get("str");
+
+  const isDASS = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
+    dbPackage?.judul?.toUpperCase().includes("DASS") ||
+    params.testId.toLowerCase().includes("dass")
+  );
+
+  const dassEvaluation = isDASS
+    ? evaluateDASS(
+        totalSkor,
+        rawDep !== null && rawDep !== "" ? parseInt(rawDep, 10) : null,
+        rawAnx !== null && rawAnx !== "" ? parseInt(rawAnx, 10) : null,
+        rawStr !== null && rawStr !== "" ? parseInt(rawStr, 10) : null
+      )
+    : null;
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
     if (!dbPackage) return null;
     const list = dbPackage.interpretasi_psikotes;
     if (!list || list.length === 0) return null;
-    if (totalSkor === null) return list[0];
+    if (totalSkor === null || isNaN(totalSkor)) return null;
 
     // Find exact match
     const exact = list.find((i) => totalSkor >= i.min_skor && totalSkor <= i.max_skor);
     if (exact) return exact;
 
-    // Closest tier fallback
+    // Closest tier
     const sorted = [...list].sort((a, b) => a.min_skor - b.min_skor);
     if (totalSkor < sorted[0].min_skor) return sorted[0];
     return sorted[sorted.length - 1];
@@ -133,19 +177,20 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const displayTestName = dbPackage?.judul || "Laporan Hasil Psikotes";
 
   const dynamicResult = (() => {
-    if (dbPackage) {
-      if (dbInterpretasi) {
-        return {
-          prefix: dbInterpretasi.grade ? `Tingkat: ${dbInterpretasi.grade}` : "Hasil Asesmen:",
-          value: dbInterpretasi.judul,
-          color: "text-[#561269]",
-          bgColor: "bg-purple-50",
-          borderColor: "border-purple-200"
-        };
-      }
+    if (isDASS) {
       return {
-        prefix: "Hasil Asesmen:",
-        value: dbPackage.judul,
+        prefix: "DASS-42 • SKRINING KESEHATAN EMOSIONAL",
+        value: "Profil Kesehatan Emosional",
+        color: "text-[#561269]",
+        bgColor: "bg-purple-50",
+        borderColor: "border-purple-200"
+      };
+    }
+
+    if (dbInterpretasi) {
+      return {
+        prefix: null,
+        value: dbInterpretasi.judul,
         color: "text-[#561269]",
         bgColor: "bg-purple-50",
         borderColor: "border-purple-200"
@@ -153,8 +198,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     }
 
     return {
-      prefix: "Hasil Asesmen:",
-      value: "Hasil Tes Psikotes",
+      prefix: null,
+      value: dbPackage?.judul || "Laporan Hasil Psikotes",
       color: "text-[#561269]",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200"
@@ -165,11 +210,12 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const berbayarDetail = (() => {
     if (dbInterpretasi) {
       let parsedTips: any = {};
-      if (typeof dbInterpretasi.tips === "object" && dbInterpretasi.tips !== null && !Array.isArray(dbInterpretasi.tips)) {
-        parsedTips = dbInterpretasi.tips;
-      } else if (typeof dbInterpretasi.tips === "string") {
+      const rawTips = (dbInterpretasi as any)?.tips;
+      if (typeof rawTips === "object" && rawTips !== null && !Array.isArray(rawTips)) {
+        parsedTips = rawTips;
+      } else if (typeof rawTips === "string") {
         try {
-          parsedTips = JSON.parse(dbInterpretasi.tips);
+          parsedTips = JSON.parse(rawTips);
         } catch {}
       }
 
@@ -183,13 +229,15 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         ? (parsedTips.lingkunganOptimal as string[])
         : [];
 
-      const saranList: Array<{ title: string; desc: string }> = Array.isArray(parsedTips.saran) && parsedTips.saran.length > 0
-        ? parsedTips.saran
-        : (Array.isArray(dbInterpretasi.tips) ? (dbInterpretasi.tips as any) : []);
+      const saranList: Array<{ title: string; desc: string }> =
+        isDASS && dassEvaluation?.tips?.length
+          ? dassEvaluation.tips
+          : Array.isArray(parsedTips.saran) && parsedTips.saran.length > 0
+            ? parsedTips.saran
+            : (Array.isArray(rawTips) ? (rawTips as any) : []);
 
       return {
         deskripsi: dbInterpretasi.deskripsi || dbPackage?.deskripsi || "Asesmen psikotes telah berhasil diselesaikan.",
-        makna: dbInterpretasi.makna || "",
         kekuatanUtama,
         blindspots,
         lingkunganOptimal,
@@ -203,7 +251,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     // Jika belum ada data interpretasi yang cocok di database
     return {
       deskripsi: dbPackage?.deskripsi || "Hasil asesmen psikotes telah selesai dianalisis.",
-      makna: "",
       judulKekuatan: "Potensi atau Kekuatan Utama",
       judulBlindspots: "Area yang Perlu Dikembangkan",
       judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
@@ -337,6 +384,67 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       <div className="min-h-screen bg-[#FAFAFC] flex flex-col items-center justify-center font-sans">
         <Loader2 className="w-10 h-10 animate-spin text-[#561269] mb-4" />
         <p className="text-sm text-gray-500 font-medium">Memuat laporan resmi psikotes...</p>
+      </div>
+    );
+  }
+
+  // Layar Error Koneksi — Jika backend mati
+  if (errorMessage) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-red-100 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Gagal Menghubungkan ke Server</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">{errorMessage}</p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={fetchPackage}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Coba Lagi</span>
+            </button>
+            <Link
+              href={`/psikotes/${params.testId}`}
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition shadow-sm"
+            >
+              Kembali
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // DATA KRITIS: Kategori Interpretasi & Skoring
+  // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
+  // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
+  if (!dbInterpretasi) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {dbPackage?.judul || "Laporan Hasil Psikotes"}
+          </h2>
+          <p className="text-sm font-semibold text-gray-800 mb-2">
+            Interpretasi Skor Belum Dikonfigurasi
+          </p>
+          <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+            Demi menjaga etika dan integritas diagnostik psikologi, laporan hasil komprehensif tidak dapat dibuat karena kategori interpretasi skor untuk instrumen ini belum dikonfigurasi di database.
+          </p>
+          <Link
+            href={`/psikotes/${params.testId}`}
+            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold transition shadow-sm cursor-pointer"
+          >
+            Kembali ke Detail Tes
+          </Link>
+        </div>
       </div>
     );
   }
@@ -681,7 +789,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {dynamicResult.value}
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed pdf-body">
-              {berbayarDetail.deskripsi}
+              {isDASS && dassEvaluation ? dassEvaluation.introText : berbayarDetail.deskripsi}
             </p>
           </section>
 
@@ -691,6 +799,46 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             {/* Kolom Kiri: Analisis Lengkap */}
             <div id="laporan-kolom-kiri" className="lg:col-span-8 space-y-8 print:w-full print:col-span-12">
               
+              {/* Profil 3 Dimensi DASS-42 (Depresi, Kecemasan, Stres) */}
+              {dassEvaluation && (
+                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 pdf-heading">
+                      <Compass className="w-5 h-5 text-[#561269]" />
+                      Profil 3 Dimensi: Depresi, Kecemasan, &amp; Stres
+                    </h3>
+                    <span className="text-xs font-semibold text-gray-400">Maks. 42 / dimensi</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {dassEvaluation.subscalesList.map((sub, idx) => (
+                      <div key={idx} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${sub.barColor} shrink-0`} />
+                            <span className="font-bold text-sm text-gray-900">{sub.name}</span>
+                          </div>
+                          <span className="text-xs font-bold text-gray-700">
+                            {sub.score} <span className="text-gray-400 font-normal">/ {sub.maxScore}</span>
+                          </span>
+                        </div>
+
+                        <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${sub.barColor} rounded-full transition-all duration-500`}
+                            style={{ width: `${Math.max(6, sub.percentage)}%` }}
+                          />
+                        </div>
+
+                        <p className="text-xs text-gray-600 leading-relaxed pt-0.5">
+                          {sub.deskripsi}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Interpretasi Hasil & Implikasi Strategis */}
               <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
@@ -702,17 +850,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                     {berbayarDetail.deskripsi}
                   </p>
                 </div>
-
-                {berbayarDetail.makna && (
-                  <div className="p-5 rounded-2xl bg-[#FAF8FB] border border-[#EFE7F2] pdf-sub-box">
-                    <h4 className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-2 pdf-sub-title">
-                      Makna Hasil dalam Kehidupan Sehari-hari
-                    </h4>
-                    <p className="text-xs sm:text-sm text-gray-700 leading-relaxed pdf-body">
-                      {berbayarDetail.makna}
-                    </p>
-                  </div>
-                )}
               </section>
 
               {/* Analisis Karakteristik & Dinamika Diri */}
@@ -812,14 +949,20 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   </div>
 
                   <div className="space-y-3">
-                    {berbayarDetail.saranList.map((tip, index) => (
+                    {berbayarDetail.saranList.map((tip: any, index: number) => (
                       <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 pdf-tip-item">
                         <div className="flex-shrink-0 mt-0.5">
                           <CheckCircle2 className="w-5 h-5 text-[#561269]" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-bold text-gray-900 pdf-tip-title">{tip.title}</h4>
-                          <p className="mt-0.5 text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip.desc}</p>
+                          {typeof tip === "string" ? (
+                            <p className="text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip}</p>
+                          ) : (
+                            <>
+                              {tip.title && <h4 className="text-sm font-bold text-gray-900 pdf-tip-title">{tip.title}</h4>}
+                              {tip.desc && <p className="mt-0.5 text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip.desc}</p>}
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -850,6 +993,25 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                     <span>Validitas Respon</span>
                     <span className="font-semibold text-gray-900">Konsisten</span>
                   </div>
+                  {dassEvaluation && (
+                    <div className="pt-3 border-t border-gray-100 space-y-2">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                        Rincian Skor Dimensi
+                      </span>
+                      <div className="flex justify-between items-center text-gray-600">
+                        <span>Depresi</span>
+                        <span className="font-semibold text-gray-800">{dassEvaluation.depression.score} / 42</span>
+                      </div>
+                      <div className="flex justify-between items-center text-gray-600">
+                        <span>Kecemasan</span>
+                        <span className="font-semibold text-gray-800">{dassEvaluation.anxiety.score} / 42</span>
+                      </div>
+                      <div className="flex justify-between items-center text-gray-600">
+                        <span>Stres</span>
+                        <span className="font-semibold text-gray-800">{dassEvaluation.stress.score} / 42</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -21,18 +21,17 @@ export const interpretasiPsikotesSchema = z.object({
   grade: z.string().optional().default(''),
   judul: z.string().optional().default(''),
   deskripsi: z.string().optional().default(''),
-  makna: z.string().optional().nullable(),
   tips: z.any().optional().nullable(),
 })
 
 export const createPsikotesSchema = z.object({
   judul: z.string().min(1, 'Judul psikotes wajib diisi'),
   deskripsi: z.string().optional().nullable(),
+  tentang_tes: z.string().optional().nullable(),
   banner_url: z.string().optional().nullable(),
   jenis_akses: z.enum(['GRATIS', 'BERBAYAR']).default('GRATIS'),
   harga: z.number().optional().default(0),
   status: z.enum(['PUBLISHED', 'DRAFT']).default('PUBLISHED'),
-  benefits: z.any().optional().nullable(),
   soal_psikotes: z.array(soalPsikotesSchema).optional().default([]),
   interpretasi_psikotes: z.array(interpretasiPsikotesSchema).optional().default([]),
 })
