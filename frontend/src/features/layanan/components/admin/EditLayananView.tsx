@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { CATEGORIES } from "../../data/layananData"
 import { getLayananById, updateLayananById, AdminLayananItem } from "../../data/adminLayananData"
 import { processAndUploadImage } from "@/lib/imageCompressor"
+import { layananService } from "@/services/layanan.service"
 
 interface EditLayananViewProps {
   layananId: string
@@ -19,7 +20,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [loading, setLoading] = useState(true)
 
   // Form State
-  const [selectedCategory, setSelectedCategory] = useState("02")
+  const [selectedCategory, setSelectedCategory] = useState("01")
   const [namaLayanan, setNamaLayanan] = useState("")
   const [metode, setMetode] = useState("Online/Offline")
   const [status, setStatus] = useState<"Aktif" | "Nonaktif">("Aktif")
@@ -27,6 +28,8 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [hargaWeekday, setHargaWeekday] = useState("")
   const [hargaWeekend, setHargaWeekend] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
+  const [imageUrlInput, setImageUrlInput] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
   const [successMsg, setSuccessMsg] = useState(false)
 
@@ -43,18 +46,58 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       setStatus(existing.status)
       setDeskripsi(existing.deskripsi || "")
       // Bersihkan string harga dari prefix "Rp " dan titik pemisah jika ada untuk input angka murni
-      const cleanWeekday = existing.weekday.replace(/[^0-9]/g, "")
-      const cleanWeekend = existing.weekend.replace(/[^0-9]/g, "")
+      const cleanWeekday = String(existing.weekday || "").replace(/[^0-9]/g, "")
+      const cleanWeekend = String(existing.weekend || "").replace(/[^0-9]/g, "")
       setHargaWeekday(cleanWeekday)
       setHargaWeekend(cleanWeekend)
       setImagePreview(existing.bannerUrl || null)
+      if (existing.bannerUrl) setImageUrlInput(existing.bannerUrl)
+      setLoading(false)
+    } else {
+      // Coba fetch dari backend jika tidak ada di local storage
+      layananService
+        .getById(layananId)
+        .then((res) => {
+          if (res?.data) {
+            const catMap: Record<string, string> = {
+              KONSULTASI: "01",
+              PSIKOTES: "02",
+              WORKSHOP: "03",
+              SEMINAR: "04",
+              ASESMEN: "05",
+            }
+            const d = res.data
+            const mapped: AdminLayananItem = {
+              id: d.id,
+              layanan: d.nama,
+              kategoriId: catMap[d.kategori] || "01",
+              metode: d.metode || "Online/Offline",
+              weekday: `Rp ${Number(d.harga_weekday || 0).toLocaleString("id-ID")}`,
+              weekend: `Rp ${Number(d.harga_weekend || 0).toLocaleString("id-ID")}`,
+              status: d.aktif ? "Aktif" : "Nonaktif",
+              deskripsi: d.deskripsi || "",
+              bannerUrl: d.banner_url || "",
+            }
+            setItem(mapped)
+            setSelectedCategory(mapped.kategoriId)
+            setNamaLayanan(mapped.layanan)
+            setMetode(mapped.metode)
+            setStatus(mapped.status)
+            setDeskripsi(mapped.deskripsi)
+            setHargaWeekday(String(d.harga_weekday || ""))
+            setHargaWeekend(String(d.harga_weekend || ""))
+            setImagePreview(d.banner_url || null)
+            if (d.banner_url) setImageUrlInput(d.banner_url)
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false))
     }
-    setLoading(false)
   }, [layananId])
 
   const handleImageFile = async (file: File) => {
     try {
-      const { url } = await processAndUploadImage(file)
+      const { url } = await processAndUploadImage(file, "layanan")
       setImagePreview(url)
     } catch (err: any) {
       alert(err?.message || "Gagal memproses gambar")
@@ -101,6 +144,24 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     }
 
     const ok = updateLayananById(layananId, updatedData)
+
+    // Sinkronkan ke server backend database
+    layananService
+      .update(layananId, {
+        nama: namaLayanan.trim(),
+        kategoriId: selectedCategory,
+        metode,
+        status,
+        harga_weekday: hargaWeekday,
+        harga_weekend: hargaWeekend,
+        deskripsi: deskripsi.trim(),
+        banner_url: imagePreview || null,
+        aktif: status === "Aktif",
+      })
+      .catch((err) => {
+        console.warn("Gagal update ke backend database:", err?.message)
+      })
+
     if (ok) {
       setSuccessMsg(true)
       setTimeout(() => {
@@ -182,9 +243,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* ── Baris 1: Banner / Poster Layanan ── */}
           <div>
-            <label className={labelClass}>
-              Banner / Poster Layanan
-            </label>
+            <label className={labelClass}>Banner / Poster Layanan</label>
             <div
               onDragOver={(e) => {
                 e.preventDefault()
@@ -222,6 +281,9 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                     fill
                     className="object-cover rounded-xl"
                   />
+                  <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                    📐 1200 × 675 px (16:9)
+                  </div>
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <label
                       htmlFor="layanan-file-upload"
@@ -248,7 +310,12 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                     Seret & lepas foto di sini, atau{" "}
                     <span className="text-[#561269] underline">pilih file</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG hingga 2MB</p>
+                  <p className="text-xs font-medium text-gray-600 mt-1.5 text-center">
+                    Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 text-center">
+                    Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                  </p>
                 </div>
               )}
             </div>
@@ -285,7 +352,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className={`${inputClass} cursor-pointer`}
               >
-                {CATEGORIES.filter((cat) => ["02", "03", "05"].includes(cat.id)).map((cat) => (
+                {CATEGORIES.filter((cat) => ["01", "03", "04", "05"].includes(cat.id)).map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.title}
                   </option>

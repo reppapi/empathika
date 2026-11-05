@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MOCK_QUESTIONS, TEST_DATA } from "../../data/psikotesData";
 import { usePsikotesTest } from "../../hooks/usePsikotesTest";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { useAuthStore } from "@/store/authStore";
@@ -33,22 +32,16 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     fetchPackage();
   }, [params.testId]);
 
-  const fallbackTest = TEST_DATA[params.testId as keyof typeof TEST_DATA];
-  const testTitle = dbData?.judul || fallbackTest?.title || `Psikotes ${params.testId.replace('-', ' ')}`;
+  const testTitle = dbData?.judul || "Tes Psikotes";
 
   const questions = (dbData?.soal_psikotes && dbData.soal_psikotes.length > 0)
     ? dbData.soal_psikotes.map((s) => ({
         id: s.id,
         text: s.pertanyaan,
-        options: s.pilihan_jawaban.map((p) => p.teks_jawaban),
-        weights: s.pilihan_jawaban.map((p) => Number(p.bobot) || 0),
+        options: (s.pilihan_jawaban || []).map((p) => p.teks_jawaban),
+        weights: (s.pilihan_jawaban || []).map((p) => Number(p.bobot) || 0),
       }))
-    : MOCK_QUESTIONS.map((q) => ({
-        id: q.id,
-        text: q.text,
-        options: q.options,
-        weights: [1, 0],
-      }));
+    : [];
 
   const totalQuestions = questions.length;
 
@@ -69,18 +62,17 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     goToNext,
   } = usePsikotesTest(totalQuestions, params.testId, calculateScore);
 
-
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#fbfbfb] flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[#fbfbfb] flex flex-col items-center justify-center font-sans">
         <Loader2 className="w-10 h-10 animate-spin text-[#561269] mb-4" />
         <p className="text-sm text-gray-500 font-medium">Memuat soal psikotes...</p>
       </div>
     );
   }
 
-  // Jika paket dari database belum memiliki butir soal
-  if (dbData && (!dbData.soal_psikotes || dbData.soal_psikotes.length === 0)) {
+  // Jika paket belum memiliki butir soal
+  if (questions.length === 0) {
     return (
       <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[90px] lg:pt-[110px] pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
@@ -89,11 +81,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">{testTitle}</h2>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            Paket psikotes ini belum memiliki butir pertanyaan yang aktif. Silakan hubungi admin atau kembali ke daftar tes.
+            Belum ada soal yang tersedia untuk paket ini. Silakan hubungi admin atau pilih paket psikotes lainnya.
           </p>
           <Link
             href="/psikotes"
-            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm"
+            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-extrabold transition shadow-sm cursor-pointer"
           >
             Kembali ke Daftar Psikotes
           </Link>
@@ -149,9 +141,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           } catch {}
         }
 
-        // Fallback dari user yang sedang login jika belum terisi
+        // Fallback dari user yang sedang login jika bukan akun admin
         const authUser = useAuthStore.getState().user;
-        if (authUser) {
+        if (authUser && authUser.role !== "ADMIN" && (authUser as any).role !== "admin") {
           if (!pesertaNama && authUser.name) pesertaNama = authUser.name;
           if (!pesertaEmail && authUser.email) pesertaEmail = authUser.email;
         }
@@ -297,19 +289,17 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             <button
               onClick={isLastQuestion ? handleFinish : handleNext}
               disabled={isSubmitting}
-              className={`px-8 py-3.5 md:py-4 rounded-xl font-bold transition-all duration-300 shadow-sm text-sm md:text-base flex items-center gap-2 ${
-                isLastQuestion
-                  ? "bg-[#d97706] hover:bg-[#b46204] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
-                  : "bg-[#561269] hover:bg-[#763E8B] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5"
-              } ${isSubmitting ? "opacity-80 cursor-not-allowed" : ""}`}
+              className={`px-8 py-3.5 md:py-4 rounded-xl font-extrabold transition-all duration-300 text-sm md:text-base flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer ${
+                isSubmitting ? "opacity-80 cursor-not-allowed" : ""
+              }`}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-950" />
                   <span>Menyimpan Hasil...</span>
                 </>
               ) : isLastQuestion ? (
-                "Selesai"
+                <span>Selesai</span>
               ) : (
                 <>
                   <span>Berikutnya</span>

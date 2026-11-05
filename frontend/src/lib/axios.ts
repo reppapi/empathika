@@ -1,5 +1,5 @@
 import axios from "axios"
-import { getAuthCookie } from "./cookie"
+import { getAuthCookie, removeAuthCookie } from "./cookie"
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
@@ -27,7 +27,7 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// Response interceptor: global error handling
+// Response interceptor: global error handling & auto-redirect saat sesi habis (401)
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -35,12 +35,31 @@ apiClient.interceptors.response.use(
       const currentToken =
         localStorage.getItem("access_token") ||
         sessionStorage.getItem("access_token")
-      // Hanya hapus token asli jika memang invalid dari backend, jangan hapus token prototype
+
+      // Bersihkan auth state jika token invalid atau sudah kedaluwarsa
       if (currentToken && !currentToken.startsWith("dummy-")) {
         localStorage.removeItem("access_token")
         localStorage.removeItem("remember_me")
         localStorage.removeItem("empathika-auth")
+        localStorage.removeItem("active_psikolog_id")
+        localStorage.removeItem("active_psikolog_name")
         sessionStorage.removeItem("access_token")
+        sessionStorage.removeItem("user_role")
+        sessionStorage.removeItem("active_psikolog_id")
+        sessionStorage.removeItem("active_psikolog_name")
+        removeAuthCookie("access_token")
+        removeAuthCookie("remember_me")
+      }
+
+      // Hindari loop redirect jika error 401 terjadi di halaman login itu sendiri
+      const pathname = window.location.pathname
+      const isAuthPage =
+        pathname === "/login" ||
+        pathname === "/register" ||
+        pathname.startsWith("/login")
+
+      if (!isAuthPage) {
+        window.location.href = "/login?status=expired"
       }
     }
     return Promise.reject(error)
@@ -48,4 +67,3 @@ apiClient.interceptors.response.use(
 )
 
 export default apiClient
-

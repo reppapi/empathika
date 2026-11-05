@@ -39,11 +39,13 @@ enum StatusEvent {
 }
 
 enum KategoriLayanan {
-  PSIKOTES
   KONSULTASI
+  PSIKOTES
+  WORKSHOP
+  SEMINAR
+  ASESMEN
   PELATIHAN_PEER_HELPER
   EVENT
-  ASESMEN
 }
 
 enum StatusBooking {
@@ -228,10 +230,10 @@ model Psikolog {
   id                String         @id @default(uuid())
   id_account        String         @unique // Relasi 1-to-1 ke Account (Login)
   id_spesialisasi   String
-  kategori          String         // Psikolog Klinis, Konselor, dll.
+  kategori          String         // Multi-profesi: Psikolog Klinis, Konselor, Peer Konselor
   nama_gelar        String
-  no_str            String?
-  no_sipp           String?
+  no_str            String?        // Wajib untuk Psikolog, Opsional untuk Konselor, Null untuk Peer Konselor
+  no_sipp           String?        // Wajib untuk Psikolog, Opsional untuk Konselor, Null untuk Peer Konselor
   no_silp           String?   // Surat Izin Layanan Psikolog
   pendidikan        String?
   pengalaman_tahun  String?

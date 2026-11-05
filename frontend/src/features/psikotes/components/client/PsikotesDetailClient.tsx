@@ -3,13 +3,23 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { TEST_DATA, UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "../../data/psikotesData";
+import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "../../data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { Check, ShieldCheck, FileQuestion, ArrowRight } from "lucide-react";
+import { Check, ShieldCheck, FileQuestion, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+
+const DEFAULT_GUIDELINES = [
+  "Jawab setiap pertanyaan dengan jujur sesuai dengan dirimu. Tidak ada jawaban benar atau salah.",
+  "Tidak ada batas waktu, jadi kerjakan dengan santai dan nyaman.",
+  "Pastikan berada di tempat yang tenang dan bebas gangguan.",
+  "Selesaikan tes dalam satu sesi karena progres akan hilang jika keluar.",
+  "Setelah selesai, kamu akan mendapatkan laporan hasil tes.",
+];
+
+const DEFAULT_BANNER = "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80";
 
 export default function PsikotesDetailClient({ params }: { params: { testId: string } }) {
-  const fallback = TEST_DATA[params.testId as keyof typeof TEST_DATA] || TEST_DATA["mbti"];
   const [apiData, setApiData] = useState<PaketPsikotesApiResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<"gratis" | "berbayar">("gratis");
 
   useEffect(() => {
@@ -20,15 +30,17 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
           setApiData(res.data);
         }
       } catch (err) {
-        // Fallback to static mock if testId is mock key
+        // Paket not found or network error
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchDetail();
   }, [params.testId]);
 
-  const hasPaidPackage = apiData
-    ? (apiData.jenis_akses === "BERBAYAR" || (typeof apiData.harga === "number" && apiData.harga > 0))
-    : (fallback.price > 0);
+  const hasPaidPackage = Boolean(
+    apiData && (apiData.jenis_akses === "BERBAYAR" || (typeof apiData.harga === "number" && apiData.harga > 0))
+  );
 
   useEffect(() => {
     if (!hasPaidPackage && selectedPlan === "berbayar") {
@@ -36,31 +48,56 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     }
   }, [hasPaidPackage, selectedPlan]);
 
-  const data = apiData
-    ? {
-        title: apiData.judul,
-        subtitle: apiData.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
-        image: apiData.banner_url || fallback.image,
-        description: apiData.deskripsi || fallback.description,
-        duration: "15 Menit",
-        questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
-        price: apiData.harga || 0,
-        formattedPrice: apiData.harga ? `Rp ${apiData.harga.toLocaleString("id-ID")}` : "Gratis",
-        benefits: Array.isArray(apiData.benefits)
-          ? (apiData.benefits as string[]).filter((b) => typeof b === "string" && b.trim().length > 0)
-          : (fallback.benefits || []),
-        guidelines: fallback.guidelines,
-        freeBenefits: UNIVERSAL_FREE_BENEFITS,
-        paidBenefits: UNIVERSAL_PAID_BENEFITS,
-        paidPackageName: "Laporan Hasil Psikotes Lengkap (PDF)",
-      }
-    : {
-        ...fallback,
-        freeBenefits: UNIVERSAL_FREE_BENEFITS,
-        paidBenefits: UNIVERSAL_PAID_BENEFITS,
-      };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] flex flex-col items-center justify-center font-sans">
+        <Loader2 className="w-10 h-10 animate-spin text-[#561269] mb-4" />
+        <p className="text-sm text-gray-500 font-medium">Memuat detail psikotes...</p>
+      </div>
+    );
+  }
 
-const checkoutUrl = `/psikotes/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
+  if (!apiData) {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] font-sans pt-[120px] pb-12 px-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Paket Tidak Ditemukan</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            Paket psikotes yang Anda cari tidak tersedia atau belum dipublikasikan.
+          </p>
+          <Link
+            href="/psikotes"
+            className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm"
+          >
+            Kembali ke Daftar Psikotes
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const data = {
+    title: apiData.judul,
+    subtitle: apiData.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
+    image: apiData.banner_url || DEFAULT_BANNER,
+    description: apiData.deskripsi || "Ikuti asesmen psikotes terstruktur ini untuk mengenali potensi, gaya berpikir, dan karakteristik kepribadianmu.",
+    duration: "15 Menit",
+    questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
+    price: apiData.harga || 0,
+    formattedPrice: apiData.harga ? `Rp ${apiData.harga.toLocaleString("id-ID")}` : "Gratis",
+    benefits: Array.isArray(apiData.benefits)
+      ? (apiData.benefits as string[]).filter((b) => typeof b === "string" && b.trim().length > 0)
+      : [],
+    guidelines: DEFAULT_GUIDELINES,
+    freeBenefits: UNIVERSAL_FREE_BENEFITS,
+    paidBenefits: UNIVERSAL_PAID_BENEFITS,
+    paidPackageName: "Laporan Hasil Psikotes Lengkap (PDF)",
+  };
+
+  const checkoutUrl = `/psikotes/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
 
   return (
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">
@@ -376,7 +413,7 @@ const checkoutUrl = `/psikotes/checkout?testId=${params.testId}&judul=${encodeUR
                   {/* CTA Button Gratis */}
                   <Link 
                     href={`/psikotes/${params.testId}/mulai`}
-                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#561269] hover:bg-[#763E8B] text-white font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
                   >
                     <span>Mulai Tes Gratis</span>
                     <ArrowRight className="w-4 h-4" />

@@ -18,6 +18,7 @@ interface JadwalHariIniSectionProps {
   filteredTodaySessions: ClientSessionToday[]
   todaySessionsCount: number
   nearestSession: ClientSessionToday | null
+  nearestSessions?: ClientSessionToday[]
   selectedLayanan: string
   formattedDate: string
   activeMenuId: string | null
@@ -34,6 +35,7 @@ export default function JadwalHariIniSection({
   filteredTodaySessions,
   todaySessionsCount,
   nearestSession,
+  nearestSessions,
   selectedLayanan,
   formattedDate,
   activeMenuId,
@@ -45,6 +47,12 @@ export default function JadwalHariIniSection({
   onCopyWhatsAppPsikolog,
   onResetFilter,
 }: JadwalHariIniSectionProps) {
+  const activeNearestList: ClientSessionToday[] =
+    nearestSessions && nearestSessions.length > 0
+      ? nearestSessions
+      : nearestSession
+        ? [nearestSession]
+        : []
   return (
     <div className="mt-4 flex flex-col gap-4 font-poppins">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -60,82 +68,191 @@ export default function JadwalHariIniSection({
         </span>
       </div>
 
-      {/* Card Highlight: Sesi Terdekat Berikutnya */}
-      {nearestSession ? (
-        <div className="bg-gradient-to-r from-purple-50 via-[#FAF4FC] to-purple-50 border-2 border-[#561269]/30 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#561269] text-white flex items-center justify-center shrink-0 shadow-md">
-              <Clock className="w-6 h-6 animate-pulse" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-[#561269] text-white text-[10px] font-bold uppercase tracking-wider">
-                  Sesi Terdekat Berikutnya
-                </span>
-                <span className="text-xs font-bold text-purple-900">
-                  {nearestSession.waktu}
-                </span>
+      {/* Card Highlight: Sesi Terdekat Berikutnya (Mendukung Sesi Paralel Banyak Psikolog di Jam yang Sama) */}
+      {activeNearestList.length > 1 ? (
+        <div className="bg-gradient-to-r from-purple-50 via-[#FAF4FC] to-purple-50 border-2 border-[#561269]/40 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-200/60 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#561269] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Clock className="w-5 h-5 animate-pulse" />
               </div>
-              <h3 className="text-base font-bold text-gray-900 mt-1">
-                {nearestSession.namaKlien}{" "}
-                <span className="text-xs font-normal text-gray-500">(ID: {nearestSession.klienId})</span>
-              </h3>
-              <p className="text-xs text-gray-600">
-                {nearestSession.layanan} • {nearestSession.psikolog} •{" "}
-                <span className="font-semibold text-[#561269]">{nearestSession.tipe}</span>
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#561269] text-white text-[10px] font-bold uppercase tracking-wider">
+                    {activeNearestList.length} Sesi Bersamaan
+                  </span>
+                  <span className="text-sm font-extrabold text-purple-900">
+                    {activeNearestList[0].waktu}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Terdapat {activeNearestList.length} sesi konsultasi berjalan di jam yang sama dari psikolog berbeda.
+                </p>
+              </div>
             </div>
+            <span className="text-[11px] font-semibold text-[#561269] bg-purple-100/90 px-3 py-1 rounded-full self-start sm:self-auto border border-purple-200">
+              Jadwal Paralel Hari Ini
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 self-end md:self-center shrink-0">
-            <AdminStatusBadge
-              variant={
-                nearestSession.status === "Selesai"
-                  ? "success"
-                  : nearestSession.status === "Segera Dimulai"
-                    ? "info"
-                    : nearestSession.status === "Sedang Berlangsung"
-                      ? "danger"
-                      : nearestSession.status === "Dibatalkan"
-                        ? "neutral"
-                        : "warning"
-              }
-              className="w-44"
-            >
-              {nearestSession.status}
-            </AdminStatusBadge>
-            <button
-              type="button"
-              onClick={() => onSelectDetail(nearestSession)}
-              className="text-xs font-bold px-3 py-1.5 rounded-lg border border-purple-200 text-[#561269] hover:bg-purple-100/60 transition cursor-pointer"
-            >
-              Detail
-            </button>
-            {nearestSession.kontak && (
-              <div className="flex items-center gap-1.5">
-                <a
-                  href={getWhatsAppUrl(nearestSession)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#20ba5a] text-white flex items-center gap-1.5 transition shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap"
-                  title="Hubungi klien via WhatsApp dengan rincian jadwal"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>Chat WA</span>
-                  <ExternalLink className="w-3 h-3 opacity-80" />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => onCopyWhatsApp(nearestSession)}
-                  className="p-1.5 rounded-lg border border-purple-200 text-gray-600 hover:text-[#561269] hover:bg-purple-100/60 transition cursor-pointer"
-                  title="Salin Pesan WA"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {activeNearestList.map((session) => (
+              <div
+                key={session.id}
+                className="bg-white/95 border border-purple-200/90 rounded-xl p-3.5 shadow-2xs hover:shadow-xs transition flex flex-col justify-between gap-3"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-[11px] font-bold text-[#561269] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                      {session.psikolog}
+                    </span>
+                    <span className="text-[11px] font-semibold text-gray-600">
+                      {session.tipe}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-gray-900 leading-snug">
+                    {session.namaKlien}{" "}
+                    <span className="text-[11px] font-normal text-gray-500">(ID: {session.klienId})</span>
+                  </h4>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {session.layanan}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between pt-2.5 border-t border-gray-100 gap-2">
+                  <AdminStatusBadge
+                    variant={
+                      session.status === "Selesai"
+                        ? "success"
+                        : session.status === "Segera Dimulai"
+                          ? "info"
+                          : session.status === "Sedang Berlangsung"
+                            ? "danger"
+                            : session.status === "Dibatalkan"
+                              ? "neutral"
+                              : "warning"
+                    }
+                    className="w-36 text-center"
+                  >
+                    {session.status}
+                  </AdminStatusBadge>
+
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => onSelectDetail(session)}
+                      className="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-purple-200 text-[#561269] hover:bg-purple-100/60 transition cursor-pointer"
+                    >
+                      Detail
+                    </button>
+                    {session.kontak && (
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={getWhatsAppUrl(session)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#20ba5a] text-white flex items-center gap-1 transition shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap"
+                          title="Hubungi klien via WhatsApp"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>WA</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => onCopyWhatsApp(session)}
+                          className="p-1.5 rounded-lg border border-purple-200 text-gray-600 hover:text-[#561269] hover:bg-purple-100/60 transition cursor-pointer"
+                          title="Salin Pesan WA"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
+      ) : activeNearestList.length === 1 ? (
+        (() => {
+          const single = activeNearestList[0]
+          return (
+            <div className="bg-gradient-to-r from-purple-50 via-[#FAF4FC] to-purple-50 border-2 border-[#561269]/30 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-[#561269] text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Clock className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-[#561269] text-white text-[10px] font-bold uppercase tracking-wider">
+                      Sesi Terdekat Berikutnya
+                    </span>
+                    <span className="text-xs font-bold text-purple-900">
+                      {single.waktu}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900 mt-1">
+                    {single.namaKlien}{" "}
+                    <span className="text-xs font-normal text-gray-500">(ID: {single.klienId})</span>
+                  </h3>
+                  <p className="text-xs text-gray-600">
+                    {single.layanan} • {single.psikolog} •{" "}
+                    <span className="font-semibold text-[#561269]">{single.tipe}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                <AdminStatusBadge
+                  variant={
+                    single.status === "Selesai"
+                      ? "success"
+                      : single.status === "Segera Dimulai"
+                        ? "info"
+                        : single.status === "Sedang Berlangsung"
+                          ? "danger"
+                          : single.status === "Dibatalkan"
+                            ? "neutral"
+                            : "warning"
+                  }
+                  className="w-44"
+                >
+                  {single.status}
+                </AdminStatusBadge>
+                <button
+                  type="button"
+                  onClick={() => onSelectDetail(single)}
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg border border-purple-200 text-[#561269] hover:bg-purple-100/60 transition cursor-pointer"
+                >
+                  Detail
+                </button>
+                {single.kontak && (
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href={getWhatsAppUrl(single)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#20ba5a] text-white flex items-center gap-1.5 transition shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap"
+                      title="Hubungi klien via WhatsApp dengan rincian jadwal"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>Chat WA</span>
+                      <ExternalLink className="w-3 h-3 opacity-80" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => onCopyWhatsApp(single)}
+                      className="p-1.5 rounded-lg border border-purple-200 text-gray-600 hover:text-[#561269] hover:bg-purple-100/60 transition cursor-pointer"
+                      title="Salin Pesan WA"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()
       ) : (
         <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3 text-emerald-800 text-sm font-medium">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -162,7 +279,7 @@ export default function JadwalHariIniSection({
           <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
             {filteredTodaySessions.length > 0 ? (
               filteredTodaySessions.map((item, index) => {
-                const isNearest = nearestSession?.id === item.id
+                const isNearest = activeNearestList.some((s) => s.id === item.id)
                 return (
                   <tr
                     key={item.id}

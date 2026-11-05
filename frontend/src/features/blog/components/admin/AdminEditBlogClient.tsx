@@ -51,13 +51,13 @@ export default function AdminEditBlogClient({ slug }: Props) {
 
   const handleImageSelect = async (file: File) => {
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert("Ukuran file gambar maksimal 10MB.")
+      if (file.size > 30 * 1024 * 1024) {
+        alert("Ukuran file gambar maksimal 30MB.")
         return
       }
       try {
-        const { compressImage } = await import("@/lib/imageCompressor")
-        const compressed = await compressImage(file, { maxWidth: 1280, maxHeight: 1280, quality: 0.82 })
+        const { compressImage, IMAGE_PRESETS } = await import("@/lib/imageCompressor")
+        const compressed = await compressImage(file, IMAGE_PRESETS.blog)
         setNewImageFile(compressed.file)
         setNewImagePreview(compressed.dataUrl)
       } catch {
@@ -321,7 +321,7 @@ export default function AdminEditBlogClient({ slug }: Props) {
                       Upload gambar poster / banner
                     </span>
                     <span className="block text-[11px] text-gray-400 mt-0.5">
-                      Format: JPG, PNG, WEBP (Maks. 5MB, otomatis dioptimalkan)
+                      Rekomendasi thumbnail: 1200 × 675 px (rasio 16:9). Bebas hingga 30MB, otomatis dikompresi untuk card & artikel klien.
                     </span>
                   </div>
                 </label>

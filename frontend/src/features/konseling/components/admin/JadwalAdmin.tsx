@@ -48,6 +48,7 @@ export default function JadwalAdmin() {
     todaySessions,
     filteredTodaySessions,
     nearestSession,
+    nearestSessions,
     activeMenuId,
     setActiveMenuId,
 
@@ -216,6 +217,7 @@ export default function JadwalAdmin() {
         filteredTodaySessions={filteredTodaySessions}
         todaySessionsCount={todaySessions.length}
         nearestSession={nearestSession}
+        nearestSessions={nearestSessions}
         selectedLayanan={selectedLayanan}
         formattedDate={formattedDate}
         activeMenuId={activeMenuId}

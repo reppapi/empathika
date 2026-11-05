@@ -21,13 +21,23 @@ export function FormGantiEmail({ initialEmail = "" }: FormGantiEmailProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (initialEmail && initialEmail.trim()) {
+      setCurrentEmail(initialEmail.trim())
+    }
+  }, [initialEmail])
+
   const fetchStatus = async () => {
     try {
       const data = await accountSettingsService.getPendingEmailChange()
-      if (data.currentEmail) setCurrentEmail(data.currentEmail)
-      setPendingData(data.pendingRequest)
+      if (data?.currentEmail) {
+        if (!initialEmail || initialEmail.trim() === "") {
+          setCurrentEmail(data.currentEmail)
+        }
+      }
+      setPendingData(data?.pendingRequest || null)
     } catch (err: any) {
-      console.error("Gagal memuat status email:", err)
+      console.warn("Gagal memuat status email:", err?.message)
     }
   }
 

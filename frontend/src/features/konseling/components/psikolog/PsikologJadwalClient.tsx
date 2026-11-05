@@ -137,13 +137,15 @@ export default function PsikologJadwalClient() {
     const savedId = localStorage.getItem("active_psikolog_id")
     const isInvalid = !savedName || savedName.toLowerCase().includes("admin")
 
+    const savedKat = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_kategori") : null
+
     if (user?.role === "PSIKOLOG" && user?.name && !user.name.toLowerCase().includes("admin")) {
-      return { id: user.id || "0", nama_gelar: user.name, kategori: "psikolog" }
+      return { id: user.id || "0", nama_gelar: user.name, kategori: savedKat || "psikolog" }
     }
     if (!isInvalid && savedName) {
-      return { id: savedId || "0", nama_gelar: savedName, kategori: "psikolog" }
+      return { id: savedId || "0", nama_gelar: savedName, kategori: savedKat || "psikolog" }
     }
-    return { id: "0", nama_gelar: INITIAL_TENAGA_AHLI[0].nama, kategori: "psikolog" }
+    return { id: "0", nama_gelar: INITIAL_TENAGA_AHLI[0].nama, kategori: savedKat || "psikolog" }
   }, [user])
 
   // State profil psikolog aktif yang diambil dari Database / LocalStorage
@@ -302,7 +304,7 @@ export default function PsikologJadwalClient() {
     try {
       const currentPsi = resolveActivePsikolog()
       const resolvedPsikologId = currentPsi?.id || ""
-      const resolvedPsikologName = currentPsi?.nama_gelar || "Dr. Jane Doe, M.Psi., Psikolog"
+      const resolvedPsikologName = currentPsi?.nama_gelar || (currentPsi as any)?.account?.nama || user?.name || "Tenaga Ahli"
 
       let res: any = null
       try {
@@ -316,6 +318,9 @@ export default function PsikologJadwalClient() {
         if (typeof window !== "undefined") {
           localStorage.setItem("active_psikolog_id", res.psikolog.id)
           localStorage.setItem("active_psikolog_name", res.psikolog.nama_gelar)
+          if (res.psikolog.kategori) {
+            localStorage.setItem("active_psikolog_kategori", res.psikolog.kategori)
+          }
         }
       } else if (!activePsikolog && currentPsi) {
         setActivePsikolog(currentPsi)
@@ -629,7 +634,7 @@ export default function PsikologJadwalClient() {
     const savedName = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") : null
     const currentPsi = resolveActivePsikolog()
     const psikologId = activePsikolog?.id || currentPsi.id || savedId || ""
-    const psikologNama = activePsikolog?.nama_gelar || currentPsi.nama_gelar || savedName || "Dr. Jane Doe, M.Psi., Psikolog"
+    const psikologNama = activePsikolog?.nama_gelar || activePsikolog?.account?.nama || currentPsi.nama_gelar || (currentPsi as any)?.account?.nama || savedName || user?.name || "Tenaga Ahli"
 
     const newSessions: BookedSession[] = []
     const newSlotItems: JadwalSlotItem[] = []

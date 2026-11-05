@@ -28,10 +28,13 @@ export function LoginForm() {
 
   useEffect(() => {
     const status = searchParams.get("status");
+    const expired = searchParams.get("expired");
     if (status === "activated") {
       setInfoMessage("Kata sandi berhasil dibuat dan akun Anda telah aktif! Silakan masuk.");
     } else if (status === "already-active") {
       setInfoMessage("Akun sudah aktif. Silakan masuk menggunakan kata sandi Anda.");
+    } else if (status === "expired" || expired === "true") {
+      setInfoMessage("Sesi Anda telah berakhir demi keamanan. Silakan login kembali.");
     }
   }, [searchParams]);
 
@@ -73,13 +76,16 @@ export function LoginForm() {
       if (rememberMe) {
         localStorage.setItem("active_psikolog_id", user.id);
         localStorage.setItem("active_psikolog_name", user.nama);
+        localStorage.setItem("active_psikolog_email", user.email);
       } else {
         sessionStorage.setItem("active_psikolog_id", user.id);
         sessionStorage.setItem("active_psikolog_name", user.nama);
+        sessionStorage.setItem("active_psikolog_email", user.email);
         localStorage.removeItem("active_psikolog_id");
         localStorage.removeItem("active_psikolog_name");
+        localStorage.removeItem("active_psikolog_email");
       }
-      router.push("/psikolog-web/jadwal" as any);
+      router.push("/psikolog-web/beranda" as any);
     } else if (user.role === "ADMIN") {
       router.push("/admin");
     } else if (user.role === "BIRO") {
@@ -295,10 +301,20 @@ export function LoginForm() {
 
           <form onSubmit={handleSubmit} className="w-full space-y-5">
 
-            {/* Info Message (Aktivasi Berhasil / Akun Sudah Aktif) */}
+            {/* Info Message (Aktivasi Berhasil / Akun Sudah Aktif / Sesi Berakhir) */}
             {infoMessage && (
-              <div className="p-3 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <div
+                className={`p-3 text-sm rounded-xl flex items-center gap-2 border ${
+                  searchParams.get("status") === "expired" || searchParams.get("expired") === "true"
+                    ? "text-amber-900 bg-amber-50 border-amber-200"
+                    : "text-emerald-800 bg-emerald-50 border-emerald-200"
+                }`}
+              >
+                {searchParams.get("status") === "expired" || searchParams.get("expired") === "true" ? (
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                )}
                 <span>{infoMessage}</span>
               </div>
             )}

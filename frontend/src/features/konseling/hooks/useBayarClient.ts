@@ -119,8 +119,16 @@ export function useBayarClient() {
 
     if (!whatsapp.trim()) {
       newErrors.whatsapp = "Nomor WhatsApp wajib diisi."
-    } else if (!/^[0-9+-\s]{8,16}$/.test(whatsapp.trim())) {
-      newErrors.whatsapp = "Nomor WhatsApp minimal 8 digit angka."
+    } else {
+      const cleanWa = whatsapp.replace(/\D/g, "")
+      const local = cleanWa.startsWith("62") ? cleanWa.slice(2) : cleanWa
+      if (!local.startsWith("8")) {
+        newErrors.whatsapp = "Nomor tidak valid. Nomor WhatsApp harus diawali angka 8 (contoh: +62 812-xxxx-xxxx)."
+      } else if (local.length < 9) {
+        newErrors.whatsapp = "Nomor WhatsApp terlalu pendek (minimal 10 digit, contoh: +62 812-3456-7890)."
+      } else if (local.length > 13) {
+        newErrors.whatsapp = "Nomor WhatsApp terlalu panjang (maksimal 14 digit angka)."
+      }
     }
 
     if (!deskripsi.trim()) {

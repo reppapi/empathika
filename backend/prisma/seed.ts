@@ -393,6 +393,54 @@ async function main() {
 
   console.log(`Created/found layanan: ${layananKonsultasi.nama}`);
 
+  let layananWorkshop = await prisma.layanan.findFirst({
+    where: { nama: 'Workshop Manajemen Stres & Regulasi Emosi' },
+  });
+  if (!layananWorkshop) {
+    layananWorkshop = await prisma.layanan.create({
+      data: {
+        nama: 'Workshop Manajemen Stres & Regulasi Emosi',
+        kategori: KategoriLayanan.WORKSHOP,
+        deskripsi: 'Pelatihan interaktif untuk membekali peserta dengan keterampilan praktis mengelola emosi dan mencegah burnout.',
+        harga_weekday: 200000.0,
+        harga_weekend: 250000.0,
+        aktif: true,
+      },
+    });
+  }
+
+  let layananSeminar = await prisma.layanan.findFirst({
+    where: { nama: 'Seminar Psikologi & Kesehatan Mental' },
+  });
+  if (!layananSeminar) {
+    layananSeminar = await prisma.layanan.create({
+      data: {
+        nama: 'Seminar Psikologi & Kesehatan Mental',
+        kategori: KategoriLayanan.SEMINAR,
+        deskripsi: 'Sesi edukatif bersama para ahli untuk membahas topik-topik penting seputar kesehatan mental dan psikologi modern.',
+        harga_weekday: 150000.0,
+        harga_weekend: 200000.0,
+        aktif: true,
+      },
+    });
+  }
+
+  let layananAsesmen = await prisma.layanan.findFirst({
+    where: { nama: 'Asesmen Minat Bakat' },
+  });
+  if (!layananAsesmen) {
+    layananAsesmen = await prisma.layanan.create({
+      data: {
+        nama: 'Asesmen Minat Bakat',
+        kategori: KategoriLayanan.ASESMEN,
+        deskripsi: 'Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu secara terstandar.',
+        harga_weekday: 350000.0,
+        harga_weekend: 450000.0,
+        aktif: true,
+      },
+    });
+  }
+
   // 7. Create Paket Psikotes
   let paketPsikotes = await prisma.paketPsikotes.findFirst({
     where: { judul: 'Tes Kepribadian Dasar' },
