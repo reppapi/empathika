@@ -22,7 +22,6 @@ export function useEventCheckout() {
     whatsapp?: string
     metodePembayaran?: string
     detailMetode?: string
-    [key: string]: any
   }>({})
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { EVENT_LIMITS } from './event.constants'
 
 // ==========================================
 // PARAM & QUERY SCHEMAS
@@ -45,7 +46,7 @@ export const createDokumentasiSchema = z.object({
     .min(5, 'Deskripsi minimal 5 karakter'),
   foto: z
     .array(dokumentasiFotoInputSchema)
-    .max(10, 'Maksimal 10 foto dokumentasi')
+    .max(EVENT_LIMITS.MAX_DOKUMENTASI_FOTO, `Maksimal ${EVENT_LIMITS.MAX_DOKUMENTASI_FOTO} foto dokumentasi`)
     .default([]),
 })
 
@@ -67,7 +68,7 @@ export const updateDokumentasiSchema = z.object({
     .optional(),
   foto: z
     .array(dokumentasiFotoInputSchema)
-    .max(10, 'Maksimal 10 foto dokumentasi')
+    .max(EVENT_LIMITS.MAX_DOKUMENTASI_FOTO, `Maksimal ${EVENT_LIMITS.MAX_DOKUMENTASI_FOTO} foto dokumentasi`)
     .optional(),
 })
 

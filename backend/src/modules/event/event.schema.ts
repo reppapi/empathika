@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { EVENT_LIMITS } from './event.constants'
 
 // ==========================================
 // ENUM SCHEMAS
@@ -76,25 +77,25 @@ export const createEventSchema = z
     durasi_menit: z
       .number({ required_error: 'Durasi menit wajib diisi' })
       .int('Durasi harus berupa bilangan bulat')
-      .min(1, 'Durasi minimal 1 menit')
-      .max(1440, 'Durasi maksimal 1440 menit (24 jam)')
+      .min(EVENT_LIMITS.MIN_DURASI_MENIT, `Durasi minimal ${EVENT_LIMITS.MIN_DURASI_MENIT} menit`)
+      .max(EVENT_LIMITS.MAX_DURASI_MENIT, `Durasi maksimal ${EVENT_LIMITS.MAX_DURASI_MENIT} menit (24 jam)`)
       .default(120),
     lokasi: z.string().trim().max(500, 'Lokasi maksimal 500 karakter').optional().nullable().default('Auditorium Empathika Bandung'),
     kuota: z
       .number({ required_error: 'Kuota wajib diisi' })
       .int('Kuota harus berupa bilangan bulat')
-      .min(1, 'Kuota minimal 1 peserta')
-      .max(10000, 'Kuota maksimal 10.000 peserta')
+      .min(EVENT_LIMITS.MIN_KUOTA, `Kuota minimal ${EVENT_LIMITS.MIN_KUOTA} peserta`)
+      .max(EVENT_LIMITS.MAX_KUOTA, `Kuota maksimal ${EVENT_LIMITS.MAX_KUOTA} peserta`)
       .default(50),
     harga: z
       .number({ required_error: 'Harga wajib diisi' })
       .min(0, 'Harga tidak boleh negatif')
-      .max(99999999.99, 'Harga terlalu besar')
+      .max(EVENT_LIMITS.MAX_HARGA, 'Harga terlalu besar')
       .default(50000),
     harga_coret: z
       .number()
       .min(0, 'Harga coret tidak boleh negatif')
-      .max(99999999.99, 'Harga coret terlalu besar')
+      .max(EVENT_LIMITS.MAX_HARGA, 'Harga coret terlalu besar')
       .optional()
       .nullable(),
     banner_url: z.string().trim().nullish().default('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80'),
