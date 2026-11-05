@@ -111,7 +111,23 @@ export default function PsikologBerandaClient() {
   })
 
   const { user } = useAuthStore()
-  const [psikologName, setPsikologName] = useState<string>(user?.name || "")
+const [psikologName, setPsikologName] = useState<string>(() => {
+    if (user?.name && !user.name.toLowerCase().includes("admin")) return user.name;
+    if (typeof window !== "undefined") {
+      const savedName = localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name");
+      if (savedName && !savedName.toLowerCase().includes("admin")) return savedName;
+      try {
+        const authData = localStorage.getItem("empathika-auth");
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          if (parsed?.state?.user?.name && !parsed.state.user.name.toLowerCase().includes("admin")) {
+            return parsed.state.user.name;
+          }
+        }
+      } catch {}
+    }
+    return user?.name || "";
+  })
 
   // State Agenda Riwayat Sesi (Murni Database PostgreSQL)
   const [allBookedSlots, setAllBookedSlots] = useState<any[]>([])
