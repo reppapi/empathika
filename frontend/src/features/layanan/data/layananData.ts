@@ -59,24 +59,13 @@ export const WORKSHOP_SERVICES = [
   {
     topTitle: "WORKSHOP SEFT",
     topSubtitle: "Spiritual Emotional Freedom Technique",
-    bottomTitle: "Workshop SEFT Empathika",
-    bottomDescription: "Program workshop interaktif bersama para ahli untuk melepaskan beban emosi mendalam dan meraih ketenangan batin.",
+    bottomTitle: "Workshop SEFT",
+    bottomDescription: "Program pengembangan diri yang membantu peserta mengelola emosi, meredakan stres, dan melepaskan beban batin melalui integrasi psikologi dan spiritualitas.",
     bgColor: "bg-[#561269]",
     titleColor: "text-white",
     btnText: "Lihat Workshop",
     shape: "circles",
-    href: "/event",
-  },
-  {
-    topTitle: "REGULASI EMOSI",
-    topSubtitle: "Pelatihan Keterampilan Praktis",
-    bottomTitle: "Workshop Manajemen Stres & Regulasi Emosi",
-    bottomDescription: "Pelatihan interaktif untuk membekali peserta dengan keterampilan praktis mengelola emosi dan mencegah burnout.",
-    bgColor: "bg-[#f48520]",
-    titleColor: "text-white",
-    btnText: "Lihat Workshop",
-    shape: "circles-dark",
-    href: "/event",
+    href: "/layanan/workshop/seft",
   },
   {
     topTitle: "PEER HELPER",
@@ -86,8 +75,8 @@ export const WORKSHOP_SERVICES = [
     bgColor: "bg-[#f0d164]",
     titleColor: "text-gray-900",
     btnText: "Lihat Workshop",
-    shape: "heart",
-    href: "/event",
+    shape: "circles-dark",
+    href: "/layanan/workshop/peer-helper",
   },
 ]
 
