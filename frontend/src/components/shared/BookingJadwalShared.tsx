@@ -147,14 +147,16 @@ export function BookingJadwalShared({
         <div className="grid grid-cols-1 lg:grid-cols-2 lg:auto-rows-fr gap-5 lg:gap-6 items-stretch">
           {/* KIRI */}
           <div className="flex flex-col gap-5 h-full">
-            {/* Box 1: Metode Konsultasi */}
+            {/* Box 1: Metode Konsultasi / Asesmen */}
             <div className="bg-white rounded-2xl border border-[#DCD0E1] p-4 sm:p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] shrink-0">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-5 h-5 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">
                   1
                 </div>
                 <h3 className="text-sm font-semibold text-gray-800">
-                  Pilih Metode konsultasi
+                  {mode === "asesmen" || layanan.toLowerCase().includes("asesmen") || !!asesmenPackage
+                    ? "Pilih Metode Asesmen"
+                    : "Pilih Metode Konsultasi"}
                 </h3>
               </div>
               <div className="flex gap-2.5">
@@ -471,7 +473,7 @@ export function BookingJadwalShared({
               <>
                 <span className="font-extrabold text-black">{waktu.substring(0, 5)} WIB</span>
                 <span className="italic font-normal text-xs sm:text-sm text-gray-500">({metode})</span>
-                {activePsikologName && (
+                {mode !== "asesmen" && !layanan.toLowerCase().includes("asesmen") && !asesmenPackage && activePsikologName && (
                   <span className="text-xs sm:text-sm font-semibold text-[#561269] bg-[#FAF5FD] px-3 py-1 rounded-full border border-purple-100/80 flex items-center gap-1.5 shadow-2xs">
                     <User className="w-3.5 h-3.5 fill-[#561269] text-[#561269] shrink-0" />
                     <span>{activePsikologName}</span>

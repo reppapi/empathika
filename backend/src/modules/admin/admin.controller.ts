@@ -49,6 +49,19 @@ export class AdminController {
     }
   }
 
+  deleteJadwalSlot = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = request.user as { id?: string; role?: string } | undefined
+      await this.service.deleteJadwalSlot(request.params.id, user?.id, user?.role || 'ADMIN')
+      reply.code(204).send()
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
   createSesi = async (
     request: FastifyRequest<{ Body: CreateAdminSesiInput }>,
     reply: FastifyReply

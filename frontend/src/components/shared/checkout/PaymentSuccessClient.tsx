@@ -78,8 +78,13 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const tanggal = searchParams.get("tanggal") ?? "31/08"
   const tahun = searchParams.get("tahun") ?? "2026"
   const waktu = searchParams.get("waktu") ?? "13:30"
-  const judul = searchParams.get("judul") ?? (type === "konseling" ? "Layanan Konsultasi" : "Event Empathika")
-  const subjudul = searchParams.get("subjudul") ?? (type === "konseling" ? "Psikolog Profesional Empathika" : "")
+  const rawJudul = searchParams.get("judul")
+  const isAsesmen = Boolean(
+    (rawJudul && rawJudul.toLowerCase().includes("asesmen")) ||
+    (searchParams.get("kategori") && searchParams.get("kategori")!.toLowerCase().includes("asesmen"))
+  )
+  const judul = rawJudul ?? (isAsesmen ? "Layanan Asesmen Offline" : (type === "konseling" ? "Layanan Konsultasi" : "Event Empathika"))
+  const subjudul = searchParams.get("subjudul") ?? (isAsesmen ? "Sesi Asesmen Klinis di Klinik Empathika" : (type === "konseling" ? "Psikolog Profesional Empathika" : ""))
   const bottomDate = searchParams.get("bottomDate") ?? `${tanggal} ${tahun}`
   const bottomTime = searchParams.get("bottomTime") ?? `${waktu} WIB`
   const metode = searchParams.get("metode") ?? "qris"

@@ -6,6 +6,7 @@ import type {
   DokumentasiQueryInput,
 } from './dokumentasi.schema'
 import { deleteUploadedFile } from '../../utils/file-storage'
+import { EVENT_LIMITS } from './event.constants'
 
 export class DokumentasiService {
   private repo: DokumentasiRepository
@@ -27,8 +28,8 @@ export class DokumentasiService {
   }
 
   async create(data: CreateDokumentasiInput) {
-    if (data.foto && data.foto.length > 10) {
-      throw Object.assign(new Error('Maksimal foto dokumentasi adalah 10 foto'), {
+    if (data.foto && data.foto.length > EVENT_LIMITS.MAX_DOKUMENTASI_FOTO) {
+      throw Object.assign(new Error(`Maksimal foto dokumentasi adalah ${EVENT_LIMITS.MAX_DOKUMENTASI_FOTO} foto`), {
         statusCode: 400,
       })
     }
@@ -41,8 +42,8 @@ export class DokumentasiService {
       throw Object.assign(new Error('Dokumentasi event tidak ditemukan'), { statusCode: 404 })
     }
 
-    if (data.foto && data.foto.length > 10) {
-      throw Object.assign(new Error('Maksimal foto dokumentasi adalah 10 foto'), {
+    if (data.foto && data.foto.length > EVENT_LIMITS.MAX_DOKUMENTASI_FOTO) {
+      throw Object.assign(new Error(`Maksimal foto dokumentasi adalah ${EVENT_LIMITS.MAX_DOKUMENTASI_FOTO} foto`), {
         statusCode: 400,
       })
     }

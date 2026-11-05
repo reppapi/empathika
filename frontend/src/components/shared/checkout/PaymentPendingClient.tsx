@@ -33,8 +33,13 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
   const tanggal = searchParams.get("tanggal") ?? config.defaultTanggal
   const tahun = searchParams.get("tahun") ?? "2026"
   const waktu = searchParams.get("waktu") ?? config.defaultWaktu
-  const judul = searchParams.get("judul") ?? config.defaultJudul
-  const subjudul = searchParams.get("subjudul") ?? config.defaultSubjudul
+  const isAsesmen = Boolean(
+    (searchParams.get("judul") && searchParams.get("judul")!.toLowerCase().includes("asesmen")) ||
+    (searchParams.get("kategori") && searchParams.get("kategori")!.toLowerCase().includes("asesmen")) ||
+    Boolean(searchParams.get("hari"))
+  )
+  const judul = searchParams.get("judul") ?? (isAsesmen ? "Layanan Asesmen Offline" : config.defaultJudul)
+  const subjudul = searchParams.get("subjudul") ?? (isAsesmen ? "Sesi Asesmen Klinis di Klinik Empathika" : config.defaultSubjudul)
   const testId = searchParams.get("testId")
   const kategori = searchParams.get("kategori") ?? (type === "konseling" ? "Konseling" : "Seminar")
   const harga = searchParams.get("harga") ?? config.defaultHarga

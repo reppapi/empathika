@@ -50,7 +50,6 @@ export function EventListClient() {
   const upcomingEvents = events.filter((e) => e.status === "UPCOMING" || e.status === "ONGOING")
 
   // Event reguler yang COMPLETED
-  const regularPastEvents = events.filter((e) => e.status === "COMPLETED")
 
   return (
     <div className="min-h-screen bg-[#FDFBF9] pt-28 sm:pt-36 pb-24 font-poppins">
@@ -302,7 +301,7 @@ export function EventListClient() {
           /* ==============================================================
              TAB: RIWAYAT & ARSIP KEGIATAN (DOKUMENTASI EVENT SELESAI)
              ============================================================== */
-          dokumentasiList.length > 0 || regularPastEvents.length > 0 ? (
+          dokumentasiList.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {/* 1. Tampilkan Dokumentasi Event Selesai Baru (Sesuai Referensi Gambar) */}
               {dokumentasiList.map((dok) => {
@@ -352,60 +351,6 @@ export function EventListClient() {
                 )
               })}
 
-              {/* 2. Tampilkan juga Event Reguler yang berstatus COMPLETED */}
-              {regularPastEvents.map((ev) => {
-                const tanggalTeks = ev.tanggal
-                  ? new Date(ev.tanggal).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })
-                  : "Selesai"
-
-                return (
-                  <div
-                    key={ev.id}
-                    className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group opacity-95"
-                  >
-                    <div className="relative h-60 w-full overflow-hidden bg-gray-100">
-                      <Image
-                        unoptimized
-                        src={
-                          ev.banner_url ||
-                          "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                        }
-                        alt={ev.judul}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-700 grayscale-[20%]"
-                      />
-                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-extrabold text-[#561269] uppercase tracking-wider">
-                        {ev.jenis_event}
-                      </div>
-                      <div className="absolute bottom-3 left-3 bg-gray-900/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-[10px] font-semibold tracking-wide flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Telah Selesai
-                      </div>
-                    </div>
-
-                    <div className="p-5 flex flex-col flex-1">
-                      <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-2 line-clamp-2">
-                        {ev.judul}
-                      </h3>
-                      {ev.deskripsi && (
-                        <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mb-3">
-                          {ev.deskripsi}
-                        </p>
-                      )}
-                      <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                        <span>{tanggalTeks}</span>
-                        <span className="font-bold text-gray-700">{ev.nama_pembicara}</span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
             </div>
           ) : (
             <div className="w-full bg-white rounded-[2.5rem] border border-purple-100/80 p-8 sm:p-14 text-center shadow-sm flex flex-col items-center justify-center max-w-2xl mx-auto">

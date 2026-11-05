@@ -22,7 +22,7 @@ export default function AsesmenJadwalClient() {
       mode="asesmen"
       showStepper={true}
       title="Jadwalkan layanan anda"
-      subtitle="Pilih metode konsultasi dan tanggal yang Anda inginkan. Slot waktu hanya dapat dipilih jika telah dibuka oleh admin klinik."
+      subtitle="Pilih metode dan jadwal sesi asesmen tatap muka yang Anda inginkan. Slot waktu hanya dapat dipilih jika telah dibuka oleh admin klinik."
       asesmenPackage={selectedAsesmen}
       initialMetode="Offline"
       initialOfflinePlan={hariParam}

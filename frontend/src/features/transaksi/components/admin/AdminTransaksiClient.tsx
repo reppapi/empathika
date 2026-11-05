@@ -256,11 +256,27 @@ function normalizeTransaksi(raw: any) {
 
   // Tentukan jenis layanan
   const rawTipe = (raw.tipe_transaksi || "").toUpperCase()
+  const rawLayananText = (
+    layanan.nama ||
+    layanan.nama_layanan ||
+    raw.nama_layanan ||
+    raw.layanan ||
+    booking.deskripsi_trauma ||
+    ""
+  ).toLowerCase()
+  const isAsesmenTrx =
+    raw.kode_pesanan?.startsWith("ASES-") ||
+    layanan.kategori?.toLowerCase().includes("asesmen") ||
+    jadwal.tipe_jadwal === "ASESMEN" ||
+    rawLayananText.includes("asesmen")
+
   let jenisLayanan: JenisLayanan = "konseling"
   if (rawTipe === "PSIKOTES" || bookingPsikotes.id || raw.booking_psikotes) {
     jenisLayanan = "psikotes"
   } else if (rawTipe === "EVENT" || bookingEvent.id || raw.booking_event) {
     jenisLayanan = "event"
+  } else if (isAsesmenTrx) {
+    jenisLayanan = "asesment"
   } else {
     const jenisRaw = (layanan.kategori || raw.tipe_transaksi || "konseling")
       .toLowerCase()
@@ -289,6 +305,13 @@ function normalizeTransaksi(raw: any) {
       "Paket Psikotes Berbayar"
   } else if (jenisLayanan === "event") {
     namaLayanan = bookingEvent.event?.judul || raw.nama_layanan || "Event Empathika"
+  } else if (jenisLayanan === "asesment") {
+    namaLayanan =
+      layanan.nama ||
+      layanan.nama_layanan ||
+      raw.nama_layanan ||
+      raw.layanan ||
+      "Asesmen Minat Bakat (Offline)"
   } else {
     namaLayanan = layanan.nama || layanan.nama_layanan || raw.nama_layanan || "–"
   }

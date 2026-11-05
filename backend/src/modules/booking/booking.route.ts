@@ -27,6 +27,25 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
     handler: controller.getJadwalTersedia,
   })
 
+  // Verifikasi status ketersediaan slot sebelum checkout/pembayaran (mencegah checkout slot yang dihapus/dibatalkan)
+  fastify.get('/check-slot', {
+    schema: {
+      tags: ['Booking & Jadwal'],
+      summary: 'Periksa ketersediaan slot jadwal sebelum checkout',
+      querystring: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          tanggal: { type: 'string' },
+          waktu: { type: 'string' },
+          tipe_jadwal: { type: 'string' },
+          id_psikolog: { type: 'string' },
+        },
+      },
+    },
+    handler: controller.checkSlotAvailability,
+  })
+
   // Klien membuat booking konsultasi baru (dengan proteksi IP Rate Limit)
   fastify.post('/', {
     preHandler: [
@@ -112,6 +131,17 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Booking & Jadwal - Psikolog'],
       summary: 'Hapus slot jam ketersediaan',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.deleteJadwalSlot,
+  })
+
+  // Admin menghapus slot jadwal asesmen klinik (digunakan di frontend admin.service.deleteJadwalSlot)
+  fastify.delete('/jadwal-slot/:id', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Booking & Jadwal - Admin'],
+      summary: 'Hapus slot jam jadwal asesmen klinik oleh Admin',
       security: [{ bearerAuth: [] }],
     },
     handler: controller.deleteJadwalSlot,

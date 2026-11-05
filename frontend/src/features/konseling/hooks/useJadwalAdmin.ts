@@ -552,13 +552,19 @@ export function useJadwalAdmin() {
                   (Boolean(w.clientName) && w.clientName !== "Tersedia")),
             }
           })
-          // Gabungkan slot dari empathika_custom_jadwal_slots ke weeklyGrid
+          // Gabungkan slot dari empathika_custom_jadwal_slots ke weeklyGrid (hanya slot manual yang valid, abaikan seed dummy)
           try {
             const raw = localStorage.getItem("empathika_custom_jadwal_slots")
             if (raw) {
               const parsed = JSON.parse(raw)
               if (Array.isArray(parsed)) {
-                parsed.forEach((s: any) => {
+                // Bersihkan seed_asesmen dummy jika masih tersimpan di browser
+                const validCustomList = parsed.filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
+                if (validCustomList.length !== parsed.length) {
+                  localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(validCustomList))
+                }
+
+                validCustomList.forEach((s: any) => {
                   if (s.tanggal && s.jam_mulai) {
                     const timeStr = s.label_waktu || `${s.jam_mulai.substring(0, 5)} - ${(s.jam_selesai || "10:00").substring(0, 5)}`
                     const exists = mappedWeekly.some(
@@ -802,11 +808,16 @@ export function useJadwalAdmin() {
     }
   }
 
-  const handleModalSuccess = (newSession: NewSessionData) => {
+  const handleModalSuccess = async (newSession: NewSessionData) => {
+    const cleanWaktu = newSession.waktu.replace(" WIB", "").trim()
+    const parts = cleanWaktu.split("-").map((p) => p.trim())
+    const jamMulai = parts[0]?.substring(0, 5) || "13:00"
+    const jamSelesai = parts[1]?.substring(0, 5) || "14:00"
+
     const newBooked: BookedAssessment = {
       id: "ab_" + Date.now(),
       date: newSession.tanggal,
-      waktu: newSession.waktu.replace(" WIB", ""),
+      waktu: cleanWaktu,
       layanan: newSession.layanan,
       metode: newSession.metode,
       namaKlien: newSession.namaKlien,
@@ -818,7 +829,7 @@ export function useJadwalAdmin() {
     if (newSession.tanggal === todayKey || newSession.tanggal === formatDateKey(new Date())) {
       const newToday: ClientSessionToday = {
         id: "cs_" + Date.now(),
-        waktu: newSession.waktu.replace(" WIB", ""),
+        waktu: cleanWaktu,
         namaKlien: newSession.namaKlien,
         klienId: "010" + Math.floor(100 + Math.random() * 900),
         kontak: newSession.kontak,
@@ -833,7 +844,28 @@ export function useJadwalAdmin() {
 
     setBookingSuccessMsg(`Sesi baru untuk ${newSession.namaKlien} (${newSession.waktu}) berhasil dijadwalkan!`)
     setTimeout(() => setBookingSuccessMsg(null), 4000)
-    fetchJadwalData()
+
+    try {
+      await adminService.createSesiBaru({
+        id_psikolog: newSession.idPsikolog || newSession.psikolog,
+        id_layanan: newSession.idLayanan || newSession.layanan,
+        tanggal: newSession.tanggal,
+        jam_mulai: jamMulai,
+        jam_selesai: jamSelesai,
+        metode: newSession.metode.toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE",
+        deskripsi_trauma: newSession.catatan,
+        klien: {
+          nama: newSession.namaKlien.trim(),
+          no_telepon: newSession.kontak.trim() || "081234567890",
+        },
+      })
+      triggerToast(`Sesi ${newSession.layanan} untuk ${newSession.namaKlien} berhasil disimpan ke database!`, "success")
+    } catch (err: any) {
+      console.warn("Gagal menyimpan sesi baru ke database:", err?.response?.data?.message || err?.message)
+      triggerToast(`Gagal menyimpan ke database: ${err?.response?.data?.message || err?.message}`, "danger")
+    }
+
+    await fetchJadwalData()
   }
 
   const handleRemoveWeeklySlot = async (timeToRemove: string, targetDateKey?: string) => {

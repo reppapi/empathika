@@ -6,7 +6,7 @@ import type {
 } from './transaksi.schema'
 import { paymentService } from './payment/payment.service'
 import { env } from '../../config/env'
-import { generateOrderId, generateTrxId } from '../../utils'
+import { generateOrderId, generateTrxId, normalizePhoneNumber } from '../../utils'
 
 export class TransaksiService {
   private repo: TransaksiRepository
@@ -68,8 +68,9 @@ export class TransaksiService {
    */
   async createUniversalCheckout(input: CreateCheckoutTransaksiInput, loggedInClientId?: string) {
     return this.prisma.$transaction(async (tx: any) => {
-      // 1. Dapatkan atau buat data Client
+      // 1. Dapatkan atau buat data Client (format nomor telepon standar tunggal 628...)
       const rawPhone = input.no_telepon.trim()
+      const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
       let client = null
@@ -81,8 +82,12 @@ export class TransaksiService {
         client = await tx.client.findFirst({
           where: {
             OR: [
+              { no_telepon: standardizedPhone },
               { no_telepon: rawPhone },
-              ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
+              ...(digitsOnly.length >= 8 ? [
+                { no_telepon: digitsOnly },
+                { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
+              ] : []),
             ],
           },
         })
@@ -92,11 +97,16 @@ export class TransaksiService {
         client = await tx.client.create({
           data: {
             nama: input.nama.trim(),
-            no_telepon: rawPhone,
+            no_telepon: standardizedPhone,
             usia: input.usia,
             jenis_kelamin: input.jenis_kelamin,
           },
         })
+      } else if (client.no_telepon !== standardizedPhone) {
+        await tx.client.update({
+          where: { id: client.id },
+          data: { no_telepon: standardizedPhone },
+        }).catch(() => {})
       }
 
       let nominal = 0

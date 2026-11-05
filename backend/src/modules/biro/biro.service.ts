@@ -3,7 +3,7 @@ import { withActivationAccount, issueActivationToken } from "../../utils/activat
 import bcrypt from "bcrypt"
 import type { CreateBiroInput, UpdateBiroProfileInput } from "./biro.schema"
 import { parseDateString, formatDateToString, formatTimeToString } from "../../utils/date-time"
-import { generateOrderId } from "../../utils"
+import { generateOrderId, normalizePhoneNumber } from "../../utils"
 import type {
   UpdateBiroAccountInput,
   GetPublicBiroPsikologQuery,
@@ -790,26 +790,41 @@ export class BiroService {
 
     // Eksekusi transaksi database secara atomik
     const bookingResult = await this.prisma.$transaction(async (tx) => {
-      // 1. Temukan atau daftarkan klien dengan asosiasi id_biro
+      // 1. Temukan atau daftarkan klien dengan asosiasi id_biro (format nomor telepon standar tunggal 628...)
+      const rawPhone = (input.klien.no_telepon || '').trim()
+      const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
+      const digitsOnly = rawPhone.replace(/\D/g, '')
+
       let client = await tx.client.findFirst({
-        where: { no_telepon: input.klien.no_telepon },
+        where: {
+          OR: [
+            { no_telepon: standardizedPhone },
+            { no_telepon: rawPhone },
+            ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
+          ],
+        },
       })
 
       if (!client) {
         client = await tx.client.create({
           data: {
-            nama: input.klien.nama,
-            no_telepon: input.klien.no_telepon,
+            nama: input.klien.nama.trim(),
+            no_telepon: standardizedPhone,
             usia: input.klien.usia,
             jenis_kelamin: input.klien.jenis_kelamin,
             id_biro: biro.id,
           },
         })
-      } else if (!client.id_biro) {
-        client = await tx.client.update({
-          where: { id: client.id },
-          data: { id_biro: biro.id },
-        })
+      } else {
+        const updateData: any = {}
+        if (!client.id_biro) updateData.id_biro = biro.id
+        if (client.no_telepon !== standardizedPhone) updateData.no_telepon = standardizedPhone
+        if (Object.keys(updateData).length > 0) {
+          client = await tx.client.update({
+            where: { id: client.id },
+            data: updateData,
+          })
+        }
       }
 
       // 2. Tandai slot jadwal sebagai SUDAH_DIBOOKING

@@ -72,10 +72,19 @@ export interface UseJadwalClientOptions {
 export function useJadwalClient(options?: UseJadwalClientOptions) {
   const searchParams = useSearchParams()
 
-  const mode = options?.mode || (searchParams?.get("mode") === "asesmen" ? "asesmen" : "konseling")
-  const effectiveTipeJadwal = options?.tipeJadwal || (mode === "asesmen" ? "ASESMEN" : "KONSULTASI")
+  const rawMode = options?.mode || searchParams?.get("mode")
+  const paketParam = searchParams?.get("paket")
+  const layananParam = searchParams?.get("layanan")
+  const isAsesmen =
+    rawMode === "asesmen" ||
+    Boolean(options?.asesmenPackage) ||
+    Boolean(paketParam && (paketParam.toLowerCase().includes("asesmen") || paketParam.toLowerCase().includes("bakat") || paketParam.toLowerCase().includes("iq"))) ||
+    Boolean(layananParam && layananParam.toLowerCase().includes("asesmen"))
 
-  const initialLayanan = options?.asesmenPackage?.title || searchParams?.get("layanan") || (mode === "asesmen" ? "Asesmen Minat Bakat" : "Psikolog")
+  const mode = isAsesmen ? "asesmen" : "konseling"
+  const effectiveTipeJadwal = options?.tipeJadwal || (isAsesmen ? "ASESMEN" : "KONSULTASI")
+
+  const initialLayanan = options?.asesmenPackage?.title || searchParams?.get("layanan") || (isAsesmen ? "Asesmen Minat Bakat" : "Psikolog")
   const psikologIdParam = searchParams?.get("psikologId") || undefined
   const psikologNameParam = searchParams?.get("psikologName") || undefined
   const tanggalParam = searchParams?.get("tanggal") || searchParams?.get("date") || undefined
@@ -121,44 +130,24 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     return day === 0 || day === 6 ? "weekend" : "weekday"
   })
 
-  // Inisialisasi seed default slot asesmen offline di localStorage jika belum ada
+  // Bersihkan seed dummy asesmen lama jika ada di localStorage
   useEffect(() => {
-    if (typeof window !== "undefined" && effectiveTipeJadwal === "ASESMEN") {
+    if (typeof window !== "undefined") {
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-        const list: any[] = raw ? JSON.parse(raw) : []
-        const hasAsesmen = list.some((s: any) => (s.tipe_jadwal || "").toUpperCase() === "ASESMEN")
-        if (!hasAsesmen) {
-          const now = new Date()
-          for (let offset = 0; offset <= 14; offset++) {
-            const d = new Date(now)
-            d.setDate(d.getDate() + offset)
-            const dKey = formatDateToKey(d)
-            const times = [
-              { start: "09:00", end: "10:00" },
-              { start: "10:00", end: "11:00" },
-              { start: "13:00", end: "14:00" },
-              { start: "14:30", end: "15:30" },
-            ]
-            times.forEach((t) => {
-              list.push({
-                id: `seed_asesmen_${dKey}_${t.start}`,
-                tanggal: dKey,
-                jam_mulai: t.start,
-                jam_selesai: t.end,
-                label_waktu: `${t.start} - ${t.end}`,
-                tipe_jadwal: "ASESMEN",
-                metode: "OFFLINE",
-                status: "TERSEDIA",
-                nama_psikolog: "Asesor Klinis Empathika",
-              })
-            })
+        if (raw) {
+          const list: any[] = JSON.parse(raw)
+          if (Array.isArray(list)) {
+            const cleaned = list.filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
+            if (cleaned.length !== list.length) {
+              localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(cleaned))
+              window.dispatchEvent(new Event("storage"))
+            }
           }
-          localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(list))
         }
       } catch {}
     }
-  }, [effectiveTipeJadwal])
+  }, [])
 
   // Handler pergantian tanggal kalender dengan auto-sinkronisasi paket hari asesmen
   const handleSetDate = (newDate: Date | undefined) => {
@@ -255,13 +244,15 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         }
       } catch {}
 
-      // 2. Gabungkan slot dari LocalStorage
+      // 2. Gabungkan slot dari LocalStorage (abaikan seed dummy)
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots")
         if (raw) {
           const parsed = JSON.parse(raw)
           if (Array.isArray(parsed)) {
-            parsed.forEach((s: any) => {
+            parsed
+              .filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
+              .forEach((s: any) => {
               const slotType = (s.tipe_jadwal || "KONSULTASI").toUpperCase()
               const matchType = slotType === effectiveTipeJadwal.toUpperCase()
               const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
@@ -368,14 +359,14 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         apiSlots = []
       }
 
-      // 2. Ambil seluruh slot dari LocalStorage untuk metadata atau fallback
+      // 2. Ambil seluruh slot dari LocalStorage untuk metadata atau fallback (abaikan seed dummy)
       let allCustomSlots: any[] = []
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots")
         if (raw) {
           const parsed = JSON.parse(raw)
           if (Array.isArray(parsed)) {
-            allCustomSlots = parsed
+            allCustomSlots = parsed.filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
           }
         }
       } catch {}
@@ -511,7 +502,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
   const selectedSlot = availableSlots.find((s) => s.jam_mulai === waktu)
   const activePsikologName =
     mode === "asesmen"
-      ? selectedSlot?.nama_psikolog || "Asesor Klinis Empathika"
+      ? null
       : selectedSlot?.nama_psikolog ||
         selectedPsikolog?.nama_gelar ||
         selectedPsikolog?.account?.nama ||
@@ -535,7 +526,6 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
       const selectedPrice = activePrice || "Rp 400.000"
       const planName = selectedOfflinePlan === "weekday" ? "Weekday" : "Weekend"
       const asesmenTitle = options?.asesmenPackage?.title || layanan || "Asesmen Minat Bakat"
-      const psiName = activePsikologName || "Asesor Klinis Empathika"
 
       const params = new URLSearchParams({
         layanan: `${asesmenTitle} (${planName})`,
@@ -545,11 +535,10 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         tahun: String(date.getFullYear()),
         waktu: waktu.substring(0, 5),
         ...(selectedSlotId && { slotId: selectedSlotId }),
-        psikologName: psiName,
         harga: selectedPrice,
         hari: planName,
         bottomDate: `${date.getDate()} ${MONTHS[date.getMonth()].substring(0, 3)} ${date.getFullYear()}`,
-        bottomTime: `${timeDisplay} (${metode}) • ${psiName}`,
+        bottomTime: `${timeDisplay} (${metode})`,
       })
       return `/konseling/bayar?${params.toString()}`
     }

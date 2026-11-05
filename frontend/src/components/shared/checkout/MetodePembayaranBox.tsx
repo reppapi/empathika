@@ -94,6 +94,7 @@ export interface MetodePembayaranBoxProps {
   biayaLabel?: string
   biayaNominal?: string
   totalNominal?: string
+  isSubmitDisabled?: boolean
   submitButtonText?: string
   submittingButtonText?: string
 }
@@ -113,6 +114,7 @@ export default function MetodePembayaranBox({
   biayaLabel = "Biaya Konsultasi",
   biayaNominal = "Rp 350.000",
   totalNominal = "Rp 350.000",
+  isSubmitDisabled,
   submitButtonText = "Bayar Sekarang",
   submittingButtonText = "Memproses Booking...",
 }: MetodePembayaranBoxProps) {
@@ -373,9 +375,9 @@ export default function MetodePembayaranBox({
         <button
           type="button"
           onClick={onSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isSubmitDisabled}
           className={`w-full font-bold text-sm py-4 rounded-xl shadow-sm transition-colors flex justify-center items-center ${
-            isSubmitting
+            isSubmitting || isSubmitDisabled
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-[#EAB308] hover:bg-[#FACC15] text-black cursor-pointer"
           }`}

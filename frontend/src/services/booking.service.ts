@@ -15,5 +15,13 @@ export const bookingService = {
 
   confirmPayment: (id: string) =>
     apiClient.post(`/booking/${id}/confirm-payment`).then((r) => r.data),
+
+  checkSlotAvailability: (params: {
+    id?: string
+    tanggal?: string
+    waktu?: string
+    tipe_jadwal?: string
+    id_psikolog?: string
+  }) => apiClient.get("/booking/check-slot", { params }).then((r) => r.data),
 }
 
