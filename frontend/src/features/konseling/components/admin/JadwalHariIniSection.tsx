@@ -302,22 +302,36 @@ export default function JadwalHariIniSection({
                       <p className="text-xs text-gray-500 mt-0.5 whitespace-nowrap">ID: {item.klienId}</p>
                     </td>
                     <td className="py-4 px-6 font-medium text-gray-700 min-w-[160px]">
-                      <div className="flex flex-col gap-1 items-start">
-                        <span>{item.psikolog}</span>
-                        {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
-                          <a
-                            href={getWhatsAppPsikologUrl(item)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#25D366] hover:bg-[#20ba5a] px-2 py-0.5 rounded-md transition-all shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap mt-0.5"
-                            title={`Chat WhatsApp ke ${item.psikolog}`}
-                          >
-                            <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                            <span>Chat WA</span>
-                            <ExternalLink className="w-2.5 h-2.5 opacity-80" />
-                          </a>
-                        )}
-                      </div>
+                      {(() => {
+                        const isAsesmen =
+                          (item.layanan && item.layanan.toLowerCase().includes("asesmen")) ||
+                          (item.tipe && item.tipe.toLowerCase().includes("asesmen")) ||
+                          !item.psikolog ||
+                          item.psikolog === "Belum Ditentukan" ||
+                          item.psikolog === "Admin Asesmen" ||
+                          item.psikolog === "Asesor Klinis Empathika"
+                        if (isAsesmen) {
+                          return <span className="text-gray-400 font-semibold text-sm">-</span>
+                        }
+                        return (
+                          <div className="flex flex-col gap-1 items-start">
+                            <span>{item.psikolog}</span>
+                            {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
+                              <a
+                                href={getWhatsAppPsikologUrl(item)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#25D366] hover:bg-[#20ba5a] px-2 py-0.5 rounded-md transition-all shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap mt-0.5"
+                                title={`Chat WhatsApp ke ${item.psikolog}`}
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                                <span>Chat WA</span>
+                                <ExternalLink className="w-2.5 h-2.5 opacity-80" />
+                              </a>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </td>
                     <td className="py-4 px-6 text-gray-700 capitalize font-medium min-w-[170px]">
                       {(() => {

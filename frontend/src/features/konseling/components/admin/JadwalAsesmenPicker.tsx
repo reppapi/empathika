@@ -1,6 +1,7 @@
 "use client"
 
-import { Calendar } from "@/components/ui/calendar"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { PilihTanggalBox } from "@/components/shared/PilihTanggalBox"
 import { BookedAssessment } from "@/features/konseling/types"
 import {
   useJadwalAsesmenPicker,
@@ -32,6 +33,7 @@ export default function JadwalAsesmenPicker({
     metode,
     setMetode,
     availableSlots,
+    datesWithSlots,
     selectedTimes,
     DEFAULT_SLOTS,
     toggleTimeSlot,
@@ -55,36 +57,50 @@ export default function JadwalAsesmenPicker({
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Jadwal Sesi</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Sesi</h2>
           <p className="text-sm text-gray-500">
-            Atur jadwal sesi konseling Anda dengan mudah. Pilih tanggal dan waktu yang tersedia sesuai dengan preferensi Anda.
+            Atur ketersediaan sesi asesmen dan konseling klinik. Pilih metode layanan, tentukan tanggal, lalu centang slot jam yang ingin dibuka untuk klien.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl items-stretch">
         {/* Calendar Picker (Left) */}
-        <div className="rounded-[20px] border-2 border-[#DCD0E1] shadow-sm p-6 flex flex-col items-center justify-center">
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={onSelectDate}
-            fromDate={today}
-            disabled={{ before: today }}
-            fixedWeeks
-            className="w-full max-w-[320px] mx-auto bg-transparent"
-          />
-        </div>
+        <PilihTanggalBox
+          date={date}
+          setDate={(newDate: Date) => onSelectDate && onSelectDate(newDate)}
+          stepNumber={1}
+          title="Pilih Tanggal Sesi"
+          minDate={today}
+          datesWithSlots={datesWithSlots}
+          legendLabel="Tanggal memiliki jadwal sesi / slot"
+          showLegend={true}
+          className="w-full h-full min-h-0"
+          footerContent={
+            date ? (
+              <div className="flex items-center justify-center gap-1.5 text-center text-[11px] text-gray-500 pt-1">
+                <CalendarIcon className="w-3.5 h-3.5 text-[#561269]" />
+                <span>Tanggal dipilih:</span>
+                <span className="font-bold text-[#561269]">{formatFullDateIndonesian(date)}</span>
+              </div>
+            ) : null
+          }
+        />
 
         {/* Time Picker (Right) */}
-        <div className="rounded-[20px] border-2 border-[#DCD0E1] shadow-sm p-6 flex flex-col justify-between">
+        <div className="w-full h-full min-h-0 rounded-2xl border border-[#DCD0E1] shadow-[0_2px_10px_rgba(0,0,0,0.02)] p-4 sm:p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 suppressHydrationWarning className="font-bold text-[15px] capitalize">
-                {date ? formatFullDateIndonesian(date) : "Pilih Tanggal"}
-              </h3>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0 shadow-xs">
+                  2
+                </div>
+                <h3 suppressHydrationWarning className="font-bold text-[14px] text-gray-900 capitalize">
+                  {date ? formatFullDateIndonesian(date) : "Pilih Tanggal"}
+                </h3>
+              </div>
               <button
                 type="button"
                 onClick={toggleSelectAll}
@@ -147,9 +163,11 @@ export default function JadwalAsesmenPicker({
             >
               {selectedTimes.length > 0
                 ? `Buka ${selectedTimes.length} Jam Sesi (${metode}) Sekaligus`
-                : isCustomTime
-                  ? `Buka Jam Kustom (${metode})`
-                  : "Pilih Jam Terlebih Dahulu"}
+                : isCustomTime && customStart && customEnd && customEnd > customStart
+                  ? `Buka Jam Kustom: ${customStart} - ${customEnd} (${metode})`
+                  : isCustomTime
+                    ? "Tentukan Jam Mulai & Selesai Dulu"
+                    : "Pilih Jam Terlebih Dahulu"}
             </button>
           </div>
         </div>

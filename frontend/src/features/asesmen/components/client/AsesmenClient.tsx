@@ -11,6 +11,10 @@ export default function AsesmenClient() {
     selectedAsesmen,
     metode,
     setMetode,
+    selectedDate,
+    setSelectedDate,
+    selectedOfflinePlan,
+    setSelectedOfflinePlan,
     selectedOnlinePlan,
     setSelectedOnlinePlan,
     activeHeroImage,
@@ -40,6 +44,8 @@ export default function AsesmenClient() {
       {metode === "offline" ? (
         <AsesmenOfflineView
           selectedAsesmen={selectedAsesmen}
+          selectedOfflinePlan={selectedOfflinePlan}
+          setSelectedOfflinePlan={setSelectedOfflinePlan}
           offlineCheckoutUrl={offlineCheckoutUrl}
         />
       ) : (

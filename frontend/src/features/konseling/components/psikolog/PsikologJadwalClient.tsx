@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
-import { Calendar } from "@/components/ui/calendar"
+import { PilihTanggalBox } from "@/components/shared/PilihTanggalBox"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 import { adminService } from "@/services/admin.service"
 import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
@@ -191,8 +191,8 @@ export default function PsikologJadwalClient() {
 
   // Opsi input jam kustom sendiri
   const [isCustomTime, setIsCustomTime] = useState(false)
-  const [customStart, setCustomStart] = useState("08:00")
-  const [customEnd, setCustomEnd] = useState("09:00")
+  const [customStart, setCustomStart] = useState("")
+  const [customEnd, setCustomEnd] = useState("")
 
   // Daftar slot waktu bawaan awal
   const [timeSlots, setTimeSlots] = useState<string[]>([
@@ -329,8 +329,11 @@ export default function PsikologJadwalClient() {
       const sessionMap = new Map<string, BookedSession>()
 
       // 1. Slot dari endpoint portal psikolog (res.slots)
+      // Khusus sesi KONSULTASI psikolog (jadwal asesmen tidak dimasukkan karena asesmen langsung ke kantor Empathika)
       if (res && res.slots && Array.isArray(res.slots)) {
         res.slots.forEach((s: any) => {
+          if ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") return
+
           const mapKey = `${s.date}_${s.waktu}`
           sessionMap.set(mapKey, {
             id: s.id,
@@ -352,15 +355,18 @@ export default function PsikologJadwalClient() {
       try {
         const adminRes: any = await adminService.getJadwal({ date: date ? formatDateKey(date) : undefined })
         if (adminRes) {
-          // A. Sesi Hari Ini
+          // A. Sesi Hari Ini (Abaikan sesi asesmen kantor)
           if (Array.isArray(adminRes.todaySessions)) {
             adminRes.todaySessions.forEach((t: any) => {
+              if ((t.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (t.layanan || "").toLowerCase().includes("asesmen")) return
+
               const isMatch =
-                !resolvedPsikologName ||
-                !t.psikolog ||
-                t.psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                resolvedPsikologName.toLowerCase().includes(t.psikolog.toLowerCase()) ||
-                (resolvedPsikologId && t.idPsikolog === resolvedPsikologId)
+                (resolvedPsikologId && t.idPsikolog && t.idPsikolog === resolvedPsikologId) ||
+                (Boolean(resolvedPsikologName) &&
+                  Boolean(t.psikolog) &&
+                  t.psikolog !== "Belum Ditentukan" &&
+                  (t.psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
+                    resolvedPsikologName.toLowerCase().includes(t.psikolog.toLowerCase())))
 
               if (isMatch && t.tanggal && t.waktuRange) {
                 const mapKey = `${t.tanggal}_${t.waktuRange}`
@@ -382,14 +388,17 @@ export default function PsikologJadwalClient() {
             })
           }
 
-          // B. Sesi Grid Mingguan
+          // B. Sesi Grid Mingguan (Hanya sesi konsultasi milik psikolog ini, bukan asesmen kantor)
           if (Array.isArray(adminRes.weeklyGrid)) {
             adminRes.weeklyGrid.forEach((w: any) => {
+              if ((w.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (w.layanan || "").toLowerCase().includes("asesmen")) return
+
               const isMatch =
-                !resolvedPsikologName ||
-                !w.psikologName ||
-                w.psikologName.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                resolvedPsikologName.toLowerCase().includes(w.psikologName.toLowerCase())
+                Boolean(resolvedPsikologName) &&
+                Boolean(w.psikologName) &&
+                w.psikologName.trim() !== "" &&
+                (w.psikologName.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
+                  resolvedPsikologName.toLowerCase().includes(w.psikologName.toLowerCase()))
 
               if (isMatch && w.date && w.timeSlot) {
                 const mapKey = `${w.date}_${w.timeSlot}`
@@ -423,12 +432,15 @@ export default function PsikologJadwalClient() {
           const parsed = JSON.parse(raw)
           if (Array.isArray(parsed)) {
             parsed.forEach((s: any) => {
+              if ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) return
+
               const isMatch =
-                !resolvedPsikologName ||
-                !s.nama_psikolog ||
-                s.nama_psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                resolvedPsikologName.toLowerCase().includes(s.nama_psikolog.toLowerCase()) ||
-                (resolvedPsikologId && s.id_psikolog === resolvedPsikologId)
+                (resolvedPsikologId && s.id_psikolog && s.id_psikolog === resolvedPsikologId) ||
+                (Boolean(resolvedPsikologName) &&
+                  Boolean(s.nama_psikolog) &&
+                  s.nama_psikolog.trim() !== "" &&
+                  (s.nama_psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
+                    resolvedPsikologName.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
 
               if (isMatch && s.tanggal && s.jam_mulai) {
                 const timeStr = s.label_waktu || `${s.jam_mulai.substring(0, 5)} - ${(s.jam_selesai || "10:00").substring(0, 5)}`
@@ -519,6 +531,7 @@ export default function PsikologJadwalClient() {
 
     return () => {
       window.removeEventListener("storage", handleSyncCancelled)
+      window.removeEventListener("storage", loadScheduleForPsikolog)
       window.removeEventListener("empathika_session_cancelled", handleSyncCancelled as EventListener)
     }
   }, [])
@@ -745,53 +758,31 @@ export default function PsikologJadwalClient() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl items-stretch">
           {/* Step 1: Calendar Picker (Left) */}
-          <div className="rounded-[20px] border-2 border-[#DCD0E1] shadow-sm p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0 shadow-xs">
-                  1
+          <PilihTanggalBox
+            date={date}
+            setDate={(newDate: Date) => handleSelectDate(newDate)}
+            stepNumber={1}
+            title="Pilih Tanggal Praktik"
+            minDate={today}
+            datesWithSlots={datesWithSchedules}
+            legendLabel="Tanggal memiliki jadwal sesi / slot"
+            showLegend={true}
+            className="w-full h-full min-h-0"
+            footerContent={
+              date ? (
+                <div className="flex items-center justify-center gap-1.5 text-center text-[11px] text-gray-500 pt-1">
+                  <CalendarIcon className="w-3.5 h-3.5 text-[#561269]" />
+                  <span>Tanggal dipilih:</span>
+                  <span className="font-bold text-[#561269]">{formatFullDateIndonesian(date)}</span>
                 </div>
-                <h3 className="text-sm font-bold text-gray-900">Pilih Tanggal Praktik</h3>
-              </div>
-
-              <div className="flex justify-center w-full my-auto">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={handleSelectDate}
-                  fromDate={today}
-                  disabled={{ before: today }}
-                  fixedWeeks
-                  className="w-full max-w-[320px] mx-auto bg-transparent"
-                  modifiers={{
-                    hasSchedule: datesWithSchedules,
-                  }}
-                  modifiersClassNames={{
-                    hasSchedule:
-                      "relative font-bold after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:bg-amber-400 after:rounded-full",
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-2.5 justify-center">
-                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block shadow-2xs"></span>
-                <span>Tanggal memiliki jadwal sesi / slot</span>
-              </div>
-            </div>
-
-            {date && (
-              <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center gap-2 text-center">
-                <CalendarIcon className="w-3.5 h-3.5 text-[#561269]" />
-                <span className="text-xs text-gray-500">Tanggal dipilih:</span>
-                <span className="text-xs font-bold text-[#561269]">{formatFullDateIndonesian(date)}</span>
-              </div>
-            )}
-          </div>
+              ) : null
+            }
+          />
 
           {/* Step 2: Time & Method Picker (Right) */}
-          <div className="rounded-[20px] border-2 border-[#DCD0E1] shadow-sm p-6 flex flex-col justify-between">
+          <div className="w-full h-full min-h-0 rounded-2xl border border-[#DCD0E1] shadow-[0_2px_10px_rgba(0,0,0,0.02)] p-4 sm:p-5 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -868,7 +859,7 @@ export default function PsikologJadwalClient() {
               </p>
 
               {/* Checkbox List Slot Waktu */}
-              <div className="flex flex-col gap-2.5 mb-6 max-h-[300px] overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2.5 mb-3 max-h-[125px] overflow-y-auto pr-1.5 custom-scrollbar">
                 {timeSlots.map((time, idx) => {
                   const isChecked = selectedTimes.includes(time)
                   const openedSession = date
@@ -995,79 +986,81 @@ export default function PsikologJadwalClient() {
                     </div>
                   )
                 })}
+              </div>
 
-                {/* Opsi Tambahan: Tentukan Jam Kustom Sendiri */}
-                <div
-                  className={`border rounded-xl px-4 py-2.5 transition-colors cursor-pointer ${isCustomTime
-                    ? "border-[#561269] bg-purple-50/70 shadow-2xs"
-                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
-                    }`}
-                >
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isCustomTime}
-                      onChange={() => setIsCustomTime(!isCustomTime)}
-                      className="w-4 h-4 text-[#561269] focus:ring-[#561269] rounded border-gray-300 cursor-pointer"
-                    />
-                    <span className="text-[13px] font-medium text-gray-700">
-                      Tentukan Jam Kustom Sendiri
-                    </span>
-                  </label>
+              {/* Opsi Tambahan: Tentukan Jam Kustom Sendiri (Di luar scroll list agar leluasa) */}
+              <div
+                className={`border rounded-xl px-4 py-2.5 transition-colors mb-4 ${isCustomTime
+                  ? "border-[#561269] bg-purple-50/70 shadow-2xs"
+                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                  }`}
+              >
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isCustomTime}
+                    onChange={() => setIsCustomTime(!isCustomTime)}
+                    className="w-4 h-4 text-[#561269] focus:ring-[#561269] rounded border-gray-300 cursor-pointer"
+                  />
+                  <span className="text-[13px] font-medium text-gray-700">
+                    Tentukan Jam Kustom Sendiri
+                  </span>
+                </label>
 
-                  {isCustomTime && (
-                    <div className="flex flex-col gap-2 pl-7 pt-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <span className="text-[10px] text-gray-500 font-semibold block mb-1">
-                            Jam Mulai
-                          </span>
-                          <input
-                            type="time"
-                            value={customStart}
-                            onChange={(e) => setCustomStart(e.target.value)}
-                            className="w-full text-xs font-semibold p-1.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
-                          />
-                        </div>
-                        <span className="text-gray-400 mt-4 text-xs font-bold">-</span>
-                        <div className="flex-1">
-                          <span className="text-[10px] text-gray-500 font-semibold block mb-1">
-                            Jam Selesai
-                          </span>
-                          <input
-                            type="time"
-                            value={customEnd}
-                            onChange={(e) => setCustomEnd(e.target.value)}
-                            className="w-full text-xs font-semibold p-1.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
-                          />
-                        </div>
+                {isCustomTime && (
+                  <div className="flex flex-col gap-2 pl-7 pt-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <span className="text-[10px] text-gray-500 font-semibold block mb-1">
+                          Jam Mulai
+                        </span>
+                        <input
+                          type="time"
+                          value={customStart}
+                          onChange={(e) => setCustomStart(e.target.value)}
+                          className="w-full text-xs font-semibold p-1.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                        />
                       </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          if (!customStart || !customEnd || customEnd <= customStart) {
-                            alert("Jam selesai harus lebih akhir dari jam mulai.")
-                            return
-                          }
-                          const customSlot = `${customStart} - ${customEnd}`
-                          if (!timeSlots.includes(customSlot)) {
-                            setTimeSlots((prev) => [...prev, customSlot].sort())
-                          }
-                          if (!selectedTimes.includes(customSlot)) {
-                            setSelectedTimes((prev) => [...prev, customSlot])
-                          }
-                          setDeletedCustomSlots((prev) => prev.filter((t) => t !== customSlot))
-                          setIsCustomTime(false)
-                        }}
-                        className="text-left text-xs font-semibold text-[#561269] hover:text-[#3d0b4b] hover:underline cursor-pointer pt-0.5"
-                      >
-                        + Tambahkan ke Pilihan Jam
-                      </button>
+                      <span className="text-gray-400 mt-4 text-xs font-bold">-</span>
+                      <div className="flex-1">
+                        <span className="text-[10px] text-gray-500 font-semibold block mb-1">
+                          Jam Selesai
+                        </span>
+                        <input
+                          type="time"
+                          value={customEnd}
+                          onChange={(e) => setCustomEnd(e.target.value)}
+                          className="w-full text-xs font-semibold p-1.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (!customStart || !customEnd || customEnd <= customStart) {
+                          alert("Jam selesai harus lebih akhir dari jam mulai.")
+                          return
+                        }
+                        const customSlot = `${customStart} - ${customEnd}`
+                        if (!timeSlots.includes(customSlot)) {
+                          setTimeSlots((prev) => [...prev, customSlot].sort())
+                        }
+                        if (!selectedTimes.includes(customSlot)) {
+                          setSelectedTimes((prev) => [...prev, customSlot])
+                        }
+                        setDeletedCustomSlots((prev) => prev.filter((t) => t !== customSlot))
+                        setIsCustomTime(false)
+                        setCustomStart("")
+                        setCustomEnd("")
+                      }}
+                      className="text-left text-xs font-semibold text-[#561269] hover:text-[#3d0b4b] hover:underline cursor-pointer pt-0.5"
+                    >
+                      + Tambahkan ke Pilihan Jam
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1078,21 +1071,30 @@ export default function PsikologJadwalClient() {
                   <span>{bookingSuccessMsg}</span>
                 </div>
               )}
-              <button
-                type="button"
-                onClick={handleBooking}
-                disabled={selectedTimes.length === 0 && !isCustomTime}
-                className={`w-full font-bold py-3.5 rounded-full text-[13px] transition-all cursor-pointer ${selectedTimes.length > 0 || isCustomTime
-                  ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-sm hover:shadow-md active:scale-95"
-                  : "bg-[#d6d6d6] text-gray-500 cursor-not-allowed"
-                  }`}
-              >
-                {selectedTimes.length > 0
-                  ? `Buka ${selectedTimes.length} Jam Sesi Sekaligus (${selectedMetode})`
-                  : isCustomTime
-                    ? `Buka Jam Kustom (${selectedMetode})`
-                    : "Pilih Jam Terlebih Dahulu"}
-              </button>
+              {(() => {
+                const isCustomValid = isCustomTime && Boolean(customStart) && Boolean(customEnd) && customEnd > customStart
+                const canSubmit = selectedTimes.length > 0 || isCustomValid
+
+                return (
+                  <button
+                    type="button"
+                    onClick={handleBooking}
+                    disabled={!canSubmit}
+                    className={`w-full font-bold py-3.5 rounded-full text-[13px] transition-all cursor-pointer ${canSubmit
+                      ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-sm hover:shadow-md active:scale-95"
+                      : "bg-[#d6d6d6] text-gray-500 cursor-not-allowed"
+                      }`}
+                  >
+                    {selectedTimes.length > 0
+                      ? `Buka ${selectedTimes.length} Jam Sesi Sekaligus (${selectedMetode})`
+                      : isCustomValid
+                        ? `Buka Jam Kustom: ${customStart} - ${customEnd} (${selectedMetode})`
+                        : isCustomTime
+                          ? "Tentukan Jam Mulai & Selesai Dulu"
+                          : "Pilih Jam Terlebih Dahulu"}
+                  </button>
+                )
+              })()}
             </div>
           </div>
         </div>

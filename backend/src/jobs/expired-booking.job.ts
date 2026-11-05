@@ -11,7 +11,7 @@ import { BookingRepository } from '../modules/booking/booking.repository'
  */
 export function startExpiredBookingCleanupJob(
   fastify: FastifyInstance,
-  intervalMinutes: number = 10,
+  intervalMinutes: number = 5,
   maxAgeMinutes: number = 30
 ) {
   const repo = new BookingRepository(fastify.prisma)

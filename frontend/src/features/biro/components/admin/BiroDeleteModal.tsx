@@ -19,7 +19,7 @@ export default function BiroDeleteModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md transition-all duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 transition-all duration-300"
       onClick={onClose}
     >
       <div

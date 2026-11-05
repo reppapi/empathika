@@ -1,5 +1,5 @@
 import type { PrismaClient, MetodePembayaran, StatusPembayaran } from '@prisma/client'
-import { generateOrderId } from '../../utils'
+import { generateOrderId, normalizePhoneNumber } from '../../utils'
 import type {
   CreatePsikotesInput,
   UpdatePsikotesInput,
@@ -557,7 +557,8 @@ export class PsikotesRepository {
       // 4. Data Diri Klien (Gratis = selalu Tamu Anonim tanpa identitas, Berbayar = dengan data diri resmi)
       const isPaketGratis = paket.jenis_akses === 'GRATIS'
       const inputName = (!isPaketGratis && (input.klien?.nama?.trim() || input.nama?.trim())) || ''
-      const inputPhone = (!isPaketGratis && (input.klien?.no_telepon?.trim() || input.no_telepon?.trim())) || ''
+      const rawPhone = (!isPaketGratis && (input.klien?.no_telepon?.trim() || input.no_telepon?.trim())) || ''
+      const inputPhone = normalizePhoneNumber(rawPhone) || rawPhone
       let client = null
 
       if (inputName && inputName !== 'Tamu Anonim') {
@@ -565,7 +566,10 @@ export class PsikotesRepository {
         if (inputPhone) {
           client = await tx.client.findFirst({
             where: {
-              no_telepon: inputPhone,
+              OR: [
+                { no_telepon: inputPhone },
+                ...(rawPhone ? [{ no_telepon: rawPhone }] : []),
+              ],
               id_biro: input.id_biro || null,
             },
           })
@@ -944,7 +948,8 @@ export class PsikotesRepository {
 
       // 2. Normalisasi data Klien (Peserta)
       const inputName = (input.klien?.nama || input.nama || '').trim()
-      const inputPhone = (input.klien?.no_telepon || input.no_telepon || '').trim()
+      const rawPhone = (input.klien?.no_telepon || input.no_telepon || '').trim()
+      const inputPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const inputEmail = (input.klien?.email || input.email || '').trim()
       const inputUsia = input.klien?.usia ?? null
       const inputGender = input.klien?.jenis_kelamin || null
@@ -956,11 +961,12 @@ export class PsikotesRepository {
 
       let client = null
       if (inputPhone) {
-        const digitsOnly = inputPhone.replace(/\D/g, '')
+        const digitsOnly = rawPhone.replace(/\D/g, '')
         client = await tx.client.findFirst({
           where: {
             OR: [
               { no_telepon: inputPhone },
+              { no_telepon: rawPhone },
               ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
             ],
             ...(idBiro ? { id_biro: idBiro } : {}),

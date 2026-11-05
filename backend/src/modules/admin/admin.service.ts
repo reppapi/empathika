@@ -139,6 +139,10 @@ export class AdminService {
     return this.bookingService.createAdminJadwalSlot(input)
   }
 
+  async deleteJadwalSlot(id: string, accountId?: string, role: string = 'ADMIN') {
+    return this.bookingService.deleteJadwalSlot(id, accountId, role)
+  }
+
   async createAdminSesi(input: CreateAdminSesiInput) {
     return this.bookingService.createAdminSesi(input)
   }

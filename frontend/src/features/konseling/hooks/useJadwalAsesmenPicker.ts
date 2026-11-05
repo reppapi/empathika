@@ -68,19 +68,47 @@ export function useJadwalAsesmenPicker({
     return d
   }, [])
 
+  // Indikator tanggal yang memiliki slot / sesi aktif
+  const datesWithSlots = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+
+    const dates: Date[] = []
+    const dateSet = new Set<string>()
+    bookedSessions.forEach((s) => {
+      if (s.date && s.date >= todayKey && s.status !== "Dibatalkan") {
+        dateSet.add(s.date)
+      }
+    })
+    dateSet.forEach((dateStr) => {
+      const parts = dateStr.split("-").map(Number)
+      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2])
+        d.setHours(0, 0, 0, 0)
+        if (d >= today) {
+          dates.push(d)
+        }
+      }
+    })
+    return dates
+  }, [bookedSessions])
+
   // Pilihan metode sesi: Online (Zoom), Offline (Klinik), atau Keduanya
   const [metode, setMetode] = useState<"Online" | "Offline" | "Keduanya">("Online")
 
   // Multi-select slot jam & jam kustom
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])
   const [isCustomTime, setIsCustomTime] = useState(false)
-  const [customStart, setCustomStart] = useState("08:00")
-  const [customEnd, setCustomEnd] = useState("09:00")
+  const [customStart, setCustomStart] = useState("")
+  const [customEnd, setCustomEnd] = useState("")
 
   // Reset pilihan centang saat tanggal berganti
   useEffect(() => {
     setSelectedTimes([])
     setIsCustomTime(false)
+    setCustomStart("")
+    setCustomEnd("")
   }, [date])
 
   const toggleTimeSlot = (time: string) => {
@@ -111,6 +139,8 @@ export function useJadwalAsesmenPicker({
     }
     setDeletedCustomSlots((prev) => prev.filter((t) => t !== customFormatted))
     setIsCustomTime(false)
+    setCustomStart("")
+    setCustomEnd("")
   }
 
   const handleBookingClick = () => {
@@ -133,14 +163,18 @@ export function useJadwalAsesmenPicker({
       onBooking(timesToBook, metode)
       setSelectedTimes([])
       setIsCustomTime(false)
+      setCustomStart("")
+      setCustomEnd("")
     }
   }
 
-  const isFormValid = selectedTimes.length > 0 || (isCustomTime && customStart && customEnd)
+  const isCustomValid = isCustomTime && Boolean(customStart) && Boolean(customEnd) && customEnd > customStart
+  const isFormValid = selectedTimes.length > 0 || isCustomValid
 
   return {
     DEFAULT_SLOTS,
     availableSlots,
+    datesWithSlots,
     deletedCustomSlots,
     today,
     metode,

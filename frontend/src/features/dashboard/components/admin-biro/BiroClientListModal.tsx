@@ -39,7 +39,7 @@ export default function BiroClientListModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 font-poppins animate-fadeIn">
       <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
         {/* Header Modal */}
         <div className="p-6 sm:p-7 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-purple-50/60 to-white">

@@ -26,13 +26,23 @@ export default function BayarClient() {
     attemptedSubmit,
     isFailed,
     failedReason,
+    isSlotUnavailable,
+    slotUnavailableReason,
+    qWaktu,
     qBottomDate,
     qBottomTime,
     qPsikologName,
     qLayanan,
+    qHarga,
+    qHari,
     handleSelectPayment,
     handleSubmit,
   } = useBayarClient()
+
+  const isAsesmen = qLayanan.toLowerCase().includes("asesmen")
+  const cleanBottomTime = isAsesmen && qBottomTime.includes("•")
+    ? qBottomTime.split("•")[0].trim()
+    : qBottomTime
 
   return (
     <div className="relative min-h-screen w-full font-poppins bg-[#FAFAFA] pb-32">
@@ -72,6 +82,36 @@ export default function BayarClient() {
             Periksa data konsultasi dan selesaikan pembayaran untuk mengonfirmasi sesi Anda.
           </p>
         </div>
+
+        {/* ── Banner Peringatan: Slot Jadwal Dibatalkan / Dihapus oleh Admin / Psikolog ── */}
+        {isSlotUnavailable && (
+          <div className="w-full bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700 mt-0.5 border border-amber-200">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-sm sm:text-base font-extrabold text-amber-950">
+                  Slot Jadwal Ini Telah Dibatalkan / Dihapus
+                </h4>
+                <p className="text-xs sm:text-[13px] text-amber-900 mt-1 leading-relaxed max-w-xl">
+                  {slotUnavailableReason || `Sesi jadwal yang Anda pilih pada ${qBottomDate} (${cleanBottomTime}) telah dihapus dari jadwal klinik atau dibatalkan oleh pihak admin. Anda tidak dapat melanjutkan proses pemesanan pada slot waktu ini.`}
+                </p>
+                <p className="text-[11px] text-amber-700 mt-2 font-medium">
+                  Silakan kembali ke halaman jadwal untuk memilih slot tanggal atau jam lain yang tersedia.
+                </p>
+              </div>
+            </div>
+            <Link
+              href={isAsesmen ? "/asesmen/jadwal" : "/konseling/jadwal"}
+              className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-[#EAB308] hover:bg-yellow-500 text-gray-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow transition-all shrink-0 cursor-pointer"
+            >
+              Pilih Jadwal Lain &rarr;
+            </Link>
+          </div>
+        )}
 
         {/* ── Banner Notifikasi Pembayaran Gagal ── */}
         {isFailed && (
@@ -118,9 +158,9 @@ export default function BayarClient() {
 
         {/* ── Box 2: Data Psikolog & Jadwal ── */}
         <BayarRingkasanSesi
-          psikologName={qPsikologName}
+          psikologName={isAsesmen ? undefined : qPsikologName}
           bottomDate={qBottomDate}
-          bottomTime={qBottomTime}
+          bottomTime={cleanBottomTime}
           layanan={qLayanan}
         />
 
@@ -137,10 +177,11 @@ export default function BayarClient() {
           attemptedSubmit={attemptedSubmit}
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
-          biayaLabel="Biaya Konsultasi"
-          biayaNominal="Rp 350.000"
-          totalNominal="Rp 350.000"
-          submitButtonText="Bayar Sekarang"
+          biayaLabel={isAsesmen ? `Biaya Asesmen${qHari ? ` (${qHari})` : ""}` : "Biaya Konsultasi"}
+          biayaNominal={qHarga}
+          totalNominal={qHarga}
+          isSubmitDisabled={isSlotUnavailable}
+          submitButtonText={isSlotUnavailable ? "Jadwal Telah Dibatalkan" : "Bayar Sekarang"}
           submittingButtonText="Memproses Booking..."
         />
 
@@ -151,15 +192,29 @@ export default function BayarClient() {
         <div>
           <div className="text-xs sm:text-sm text-gray-600 font-medium mb-1">{qBottomDate}</div>
           <div className="text-sm sm:text-[17px] font-bold text-black flex items-center gap-1.5 flex-wrap">
-            <span>{qBottomTime}</span>
+            <span>{cleanBottomTime}</span>
+            {isSlotUnavailable && (
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full ml-1">
+                Dibatalkan
+              </span>
+            )}
           </div>
         </div>
-        <Link
-          href="/konseling/jadwal"
-          className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
-        >
-          Kembali
-        </Link>
+        {isSlotUnavailable ? (
+          <Link
+            href={isAsesmen ? "/asesmen/jadwal" : "/konseling/jadwal"}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm transition-colors cursor-pointer"
+          >
+            Pilih Jadwal Lain
+          </Link>
+        ) : (
+          <Link
+            href={isAsesmen ? "/asesmen/jadwal" : "/konseling/jadwal"}
+            className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
+          >
+            Kembali
+          </Link>
+        )}
       </div>
 
     </div>

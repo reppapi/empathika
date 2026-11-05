@@ -65,6 +65,7 @@ export default function JadwalAdmin() {
     bookedSessions,
     bookingSuccessMsg,
     handleBooking,
+    handleRemoveWeeklySlot,
 
     // Modals & Action Handlers
     isModalOpen,
@@ -254,6 +255,7 @@ export default function JadwalAdmin() {
         matchLayanan={matchLayanan}
         today={today}
         onSelectSession={handleSelectWeeklySession}
+        onRemoveSlot={handleRemoveWeeklySlot}
       />
 
       {/* ── Modal Tambah Sesi ── */}

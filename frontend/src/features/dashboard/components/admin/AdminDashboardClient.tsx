@@ -57,8 +57,8 @@ export default function AdminDashboardClient() {
     year: "numeric",
   }).format(new Date())
 
-  const handleSessionSuccess = (newSession: NewSessionData) => {
-    // 1. Tambahkan ke Sesi Konseling Hari Ini
+  const handleSessionSuccess = async (newSession: NewSessionData) => {
+    // 1. Tambahkan ke Sesi Konseling Hari Ini (Optimistic UI)
     const item: TodaySessionItem = {
       waktu: newSession.waktu,
       klien: newSession.namaKlien,
@@ -69,14 +69,14 @@ export default function AdminDashboardClient() {
     }
     setSessions((prev) => [item, ...prev])
 
-    // 2. Tambahkan transaksi pada tanggal hari ini
-    // 2. Tambahkan placeholder transaksi baru ke list (pending, belum bayar)
+    // 2. Tambahkan placeholder transaksi baru ke list
+    const isAsesmen = newSession.layanan?.toLowerCase().includes("asesmen")
     const newTrx = {
       id: "trx_" + Date.now(),
       client: newSession.namaKlien,
       layanan: newSession.layanan,
       metode: "-",
-      kategori: "Konseling",
+      kategori: isAsesmen ? "Asesmen" : "Konseling",
       total: "Menunggu",
       status: "Menunggu Pembayaran" as const,
     }
@@ -84,6 +84,46 @@ export default function AdminDashboardClient() {
 
     setNotification(`Sesi konseling baru untuk "${newSession.namaKlien}" berhasil dijadwalkan!`)
     setTimeout(() => setNotification(null), 4000)
+
+    try {
+      const cleanWaktu = newSession.waktu.replace(" WIB", "").trim()
+      const parts = cleanWaktu.split("-").map((p) => p.trim())
+      const jamMulai = parts[0]?.substring(0, 5) || "13:00"
+      const jamSelesai = parts[1]?.substring(0, 5) || "14:00"
+
+      await adminService.createSesiBaru({
+        id_psikolog: newSession.idPsikolog || newSession.psikolog,
+        id_layanan: newSession.idLayanan || newSession.layanan,
+        tanggal: newSession.tanggal,
+        jam_mulai: jamMulai,
+        jam_selesai: jamSelesai,
+        metode: newSession.metode.toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE",
+        deskripsi_trauma: newSession.catatan,
+        klien: {
+          nama: newSession.namaKlien.trim(),
+          no_telepon: newSession.kontak.trim() || "081234567890",
+        },
+      })
+
+      // Muat ulang jadwal terbaru dari database
+      const res: any = await adminService.getJadwal()
+      if (res && Array.isArray(res.todaySessions)) {
+        setSessions(
+          res.todaySessions.map((item: any) => ({
+            waktu: (item.waktuRange || item.waktu || "").includes("WIB")
+              ? item.waktuRange || item.waktu
+              : `${item.waktuRange || item.waktu || ""} WIB`,
+            klien: item.namaKlien,
+            psikolog: item.psikolog,
+            layanan: item.layanan,
+            metode: item.metode,
+            status: item.status,
+          }))
+        )
+      }
+    } catch (err: any) {
+      console.warn("Gagal simpan sesi dari dashboard:", err?.response?.data?.message || err?.message)
+    }
   }
 
   return (
