@@ -85,82 +85,82 @@ export function evaluateDASS(
   // 1. Depresi (0–42)
   let depGrade: DASSSubscaleItem["grade"] = "Normal";
   let depKategori = "Normal";
-  let depDeskripsi = "Suasana hati, motivasi, dan tingkat antusiasme kamu berada dalam rentang wajar dan stabil.";
+  let depDeskripsi = "Tingkat depresi kamu berada dalam batas normal. Suasana hati, motivasi, dan antusiasme kamu berada dalam rentang wajar dan stabil.";
 
   if (depScore <= 9) {
     depGrade = "Normal";
     depKategori = "Normal";
-    depDeskripsi = "Suasana hati, motivasi, dan tingkat antusiasme kamu berada dalam rentang wajar dan stabil.";
+    depDeskripsi = "Tingkat depresi kamu berada dalam batas normal. Suasana hati, motivasi, dan antusiasme kamu berada dalam rentang wajar dan stabil.";
   } else if (depScore <= 13) {
     depGrade = "Ringan";
     depKategori = "Depresi Ringan";
-    depDeskripsi = "Mengalami sedikit penurunan suasana hati dan kehilangan minat ringan pada beberapa aktivitas harian.";
+    depDeskripsi = "Tingkat depresi kamu berada pada level ringan. Mengalami sedikit penurunan suasana hati dan kehilangan minat ringan pada beberapa aktivitas harian.";
   } else if (depScore <= 20) {
     depGrade = "Sedang";
     depKategori = "Depresi Sedang";
-    depDeskripsi = "Merasakan kesedihan yang cukup membebani, penurunan inisiatif, dan rasa kurang bersemangat menjalani rutinitas.";
+    depDeskripsi = "Tingkat depresi kamu berada pada level sedang. Merasakan kesedihan yang cukup membebani, penurunan inisiatif, dan rasa kurang bersemangat menjalani rutinitas.";
   } else if (depScore <= 27) {
     depGrade = "Berat";
     depKategori = "Depresi Berat";
-    depDeskripsi = "Perasaan hampa, putus asa, dan kehilangan minat yang mendalam mulai mengganggu fungsi aktivitas sehari-hari.";
+    depDeskripsi = "Tingkat depresi kamu tergolong berat. Perasaan hampa, putus asa, dan kehilangan minat yang mendalam mulai mengganggu fungsi aktivitas sehari-hari.";
   } else {
     depGrade = "Sangat Berat";
     depKategori = "Depresi Sangat Berat";
-    depDeskripsi = "Beban suasana hati sangat intens dan memerlukan pendampingan profesional dari psikolog sesegera mungkin.";
+    depDeskripsi = "Tingkat depresi kamu tergolong sangat berat. Beban suasana hati sangat intens dan memerlukan pendampingan profesional dari psikolog sesegera mungkin.";
   }
 
   // 2. Kecemasan (0–42)
   let anxGrade: DASSSubscaleItem["grade"] = "Normal";
   let anxKategori = "Normal";
-  let anxDeskripsi = "Tingkat kewaspadaan dan respon fisiologis tubuh berada dalam batas wajar dan terkendali.";
+  let anxDeskripsi = "Tingkat kecemasan kamu berada dalam batas normal. Respon kewaspadaan dan ketenangan tubuhmu berada dalam batas wajar dan terkendali.";
 
   if (anxScore <= 7) {
     anxGrade = "Normal";
     anxKategori = "Normal";
-    anxDeskripsi = "Tingkat kewaspadaan dan respon fisiologis tubuh berada dalam batas wajar dan terkendali.";
+    anxDeskripsi = "Tingkat kecemasan kamu berada dalam batas normal. Respon kewaspadaan dan ketenangan tubuhmu berada dalam batas wajar dan terkendali.";
   } else if (anxScore <= 9) {
     anxGrade = "Ringan";
     anxKategori = "Kecemasan Ringan";
-    anxDeskripsi = "Merasakan sedikit ketegangan fisik atau rasa was-was sesaat pada situasi tertentu.";
+    anxDeskripsi = "Tingkat kecemasan kamu berada pada level ringan. Terkadang muncul sedikit rasa was-was atau ketegangan fisik sesaat pada situasi tertentu.";
   } else if (anxScore <= 14) {
     anxGrade = "Sedang";
     anxKategori = "Kecemasan Sedang";
-    anxDeskripsi = "Muncul reaksi kecemasan seperti detak jantung meningkat, gemetar ringan, atau kekhawatiran yang sulit dialihkan.";
+    anxDeskripsi = "Tingkat kecemasan kamu berada pada level sedang. Muncul reaksi kecemasan seperti detak jantung meningkat, gemetar ringan, atau kekhawatiran yang sulit dialihkan.";
   } else if (anxScore <= 19) {
     anxGrade = "Berat";
     anxKategori = "Kecemasan Berat";
-    anxDeskripsi = "Reaksi cemas fisik dan perasaan hampir panik cukup intens serta mulai membatasi kenyamanan beraktivitas.";
+    anxDeskripsi = "Tingkat kecemasan kamu tergolong berat. Reaksi cemas fisik dan perasaan hampir panik cukup intens serta mulai membatasi kenyamanan beraktivitas.";
   } else {
     anxGrade = "Sangat Berat";
     anxKategori = "Kecemasan Sangat Berat";
-    anxDeskripsi = "Reaksi kepanikan akut dan ketakutan intens yang memerlukan evaluasi serta pendampingan psikologis klinis.";
+    anxDeskripsi = "Tingkat kecemasan kamu tergolong sangat berat. Reaksi kepanikan akut dan ketakutan intens yang memerlukan evaluasi serta pendampingan psikologis klinis.";
   }
 
   // 3. Stres (0–42)
   let strGrade: DASSSubscaleItem["grade"] = "Normal";
   let strKategori = "Normal";
-  let strDeskripsi = "Kemampuan mengelola tekanan, menjaga ketenangan, dan kesabaran berada dalam kondisi baik.";
+  let strDeskripsi = "Tingkat stres kamu berada dalam batas normal. Kemampuan mengelola tekanan, menjaga ketenangan, dan kesabaran berada dalam kondisi baik.";
 
   if (strScore <= 14) {
     strGrade = "Normal";
     strKategori = "Normal";
-    strDeskripsi = "Kemampuan mengelola tekanan, menjaga ketenangan, dan kesabaran berada dalam kondisi baik.";
+    strDeskripsi = "Tingkat stres kamu berada dalam batas normal. Kemampuan mengelola tekanan, menjaga ketenangan, dan kesabaran berada dalam kondisi baik.";
   } else if (strScore <= 18) {
     strGrade = "Ringan";
     strKategori = "Stres Ringan";
-    strDeskripsi = "Mengalami sedikit ketegangan dan rasa tidak sabar terhadap beberapa pemicu aktivitas sehari-hari.";
+    strDeskripsi = "Tingkat stres kamu berada pada level ringan. Mengalami sedikit ketegangan dan rasa tidak sabar terhadap beberapa pemicu aktivitas sehari-hari.";
   } else if (strScore <= 25) {
     strGrade = "Sedang";
     strKategori = "Stres Sedang";
-    strDeskripsi = "Kondisi stres sedang; cenderung mudah tersinggung, tegang, dan membutuhkan waktu lebih lama untuk relaks.";
+    strDeskripsi = "Tingkat stres kamu berada pada level sedang. Cenderung mudah tersinggung, tegang, dan membutuhkan waktu lebih lama untuk relaks.";
   } else if (strScore <= 33) {
     strGrade = "Berat";
     strKategori = "Stres Berat";
-    strDeskripsi = "Tingkat ketegangan tinggi dengan kelelahan mental, mudah marah, dan reaksi berlebih yang menguras energi.";
+    strDeskripsi = "Tingkat stres kamu tergolong berat. Tingkat ketegangan tinggi dengan kelelahan mental, mudah marah, dan reaksi berlebih yang menguras energi.";
   } else {
     strGrade = "Sangat Berat";
     strKategori = "Stres Sangat Berat";
-    strDeskripsi = "Ketegangan stres sangat tinggi dan berisiko memicu kelelahan mental menyeluruh (burnout kronis).";
+    strDeskripsi = "Tingkat stres kamu tergolong sangat berat. Ketegangan stres sangat tinggi dan berisiko memicu kelelahan mental menyeluruh (burnout kronis).";
   }
 
   // Hitung persentase visual bar yang proporsional sesuai rentang klinis masing-masing
