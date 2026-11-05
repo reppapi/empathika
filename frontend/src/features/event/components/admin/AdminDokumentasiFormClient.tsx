@@ -7,6 +7,7 @@ import { eventService, EventDokumentasiApi } from "@/services/event.service"
 import { uploadService } from "@/services/upload.service"
 import { ArrowLeft, Upload, X, Loader2, ImagePlus, AlertCircle, Calendar } from "lucide-react"
 
+import { EVENT_LIMITS } from "../../constants/eventConstants"
 interface AdminDokumentasiFormClientProps {
   id?: string // Jika ada id, mode EDIT. Jika tidak, mode TAMBAH.
 }
@@ -86,10 +87,10 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
     }
 
     // Cek batas total foto maksimal 10
-    const availableSlots = 10 - photos.length
+    const availableSlots = EVENT_LIMITS.MAX_DOKUMENTASI_FOTO - photos.length
     if (files.length > availableSlots) {
       alert(
-        `Total foto melebihi batas maksimal 10 foto! Anda saat ini memiliki ${photos.length} foto, hanya bisa menambah ${Math.max(
+        `Total foto melebihi batas maksimal ${EVENT_LIMITS.MAX_DOKUMENTASI_FOTO} foto! Anda saat ini memiliki ${photos.length} foto, hanya bisa menambah ${Math.max(
           0,
           availableSlots
         )} foto lagi.`

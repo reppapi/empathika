@@ -149,10 +149,10 @@ export default async function eventRoutes(fastify: FastifyInstance) {
   // POST /api/v1/event
   // ─────────────────────────────────────────────────────────────────
   fastify.post('/', {
-    preHandler: [authGuard],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Event'],
-      summary: 'Membuat event baru (Wajib Login - Admin/Biro/Psikolog)',
+      summary: 'Membuat event baru (Admin Only)',
       security: [{ bearerAuth: [] }],
       body: createEventSchema,
       response: {
@@ -167,10 +167,10 @@ export default async function eventRoutes(fastify: FastifyInstance) {
   // PUT /api/v1/event/:id
   // ─────────────────────────────────────────────────────────────────
   fastify.put('/:id', {
-    preHandler: [authGuard],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Event'],
-      summary: 'Memperbarui data event (Wajib Login - Admin/Biro/Psikolog)',
+      summary: 'Memperbarui data event (Admin Only)',
       security: [{ bearerAuth: [] }],
       params: eventIdParamSchema,
       body: updateEventSchema,
@@ -186,10 +186,10 @@ export default async function eventRoutes(fastify: FastifyInstance) {
   // DELETE /api/v1/event/:id
   // ─────────────────────────────────────────────────────────────────
   fastify.delete('/:id', {
-    preHandler: [authGuard],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Event'],
-      summary: 'Menghapus event (Wajib Login - Admin/Biro/Psikolog) - gagal jika ada booking aktif',
+      summary: 'Menghapus event (Admin Only) - gagal jika ada booking aktif',
       security: [{ bearerAuth: [] }],
       params: eventIdParamSchema,
       response: {
