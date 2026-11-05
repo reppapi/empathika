@@ -14,13 +14,11 @@ export default function SeminarDetailPage() {
 
   return (
     <div className="min-h-screen bg-white font-poppins text-gray-800">
-      {/* 1. BAGIAN ATAS: FOTO BESAR 100vh + GRADASI + JUDUL */}
+      {/* 1. BAGIAN ATAS: KOTAK FOTO HERO + GRADASI + JUDUL */}
       <SeminarHero
         title={data.title}
         heroImage={data.heroImage}
         heroImageAlt={data.heroImageAlt}
-        backHref="/layanan?category=04"
-        backLabel="Kembali ke Layanan"
       />
 
       {/* 2. BAGIAN TENGAH: DESKRIPSI (Teks Pengantar, Program Seminar & Healing, Penutup) */}
