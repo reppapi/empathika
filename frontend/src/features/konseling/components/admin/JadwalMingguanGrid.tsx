@@ -2,7 +2,7 @@
 
 import { BookedAssessment } from "@/features/konseling/types"
 import { formatDateKey, parseTimeRangeMinutes } from "@/features/konseling/data/jadwalAdminData"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, X } from "lucide-react"
 
 interface WeekDayItem {
   dayName: string
@@ -22,6 +22,7 @@ interface JadwalMingguanGridProps {
   matchLayanan: (itemLayanan: string, filter: string) => boolean
   today: Date
   onSelectSession?: (session: BookedAssessment) => void
+  onRemoveSlot?: (time: string, dateKey?: string) => void
 }
 
 export default function JadwalMingguanGrid({
@@ -35,6 +36,7 @@ export default function JadwalMingguanGrid({
   matchLayanan,
   today,
   onSelectSession,
+  onRemoveSlot,
 }: JadwalMingguanGridProps) {
   const todayDateKey = formatDateKey(today)
 
@@ -133,7 +135,23 @@ export default function JadwalMingguanGrid({
                         item.status === "Tersedia" ||
                         !item.namaKlien ||
                         item.namaKlien.trim().toLowerCase() === "tersedia" ||
-                        item.layanan === "Slot Tersedia"
+                        item.layanan === "Slot Tersedia" ||
+                        item.layanan === "Slot Asesmen" ||
+                        item.layanan === "Asesmen Tersedia"
+
+                      const isAsesmen =
+                        (item.layanan && item.layanan.toLowerCase().includes("asesmen")) ||
+                        Boolean((item as any).tipe_jadwal && (item as any).tipe_jadwal.toUpperCase() === "ASESMEN")
+
+                      const showPsikolog =
+                        !isAsesmen &&
+                        Boolean(
+                          item.psikolog &&
+                          item.psikolog.trim() !== "" &&
+                          item.psikolog !== "Admin Asesmen" &&
+                          item.psikolog !== "Asesor Klinis Empathika" &&
+                          item.psikolog !== "Belum Ditentukan"
+                        )
 
                       const { startMinutes, endMinutes } = parseTimeRangeMinutes(item.waktu)
                       const now = new Date()
@@ -182,7 +200,7 @@ export default function JadwalMingguanGrid({
                                   Klien: <strong className="text-gray-700">{item.namaKlien}</strong>
                                 </span>
                               )}
-                              {item.psikolog && <span>Tenaga: {item.psikolog}</span>}
+                              {showPsikolog && <span>Tenaga: {item.psikolog}</span>}
                               <span className="text-[9px] text-gray-400 italic mt-0.5">
                                 [{item.metode}]
                               </span>
@@ -207,16 +225,32 @@ export default function JadwalMingguanGrid({
                                     {item.waktu}
                                   </span>
                                 </div>
-                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
-                                  Lewat
-                                </span>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                    Lewat
+                                  </span>
+                                  {onRemoveSlot && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        onRemoveSlot(item.waktu, item.date)
+                                      }}
+                                      title="Hapus slot ini dari jadwal"
+                                      className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                               <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700">
-                                Slot Tersedia (Tidak Terpakai)
+                                {isAsesmen ? "Slot Asesmen (Lewat)" : "Slot Tersedia (Tidak Terpakai)"}
                               </p>
                               <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-500">
                                 <span className="italic text-gray-400">Tidak ada booking</span>
-                                {item.psikolog && <span>Tenaga: {item.psikolog}</span>}
+                                {showPsikolog && <span>Tenaga: {item.psikolog}</span>}
                                 {item.metode && (
                                   <span className="text-[9px] text-gray-400 italic mt-0.5">
                                     [{item.metode}]
@@ -240,16 +274,32 @@ export default function JadwalMingguanGrid({
                                   {item.waktu}
                                 </span>
                               </div>
-                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
-                                Tersedia
-                              </span>
+                              <div className="flex items-center gap-1">
+                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
+                                    Tersedia
+                                  </span>
+                                  {onRemoveSlot && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        onRemoveSlot(item.waktu, item.date)
+                                      }}
+                                      title="Hapus slot ini dari jadwal"
+                                      className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
                             </div>
                             <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950">
-                              Slot Tersedia
+                              {isAsesmen ? "Slot Asesmen" : "Slot Tersedia"}
                             </p>
                             <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600">
                               <span className="italic text-gray-400">Belum ada klien</span>
-                              {item.psikolog && <span>Tenaga: {item.psikolog}</span>}
+                              {showPsikolog && <span>Tenaga: {item.psikolog}</span>}
                               {item.metode && (
                                 <span className="text-[9px] text-gray-400 italic mt-0.5">
                                   [{item.metode}]
@@ -309,9 +359,7 @@ export default function JadwalMingguanGrid({
                                 </strong>
                               </span>
                             )}
-                            {item.psikolog && (
-                              <span>Tenaga: {item.psikolog}</span>
-                            )}
+                            {showPsikolog && <span>Tenaga: {item.psikolog}</span>}
                             <span className="text-[9px] text-gray-400 italic mt-0.5">
                               [{item.metode}]
                             </span>

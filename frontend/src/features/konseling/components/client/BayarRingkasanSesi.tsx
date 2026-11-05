@@ -27,9 +27,9 @@ export default function BayarRingkasanSesi({
             {(psikologName ? psikologName.replace(/^(dr\.|drg\.|prof\.)\s*/i, "").slice(0, 2) : "EM").toUpperCase()}
           </div>
           <div className="text-center sm:text-left flex flex-col justify-center h-full pt-1">
-            <div className="text-[10px] text-gray-500 mb-1">Psikolog Anda</div>
+            <div className="text-[10px] text-gray-500 mb-1">{layanan.toLowerCase().includes("asesmen") ? "Asesor / Tenaga Ahli" : "Psikolog Anda"}</div>
             <div className="text-sm font-extrabold text-[#561269]">
-              {psikologName ? (psikologName.includes(",") ? psikologName : `${psikologName}, M.Psi., Psikolog`) : "Psikolog Profesional Empathika"}
+              {psikologName ? (psikologName.includes(",") ? psikologName : `${psikologName}, M.Psi., Psikolog`) : (layanan.toLowerCase().includes("asesmen") ? "Asesor Klinis Empathika" : "Psikolog Profesional Empathika")}
             </div>
           </div>
         </div>

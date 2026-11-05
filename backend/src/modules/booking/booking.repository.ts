@@ -309,6 +309,7 @@ export class BookingRepository {
   ) {
     const where: Prisma.JadwalSlotWhereInput = {
       id_psikolog,
+      tipe_jadwal: 'KONSULTASI',
     }
 
     if (params?.start_date && params?.end_date) {

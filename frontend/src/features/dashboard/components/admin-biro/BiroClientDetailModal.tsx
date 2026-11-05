@@ -15,7 +15,7 @@ export default function BiroClientDetailModal({ isOpen, onClose, client }: BiroC
   if (!isOpen || !client) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 font-poppins animate-fadeIn">
       <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg max-h-[92vh] overflow-y-auto p-6 sm:p-7 flex flex-col justify-between">
         {/* Header Modal */}
         <div>

@@ -58,6 +58,8 @@ export function useBayarClient() {
   const qTanggal = searchParams.get("tanggal") || "31/08"
   const qTahun = searchParams.get("tahun") || "2026"
   const qWaktu = searchParams.get("waktu") || "13:30"
+  const qHarga = searchParams.get("harga") || searchParams.get("biaya") || "Rp 350.000"
+  const qHari = searchParams.get("hari") || ""
 
   useEffect(() => {
     const qNama = searchParams.get("nama")
@@ -187,7 +189,9 @@ export function useBayarClient() {
         tahun: qTahun,
         waktu: qWaktu,
         judul: qLayanan,
-        subjudul: qPsikologName ? `Bersama ${qPsikologName}` : "Psikolog Profesional Empathika",
+        subjudul: qPsikologName ? `Bersama ${qPsikologName}` : (qLayanan.toLowerCase().includes("asesmen") ? "Asesor Klinis Empathika" : "Psikolog Profesional Empathika"),
+        harga: qHarga,
+        ...(qHari && { hari: qHari }),
         bottomDate: qBottomDate,
         bottomTime: qBottomTime,
         metode: metodePembayaran || "qris",
@@ -275,6 +279,8 @@ export function useBayarClient() {
     qBottomTime,
     qPsikologName,
     qLayanan,
+    qHarga,
+    qHari,
     handleSelectPayment,
     handleSubmit,
   }

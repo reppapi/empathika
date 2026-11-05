@@ -99,25 +99,6 @@ export function getInitialSessionsBasedOnTime(): ClientSessionToday[] {
     }
   })
 
-  // Jaga-jaga jika dibuka larut malam (> 22:30), tambahkan 1 slot aktif malam ini
-  if (!foundNearest) {
-    const currentH = now.getHours()
-    const nextH = (currentH + 1) % 24
-    list.push({
-      id: "cs_night",
-      waktu: `${String(currentH).padStart(2, "0")}:45 - ${String(nextH).padStart(2, "0")}:45`,
-      namaKlien: "Dina Mariana",
-      klienId: "010240",
-      kontak: "0813-2233-4455",
-      psikolog: "Dr. Dimas",
-      layanan: "Konseling Darurat",
-      tipe: "Online [Zoom]",
-      catatan: "Sesi konseling malam / evaluasi stres akut",
-      status: "Segera Dimulai",
-      isUpcomingNearest: true,
-    })
-  }
-
   return list
 }
 

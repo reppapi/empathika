@@ -78,7 +78,7 @@ export default function AdminTambahEventModal({ onClose, onSubmit }: Props) {
       <div
         ref={overlayRef}
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-black/60 transition-all duration-300"
       />
 
       {/* Modal Panel */}

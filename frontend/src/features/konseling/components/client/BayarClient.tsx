@@ -30,6 +30,8 @@ export default function BayarClient() {
     qBottomTime,
     qPsikologName,
     qLayanan,
+    qHarga,
+    qHari,
     handleSelectPayment,
     handleSubmit,
   } = useBayarClient()
@@ -137,9 +139,9 @@ export default function BayarClient() {
           attemptedSubmit={attemptedSubmit}
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
-          biayaLabel="Biaya Konsultasi"
-          biayaNominal="Rp 350.000"
-          totalNominal="Rp 350.000"
+          biayaLabel={qLayanan.toLowerCase().includes("asesmen") ? `Biaya Asesmen${qHari ? ` (${qHari})` : ""}` : "Biaya Konsultasi"}
+          biayaNominal={qHarga}
+          totalNominal={qHarga}
           submitButtonText="Bayar Sekarang"
           submittingButtonText="Memproses Booking..."
         />

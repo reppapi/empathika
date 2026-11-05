@@ -478,51 +478,62 @@ export function useJadwalAdmin() {
       const res: any = await adminService.getJadwal({ date: datePickerValue })
       if (res) {
         if (Array.isArray(res.todaySessions)) {
-          const mappedToday: ClientSessionToday[] = res.todaySessions.map((s: any) => ({
-            id: s.id,
-            date: s.tanggal,
-            waktu: s.waktuRange,
-            namaKlien: s.namaKlien,
-            klienId: s.idKlien,
-            kontak: s.noTelepon,
-            psikolog: s.psikolog,
-            idPsikolog: s.idPsikolog,
-            noTeleponPsikolog: s.noTeleponPsikolog,
-            layanan: s.layanan,
-            tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
-            catatan: s.deskripsiTrauma || undefined,
-            status: s.status as ClientSessionStatus,
-            tanggal: s.tanggal,
-            canRefund: s.canRefund,
-            isPastH1: s.isPastH1,
-            isRefunded: s.isRefunded,
-            isPaid: s.isPaid,
-            refundDeadline: s.refundDeadline,
-            nominalRefund: s.nominalRefund,
-            idTransaksi: s.idTransaksi,
-            kodeTransaksi: s.kodeTransaksi,
-          }))
+          const mappedToday: ClientSessionToday[] = res.todaySessions.map((s: any) => {
+            const isAsesmen =
+              (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+              (s.layanan || "").toLowerCase().includes("asesmen")
+            return {
+              id: s.id,
+              date: s.tanggal,
+              waktu: s.waktuRange,
+              namaKlien: s.namaKlien,
+              klienId: s.idKlien,
+              kontak: s.noTelepon,
+              psikolog: isAsesmen ? "" : s.psikolog,
+              idPsikolog: isAsesmen ? null : s.idPsikolog,
+              noTeleponPsikolog: isAsesmen ? null : s.noTeleponPsikolog,
+              layanan: s.layanan,
+              tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
+              catatan: s.deskripsiTrauma || undefined,
+              status: s.status as ClientSessionStatus,
+              tanggal: s.tanggal,
+              canRefund: s.canRefund,
+              isPastH1: s.isPastH1,
+              isRefunded: s.isRefunded,
+              isPaid: s.isPaid,
+              refundDeadline: s.refundDeadline,
+              nominalRefund: s.nominalRefund,
+              idTransaksi: s.idTransaksi,
+              kodeTransaksi: s.kodeTransaksi,
+            }
+          })
           setTodaySessions(applyTimeStatusToSessions(mappedToday, datePickerValue))
         } else {
           setTodaySessions([])
         }
 
         if (Array.isArray(res.weeklyGrid)) {
-          const mappedWeekly: BookedAssessment[] = res.weeklyGrid.map((w: any) => ({
-            id: w.id,
-            date: w.date,
-            waktu: w.timeSlot,
-            layanan: w.layanan,
-            metode: w.metode,
-            namaKlien: w.clientName || (w.statusSlot === "TERSEDIA" ? "Tersedia" : undefined),
-            psikolog: w.psikologName,
-            status: w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif",
-            isAvailableSlot: w.statusSlot === "TERSEDIA",
-            isBooked:
-              w.isBooked ??
-              (w.statusSlot === "SUDAH_DIBOOKING" ||
-                (Boolean(w.clientName) && w.clientName !== "Tersedia")),
-          }))
+          const mappedWeekly: BookedAssessment[] = res.weeklyGrid.map((w: any) => {
+            const isAsesmen =
+              (w.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+              (w.layanan || "").toLowerCase().includes("asesmen")
+            return {
+              id: w.id,
+              date: w.date,
+              waktu: w.timeSlot,
+              layanan: w.layanan,
+              metode: w.metode,
+              namaKlien: w.clientName || (w.statusSlot === "TERSEDIA" ? "Tersedia" : undefined),
+              psikolog: isAsesmen ? "" : w.psikologName,
+              status: w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif",
+              isAvailableSlot: w.statusSlot === "TERSEDIA",
+              tipe_jadwal: isAsesmen ? "ASESMEN" : "KONSULTASI",
+              isBooked:
+                w.isBooked ??
+                (w.statusSlot === "SUDAH_DIBOOKING" ||
+                  (Boolean(w.clientName) && w.clientName !== "Tersedia")),
+            }
+          })
           // Gabungkan slot dari empathika_custom_jadwal_slots ke weeklyGrid
           try {
             const raw = localStorage.getItem("empathika_custom_jadwal_slots")
@@ -541,13 +552,14 @@ export function useJadwalAdmin() {
                         id: s.id || `custom_${s.tanggal}_${timeStr}`,
                         date: s.tanggal,
                         waktu: timeStr,
-                        layanan: s.layanan || "Konseling Individu",
+                        layanan: s.layanan || (((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") ? "Asesmen Klinis" : "Konseling Individu"),
                         metode: s.metode === "Offline" ? "Offline" : "Online",
                         namaKlien: isTersedia ? "Tersedia" : (s.namaKlien || "Klien Terdaftar"),
-                        psikolog: s.nama_psikolog || "Dr. Jane Doe, M.Psi., Psikolog",
+                        psikolog: ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) ? "" : (s.nama_psikolog || "Tenaga Ahli"),
                         isAvailableSlot: isTersedia,
                         status: isTersedia ? "Tersedia" : "Aktif",
                         isBooked: !isTersedia,
+                        tipe_jadwal: ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") ? "ASESMEN" : "KONSULTASI",
                       })
                     }
                   }
@@ -722,6 +734,31 @@ export function useJadwalAdmin() {
         console.warn(`Gagal membuka slot ${finalWaktu}:`, err?.response?.data?.message || err.message)
         failErrors.push(err?.response?.data?.message || `${finalWaktu} gagal dibuka`)
       }
+      try {
+        const raw = localStorage.getItem("empathika_custom_jadwal_slots");
+        const currentList = raw ? JSON.parse(raw) : [];
+        const exists = currentList.some(
+          (s: any) =>
+            s.tanggal === tanggalStr &&
+            (s.jam_mulai || "").substring(0, 5) === jamMulai &&
+            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN"
+        );
+        if (!exists) {
+          currentList.push({
+            id: "slot_asesmen_" + tanggalStr + "_" + jamMulai + "_" + Date.now(),
+            tanggal: tanggalStr,
+            jam_mulai: jamMulai,
+            jam_selesai: jamSelesai,
+            label_waktu: jamMulai + " - " + jamSelesai,
+            tipe_jadwal: "ASESMEN",
+            metode: metode.toUpperCase(),
+            status: "TERSEDIA",
+            nama_psikolog: "",
+          });
+          localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(currentList));
+          window.dispatchEvent(new Event("storage"));
+        }
+      } catch {}
     }
 
     await fetchJadwalData()
@@ -781,6 +818,59 @@ export function useJadwalAdmin() {
     fetchJadwalData()
   }
 
+  const handleRemoveWeeklySlot = async (timeToRemove: string, targetDateKey?: string) => {
+    const effectiveDateKey = targetDateKey || (date ? formatDateKey(date) : undefined)
+    if (!effectiveDateKey) return
+
+    // 1. Cari target session jika ada id real
+    const targetSession = bookedSessions.find(
+      (s) => s.date === effectiveDateKey && (s.waktu === timeToRemove || s.waktu.includes(timeToRemove))
+    )
+
+    // 2. Optimistic update: hapus dari state lokal bookedSessions
+    setBookedSessions((prev) =>
+      prev.filter(
+        (s) => !(s.date === effectiveDateKey && (s.waktu === timeToRemove || s.waktu.includes(timeToRemove)))
+      )
+    )
+
+    // 3. Bersihkan dari localStorage
+    try {
+      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+      if (raw) {
+        const currentList = JSON.parse(raw)
+        const updated = currentList.filter(
+          (s: any) =>
+            !(
+              s.tanggal === effectiveDateKey &&
+              ((s.label_waktu && s.label_waktu.includes(timeToRemove)) ||
+                (s.jam_mulai && timeToRemove.startsWith(s.jam_mulai.substring(0, 5))))
+            )
+        )
+        localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(updated))
+        window.dispatchEvent(new Event("storage"))
+      }
+    } catch {}
+
+    // 4. Jika ada id database asli, hapus dari backend
+    if (
+      targetSession &&
+      targetSession.id &&
+      !targetSession.id.startsWith("slot_asesmen_") &&
+      !targetSession.id.startsWith("ab_") &&
+      !targetSession.id.startsWith("slot-admin-")
+    ) {
+      try {
+        await adminService.deleteJadwalSlot(targetSession.id)
+      } catch (err: any) {
+        console.warn("Gagal hapus slot dari DB:", err?.message)
+      }
+    }
+
+    triggerToast(`Slot jam ${timeToRemove} berhasil dihapus dari jadwal.`, "success")
+    await fetchJadwalData()
+  }
+
   return {
     // ── Dates & Filtering ──
     date,
@@ -820,6 +910,7 @@ export function useJadwalAdmin() {
     bookedSessions,
     bookingSuccessMsg,
     handleBooking,
+    handleRemoveWeeklySlot,
 
     // ── Modals & Actions ──
     isModalOpen,

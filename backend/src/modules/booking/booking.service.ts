@@ -67,6 +67,10 @@ export class BookingService {
 
       const nominalRefund = (s as any).transaksi ? Number((s as any).transaksi.total) : (s.layanan?.harga_weekday ? Number(s.layanan.harga_weekday) : 200000)
 
+      const isAsesmen =
+        s.jadwal?.tipe_jadwal === 'ASESMEN' ||
+        (s.layanan?.nama || '').toLowerCase().includes('asesmen')
+
       return {
         id: s.id,
         idKlien: `K-${s.client.id.slice(0, 4).toUpperCase()}`,
@@ -74,9 +78,10 @@ export class BookingService {
         noTelepon: s.client.no_telepon || '',
         waLink: waNumber ? `https://wa.me/${waNumber}` : null,
         layanan: s.layanan.nama,
-        psikolog: s.jadwal.psikolog?.nama_gelar || 'Belum Ditentukan',
-        idPsikolog: s.jadwal.psikolog?.id,
-        noTeleponPsikolog: (s.jadwal.psikolog as any)?.account?.no_telepon || '081234567890',
+        psikolog: isAsesmen ? '' : (s.jadwal.psikolog?.nama_gelar || 'Belum Ditentukan'),
+        idPsikolog: isAsesmen ? null : s.jadwal.psikolog?.id,
+        noTeleponPsikolog: isAsesmen ? null : ((s.jadwal.psikolog as any)?.account?.no_telepon || '081234567890'),
+        tipe_jadwal: s.jadwal?.tipe_jadwal || (isAsesmen ? 'ASESMEN' : 'KONSULTASI'),
         jamMulai: jamMulaiStr,
         jamSelesai: jamSelesaiStr,
         waktuRange: `${jamMulaiStr} - ${jamSelesaiStr}`,
@@ -107,17 +112,29 @@ export class BookingService {
       const timeSlot = `${jamMulaiStr} - ${jamSelesaiStr}`
       const isBooked = slot.status === 'SUDAH_DIBOOKING' || Boolean(slot.booking_konsultasi)
       const clientName = slot.booking_konsultasi?.client?.nama || (isBooked ? 'Klien Terdaftar' : undefined)
+      const isAsesmen =
+        slot.tipe_jadwal === 'ASESMEN' ||
+        (slot.booking_konsultasi?.layanan?.nama || '').toLowerCase().includes('asesmen')
 
       return {
         id: slot.id,
         date: dateStr,
         timeSlot,
         statusSlot: slot.status,
+        tipe_jadwal: slot.tipe_jadwal,
         isBooked,
         clientName,
         namaKlien: clientName,
-        psikologName: slot.psikolog?.nama_gelar || '',
-        layanan: slot.booking_konsultasi?.layanan?.nama || (slot.status === 'TERSEDIA' ? 'Slot Tersedia' : 'Terjadwal'),
+        psikologName: isAsesmen ? '' : (slot.psikolog?.nama_gelar || ''),
+        layanan:
+          slot.booking_konsultasi?.layanan?.nama ||
+          (slot.status === 'TERSEDIA'
+            ? isAsesmen
+              ? 'Asesmen Tersedia'
+              : 'Slot Tersedia'
+            : isAsesmen
+              ? 'Asesmen Terjadwal'
+              : 'Terjadwal'),
         metode: slot.booking_konsultasi?.metode
           ? (slot.booking_konsultasi.metode.toUpperCase().includes('KEDUANYA')
             ? 'Keduanya'
