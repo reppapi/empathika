@@ -27,36 +27,42 @@ export interface DASSEvaluationResult {
 
 /**
  * Menghitung persentase visual bar proporsional berbasis 5 zona keparahan klinis.
- * Memastikan panjang bar konsisten secara intuitif dengan tingkat keparahannya.
+ * Membagi panjang bar menjadi 5 segmen setara (masing-masing 20%):
+ * - Zona 1: Normal       (0% - 20%)
+ * - Zona 2: Ringan       (20% - 40%)
+ * - Zona 3: Sedang       (40% - 60%)
+ * - Zona 4: Berat        (60% - 80%)
+ * - Zona 5: Sangat Berat (80% - 100%)
  */
 function getClinicalSeverityPercentage(
   score: number,
   levels: { normalMax: number; ringanMax: number; sedangMax: number; beratMax: number }
 ): number {
+  if (score <= 0) return 0;
+
   if (score <= levels.normalMax) {
-    // Zona Normal: 10% - 22%
-    const ratio = levels.normalMax > 0 ? score / levels.normalMax : 0;
-    return Math.round(10 + ratio * 12);
+    // Zona 1: Normal (0% - 20%)
+    return Math.round((score / levels.normalMax) * 20);
   } else if (score <= levels.ringanMax) {
-    // Zona Ringan: 25% - 42%
+    // Zona 2: Ringan (20% - 40%)
     const span = levels.ringanMax - levels.normalMax;
     const ratio = span > 0 ? (score - levels.normalMax) / span : 0;
-    return Math.round(25 + ratio * 17);
+    return Math.round(20 + ratio * 20);
   } else if (score <= levels.sedangMax) {
-    // Zona Sedang: 45% - 62%
+    // Zona 3: Sedang (40% - 60%)
     const span = levels.sedangMax - levels.ringanMax;
     const ratio = span > 0 ? (score - levels.ringanMax) / span : 0;
-    return Math.round(45 + ratio * 17);
+    return Math.round(40 + ratio * 20);
   } else if (score <= levels.beratMax) {
-    // Zona Berat: 65% - 82%
+    // Zona 4: Berat (60% - 80%)
     const span = levels.beratMax - levels.sedangMax;
     const ratio = span > 0 ? (score - levels.sedangMax) / span : 0;
-    return Math.round(65 + ratio * 17);
+    return Math.round(60 + ratio * 20);
   } else {
-    // Zona Sangat Berat: 85% - 100%
+    // Zona 5: Sangat Berat (80% - 100%)
     const span = 42 - levels.beratMax;
     const ratio = span > 0 ? Math.min(1, (score - levels.beratMax) / span) : 1;
-    return Math.round(85 + ratio * 15);
+    return Math.round(80 + ratio * 20);
   }
 }
 

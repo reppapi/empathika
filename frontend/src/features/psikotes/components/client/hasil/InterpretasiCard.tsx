@@ -52,37 +52,38 @@ export default function InterpretasiCard({
         </div>
       </div>
 
-      {/* 2. Visualisasi Grafik 3 Dimensi (Khusus DASS-42: Depresi, Kecemasan, Stres) */}
+      {/* 2. Visualisasi Grafik 3 Dimensi (Sesuai Referensi: Nama, Persentase, dan Bar Minimalis) */}
       {dassEvaluation && (
-        <div className="mt-6 pt-5 border-t border-[#cde5ec] space-y-3.5">
+        <div className="mt-6 pt-5 border-t border-[#cde5ec] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#0e7490]">
-              Profil 3 Dimensi Emosional
+            <h3 className="text-sm sm:text-base font-bold text-gray-900">
+              Profil Lengkap Anda
             </h3>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {dassEvaluation.subscalesList.map((sub, idx) => (
-              <div
-                key={idx}
-                className="p-4 rounded-2xl bg-white/85 border border-white/70 shadow-2xs space-y-2"
-              >
-                {/* Header Subskala */}
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${sub.barColor} shrink-0`} />
-                  <span className="font-bold text-sm text-gray-900">{sub.name}</span>
+              <div key={idx} className="space-y-1.5">
+                {/* Baris Atas: Nama Dimensi di kiri & Persentase di kanan */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-gray-800">
+                    {sub.name}
+                  </span>
+                  <span className="font-semibold text-gray-700">
+                    {sub.percentage}%
+                  </span>
                 </div>
 
-                {/* Bar Grafik Kemajuan / Tingkat Keparahan — Warna berbeda tiap dimensi */}
-                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden border border-black/5">
+                {/* Bar Grafik Minimalis */}
+                <div className="w-full h-2 bg-slate-200/60 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${sub.barColor} rounded-full transition-all duration-500`}
-                    style={{ width: `${Math.max(6, sub.percentage)}%` }}
+                    style={{ width: `${sub.percentage > 0 ? Math.max(5, sub.percentage) : 0}%` }}
                   />
                 </div>
 
                 {/* Deskripsi Klinis Subskala */}
-                <p className="text-xs text-gray-600 leading-relaxed pt-0.5 font-normal">
+                <p className="text-xs text-gray-600 leading-relaxed font-normal pt-0.5">
                   {sub.deskripsi}
                 </p>
               </div>
