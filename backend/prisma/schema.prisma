@@ -164,12 +164,7 @@ model Client {
   nama          String
   no_telepon    String?  // Kontak operasional WhatsApp klien
   usia          Int?
-  jenis_kelamin     String?
-  tempat_lahir      String?
-  tanggal_lahir     DateTime?
-  pendidikan        String?
-  pekerjaan         String?
-  status_pernikahan String?
+  jenis_kelamin String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -549,8 +544,39 @@ model BookingPsikotes {
 
   jawaban_psikotes JawabanPsikotes[]
   hasil_tes        HasilTes?
+  peserta_psikotes PesertaPsikotes?
 
   @@map("booking_psikotes")
+}
+
+model PesertaPsikotes {
+  id                   String    @id @default(uuid())
+  id_booking           String    @unique // Relasi 1-to-1 ke booking_psikotes
+  
+  // Identitas Utama Peserta
+  nama_lengkap         String
+  jenis_kelamin        String    // "Laki-laki" / "Perempuan"
+  tempat_lahir         String?
+  tanggal_lahir        DateTime?
+  usia                 Int?      // Usia saat tes dilakukan
+  kategori_peserta     String?   // "ANAK", "REMAJA", "DEWASA"
+  
+  // Identitas Orang Tua / Wali (Untuk Anak & Remaja)
+  nama_orang_tua       String?
+  no_telepon_orang_tua String?
+  
+  // Latar Belakang (Untuk Remaja & Dewasa)
+  pendidikan           String?   // Misal: TK, SD, SMP, SMA, S1
+  pekerjaan            String?   // Diisi jika dewasa
+  status_pernikahan    String?   // Diisi jika dewasa ("Belum Menikah", "Menikah", dll)
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relasi ke BookingPsikotes
+  booking              BookingPsikotes @relation(fields: [id_booking], references: [id], onDelete: Cascade)
+
+  @@map("peserta_psikotes")
 }
 
 // ==========================================

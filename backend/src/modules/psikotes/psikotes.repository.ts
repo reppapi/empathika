@@ -590,11 +590,6 @@ export class PsikotesRepository {
               no_telepon: inputPhone || client.no_telepon,
               usia: input.klien?.usia ?? client.usia,
               jenis_kelamin: input.klien?.jenis_kelamin ?? client.jenis_kelamin,
-              tempat_lahir: (input.klien as any)?.tempat_lahir ?? client.tempat_lahir,
-              tanggal_lahir: (input.klien as any)?.tanggal_lahir ? new Date((input.klien as any).tanggal_lahir) : client.tanggal_lahir,
-              pendidikan: (input.klien as any)?.pendidikan ?? client.pendidikan,
-              pekerjaan: (input.klien as any)?.pekerjaan ?? client.pekerjaan,
-              status_pernikahan: (input.klien as any)?.status_pernikahan ?? client.status_pernikahan,
             },
           })
         } else {
@@ -604,11 +599,6 @@ export class PsikotesRepository {
               no_telepon: inputPhone || null,
               usia: input.klien?.usia || null,
               jenis_kelamin: input.klien?.jenis_kelamin || null,
-              tempat_lahir: (input.klien as any)?.tempat_lahir || null,
-              tanggal_lahir: (input.klien as any)?.tanggal_lahir ? new Date((input.klien as any).tanggal_lahir) : null,
-              pendidikan: (input.klien as any)?.pendidikan || null,
-              pekerjaan: (input.klien as any)?.pekerjaan || null,
-              status_pernikahan: (input.klien as any)?.status_pernikahan || null,
               id_biro: input.id_biro || null,
             },
           })
@@ -708,6 +698,42 @@ export class PsikotesRepository {
             riwayat_kesehatan: (input as any).riwayat_kesehatan || null,
           },
         })
+      }
+
+      // 5b. Simpan/sinkronkan data peserta tes ke tabel peserta_psikotes jika bukan tamu anonim
+      const pesertaSource = (input as any).peserta || input.klien || {}
+      const namaPeserta = (input as any).peserta?.nama_lengkap || input.klien?.nama || inputName
+      if (client.nama !== 'Tamu Anonim' && namaPeserta) {
+        await (tx as any).pesertaPsikotes.upsert({
+          where: { id_booking: booking.id },
+          create: {
+            id_booking: booking.id,
+            nama_lengkap: namaPeserta,
+            jenis_kelamin: pesertaSource.jenis_kelamin || client.jenis_kelamin || 'Laki-laki',
+            tempat_lahir: pesertaSource.tempat_lahir || null,
+            tanggal_lahir: pesertaSource.tanggal_lahir ? new Date(pesertaSource.tanggal_lahir) : null,
+            usia: pesertaSource.usia ?? client.usia ?? null,
+            kategori_peserta: pesertaSource.kategori_peserta || null,
+            nama_orang_tua: pesertaSource.nama_orang_tua || null,
+            no_telepon_orang_tua: pesertaSource.no_telepon_orang_tua || null,
+            pendidikan: pesertaSource.pendidikan || null,
+            pekerjaan: pesertaSource.pekerjaan || null,
+            status_pernikahan: pesertaSource.status_pernikahan || null,
+          },
+          update: {
+            nama_lengkap: namaPeserta,
+            jenis_kelamin: pesertaSource.jenis_kelamin || client.jenis_kelamin || undefined,
+            tempat_lahir: pesertaSource.tempat_lahir || undefined,
+            tanggal_lahir: pesertaSource.tanggal_lahir ? new Date(pesertaSource.tanggal_lahir) : undefined,
+            usia: pesertaSource.usia ?? client.usia ?? undefined,
+            kategori_peserta: pesertaSource.kategori_peserta || undefined,
+            nama_orang_tua: pesertaSource.nama_orang_tua || undefined,
+            no_telepon_orang_tua: pesertaSource.no_telepon_orang_tua || undefined,
+            pendidikan: pesertaSource.pendidikan || undefined,
+            pekerjaan: pesertaSource.pekerjaan || undefined,
+            status_pernikahan: pesertaSource.status_pernikahan || undefined,
+          },
+        }).catch(() => {})
       }
 
       // 6. Simpan butir jawaban ke tabel jawaban_psikotes jika soal berasal dari database asli
@@ -839,6 +865,7 @@ export class PsikotesRepository {
             },
           },
           transaksi: true,
+          peserta_psikotes: true,
           hasil_tes: {
             include: {
               interpretasi: true,
@@ -883,10 +910,11 @@ export class PsikotesRepository {
         nama_paket: b.paket.judul,
         jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
         harga: b.paket.harga,
-        nama_peserta: b.client.nama,
-        no_hp: b.client.no_telepon || '—',
-        usia: b.client.usia,
-        jenis_kelamin: b.client.jenis_kelamin,
+        nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
+        no_hp: (b as any).peserta_psikotes?.no_telepon_orang_tua || b.client.no_telepon || '—',
+        usia: (b as any).peserta_psikotes?.usia ?? b.client.usia,
+        jenis_kelamin: (b as any).peserta_psikotes?.jenis_kelamin || b.client.jenis_kelamin,
+        peserta: (b as any).peserta_psikotes || null,
         tanggal: b.createdAt,
         status: b.hasil_tes ? 'Selesai' : 'Berjalan',
         skor: b.hasil_tes?.interpretasi?.grade || (b.hasil_tes ? `Skor: ${b.hasil_tes.total_skor}` : '—'),
@@ -1094,6 +1122,42 @@ export class PsikotesRepository {
             client: true,
           },
         })
+      }
+
+      // Simpan data peserta tes ke tabel peserta_psikotes jika ada nama peserta
+      const pesertaSource = (input as any).peserta || input.klien || {}
+      const namaPeserta = (input as any).peserta?.nama_lengkap || input.klien?.nama || input.nama
+      if (namaPeserta) {
+        await (tx as any).pesertaPsikotes.upsert({
+          where: { id_booking: booking.id },
+          create: {
+            id_booking: booking.id,
+            nama_lengkap: namaPeserta,
+            jenis_kelamin: pesertaSource.jenis_kelamin || inputGender || 'Laki-laki',
+            tempat_lahir: pesertaSource.tempat_lahir || null,
+            tanggal_lahir: pesertaSource.tanggal_lahir ? new Date(pesertaSource.tanggal_lahir) : null,
+            usia: pesertaSource.usia ?? inputUsia ?? null,
+            kategori_peserta: pesertaSource.kategori_peserta || null,
+            nama_orang_tua: pesertaSource.nama_orang_tua || null,
+            no_telepon_orang_tua: pesertaSource.no_telepon_orang_tua || null,
+            pendidikan: pesertaSource.pendidikan || null,
+            pekerjaan: pesertaSource.pekerjaan || null,
+            status_pernikahan: pesertaSource.status_pernikahan || null,
+          },
+          update: {
+            nama_lengkap: namaPeserta,
+            jenis_kelamin: pesertaSource.jenis_kelamin || inputGender || undefined,
+            tempat_lahir: pesertaSource.tempat_lahir || undefined,
+            tanggal_lahir: pesertaSource.tanggal_lahir ? new Date(pesertaSource.tanggal_lahir) : undefined,
+            usia: pesertaSource.usia ?? inputUsia ?? undefined,
+            kategori_peserta: pesertaSource.kategori_peserta || undefined,
+            nama_orang_tua: pesertaSource.nama_orang_tua || undefined,
+            no_telepon_orang_tua: pesertaSource.no_telepon_orang_tua || undefined,
+            pendidikan: pesertaSource.pendidikan || undefined,
+            pekerjaan: pesertaSource.pekerjaan || undefined,
+            status_pernikahan: pesertaSource.status_pernikahan || undefined,
+          },
+        }).catch(() => {})
       }
 
       return {

@@ -54,6 +54,20 @@ export const submitJawabanItemSchema = z.object({
   id_pilihan: z.string().min(1, 'ID pilihan jawaban wajib diisi'),
 })
 
+export const pesertaPsikotesInputSchema = z.object({
+  nama_lengkap: z.string().optional(),
+  jenis_kelamin: z.string().optional(),
+  tempat_lahir: z.string().optional().nullable(),
+  tanggal_lahir: z.string().or(z.date()).optional().nullable(),
+  usia: z.number().int().optional().nullable(),
+  kategori_peserta: z.string().optional().nullable(),
+  nama_orang_tua: z.string().optional().nullable(),
+  no_telepon_orang_tua: z.string().optional().nullable(),
+  pendidikan: z.string().optional().nullable(),
+  pekerjaan: z.string().optional().nullable(),
+  status_pernikahan: z.string().optional().nullable(),
+})
+
 export const submitPsikotesSchema = z.object({
   jawaban: z.union([
     z.array(submitJawabanItemSchema).min(1, 'Minimal 1 jawaban wajib dikirimkan'),
@@ -66,6 +80,7 @@ export const submitPsikotesSchema = z.object({
   email: z.string().optional(),
   id_booking: z.string().optional(),
   bookingId: z.string().optional(),
+  peserta: pesertaPsikotesInputSchema.optional(),
   klien: z
     .object({
       nama: z.string().optional(),
@@ -103,6 +118,7 @@ export const createBookingPsikotesSchema = z
     nama: z.string().optional(),
     no_telepon: z.string().optional(),
     email: z.string().optional(),
+    peserta: pesertaPsikotesInputSchema.optional(),
     klien: z
       .object({
         nama: z.string().optional(),
@@ -120,7 +136,7 @@ export const createBookingPsikotesSchema = z
   )
   .refine(
     (data) => {
-      const nama = data.klien?.nama || data.nama
+      const nama = data.peserta?.nama_lengkap || data.klien?.nama || data.nama
       return Boolean(nama && nama.trim().length > 0)
     },
     { message: 'Nama lengkap peserta wajib diisi', path: ['nama'] }
