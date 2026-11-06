@@ -69,6 +69,12 @@ export interface SubmitPsikotesResult {
     nama: string
     no_telepon?: string | null
   }
+  peserta?: {
+    nama_lengkap: string
+    usia?: number | null
+    jenis_kelamin?: string | null
+    kategori_peserta?: string | null
+  }
   total_skor: number
   detail_skor?: any
   hasil: {

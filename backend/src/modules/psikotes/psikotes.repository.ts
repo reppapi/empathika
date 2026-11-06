@@ -556,8 +556,8 @@ export class PsikotesRepository {
 
       // 4. Data Diri Klien (Gratis = selalu Tamu Anonim tanpa identitas, Berbayar = dengan data diri resmi)
       const isPaketGratis = paket.jenis_akses === 'GRATIS'
-      const inputName = (!isPaketGratis && (input.klien?.nama?.trim() || input.nama?.trim())) || ''
-      const rawPhone = (!isPaketGratis && (input.klien?.no_telepon?.trim() || input.no_telepon?.trim())) || ''
+      const inputName = (!isPaketGratis && ((input as any).peserta?.nama_lengkap?.trim() || input.klien?.nama?.trim() || input.nama?.trim())) || ''
+      const rawPhone = (!isPaketGratis && ((input as any).peserta?.no_telepon_orang_tua?.trim() || input.klien?.no_telepon?.trim() || input.no_telepon?.trim())) || ''
       const inputPhone = normalizePhoneNumber(rawPhone) || rawPhone
       let client = null
 
@@ -793,6 +793,12 @@ export class PsikotesRepository {
           id: client.id,
           nama: client.nama,
           no_telepon: client.no_telepon,
+        },
+        peserta: {
+          nama_lengkap: namaPeserta,
+          usia: pesertaSource.usia ?? client.usia ?? null,
+          jenis_kelamin: pesertaSource.jenis_kelamin || client.jenis_kelamin || null,
+          kategori_peserta: pesertaSource.kategori_peserta || null,
         },
         total_skor: totalSkor,
         detail_skor: detailSkorPayload,
