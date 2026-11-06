@@ -21,11 +21,6 @@ const KATEGORI = {
   PSIKOLOG_KLINIS: 'Psikolog Klinis',
 } as const
 
-const STATUS_PSIKOLOG = {
-  ACTIVE: 'ACTIVE',
-  INACTIVE: 'INACTIVE',
-} as const
-
 /** Tarif default per kategori (Rupiah) */
 const DEFAULT_TARIF: Record<string, number> = {
   'peer-konselor': 50_000,

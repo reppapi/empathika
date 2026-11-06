@@ -99,10 +99,11 @@ export class PsikotesRepository {
     if (item.alat_ukur) {
       const modul = getAlatUkur(item.alat_ukur.kode)
       if (modul) {
-        ;(item.alat_ukur as any).instruksi = modul.config.instruksi
-        ;(item.alat_ukur as any).instruksiSingkat = modul.config.instruksiSingkat || modul.config.instruksi
-        ;(item.alat_ukur as any).targetUsia = modul.config.targetUsia
-        ;(item.alat_ukur as any).periode = modul.config.periode
+        const alatUkurObj = item.alat_ukur as Record<string, any>
+        alatUkurObj.instruksi = modul.config.instruksi
+        alatUkurObj.instruksiSingkat = modul.config.instruksiSingkat || modul.config.instruksi
+        alatUkurObj.targetUsia = modul.config.targetUsia
+        alatUkurObj.periode = modul.config.periode
       }
     }
 
