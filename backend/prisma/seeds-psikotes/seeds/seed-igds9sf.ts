@@ -103,7 +103,7 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
 
   // 2. Produk Paket IGDS9-SF (Gratis)
   console.log('\n--- Menyemai Produk Paket IGDS9-SF (Gratis) ---')
-  const judulPaket = 'Tes Kecanduan Game | Skrining Internet Gaming Disorder'
+  const judulPaket = 'Tes Pola Bermain Game'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
@@ -121,9 +121,9 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
     harga: 0,
     banner_url: '/images/psikotes/banner-gaming-disorder.jpg',
     deskripsi:
-      'Evaluasi pola dan intensitas aktivitas bermain game kamu selama 12 bulan terakhir berdasarkan kriteria resmi DSM-5 (Pontes & Griffiths, 2015). Asesmen ini dapat digunakan untuk anak-anak, remaja, hingga dewasa.',
+      'Kenali pola dan kebiasaan bermain game kamu selama 12 bulan terakhir. Tes ini membantu memberikan gambaran mengenai sejauh mana aktivitas bermain game memengaruhi kehidupan sehari-hari, termasuk aktivitas sosial, pendidikan, pekerjaan, dan hubungan dengan orang lain.',
     tentang_tes:
-      'Internet Gaming Disorder Scale – Short-Form (IGDS9-SF) dikembangkan oleh Pontes & Griffiths pada tahun 2015 untuk menilai tingkat keparahan IGD dan efek merugikannya dengan memeriksa aktivitas bermain game online dan/atau offline selama 12 bulan terakhir. Instrumen ini mengukur 9 kriteria inti DSM-5: preokupasi, gejala putus game (withdrawal), toleransi, kehilangan kendali, penurunan minat lain, terus bermain meski bermasalah, menipu/berbohong, pelarian emosi negatif, dan risiko kehilangan relasi/karier.',
+      'Melalui tes ini, kamu dapat mengenali bagaimana kebiasaan bermain game memengaruhi kehidupan sehari-hari. Mulai dari seberapa sering kamu memikirkan game, kesulitan mengurangi waktu bermain, hingga apakah aktivitas bermain game mulai mengganggu hubungan sosial, pendidikan, pekerjaan, atau aktivitas lainnya. Hasilnya dapat membantumu lebih memahami pola bermain game dan menyadari dampaknya terhadap keseimbangan hidupmu.',
     status: 'PUBLISHED',
   }
 
