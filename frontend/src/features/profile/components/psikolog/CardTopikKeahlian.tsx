@@ -24,7 +24,7 @@ export function CardTopikKeahlian({
           Topik & Keahlian Konseling
         </h3>
         <p className="text-xs text-gray-500">
-          Tambahkan tag topik keahlian (contoh: Trauma Healing, Relasi, Depresi).
+          Tambahkan tag topik keahlian konseling.
         </p>
       </div>
 
@@ -39,7 +39,7 @@ export function CardTopikKeahlian({
               onAddSkill()
             }
           }}
-          placeholder="Tambah keahlian (contoh: Burnout & Stres)"
+          placeholder="Tambah topik keahlian..."
           className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-800 focus:border-[#561269] focus:outline-none transition"
         />
         <button

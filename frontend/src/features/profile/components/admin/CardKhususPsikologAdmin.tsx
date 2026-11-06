@@ -69,7 +69,6 @@ export function CardKhususPsikologAdmin({
               name="spesialisasi"
               value={form.spesialisasi || ""}
               onChange={onChange}
-              placeholder="Contoh: Konselor Kesehatan Mental"
               className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
             />
           </div>
@@ -97,7 +96,6 @@ export function CardKhususPsikologAdmin({
                   name="noStr"
                   value={form.noStr || ""}
                   onChange={onChange}
-                  placeholder="Contoh: STR-8921-2023"
                   className="w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
                 />
               </div>
@@ -111,7 +109,6 @@ export function CardKhususPsikologAdmin({
                   name="noSipp"
                   value={form.noSipp || ""}
                   onChange={onChange}
-                  placeholder="Contoh: SIPP-1049-2024"
                   className="w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
                 />
               </div>
@@ -136,14 +133,16 @@ export function CardKhususPsikologAdmin({
             <label className="block text-xs font-bold text-gray-700 mb-1.5">
               Pendidikan &amp; Institusi
             </label>
-            <input
-              type="text"
+            <textarea
+              rows={3}
               name="pendidikanText"
               value={form.pendidikanText || ""}
               onChange={onChange}
-              placeholder="Contoh: Sarjana Psikologi (S.Psi.) - Universitas Indonesia"
-              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+              className="w-full rounded-2xl border border-gray-200 bg-white p-3.5 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] resize-y min-h-[80px] whitespace-pre-wrap leading-relaxed transition"
             />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Tekan <strong>Enter</strong> untuk membuat baris baru jika memiliki lebih dari satu riwayat pendidikan.
+            </p>
           </div>
 
           <div className="md:col-span-2 lg:col-span-3">
@@ -190,14 +189,13 @@ export function CardKhususPsikologAdmin({
 
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1.5">
-              Durasi Video (Contoh: 01:30)
+              Durasi Video
             </label>
             <input
               type="text"
               name="videoDuration"
               value={form.videoDuration || ""}
               onChange={onChange}
-              placeholder="01:30"
               className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition font-mono"
             />
           </div>
@@ -243,7 +241,7 @@ export function CardKhususPsikologAdmin({
                   onAddSkill()
                 }
               }}
-              placeholder="Tambah keahlian (contoh: Burnout & Stres)"
+              placeholder="Tambah topik keahlian..."
               className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-800 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
             />
             <button

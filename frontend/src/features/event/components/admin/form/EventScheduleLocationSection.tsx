@@ -111,17 +111,14 @@ export function EventScheduleLocationSection({
             name="lokasi"
             type="text"
             required
-            placeholder={
-              form.tipe === "Online" ? "Google Meet / Online" : "Nama gedung, alamat venue"
-            }
             value={form.lokasi}
             onChange={handleChange}
             className={inputClass}
           />
           <span className={helperClass}>
             {form.tipe === "Online"
-              ? "Contoh: Google Meet (Online)"
-              : "Contoh: Auditorium Empathika Bandung"}
+              ? "Tulis platform pertemuan (misal: Google Meet / Zoom)"
+              : "Tulis nama tempat atau alamat gedung acara"}
           </span>
         </div>
 
@@ -134,12 +131,11 @@ export function EventScheduleLocationSection({
             name="pembicara"
             type="text"
             required
-            placeholder="Nama pembicara beserta gelar"
             value={form.pembicara}
             onChange={handleChange}
             className={inputClass}
           />
-          <span className={helperClass}>Contoh: Sarah Melani, M.Psi., Psikolog</span>
+          <span className={helperClass}>Nama pembicara beserta gelar lengkap</span>
         </div>
       </div>
     </>

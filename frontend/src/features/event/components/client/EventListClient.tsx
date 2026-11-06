@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { eventService, EventItemApi, EventDokumentasiApi } from "@/services/event.service"
@@ -10,11 +11,23 @@ import ClientDokumentasiDetailModal from "./ClientDokumentasiDetailModal"
 
 export function EventListClient() {
   const { biroPrefix } = useTenantContext()
-  const [activeTab, setActiveTab] = useState<"UPCOMING" | "PAST">("UPCOMING")
+  const searchParams = useSearchParams()
+  const tabQuery = searchParams.get("tab")
+  const [activeTab, setActiveTab] = useState<"UPCOMING" | "PAST">(
+    tabQuery?.toLowerCase() === "past" ? "PAST" : "UPCOMING"
+  )
   const [events, setEvents] = useState<EventItemApi[]>([])
   const [dokumentasiList, setDokumentasiList] = useState<EventDokumentasiApi[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [selectedDokumentasi, setSelectedDokumentasi] = useState<EventDokumentasiApi | null>(null)
+
+  useEffect(() => {
+    if (tabQuery?.toLowerCase() === "past") {
+      setActiveTab("PAST")
+    } else if (tabQuery?.toLowerCase() === "upcoming") {
+      setActiveTab("UPCOMING")
+    }
+  }, [tabQuery])
 
   useEffect(() => {
     async function fetchData() {

@@ -107,10 +107,9 @@ export default function AdminTambahBlogClient() {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Masukan judul blog baru"
                 className={inputClass}
               />
-              <span className={helperClass}>Masukan judul blog baru</span>
+              <span className={helperClass}>Masukan judul artikel blog</span>
             </div>
 
             {/* Kanan: Tanggal Publikasi */}
@@ -169,10 +168,9 @@ export default function AdminTambahBlogClient() {
               rows={8}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Masukan isi blog baru"
               className={`${inputClass} resize-y leading-relaxed font-normal`}
             />
-            <span className={helperClass}>Masukan isi blog baru</span>
+            <span className={helperClass}>Tuliskan konten lengkap artikel blog</span>
           </div>
 
           {/* ── Baris 3: Foto/Poster ── */}

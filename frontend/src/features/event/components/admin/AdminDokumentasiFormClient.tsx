@@ -228,7 +228,6 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
             required
             value={judul}
             onChange={(e) => setJudul(e.target.value)}
-            placeholder="Contoh: #TemanCerita Experience untuk Festival Taman Kota"
             className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all placeholder:text-gray-400 font-medium"
           />
         </div>

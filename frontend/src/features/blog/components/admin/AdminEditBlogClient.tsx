@@ -155,10 +155,9 @@ export default function AdminEditBlogClient({ slug }: Props) {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Masukan judul blog"
                 className={inputClass}
               />
-              <span className={helperClass}>Masukan judul blog baru</span>
+              <span className={helperClass}>Masukan judul artikel blog</span>
             </div>
 
             <div>
@@ -216,10 +215,9 @@ export default function AdminEditBlogClient({ slug }: Props) {
               rows={8}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Masukan isi blog"
               className={`${inputClass} resize-y leading-relaxed font-normal`}
             />
-            <span className={helperClass}>Masukan isi blog</span>
+            <span className={helperClass}>Tuliskan konten lengkap artikel blog</span>
           </div>
 
           {/* ── Baris 3: Foto/Poster ── */}
