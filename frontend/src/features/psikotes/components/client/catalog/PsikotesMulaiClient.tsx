@@ -162,10 +162,10 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const currentQuestion = questions[currentIndex] || questions[0];
   const progressPercentage = ((currentIndex + 1) / totalQuestions) * 100;
 
-  // Periode evaluasi alat ukur klinis:
-  // IGDS9-SF mengevaluasi 12 bulan terakhir
-  // DASS-42 mengevaluasi 1 minggu terakhir
-  // GAD-7 & PHQ-9 mengevaluasi 2 minggu terakhir
+  // Instruksi / Timeframe dinamis per instrumen psikotes:
+  // 1. Prioritaskan instruksiSingkat dari metadata alat ukur backend
+  // 2. Deteksi kode instrumen baku (IGDS: 12 bulan, DASS: 1 minggu, PHQ/GAD: 2 minggu)
+  // 3. Fallback netral untuk tes umum: "Pilihlah opsi yang paling menggambarkan kondisimu:"
   const isIGDS =
     dbData?.alat_ukur?.kode?.toUpperCase().includes("IGDS") ||
     dbData?.judul?.toUpperCase().includes("IGDS") ||
@@ -178,11 +178,25 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     dbData?.judul?.toUpperCase().includes("DASS") ||
     params.testId.toLowerCase().includes("dass");
 
-  const timeframeText = isIGDS
-    ? "Dalam 12 bulan terakhir, seberapa sering kamu:"
-    : isDASS
-    ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
-    : "Dalam 2 minggu terakhir, seberapa sering kamu:";
+  const isPHQ =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
+    dbData?.judul?.toUpperCase().includes("PHQ") ||
+    params.testId.toLowerCase().includes("phq");
+
+  const isGAD =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("GAD") ||
+    dbData?.judul?.toUpperCase().includes("GAD") ||
+    params.testId.toLowerCase().includes("gad");
+
+  const timeframeText =
+    dbData?.alat_ukur?.instruksiSingkat ||
+    (isIGDS
+      ? "Dalam 12 bulan terakhir, seberapa sering kamu:"
+      : isDASS
+      ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
+      : isPHQ || isGAD
+      ? "Dalam 2 minggu terakhir, seberapa sering kamu:"
+      : "Pilihlah opsi yang paling menggambarkan kondisimu:");
 
   const isLastQuestion = currentIndex === totalQuestions - 1;
 

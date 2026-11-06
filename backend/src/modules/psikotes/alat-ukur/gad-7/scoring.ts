@@ -41,10 +41,15 @@ const DIFFICULTY_MAP: Record<number, string> = {
 };
 
 export function calculateGAD7(jawabanPeserta: Record<number | string, number | string>): GAD7CalculationResult {
+  // Toleransi format index: 1-based (1..7) maupun 0-based (0..6)
+  const numKeys = Object.keys(jawabanPeserta).map(Number);
+  const isZeroBased = numKeys.includes(0) && !numKeys.includes(7);
+
   // 1. Hitung total skor dari 7 butir pertanyaan pokok (nilai 0 - 3 per butir)
   let totalSkor = 0;
   for (let no = 1; no <= 7; no++) {
-    const rawVal = jawabanPeserta[no] ?? jawabanPeserta[String(no)];
+    const key = isZeroBased ? no - 1 : no;
+    const rawVal = jawabanPeserta[key] ?? jawabanPeserta[String(key)];
     const val = Number(rawVal);
     if (!isNaN(val)) {
       totalSkor += Math.max(0, Math.min(3, val));

@@ -9,6 +9,7 @@ import type {
   CreateBookingPsikotesInput,
 } from './psikotes.schema'
 import {
+  getAlatUkur,
   hitungSkorAlatUkur,
 } from './alat-ukur'
 
@@ -93,6 +94,17 @@ export class PsikotesRepository {
     })
 
     if (!item) return null
+
+    // Lengkapi metadata dinamis alat ukur (instruksi, target usia, periode)
+    if (item.alat_ukur) {
+      const modul = getAlatUkur(item.alat_ukur.kode)
+      if (modul) {
+        ;(item.alat_ukur as any).instruksi = modul.config.instruksi
+        ;(item.alat_ukur as any).instruksiSingkat = modul.config.instruksiSingkat || modul.config.instruksi
+        ;(item.alat_ukur as any).targetUsia = modul.config.targetUsia
+        ;(item.alat_ukur as any).periode = modul.config.periode
+      }
+    }
 
     return item
   }

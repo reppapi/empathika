@@ -38,8 +38,13 @@ export function calculateIGDS9SF(
   let kriteriaSangatSering = 0; // Skor 5
   let kriteriaSering = 0;       // Skor 4
 
+  // Toleransi format index: 1-based (1..9) maupun 0-based (0..8)
+  const numKeys = Object.keys(jawabanPeserta).map(Number);
+  const isZeroBased = numKeys.includes(0) && !numKeys.includes(9);
+
   for (let no = 1; no <= 9; no++) {
-    const rawVal = jawabanPeserta[no] ?? jawabanPeserta[String(no)];
+    const key = isZeroBased ? no - 1 : no;
+    const rawVal = jawabanPeserta[key] ?? jawabanPeserta[String(key)];
     const val = Number(rawVal);
     // Skala Likert 1–5 per butir
     const scoreVal = !isNaN(val) && val >= 1 && val <= 5 ? val : 1;
