@@ -68,6 +68,7 @@ export default function AdminPsikotesClient() {
           jenisKelamin: it.jenis_kelamin,
           totalSkor: it.total_skor,
           hasil: it.hasil,
+          peserta: it.peserta,
         }));
         setPesertaList(mapped);
       }

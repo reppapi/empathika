@@ -216,15 +216,28 @@ classDiagram
         +string no_telepon
         +int usia
         +string jenis_kelamin
+        +dateTime createdAt
+        +dateTime updatedAt
+        +lihatHasilTes()
+        +lihatRiwayatBooking()
+    }
+
+    class PesertaPsikotes {
+        +string id_PK
+        +string id_booking_FK
+        +string nama_lengkap
+        +string jenis_kelamin
         +string tempat_lahir
         +dateTime tanggal_lahir
+        +int usia
+        +string kategori_peserta
+        +string nama_orang_tua
+        +string no_telepon_orang_tua
         +string pendidikan
         +string pekerjaan
         +string status_pernikahan
         +dateTime createdAt
         +dateTime updatedAt
-        +lihatHasilTes()
-        +lihatRiwayatBooking()
     }
 
     class Biro {
@@ -685,7 +698,8 @@ classDiagram
    - `PaketPsikotes`: Menambahkan relasi `id_alat_ukur String? (nullable)` ke master `AlatUkur`.
    - `BookingPsikotes`: Menambahkan kolom `riwayat_kesehatan Json?` untuk menampung isian skrining medis/psikologis pra-tes klien.
    - `HasilTes`: Mengubah kolom `id_interpretasi` menjadi **nullable (`String?`)** dan menambahkan kolom `snapshot_jawaban Json?` untuk membekukan jawaban peserta secara permanen (immutable audit).
-   - `Client`: Menambahkan kolom demografis kependudukan/klien: `tempat_lahir String?`, `tanggal_lahir DateTime?`, `pendidikan String?`, `pekerjaan String?`, dan `status_pernikahan String?` agar profil demografis tersimpan terpusat dan dapat digunakan lintas layanan.
+   - `Client`: Menyimpan data pembeli/kontak klien: `nama`, `no_telepon`, `usia`, `jenis_kelamin`, `createdAt`, `updatedAt`.
+   - `PesertaPsikotes`: Dibuatkan tabel khusus `peserta_psikotes` untuk memisahkan peran pembeli (`Client`) dengan peserta tes psikotes (Anak, Remaja, Dewasa) dengan atribut: `id`, `id_booking @unique`, `nama_lengkap`, `jenis_kelamin`, `tempat_lahir`, `tanggal_lahir`, `usia`, `kategori_peserta`, `nama_orang_tua`, `no_telepon_orang_tua`, `pendidikan`, `pekerjaan`, `status_pernikahan`, `createdAt`, `updatedAt`.
 12. **Enum `TipeTransaksi` (Discriminator / Label Struk)**:
     - Mendefinisikan enum baru `enum TipeTransaksi { KONSULTASI, EVENT, PSIKOTES }` sebagai label penanda transaksi pada struk pembayaran dan pembeda relasi polimorfik tanpa perlu query join bertingkat.
 13. **Enum `StatusPengirimanInvoice`**:
@@ -712,7 +726,7 @@ classDiagram
    - `BookingKonsultasi`: `id_transaksi String? (nullable untuk sesi mandiri admin / walk-in)`, `metode String ("ONLINE" | "OFFLINE")`, `deskripsi_trauma String?` (menampung keluhan awal konsultasi maupun catatan pengajuan asesmen terstandar tanpa pemilihan psikolog oleh klien), `createdAt`, `updatedAt`.
    - `ArtikelBlog`: `banner_url String?`, `createdAt`, `updatedAt`.
    - `BookingEvent`: `kode_tiket String @unique`, `status StatusBooking @default(PENDING)`, `createdAt`, `updatedAt`.
-   - `Client`: `no_telepon String?`, `usia Int?`, `jenis_kelamin String?`, `tempat_lahir String?`, `tanggal_lahir DateTime?`, `pendidikan String?`, `pekerjaan String?`, `status_pernikahan String?`, `createdAt`, `updatedAt`.
+   - `Client`: `no_telepon String?`, `usia Int?`, `jenis_kelamin String?`, `createdAt`, `updatedAt`.
    - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `video_intro_url String?`, `video_thumbnail String?`, `video_duration String?`, `profil_lengkap String? @db.Text`, `createdAt`, `updatedAt`.
    - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")`, `metode String @default("ONLINE")` ("ONLINE" | "OFFLINE"), `createdAt`, `updatedAt`.
    - `Biro`: `deskripsi String? @db.Text`, `no_telepon String?`, `website_url String?`, `status StatusBiro @default(PENDING)`, `createdAt`, `updatedAt`.

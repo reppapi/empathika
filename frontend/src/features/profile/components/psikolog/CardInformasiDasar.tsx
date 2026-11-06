@@ -120,7 +120,6 @@ export function CardInformasiDasar({
             value={form.nama}
             onChange={onChange}
             required
-            placeholder="contoh: Dr. Jane Doe, M.Psi., Psikolog"
             className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
           />
         </div>
@@ -135,11 +134,10 @@ export function CardInformasiDasar({
             value={form.noTelepon}
             onChange={onChange}
             required
-            placeholder="081234567890"
             className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 transition focus:border-[#561269] focus:outline-none"
           />
           <p className="text-[11px] text-gray-400 mt-1">
-            Wajib diawali dengan 08 (contoh: 081234567890).
+            Wajib diawali dengan 08 (10-14 digit angka).
           </p>
         </div>
 
@@ -152,7 +150,6 @@ export function CardInformasiDasar({
             name="spesialisasi"
             value={form.spesialisasi || ""}
             onChange={onChange}
-            placeholder="Contoh: Hubungan Keluarga, Kecemasan, Remaja"
             className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
           />
         </div>
@@ -166,7 +163,6 @@ export function CardInformasiDasar({
             name="pendidikanText"
             value={form.pendidikanText || ""}
             onChange={onChange}
-            placeholder="Contoh:&#10;S1 Psikologi - Universitas Padjadjaran (2015 - 2019)&#10;S2 Magister Psikologi Profesi - Universitas Gadjah Mada (2020 - 2022)"
             className="w-full rounded-2xl border border-gray-200 p-3.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-y min-h-[80px] whitespace-pre-wrap leading-relaxed transition"
           />
           <p className="text-[11px] text-gray-400 mt-1">
