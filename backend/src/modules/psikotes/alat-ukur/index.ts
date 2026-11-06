@@ -10,6 +10,10 @@ import { DASS42_CONFIG } from "./dass-42/config";
 import { DASS42_QUESTIONS, DASS42_OPTIONS } from "./dass-42/questions";
 import { calculateDASS42, DASS42CalculationResult, DASS42_LEVELS } from "./dass-42/scoring";
 
+import { IGDS9SF_CONFIG } from "./igds9-sf/config";
+import { IGDS9SF_QUESTIONS, IGDS9SF_OPTIONS } from "./igds9-sf/questions";
+import { calculateIGDS9SF, IGDS9SFCalculationResult, IGDS9SF_LEVELS } from "./igds9-sf/scoring";
+
 export interface AlatUkurModule {
   config: {
     kode: string;
@@ -57,6 +61,20 @@ const registry: Record<string, AlatUkurModule> = {
     options: DASS42_OPTIONS,
     levels: DASS42_LEVELS,
     calculate: calculateDASS42,
+  },
+  "IGDS9-SF": {
+    config: IGDS9SF_CONFIG,
+    questions: IGDS9SF_QUESTIONS,
+    options: IGDS9SF_OPTIONS,
+    levels: IGDS9SF_LEVELS,
+    calculate: calculateIGDS9SF,
+  },
+  "IGDS9SF": {
+    config: IGDS9SF_CONFIG,
+    questions: IGDS9SF_QUESTIONS,
+    options: IGDS9SF_OPTIONS,
+    levels: IGDS9SF_LEVELS,
+    calculate: calculateIGDS9SF,
   },
 };
 
