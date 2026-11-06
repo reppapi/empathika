@@ -108,6 +108,47 @@ export default function ModalDetailPeserta({
             </div>
           </div>
 
+          {/* Data Tambahan Profil Peserta (Anak / Remaja / Dewasa) */}
+          {peserta.peserta && (peserta.peserta.nama_orang_tua || peserta.peserta.pendidikan || peserta.peserta.pekerjaan || peserta.peserta.kategori_peserta) && (
+            <div className="p-4 rounded-2xl bg-purple-50/40 border border-purple-100/60 text-xs space-y-2">
+              <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider block">
+                Profil Peserta Tes {peserta.peserta.kategori_peserta ? `(${peserta.peserta.kategori_peserta})` : ""}
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {peserta.peserta.nama_orang_tua && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">Nama Orang Tua / Wali</span>
+                    <span className="font-semibold text-gray-800">{peserta.peserta.nama_orang_tua}</span>
+                  </div>
+                )}
+                {peserta.peserta.no_telepon_orang_tua && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">No. HP Orang Tua</span>
+                    <span className="font-semibold text-gray-800">{peserta.peserta.no_telepon_orang_tua}</span>
+                  </div>
+                )}
+                {peserta.peserta.pendidikan && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">Pendidikan</span>
+                    <span className="font-semibold text-gray-800">{peserta.peserta.pendidikan}</span>
+                  </div>
+                )}
+                {peserta.peserta.pekerjaan && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">Pekerjaan</span>
+                    <span className="font-semibold text-gray-800">{peserta.peserta.pekerjaan}</span>
+                  </div>
+                )}
+                {peserta.peserta.status_pernikahan && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">Status Pernikahan</span>
+                    <span className="font-semibold text-gray-800">{peserta.peserta.status_pernikahan}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {!isCompleted ? (
             <div className="p-6 rounded-2xl bg-amber-50/60 border border-amber-200 text-center space-y-3">
               <Clock className="w-8 h-8 text-amber-600 mx-auto" />

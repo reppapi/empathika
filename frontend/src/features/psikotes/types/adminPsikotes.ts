@@ -92,6 +92,20 @@ export type AdminPsikotesPeserta = {
     tips?: any;
     tanggal_selesai?: string;
   } | null;
+  peserta?: {
+    id?: string;
+    nama_lengkap?: string;
+    jenis_kelamin?: string;
+    tempat_lahir?: string | null;
+    tanggal_lahir?: string | null;
+    usia?: number | null;
+    kategori_peserta?: string | null;
+    nama_orang_tua?: string | null;
+    no_telepon_orang_tua?: string | null;
+    pendidikan?: string | null;
+    pekerjaan?: string | null;
+    status_pernikahan?: string | null;
+  } | null;
 };
 
 export type AdminPsikotesPaketListItem = {
