@@ -162,17 +162,41 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const currentQuestion = questions[currentIndex] || questions[0];
   const progressPercentage = ((currentIndex + 1) / totalQuestions) * 100;
 
-  // Periode evaluasi alat ukur klinis:
-  // DASS-42 mengevaluasi 1 minggu terakhir
-  // GAD-7 & PHQ-9 mengevaluasi 2 minggu terakhir
+  // Instruksi / Timeframe dinamis per instrumen psikotes:
+  // 1. Prioritaskan instruksiSingkat dari metadata alat ukur backend
+  // 2. Deteksi kode instrumen baku (IGDS: 12 bulan, DASS: 1 minggu, PHQ/GAD: 2 minggu)
+  // 3. Fallback netral untuk tes umum: "Pilihlah opsi yang paling menggambarkan kondisimu:"
+  const isIGDS =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("IGDS") ||
+    dbData?.judul?.toUpperCase().includes("IGDS") ||
+    dbData?.judul?.toUpperCase().includes("GAMING") ||
+    params.testId.toLowerCase().includes("igds") ||
+    params.testId.toLowerCase().includes("gaming");
+
   const isDASS =
     dbData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
     dbData?.judul?.toUpperCase().includes("DASS") ||
     params.testId.toLowerCase().includes("dass");
 
-  const timeframeText = isDASS
-    ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
-    : "Dalam 2 minggu terakhir, seberapa sering kamu:";
+  const isPHQ =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
+    dbData?.judul?.toUpperCase().includes("PHQ") ||
+    params.testId.toLowerCase().includes("phq");
+
+  const isGAD =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("GAD") ||
+    dbData?.judul?.toUpperCase().includes("GAD") ||
+    params.testId.toLowerCase().includes("gad");
+
+  const timeframeText =
+    dbData?.alat_ukur?.instruksiSingkat ||
+    (isIGDS
+      ? "Dalam 12 bulan terakhir, seberapa sering kamu:"
+      : isDASS
+      ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
+      : isPHQ || isGAD
+      ? "Dalam 2 minggu terakhir, seberapa sering kamu:"
+      : "Pilihlah opsi yang paling menggambarkan kondisimu:");
 
   const isLastQuestion = currentIndex === totalQuestions - 1;
 
@@ -303,6 +327,13 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (subs.depression?.skor !== undefined) query.set("dep", String(subs.depression.skor));
           if (subs.anxiety?.skor !== undefined) query.set("anx", String(subs.anxiety.skor));
           if (subs.stress?.skor !== undefined) query.set("str", String(subs.stress.skor));
+        }
+
+        // Jika ada data evaluasi DSM (IGDS9-SF), simpan ke URL
+        if (res.data.detail_skor?.dsmEvaluation) {
+          const dsm = res.data.detail_skor.dsmEvaluation;
+          if (dsm.kriteriaSangatSering !== undefined) query.set("dsm5", String(dsm.kriteriaSangatSering));
+          if (dsm.isIndikasiEvaluasi) query.set("dsmAlert", "1");
         }
 
         // Protokol Krisis / Melukai Diri HANYA berlaku untuk instrumen PHQ-9 (Butir 9).

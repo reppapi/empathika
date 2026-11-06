@@ -77,7 +77,8 @@ export function buildActivationMeta(account: AccountActivationFields | null | un
 
 export function withActivationAccount<T extends Record<string, any>>(account: T | null | undefined) {
   if (!account) return account
-  const { password: _password, ...rest } = account
+  const rest = { ...account }
+  delete rest.password
   return {
     ...rest,
     ...buildActivationMeta(account),

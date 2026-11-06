@@ -10,10 +10,7 @@ import type {
 } from './psikotes.schema'
 import {
   getAlatUkur,
-  getSoalDanOpsiAlatUkur,
   hitungSkorAlatUkur,
-  formatSoalPsikotesForAlatUkur,
-  formatInterpretasiForAlatUkur,
 } from './alat-ukur'
 
 export class PsikotesRepository {
@@ -65,18 +62,6 @@ export class PsikotesRepository {
       orderBy: { createdAt: 'desc' },
     })
 
-    // Jika paket terhubung dengan alat ukur baku (Code-First), lengkapi butir soal & interpretasi
-    for (const item of rawList) {
-      if (item.alat_ukur) {
-        if (!item.soal_psikotes || item.soal_psikotes.length === 0) {
-          item.soal_psikotes = formatSoalPsikotesForAlatUkur(item.id, item.alat_ukur.kode) as any
-        }
-        if (!item.interpretasi_psikotes || item.interpretasi_psikotes.length === 0) {
-          item.interpretasi_psikotes = formatInterpretasiForAlatUkur(item.id, item.alat_ukur.kode) as any
-        }
-      }
-    }
-
     // Kembalikan data paket apa adanya (1 paket = 1 jenis akses mandiri)
     return rawList
   }
@@ -110,13 +95,15 @@ export class PsikotesRepository {
 
     if (!item) return null
 
-    // Jika paket terhubung dengan alat ukur baku (Code-First), lengkapi butir soal & interpretasi
+    // Lengkapi metadata dinamis alat ukur (instruksi, target usia, periode)
     if (item.alat_ukur) {
-      if (!item.soal_psikotes || item.soal_psikotes.length === 0) {
-        item.soal_psikotes = formatSoalPsikotesForAlatUkur(item.id, item.alat_ukur.kode) as any
-      }
-      if (!item.interpretasi_psikotes || item.interpretasi_psikotes.length === 0) {
-        item.interpretasi_psikotes = formatInterpretasiForAlatUkur(item.id, item.alat_ukur.kode) as any
+      const modul = getAlatUkur(item.alat_ukur.kode)
+      if (modul) {
+        const alatUkurObj = item.alat_ukur as Record<string, any>
+        alatUkurObj.instruksi = modul.config.instruksi
+        alatUkurObj.instruksiSingkat = modul.config.instruksiSingkat || modul.config.instruksi
+        alatUkurObj.targetUsia = modul.config.targetUsia
+        alatUkurObj.periode = modul.config.periode
       }
     }
 
@@ -436,16 +423,6 @@ export class PsikotesRepository {
 
       if (!paket) {
         throw new Error('Paket psikotes tidak ditemukan')
-      }
-
-      // Jika paket terhubung dengan alat ukur baku (Code-First), lengkapi butir soal & interpretasi
-      if (paket.alat_ukur) {
-        if (!paket.soal_psikotes || paket.soal_psikotes.length === 0) {
-          paket.soal_psikotes = formatSoalPsikotesForAlatUkur(paket.id, paket.alat_ukur.kode) as any
-        }
-        if (!paket.interpretasi_psikotes || paket.interpretasi_psikotes.length === 0) {
-          paket.interpretasi_psikotes = formatInterpretasiForAlatUkur(paket.id, paket.alat_ukur.kode) as any
-        }
       }
 
       // 2. Normalisasi format jawaban (baik array [{ id_soal, id_pilihan }] maupun record { [id_soal]: id_pilihan })

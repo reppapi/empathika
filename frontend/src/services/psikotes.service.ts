@@ -16,6 +16,10 @@ export interface PaketPsikotesApiResponse {
     kode: string
     nama: string
     kategori: string
+    instruksi?: string
+    instruksiSingkat?: string
+    targetUsia?: string
+    periode?: string
   } | null
   soal_psikotes?: Array<{
     id: string

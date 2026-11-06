@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { EventController } from './event.controller'
 import { DokumentasiController } from './dokumentasi.controller'
-import { authGuard } from '../../middlewares/auth-guard'
 import { adminGuard } from '../../middlewares/admin-guard'
 import {
   eventIdParamSchema,
