@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { EventListClient } from "@/features/event/components/client/EventListClient"
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 }
 
 export default function EventPage() {
-  return <EventListClient />
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFBF9] pt-28" />}>
+      <EventListClient />
+    </Suspense>
+  )
 }

@@ -8,7 +8,11 @@ import { passwordChangeFormSchema } from "@/schemas/account-settings.schema"
 import { accountSettingsService } from "@/services/account-settings.service"
 import { removeAuthCookie } from "@/lib/cookie"
 
-export function FormGantiPassword() {
+interface FormGantiPasswordProps {
+  hideHeader?: boolean
+}
+
+export function FormGantiPassword({ hideHeader = false }: FormGantiPasswordProps) {
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
@@ -69,16 +73,18 @@ export function FormGantiPassword() {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 font-poppins">
-      <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
-        <div className="p-2.5 rounded-xl bg-purple-50 text-[#561269]">
-          <Lock className="w-5 h-5" />
+    <div className={hideHeader ? "font-poppins" : "bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 font-poppins"}>
+      {!hideHeader && (
+        <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
+          <div className="p-2.5 rounded-xl bg-purple-50 text-[#561269]">
+            <Lock className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Perbarui Kata Sandi</h2>
+            <p className="text-xs text-gray-500">Pastikan menggunakan kombinasi kata sandi yang aman dan tidak mudah ditebak</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">Perbarui Kata Sandi</h2>
-          <p className="text-xs text-gray-500">Pastikan menggunakan kombinasi kata sandi yang aman dan tidak mudah ditebak</p>
-        </div>
-      </div>
+      )}
 
       {errorMessage && (
         <div className="mb-5 flex items-start gap-2.5 rounded-xl bg-red-50 p-3.5 text-xs text-red-700 border border-red-200">

@@ -43,7 +43,6 @@ export function CardLegalitasPraktik({ form, onChange }: CardLegalitasPraktikPro
               name="noStr"
               value={form.noStr || ""}
               onChange={onChange}
-              placeholder="Contoh: STR-8921-2023"
               className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
             />
           </div>
@@ -56,7 +55,6 @@ export function CardLegalitasPraktik({ form, onChange }: CardLegalitasPraktikPro
               name="noSipp"
               value={form.noSipp || ""}
               onChange={onChange}
-              placeholder="Contoh: SIPP-1049-2024"
               className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
             />
           </div>
@@ -86,11 +84,10 @@ export function CardLegalitasPraktik({ form, onChange }: CardLegalitasPraktikPro
             name="noStr"
             value={form.noStr || ""}
             onChange={onChange}
-            placeholder="Contoh: STR-8921-2023"
             className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
           />
           <p className="text-[11px] text-purple-600/70 mt-1">
-            Format resmi diawali dengan &apos;STR&apos; (contoh: STR-8921-2023).
+            Format resmi diawali dengan &apos;STR&apos;.
           </p>
         </div>
 
@@ -103,11 +100,10 @@ export function CardLegalitasPraktik({ form, onChange }: CardLegalitasPraktikPro
             name="noSipp"
             value={form.noSipp || ""}
             onChange={onChange}
-            placeholder="Contoh: SIPP-1049-2024"
             className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
           />
           <p className="text-[11px] text-purple-600/70 mt-1">
-            Format resmi diawali dengan &apos;SIPP&apos; (contoh: SIPP-1049-2024).
+            Format resmi diawali dengan &apos;SIPP&apos;.
           </p>
         </div>
 
@@ -120,11 +116,10 @@ export function CardLegalitasPraktik({ form, onChange }: CardLegalitasPraktikPro
             name="noSilp"
             value={form.noSilp || ""}
             onChange={onChange}
-            placeholder="Contoh: SILP-2024-001"
             className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:border-[#561269] focus:outline-none"
           />
           <p className="text-[11px] text-purple-600/70 mt-1">
-            Format resmi diawali dengan &apos;SILP&apos; (contoh: SILP-2024-001).
+            Format resmi diawali dengan &apos;SILP&apos;.
           </p>
         </div>
       </div>

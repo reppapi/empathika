@@ -67,7 +67,7 @@ export function AdminCredentialSection({ email }: AdminCredentialSectionProps) {
           } overflow-hidden`}
         >
           <div className="px-5 pb-5 pt-1 border-t border-gray-100">
-            <FormGantiEmail initialEmail={email} />
+            <FormGantiEmail initialEmail={email} hideHeader />
           </div>
         </div>
       </div>
@@ -115,7 +115,7 @@ export function AdminCredentialSection({ email }: AdminCredentialSectionProps) {
           } overflow-hidden`}
         >
           <div className="px-5 pb-5 pt-1 border-t border-gray-100">
-            <FormGantiPassword />
+            <FormGantiPassword hideHeader />
           </div>
         </div>
       </div>

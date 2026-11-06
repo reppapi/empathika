@@ -8,9 +8,10 @@ import { emailChangeFormSchema } from "@/schemas/account-settings.schema"
 
 interface FormGantiEmailProps {
   initialEmail?: string
+  hideHeader?: boolean
 }
 
-export function FormGantiEmail({ initialEmail = "" }: FormGantiEmailProps) {
+export function FormGantiEmail({ initialEmail = "", hideHeader = false }: FormGantiEmailProps) {
   const [currentEmail, setCurrentEmail] = useState(initialEmail)
   const [newEmail, setNewEmail] = useState("")
   const [currentPassword, setCurrentPassword] = useState("")
@@ -87,16 +88,18 @@ export function FormGantiEmail({ initialEmail = "" }: FormGantiEmailProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 font-poppins">
-      <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
-        <div className="p-2.5 rounded-xl bg-purple-50 text-[#561269]">
-          <Mail className="w-5 h-5" />
+    <div className={hideHeader ? "font-poppins" : "bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 font-poppins"}>
+      {!hideHeader && (
+        <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
+          <div className="p-2.5 rounded-xl bg-purple-50 text-[#561269]">
+            <Mail className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Pengaturan Alamat Email</h2>
+            <p className="text-xs text-gray-500">Perbarui alamat email akun login Psikolog Anda</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">Pengaturan Alamat Email</h2>
-          <p className="text-xs text-gray-500">Perbarui alamat email akun login Psikolog Anda</p>
-        </div>
-      </div>
+      )}
 
       {/* Status Pending Banner */}
       {pendingData && (
