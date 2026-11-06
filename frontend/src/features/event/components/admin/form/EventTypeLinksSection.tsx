@@ -51,7 +51,6 @@ export function EventTypeLinksSection({
               name="linkMeet"
               type="url"
               required={form.tipe === "Online"}
-              placeholder="https://meet.google.com/xxx-xxxx-xxx"
               value={form.linkMeet}
               onChange={handleChange}
               className={`${inputClass} ${errors.linkMeet ? "border-red-400 bg-red-50/20" : ""}`}
@@ -62,7 +61,7 @@ export function EventTypeLinksSection({
               </span>
             ) : (
               <span className={helperClass}>
-                Generate link secara manual dan tempelkan di sini (hanya untuk peserta yang telah lunas)
+                Tempelkan link Google Meet (hanya untuk peserta yang telah lunas)
               </span>
             )}
           </div>
@@ -78,7 +77,6 @@ export function EventTypeLinksSection({
             name="linkWa"
             type="url"
             required
-            placeholder="https://chat.whatsapp.com/invite/xxxx"
             value={form.linkWa}
             onChange={handleChange}
             className={`${inputClass} ${errors.linkWa ? "border-red-400 bg-red-50/20" : ""}`}

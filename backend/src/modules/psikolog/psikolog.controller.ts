@@ -7,6 +7,7 @@ import type {
   CreatePsikologInput,
   UpdatePsikologInput,
   UpdatePsikologProfileInput,
+  RegisterPsikologBaruInput,
 } from './psikolog.schema'
 
 export class PsikologController {
@@ -172,7 +173,7 @@ export class PsikologController {
   }
 
   registerPsikologBaru = async (
-    request: FastifyRequest<{ Body: any }>,
+    request: FastifyRequest<{ Body: RegisterPsikologBaruInput }>,
     reply: FastifyReply
   ) => {
     try {

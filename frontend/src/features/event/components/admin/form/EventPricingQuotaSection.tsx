@@ -61,7 +61,6 @@ export function EventPricingQuotaSection({
           name="hargaCoret"
           type="number"
           min={0}
-          placeholder="Misal: 150000"
           value={form.hargaCoret}
           onChange={handleChange}
           className={`${inputClass} ${errors.hargaCoret ? "border-red-400 bg-red-50/20" : ""}`}

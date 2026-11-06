@@ -393,7 +393,6 @@ export default function AdminEventFormClient({ eventId }: Props) {
               name="judul"
               type="text"
               required
-              placeholder="Contoh: Workshop SEFT Batch 4: Bebas Stres & Trauma"
               value={form.judul}
               onChange={handleChange}
               className={inputClass}

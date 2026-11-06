@@ -405,7 +405,6 @@ export default function AdminTambahPsikologClient() {
                 required
                 value={nama}
                 onChange={(e) => setNama(e.target.value)}
-                placeholder="Contoh: Anindita Sari, M.Psi., Psikolog"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#561269] focus:outline-none"
               />
             </div>
@@ -423,7 +422,6 @@ export default function AdminTambahPsikologClient() {
                   if (formErrorAlert) setFormErrorAlert(null)
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
-                placeholder="081234567890"
                 className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
                   noTeleponError
                     ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
@@ -439,7 +437,7 @@ export default function AdminTambahPsikologClient() {
                 </p>
               ) : (
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Wajib diawali dengan 08 (contoh: 081234567890, 10-14 digit angka).
+                  Wajib diawali dengan 08 (10-14 digit angka).
                 </p>
               )}
             </div>
@@ -452,22 +450,23 @@ export default function AdminTambahPsikologClient() {
                 type="text"
                 value={spesialisasi}
                 onChange={(e) => setSpesialisasi(e.target.value)}
-                placeholder="Contoh: Hubungan Keluarga, Kecemasan, Remaja"
                 className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#561269] focus:outline-none"
               />
             </div>
 
-            <div>
+            <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Riwayat Pendidikan
               </label>
-              <input
-                type="text"
+              <textarea
+                rows={3}
                 value={pendidikanText}
                 onChange={(e) => setPendidikanText(e.target.value)}
-                placeholder="Contoh: S2 Psikologi - Universitas Indonesia"
-                className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#561269] focus:outline-none"
+                className="w-full rounded-2xl border border-gray-200 p-3.5 text-sm text-gray-800 focus:border-[#561269] focus:outline-none resize-y min-h-[80px] whitespace-pre-wrap leading-relaxed transition"
               />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Tekan <strong>Enter</strong> untuk membuat baris baru jika memiliki lebih dari satu riwayat pendidikan.
+              </p>
             </div>
 
             <div className="sm:col-span-2">
@@ -536,7 +535,6 @@ export default function AdminTambahPsikologClient() {
                   if (formErrorAlert) setFormErrorAlert(null)
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
-                placeholder="contoh: psikolog@gmail.com"
                 className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
                   emailError
                     ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
@@ -723,7 +721,6 @@ export default function AdminTambahPsikologClient() {
                     if (formErrorAlert) setFormErrorAlert(null)
                   }}
                   onBlur={() => setTouched((prev) => ({ ...prev, noStr: true }))}
-                  placeholder="Contoh: STR-8921-2023"
                   className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${
                     noStrError
                       ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
@@ -739,7 +736,7 @@ export default function AdminTambahPsikologClient() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-purple-600/70 mt-1">
-                    Format resmi wajib diawali dengan &apos;STR&apos; (contoh: STR-8921-2023).
+                    Format resmi wajib diawali dengan &apos;STR&apos;.
                   </p>
                 )}
               </div>
@@ -756,7 +753,6 @@ export default function AdminTambahPsikologClient() {
                     if (formErrorAlert) setFormErrorAlert(null)
                   }}
                   onBlur={() => setTouched((prev) => ({ ...prev, noSipp: true }))}
-                  placeholder="Contoh: SIPP-1049-2024"
                   className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${
                     noSippError
                       ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
@@ -789,7 +785,6 @@ export default function AdminTambahPsikologClient() {
                     if (formErrorAlert) setFormErrorAlert(null)
                   }}
                   onBlur={() => setTouched((prev) => ({ ...prev, noSilp: true }))}
-                  placeholder="Contoh: SILP-2024-001"
                   className={`w-full rounded-2xl border bg-white px-4 py-2.5 text-sm font-mono text-gray-800 transition focus:outline-none ${
                     noSilpError
                       ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
@@ -820,7 +815,7 @@ export default function AdminTambahPsikologClient() {
               Topik & Keahlian Konseling
             </h3>
             <p className="text-xs text-gray-500">
-              Tambahkan tag topik keahlian (contoh: Trauma Healing, Relasi, Depresi).
+              Tambahkan tag topik keahlian konseling.
             </p>
           </div>
 
@@ -835,7 +830,7 @@ export default function AdminTambahPsikologClient() {
                   handleAddSkill()
                 }
               }}
-              placeholder="Tambah topik (contoh: Kecemasan, Manajemen Stres)"
+              placeholder="Tambah topik keahlian..."
               className="flex-1 min-w-0 rounded-2xl border border-gray-200 px-4 py-2 text-sm text-gray-800 focus:border-[#561269] focus:outline-none shadow-2xs"
             />
             <button

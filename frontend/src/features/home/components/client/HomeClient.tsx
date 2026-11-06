@@ -503,26 +503,23 @@ export default function HomeClient() {
           </div>
         ) : (
           /* Empty State: Belum ada event yang dipublikasi */
-          <div className="w-full bg-gradient-to-br from-white via-purple-50/30 to-purple-100/20 rounded-[2.5rem] border border-purple-100/80 p-8 sm:p-12 text-center shadow-sm flex flex-col items-center justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-purple-100/80 text-[#561269] flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+          <div className="w-full bg-white rounded-[2.5rem] border border-purple-100/80 p-8 sm:p-14 text-center shadow-sm flex flex-col items-center justify-center max-w-2xl mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-purple-50 text-[#561269] flex items-center justify-center mb-4">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
               </svg>
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-              Saat Ini Belum Ada Event yang Sedang Berlangsung
+              Belum Ada Event yang Sedang Berlangsung
             </h3>
-            <p className="text-gray-500 text-sm sm:text-base max-w-xl mb-6 leading-relaxed">
-              Mohon maaf, saat ini belum ada webinar atau workshop yang kami jadwalkan. Kamu bisa membaca informasi lengkap seputar rangkaian program event dan kegiatan menarik kami di halaman layanan.
+            <p className="text-gray-500 text-sm sm:text-base mb-6 leading-relaxed">
+              Saat ini belum ada event atau workshop yang dibuka untuk pendaftaran. Nantikan informasi kegiatan terbaru dari kami!
             </p>
             <Link
-              href={withBiro("/event") as any}
-              className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm sm:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95"
+              href={withBiro("/event?tab=past") as any}
+              className="inline-flex items-center gap-2 bg-[#561269] text-white hover:bg-[#430e52] font-bold text-sm py-2.5 px-6 rounded-full transition-all cursor-pointer"
             >
-              <span>Pelajari Rangkaian Event Empathika</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
+              Lihat Riwayat &amp; Dokumentasi Kegiatan
             </Link>
           </div>
         )}

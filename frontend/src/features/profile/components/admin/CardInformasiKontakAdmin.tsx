@@ -36,7 +36,6 @@ export function CardInformasiKontakAdmin({
             value={form.nama || ""}
             onChange={onChange}
             required
-            placeholder="Contoh: dr. John Doe, M.Psi."
             className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
           />
         </div>
@@ -106,7 +105,6 @@ export function CardInformasiKontakAdmin({
                 name="alamat"
                 value={form.alamat || ""}
                 onChange={onChange}
-                placeholder="Contoh: Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 41024"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
               <p className="text-[11px] text-gray-400 mt-1">
@@ -131,7 +129,6 @@ export function CardInformasiKontakAdmin({
                 name="linkMaps"
                 value={form.linkMaps || ""}
                 onChange={onChange}
-                placeholder="Contoh: https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
               <p className="text-[11px] text-gray-400 mt-1">
@@ -158,7 +155,6 @@ export function CardInformasiKontakAdmin({
                 name="instagram"
                 value={form.instagram || ""}
                 onChange={onChange}
-                placeholder="https://www.instagram.com/empathika_psikologi"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
             </div>
@@ -172,7 +168,6 @@ export function CardInformasiKontakAdmin({
                 name="tiktok"
                 value={form.tiktok || ""}
                 onChange={onChange}
-                placeholder="https://www.tiktok.com/@empathika_psikologi"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
             </div>
@@ -186,7 +181,6 @@ export function CardInformasiKontakAdmin({
                 name="linkedin"
                 value={form.linkedin || ""}
                 onChange={onChange}
-                placeholder="https://www.linkedin.com/company/empathika"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
             </div>
@@ -200,7 +194,6 @@ export function CardInformasiKontakAdmin({
                 name="youtube"
                 value={form.youtube || ""}
                 onChange={onChange}
-                placeholder="https://www.youtube.com/@empathika"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
             </div>

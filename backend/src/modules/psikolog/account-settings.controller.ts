@@ -1,5 +1,5 @@
 // File: backend/src/modules/psikolog/account-settings.controller.ts
-import type { FastifyRequest, FastifyReply } from "fastify"
+import type { FastifyRequest, FastifyReply, FastifyInstance } from "fastify"
 import { AccountSettingsService } from "./account-settings.service"
 import {
   emailChangeRequestSchema,
@@ -10,7 +10,7 @@ import {
 export class AccountSettingsController {
   private service: AccountSettingsService
 
-  constructor(fastify: any) {
+  constructor(fastify: FastifyInstance) {
     this.service = new AccountSettingsService(fastify.prisma)
   }
 
