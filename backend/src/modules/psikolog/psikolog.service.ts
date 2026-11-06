@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import type { PrismaClient } from '@prisma/client'
 import { PsikologRepository } from './psikolog.repository'
 import { BookingService } from '../booking/booking.service'
 import bcrypt from 'bcrypt'
@@ -10,18 +11,39 @@ import type {
   CreatePsikologInput,
   UpdatePsikologInput,
   UpdatePsikologProfileInput,
+  RegisterPsikologBaruInput,
 } from './psikolog.schema'
+
+// ── Konstanta kategori & status ───────────────────────────────────────────────
+const KATEGORI = {
+  PEER_KONSELOR: 'Peer Konselor',
+  KONSELOR: 'Konselor',
+  PSIKOLOG_KLINIS: 'Psikolog Klinis',
+} as const
+
+const STATUS_PSIKOLOG = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+} as const
+
+/** Tarif default per kategori (Rupiah) */
+const DEFAULT_TARIF: Record<string, number> = {
+  'peer-konselor': 50_000,
+  konselor: 100_000,
+}
+const DEFAULT_TARIF_PSIKOLOG = 150_000
 
 export class PsikologService {
   private repo: PsikologRepository
   private bookingService: BookingService
-  private prisma: any
+  private prisma: PrismaClient
 
   constructor(fastify: FastifyInstance) {
     this.repo = new PsikologRepository(fastify.prisma)
     this.bookingService = new BookingService(fastify)
-    this.prisma = fastify.prisma
+    this.prisma = fastify.prisma as PrismaClient
   }
+
   async getAll(params?: { kategori?: string; search?: string; status?: string }) {
     const list = await this.repo.findAll(params)
 
@@ -38,9 +60,11 @@ export class PsikologService {
           countMap[psiId] = (countMap[psiId] || 0) + 1
         }
       }
-    } catch { }
+    } catch (err) {
+      console.error('[PsikologService.getAll] Gagal hitung booking:', err)
+    }
 
-    return list.map((item: any) =>
+    return list.map((item: ReturnType<typeof this.withPsikologActivation> extends Promise<infer T> ? T : any) =>
       this.withPsikologActivation({
         ...item,
         jumlah_sesi: countMap[item.id] || 0,
@@ -49,7 +73,7 @@ export class PsikologService {
   }
 
   async getById(id: string) {
-    const item: any = await this.repo.findById(id)
+    const item = await this.repo.findById(id)
     if (!item) throw new Error('Psikolog tidak ditemukan')
 
     let bookedCount = 0
@@ -60,7 +84,9 @@ export class PsikologService {
           status: { not: 'CANCELLED' },
         },
       })
-    } catch { }
+    } catch (err) {
+      console.error('[PsikologService.getById] Gagal hitung booking:', err)
+    }
 
     return this.withPsikologActivation({
       ...item,
@@ -69,13 +95,13 @@ export class PsikologService {
   }
 
   /** Field aktivasi di root + account, agar FE tidak bergantung pada nested-only. */
-  private withPsikologActivation(item: any) {
-    const account = withActivationAccount(item.account)
-    const meta = buildActivationMeta(item.account)
+  private withPsikologActivation(item: Record<string, unknown>) {
+    const account = withActivationAccount(item.account as Record<string, unknown>)
+    const meta = buildActivationMeta(item.account as Record<string, unknown>)
     return {
       ...item,
       ...meta,
-      accountId: account?.id || item.id_account || null,
+      accountId: (account as Record<string, unknown> | null)?.id ?? item.id_account ?? null,
       account,
     }
   }
@@ -224,7 +250,6 @@ export class PsikologService {
       throw new Error('Data profil tenaga ahli tidak ditemukan')
     }
 
-    // Hitung jumlah sesi riil dari booking
     let bookedCount = 0
     try {
       bookedCount = await this.prisma.bookingKonsultasi.count({
@@ -233,7 +258,9 @@ export class PsikologService {
           status: { not: 'CANCELLED' },
         },
       })
-    } catch { }
+    } catch (err) {
+      console.error('[PsikologService.getMyProfile] Gagal hitung booking:', err)
+    }
 
     return {
       ...psikolog,
@@ -381,11 +408,11 @@ export class PsikologService {
   /**
    * Menambahkan atau memperbarui tenaga ahli baru dari dashboard admin
    */
-  async registerPsikologBaru(body: any) {
+  async registerPsikologBaru(body: RegisterPsikologBaruInput) {
     // Cari atau buat Spesialisasi
     const spesialisasiNama =
-      typeof body.spesialisasi === 'object' && body.spesialisasi?.nama
-        ? body.spesialisasi.nama
+      typeof body.spesialisasi === 'object' && (body.spesialisasi as unknown as { nama: string })?.nama
+        ? (body.spesialisasi as unknown as { nama: string }).nama
         : typeof body.spesialisasi === 'string' && body.spesialisasi.trim()
           ? body.spesialisasi.trim()
           : 'Psikologi Umum'
@@ -401,12 +428,12 @@ export class PsikologService {
     // Format kategori & keahlian
     const kat = (body.kategori || '').toLowerCase()
     const kategoriFormatted = kat.includes('peer')
-      ? 'Peer Konselor'
+      ? KATEGORI.PEER_KONSELOR
       : kat.includes('konselor')
-        ? 'Konselor'
-        : 'Psikolog Klinis'
+        ? KATEGORI.KONSELOR
+        : KATEGORI.PSIKOLOG_KLINIS
 
-    const isPsikologKlinis = kategoriFormatted === 'Psikolog Klinis'
+    const isPsikologKlinis = kategoriFormatted === KATEGORI.PSIKOLOG_KLINIS
     const finalNoStr = isPsikologKlinis ? (body.noStr || null) : null
     const finalNoSipp = isPsikologKlinis ? (body.noSipp || null) : null
     const finalNoSilp = isPsikologKlinis ? (body.noSilp || null) : null
@@ -420,24 +447,25 @@ export class PsikologService {
 
     const tarif =
       body.tarif_per_jam ||
-      (kat.includes('peer') ? 50000 : kat.includes('konselor') ? 100000 : 150000)
+      DEFAULT_TARIF[kat.includes('peer') ? 'peer-konselor' : kat.includes('konselor') ? 'konselor' : ''] ||
+      DEFAULT_TARIF_PSIKOLOG
 
     const pengalamanTahun = body.pengalaman_tahun || body.experienceYears || null
     const jenisKelamin = body.jenis_kelamin || body.jenisKelamin || null
     const videoIntroUrl = body.video_intro_url || body.videoIntroUrl || null
     const videoThumbnail = body.video_thumbnail || body.videoThumbnail || null
     const videoDuration = body.video_duration || body.videoDuration || null
-    const profilLengkap =
-      Array.isArray(body.profil_lengkap || body.profilLengkap)
-        ? (body.profil_lengkap || body.profilLengkap).join('\n\n')
-        : (body.profil_lengkap || body.profilLengkap || null)
+    const rawProfil = body.profil_lengkap ?? body.profilLengkap
+    const profilLengkap = Array.isArray(rawProfil)
+      ? rawProfil.join('\n\n')
+      : (rawProfil || null)
 
     // Cek apakah ada data psikolog yang diedit berdasarkan body.id
     const isUuid =
-      body.id &&
+      typeof body.id === 'string' &&
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.id)
-    let existingPsikolog = null
-    if (isUuid) {
+    let existingPsikolog: any = null
+    if (isUuid && body.id) {
       existingPsikolog = await this.prisma.psikolog.findFirst({
         where: {
           OR: [{ id: body.id }, { id_account: body.id }],
@@ -528,34 +556,21 @@ export class PsikologService {
         throw new Error(`Email "${emailClean}" sudah digunakan oleh akun lain. Silakan gunakan email lain.`)
       }
 
-      if (account) {
-        account = await this.prisma.account.update({
-          where: { id: account.id },
-          data: {
-            nama: body.nama,
-            no_telepon: body.noTelepon || account.no_telepon,
-            foto: body.foto || account.foto,
-            bio: body.bio || account.bio,
-            role: 'PSIKOLOG',
-          },
-        })
-      } else {
-        const { token: activationToken, expiresAt: activationExpiry } = issueActivationToken()
-        account = await this.prisma.account.create({
-          data: {
-            nama: body.nama,
-            email: emailClean,
-            password: null,
-            role: 'PSIKOLOG',
-            no_telepon: body.noTelepon || null,
-            foto: body.foto || null,
-            bio: body.bio || null,
-            aktif: false,
-            token_aktivasi: activationToken,
-            token_aktivasi_exp: activationExpiry,
-          },
-        })
-      }
+      const { token: activationToken, expiresAt: activationExpiry } = issueActivationToken()
+      account = await this.prisma.account.create({
+        data: {
+          nama: body.nama,
+          email: emailClean,
+          password: null,
+          role: 'PSIKOLOG',
+          no_telepon: body.noTelepon || null,
+          foto: body.foto || null,
+          bio: body.bio || null,
+          aktif: false,
+          token_aktivasi: activationToken,
+          token_aktivasi_exp: activationExpiry,
+        },
+      })
 
       psikolog = await this.prisma.psikolog.findUnique({
         where: { id_account: account.id },
