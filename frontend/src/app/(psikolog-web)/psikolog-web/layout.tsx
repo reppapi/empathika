@@ -22,7 +22,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   const pathname = usePathname()
   const { user } = useAuthStore()
 
-  // Ambil data tenaga ahli aktif (default akun psikolog web: Dr. Jane Doe / akun aktif pertama)
+  // Ambil data tenaga ahli aktif yang sedang login dari database
   const [currentPsikolog, setCurrentPsikolog] = useState<TenagaAhli | null>(null)
   const [isCheckingAccess, setIsCheckingAccess] = useState(true)
 
@@ -30,18 +30,17 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-      const savedName = localStorage.getItem("active_psikolog_name")
+      const savedName = localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name")
+      const savedId = localStorage.getItem("active_psikolog_id") || sessionStorage.getItem("active_psikolog_id")
       const isInvalidSaved = !savedName || savedName.toLowerCase().includes("admin")
       const found =
         (user?.role === "PSIKOLOG" && user?.email ? list.find((item) => item.email.toLowerCase() === user.email.toLowerCase()) : null) ||
         (user?.role === "PSIKOLOG" && user?.name ? list.find((item) => item.nama.toLowerCase().includes(user.name.toLowerCase())) : null) ||
-        (!isInvalidSaved ? list.find((item) => item.nama === savedName) : null) ||
-        list.find((item) => item.nama?.includes("Jane")) ||
-        list.find((item) => item.email === "putriqoida@empathika.com") ||
-        list[0]
+        (!isInvalidSaved && savedName ? list.find((item) => item.nama === savedName) : null) ||
+        (!isInvalidSaved && savedId ? list.find((item) => item.id === savedId) : null)
       setCurrentPsikolog(found || null)
     } catch {
-      setCurrentPsikolog(INITIAL_TENAGA_AHLI[0])
+      setCurrentPsikolog(null)
     } finally {
       setIsCheckingAccess(false)
     }
@@ -63,40 +62,37 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
           (user?.role === "PSIKOLOG" && user?.name
             ? dbList.find((p) => p.nama_gelar?.toLowerCase().includes(user.name.toLowerCase()) || p.account?.nama?.toLowerCase().includes(user.name.toLowerCase()))
             : null) ||
-          (!isInvalidSaved && savedId ? dbList.find((p) => p.id === savedId) : null) ||
-          (!isInvalidSaved && savedName ? dbList.find((p) => p.nama_gelar === savedName) : null) ||
-          dbList.find((p) => p.nama_gelar?.includes("Jane") || p.account?.email?.includes("psikolog@empathika")) ||
-          dbList.find((p) => p.nama_gelar?.includes("Rizki")) ||
-          dbList[0]
+          (!isInvalidSaved && savedId ? dbList.find((p) => p.id === savedId || p.account?.id === savedId) : null) ||
+          (!isInvalidSaved && savedName ? dbList.find((p) => p.nama_gelar === savedName) : null)
 
         if (matched) {
-          const resolvedName = matched.nama_gelar || matched.account?.nama || "Dr. Jane Doe, M.Psi., Psikolog"
+          const resolvedName = matched.nama_gelar || matched.account?.nama || user?.name || "Tenaga Ahli"
           localStorage.setItem("active_psikolog_id", matched.id)
           localStorage.setItem("active_psikolog_name", resolvedName)
 
           setCurrentPsikolog((prev) => ({
             id: matched.id,
             nama: resolvedName,
-            email: matched.account?.email || "psikolog@empathika.com",
+            email: matched.account?.email || user?.email || "",
             kategori: (matched.kategori?.toLowerCase().includes("peer")
               ? "peer-konselor"
               : matched.kategori?.toLowerCase().includes("konselor")
                 ? "konselor"
                 : "psikolog") as any,
-            spesialisasi: matched.spesialisasi?.nama || "Kesehatan Mental",
-            foto: matched.foto || "/images/psikolog/default.jpg",
+            spesialisasi: matched.spesialisasi?.nama || matched.spesialisasi || "",
+            foto: matched.foto || matched.account?.foto || null,
             statusAkses: "AKTIF",
-            noTelepon: prev?.noTelepon || "081234567890",
+            noTelepon: matched.account?.no_telepon || prev?.noTelepon || "",
             jumlahSesi: typeof matched.jumlah_sesi === "number" ? matched.jumlah_sesi : (prev?.jumlahSesi ?? 0),
-            bio: matched.bio || prev?.bio || "",
+            bio: matched.bio || matched.account?.bio || prev?.bio || "",
             quote: matched.quote || prev?.quote || "",
             instagram: matched.instagram || prev?.instagram || "",
             keahlian: Array.isArray(matched.keahlian)
               ? matched.keahlian
               : typeof matched.keahlian === "string"
                 ? matched.keahlian.split(",").map((s: string) => s.trim())
-                : prev?.keahlian || ["Konseling Umum"],
-            tanggalBergabung: prev?.tanggalBergabung || "Agustus 2024",
+                : prev?.keahlian || [],
+            tanggalBergabung: prev?.tanggalBergabung || "Terdaftar",
           }))
         }
       }
@@ -136,7 +132,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
         <div className="flex-1 lg:ml-[280px] flex flex-col min-w-0 w-full transition-all duration-300">
           <AdminNavbar
             title={pageTitle}
-            adminName={currentPsikolog?.nama || "Psikolog Empathika"}
+            adminName={currentPsikolog?.nama || user?.name || "Psikolog Empathika"}
             subtitle={
               currentPsikolog?.kategori === "psikolog"
                 ? "Psikolog Resmi"

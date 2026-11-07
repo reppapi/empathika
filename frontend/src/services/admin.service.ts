@@ -13,6 +13,9 @@ export const adminService = {
     metode?: "ONLINE" | "OFFLINE" | string
   }) => apiClient.post("/admin/jadwal-slots", payload).then((r) => r.data),
 
+  deleteJadwalSlot: (slotId: string) =>
+    apiClient.delete(`/booking/jadwal-slot/${slotId}`).then((r) => r.data),
+
   createSesiBaru: (payload: {
     id_psikolog: string
     id_layanan: string

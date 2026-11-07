@@ -27,7 +27,8 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
 
 6. **Kategori Layanan & Metode Pelaksanaan pada Layanan Admin**
    - Kolom `metode String @default("Online/Offline")` **ditambahkan pada model `Layanan`** untuk menyimpan metode pelaksanaan layanan (`Online`, `Offline`, atau `Online/Offline`) yang diinput oleh Admin pada form tambah/edit layanan dan ditampilkan pada tabel admin.
-   - Enum `KategoriLayanan` diselaraskan agar sinkron 100% dengan 5 kategori layanan resmi platform Empathika (halaman `/layanan`): `PSIKOTES`, `KONSULTASI`, `PELATIHAN_PEER_HELPER`, `EVENT`, dan `ASESMEN`. (Adapun pada menu `/admin/layanan`, admin mengelola 3 kategori bertarif sesi: `KONSULTASI`, `PELATIHAN_PEER_HELPER`, dan `ASESMEN`, sedangkan `PSIKOTES` dan `EVENT` dikelola pada menu/tabel khususnya masing-masing). Jenis layanan seperti `Psikolog`, `Peer Konselor`, `Hipnoterapi`, dan `Home Visit` disimpan pada kolom `nama String` di bawah kategori `KONSULTASI`.
+   - Enum `KategoriLayanan` diselaraskan agar sinkron 100% dengan 5 kategori layanan resmi platform Empathika (halaman `/layanan`): **`01 Konsultasi` (`KONSULTASI`)**, **`02 Psikotes` (`PSIKOTES`)**, **`03 Workshop` (`WORKSHOP`)**, **`04 Seminar` (`SEMINAR`)**, dan **`05 Asesmen` (`ASESMEN`)**. (Untuk kompatibilitas ke belakang / *backward compatibility* dengan data historis lama, nilai `PELATIHAN_PEER_HELPER` dan `EVENT` tetap dipertahankan di enum Prisma database).
+   - Pada panel Admin (`/admin/layanan`), katalog layanan menampilkan dan mengelola kelima kategori tersebut dengan filter tab dan formulir tambah/edit layanan. Sub-layanan spesifik seperti `Psikolog`, `Peer Konselor`, `Hipnoterapi`, dan `Home Visit` disimpan pada kolom `nama String` di bawah kategori `KONSULTASI`.
 
 7. **Peniadaan Slug URL pada Event & Paket Psikotes (Routing Berbasis ID)**
    - Kolom `slug` **TIDAK dibuat di database** pada model `Event` dan `PaketPsikotes`. Akses halaman detail publik maupun admin mengandalkan `id_PK` (misal `/event/[id]` dan `/psikotes/[id]`), sehingga mempermudah input data oleh admin tanpa perlu mengatur slug unik.
@@ -110,10 +111,10 @@ Dokumen ini berisi hasil audit menyeluruh dan spesifikasi final desain database 
    - Dibuatkan tabel master mandiri **`FormulirKerjaSama`** (`id`, `slug @unique`, `title`, `kategori_default`, `deskripsi`, `pertanyaan_khusus Json`, `createdAt`, `updatedAt`) untuk menyimpan template butir pertanyaan untuk 4 tipe kemitraan (*Asesmen*, *In-House Training*, *Affiliate*, dan *Lainnya*).
    - Saat Admin Utama mengubah pertanyaan formulir pada menu `/admin/kerja-sama` (tab *Kelola Formulir*), perubahan langsung tersimpan permanen di database backend sehingga langsung tampil sinkron di halaman pengisian formulir klien publik (`/kerja-sama/formulir/[type]`). Jawaban dinamis dari perwakilan instansi tetap disimpan secara terstruktur pada `PengajuanKerjaSama.jawaban_detail Json?`.
 
-27. **Fleksibilitas Kategori `PELATIHAN_PEER_HELPER` & Alur Pemesanan**
-   - Kategori `PELATIHAN_PEER_HELPER` resmi menjadi salah satu pilar layanan bertarif sesi yang ditampung dalam tabel `Layanan`.
-   - Mengingat variasi topik pelatihannya bersifat berkembang dan dinamis (contoh produk yang ada: *Pelatihan Konselor Sebaya Dasar*), jenis-jenis pelatihan **tidak dipecah menjadi enum sub-kategori kaku**, melainkan diinput sebagai master layanan baru melalui form `/admin/layanan/tambah?category=03`.
-   - Pemesanan sesi pelatihan perorangan/kelompok terdaftar terhubung ke relasi `BookingKonsultasi -> Layanan`, sedangkan pengajuan pelatihan massal berskala instansi/organisasi disalurkan melalui `PengajuanKerjaSama`.
+27. **Pembaruan Struktur Kategori `WORKSHOP` dan `SEMINAR` pada Layanan & Event**
+   - Kategori layanan platform Empathika kini telah distandarisasi secara spesifik menjadi **`WORKSHOP`** (03) dan **`SEMINAR`** (04), menggantikan penamaan lama `PELATIHAN_PEER_HELPER` dan `EVENT` umum agar lebih terstruktur dan sesuai katalog publik.
+   - Setiap paket workshop interaktif atau seminar edukasi dapat dikelola secara fleksibel melalui master tabel `Layanan` (`kategori = WORKSHOP | SEMINAR`) maupun agenda bertiket melalui tabel `Event` (`jenis_event = WORKSHOP | SEMINAR | WEBINAR`).
+   - Alur pemesanan sesi kelompok terdaftar terhubung ke relasi pemesanan layanan atau tiket event (`BookingEvent`), sedangkan permohonan in-house workshop/seminar massal instansi disalurkan melalui modul kemitraan `PengajuanKerjaSama`.
 
 28. **Penyempurnaan `BookingEvent` (Goes To School Masuk Kerja Sama & Normalisasi Kontak)**
    - Program edukasi massal/sekolah seperti *Empathika Goes To School* bukan merupakan event publik bertiket, melainkan masuk ke dalam program kemitraan B2B yang dikelola melalui modul Kerja Sama (`ProgramKerjaSama` & `PengajuanKerjaSama`).
@@ -221,6 +222,24 @@ classDiagram
         +lihatRiwayatBooking()
     }
 
+    class PesertaPsikotes {
+        +string id_PK
+        +string id_booking_FK
+        +string nama_lengkap
+        +string jenis_kelamin
+        +string tempat_lahir
+        +dateTime tanggal_lahir
+        +int usia
+        +string kategori_peserta
+        +string nama_orang_tua
+        +string no_telepon_orang_tua
+        +string pendidikan
+        +string pekerjaan
+        +string status_pernikahan
+        +dateTime createdAt
+        +dateTime updatedAt
+    }
+
     class Biro {
         +string id_PK
         +string nama_biro
@@ -245,7 +264,7 @@ classDiagram
     class Layanan {
         +string id_PK
         +string nama
-        +string kategori
+        +KategoriLayanan kategori
         +string metode
         +string deskripsi
         +float harga_weekday
@@ -258,6 +277,17 @@ classDiagram
         +tambahLayanan()
         +updateLayanan()
         +toggleAktif()
+    }
+
+    class KategoriLayanan {
+        <<enumeration>>
+        KONSULTASI
+        PSIKOTES
+        WORKSHOP
+        SEMINAR
+        ASESMEN
+        PELATIHAN_PEER_HELPER
+        EVENT
     }
 
     class Psikolog {
@@ -402,15 +432,25 @@ classDiagram
     %% ========================================================
     %% 5. PSIKOTES ONLINE
     %% ========================================================
+        class Alat_Ukur {
+        +string id_PK
+        +string kode
+        +string nama
+        +string kategori
+        +dateTime createdAt
+        +dateTime updatedAt
+        +ambilMetadata()
+    }
+
     class Paket_Psikotes {
         +string id_PK
+        +string id_alat_ukur_FK_nullable
         +string judul
         +string jenis_akses
         +float harga
         +string banner_url
         +string deskripsi
         +string status
-        +json benefits
         +dateTime createdAt
         +dateTime updatedAt
         +tampilkanDetail()
@@ -423,6 +463,7 @@ classDiagram
         +string id_paket_FK
         +int urutan
         +string pertanyaan
+        +unique(id_paket_urutan)
         +tambahSoal()
         +ambilSoal()
         +tampilkanSoal()
@@ -434,6 +475,7 @@ classDiagram
         +string label
         +string teks_jawaban
         +int bobot
+        +index(id_soal)
         +ambilBobot() int
         +updatePilihan()
     }
@@ -444,6 +486,7 @@ classDiagram
         +string id_soal_psikotes_FK
         +string id_pilihan_jawaban_FK
         +int skor
+        +unique(id_booking_id_soal)
         +simpanJawaban()
     }
 
@@ -463,9 +506,10 @@ classDiagram
     class Hasil_Tes {
         +string id_PK
         +string id_booking_FK
-        +string id_interpretasi_FK
+        +string id_interpretasi_FK_nullable
         +int total_skor
         +json detail_skor
+        +json snapshot_jawaban
         +dateTime tanggal_selesai
         +dateTime createdAt
         +hitungTotalSkor()
@@ -478,6 +522,7 @@ classDiagram
         +string id_paket_FK
         +string id_transaksi_FK_nullable
         +string id_client_FK
+        +json riwayat_kesehatan
         +dateTime createdAt
         +dateTime updatedAt
         +buatBooking()
@@ -593,6 +638,7 @@ classDiagram
     Client "1" -- "*" Transaksi : membayar
 
     Layanan "1" -- "*" Booking_Konsultasi : layanan
+    Layanan ..> KategoriLayanan : kategori
     Event "1" -- "*" Booking_Event : event
 
     Jadwal_Slot "1" -- "0..1" Booking_Konsultasi : jadwal
@@ -604,6 +650,7 @@ classDiagram
     Psikolog "1" -- "*" Jadwal_Slot : slot
     Spesialisasi "1" -- "*" Psikolog : bidang
 
+    Alat_Ukur "1" -- "*" Paket_Psikotes : paket_tersedia
     Paket_Psikotes "1" -- "*" Soal_Psikotes : butir_soal
     Paket_Psikotes "1" -- "*" Interpretasi_Psikotes : skor
     Paket_Psikotes "1" -- "*" Booking_Psikotes : paket
@@ -614,7 +661,7 @@ classDiagram
 
     Booking_Psikotes "1" -- "*" Jawaban_Psikotes : lembar_jawaban
     Booking_Psikotes "1" -- "0..1" Hasil_Tes : hasil
-    Interpretasi_Psikotes "1" -- "*" Hasil_Tes : kategori_skor
+    Interpretasi_Psikotes "0..1" -- "*" Hasil_Tes : kategori_skor
 ```
 
 ---
@@ -628,7 +675,7 @@ classDiagram
    - Menambahkan kolom audit pengembalian dana (refund): `refund_at DateTime?`, `refund_reason String? @db.Text`, dan `refund_amount Decimal? @db.Decimal(12, 2)` untuk mencatat histori pembatalan sesi lunas (PAID) secara otomatis maksimal H-1.
 2. **Model `Layanan`**:
    - Menambahkan kolom `metode String @default("Online/Offline")` untuk mencatat metode pelaksanaan layanan (`Online`, `Offline`, atau `Online/Offline`) yang dipilih admin di form input dan ditampilkan di tabel `/admin/layanan`.
-   - Menyelaraskan enum `KategoriLayanan` dengan 5 kategori layanan platform Empathika: `PSIKOTES`, `KONSULTASI`, `PELATIHAN_PEER_HELPER`, `EVENT`, dan `ASESMEN`. Adapun jenis layanan seperti `Psikolog`, `Peer Konselor`, `Hipnoterapi`, dan `Home Visit` disimpan pada kolom `nama String` di bawah kategori `KONSULTASI`.
+   - Menyelaraskan enum `KategoriLayanan` dengan 5 kategori layanan resmi platform Empathika: `KONSULTASI`, `PSIKOTES`, `WORKSHOP`, `SEMINAR`, dan `ASESMEN` (dengan nilai legacy `PELATIHAN_PEER_HELPER` & `EVENT` dipertahankan di database untuk kompatibilitas riwayat data). Adapun jenis layanan spesifik seperti `Psikolog`, `Peer Konselor`, `Hipnoterapi`, dan `Home Visit` disimpan pada kolom `nama String` di bawah kategori `KONSULTASI`.
 3. **Model `Event`**:
    - Menambahkan nilai `DRAFT` pada enum `StatusEvent` (`UPCOMING`, `ONGOING`, `COMPLETED`, `CANCELLED`, `DRAFT`).
 4. **Model `Psikolog`**:
@@ -645,17 +692,26 @@ classDiagram
    - Mengubah nama kolom (*rename*) dari camelCase `bannerURL` menjadi snake_case `banner_url String?` agar seragam dengan kolom media pada tabel `Event` dan `Layanan`.
 9. **Enum `StatusPengajuanKerjaSama`**:
    - Mendefinisikan enum resmi `StatusPengajuanKerjaSama`: `MENUNGGU`, `DIHUBUNGI`, `DISETUJUI`, `DITOLAK` untuk standarisasi alur penanganan leads kemitraan.
-10. **Enum `TipeTransaksi` (Discriminator / Label Struk)**:
+10. **Model `AlatUkur` (Master Instrumen Psikotes Baru)**:
+   - Dibuatkan tabel master `alat_ukurs` dengan kolom: `kode String @unique` (misal: "GAD-7", "DASS-21"), `nama String`, `kategori String`, `createdAt`, dan `updatedAt` sebagai jangkar penghubung engine scoring modular dengan produk paket komersial.
+11. **Penyempurnaan Model Psikotes & Klien**:
+   - `PaketPsikotes`: Menambahkan relasi `id_alat_ukur String? (nullable)` ke master `AlatUkur`.
+   - `BookingPsikotes`: Menambahkan kolom `riwayat_kesehatan Json?` untuk menampung isian skrining medis/psikologis pra-tes klien.
+   - `HasilTes`: Mengubah kolom `id_interpretasi` menjadi **nullable (`String?`)** dan menambahkan kolom `snapshot_jawaban Json?` untuk membekukan jawaban peserta secara permanen (immutable audit).
+   - `Client`: Menyimpan data pembeli/kontak klien: `nama`, `no_telepon`, `usia`, `jenis_kelamin`, `createdAt`, `updatedAt`.
+   - `PesertaPsikotes`: Dibuatkan tabel khusus `peserta_psikotes` untuk memisahkan peran pembeli (`Client`) dengan peserta tes psikotes (Anak, Remaja, Dewasa) dengan atribut: `id`, `id_booking @unique`, `nama_lengkap`, `jenis_kelamin`, `tempat_lahir`, `tanggal_lahir`, `usia`, `kategori_peserta`, `nama_orang_tua`, `no_telepon_orang_tua`, `pendidikan`, `pekerjaan`, `status_pernikahan`, `createdAt`, `updatedAt`.
+12. **Enum `TipeTransaksi` (Discriminator / Label Struk)**:
     - Mendefinisikan enum baru `enum TipeTransaksi { KONSULTASI, EVENT, PSIKOTES }` sebagai label penanda transaksi pada struk pembayaran dan pembeda relasi polimorfik tanpa perlu query join bertingkat.
-11. **Enum `StatusPengirimanInvoice`**:
+13. **Enum `StatusPengirimanInvoice`**:
     - Mendefinisikan enum resmi `enum StatusPengirimanInvoice { BELUM_DIKIRIM, DIKIRIM, GAGAL }` untuk pelacakan alur pengiriman bukti invoice WhatsApp kepada klien.
-12. **Model `Account` (Keamanan Akun OWASP)**:
+14. **Model `Account` (Keamanan Akun OWASP)**:
     - Menambahkan kolom `passwordChangedAt DateTime?` dan `tokenVersion Int @default(1)` untuk mencatat riwayat perubahan kata sandi serta otomatis memutus (*revoke*) seluruh sesi aktif lama saat kredensial diperbarui.
-13. **Model `JadwalSlot` (Format Sesi Online/Offline)**:
+15. **Model `JadwalSlot` (Format Sesi Online/Offline)**:
     - Menambahkan kolom `metode String @default("ONLINE")` (`"ONLINE"` | `"OFFLINE"`) untuk menentukan apakah slot jam praktik yang dibuka ditujukan khusus untuk sesi daring atau tatap muka di klinik.
 
 ### KATEGORI 2: PERLU DITAMBAHKAN
-1. **Tabel Baru `PengajuanKerjaSama`, `ProgramKerjaSama`, `FormulirKerjaSama`, `Invoice`, & `EmailChangeRequest`**:
+1. **Tabel Baru `AlatUkur`, `PengajuanKerjaSama`, `ProgramKerjaSama`, `FormulirKerjaSama`, `Invoice`, & `EmailChangeRequest`**:
+   - `AlatUkur`: `id`, `kode @unique`, `nama`, `kategori`, `createdAt`, `updatedAt` (master data kode instrumen psikotes terstandar).
    - `PengajuanKerjaSama`: `id`, `nama_instansi`, `nama_pic`, `email`, `no_telepon`, `kategori`, `tipe_formulir`, `pesan`, `jawaban_detail Json?`, `status StatusPengajuanKerjaSama @default(MENUNGGU)`, `createdAt`, `updatedAt`.
    - `ProgramKerjaSama`: `id`, `slug @unique`, `title`, `short_name`, `deskripsi`, `pelatihan_title`, `pelatihan_deskripsi`, `pelatihan_image`, `mitra_title`, `mitra_deskripsi`, `mitra_image`, `warna_tema`, `status` ("AKTIF" | "NONAKTIF"), `urutan`, `createdAt`, `updatedAt`.
    - `FormulirKerjaSama`: `id`, `slug @unique`, `title`, `kategori_default`, `deskripsi String? @db.Text`, `pertanyaan_khusus Json`, `createdAt`, `updatedAt` (master template pertanyaan dinamis per jenis formulir agar tersinkronisasi lintas perangkat).
@@ -665,18 +721,18 @@ classDiagram
    - `Account`: `alamat String?`, `link_maps String?`, `bio String? @db.Text` (khusus profil Admin Utama pengelola platform), `passwordChangedAt DateTime?`, `tokenVersion Int @default(1)`.
    - `Transaksi`: `kode_transaksi String? @unique`, `tipe_transaksi TipeTransaksi`, `total Decimal @db.Decimal(12, 2)`, `channel_pembayaran String?`, `refund_at DateTime?`, `refund_reason String? @db.Text`, `refund_amount Decimal? @db.Decimal(12, 2)`, `createdAt`, `updatedAt`.
    - `Event`: `createdAt`, `updatedAt`.
-   - `PaketPsikotes`: `banner_url String?`, `createdAt`, `updatedAt`.
+   - `PaketPsikotes`: `id_alat_ukur String? (relasi ke AlatUkur)`, `banner_url String?`, `createdAt`, `updatedAt`.
    - `Layanan`: `metode String @default("Online/Offline")`, `createdAt`, `updatedAt`.
    - `BookingKonsultasi`: `id_transaksi String? (nullable untuk sesi mandiri admin / walk-in)`, `metode String ("ONLINE" | "OFFLINE")`, `deskripsi_trauma String?` (menampung keluhan awal konsultasi maupun catatan pengajuan asesmen terstandar tanpa pemilihan psikolog oleh klien), `createdAt`, `updatedAt`.
    - `ArtikelBlog`: `banner_url String?`, `createdAt`, `updatedAt`.
    - `BookingEvent`: `kode_tiket String @unique`, `status StatusBooking @default(PENDING)`, `createdAt`, `updatedAt`.
-   - `Client`: `no_telepon String?` (data vital operasional admin untuk integrasi tombol *Chat WA Klien* dan *Salin Pesan WA* pada pemantauan sesi klien harian), `usia Int?`, `jenis_kelamin String?`, `createdAt`, `updatedAt`.
+   - `Client`: `no_telepon String?`, `usia Int?`, `jenis_kelamin String?`, `createdAt`, `updatedAt`.
    - `Psikolog`: `kategori String`, `no_sipp String?`, `quote String?`, `instagram String?`, `jenis_kelamin String?`, `pendidikan String?`, `pengalaman_tahun String?`, `video_intro_url String?`, `video_thumbnail String?`, `video_duration String?`, `profil_lengkap String? @db.Text`, `createdAt`, `updatedAt`.
    - `JadwalSlot`: `tipe_jadwal String ("KONSULTASI" | "ASESMEN")`, `metode String @default("ONLINE")` ("ONLINE" | "OFFLINE"), `createdAt`, `updatedAt`.
    - `Biro`: `deskripsi String? @db.Text`, `no_telepon String?`, `website_url String?`, `status StatusBiro @default(PENDING)`, `createdAt`, `updatedAt`.
-   - `InterpretasiPsikotes`: `makna String? @db.Text`, `tips Json?` (array objek: `[{title, desc}]`).
-   - `HasilTes`: `detail_skor Json?`, `createdAt`.
-   - `BookingPsikotes`: `id_transaksi String? (nullable untuk tes gratis)`, `createdAt`, `updatedAt`.
+   - `InterpretasiPsikotes`: `makna String? @db.Text`.
+   - `HasilTes`: `id_interpretasi String? (nullable)`, `detail_skor Json?`, `snapshot_jawaban Json?`, `createdAt`.
+   - `BookingPsikotes`: `id_transaksi String? (nullable untuk tes gratis)`, `riwayat_kesehatan Json?`, `createdAt`, `updatedAt`.
    - `JawabanPsikotes`: `skor Int` (snapshot nilai bobot opsi jawaban yang dipilih klien pada butir soal).
 
 ### KATEGORI 3: PERLU DIHAPUS / DIBERSIHKAN

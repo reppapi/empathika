@@ -74,9 +74,9 @@ app.register(kerjaSamaRoutes, { prefix: "/kerja-sama" })
 app.register(invoiceRoutes, { prefix: "/invoice" })
 app.register(accountSettingsRoutes, { prefix: "/api" })
 
-// Background Job Scheduler
+// Background Job Scheduler: Jalankan pembersihan slot pending kedaluwarsa tiap 5 menit
 app.addHook("onReady", async () => {
-  startExpiredBookingCleanupJob(app, 10, 30)
+  startExpiredBookingCleanupJob(app, 5, 30)
 })
 
 export default app

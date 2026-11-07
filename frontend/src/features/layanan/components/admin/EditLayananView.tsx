@@ -102,6 +102,8 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [hargaWeekday, setHargaWeekday] = useState("")
   const [hargaWeekend, setHargaWeekend] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
+  const [imageUrlInput, setImageUrlInput] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
   const [successMsg, setSuccessMsg] = useState(false)
 
@@ -220,11 +222,12 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     return () => {
       isMounted = false
     }
+    }
   }, [layananId])
 
   const handleImageFile = async (file: File) => {
     try {
-      const { url } = await processAndUploadImage(file)
+      const { url } = await processAndUploadImage(file, "layanan")
       setImagePreview(url)
     } catch (err: any) {
       alert(err?.message || "Gagal memproses gambar")
@@ -397,9 +400,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* ── Baris 1: Banner / Poster Layanan ── */}
           <div>
-            <label className={labelClass}>
-              Banner / Poster Layanan
-            </label>
+            <label className={labelClass}>Banner / Poster Layanan</label>
             <div
               onDragOver={(e) => {
                 e.preventDefault()
@@ -437,6 +438,9 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                     fill
                     className="object-cover rounded-xl"
                   />
+                  <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                    📐 1200 × 675 px (16:9)
+                  </div>
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <label
                       htmlFor="layanan-file-upload"
@@ -463,7 +467,12 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                     Seret & lepas foto di sini, atau{" "}
                     <span className="text-[#561269] underline">pilih file</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG hingga 2MB</p>
+                  <p className="text-xs font-medium text-gray-600 mt-1.5 text-center">
+                    Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 text-center">
+                    Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                  </p>
                 </div>
               )}
             </div>

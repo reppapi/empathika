@@ -14,10 +14,10 @@ export class LayananService {
     if (!val) return 'KONSULTASI'
     const clean = val.toUpperCase().trim()
     if (clean === '01' || clean === 'KONSULTASI') return 'KONSULTASI'
+    if (clean === '02' || clean === 'PSIKOTES') return 'PSIKOTES'
     if (clean === '03' || clean === 'WORKSHOP') return 'WORKSHOP'
     if (clean === '04' || clean === 'SEMINAR') return 'SEMINAR'
     if (clean === '05' || clean === 'ASESMEN') return 'ASESMEN'
-    if (clean === '02' || clean === 'PSIKOTES') return 'PSIKOTES'
     if (clean === 'PELATIHAN_PEER_HELPER') return 'PELATIHAN_PEER_HELPER'
     if (clean === 'EVENT') return 'EVENT'
     return 'KONSULTASI'
@@ -105,8 +105,8 @@ export class LayananService {
 
     const nama = (input.nama || input.layanan)?.trim()
     if (nama && nama !== existing.nama) {
-      const dup = await this.repo.findByNama(nama)
-      if (dup && dup.id !== id) {
+      const duplicate = await this.repo.findByNama(nama)
+      if (duplicate && duplicate.id !== id) {
         throw Object.assign(new Error(`Layanan dengan nama "${nama}" sudah terdaftar`), { statusCode: 409 })
       }
       updateData.nama = nama
@@ -149,10 +149,8 @@ export class LayananService {
       }
     }
 
-    if (input.banner_url !== undefined) {
-      updateData.banner_url = input.banner_url
-    } else if (input.bannerUrl !== undefined) {
-      updateData.banner_url = input.bannerUrl
+    if (input.banner_url !== undefined || input.bannerUrl !== undefined) {
+      updateData.banner_url = input.banner_url ?? input.bannerUrl ?? null
     }
 
     if (input.aktif !== undefined || input.status !== undefined) {
@@ -167,6 +165,12 @@ export class LayananService {
     if (!existing) {
       throw Object.assign(new Error('Layanan tidak ditemukan'), { statusCode: 404 })
     }
+
+    if ((existing as any)._count && (existing as any)._count.booking_konsultasi > 0) {
+      // Soft delete jika sudah ada riwayat booking konsultasi
+      return this.repo.update(id, { aktif: false })
+    }
+
     return this.repo.delete(id)
   }
 }

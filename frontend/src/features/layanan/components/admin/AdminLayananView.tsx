@@ -5,7 +5,13 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2 } from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
-import { AdminLayananItem, getStoredLayanan, updateLayananById } from "../../data/adminLayananData"
+import {
+  AdminLayananItem,
+  getStoredLayanan,
+  updateLayananById,
+  deleteLayananById,
+  saveStoredLayanan,
+} from "../../data/adminLayananData"
 import { layananService } from "@/services/layanan.service"
 import {
   ActionButtonDetail,
@@ -169,6 +175,7 @@ export default function AdminLayananView() {
     if (confirm(`Apakah Anda yakin ingin menghapus layanan "${item.layanan}"?`)) {
       try {
         await layananService.delete(String(item.id))
+        deleteLayananById(item.id)
         setLayananList((prev) => prev.filter((l) => l.id !== item.id))
         setToastMsg(`Layanan "${item.layanan}" telah dihapus.`)
         setTimeout(() => setToastMsg(null), 3000)

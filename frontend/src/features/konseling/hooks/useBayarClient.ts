@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { bookingService } from "@/services/booking.service"
 import { layananService } from "@/services/layanan.service"
@@ -56,10 +56,108 @@ export function useBayarClient() {
   const qBottomDate = searchParams.get("bottomDate") || "31 Agu 2026"
   const qBottomTime = searchParams.get("bottomTime") || "13:30 WIB (Online)"
   const qPsikologName = searchParams.get("psikologName") || ""
-  const qLayanan = searchParams.get("layanan") || "Layanan Konsultasi"
+  const qHari = searchParams.get("hari") || ""
+  const isAsesmenParam =
+    searchParams.get("mode") === "asesmen" ||
+    Boolean(qHari) ||
+    searchParams.get("kategori")?.toLowerCase() === "asesmen" ||
+    (searchParams.get("paket") || "").toLowerCase().includes("asesmen")
+  const rawLayanan = searchParams.get("layanan")
+  const qLayanan = rawLayanan
+    ? rawLayanan
+    : isAsesmenParam
+      ? `Asesmen Minat Bakat${qHari ? ` (${qHari === "weekend" ? "Weekend" : "Weekday"})` : " (Offline)"}`
+      : "Layanan Konsultasi"
   const qTanggal = searchParams.get("tanggal") || "31/08"
   const qTahun = searchParams.get("tahun") || "2026"
   const qWaktu = searchParams.get("waktu") || "13:30"
+  const qHarga = searchParams.get("harga") || searchParams.get("biaya") || "Rp 350.000"
+
+  // Status ketersediaan slot (mendeteksi pembatalan/penghapusan slot oleh admin secara realtime)
+  const [isSlotUnavailable, setIsSlotUnavailable] = useState(false)
+  const [slotUnavailableReason, setSlotUnavailableReason] = useState("")
+  const [isCheckingSlot, setIsCheckingSlot] = useState(true)
+
+  const isAsesmenLayanan =
+    qLayanan.toLowerCase().includes("asesmen") || isAsesmenParam
+
+  const checkSlotStatus = useCallback(async () => {
+    let targetDate = qFullDate
+    if (!targetDate && qTanggal && qTahun) {
+      const parts = qTanggal.split("/")
+      if (parts.length === 2) {
+        targetDate = `${qTahun}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
+      }
+    }
+
+    const qTime5 = qWaktu ? qWaktu.trim().substring(0, 5) : ""
+
+    // 1. Cek LocalStorage (apabila slot berasal dari custom admin/dummy)
+    try {
+      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          if (
+            qSlotId &&
+            (qSlotId.startsWith("slot_asesmen_") ||
+              qSlotId.startsWith("ab_") ||
+              qSlotId.startsWith("slot-admin-"))
+          ) {
+            const found = parsed.find((s: any) => s.id === qSlotId)
+            if (!found) {
+              setIsSlotUnavailable(true)
+              setSlotUnavailableReason(
+                "Slot jadwal ini telah dihapus dari jadwal klinik atau dibatalkan oleh admin."
+              )
+              setIsCheckingSlot(false)
+              return
+            }
+          }
+        }
+      }
+    } catch {}
+
+    // 2. Cek status ke Backend API
+    try {
+      const res: any = await bookingService.checkSlotAvailability({
+        id: qSlotId || undefined,
+        tanggal: targetDate || undefined,
+        waktu: qTime5 || undefined,
+        tipe_jadwal: isAsesmenLayanan ? "ASESMEN" : "KONSULTASI",
+        id_psikolog: !isAsesmenLayanan ? qPsikologId || undefined : undefined,
+      })
+
+      if (res && res.available === false) {
+        setIsSlotUnavailable(true)
+        setSlotUnavailableReason(
+          res.reason ||
+            "Slot jadwal ini telah dibatalkan atau tidak tersedia lagi dari jadwal klinik."
+        )
+        return
+      }
+
+      setIsSlotUnavailable(false)
+      setSlotUnavailableReason("")
+    } catch (err: any) {
+      console.warn("Cek status slot:", err?.message)
+    } finally {
+      setIsCheckingSlot(false)
+    }
+  }, [qSlotId, qFullDate, qTanggal, qTahun, qWaktu, isAsesmenLayanan, qPsikologId])
+
+  useEffect(() => {
+    checkSlotStatus()
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", checkSlotStatus)
+      window.addEventListener("storage", checkSlotStatus)
+      return () => {
+        window.removeEventListener("focus", checkSlotStatus)
+        window.removeEventListener("storage", checkSlotStatus)
+      }
+    }
+  }, [checkSlotStatus])
 
   // Perhitungan tarif dinamis (menyesuaikan hari kerja vs akhir pekan & kualifikasi tenaga ahli)
   const [hargaNominal, setHargaNominal] = useState("Rp 350.000")
@@ -183,6 +281,12 @@ export function useBayarClient() {
 
   const handleSubmit = async () => {
     if (isSubmitting) return
+
+    if (isSlotUnavailable) {
+      alert("Slot jadwal ini telah dihapus atau dibatalkan oleh pihak klinik/psikolog. Anda tidak dapat melanjutkan proses booking. Silakan pilih jadwal lain.")
+      return
+    }
+
     setAttemptedSubmit(true)
 
     const newErrors: {
@@ -199,8 +303,16 @@ export function useBayarClient() {
 
     if (!whatsapp.trim()) {
       newErrors.whatsapp = "Nomor WhatsApp wajib diisi."
-    } else if (!/^[0-9+-\s]{8,16}$/.test(whatsapp.trim())) {
-      newErrors.whatsapp = "Nomor WhatsApp minimal 8 digit angka."
+    } else {
+      const cleanWa = whatsapp.replace(/\D/g, "")
+      const local = cleanWa.startsWith("62") ? cleanWa.slice(2) : cleanWa
+      if (!local.startsWith("8")) {
+        newErrors.whatsapp = "Nomor tidak valid. Nomor WhatsApp harus diawali angka 8 (contoh: +62 812-xxxx-xxxx)."
+      } else if (local.length < 9) {
+        newErrors.whatsapp = "Nomor WhatsApp terlalu pendek (minimal 10 digit, contoh: +62 812-3456-7890)."
+      } else if (local.length > 13) {
+        newErrors.whatsapp = "Nomor WhatsApp terlalu panjang (maksimal 14 digit angka)."
+      }
     }
 
     if (!deskripsi.trim()) {
@@ -243,24 +355,33 @@ export function useBayarClient() {
       }
     }
 
+    const isAsesmenLayanan = qLayanan.toLowerCase().includes("asesmen") || isAsesmenParam
+
     try {
       const res: any = await bookingService.createBooking({
         id_jadwal: qSlotId || undefined,
-        id_psikolog: qPsikologId || undefined,
+        id_psikolog: !isAsesmenLayanan ? (qPsikologId || undefined) : undefined,
         tanggal: targetDate || undefined,
         jam_mulai: qWaktu ? qWaktu.substring(0, 5) : undefined,
         metode: qMetodeKonseling.toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE",
-        deskripsi_trauma: deskripsi.trim(),
+        tipe_jadwal: isAsesmenLayanan ? "ASESMEN" : "KONSULTASI",
+        layanan: qLayanan,
+        nama_layanan: qLayanan,
+        deskripsi_trauma: deskripsi.trim() || (isAsesmenLayanan ? `Sesi ${qLayanan}` : undefined),
         metode_pembayaran: (metodePembayaran || "QRIS").toUpperCase(),
         channel_pembayaran: selectedBank || selectedEwallet || "QRIS",
         klien: {
           nama: nama.trim().toUpperCase(),
           no_telepon: whatsapp.trim(),
         },
-      })
+      } as any)
 
       const finalOrderId = res?.kode_pesanan || ("W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"))
       const bookingId = res?.id
+
+      const cleanBottomTime = isAsesmenLayanan && qBottomTime.includes("•")
+        ? qBottomTime.split("•")[0].trim()
+        : qBottomTime
 
       const params = new URLSearchParams({
         nama: nama.trim().toUpperCase(),
@@ -269,17 +390,23 @@ export function useBayarClient() {
         orderId: finalOrderId,
         ...(bookingId && { bookingId }),
         ...(qSlotId && { slotId: qSlotId }),
-        ...(qPsikologId && { psikologId: qPsikologId }),
+        ...(!isAsesmenLayanan && qPsikologId && { psikologId: qPsikologId }),
         tanggal: qTanggal,
         tahun: qTahun,
         waktu: qWaktu,
         judul: qLayanan,
-        subjudul: qPsikologName ? `Bersama ${qPsikologName}` : "Psikolog Profesional Empathika",
+        subjudul: isAsesmenLayanan
+          ? "Sesi Asesmen Klinis Empathika"
+          : qPsikologName
+            ? `Bersama ${qPsikologName}`
+            : "Psikolog Profesional Empathika",
+        harga: qHarga,
+        ...(qHari && { hari: qHari }),
         bottomDate: qBottomDate,
-        bottomTime: qBottomTime,
+        bottomTime: cleanBottomTime,
         metode: metodePembayaran || "qris",
         metodeKonseling: qMetodeKonseling,
-        ...(qPsikologName && { psikologName: qPsikologName }),
+        ...(!isAsesmenLayanan && qPsikologName && { psikologName: qPsikologName }),
         ...(selectedBank && { bank: selectedBank }),
         ...(selectedEwallet && { ewallet: selectedEwallet }),
       })
@@ -309,6 +436,16 @@ export function useBayarClient() {
     } catch (err: any) {
       console.error("Booking error:", err)
       const msg = err?.response?.data?.message || err?.message || "Gagal memproses booking. Silakan coba lagi."
+
+      if (
+        err?.response?.status === 409 ||
+        msg.toLowerCase().includes("dihapus") ||
+        msg.toLowerCase().includes("dibatalkan") ||
+        msg.toLowerCase().includes("tidak tersedia")
+      ) {
+        setIsSlotUnavailable(true)
+        setSlotUnavailableReason(msg)
+      }
 
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots")
@@ -358,10 +495,16 @@ export function useBayarClient() {
     attemptedSubmit,
     isFailed,
     failedReason,
+    isSlotUnavailable,
+    slotUnavailableReason,
+    isCheckingSlot,
+    qWaktu,
     qBottomDate,
     qBottomTime,
     qPsikologName,
     qLayanan,
+    qHarga,
+    qHari,
     hargaNominal,
     isLayananNonaktif,
     handleSelectPayment,

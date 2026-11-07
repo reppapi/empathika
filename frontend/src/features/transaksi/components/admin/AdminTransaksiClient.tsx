@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { transaksiService } from "@/services/transaksi.service"
 import { invoiceService } from "@/services/invoice.service"
+import { formatOrderId } from "@/lib/utils"
 import { AlertCircle, RotateCcw, X, DollarSign } from "lucide-react"
 
 type JenisLayanan = "semua" | "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
@@ -40,7 +41,7 @@ function ModalRefundTransaksi({
 
   if (!transaksi) return null
 
-  const nominal = Number(
+  const totalNominal = Number(
     transaksi.total ??
     transaksi.jumlah ??
     transaksi.total_harga ??
@@ -48,12 +49,22 @@ function ModalRefundTransaksi({
     0
   )
 
-  const nominalStr = new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0,
-  }).format(nominal)
+  const refundKlien = Math.round(totalNominal * 0.70)
+  const potEmpathika = Math.round(totalNominal * 0.15)
+  const potPsikolog = totalNominal - refundKlien - potEmpathika
+
+  const formatRupiah = (val: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(val)
+
+  const totalStr = formatRupiah(totalNominal)
+  const refundKlienStr = formatRupiah(refundKlien)
+  const potEmpathikaStr = formatRupiah(potEmpathika)
+  const potPsikologStr = formatRupiah(potPsikolog)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,7 +116,7 @@ function ModalRefundTransaksi({
                 Konfirmasi Refund Transaksi
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Pengembalian dana penuh 100% (Maksimal H-1)
+                Pengembalian 70% ke Klien • 15% Psikolog • 15% Empathika (Maksimal H-1)
               </p>
             </div>
           </div>
@@ -130,14 +141,32 @@ function ModalRefundTransaksi({
               <span className="font-bold text-gray-900">{layananName}</span>
             </div>
             <div className="flex justify-between items-center text-gray-600">
-              <span className="font-medium">Order ID</span>
-              <span className="font-bold text-gray-900">{transaksi.kode_transaksi || transaksi.order_id || transaksi.id?.slice(0, 8)?.toUpperCase() || "-"}</span>
+              <span className="font-medium">ID Tiket / Pesanan</span>
+              <span className="font-bold text-gray-900">{formatOrderId(transaksi.kode_pesanan || transaksi.booking_konsultasi?.kode_pesanan || transaksi.booking_event?.kode_tiket || transaksi.order_id || transaksi.kode_transaksi)}</span>
             </div>
             <div className="flex justify-between items-center text-gray-600">
-              <span className="flex items-center gap-1.5 font-medium">
-                <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Nominal Refund (100%)
-              </span>
-              <span className="font-extrabold text-emerald-700 text-sm">{nominalStr}</span>
+              <span className="font-medium">Order ID (Ref Pembayaran)</span>
+              <span className="font-mono text-xs font-semibold text-gray-700">{transaksi.kode_transaksi || transaksi.order_id || "-"}</span>
+            </div>
+            <div className="flex justify-between items-center text-gray-600">
+              <span className="font-medium">Total Tagihan Awal</span>
+              <span className="font-bold text-gray-800">{totalStr}</span>
+            </div>
+            <div className="border-t border-gray-200/80 pt-2 space-y-1.5">
+              <div className="flex justify-between items-center text-emerald-700 font-semibold">
+                <span className="flex items-center gap-1">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Dikembalikan ke Klien (70%)
+                </span>
+                <span className="font-extrabold text-sm text-emerald-700">{refundKlienStr}</span>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-gray-500">
+                <span>Hak Psikolog (15%)</span>
+                <span className="font-semibold text-gray-700">{potPsikologStr}</span>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-gray-500">
+                <span>Operasional Empathika (15%)</span>
+                <span className="font-semibold text-gray-700">{potEmpathikaStr}</span>
+              </div>
             </div>
           </div>
 
@@ -227,11 +256,27 @@ function normalizeTransaksi(raw: any) {
 
   // Tentukan jenis layanan
   const rawTipe = (raw.tipe_transaksi || "").toUpperCase()
+  const rawLayananText = (
+    layanan.nama ||
+    layanan.nama_layanan ||
+    raw.nama_layanan ||
+    raw.layanan ||
+    booking.deskripsi_trauma ||
+    ""
+  ).toLowerCase()
+  const isAsesmenTrx =
+    raw.kode_pesanan?.startsWith("ASES-") ||
+    layanan.kategori?.toLowerCase().includes("asesmen") ||
+    jadwal.tipe_jadwal === "ASESMEN" ||
+    rawLayananText.includes("asesmen")
+
   let jenisLayanan: JenisLayanan = "konseling"
   if (rawTipe === "PSIKOTES" || bookingPsikotes.id || raw.booking_psikotes) {
     jenisLayanan = "psikotes"
   } else if (rawTipe === "EVENT" || bookingEvent.id || raw.booking_event) {
     jenisLayanan = "event"
+  } else if (isAsesmenTrx) {
+    jenisLayanan = "asesment"
   } else {
     const jenisRaw = (layanan.kategori || raw.tipe_transaksi || "konseling")
       .toLowerCase()
@@ -260,6 +305,13 @@ function normalizeTransaksi(raw: any) {
       "Paket Psikotes Berbayar"
   } else if (jenisLayanan === "event") {
     namaLayanan = bookingEvent.event?.judul || raw.nama_layanan || "Event Empathika"
+  } else if (jenisLayanan === "asesment") {
+    namaLayanan =
+      layanan.nama ||
+      layanan.nama_layanan ||
+      raw.nama_layanan ||
+      raw.layanan ||
+      "Asesmen Minat Bakat (Offline)"
   } else {
     namaLayanan = layanan.nama || layanan.nama_layanan || raw.nama_layanan || "–"
   }
@@ -370,8 +422,10 @@ function normalizeTransaksi(raw: any) {
     }) + " WIB"
     : undefined
 
-  let cleanedOrderId = raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-"
-  cleanedOrderId = cleanedOrderId.replace(/^W-EMP-EMP-/, "W-EMP-").replace(/^EMP-EMP-/, "EMP-")
+  const rawKodePesanan = booking.kode_pesanan || bookingEvent.kode_tiket || (bookingPsikotes.id ? ("EMP-PSI-" + raw.id?.slice(0, 8)?.toUpperCase()) : "") || "";
+  const rawKodeTransaksi = raw.kode_transaksi || raw.order_id || raw.id?.slice(0, 8)?.toUpperCase() || "-";
+  const formattedKodePesanan = formatOrderId(rawKodePesanan || rawKodeTransaksi);
+  const formattedOrderId = rawKodeTransaksi !== "-" ? rawKodeTransaksi : formattedKodePesanan;
 
   // Format metode pembayaran yang user-friendly
   let metodePembayaranFormatted =
@@ -417,7 +471,10 @@ function normalizeTransaksi(raw: any) {
 
   return {
     id: raw.id,
-    orderId: cleanedOrderId,
+    orderId: formattedOrderId,
+    kodePesanan: formattedKodePesanan,
+    kodeTransaksi: rawKodeTransaksi,
+    invoiceNomor: raw.invoice?.nomor || "",
     orderDate: createdAt.toLocaleString("id-ID", {
       day: "2-digit",
       month: "short",
@@ -439,6 +496,19 @@ function normalizeTransaksi(raw: any) {
     metodePembayaran: metodePembayaranFormatted,
     waktuPembayaran,
     tanggalTransaksi,
+    // Informasi Refund
+    isRefunded: raw.status_pembayaran === "REFUNDED",
+    refundAt: raw.refund_at
+      ? new Date(raw.refund_at).toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) + " WIB"
+      : null,
+    refundAmount: raw.refund_amount ? Number(raw.refund_amount) : null,
+    refundReason: raw.refund_reason || null,
     // raw for refund
     _raw: raw,
   }
@@ -446,6 +516,8 @@ function normalizeTransaksi(raw: any) {
 
 export default function AdminTransaksiClient() {
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const filterBtnRef = useRef<HTMLButtonElement>(null)
+  const [filterDropdownPos, setFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
 
   // Data state
   const [allTransaksi, setAllTransaksi] = useState<ReturnType<typeof normalizeTransaksi>[]>([])
@@ -763,7 +835,14 @@ export default function AdminTransaksiClient() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    ref={filterBtnRef}
+                    onClick={() => {
+                      if (!isFilterOpen && filterBtnRef.current) {
+                        const rect = filterBtnRef.current.getBoundingClientRect()
+                        setFilterDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+                      }
+                      setIsFilterOpen(!isFilterOpen)
+                    }}
                     className="flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:bg-gray-50 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4 text-[#561269]">
@@ -775,7 +854,10 @@ export default function AdminTransaksiClient() {
                   {isFilterOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
-                      <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold">
+                      <div
+                        className="fixed z-[9999] w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold"
+                        style={filterDropdownPos ? { top: filterDropdownPos.top, right: filterDropdownPos.right } : {}}
+                      >
                         <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400">Filter Layanan</p>
                         {LAYANAN_OPTIONS.map((opt) => (
                           <button
@@ -824,7 +906,16 @@ export default function AdminTransaksiClient() {
                           <div className="absolute inset-y-0 left-0 w-[5px] bg-[#561269]" />
                         )}
                         <div className="flex flex-col gap-1 min-w-0">
-                          <span className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{item.orderId}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] font-bold tracking-wider text-[#561269] bg-purple-50 px-2 py-0.5 rounded border border-purple-200/60 uppercase">
+                              Tiket: {item.kodePesanan}
+                            </span>
+                            {item.kodeTransaksi && item.kodeTransaksi !== "-" && (
+                              <span className="text-[10px] font-semibold text-gray-500 tracking-wide font-mono">
+                                Order: {item.kodeTransaksi}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-sm">
                             <span className="font-bold text-gray-900 truncate">{item.clientName}</span>
                             <span className="text-gray-300">|</span>
@@ -874,12 +965,20 @@ export default function AdminTransaksiClient() {
               {activeDetailItem ? (
                 <div className="p-6 flex flex-col gap-4">
                   {/* Order Info */}
-                  <div className="flex flex-col items-center text-center">
-                    <span className="text-[11px] font-bold text-gray-400 tracking-wider uppercase">ORDER ID</span>
-                    <span className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight mt-0.5">
-                      {activeDetailItem.orderId}
-                    </span>
-                    <span className="text-xs text-gray-500 mt-1">{activeDetailItem.orderDate}</span>
+                  <div className="flex flex-col items-center text-center gap-1.5">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                        ID Tiket
+                      </span>
+                      <span className="text-xl sm:text-2xl font-extrabold text-[#561269] tracking-tight mt-0.5 font-mono">
+                        {activeDetailItem.kodePesanan}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <span className="font-semibold text-gray-400">Order ID:</span>
+                      <span className="font-mono font-bold text-gray-800">{activeDetailItem.kodeTransaksi}</span>
+                    </div>
+                    <span className="text-[11px] text-gray-400 mt-0.5">{activeDetailItem.orderDate}</span>
                   </div>
 
                   <div className="h-[1px] w-full bg-gray-100" />
@@ -958,6 +1057,28 @@ export default function AdminTransaksiClient() {
                     </p>
                   </div>
 
+                  {/* ── KETERANGAN STATUS REFUND (TEKS BIASA) ── */}
+                  {activeDetailItem.isRefunded && (
+                    <div className="pt-3 pb-1 border-t border-gray-100 flex flex-col gap-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-red-600 uppercase tracking-wide">
+                          Status: Transaksi Telah Di-Refund (70%)
+                        </span>
+                        <span className="font-bold text-red-600">
+                          Rp. {(activeDetailItem.refundAmount ?? Math.round(activeDetailItem.totalBayar * 0.7)).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-gray-500 text-[11px]">
+                        <span>Waktu Refund:</span>
+                        <span className="font-medium text-gray-700">{activeDetailItem.refundAt || "-"}</span>
+                      </div>
+                      <div className="text-[11px] text-gray-600 leading-relaxed">
+                        <span className="text-gray-500 font-medium">Alasan / Catatan Refund: </span>
+                        <span className="text-red-700 font-medium">{activeDetailItem.refundReason || "Tidak ada alasan spesifik"}</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action buttons */}
                   <div className="flex flex-col gap-2.5 mt-1">
                     {/* Invoice WA */}
@@ -980,7 +1101,7 @@ export default function AdminTransaksiClient() {
                         className="w-full rounded-full border-2 border-amber-400 bg-transparent hover:bg-amber-50 px-4 py-3 text-xs sm:text-sm font-bold text-amber-600 transition-all flex items-center justify-center gap-2 active:scale-98"
                       >
                         <RotateCcw className="w-4 h-4" />
-                        Proses Refund (H-1)
+                        Proses Refund (70% Klien)
                       </button>
                     )}
                   </div>

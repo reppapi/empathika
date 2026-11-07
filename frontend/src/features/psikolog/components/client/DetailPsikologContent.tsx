@@ -14,7 +14,27 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
   const { withBiro } = useTenant();
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   const initial = psikolog.nama_gelar ? psikolog.nama_gelar.charAt(0) : 'P';
-  const peran = psikolog.spesialisasi?.nama || (psikolog.category === 'konselor' ? 'Konselor' : 'Psikolog');
+
+  // Deteksi kategori profesi adaptif (peer-konselor, konselor, psikolog)
+  const categoryVal = (psikolog.category || '').toLowerCase();
+  const specVal = (psikolog.spesialisasi?.nama || '').toLowerCase();
+  const anyPsikolog = psikolog as any;
+  const rawCat = (
+    categoryVal ||
+    (typeof anyPsikolog.kategori === 'string' ? anyPsikolog.kategori : anyPsikolog.kategori?.nama) ||
+    specVal
+  ).toLowerCase();
+
+  const isPeer = rawCat.includes('peer') || categoryVal === 'peer-konselor';
+  const isKonselor = !isPeer && (rawCat.includes('konselor') || categoryVal === 'konselor');
+
+  const titleHeader = isPeer
+    ? 'Peer Konselor kami'
+    : isKonselor
+      ? 'Konselor kami'
+      : 'Psikolog kami';
+
+  const peran = psikolog.spesialisasi?.nama || (isPeer ? 'Peer Konselor' : isKonselor ? 'Konselor' : 'Psikolog');
 
   return (
     <main className="min-h-screen bg-white pb-0 w-full overflow-hidden">
@@ -23,11 +43,14 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
         <div 
           className="w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
         >
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wide drop-shadow-sm leading-tight">
-              Psikolog kami
+          <div className="max-w-4xl mx-auto overflow-hidden">
+            <h1 
+              key={titleHeader}
+              className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wide drop-shadow-sm leading-tight transition-all duration-500 ease-out animate-fade-in"
+            >
+              {titleHeader}
             </h1>
-            <p className="mt-2 text-purple-200 text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light">
+            <p className="mt-2 text-purple-200 text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light transition-all duration-500 ease-out">
               Kenali lebih dekat profesional yang akan mendampingi perjalanan kesehatan mental Anda.
             </p>
           </div>
@@ -80,7 +103,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                 <p>
                   Jumlah sesi: <span className="font-semibold text-gray-900">{psikolog.jumlah_sesi} Sesi</span>
                 </p>
-                {psikolog.no_str && (
+                {psikolog.category === "psikolog" && psikolog.no_str && (
                   <>
                     <span className="hidden sm:inline text-gray-300">•</span>
                     <p>
@@ -88,7 +111,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                     </p>
                   </>
                 )}
-                {psikolog.no_sipp && (
+                {psikolog.category === "psikolog" && psikolog.no_sipp && (
                   <>
                     <span className="hidden sm:inline text-gray-300">•</span>
                     <p>
@@ -99,22 +122,22 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
               </div>
 
               {/* Quote / Prinsip Singkat Diri */}
-              {psikolog.quote && (
-                <div className="mt-3 bg-[#FAF5FD] border-l-4 border-[#561269] p-3.5 sm:p-4 rounded-r-2xl text-left">
+              {psikolog.quote && psikolog.quote.trim() ? (
+                <div className="mt-3 bg-[#FAF5FD] border-l-4 border-[#561269] p-3.5 sm:p-4 rounded-r-2xl text-left shadow-2xs">
                   <p className="text-gray-800 text-xs sm:text-sm md:text-base italic leading-relaxed">
-                    &ldquo;{psikolog.quote}&rdquo;
+                    &ldquo;{psikolog.quote.replace(/^["“”']+|["“”']+$/g, "")}&rdquo;
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
           {/* Kolom Kanan: Video Perkenalan Diri (Video Greeting / Intro) */}
           <div className="lg:col-span-5 w-full">
             <div className="relative rounded-3xl overflow-hidden shadow-lg border border-purple-100 bg-[#3B074B] aspect-video flex items-center justify-center group">
-              {isPlayingVideo ? (
+              {isPlayingVideo && psikolog.videoIntroUrl ? (
                 <video
-                  src={psikolog.videoIntroUrl || 'https://www.w3schools.com/html/mov_bbb.mp4'}
+                  src={psikolog.videoIntroUrl}
                   controls
                   autoPlay
                   className="w-full h-full object-cover"
@@ -149,18 +172,24 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                   )}
 
                   {/* Tombol Play Interaktif */}
-                  <button
-                    type="button"
-                    onClick={() => setIsPlayingVideo(true)}
-                    className="relative z-10 flex items-center gap-3 bg-white/90 hover:bg-white text-[#561269] px-6 py-3 rounded-full font-bold text-sm sm:text-base shadow-2xl hover:scale-105 transition-all duration-200"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-[#561269] text-white flex items-center justify-center pl-0.5">
-                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
+                  {psikolog.videoIntroUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsPlayingVideo(true)}
+                      className="relative z-10 flex items-center gap-3 bg-white/90 hover:bg-white text-[#561269] px-6 py-3 rounded-full font-bold text-sm sm:text-base shadow-2xl hover:scale-105 transition-all duration-200"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-[#561269] text-white flex items-center justify-center pl-0.5">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                      <span>Tonton Video Perkenalan</span>
+                    </button>
+                  ) : (
+                    <div className="relative z-10 text-center p-4 text-white">
+                      <p className="text-xs sm:text-sm font-semibold">Video Perkenalan Belum Tersedia</p>
                     </div>
-                    <span>Tonton Video Perkenalan</span>
-                  </button>
+                  )}
                 </>
               )}
             </div>
@@ -181,8 +210,15 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
               psikolog.profilLengkap.map((paragraf: string, idx: number) => (
                 <p key={idx} className="whitespace-pre-line">{paragraf}</p>
               ))
+            ) : psikolog.bio && psikolog.bio.trim() ? (
+              psikolog.bio
+                .split(/\n\s*\n/)
+                .filter(Boolean)
+                .map((paragraf: string, idx: number) => (
+                  <p key={idx} className="whitespace-pre-line">{paragraf}</p>
+                ))
             ) : (
-              <p className="whitespace-pre-line">{psikolog.bio || 'Deskripsi profil belum dicantumkan.'}</p>
+              <p className="whitespace-pre-line text-gray-400 italic">Deskripsi profil belum dicantumkan.</p>
             )}
           </div>
 
@@ -198,7 +234,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
                 </div>
               </div>
             )}
-            {(psikolog.no_str || psikolog.no_sipp) && (
+            {psikolog.category === "psikolog" && (psikolog.no_str || psikolog.no_sipp) && (
               <p className="text-sm sm:text-base text-gray-600 font-semibold">
                 Nomor Izin Praktik:{' '}
                 <span className="font-normal text-gray-800">

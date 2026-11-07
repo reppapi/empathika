@@ -8,7 +8,6 @@ import { CATEGORIES } from "../../data/layananData"
 import { addLayanan } from "../../data/adminLayananData"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import { layananService } from "@/services/layanan.service"
-
 function parseRupiahNumber(val: any): number {
   if (typeof val === "number") return isNaN(val) ? 0 : val
   if (!val) return 0
@@ -78,6 +77,8 @@ export default function TambahLayananView() {
   const initialCategory = searchParams.get("category") || "01"
 
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
+  const [imageUrlInput, setImageUrlInput] = useState("")
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
   const [status, setStatus] = useState<"Aktif" | "Nonaktif">("Aktif")
   const [namaLayanan, setNamaLayanan] = useState("")
@@ -113,7 +114,7 @@ export default function TambahLayananView() {
     const file = e.target.files?.[0]
     if (file) {
       try {
-        const { url } = await processAndUploadImage(file)
+        const { url } = await processAndUploadImage(file, "layanan")
         setImagePreview(url)
       } catch (err: any) {
         alert(err?.message || "Gagal memproses gambar")
@@ -538,11 +539,80 @@ export default function TambahLayananView() {
               </div>
             </div>
 
-            {/* Poster / Banner Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Poster / Banner Layanan
+          {/* Foto Banner Awal / Gambar Hero Layanan */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-bold text-gray-800">
+                Foto Banner Awal / Gambar Hero Layanan
               </label>
+              <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs">
+                <button
+                  type="button"
+                  onClick={() => setImageInputMode("file")}
+                  className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
+                    imageInputMode === "file" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageInputMode("url")}
+                  className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
+                    imageInputMode === "url" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  Tautan URL
+                </button>
+              </div>
+            </div>
+
+            {imageInputMode === "url" ? (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    placeholder="https://example.com/foto-banner-layanan.jpg"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (imageUrlInput.trim()) {
+                        setImagePreview(imageUrlInput.trim())
+                      }
+                    }}
+                    className="px-4 py-2 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
+                  >
+                    Terapkan
+                  </button>
+                </div>
+                {imagePreview && (
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview Foto Hero"
+                      width={400}
+                      height={160}
+                      className="max-h-40 w-auto object-contain"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreview(null)
+                        setImageUrlInput("")
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
               <div
                 className={`mt-1 flex justify-center border-2 ${
                   imagePreview
@@ -564,11 +634,15 @@ export default function TambahLayananView() {
                   <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
                     <Image
                       src={imagePreview}
-                      alt="Preview"
+                      alt="Preview Foto Hero"
                       width={300}
                       height={160}
                       className="max-h-[160px] w-auto object-contain"
+                      unoptimized
                     />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                      📐 1200 × 675 px (16:9)
+                    </div>
                     <button
                       type="button"
                       onClick={handleRemoveImage}
@@ -580,12 +654,21 @@ export default function TambahLayananView() {
                 ) : (
                   <div className="space-y-2 text-center my-auto">
                     <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
-                    <div className="text-sm text-gray-600">Klik untuk upload gambar poster / banner</div>
-                    <p className="text-xs text-gray-500">Format: JPG, PNG, WebP (Maks. 2MB)</p>
+                    <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
+                    <p className="text-xs font-medium text-gray-600">
+                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                    </p>
                   </div>
                 )}
               </div>
-            </div>
+            )}
+            <p className="text-[11px] text-gray-500 mt-1.5">
+              Foto ini akan ditampilkan sebagai gambar hero banner utama di bagian atas halaman detail layanan publik (Asesmen, Workshop, atau Konsultasi).
+            </p>
+          </div>
           </div>
         )}
 

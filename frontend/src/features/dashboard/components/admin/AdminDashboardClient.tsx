@@ -10,26 +10,19 @@ import DashboardAgenda from "./DashboardAgenda"
 import DashboardTodaySessions from "./DashboardTodaySessions"
 import DashboardRecentTransactions from "./DashboardRecentTransactions"
 
-import { TodaySessionItem } from "../../types"
+import { TodaySessionItem, RecentTransactionItem } from "../../types"
 import {
   INITIAL_DASHBOARD_METRICS,
   INITIAL_AGENDA_LIST,
 } from "../../data/dashboardData"
-import {
-  TransaksiItem,
-  getTodayTransactions,
-  getTodayDateKey,
-} from "@/features/transaksi/data/transaksiData"
 import { adminService } from "@/services/admin.service"
 
 export default function AdminDashboardClient() {
   // 1. Ambil sesi konseling hari ini langsung dari Database PostgreSQL via adminService
   const [sessions, setSessions] = useState<TodaySessionItem[]>([])
 
-  // 2. Ambil transaksi pembayaran pada saat tanggal hari ini saja
-  const [transactions, setTransactions] = useState<TransaksiItem[]>(() => {
-    return getTodayTransactions()
-  })
+  // 2. State transaksi pembayaran terbaru (dari API)
+  const [transactions, setTransactions] = useState<RecentTransactionItem[]>([])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
@@ -64,8 +57,8 @@ export default function AdminDashboardClient() {
     year: "numeric",
   }).format(new Date())
 
-  const handleSessionSuccess = (newSession: NewSessionData) => {
-    // 1. Tambahkan ke Sesi Konseling Hari Ini
+  const handleSessionSuccess = async (newSession: NewSessionData) => {
+    // 1. Tambahkan ke Sesi Konseling Hari Ini (Optimistic UI)
     const item: TodaySessionItem = {
       waktu: newSession.waktu,
       klien: newSession.namaKlien,
@@ -76,30 +69,61 @@ export default function AdminDashboardClient() {
     }
     setSessions((prev) => [item, ...prev])
 
-    // 2. Tambahkan transaksi pada tanggal hari ini
-    const newTrx: TransaksiItem = {
+    // 2. Tambahkan placeholder transaksi baru ke list
+    const isAsesmen = newSession.layanan?.toLowerCase().includes("asesmen")
+    const newTrx = {
       id: "trx_" + Date.now(),
-      orderId: "KL-0" + Math.floor(130 + Math.random() * 800),
-      orderDate: `Hari Ini, ${newSession.waktu.split(" - ")[0]} WIB`,
-      clientName: newSession.namaKlien,
-      clientEmail: `${newSession.namaKlien.toLowerCase().replace(/\s+/g, ".")}@gmail.com`,
-      clientPhone: newSession.kontak || "0812-0000-0000",
-      jenisLayanan: "konseling",
-      namaLayanan: newSession.layanan,
-      psikologOrFasilitator: newSession.psikolog,
-      jadwal: `Hari Ini, ${newSession.waktu}`,
-      status: "Menunggu Pembayaran",
-      subtotal: 250000,
-      biayaLayanan: 2500,
-      totalBayar: 252500,
-      metodePembayaran: "BCA Virtual Account",
-      waktuPembayaran: "-",
-      tanggalTransaksi: getTodayDateKey(),
+      client: newSession.namaKlien,
+      layanan: newSession.layanan,
+      metode: "-",
+      kategori: isAsesmen ? "Asesmen" : "Konseling",
+      total: "Menunggu",
+      status: "Menunggu Pembayaran" as const,
     }
     setTransactions((prev) => [newTrx, ...prev])
 
     setNotification(`Sesi konseling baru untuk "${newSession.namaKlien}" berhasil dijadwalkan!`)
     setTimeout(() => setNotification(null), 4000)
+
+    try {
+      const cleanWaktu = newSession.waktu.replace(" WIB", "").trim()
+      const parts = cleanWaktu.split("-").map((p) => p.trim())
+      const jamMulai = parts[0]?.substring(0, 5) || "13:00"
+      const jamSelesai = parts[1]?.substring(0, 5) || "14:00"
+
+      await adminService.createSesiBaru({
+        id_psikolog: newSession.idPsikolog || newSession.psikolog,
+        id_layanan: newSession.idLayanan || newSession.layanan,
+        tanggal: newSession.tanggal,
+        jam_mulai: jamMulai,
+        jam_selesai: jamSelesai,
+        metode: newSession.metode.toUpperCase() === "OFFLINE" ? "OFFLINE" : "ONLINE",
+        deskripsi_trauma: newSession.catatan,
+        klien: {
+          nama: newSession.namaKlien.trim(),
+          no_telepon: newSession.kontak.trim() || "081234567890",
+        },
+      })
+
+      // Muat ulang jadwal terbaru dari database
+      const res: any = await adminService.getJadwal()
+      if (res && Array.isArray(res.todaySessions)) {
+        setSessions(
+          res.todaySessions.map((item: any) => ({
+            waktu: (item.waktuRange || item.waktu || "").includes("WIB")
+              ? item.waktuRange || item.waktu
+              : `${item.waktuRange || item.waktu || ""} WIB`,
+            klien: item.namaKlien,
+            psikolog: item.psikolog,
+            layanan: item.layanan,
+            metode: item.metode,
+            status: item.status,
+          }))
+        )
+      }
+    } catch (err: any) {
+      console.warn("Gagal simpan sesi dari dashboard:", err?.response?.data?.message || err?.message)
+    }
   }
 
   return (

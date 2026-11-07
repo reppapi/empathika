@@ -1,13 +1,19 @@
 import type { FastifyInstance } from 'fastify'
+import { z } from 'zod'
 import { TransaksiController } from './transaksi.controller'
-import { TransaksiService } from './transaksi.service'
-import { createTransaksiSchema, refundTransaksiSchema } from './transaksi.schema'
+import { WebhookController } from './payment/webhook.controller'
+import {
+  createTransaksiSchema,
+  createCheckoutTransaksiSchema,
+  refundTransaksiSchema,
+  webhookXenditSchema,
+} from './transaksi.schema'
 import { authGuard } from '../../middlewares/auth-guard'
 import { adminGuard } from '../../middlewares/admin-guard'
 
 export default async function transaksiRoutes(fastify: FastifyInstance) {
   const controller = new TransaksiController(fastify)
-  const service = new TransaksiService(fastify)
+  const webhookCtrl = new WebhookController(fastify)
 
   // ── Admin routes ────────────────────────────────────────────────
   fastify.get('/admin', {
@@ -20,11 +26,21 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
     preHandler: [adminGuard],
     schema: {
       tags: ['Transaksi - Admin'],
-      summary: 'Admin memproses refund transaksi 100% (validasi maksimal H-1 sesi)',
+      summary: 'Admin memproses refund transaksi 70% kembali ke klien, 15% psikolog, 15% empathika (validasi maksimal H-1 sesi)',
       security: [{ bearerAuth: [] }],
       body: refundTransaksiSchema,
     },
     handler: controller.processRefund,
+  })
+
+  // ── Publik / Client Checkout Terpusat (Konseling, Event, Psikotes) ─
+  fastify.post('/checkout', {
+    schema: {
+      body: createCheckoutTransaksiSchema,
+      tags: ['Transaksi'],
+      summary: 'Universal Checkout Xendit untuk Pendaftaran Konseling, Event, dan Psikotes Premium',
+    },
+    handler: controller.checkout,
   })
 
   // ── Client routes ───────────────────────────────────────────────
@@ -35,23 +51,30 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/:id', {
-    preHandler: [authGuard],
-    schema: { tags: ['Transaksi'], security: [{ bearerAuth: [] }] },
+    schema: { tags: ['Transaksi'], summary: 'Ambil detail transaksi berdasarkan ID atau Kode Transaksi' },
     handler: controller.getById,
   })
 
+  // Legacy inisiasi pembayaran booking
   fastify.post('/', {
     preHandler: [authGuard],
     schema: { body: createTransaksiSchema, tags: ['Transaksi'], security: [{ bearerAuth: [] }] },
     handler: controller.createPayment,
   })
 
-  // Webhook dari payment gateway - TANPA auth guard (pakai signature verification)
+  // ── Webhook Xendit Callback ─────────────────────────────────────
   fastify.post('/webhook', {
-    schema: { tags: ['Transaksi'] },
-    handler: async (request, reply) => {
-      await service.handleWebhook(request.body as Record<string, unknown>)
-      reply.send({ received: true })
+    schema: {
+      tags: ['Transaksi - Webhook'],
+      summary: 'Menerima webhook callback status pembayaran dari Xendit (x-callback-token). Untuk testing: kosongkan header x-callback-token jika XENDIT_WEBHOOK_TOKEN belum diset di .env.',
+      body: webhookXenditSchema,
+      response: {
+        200: z.object({
+          received: z.boolean(),
+          message: z.string().optional(),
+        }),
+      },
     },
+    handler: webhookCtrl.handle,
   })
 }

@@ -81,11 +81,21 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     preHandler: [adminGuard],
     schema: {
       tags: ['Admin - Jadwal'],
-      summary: 'Admin membukakan slot ketersediaan untuk psikolog',
+      summary: 'Admin membukakan slot ketersediaan jadwal asesmen klinik',
       security: [{ bearerAuth: [] }],
       body: createAdminJadwalSlotSchema,
     },
     handler: controller.createJadwalSlot,
+  })
+
+  fastify.delete('/jadwal-slots/:id', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Jadwal'],
+      summary: 'Admin menghapus slot ketersediaan jadwal asesmen klinik yang belum dibooking',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.deleteJadwalSlot,
   })
 
   fastify.post('/sesi-baru', {

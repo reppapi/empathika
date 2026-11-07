@@ -1,6 +1,6 @@
 "use client"
 
-import PaymentSuccessClient from "@/components/PaymentSuccessClient"
+import PaymentSuccessClient from "@/components/shared/checkout/PaymentSuccessClient"
 
 export default function PsikotesSuccessClient() {
   return <PaymentSuccessClient type="psikotes" />

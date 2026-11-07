@@ -9,6 +9,7 @@ export interface BookedAssessment {
   status?: "Aktif" | "Dibatalkan" | "Selesai" | string
   isAvailableSlot?: boolean
   isBooked?: boolean
+  tipe_jadwal?: "ASESMEN" | "KONSULTASI" | string
 }
 
 export type ClientSessionStatus =

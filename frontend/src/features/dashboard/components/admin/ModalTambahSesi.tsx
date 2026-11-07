@@ -1,14 +1,17 @@
 "use client"
 
-import React, { useState } from "react"
-import { X, Calendar, Clock, User, Phone, Video, MapPin, FileText, CheckCircle2 } from "lucide-react"
+import React, { useState, useEffect, useMemo } from "react"
+import { X, Calendar, Clock, User, UserCheck, Phone, Video, MapPin, FileText, CheckCircle2, AlertCircle } from "lucide-react"
+import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 
 export interface NewSessionData {
   id: string
   namaKlien: string
   kontak: string
   layanan: string
+  idLayanan?: string
   psikolog: string
+  idPsikolog?: string
   tanggal: string
   waktu: string
   metode: "Online" | "Offline"
@@ -16,10 +19,100 @@ export interface NewSessionData {
   status: "Mendatang" | "Sedang Berjalan" | "Selesai"
 }
 
+export interface PsikologOption {
+  id: string
+  nama: string
+  kategori?: string
+  spesialisasi?: string
+  keahlian?: string
+  status?: string
+}
+
+export type KategoriTenagaOption = "psikolog" | "konselor" | "peer-konselor"
+
+export const normalizeKategori = (kat?: string): KategoriTenagaOption => {
+  if (!kat) return "psikolog"
+  const k = kat.toLowerCase()
+  if (k.includes("peer")) return "peer-konselor"
+  if (k.includes("konselor")) return "konselor"
+  return "psikolog"
+}
+
 interface ModalTambahSesiProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: (newSession: NewSessionData) => void
+}
+
+export const getLayananOptionsForPsikolog = (p?: PsikologOption): string[] => {
+  if (!p) return ["Konseling Individu"]
+  const kat = (p.kategori || "").toLowerCase()
+  const spes = p.spesialisasi || ""
+  const keahlian = p.keahlian || ""
+  const nama = p.nama.toLowerCase()
+
+  const list: string[] = []
+
+  // 1. Peer Konselor
+  if (kat.includes("peer")) {
+    list.push("Konseling Teman Sebaya (Peer)")
+    if (spes) list.push(`Konseling: ${spes}`)
+    list.push("Konseling Remaja & Mahasiswa")
+  } 
+  // 2. Konselor
+  else if (kat.includes("konselor")) {
+    list.push("Konseling Bersama Konselor")
+    list.push("Konseling Individu")
+    if (spes) list.push(`Konseling: ${spes}`)
+    if (keahlian.toLowerCase().includes("karir") || keahlian.toLowerCase().includes("karier")) {
+      list.push("Konseling Karier & Pekerjaan")
+    }
+    if (keahlian.toLowerCase().includes("hubungan") || keahlian.toLowerCase().includes("romantis")) {
+      list.push("Konseling Relasi & Hubungan")
+    }
+  } 
+  // 3. Psikolog / Psikolog Klinis
+  else {
+    list.push("Konsultasi Psikologi")
+    list.push("Konseling Individu Dewasa")
+    if (spes) list.push(`Konseling: ${spes}`)
+    if (spes.toLowerCase().includes("anak") || spes.toLowerCase().includes("remaja")) {
+      list.push("Konseling Anak & Remaja")
+      list.push("Konsultasi Parenting")
+    }
+    if (spes.toLowerCase().includes("pasangan") || spes.toLowerCase().includes("keluarga")) {
+      list.push("Konseling Pasangan & Pranikah")
+      list.push("Konseling Dinamika Keluarga")
+    }
+    if (
+      spes.toLowerCase().includes("klinis") ||
+      keahlian.toLowerCase().includes("kecemasan") ||
+      keahlian.toLowerCase().includes("depresi")
+    ) {
+      list.push("Konseling Regulasi Emosi & Stres")
+      list.push("Terapi Kecemasan & Mood")
+    }
+  }
+
+  // Hipnoterapi jika bersertifikat
+  if (nama.includes("c.ht") || keahlian.toLowerCase().includes("hipno")) {
+    list.push("Hipnoterapi Klinis")
+  }
+
+  // Tambahkan topik keahlian spesifik
+  if (keahlian) {
+    const parts = keahlian.split(",").map((s) => s.trim()).filter(Boolean)
+    parts.slice(0, 3).forEach((topic) => {
+      const label = `Konseling: ${topic}`
+      if (!list.includes(label)) list.push(label)
+    })
+  }
+
+  if (list.length === 0) {
+    list.push("Konseling Individu")
+  }
+
+  return Array.from(new Set(list))
 }
 
 export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTambahSesiProps) {
@@ -29,12 +122,242 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     namaKlien: "",
     kontak: "",
     layanan: "Konseling Individu",
-    psikolog: "Sarah Amalia, M.Psi",
+    psikolog: "",
+    idPsikolog: "",
     tanggal: todayStr,
-    waktu: "13:00 - 14:00 WIB",
+    waktu: "",
     metode: "Online" as "Online" | "Offline",
     catatan: "",
   })
+
+  const [psikologList, setPsikologList] = useState<PsikologOption[]>([])
+  const [isLoadingPsikolog, setIsLoadingPsikolog] = useState(false)
+  const [selectedKategori, setSelectedKategori] = useState<KategoriTenagaOption>("psikolog")
+
+  const [availableSlots, setAvailableSlots] = useState<JadwalSlotItem[]>([])
+  const [allPsikologSlots, setAllPsikologSlots] = useState<JadwalSlotItem[]>([])
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+
+  const formatPsikologLabel = (p: { nama: string; kategori?: string; status?: string }) => {
+    let label = p.nama
+    if (p.kategori) {
+      const k = p.kategori.toLowerCase()
+      let roleLabel = ""
+      if (k.includes("peer")) roleLabel = "Peer Konselor"
+      else if (k.includes("konselor")) roleLabel = "Konselor"
+      else if (k.includes("psikolog")) roleLabel = "Psikolog"
+      else roleLabel = p.kategori
+
+      if (roleLabel && !p.nama.toLowerCase().includes(roleLabel.toLowerCase())) {
+        label += ` (${roleLabel})`
+      }
+    }
+    if (p.status === "INACTIVE") {
+      label += " - Nonaktif"
+    }
+    return label
+  }
+
+  // Muat seluruh psikolog terdaftar langsung dari database & cache lokal
+  useEffect(() => {
+    if (!isOpen) return
+
+    let isMounted = true
+    const loadPsikologs = async () => {
+      setIsLoadingPsikolog(true)
+      try {
+        const dbList = await psikologService.getList({ status: "ALL" })
+        const rawLocal = typeof window !== "undefined" ? localStorage.getItem("empathika_tenaga_ahli_data") : null
+        const localList = rawLocal ? JSON.parse(rawLocal) : []
+
+        const map = new Map<string, PsikologOption>()
+
+        if (Array.isArray(dbList) && dbList.length > 0) {
+          dbList.forEach((p: any) => {
+            const nama = p.nama_gelar || p.account?.nama || p.nama || "Psikolog Empathika"
+            map.set(p.id, {
+              id: p.id,
+              nama,
+              kategori: p.kategori,
+              spesialisasi: p.spesialisasi?.nama || p.spesialisasi || "",
+              keahlian: p.keahlian || "",
+              status: p.status,
+            })
+          })
+        }
+
+        if (Array.isArray(localList)) {
+          localList.forEach((p: any) => {
+            const nama = p.nama_gelar || p.nama || p.account?.nama
+            if (nama && !Array.from(map.values()).some((item) => item.nama.toLowerCase() === nama.toLowerCase())) {
+              map.set(p.id || nama, {
+                id: p.id || nama,
+                nama,
+                kategori: p.kategori,
+                spesialisasi: p.spesialisasi || "",
+                keahlian: Array.isArray(p.keahlian) ? p.keahlian.join(", ") : p.keahlian || "",
+                status: p.statusAkses === "NONAKTIF" ? "INACTIVE" : "ACTIVE",
+              })
+            }
+          })
+        }
+
+        const list = Array.from(map.values())
+        if (isMounted) {
+          setPsikologList(list)
+          if (list.length > 0) {
+            setFormData((prev) => {
+              const currentMatch = list.find(
+                (item) => item.id === prev.idPsikolog || item.nama.toLowerCase() === prev.psikolog.toLowerCase()
+              )
+              const defaultFiltered = list.filter((p) => normalizeKategori(p.kategori) === selectedKategori)
+              const chosen = currentMatch || defaultFiltered[0] || list[0]
+              if (chosen) {
+                setSelectedKategori(normalizeKategori(chosen.kategori))
+              }
+              return {
+                ...prev,
+                idPsikolog: chosen ? chosen.id : list[0].id,
+                psikolog: chosen ? chosen.nama : list[0].nama,
+              }
+            })
+          }
+        }
+      } catch (err) {
+        console.warn("Gagal mengambil data psikolog:", err)
+        if (isMounted) {
+          setPsikologList([])
+        }
+      } finally {
+        if (isMounted) setIsLoadingPsikolog(false)
+      }
+    }
+
+    loadPsikologs()
+    return () => {
+      isMounted = false
+    }
+  }, [isOpen])
+
+  // Tenaga Ahli yang difilter berdasarkan kategori profesi
+  const filteredPsikologList = useMemo(() => {
+    return psikologList.filter((p) => normalizeKategori(p.kategori) === selectedKategori)
+  }, [psikologList, selectedKategori])
+
+  // Hitung jumlah tiap kategori untuk badge
+  const categoryCounts = useMemo(() => {
+    return {
+      psikolog: psikologList.filter((p) => normalizeKategori(p.kategori) === "psikolog").length,
+      konselor: psikologList.filter((p) => normalizeKategori(p.kategori) === "konselor").length,
+      "peer-konselor": psikologList.filter((p) => normalizeKategori(p.kategori) === "peer-konselor").length,
+    }
+  }, [psikologList])
+
+  // Sinkronkan pilihan saat kategori profesi diganti
+  const handleSelectKategori = (kat: KategoriTenagaOption) => {
+    setSelectedKategori(kat)
+    const filtered = psikologList.filter((p) => normalizeKategori(p.kategori) === kat)
+    if (filtered.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        idPsikolog: filtered[0].id,
+        psikolog: filtered[0].nama,
+      }))
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        idPsikolog: "",
+        psikolog: "",
+      }))
+    }
+  }
+
+  // Tenaga Ahli yang sedang dipilih saat ini
+  const currentPsikolog = useMemo(() => {
+    return (
+      filteredPsikologList.find((p) => p.id === formData.idPsikolog) ||
+      filteredPsikologList[0] ||
+      psikologList.find((p) => p.id === formData.idPsikolog)
+    )
+  }, [filteredPsikologList, psikologList, formData.idPsikolog])
+
+  // Jenis Layanan dinamis sesuai kategori & keahlian psikolog
+  const layananOptions = useMemo(() => {
+    return getLayananOptionsForPsikolog(currentPsikolog)
+  }, [currentPsikolog])
+
+  // Sinkronkan pilihan layanan jika belum ada atau tidak valid
+  useEffect(() => {
+    if (layananOptions.length > 0 && !layananOptions.includes(formData.layanan)) {
+      setFormData((prev) => ({ ...prev, layanan: layananOptions[0] }))
+    }
+  }, [layananOptions, formData.layanan])
+
+  // Ambil slot jadwal resmi yang dibuka oleh psikolog terpilih
+  useEffect(() => {
+    if (!isOpen || !formData.idPsikolog) return
+
+    let isMounted = true
+    const fetchSlots = async () => {
+      setIsLoadingSlots(true)
+      try {
+        const [slotsForDate, allSlots] = await Promise.all([
+          psikologService.getJadwalTersedia({
+            id_psikolog: formData.idPsikolog,
+            tanggal: formData.tanggal,
+            tipe_jadwal: "KONSULTASI",
+          }),
+          psikologService.getJadwalTersedia({
+            id_psikolog: formData.idPsikolog,
+            tipe_jadwal: "KONSULTASI",
+          }),
+        ])
+
+        if (!isMounted) return
+
+        const activeDateSlots = Array.isArray(slotsForDate) ? slotsForDate : []
+        setAvailableSlots(activeDateSlots)
+        setAllPsikologSlots(Array.isArray(allSlots) ? allSlots : [])
+
+        // Jika slot tersedia untuk tanggal tersebut, pilih slot pertama
+        if (activeDateSlots.length > 0) {
+          const first = activeDateSlots[0]
+          const timeLabel = first.label_waktu
+            ? (first.label_waktu.includes("WIB") ? first.label_waktu : `${first.label_waktu} WIB`)
+            : `${first.jam_mulai.substring(0, 5)} - ${first.jam_selesai.substring(0, 5)} WIB`
+
+          setFormData((prev) => ({
+            ...prev,
+            waktu: timeLabel,
+            metode: (first.metode?.toUpperCase() === "OFFLINE" ? "Offline" : "Online") as "Online" | "Offline",
+          }))
+        } else {
+          setFormData((prev) => ({ ...prev, waktu: "" }))
+        }
+      } catch (err) {
+        console.warn("Gagal mengambil slot psikolog:", err)
+        if (isMounted) {
+          setAvailableSlots([])
+          setAllPsikologSlots([])
+        }
+      } finally {
+        if (isMounted) setIsLoadingSlots(false)
+      }
+    }
+
+    fetchSlots()
+    return () => {
+      isMounted = false
+    }
+  }, [isOpen, formData.idPsikolog, formData.tanggal])
+
+  // Daftar tanggal yang memiliki slot dibuka oleh psikolog ini
+  const datesWithSlots = useMemo(() => {
+    const dates = allPsikologSlots
+      .map((s) => s.tanggal)
+      .filter((t): t is string => Boolean(t))
+    return Array.from(new Set(dates)).sort()
+  }, [allPsikologSlots])
 
   if (!isOpen) return null
 
@@ -42,12 +365,22 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     e.preventDefault()
     if (!formData.namaKlien.trim()) return
 
+    if (!formData.waktu || availableSlots.length === 0) {
+      alert("Tidak dapat menjadwalkan sesi: Jam sesi hanya dapat dipilih dari slot resmi yang telah dibuka oleh psikolog pada tanggal tersebut.")
+      return
+    }
+
+    const selectedPsikolog = psikologList.find((p) => p.id === formData.idPsikolog) || psikologList[0]
+    const finalIdPsikolog = formData.idPsikolog || selectedPsikolog?.id || ""
+    const finalNamaPsikolog = formData.psikolog || selectedPsikolog?.nama || ""
+
     const newSession: NewSessionData = {
       id: "sesi_" + Date.now(),
       namaKlien: formData.namaKlien.trim(),
       kontak: formData.kontak.trim(),
       layanan: formData.layanan,
-      psikolog: formData.psikolog,
+      psikolog: finalNamaPsikolog,
+      idPsikolog: finalIdPsikolog,
       tanggal: formData.tanggal,
       waktu: formData.waktu,
       metode: formData.metode,
@@ -60,10 +393,11 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     setFormData({
       namaKlien: "",
       kontak: "",
-      layanan: "Konseling Individu",
-      psikolog: "Sarah Amalia, M.Psi",
+      layanan: layananOptions[0] || "Konseling Individu",
+      psikolog: psikologList.length > 0 ? psikologList[0].nama : "",
+      idPsikolog: psikologList.length > 0 ? psikologList[0].id : "",
       tanggal: todayStr,
-      waktu: "13:00 - 14:00 WIB",
+      waktu: "",
       metode: "Online",
       catatan: "",
     })
@@ -131,75 +465,180 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             </div>
           </div>
 
-          {/* Jenis Layanan & Psikolog */}
+          {/* Baris 2: Pemilihan Tenaga Ahli (2 Kolom Dropdown Berpasangan: Kategori & Nama) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block font-bold text-gray-700 mb-1.5">Jenis Layanan</label>
+              <label className="font-bold text-gray-700 mb-1.5 flex items-center gap-1.5 whitespace-nowrap">
+                <UserCheck className="w-3.5 h-3.5 text-[#5D205E] shrink-0" />
+                <span>Kategori Tenaga Ahli <span className="text-red-500">*</span></span>
+              </label>
               <select
-                value={formData.layanan}
-                onChange={(e) => setFormData({ ...formData, layanan: e.target.value })}
+                value={selectedKategori}
+                onChange={(e) => handleSelectKategori(e.target.value as KategoriTenagaOption)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
               >
-                <option value="Konseling Individu">Konseling Individu</option>
-                <option value="Konseling Dewasa">Konseling Dewasa</option>
-                <option value="Konseling Karir & Stres">Konseling Karir & Stres</option>
-                <option value="Konseling Pasangan">Konseling Pasangan</option>
-                <option value="Konseling Remaja">Konseling Remaja</option>
-                <option value="Hipnoterapi Klinis">Hipnoterapi Klinis</option>
-                <option value="Asesmen Klinis">Asesmen Klinis</option>
+                <option value="psikolog">Psikolog ({categoryCounts.psikolog})</option>
+                <option value="konselor">Konselor ({categoryCounts.konselor})</option>
+                <option value="peer-konselor">Peer Konselor ({categoryCounts["peer-konselor"]})</option>
               </select>
             </div>
 
             <div>
-              <label className="block font-bold text-gray-700 mb-1.5">Psikolog / Tenaga Ahli</label>
+              <label className="font-bold text-gray-700 mb-1.5 flex items-center gap-1.5 whitespace-nowrap">
+                <User className="w-3.5 h-3.5 text-[#5D205E] shrink-0" />
+                <span>Nama {selectedKategori === "psikolog" ? "Psikolog" : selectedKategori === "konselor" ? "Konselor" : "Peer Konselor"} <span className="text-red-500">*</span></span>
+              </label>
+
               <select
-                value={formData.psikolog}
-                onChange={(e) => setFormData({ ...formData, psikolog: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
+                value={formData.idPsikolog || formData.psikolog}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const found = filteredPsikologList.find((p) => p.id === val || p.nama === val)
+                  setFormData((prev) => ({
+                    ...prev,
+                    idPsikolog: found ? found.id : val,
+                    psikolog: found ? found.nama : val,
+                  }))
+                }}
+                disabled={isLoadingPsikolog && filteredPsikologList.length === 0}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer disabled:opacity-60"
               >
-                <option value="Sarah Amalia, M.Psi">Sarah Amalia, M.Psi., Psikolog</option>
-                <option value="Dr. Dimas Prasetyo">Dr. Dimas Prasetyo, M.Psi</option>
-                <option value="Rizki Putri D., M.Psi">Rizki Putri Dzulqaidah, M.Psi</option>
-                <option value="Nadia Utami, S.Psi">Nadia Utami, S.Psi (Konselor)</option>
+                {filteredPsikologList.length === 0 ? (
+                  <option value="">
+                    {isLoadingPsikolog
+                      ? "Memuat data tenaga ahli..."
+                      : `Belum ada ${selectedKategori === "psikolog" ? "psikolog" : selectedKategori === "konselor" ? "konselor" : "peer konselor"} terdaftar`}
+                  </option>
+                ) : (
+                  filteredPsikologList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nama}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           </div>
 
-          {/* Tanggal & Waktu */}
+          {/* Baris 3: Jenis Layanan Konseling */}
+          <div>
+            <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
+              <span>Jenis Layanan <span className="text-red-500">*</span></span>
+            </label>
+            <select
+              value={formData.layanan}
+              onChange={(e) => setFormData({ ...formData, layanan: e.target.value })}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
+            >
+              {layananOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tanggal & Waktu (Wajib Slot Terbuka dari Psikolog) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-[#5D205E]" />
-                Tanggal Konsultasi
+                Tanggal Konsultasi <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 required
                 value={formData.tanggal}
                 onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-[#5D205E]" />
-                Jam Sesi
+              <label className="block font-bold text-gray-700 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#5D205E]" />
+                  Jam Sesi <span className="text-red-500">*</span>
+                </span>
+                {isLoadingSlots && (
+                  <span className="text-[10px] text-gray-400 font-normal">Memeriksa slot...</span>
+                )}
               </label>
+
               <select
                 value={formData.waktu}
-                onChange={(e) => setFormData({ ...formData, waktu: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
+                onChange={(e) => {
+                  const selectedVal = e.target.value
+                  const found = availableSlots.find((s) => {
+                    const label = s.label_waktu
+                      ? (s.label_waktu.includes("WIB") ? s.label_waktu : `${s.label_waktu} WIB`)
+                      : `${s.jam_mulai.substring(0, 5)} - ${s.jam_selesai.substring(0, 5)} WIB`
+                    return label === selectedVal
+                  })
+                  setFormData((prev) => ({
+                    ...prev,
+                    waktu: selectedVal,
+                    metode: (found?.metode?.toUpperCase() === "OFFLINE" ? "Offline" : "Online") as "Online" | "Offline",
+                  }))
+                }}
+                disabled={isLoadingSlots || availableSlots.length === 0}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer disabled:opacity-60"
               >
-                <option value="09:00 - 10:00 WIB">09:00 - 10:00 WIB</option>
-                <option value="10:30 - 11:30 WIB">10:30 - 11:30 WIB</option>
-                <option value="13:00 - 14:00 WIB">13:00 - 14:00 WIB</option>
-                <option value="14:30 - 15:30 WIB">14:30 - 15:30 WIB</option>
-                <option value="16:00 - 17:00 WIB">16:00 - 17:00 WIB</option>
-                <option value="19:00 - 20:00 WIB">19:00 - 20:00 WIB</option>
+                {isLoadingSlots ? (
+                  <option value="">Memeriksa slot dibuka psikolog...</option>
+                ) : availableSlots.length === 0 ? (
+                  <option value="">Tidak ada slot dibuka oleh psikolog pada tanggal ini</option>
+                ) : (
+                  availableSlots.map((slot) => {
+                    const timeLabel = slot.label_waktu
+                      ? (slot.label_waktu.includes("WIB") ? slot.label_waktu : `${slot.label_waktu} WIB`)
+                      : `${slot.jam_mulai.substring(0, 5)} - ${slot.jam_selesai.substring(0, 5)} WIB`
+                    const metodeBadge = slot.metode ? ` [${slot.metode}]` : ""
+                    return (
+                      <option key={slot.id} value={timeLabel}>
+                        {timeLabel} {metodeBadge}
+                      </option>
+                    )
+                  })
+                )}
               </select>
             </div>
           </div>
+
+          {/* Kotak Peringatan jika Psikolog Belum Buka Slot pada Tanggal Tersebut */}
+          {availableSlots.length === 0 && !isLoadingSlots && (
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+              <div className="flex items-center gap-2 font-bold mb-1 text-amber-800">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Slot Belum Dibuka Oleh Psikolog</span>
+              </div>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                {currentPsikolog?.nama || "Psikolog ini"} belum membuka jadwal slot ketersediaan pada tanggal{" "}
+                <strong>{formData.tanggal}</strong>. Admin tidak dapat membuka jam sendiri jika psikolog belum membukanya.
+              </p>
+              {datesWithSlots.length > 0 ? (
+                <div className="mt-2 text-[11px]">
+                  <span className="font-semibold text-gray-700">Pilih tanggal lain yang telah dibuka oleh psikolog ini: </span>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {datesWithSlots.slice(0, 5).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, tanggal: d }))}
+                        className="px-2.5 py-1 rounded-lg bg-amber-200/70 hover:bg-amber-300 text-amber-950 font-bold transition cursor-pointer text-[10px]"
+                      >
+                        📅 {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1 text-[11px] text-gray-500 italic">
+                  (Psikolog ini belum membuka slot konsultasi apapun di kalender portalnya)
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Metode Konseling */}
           <div>
@@ -259,7 +698,8 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold px-6 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-98 cursor-pointer"
+              disabled={availableSlots.length === 0 || !formData.waktu || isLoadingSlots}
+              className="flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold px-6 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-98 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 className="w-4 h-4" />
               Jadwalkan Sesi

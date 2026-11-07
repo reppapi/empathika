@@ -48,6 +48,7 @@ export default function JadwalAdmin() {
     todaySessions,
     filteredTodaySessions,
     nearestSession,
+    nearestSessions,
     activeMenuId,
     setActiveMenuId,
 
@@ -64,6 +65,7 @@ export default function JadwalAdmin() {
     bookedSessions,
     bookingSuccessMsg,
     handleBooking,
+    handleRemoveWeeklySlot,
 
     // Modals & Action Handlers
     isModalOpen,
@@ -215,6 +217,7 @@ export default function JadwalAdmin() {
         filteredTodaySessions={filteredTodaySessions}
         todaySessionsCount={todaySessions.length}
         nearestSession={nearestSession}
+        nearestSessions={nearestSessions}
         selectedLayanan={selectedLayanan}
         formattedDate={formattedDate}
         activeMenuId={activeMenuId}
@@ -252,6 +255,7 @@ export default function JadwalAdmin() {
         matchLayanan={matchLayanan}
         today={today}
         onSelectSession={handleSelectWeeklySession}
+        onRemoveSlot={handleRemoveWeeklySlot}
       />
 
       {/* ── Modal Tambah Sesi ── */}

@@ -42,7 +42,7 @@ export function CredentialAccordion({ email }: CredentialAccordionProps) {
         </button>
         <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openEmail ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
           <div className="px-5 pb-5 pt-1 border-t border-gray-100">
-            <FormGantiEmail initialEmail={email} />
+            <FormGantiEmail initialEmail={email} hideHeader />
           </div>
         </div>
       </div>
@@ -74,7 +74,7 @@ export function CredentialAccordion({ email }: CredentialAccordionProps) {
         </button>
         <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openPassword ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
           <div className="px-5 pb-5 pt-1 border-t border-gray-100">
-            <FormGantiPassword />
+            <FormGantiPassword hideHeader />
           </div>
         </div>
       </div>

@@ -64,7 +64,8 @@ export function saveStoredLayanan(items: AdminLayananItem[]): void {
 
 export function addLayanan(item: Omit<AdminLayananItem, "id">): AdminLayananItem {
   const current = getStoredLayanan()
-  const nextId = current.length > 0 ? Math.max(...current.map((i) => Number(i.id) || 0)) + 1 : 1
+  const numericIds = current.map((i) => (typeof i.id === "number" ? i.id : parseInt(String(i.id).replace(/\D/g, ""), 10) || 0))
+  const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 1
   const created: AdminLayananItem = { ...item, id: nextId }
   const updated = [created, ...current]
   saveStoredLayanan(updated)

@@ -52,9 +52,41 @@ export function extractMinutes(timeStr?: string): number {
   return parseInt(match[1], 10) * 60 + parseInt(match[2], 10)
 }
 
-export function useJadwalClient() {
+export interface UseJadwalClientOptions {
+  mode?: "konseling" | "asesmen"
+  tipeJadwal?: "KONSULTASI" | "ASESMEN"
+  initialMetode?: string
+  asesmenPackage?: {
+    id: string
+    title: string
+    weekday: string
+    weekend: string
+    shortTitle?: string
+    [key: string]: any
+  }
+  initialDate?: Date
+  initialOfflinePlan?: "weekday" | "weekend"
+  onDateChange?: (date: Date) => void
+  onOfflinePlanChange?: (plan: "weekday" | "weekend") => void
+  onMetodeChange?: (metode: string) => void
+}
+
+export function useJadwalClient(options?: UseJadwalClientOptions) {
   const searchParams = useSearchParams()
-  const initialLayanan = searchParams?.get("layanan") || "Psikolog"
+
+  const rawMode = options?.mode || searchParams?.get("mode")
+  const paketParam = searchParams?.get("paket")
+  const layananParam = searchParams?.get("layanan")
+  const isAsesmen =
+    rawMode === "asesmen" ||
+    Boolean(options?.asesmenPackage) ||
+    Boolean(paketParam && (paketParam.toLowerCase().includes("asesmen") || paketParam.toLowerCase().includes("bakat") || paketParam.toLowerCase().includes("iq"))) ||
+    Boolean(layananParam && layananParam.toLowerCase().includes("asesmen"))
+
+  const mode = isAsesmen ? "asesmen" : "konseling"
+  const effectiveTipeJadwal = options?.tipeJadwal || (isAsesmen ? "ASESMEN" : "KONSULTASI")
+
+  const initialLayanan = options?.asesmenPackage?.title || searchParams?.get("layanan") || (isAsesmen ? "Asesmen Minat Bakat" : "Psikolog")
   const psikologIdParam = searchParams?.get("psikologId") || undefined
   const psikologNameParam = searchParams?.get("psikologName") || undefined
   const tanggalParam = searchParams?.get("tanggal") || searchParams?.get("date") || undefined
@@ -66,7 +98,16 @@ export function useJadwalClient() {
     return d
   }, [])
 
-  const [metode, setMetode] = useState("Online")
+  // Inisialisasi metode: default Offline jika asesmen offline, atau dari props/param
+  const [metode, setMetode] = useState(() => {
+    if (options?.initialMetode) return options.initialMetode
+    const paramMetode = searchParams?.get("metode") || searchParams?.get("metodeKonseling")
+    if (paramMetode) {
+      return paramMetode.toLowerCase() === "offline" ? "Offline" : "Online"
+    }
+    return mode === "asesmen" ? "Offline" : "Online"
+  })
+
   const [layanan, setLayanan] = useState(initialLayanan)
   const [isLayananNonaktif, setIsLayananNonaktif] = useState(false)
   const [nonaktifLayananNama, setNonaktifLayananNama] = useState("")
@@ -163,14 +204,84 @@ export function useJadwalClient() {
   const [waktu, setWaktu] = useState<string | null>(null)
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
 
-  // Calendar state: default tanggal dari URL param atau hari ini
+  // Calendar state: default tanggal dari URL param, options, atau hari ini
   const [date, setDate] = useState<Date | undefined>(() => {
+    if (options?.initialDate && options.initialDate >= today) return options.initialDate
     const fromParam = parseDateParam(tanggalParam)
     if (fromParam && fromParam >= today) return fromParam
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
   })
+
+  // State paket offline: weekday vs weekend untuk asesmen
+  const [selectedOfflinePlan, setSelectedOfflinePlan] = useState<"weekday" | "weekend">(() => {
+    if (options?.initialOfflinePlan) return options.initialOfflinePlan
+    const curDate = options?.initialDate || parseDateParam(tanggalParam) || today
+    const day = curDate.getDay()
+    return day === 0 || day === 6 ? "weekend" : "weekday"
+  })
+
+  // Bersihkan seed dummy asesmen lama jika ada di localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+        if (raw) {
+          const list: any[] = JSON.parse(raw)
+          if (Array.isArray(list)) {
+            const cleaned = list.filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
+            if (cleaned.length !== list.length) {
+              localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(cleaned))
+              window.dispatchEvent(new Event("storage"))
+            }
+          }
+        }
+      } catch {}
+    }
+  }, [])
+
+  // Handler pergantian tanggal kalender dengan auto-sinkronisasi paket hari asesmen
+  const handleSetDate = (newDate: Date | undefined) => {
+    setDate(newDate)
+    if (newDate) {
+      options?.onDateChange?.(newDate)
+      if (mode === "asesmen") {
+        const day = newDate.getDay()
+        const autoPlan = day === 0 || day === 6 ? "weekend" : "weekday"
+        setSelectedOfflinePlan(autoPlan)
+        options?.onOfflinePlanChange?.(autoPlan)
+      }
+    }
+  }
+
+  // Handler pergantian paket biaya (weekday/weekend) dengan auto-sesuaikan tanggal
+  const handleSetOfflinePlan = (plan: "weekday" | "weekend") => {
+    setSelectedOfflinePlan(plan)
+    options?.onOfflinePlanChange?.(plan)
+    if (date) {
+      const currentDay = date.getDay()
+      const isCurrentWeekend = currentDay === 0 || currentDay === 6
+      if (plan === "weekend" && !isCurrentWeekend) {
+        const nextSat = new Date(date)
+        const diff = (6 - currentDay + 7) % 7 || 7
+        nextSat.setDate(date.getDate() + diff)
+        setDate(nextSat)
+        options?.onDateChange?.(nextSat)
+      } else if (plan === "weekday" && isCurrentWeekend) {
+        const nextMon = new Date(date)
+        const diff = currentDay === 6 ? 2 : 1
+        nextMon.setDate(date.getDate() + diff)
+        setDate(nextMon)
+        options?.onDateChange?.(nextMon)
+      }
+    }
+  }
+
+  const handleSetMetode = (newMetode: string) => {
+    setMetode(newMetode)
+    options?.onMetodeChange?.(newMetode)
+  }
 
   // Daftar tanggal yang memiliki slot ketersediaan (untuk indikator titik kalender & auto-jump)
   const [datesWithSlots, setDatesWithSlots] = useState<Date[]>([])
@@ -182,7 +293,7 @@ export function useJadwalClient() {
   const [selectedPsikolog, setSelectedPsikolog] = useState<any>(null)
 
   useEffect(() => {
-    if (psikologIdParam) {
+    if (psikologIdParam && effectiveTipeJadwal !== "ASESMEN") {
       psikologService
         .getBySlug(psikologIdParam)
         .then((res: any) => {
@@ -190,9 +301,9 @@ export function useJadwalClient() {
         })
         .catch(() => {})
     }
-  }, [psikologIdParam])
+  }, [psikologIdParam, effectiveTipeJadwal])
 
-  // Deteksi semua tanggal yang memiliki slot jadwal untuk psikolog ini
+  // Deteksi semua tanggal yang memiliki slot jadwal
   useEffect(() => {
     let isCancelled = false
 
@@ -203,11 +314,11 @@ export function useJadwalClient() {
       const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
       const currentMinutes = now.getHours() * 60 + now.getMinutes()
 
-      // 1. Ambil seluruh slot ketersediaan murni dari Backend Database
+      // 1. Ambil seluruh slot ketersediaan dari Backend Database
       try {
         const slots = await psikologService.getJadwalTersedia({
-          id_psikolog: psikologIdParam,
-          tipe_jadwal: "KONSULTASI",
+          id_psikolog: effectiveTipeJadwal === "ASESMEN" ? undefined : psikologIdParam,
+          tipe_jadwal: effectiveTipeJadwal,
         })
         if (Array.isArray(slots)) {
           slots.forEach((s) => {
@@ -225,6 +336,46 @@ export function useJadwalClient() {
         }
       } catch {}
 
+      // 2. Gabungkan slot dari LocalStorage (abaikan seed dummy)
+      try {
+        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            parsed
+              .filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
+              .forEach((s: any) => {
+              const slotType = (s.tipe_jadwal || "KONSULTASI").toUpperCase()
+              const matchType = slotType === effectiveTipeJadwal.toUpperCase()
+              const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
+              const matchPsi =
+                effectiveTipeJadwal === "ASESMEN"
+                  ? true
+                  : !psikologIdParam ||
+                    s.id_psikolog === psikologIdParam ||
+                    (selectedPsikolog &&
+                      (s.nama_psikolog === selectedPsikolog.nama_gelar ||
+                        s.nama_psikolog === selectedPsikolog.nama ||
+                        s.nama_psikolog === selectedPsikolog.account?.nama)) ||
+                    (psikologNameParam &&
+                      s.nama_psikolog &&
+                      (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
+                        psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
+
+              if (matchType && matchPsi && s.tanggal && isTersedia) {
+                if (s.tanggal > todayKey) {
+                  datesFound.add(s.tanggal)
+                } else if (s.tanggal === todayKey) {
+                  const startMinutes = extractMinutes(s.jam_mulai)
+                  if (startMinutes !== -1 && currentMinutes < startMinutes) {
+                    datesFound.add(s.tanggal)
+                  }
+                }
+              }
+            })
+          }
+        }
+      } catch {}
       if (isCancelled) return
 
       const sortedDateStrings = Array.from(datesFound).sort()
@@ -253,7 +404,7 @@ export function useJadwalClient() {
 
       // Jika tanggal belum ditentukan dari URL search param dan hari ini tidak memiliki slot,
       // otomatis alihkan kalender ke tanggal terdekat yang memiliki slot
-      if (!tanggalParam) {
+      if (!tanggalParam && !options?.initialDate) {
         setDate((currentDate) => {
           if (!currentDate) return earliest || todayStart
           const currentKey = formatDateToKey(currentDate)
@@ -275,7 +426,7 @@ export function useJadwalClient() {
       window.removeEventListener("focus", loadAllAvailableDates)
       window.removeEventListener("storage", loadAllAvailableDates)
     }
-  }, [psikologIdParam, psikologNameParam, selectedPsikolog, tanggalParam, today])
+  }, [psikologIdParam, psikologNameParam, selectedPsikolog, tanggalParam, today, effectiveTipeJadwal, options?.initialDate])
 
   // Fetch slot ketersediaan dari Backend saat tanggal berubah
   useEffect(() => {
@@ -292,8 +443,8 @@ export function useJadwalClient() {
         apiSlots =
           (await psikologService.getJadwalTersedia({
             tanggal: dateKey,
-            id_psikolog: psikologIdParam,
-            tipe_jadwal: "KONSULTASI",
+            id_psikolog: effectiveTipeJadwal === "ASESMEN" ? undefined : psikologIdParam,
+            tipe_jadwal: effectiveTipeJadwal,
           })) || []
       } catch (_err) {
         apiSlots = []
@@ -315,7 +466,7 @@ export function useJadwalClient() {
         })
       })
 
-      // 4. FILTER KETAT: Status TERSEDIA, Jam belum lewat hari ini, dan Metode Konseling
+      // 3. FILTER KETAT: Status TERSEDIA, Jam belum lewat hari ini, dan Metode Konseling
       const now = new Date()
       const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
       const currentMinutes = now.getHours() * 60 + now.getMinutes()
@@ -372,23 +523,53 @@ export function useJadwalClient() {
       window.removeEventListener("focus", fetchSlots)
       window.removeEventListener("storage", fetchSlots)
     }
-  }, [date, psikologIdParam, metode, psikologNameParam, selectedPsikolog])
+  }, [date, psikologIdParam, metode, psikologNameParam, selectedPsikolog, effectiveTipeJadwal])
 
   const selectedSlot = availableSlots.find((s) => s.jam_mulai === waktu)
   const activePsikologName =
-    selectedSlot?.nama_psikolog ||
-    selectedPsikolog?.nama_gelar ||
-    selectedPsikolog?.account?.nama ||
-    searchParams.get("psikologName") ||
-    null
+    mode === "asesmen"
+      ? null
+      : selectedSlot?.nama_psikolog ||
+        selectedPsikolog?.nama_gelar ||
+        selectedPsikolog?.account?.nama ||
+        searchParams.get("psikologName") ||
+        null
+
+  const activePrice =
+    mode === "asesmen"
+      ? selectedOfflinePlan === "weekday"
+        ? options?.asesmenPackage?.weekday || "Rp 400.000"
+        : options?.asesmenPackage?.weekend || "Rp 500.000"
+      : null
 
   const buildBayarUrl = () => {
     if (!date || !waktu) return "#"
     const dayStr = String(date.getDate()).padStart(2, "0")
     const monthStr = String(date.getMonth() + 1).padStart(2, "0")
     const timeDisplay = `${waktu.substring(0, 5)} WIB`
-    const psiName = activePsikologName || ""
 
+    if (mode === "asesmen") {
+      const selectedPrice = activePrice || "Rp 400.000"
+      const planName = selectedOfflinePlan === "weekday" ? "Weekday" : "Weekend"
+      const asesmenTitle = options?.asesmenPackage?.title || layanan || "Asesmen Minat Bakat"
+
+      const params = new URLSearchParams({
+        layanan: `${asesmenTitle} (${planName})`,
+        metode: metode.toLowerCase(),
+        metodeKonseling: metode,
+        tanggal: `${dayStr}/${monthStr}`,
+        tahun: String(date.getFullYear()),
+        waktu: waktu.substring(0, 5),
+        ...(selectedSlotId && { slotId: selectedSlotId }),
+        harga: selectedPrice,
+        hari: planName,
+        bottomDate: `${date.getDate()} ${MONTHS[date.getMonth()].substring(0, 3)} ${date.getFullYear()}`,
+        bottomTime: `${timeDisplay} (${metode})`,
+      })
+      return `/konseling/bayar?${params.toString()}`
+    }
+
+    const psiName = activePsikologName || ""
     const params = new URLSearchParams({
       layanan,
       metode,
@@ -409,12 +590,13 @@ export function useJadwalClient() {
   const isSlotReady = Boolean(date && waktu)
 
   return {
+    mode,
     MONTHS,
     today,
     date,
-    setDate,
+    setDate: handleSetDate,
     metode,
-    setMetode,
+    setMetode: handleSetMetode,
     layanan,
     setLayanan,
     waktu,
@@ -426,6 +608,9 @@ export function useJadwalClient() {
     availableSlots,
     isLoadingSlots,
     activePsikologName,
+    selectedOfflinePlan,
+    setSelectedOfflinePlan: handleSetOfflinePlan,
+    activePrice,
     buildBayarUrl,
     isSlotReady,
     isOnlineAllowed: allowedMethods.online,
@@ -434,4 +619,3 @@ export function useJadwalClient() {
     nonaktifLayananNama,
   }
 }
-

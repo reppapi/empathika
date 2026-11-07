@@ -19,6 +19,26 @@ export class BookingController {
 
   // ── Client & Umum ────────────────────────────────────────────────────────────
 
+  checkSlotAvailability = async (
+    request: FastifyRequest<{
+      Querystring: {
+        id?: string
+        tanggal?: string
+        waktu?: string
+        tipe_jadwal?: string
+        id_psikolog?: string
+      }
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.checkSlotAvailability(request.query)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ available: false, message: err.message })
+    }
+  }
+
   getAll = async (request: FastifyRequest, reply: FastifyReply) => {
     const data = await this.service.getAllBookings(request.query as Record<string, unknown>, (request as any).user)
     reply.send(data)
@@ -102,7 +122,8 @@ export class BookingController {
     reply: FastifyReply
   ) => {
     try {
-      await this.service.deleteJadwalSlot(request.params.id)
+      const user = request.user as { id?: string; role?: string } | undefined
+      await this.service.deleteJadwalSlot(request.params.id, user?.id, user?.role)
       reply.code(204).send()
     } catch (err: any) {
       reply.code(400).send({ message: err.message })

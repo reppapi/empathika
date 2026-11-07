@@ -64,6 +64,31 @@ export class EventService {
       )
     }
 
+    // 4. Validasi bisnis: harga_coret harus lebih besar dari harga asli
+    const targetHarga = data.harga !== undefined ? data.harga : Number(existing.harga)
+    const targetHargaCoret =
+      data.harga_coret !== undefined
+        ? (data.harga_coret !== null ? Number(data.harga_coret) : null)
+        : (existing.harga_coret !== null && existing.harga_coret !== undefined ? Number(existing.harga_coret) : null)
+
+    if (targetHargaCoret !== null && targetHargaCoret <= targetHarga) {
+      throw Object.assign(
+        new Error('Harga coret harus lebih besar dari harga asli'),
+        { statusCode: 400 }
+      )
+    }
+
+    // 5. Validasi bisnis: jika event tipe ONLINE, link_meet wajib ada
+    const targetTipe = data.tipe_event !== undefined ? data.tipe_event : existing.tipe_event
+    const targetMeet = data.link_meet !== undefined ? data.link_meet : existing.link_meet
+
+    if (targetTipe === 'ONLINE' && (!targetMeet || targetMeet.trim() === '')) {
+      throw Object.assign(
+        new Error('Link Google Meet wajib diisi untuk event online'),
+        { statusCode: 400 }
+      )
+    }
+
     try {
       return await this.repo.update(id, data)
     } catch (error) {

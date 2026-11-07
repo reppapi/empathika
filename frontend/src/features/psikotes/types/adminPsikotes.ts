@@ -11,7 +11,7 @@ export type Interpretasi = {
   judul: string;
   kategori: string;
   deskripsi: string;
-  makna: string;
+  makna?: string;
   saran: Tip[];
   kekuatanUtama?: string[];
   blindspots?: string[];
@@ -37,8 +37,7 @@ export type PaketDetailItem = {
   waktu: string;
   status: StatusPaket;
   jumlahSoal: number;
-  benefits?: string[];
-  soalList: Soal[];
+  soalList?: Soal[];
   interpretasiList: Interpretasi[];
   updatedAt?: string;
   pesertaCount?: number;
@@ -60,7 +59,6 @@ export type PaketData = {
   kategori: string;
   deskripsi: string;
   bannerUrl?: string;
-  benefits?: string[];
   waktu: string;
   jenisAkses: JenisAkses;
   harga: string;
@@ -90,9 +88,23 @@ export type AdminPsikotesPeserta = {
     grade: string;
     judul: string;
     deskripsi: string;
-    makna: string;
-    tips: any;
+    makna?: string;
+    tips?: any;
     tanggal_selesai?: string;
+  } | null;
+  peserta?: {
+    id?: string;
+    nama_lengkap?: string;
+    jenis_kelamin?: string;
+    tempat_lahir?: string | null;
+    tanggal_lahir?: string | null;
+    usia?: number | null;
+    kategori_peserta?: string | null;
+    nama_orang_tua?: string | null;
+    no_telepon_orang_tua?: string | null;
+    pendidikan?: string | null;
+    pekerjaan?: string | null;
+    status_pernikahan?: string | null;
   } | null;
 };
 

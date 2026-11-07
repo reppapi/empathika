@@ -7,10 +7,20 @@ export interface PaketPsikotesApiResponse {
   harga: string | number
   banner_url?: string | null
   deskripsi?: string | null
+  tentang_tes?: string | null
   status: "PUBLISHED" | "DRAFT"
-  benefits?: string[] | null
   createdAt: string
   updatedAt: string
+  alat_ukur?: {
+    id: string
+    kode: string
+    nama: string
+    kategori: string
+    instruksi?: string
+    instruksiSingkat?: string
+    targetUsia?: string
+    periode?: string
+  } | null
   soal_psikotes?: Array<{
     id: string
     id_paket: string
@@ -32,7 +42,6 @@ export interface PaketPsikotesApiResponse {
     grade: string
     judul: string
     deskripsi: string
-    makna?: string | null
     tips?: any
   }>
   _count?: {
@@ -64,13 +73,19 @@ export interface SubmitPsikotesResult {
     nama: string
     no_telepon?: string | null
   }
+  peserta?: {
+    nama_lengkap: string
+    usia?: number | null
+    jenis_kelamin?: string | null
+    kategori_peserta?: string | null
+  }
   total_skor: number
+  detail_skor?: any
   hasil: {
     id: string
     grade: string
     judul: string
     deskripsi: string
-    makna?: string | null
     tips?: any
     tanggal_selesai: string
   }

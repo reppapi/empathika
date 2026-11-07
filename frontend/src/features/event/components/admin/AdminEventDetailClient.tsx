@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { AdminEventData, mapApiToAdminEvent } from "../../data/adminEventData"
 import { eventService } from "@/services/event.service"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
-import { Loader2 } from "lucide-react"
+import { Loader2, Video, MessageCircle, ExternalLink } from "lucide-react"
 
 const getStatusBadge = (status: "Lunas" | "Menunggu" | "Gagal") => {
   switch (status) {
@@ -184,9 +184,20 @@ export default function AdminEventDetailClient({ eventId }: Props) {
 
         <div className="flex flex-col gap-3 flex-1 w-full">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-block rounded-xl bg-purple-100 px-3 py-1 text-xs font-bold text-[#561269]">
-              {event.jenis}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="inline-block rounded-xl bg-purple-100 px-3 py-1 text-xs font-bold text-[#561269]">
+                {event.jenis}
+              </span>
+              <span
+                className={`inline-block rounded-xl px-3 py-1 text-xs font-bold ${
+                  event.tipe === "Offline"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-blue-100 text-blue-800"
+                }`}
+              >
+                {event.tipe}
+              </span>
+            </div>
             <AdminStatusBadge
               className="w-32"
               variant={
@@ -222,7 +233,7 @@ export default function AdminEventDetailClient({ eventId }: Props) {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-gray-400 font-medium">Lokasi:</span>
-              <span className="font-semibold text-gray-900">{event.lokasi || "Online / Sesuai Pengumuman"}</span>
+              <span className="font-semibold text-gray-900">{event.lokasi || (event.tipe === "Online" ? "Google Meet (Online)" : "Sesuai Pengumuman")}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-gray-400 font-medium">Kuota Total:</span>
@@ -234,13 +245,54 @@ export default function AdminEventDetailClient({ eventId }: Props) {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-gray-400 font-medium">Harga Tiket:</span>
-              <span className="font-semibold text-gray-900">
-                {event.harga && event.harga !== "0"
-                  ? `Rp ${parseInt(event.harga, 10).toLocaleString("id-ID")}`
-                  : "Gratis"}
-              </span>
+              <div className="flex items-center gap-2">
+                {event.hargaCoret && Number(event.hargaCoret) > Number(event.harga || 0) && (
+                  <span className="text-xs text-gray-400 line-through">
+                    Rp {parseInt(event.hargaCoret, 10).toLocaleString("id-ID")}
+                  </span>
+                )}
+                <span className="font-semibold text-gray-900">
+                  {event.harga && event.harga !== "0"
+                    ? `Rp ${parseInt(event.harga, 10).toLocaleString("id-ID")}`
+                    : "Gratis"}
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* Link Google Meet & WhatsApp */}
+          {(event.linkMeet || event.linkWa) && (
+            <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-gray-100">
+              {event.tipe === "Online" && event.linkMeet && (
+                <a
+                  href={event.linkMeet}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    <Video className="w-4 h-4 text-blue-600" />
+                    <span>Google Meet</span>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                </a>
+              )}
+              {event.linkWa && (
+                <a
+                  href={event.linkWa}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold border border-emerald-200 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4 text-emerald-600" />
+                    <span>Grup WhatsApp</span>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

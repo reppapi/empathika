@@ -102,7 +102,11 @@ export default function ModalRefundSesi({
               <span className="flex items-center gap-1.5 font-medium">
                 <User className="w-3.5 h-3.5 text-gray-400" /> Psikolog
               </span>
-              <span className="font-bold text-gray-900">{session.psikolog}</span>
+              <span className="font-bold text-gray-900">
+                {((session.layanan && session.layanan.toLowerCase().includes("asesmen")) || !session.psikolog || session.psikolog === "Belum Ditentukan")
+                  ? "-"
+                  : session.psikolog}
+              </span>
             </div>
             <div className="flex justify-between items-center text-gray-600">
               <span className="flex items-center gap-1.5 font-medium">

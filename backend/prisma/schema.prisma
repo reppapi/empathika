@@ -30,6 +30,11 @@ enum JenisEvent {
   SEMINAR
 }
 
+enum TipeEvent {
+  ONLINE
+  OFFLINE
+}
+
 enum StatusEvent {
   UPCOMING
   ONGOING
@@ -231,10 +236,10 @@ model Psikolog {
   id                String         @id @default(uuid())
   id_account        String         @unique // Relasi 1-to-1 ke Account (Login)
   id_spesialisasi   String
-  kategori          String         // Psikolog Klinis, Konselor, dll.
+  kategori          String         // Multi-profesi: Psikolog Klinis, Konselor, Peer Konselor
   nama_gelar        String
-  no_str            String?
-  no_sipp           String?
+  no_str            String?        // Wajib untuk Psikolog, Opsional untuk Konselor, Null untuk Peer Konselor
+  no_sipp           String?        // Wajib untuk Psikolog, Opsional untuk Konselor, Null untuk Peer Konselor
   no_silp           String?   // Surat Izin Layanan Psikolog
   pendidikan        String?
   pengalaman_tahun  String?
@@ -350,6 +355,10 @@ model Event {
   harga          Decimal     @db.Decimal(12, 2)
   banner_url     String?
   nama_pembicara String
+  tipe_event     TipeEvent   @default(ONLINE)
+  link_meet      String?
+  link_wa        String?
+  harga_coret    Decimal?    @db.Decimal(12, 2)
   status         StatusEvent @default(UPCOMING)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -358,6 +367,36 @@ model Event {
 
   @@map("events")
 }
+
+// ==========================================
+// 4b. DOKUMENTASI EVENT SELESAI
+// ==========================================
+
+model EventDokumentasi {
+  id        String   @id @default(uuid())
+  judul     String
+  tanggal   DateTime @db.Date
+  deskripsi String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  foto EventDokumentasiFoto[]
+
+  @@map("event_dokumentasi")
+}
+
+model EventDokumentasiFoto {
+  id                   String   @id @default(uuid())
+  id_event_dokumentasi String
+  foto_url             String
+  urutan               Int      @default(0)
+  createdAt            DateTime @default(now())
+
+  dokumentasi EventDokumentasi @relation(fields: [id_event_dokumentasi], references: [id], onDelete: Cascade)
+
+  @@map("event_dokumentasi_foto")
+}
+
 
 model BookingEvent {
   id           String        @id @default(uuid())
@@ -380,18 +419,33 @@ model BookingEvent {
 // 5. PSIKOTES ONLINE
 // ==========================================
 
+model AlatUkur {
+  id             String          @id @default(uuid())
+  kode           String          @unique // Misal: "GAD-7", "DASS-21"
+  nama           String          // Nama instrumen
+  kategori       String          // Misal: "Kesehatan Mental", "Kepribadian"
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  paket_psikotes PaketPsikotes[]
+
+  @@map("alat_ukurs")
+}
+
 model PaketPsikotes {
-  id          String             @id @default(uuid())
+  id            String             @id @default(uuid())
+  id_alat_ukur  String?
   judul       String
   jenis_akses JenisAksesPsikotes
   harga       Decimal            @db.Decimal(12, 2)
   banner_url  String?
   deskripsi   String?            @db.Text
+  tentang_tes String?            @db.Text
   status      String             @default("PUBLISHED")
-  benefits    Json?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
+  alat_ukur             AlatUkur?          @relation(fields: [id_alat_ukur], references: [id], onDelete: SetNull)
   soal_psikotes         SoalPsikotes[]
   interpretasi_psikotes InterpretasiPsikotes[]
   booking_psikotes      BookingPsikotes[]
@@ -409,6 +463,8 @@ model SoalPsikotes {
   pilihan_jawaban  PilihanJawaban[]
   jawaban_psikotes JawabanPsikotes[]
 
+  @@unique([id_paket, urutan])
+  @@index([id_paket])
   @@map("soal_psikotes")
 }
 
@@ -422,6 +478,7 @@ model PilihanJawaban {
   soal             SoalPsikotes      @relation(fields: [id_soal], references: [id], onDelete: Cascade)
   jawaban_psikotes JawabanPsikotes[]
 
+  @@index([id_soal])
   @@map("pilihan_jawabans")
 }
 
@@ -436,6 +493,7 @@ model JawabanPsikotes {
   soal_psikotes   SoalPsikotes    @relation(fields: [id_soal_psikotes], references: [id], onDelete: Restrict)
   pilihan_jawaban PilihanJawaban  @relation(fields: [id_pilihan_jawaban], references: [id], onDelete: Restrict)
 
+  @@unique([id_booking, id_soal_psikotes])
   @@map("jawaban_psikotes")
 }
 
@@ -447,26 +505,27 @@ model InterpretasiPsikotes {
   grade     String
   judul     String
   deskripsi String  @db.Text
-  makna     String? @db.Text
   tips      Json?
 
   paket     PaketPsikotes @relation(fields: [id_paket], references: [id], onDelete: Cascade)
   hasil_tes HasilTes[]
 
+  @@index([id_paket])
   @@map("interpretasi_psikotes")
 }
 
 model HasilTes {
   id              String   @id @default(uuid())
   id_booking      String   @unique
-  id_interpretasi String
+  id_interpretasi String?
   total_skor      Int
-  detail_skor     Json?
+  detail_skor      Json?
+  snapshot_jawaban Json?
   tanggal_selesai DateTime @default(now())
   createdAt       DateTime @default(now())
 
   booking      BookingPsikotes      @relation(fields: [id_booking], references: [id], onDelete: Cascade)
-  interpretasi InterpretasiPsikotes @relation(fields: [id_interpretasi], references: [id], onDelete: Restrict)
+  interpretasi InterpretasiPsikotes? @relation(fields: [id_interpretasi], references: [id], onDelete: SetNull)
 
   @@map("hasil_tes")
 }
@@ -475,6 +534,7 @@ model BookingPsikotes {
   id           String   @id @default(uuid())
   id_paket     String
   id_transaksi String?  @unique // Nullable untuk paket psikotes gratis
+  riwayat_kesehatan Json?
   id_client    String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -485,8 +545,39 @@ model BookingPsikotes {
 
   jawaban_psikotes JawabanPsikotes[]
   hasil_tes        HasilTes?
+  peserta_psikotes PesertaPsikotes?
 
   @@map("booking_psikotes")
+}
+
+model PesertaPsikotes {
+  id                   String    @id @default(uuid())
+  id_booking           String    @unique // Relasi 1-to-1 ke booking_psikotes
+  
+  // Identitas Utama Peserta
+  nama_lengkap         String
+  jenis_kelamin        String    // "Laki-laki" / "Perempuan"
+  tempat_lahir         String?
+  tanggal_lahir        DateTime?
+  usia                 Int?      // Usia saat tes dilakukan
+  kategori_peserta     String?   // "ANAK", "REMAJA", "DEWASA"
+  
+  // Identitas Orang Tua / Wali (Untuk Anak & Remaja)
+  nama_orang_tua       String?
+  no_telepon_orang_tua String?
+  
+  // Latar Belakang (Untuk Remaja & Dewasa)
+  pendidikan           String?   // Misal: TK, SD, SMP, SMA, S1
+  pekerjaan            String?   // Diisi jika dewasa
+  status_pernikahan    String?   // Diisi jika dewasa ("Belum Menikah", "Menikah", dll)
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relasi ke BookingPsikotes
+  booking              BookingPsikotes @relation(fields: [id_booking], references: [id], onDelete: Cascade)
+
+  @@map("peserta_psikotes")
 }
 
 // ==========================================

@@ -1,17 +1,13 @@
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { PrismaClient, Prisma, KategoriLayanan } from '@prisma/client'
 
 export class LayananRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async findAll(params?: {
-    kategori?: string
-    aktif?: boolean
-    search?: string
-  }) {
+  async findAll(params?: { kategori?: string; aktif?: boolean; search?: string }) {
     const where: Prisma.LayananWhereInput = {}
 
-    if (params?.kategori) {
-      where.kategori = params.kategori as any
+    if (params?.kategori && params.kategori !== 'semua') {
+      where.kategori = params.kategori as KategoriLayanan
     }
 
     if (params?.aktif !== undefined) {
@@ -19,31 +15,38 @@ export class LayananRepository {
     }
 
     if (params?.search) {
-      where.nama = {
-        contains: params.search,
-        mode: 'insensitive',
-      }
+      where.OR = [
+        { nama: { contains: params.search, mode: 'insensitive' } },
+        { deskripsi: { contains: params.search, mode: 'insensitive' } },
+      ]
     }
 
     return this.prisma.layanan.findMany({
       where,
       orderBy: { createdAt: 'asc' },
+      include: {
+        _count: {
+          select: { booking_konsultasi: true },
+        },
+      },
     })
   }
 
   async findById(id: string) {
     return this.prisma.layanan.findUnique({
       where: { id },
+      include: {
+        _count: {
+          select: { booking_konsultasi: true },
+        },
+      },
     })
   }
 
   async findByNama(nama: string) {
     return this.prisma.layanan.findFirst({
       where: {
-        nama: {
-          equals: nama.trim(),
-          mode: 'insensitive',
-        },
+        nama: { equals: nama.trim(), mode: 'insensitive' },
       },
     })
   }

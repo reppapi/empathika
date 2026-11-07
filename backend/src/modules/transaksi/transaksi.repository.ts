@@ -4,7 +4,24 @@ export class TransaksiRepository {
   constructor(private prisma: PrismaClient) {}
 
   async findAll(_params?: { clientId?: string; status?: string }) {
+    const where: any = {
+      OR: [
+        { booking_konsultasi: { isNot: null } },
+        { booking_psikotes: { isNot: null } },
+        { booking_event: { isNot: null } },
+      ],
+    }
+
+    if (_params?.clientId) {
+      where.id_client = _params.clientId
+    }
+
+    if (_params?.status) {
+      where.status_pembayaran = _params.status as any
+    }
+
     return this.prisma.transaksi.findMany({
+      where,
       include: {
         client: true,
         booking_konsultasi: {
@@ -53,8 +70,10 @@ export class TransaksiRepository {
   }
 
   async findById(id: string) {
-    return this.prisma.transaksi.findUnique({
-      where: { id },
+    return this.prisma.transaksi.findFirst({
+      where: {
+        OR: [{ id }, { kode_transaksi: id }],
+      },
       include: {
         client: true,
         booking_konsultasi: {
@@ -130,10 +149,10 @@ export class TransaksiRepository {
         },
         invoice: true,
       },
+      orderBy: { createdAt: 'desc' },
     })
   }
 
-  // Alias untuk kompatibilitas jika ada yang memanggil findByUserId
   async findByUserId(id_client: string) {
     return this.findByClientId(id_client)
   }
@@ -144,8 +163,8 @@ export class TransaksiRepository {
     alasan: string
   }) {
     return this.prisma.$transaction(async (tx) => {
-      const transaksi = await tx.transaksi.findUnique({
-        where: { id: params.transaksiId },
+      const transaksi = await tx.transaksi.findFirst({
+        where: { OR: [{ id: params.transaksiId }, { kode_transaksi: params.transaksiId }] },
         include: {
           client: true,
           booking_konsultasi: {
@@ -154,6 +173,12 @@ export class TransaksiRepository {
               jadwal: true,
             },
           },
+          booking_event: {
+            include: { event: true },
+          },
+          booking_psikotes: {
+            include: { paket: true },
+          },
         },
       })
 
@@ -161,7 +186,6 @@ export class TransaksiRepository {
         throw Object.assign(new Error('Transaksi tidak ditemukan'), { statusCode: 404 })
       }
 
-      // Validasi: hanya transaksi PAID yang bisa direfund
       if (transaksi.status_pembayaran === 'REFUNDED') {
         throw Object.assign(new Error('Transaksi ini sudah pernah direfund sebelumnya'), { statusCode: 409 })
       }
@@ -171,7 +195,7 @@ export class TransaksiRepository {
 
       const booking = transaksi.booking_konsultasi
 
-      // Jika terhubung dengan booking konsultasi, validasi batas H-1
+      // Validasi H-1 untuk konsultasi
       if (booking?.jadwal) {
         if (booking.status === 'COMPLETED') {
           throw Object.assign(new Error('Sesi yang sudah selesai tidak dapat direfund'), { statusCode: 422 })
@@ -214,20 +238,28 @@ export class TransaksiRepository {
         }
       }
 
-      const refundAmount = Number(transaksi.total)
+      const totalTransaksi = Number(transaksi.total)
+      // Skema Refund: 70% dikembalikan ke Klien, 30% ditahan (15% Psikolog, 15% Empathika)
+      const refundClientPercentage = 0.70
+      const refundAmount = Math.round(totalTransaksi * refundClientPercentage)
+      const potonganEmpathika = Math.round(totalTransaksi * 0.15)
+      const potonganPsikolog = totalTransaksi - refundAmount - potonganEmpathika // sisa pas 15%
 
-      // 1. Update status transaksi menjadi REFUNDED dan catat audit refund
+      // Keterangan rincian disimpan di alasan refund
+      const catatanAlokasi = `[Refund 70%: Rp ${refundAmount.toLocaleString('id-ID')} | Empathika 15%: Rp ${potonganEmpathika.toLocaleString('id-ID')} | Psikolog 15%: Rp ${potonganPsikolog.toLocaleString('id-ID')}] - ${params.alasan}`
+
+      // 1. Update status transaksi menjadi REFUNDED (refund_amount mencatat dana yang dikembalikan ke klien)
       const updatedTransaksi = await tx.transaksi.update({
         where: { id: transaksi.id },
         data: {
           status_pembayaran: 'REFUNDED',
           refund_at: new Date(),
-          refund_reason: params.alasan,
+          refund_reason: catatanAlokasi,
           refund_amount: refundAmount,
         },
       })
 
-      // 2. Jika ada booking terkait, batalkan sesi dan bebaskan slot jadwal psikolog
+      // 2. Jika Konsultasi: batalkan sesi & bebaskan slot
       let updatedBooking = null
       if (booking) {
         updatedBooking = await tx.bookingKonsultasi.update({
@@ -248,14 +280,26 @@ export class TransaksiRepository {
           await tx.jadwalSlot.update({
             where: { id: booking.id_jadwal },
             data: { status: 'TERSEDIA' },
-          })
+          }).catch(() => {})
         }
+      }
+
+      // 3. Jika Event: batalkan booking_event
+      if (transaksi.booking_event) {
+        await tx.bookingEvent.update({
+          where: { id: transaksi.booking_event.id },
+          data: { status: 'CANCELLED' },
+        }).catch(() => {})
       }
 
       return {
         transaksi: updatedTransaksi,
         booking: updatedBooking,
+        totalTransaksi,
         nominalRefund: refundAmount,
+        potonganEmpathika,
+        potonganPsikolog,
+        persentaseRefund: '70%',
       }
     })
   }
@@ -268,8 +312,17 @@ export class TransaksiRepository {
     tipe_transaksi?: 'KONSULTASI' | 'EVENT' | 'PSIKOTES'
     channel_pembayaran?: string
     kode_transaksi?: string
+    data_pembayaran?: string
   }) {
     const total = data.jumlah
+    const rawMetode = (data.metode_pembayaran || 'QRIS').toUpperCase()
+    const mappedMetode =
+      rawMetode === 'TRANSFER_BANK' || rawMetode === 'BANK'
+        ? 'TRANSFER_BANK'
+        : rawMetode === 'E_WALLET' || rawMetode === 'EWALLET'
+        ? 'E_WALLET'
+        : 'QRIS'
+
     return this.prisma.transaksi.create({
       data: {
         id_client: data.id_client,
@@ -277,57 +330,93 @@ export class TransaksiRepository {
         subtotal: data.jumlah,
         biaya_admin: 0,
         total: total,
-        metode_pembayaran: (data.metode_pembayaran?.toUpperCase() === 'TRANSFER_BANK'
-          ? 'TRANSFER_BANK'
-          : data.metode_pembayaran?.toUpperCase() === 'E_WALLET'
-          ? 'E_WALLET'
-          : 'QRIS') as any,
+        metode_pembayaran: mappedMetode as any,
         channel_pembayaran: data.channel_pembayaran ?? data.metode_pembayaran,
         ...(data.kode_transaksi && { kode_transaksi: data.kode_transaksi }),
+        ...(data.data_pembayaran && { data_pembayaran: data.data_pembayaran }),
       },
     })
   }
 
-  async updateStatus(id: string, status: string, paymentData?: Record<string, unknown>) {
+  async updateStatus(identifier: string, status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED', paymentData?: Record<string, unknown>) {
     return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.transaksi.findFirst({
+        where: {
+          OR: [{ id: identifier }, { kode_transaksi: identifier }],
+        },
+        include: {
+          booking_konsultasi: { include: { jadwal: true } },
+          booking_event: true,
+          booking_psikotes: true,
+        },
+      })
+
+      if (!existing) {
+        console.warn(`[TransaksiRepo] Transaksi dengan ID / kode '${identifier}' tidak ditemukan saat update status.`)
+        return null
+      }
+
+      // Persiapkan data pembayaran tersimpan (merge dengan data sebelumnya jika JSON)
+      let mergedDataStr: string | undefined = undefined
+      if (paymentData) {
+        try {
+          const oldData = existing.data_pembayaran ? JSON.parse(existing.data_pembayaran) : {}
+          mergedDataStr = JSON.stringify({ ...oldData, ...paymentData })
+        } catch {
+          mergedDataStr = JSON.stringify(paymentData)
+        }
+      }
+
       const updatedTransaksi = await tx.transaksi.update({
-        where: { id },
+        where: { id: existing.id },
         data: {
-          status_pembayaran: status as any,
-          ...(status === 'PAID' && { tanggal_bayar: new Date() }),
-          ...(paymentData && { data_pembayaran: JSON.stringify(paymentData) }),
-        } as any,
+          status_pembayaran: status,
+          ...(status === 'PAID' && !existing.tanggal_bayar && { tanggal_bayar: new Date() }),
+          ...(mergedDataStr && { data_pembayaran: mergedDataStr }),
+        },
       })
 
-      // Sinkronkan status BookingKonsultasi terkait
-      const booking = await tx.bookingKonsultasi.findFirst({
-        where: { id_transaksi: id },
-        include: { jadwal: true },
-      })
-
-      if (booking) {
+      // ── SINKRONISASI 1: Booking Konsultasi ──
+      const bookingKonsul = existing.booking_konsultasi
+      if (bookingKonsul) {
         if (status === 'PAID') {
           await tx.bookingKonsultasi.update({
-            where: { id: booking.id },
+            where: { id: bookingKonsul.id },
             data: { status: 'CONFIRMED' },
           })
         } else if (status === 'FAILED') {
           await tx.bookingKonsultasi.update({
-            where: { id: booking.id },
+            where: { id: bookingKonsul.id },
             data: { status: 'CANCELLED' },
           })
-          if (booking.id_jadwal) {
+          if (bookingKonsul.id_jadwal) {
             await tx.jadwalSlot.update({
-              where: { id: booking.id_jadwal },
+              where: { id: bookingKonsul.id_jadwal },
               data: { status: 'TERSEDIA' },
             }).catch(() => {})
           }
-          if (booking.jadwal?.id_psikolog) {
+          if (bookingKonsul.jadwal?.id_psikolog) {
             await tx.psikolog.update({
-              where: { id: booking.jadwal.id_psikolog },
+              where: { id: bookingKonsul.jadwal.id_psikolog },
               data: { jumlah_sesi: { decrement: 1 } },
             }).catch(() => {})
           }
+        }
+      }
+
+      // ── SINKRONISASI 2: Booking Event ──
+      const bookingEvent = existing.booking_event
+      if (bookingEvent) {
+        if (status === 'PAID') {
+          await tx.bookingEvent.update({
+            where: { id: bookingEvent.id },
+            data: { status: 'CONFIRMED' },
+          })
+        } else if (status === 'FAILED') {
+          await tx.bookingEvent.update({
+            where: { id: bookingEvent.id },
+            data: { status: 'CANCELLED' },
+          })
         }
       }
 

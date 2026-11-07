@@ -22,7 +22,6 @@ export function useEventCheckout() {
     whatsapp?: string
     metodePembayaran?: string
     detailMetode?: string
-    [key: string]: any
   }>({})
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
 
@@ -45,24 +44,24 @@ export function useEventCheckout() {
     if (qEwallet) setSelectedEwallet(qEwallet)
   }, [searchParams])
 
+  const eventIdParam = searchParams.get("eventId")
   const testIdParam = searchParams.get("testId")
   const judulParam = searchParams.get("judul") || "Workshop SEFT"
+  const deskripsiParam = searchParams.get("deskripsi")
   const subjudulParam =
+    deskripsiParam ||
     searchParams.get("subjudul") ||
-    "Spiritual Emotional Freedom Technique — program workshop interaktif bersama para ahli."
-  const pembicaraParam =
-    searchParams.get("pembicara") ||
-    (judulParam.toLowerCase().includes("burnout")
-      ? "Sarah M., M.Psi"
-      : judulParam.toLowerCase().includes("mindfulness") ||
-        judulParam.toLowerCase().includes("self-healing")
-      ? "Dr. Andi Pratama"
-      : "Dian Kartika, M.Psi., Psikolog")
-  const lokasiParam = searchParams.get("lokasi") || "Kantor Empathika Cikutra"
-  const tanggalParam = searchParams.get("tanggal") || "24 Oktober 2026"
-  const waktuParam = searchParams.get("waktu") || "19:00 - 21:00 WIB"
-  const kategoriParam = searchParams.get("kategori") || "Seminar"
-  const hargaParam = searchParams.get("harga") || "Rp 200.000"
+    "Program workshop interaktif bersama para ahli Empathika."
+  const pembicaraParam = searchParams.get("pembicara") || "Narasumber Empathika"
+  const tipeParam = searchParams.get("tipe") || "Online"
+  const linkMeetParam = searchParams.get("linkMeet") || ""
+  const linkWaParam = searchParams.get("linkWa") || ""
+  const bannerUrlParam = searchParams.get("bannerUrl") || ""
+  const lokasiParam = searchParams.get("lokasi") || (tipeParam === "Online" ? "Google Meet (Online)" : "Lokasi Acara")
+  const tanggalParam = searchParams.get("tanggal") || "Jadwal Segera Diumumkan"
+  const waktuParam = searchParams.get("waktu") || "09:00"
+  const kategoriParam = searchParams.get("kategori") || "Workshop"
+  const hargaParam = searchParams.get("harga") || "Gratis"
   const isPsikotes = kategoriParam.toLowerCase().includes("psikotes")
 
   const handleSelectPayment = (id: string) => {
@@ -100,6 +99,16 @@ export function useEventCheckout() {
     }
     if (!whatsapp.trim()) {
       newErrors.whatsapp = "Nomor WhatsApp aktif wajib diisi."
+    } else {
+      const cleanWa = whatsapp.replace(/\D/g, "")
+      const local = cleanWa.startsWith("62") ? cleanWa.slice(2) : cleanWa
+      if (!local.startsWith("8")) {
+        newErrors.whatsapp = "Nomor tidak valid. Nomor WhatsApp harus diawali angka 8 (contoh: +62 812-xxxx-xxxx)."
+      } else if (local.length < 9) {
+        newErrors.whatsapp = "Nomor WhatsApp terlalu pendek (minimal 10 digit, contoh: +62 812-3456-7890)."
+      } else if (local.length > 13) {
+        newErrors.whatsapp = "Nomor WhatsApp terlalu panjang (maksimal 14 digit angka)."
+      }
     }
     if (!metodePembayaran) {
       newErrors.metodePembayaran = "Harap pilih salah satu metode pembayaran."
@@ -129,16 +138,20 @@ export function useEventCheckout() {
       nama: nama.toUpperCase(),
       whatsapp,
       orderId:
-        (isPsikotes ? "PSI-" : "W-SEFT-") +
+        (isPsikotes ? "PSI-" : "EV-") +
         String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
-      tanggal: "05/09",
+      tanggal: tanggalParam,
       tahun: "2026",
-      waktu: "09:00",
+      waktu: waktuParam,
       judul: judulParam,
       subjudul: subjudulParam,
       kategori: kategoriParam,
       harga: hargaParam,
       metode: metodePembayaran!,
+      tipe: tipeParam,
+      ...(eventIdParam && { eventId: eventIdParam }),
+      ...(linkMeetParam && { linkMeet: linkMeetParam }),
+      ...(linkWaParam && { linkWa: linkWaParam }),
       ...(testIdParam && { testId: testIdParam }),
       ...(selectedBank && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
@@ -165,7 +178,6 @@ export function useEventCheckout() {
     attemptedSubmit,
     isFailed,
     failedReason,
-    testIdParam,
     judulParam,
     subjudulParam,
     pembicaraParam,
@@ -175,6 +187,10 @@ export function useEventCheckout() {
     kategoriParam,
     hargaParam,
     isPsikotes,
+    tipeParam,
+    linkMeetParam,
+    linkWaParam,
+    bannerUrlParam,
     handleSelectPayment,
     handleSubmit,
   }

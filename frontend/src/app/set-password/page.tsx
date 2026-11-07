@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Lock, Eye, EyeOff, AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
 import { authService } from "@/services/auth.service"
+import { removeAuthCookie } from "@/lib/cookie"
 
 function SetPasswordContent() {
   const searchParams = useSearchParams()
@@ -105,6 +106,19 @@ function SetPasswordContent() {
       })
 
       if (res.success) {
+        // Bersihkan seluruh token/cookie/sesi lama (misalnya sesi Admin penguji)
+        removeAuthCookie("access_token")
+        removeAuthCookie("remember_me")
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("access_token")
+          localStorage.removeItem("remember_me")
+          localStorage.removeItem("empathika-auth")
+          localStorage.removeItem("active_psikolog_id")
+          localStorage.removeItem("active_psikolog_name")
+          localStorage.removeItem("active_psikolog_kategori")
+          sessionStorage.clear()
+        }
+
         setSuccessMessage(res.message || "Kata sandi berhasil dibuat dan akun Anda telah aktif!")
         setTimeout(() => {
           router.push("/login?status=activated")

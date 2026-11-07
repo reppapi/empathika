@@ -1,6 +1,6 @@
 import type { PrismaClient, Prisma, StatusBooking, StatusSlot, StatusPembayaran } from '@prisma/client'
 import { parseDateString, timeStringToDate, formatDateToString, formatTimeToString, calculateRefundDeadline } from '../../utils/date-time'
-import { generateOrderId } from '../../utils'
+import { generateOrderId, generateTrxId, normalizePhoneNumber } from '../../utils'
 
 export class BookingRepository {
   constructor(private prisma: PrismaClient) { }
@@ -24,6 +24,27 @@ export class BookingRepository {
     if (params?.status && params.status !== 'semua') {
       if (params.status === 'TERSEDIA' || params.status === 'SUDAH_DIBOOKING' || params.status === 'TIDAK_TERSEDIA') {
         where.status = params.status as any
+      }
+    }
+
+    if (params?.layanan && params.layanan !== 'Semua Layanan' && params.layanan !== 'semua') {
+      const layLower = params.layanan.toLowerCase().trim()
+      if (layLower === 'asesmen' || layLower.includes('asesmen')) {
+        where.OR = [
+          { tipe_jadwal: 'ASESMEN' },
+          { booking_konsultasi: { layanan: { kategori: 'ASESMEN' } } },
+          { booking_konsultasi: { layanan: { nama: { contains: params.layanan, mode: 'insensitive' } } } },
+        ]
+      } else if (layLower === 'konseling' || layLower === 'konsultasi') {
+        where.OR = [
+          { tipe_jadwal: 'KONSULTASI' },
+          { booking_konsultasi: { layanan: { kategori: 'KONSULTASI' } } },
+          { booking_konsultasi: { layanan: { nama: { contains: params.layanan, mode: 'insensitive' } } } },
+        ]
+      } else {
+        where.booking_konsultasi = {
+          layanan: { nama: { contains: params.layanan, mode: 'insensitive' } },
+        }
       }
     }
 
@@ -174,6 +195,7 @@ export class BookingRepository {
     tanggal?: string
     id_psikolog?: string
     tipe_jadwal?: string
+    metode?: string
   }) {
     // Otomatis lepas slot yang ditinggalkan (pending > 30 menit) agar langsung muncul lagi di kalender
     await this.cancelExpiredPendingBookings(30).catch(() => { })
@@ -204,6 +226,7 @@ export class BookingRepository {
         status: { in: ['PENDING', 'CONFIRMED'] },
         ...(parsedTanggal ? { jadwal: { tanggal: parsedTanggal } } : {}),
         ...(resolvedPsikologId ? { jadwal: { id_psikolog: resolvedPsikologId } } : {}),
+        ...(params.tipe_jadwal ? { jadwal: { tipe_jadwal: params.tipe_jadwal } } : {}),
       },
       select: {
         id_jadwal: true,
@@ -235,6 +258,7 @@ export class BookingRepository {
         status: { in: ['SUDAH_DIBOOKING', 'TIDAK_TERSEDIA'] as any },
         ...(parsedTanggal ? { tanggal: parsedTanggal } : {}),
         ...(resolvedPsikologId ? { id_psikolog: resolvedPsikologId } : {}),
+        ...(params.tipe_jadwal ? { tipe_jadwal: params.tipe_jadwal } : {}),
       },
       select: {
         id: true,
@@ -267,6 +291,15 @@ export class BookingRepository {
 
     if (resolvedPsikologId) {
       where.id_psikolog = resolvedPsikologId
+    }
+
+    if (params.metode) {
+      const mUpper = params.metode.toUpperCase()
+      if (mUpper === 'OFFLINE') {
+        where.metode = { in: ['OFFLINE', 'KEDUANYA'] }
+      } else if (mUpper === 'ONLINE') {
+        where.metode = { in: ['ONLINE', 'KEDUANYA'] }
+      }
     }
 
     const availableCandidates = await this.prisma.jadwalSlot.findMany({
@@ -309,6 +342,7 @@ export class BookingRepository {
   ) {
     const where: Prisma.JadwalSlotWhereInput = {
       id_psikolog,
+      tipe_jadwal: 'KONSULTASI',
     }
 
     if (params?.start_date && params?.end_date) {
@@ -397,12 +431,13 @@ export class BookingRepository {
   // ── 2. Pembuatan & Pengelolaan Sesi Booking ──────────────────────────────────
 
   async createAdminSesi(data: {
-    id_psikolog: string
+    id_psikolog?: string
     id_layanan: string
     tanggal: Date
     jam_mulai: Date
     jam_selesai: Date
     metode: string
+    tipe_jadwal?: string
     deskripsi_trauma?: string
     klien: {
       nama: string
@@ -412,42 +447,111 @@ export class BookingRepository {
     }
   }) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Buat atau cari Klien berdasarkan nomor telepon
+      // 1. Buat atau cari Klien berdasarkan nomor telepon (format standar tunggal 628...)
+      const rawPhone = (data.klien.no_telepon || '').trim()
+      const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
+      const digitsOnly = rawPhone.replace(/\D/g, '')
+
       let client = await tx.client.findFirst({
-        where: { no_telepon: data.klien.no_telepon },
+        where: {
+          OR: [
+            { no_telepon: standardizedPhone },
+            { no_telepon: rawPhone },
+            ...(digitsOnly.length >= 8 ? [
+              { no_telepon: digitsOnly },
+              { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
+            ] : []),
+          ],
+        },
       })
 
       if (!client) {
         client = await tx.client.create({
           data: {
-            nama: data.klien.nama,
-            no_telepon: data.klien.no_telepon,
+            nama: data.klien.nama.trim(),
+            no_telepon: standardizedPhone,
             usia: data.klien.usia,
             jenis_kelamin: data.klien.jenis_kelamin,
           },
         })
+      } else if (client.no_telepon !== standardizedPhone) {
+        await tx.client.update({
+          where: { id: client.id },
+          data: { no_telepon: standardizedPhone },
+        }).catch(() => {})
       }
 
-      // 2. Buat JadwalSlot dengan status SUDAH_DIBOOKING
-      const slot = await tx.jadwalSlot.create({
-        data: {
-          id_psikolog: data.id_psikolog,
+      let targetPsiId = data.id_psikolog
+      if (!targetPsiId) {
+        const firstPsi = await tx.psikolog.findFirst()
+        if (!firstPsi) {
+          throw Object.assign(new Error('Tidak ditemukan data psikolog/asesor untuk dialokasikan pada sesi ini'), { statusCode: 400 })
+        }
+        targetPsiId = firstPsi.id
+      }
+
+      let resolvedLayananId = data.id_layanan
+      let layanan: any = null
+      const isUuidLay = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.id_layanan)
+      if (isUuidLay) {
+        layanan = await tx.layanan.findUnique({
+          where: { id: data.id_layanan },
+        })
+      } else if (data.id_layanan) {
+        layanan = await tx.layanan.findFirst({
+          where: { nama: { contains: data.id_layanan, mode: 'insensitive' } },
+        })
+      }
+      if (!layanan) {
+        layanan = await tx.layanan.findFirst({ where: { aktif: true } }) || await tx.layanan.findFirst()
+      }
+      if (layanan) {
+        resolvedLayananId = layanan.id
+      }
+
+      const isAsesmen =
+        data.tipe_jadwal === 'ASESMEN' ||
+        layanan?.kategori === 'ASESMEN' ||
+        (layanan?.nama || '').toLowerCase().includes('asesmen')
+
+      // 2. Hubungkan ke JadwalSlot yang sudah dibuka psikolog, atau buat baru jika belum ada
+      let slot = await tx.jadwalSlot.findFirst({
+        where: {
+          id_psikolog: targetPsiId,
           tanggal: data.tanggal,
           jam_mulai: data.jam_mulai,
-          jam_selesai: data.jam_selesai,
-          tipe_jadwal: 'KONSULTASI',
-          metode: data.metode || 'ONLINE',
-          status: 'SUDAH_DIBOOKING',
-        } as any,
+        },
       })
 
+      if (slot) {
+        slot = await tx.jadwalSlot.update({
+          where: { id: slot.id },
+          data: {
+            status: 'SUDAH_DIBOOKING',
+            metode: data.metode || slot.metode,
+          } as any,
+        })
+      } else {
+        slot = await tx.jadwalSlot.create({
+          data: {
+            id_psikolog: targetPsiId,
+            tanggal: data.tanggal,
+            jam_mulai: data.jam_mulai,
+            jam_selesai: data.jam_selesai,
+            tipe_jadwal: isAsesmen ? 'ASESMEN' : 'KONSULTASI',
+            metode: data.metode || (isAsesmen ? 'OFFLINE' : 'ONLINE'),
+            status: 'SUDAH_DIBOOKING',
+          } as any,
+        })
+      }
+
       // 3. Buat BookingKonsultasi langsung CONFIRMED (admin direct)
-      const kode_pesanan = `ADM-${generateOrderId()}`
+      const kode_pesanan = generateOrderId('ADM')
       const booking = await tx.bookingKonsultasi.create({
         data: {
           kode_pesanan,
           id_client: client.id,
-          id_layanan: data.id_layanan,
+          id_layanan: resolvedLayananId,
           id_jadwal: slot.id,
           metode: data.metode,
           deskripsi_trauma: data.deskripsi_trauma,
@@ -477,6 +581,9 @@ export class BookingRepository {
   async createClientBooking(data: {
     id_jadwal?: string
     id_layanan?: string
+    layanan?: string
+    nama_layanan?: string
+    tipe_jadwal?: string
     id_psikolog?: string
     tanggal?: string
     jam_mulai?: string
@@ -497,11 +604,24 @@ export class BookingRepository {
       let slot: any = null
       let isNewlyCreated = false
       const isUuid = data.id_jadwal && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.id_jadwal)
-      if (isUuid || (data.id_jadwal && !data.id_jadwal.startsWith('mock-'))) {
+      if (isUuid || (data.id_jadwal && !data.id_jadwal.startsWith('mock-') && !data.id_jadwal.startsWith('slot_asesmen_'))) {
         slot = await tx.jadwalSlot.findUnique({
           where: { id: data.id_jadwal },
           include: { psikolog: true, booking_konsultasi: true },
         })
+        if (!slot) {
+          throw Object.assign(
+            new Error('Slot jadwal ini telah dihapus atau dibatalkan oleh pihak klinik/psikolog. Silakan pilih jadwal sesi lainnya.'),
+            { statusCode: 409 }
+          )
+        }
+      }
+
+      if (slot && (slot.status === 'TIDAK_TERSEDIA' || slot.status === 'CANCELLED')) {
+        throw Object.assign(
+          new Error('Slot jadwal ini telah dibatalkan atau tidak tersedia lagi oleh pihak klinik/psikolog. Silakan pilih jadwal sesi lainnya.'),
+          { statusCode: 409 }
+        )
       }
 
       // Resolusi ID psikolog jika diteruskan sebagai account ID, nama, atau slug
@@ -527,27 +647,52 @@ export class BookingRepository {
         }
       }
 
-      // Jika slot tidak ditemukan dengan id_jadwal, cari berdasarkan psikolog, tanggal, dan jam_mulai
-      if (!slot && resolvedPsikologId && data.tanggal && data.jam_mulai) {
+      // Jika slot tidak ditemukan dengan id_jadwal, cari berdasarkan psikolog, tanggal, dan jam_mulai (atau cari slot asesmen jika resolvedPsikologId kosong)
+      if (!slot && data.tanggal && data.jam_mulai) {
         const parsedTanggal = parseDateString(data.tanggal)
         const parsedJamMulai = timeStringToDate(data.jam_mulai)
-        slot = await tx.jadwalSlot.findFirst({
-          where: {
-            id_psikolog: resolvedPsikologId,
-            tanggal: parsedTanggal,
-            jam_mulai: parsedJamMulai,
-          },
-          include: { psikolog: true, booking_konsultasi: { include: { client: true } } },
-        })
 
-        // Jika belum ada slot di database untuk psikolog tersebut di waktu ini, buatkan slot baru
+        if (resolvedPsikologId) {
+          slot = await tx.jadwalSlot.findFirst({
+            where: {
+              id_psikolog: resolvedPsikologId,
+              tanggal: parsedTanggal,
+              jam_mulai: parsedJamMulai,
+            },
+            include: { psikolog: true, booking_konsultasi: { include: { client: true } } },
+          })
+        } else {
+          slot = await tx.jadwalSlot.findFirst({
+            where: {
+              tanggal: parsedTanggal,
+              jam_mulai: parsedJamMulai,
+              tipe_jadwal: 'ASESMEN',
+            },
+            include: { psikolog: true, booking_konsultasi: { include: { client: true } } },
+          })
+        }
+
+        // Jika belum ada slot di database untuk waktu ini, buatkan slot baru
         if (!slot) {
+          let targetPsiId = resolvedPsikologId
+          if (!targetPsiId) {
+            const firstPsi = await tx.psikolog.findFirst()
+            if (!firstPsi) {
+              throw Object.assign(new Error('Tidak ditemukan data psikolog/asesor untuk dialokasikan pada sesi ini'), { statusCode: 400 })
+            }
+            targetPsiId = firstPsi.id
+          }
+
           const parsedJamSelesai = new Date(parsedJamMulai.getTime() + 60 * 60 * 1000)
+          const isAsesmenSlot =
+            (data as any).tipe_jadwal === 'ASESMEN' ||
+            data.metode?.toUpperCase() === 'OFFLINE' ||
+            (data.deskripsi_trauma || '').toLowerCase().includes('asesmen')
 
           // Cegah bentrok jadwal jika psikolog telah memiliki slot lain di jam tersebut
           const overlap = await tx.jadwalSlot.findFirst({
             where: {
-              id_psikolog: resolvedPsikologId,
+              id_psikolog: targetPsiId,
               tanggal: parsedTanggal,
               jam_mulai: { lt: parsedJamSelesai },
               jam_selesai: { gt: parsedJamMulai },
@@ -555,7 +700,7 @@ export class BookingRepository {
             },
           })
 
-          if (overlap) {
+          if (overlap && !isAsesmenSlot) {
             throw Object.assign(
               new Error('Psikolog telah memiliki jadwal aktif lain pada jam tersebut. Silakan pilih waktu lain.'),
               { statusCode: 409 }
@@ -564,13 +709,13 @@ export class BookingRepository {
 
           slot = await tx.jadwalSlot.create({
             data: {
-              id_psikolog: resolvedPsikologId,
+              id_psikolog: targetPsiId,
               tanggal: parsedTanggal,
               jam_mulai: parsedJamMulai,
               jam_selesai: parsedJamSelesai,
-              metode: (data.metode || 'ONLINE').toUpperCase(),
+              metode: (data.metode || (isAsesmenSlot ? 'OFFLINE' : 'ONLINE')).toUpperCase(),
               status: 'SUDAH_DIBOOKING' as any,
-              tipe_jadwal: 'KONSULTASI',
+              tipe_jadwal: isAsesmenSlot ? 'ASESMEN' : 'KONSULTASI',
             } as any,
             include: { psikolog: true },
           })
@@ -591,14 +736,15 @@ export class BookingRepository {
 
         if (existingBooking && existingBooking.status !== 'CANCELLED') {
           // Izinkan jika klien yang sama ingin melanjutkan pembayaran status PENDING sebelumnya
-          const clientPhoneDigits = (existingBooking.client?.no_telepon || '').replace(/\D/g, '')
-          const inputPhoneDigits = data.klien.no_telepon.replace(/\D/g, '')
+          const clientStandardPhone = normalizePhoneNumber(existingBooking.client?.no_telepon)
+          const inputStandardPhone = normalizePhoneNumber(data.klien.no_telepon)
           const isSamePhone =
+            Boolean(clientStandardPhone && inputStandardPhone && clientStandardPhone === inputStandardPhone) ||
             existingBooking.client?.no_telepon === data.klien.no_telepon ||
-            (clientPhoneDigits.length >= 8 &&
-             inputPhoneDigits.length >= 8 &&
-             (clientPhoneDigits.endsWith(inputPhoneDigits.slice(-8)) ||
-              inputPhoneDigits.endsWith(clientPhoneDigits.slice(-8))))
+            (clientStandardPhone.length >= 8 &&
+             inputStandardPhone.length >= 8 &&
+             (clientStandardPhone.endsWith(inputStandardPhone.slice(-8)) ||
+              inputStandardPhone.endsWith(clientStandardPhone.slice(-8))))
 
           const isSameClient =
             existingBooking.status === 'PENDING' &&
@@ -681,15 +827,20 @@ export class BookingRepository {
         }
       }
 
-      // 3. Buat atau cari Klien berdasarkan nomor telepon (normalisasi format)
+      // 3. Buat atau cari Klien berdasarkan nomor telepon (format standar tunggal 628...)
       const rawPhone = data.klien.no_telepon.trim()
+      const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
       let client = await tx.client.findFirst({
         where: {
           OR: [
+            { no_telepon: standardizedPhone },
             { no_telepon: rawPhone },
-            ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
+            ...(digitsOnly.length >= 8 ? [
+              { no_telepon: digitsOnly },
+              { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
+            ] : []),
           ],
         },
       })
@@ -698,13 +849,16 @@ export class BookingRepository {
         client = await tx.client.create({
           data: {
             nama: data.klien.nama.trim(),
-            no_telepon: rawPhone,
+            no_telepon: standardizedPhone,
             usia: data.klien.usia,
             jenis_kelamin: data.klien.jenis_kelamin,
           },
         })
       } else {
         const updateData: Prisma.ClientUpdateInput = {}
+        if (client.no_telepon !== standardizedPhone) {
+          updateData.no_telepon = standardizedPhone
+        }
         if (data.klien.nama?.trim() && !client.nama) {
           updateData.nama = data.klien.nama.trim()
         }
@@ -726,11 +880,57 @@ export class BookingRepository {
           where: { id: resolvedLayananId },
         })
       }
+
+      const isAsesmen =
+        slot?.tipe_jadwal === 'ASESMEN' ||
+        (data as any).tipe_jadwal === 'ASESMEN' ||
+        (data.metode?.toUpperCase() === 'OFFLINE' && !data.id_psikolog) ||
+        (data.deskripsi_trauma || '').toLowerCase().includes('asesmen') ||
+        (data.layanan || '').toLowerCase().includes('asesmen') ||
+        (data.nama_layanan || '').toLowerCase().includes('asesmen')
+
       if (!layanan) {
-        layanan = await tx.layanan.findFirst({ where: { aktif: true } })
-        if (!layanan) {
-          layanan = await tx.layanan.findFirst()
+        if (isAsesmen) {
+          const reqName = (data.layanan || data.nama_layanan || '').replace(/\s*\((weekday|weekend)\)/i, '').trim()
+          if (reqName) {
+            layanan = await tx.layanan.findFirst({
+              where: {
+                kategori: 'ASESMEN',
+                nama: { contains: reqName, mode: 'insensitive' },
+              },
+            })
+          }
+          if (!layanan) {
+            layanan = await tx.layanan.findFirst({
+              where: { kategori: 'ASESMEN', aktif: true },
+            })
+          }
+          if (!layanan) {
+            layanan = await tx.layanan.findFirst({
+              where: { kategori: 'ASESMEN' },
+            })
+          }
+          if (!layanan) {
+            layanan = await tx.layanan.create({
+              data: {
+                nama: reqName || 'Asesmen Minat Bakat (Offline)',
+                kategori: 'ASESMEN',
+                deskripsi: 'Sesi asesmen psikologi tatap muka di klinik Empathika.',
+                harga_weekday: 400000,
+                harga_weekend: 500000,
+                aktif: true,
+              },
+            })
+          }
         }
+
+        if (!layanan) {
+          layanan = await tx.layanan.findFirst({ where: { aktif: true } })
+          if (!layanan) {
+            layanan = await tx.layanan.findFirst()
+          }
+        }
+
         if (layanan) {
           resolvedLayananId = layanan.id
         }
@@ -742,7 +942,6 @@ export class BookingRepository {
         const slotDay = new Date(slot.tanggal).getDay() // 0 = Minggu, 6 = Sabtu
         isWeekend = slotDay === 0 || slotDay === 6
       }
-
       let nominal = 200000
       const psikologKategori = (slot?.psikolog?.kategori || '').toLowerCase()
       const tarifJson = (layanan as any)?.tarif_tenaga_ahli
@@ -776,11 +975,13 @@ export class BookingRepository {
       const paymentStatus: StatusPembayaran = 'PENDING'
 
       // 5. Buat Transaksi
-      const kode_pesanan = `W-${generateOrderId()}`
+      const prefix = isAsesmen ? 'ASES' : 'KONS'
+      const kode_pesanan = generateOrderId(prefix)
+      const kode_transaksi = generateTrxId()
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
-          kode_transaksi: kode_pesanan,
+          kode_transaksi,
           tipe_transaksi: 'KONSULTASI',
           subtotal: nominal,
           biaya_admin: 0,
@@ -1122,8 +1323,14 @@ export class BookingRepository {
     if (identifier.clientId) {
       whereCondition.id_client = identifier.clientId
     } else if (identifier.phone) {
+      const stdPhone = normalizePhoneNumber(identifier.phone)
+      const cleanDigits = identifier.phone.replace(/\D/g, '')
       whereCondition.client = {
-        no_telepon: { contains: identifier.phone.slice(-8) },
+        OR: [
+          ...(stdPhone ? [{ no_telepon: stdPhone }] : []),
+          ...(cleanDigits.length >= 8 ? [{ no_telepon: { contains: cleanDigits.slice(-8) } }] : []),
+          { no_telepon: identifier.phone },
+        ],
       }
     }
 
@@ -1177,3 +1384,4 @@ export class BookingRepository {
     })
   }
 }
+

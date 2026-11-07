@@ -19,6 +19,8 @@ export interface LayananApiResponse {
   updatedAt?: string
 }
 
+export type LayananApiItem = LayananApiResponse
+
 export const layananService = {
   getAll: (params?: { kategori?: string; aktif?: boolean | string; search?: string }) =>
     apiClient

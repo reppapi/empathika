@@ -170,7 +170,7 @@ export default function BlogListClient() {
           </div>
         ) : (
           <div className={styles.emptyState}>
-            <div style={{ fontSize: 48 }}>📝</div>
+            <div style={{ fontSize: 48 }}></div>
             <p>
               {searchQuery
                 ? `Tidak ada artikel yang cocok dengan pencarian "${searchQuery}"`

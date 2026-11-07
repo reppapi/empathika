@@ -5,6 +5,7 @@ export const getJadwalTersediaQuerySchema = z.object({
   tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD').optional(),
   id_psikolog: z.string().optional(),
   tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).default('KONSULTASI'),
+  metode: z.string().optional(),
 })
 
 // ── 2. Jadwal Milik Psikolog (Portal Psikolog) ──
@@ -36,16 +37,17 @@ export const createAdminJadwalSlotSchema = z.object({
   jam_mulai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_mulai harus HH:mm'),
   jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
   tipe_jadwal: z.string().optional().default('ASESMEN'),
-  metode: z.string().optional().default('ONLINE'),
+  metode: z.string().optional().default('OFFLINE'),
 })
 
 export const createAdminSesiSchema = z.object({
-  id_psikolog: z.string().uuid(),
-  id_layanan: z.string().uuid(),
+  id_psikolog: z.string().optional(),
+  id_layanan: z.string().min(1, 'Layanan wajib dipilih'),
   tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   jam_mulai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_mulai harus HH:mm'),
   jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
-  metode: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'),
+  metode: z.enum(['ONLINE', 'OFFLINE']).default('OFFLINE'),
+  tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).optional(),
   deskripsi_trauma: z.string().optional(),
   klien: z.object({
     nama: z.string().min(1, 'Nama klien wajib diisi'),
@@ -63,10 +65,13 @@ export const updateBookingStatusSchema = z.object({
 export const createClientBookingSchema = z.object({
   id_jadwal: z.string().optional(),
   id_layanan: z.string().optional(),
+  layanan: z.string().optional(),
+  nama_layanan: z.string().optional(),
   id_psikolog: z.string().optional(),
   tanggal: z.string().optional(),
   jam_mulai: z.string().optional(),
   metode: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'),
+  tipe_jadwal: z.string().optional(),
   deskripsi_trauma: z.string().optional(),
   metode_pembayaran: z.string().optional(),
   channel_pembayaran: z.string().optional(),
