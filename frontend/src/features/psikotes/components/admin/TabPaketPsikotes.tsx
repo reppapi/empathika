@@ -1,6 +1,7 @@
 import React from "react";
 import {
   AdminDataTable,
+  AdminTableContainer,
   AdminSearchInput,
   AdminStatusBadge,
   ColumnDef,
@@ -182,21 +183,14 @@ export default function TabPaketPsikotes({
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900">
-            Daftar Paket Psikotes
-          </h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Seluruh instrumen asesmen yang tersedia di sistem Empathika.
-          </p>
-        </div>
-        <div className="w-full sm:w-72">
+    <AdminTableContainer>
+      <div className="flex items-center justify-end mb-5">
+        <div className="w-full sm:w-64">
           <AdminSearchInput
             placeholder="Cari judul psikotes..."
             value={searchQuery}
             onChange={onSearchChange}
+            className="!w-full lg:!w-full"
           />
         </div>
       </div>
@@ -224,6 +218,6 @@ export default function TabPaketPsikotes({
           emptyMessage="Tidak ada paket psikotes yang ditemukan. Pastikan seeder database telah dijalankan."
         />
       )}
-    </div>
+    </AdminTableContainer>
   );
 }

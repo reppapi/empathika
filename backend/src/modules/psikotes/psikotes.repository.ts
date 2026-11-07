@@ -849,13 +849,19 @@ export class PsikotesRepository {
       id_transaksi: { not: null },
     }
 
-    const [totalBerbayar, totalSelesai, items] = await Promise.all([
+    const [totalBerbayar, totalSelesai, totalGratis, items] = await Promise.all([
       this.prisma.bookingPsikotes.count({
         where: baseCountWhere,
       }),
       this.prisma.bookingPsikotes.count({
         where: {
           ...baseCountWhere,
+          hasil_tes: { isNot: null },
+        },
+      }),
+      this.prisma.bookingPsikotes.count({
+        where: {
+          paket: { is: { jenis_akses: 'GRATIS' } },
           hasil_tes: { isNot: null },
         },
       }),
@@ -906,8 +912,8 @@ export class PsikotesRepository {
 
     return {
       summary: {
-        total_peserta: totalBerbayar,
-        total_gratis: 0,
+        total_peserta: totalBerbayar + totalGratis,
+        total_gratis: totalGratis,
         total_berbayar: totalBerbayar,
         total_selesai: totalSelesai,
       },

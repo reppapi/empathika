@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, FileText, CheckCircle, AlertCircle, X, ChevronRight } from "lucide-react";
+import { Users, FileText, CheckCircle, AlertCircle, X } from "lucide-react";
 import { psikotesService } from "@/services/psikotes.service";
 import type {
   AdminPsikotesPeserta,
@@ -222,123 +222,62 @@ export default function AdminPsikotesClient() {
         </div>
       )}
 
-      {/* ── 1. Tab Navigasi Utama (Dashboard Monitor Peserta vs Kelola Paket) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-2.5 rounded-2xl border border-gray-100 shadow-xs">
-        {/* Tombol Data Peserta */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("peserta")}
-          className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-150 cursor-pointer flex items-center justify-between gap-3 group active:scale-[0.99] ${
-            activeTab === "peserta"
-              ? "bg-[#D3C4D8] border-[#bca7c3] shadow-xs"
-              : "bg-white text-gray-800 border-gray-200 hover:border-[#bca7c3] hover:bg-[#D3C4D8]/20 shadow-xs"
-          }`}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 transition-colors ${
-                activeTab === "peserta"
-                  ? "bg-white/80 text-[#561269] shadow-2xs"
-                  : "bg-purple-50 text-[#561269] group-hover:bg-purple-100"
-              }`}
-            >
-              <Users className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span
-                className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  activeTab === "peserta" ? "text-[#561269]" : "text-gray-400"
-                }`}
-              >
-                Data Peserta &amp; Hasil Tes
-              </span>
-              <p className="text-lg font-extrabold tracking-tight truncate text-gray-900">
-                {pesertaSummary.total_berbayar} Peserta
-              </p>
-            </div>
-          </div>
+      {/* ── 1. Top Bar: Tab Switcher & Minimalist Stats ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Tab Switcher (Gaya konsisten Admin Empathika) */}
+        <div className="flex items-center gap-1.5 p-1.5 bg-gray-100/90 rounded-2xl w-fit border border-gray-200/80 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setActiveTab("peserta")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "peserta"
+                ? "bg-[#561269] text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Data Klien ({pesertaSummary.total_berbayar})</span>
+          </button>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <ChevronRight
-              className={`w-4 h-4 transition-transform ${
-                activeTab === "peserta"
-                  ? "text-[#561269] translate-x-0.5"
-                  : "text-gray-400 group-hover:text-[#561269] group-hover:translate-x-0.5"
-              }`}
-            />
-          </div>
-        </button>
-
-        {/* Tombol Kelola Paket */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("paket")}
-          className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-150 cursor-pointer flex items-center justify-between gap-3 group active:scale-[0.99] ${
-            activeTab === "paket"
-              ? "bg-[#D3C4D8] border-[#bca7c3] shadow-xs"
-              : "bg-white text-gray-800 border-gray-200 hover:border-[#bca7c3] hover:bg-[#D3C4D8]/20 shadow-xs"
-          }`}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 transition-colors ${
-                activeTab === "paket"
-                  ? "bg-white/80 text-[#561269] shadow-2xs"
-                  : "bg-purple-50 text-[#561269] group-hover:bg-purple-100"
-              }`}
-            >
-              <FileText className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span
-                className={`text-[11px] font-bold uppercase tracking-wider block ${
-                  activeTab === "paket" ? "text-[#561269]" : "text-gray-400"
-                }`}
-              >
-                Kelola Paket Psikotes
-              </span>
-              <p className="text-lg font-extrabold tracking-tight truncate text-gray-900">
-                {judulList.length} Paket
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <ChevronRight
-              className={`w-4 h-4 transition-transform ${
-                activeTab === "paket"
-                  ? "text-[#561269] translate-x-0.5"
-                  : "text-gray-400 group-hover:text-[#561269] group-hover:translate-x-0.5"
-              }`}
-            />
-          </div>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("paket")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "paket"
+                ? "bg-[#561269] text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Katalog Paket ({judulList.length})</span>
+          </button>
+        </div>
       </div>
 
       {/* ── 2. Content Tabs ── */}
       {activeTab === "peserta" ? (
         <div className="flex flex-col gap-6">
-          {/* Ringkasan Metrik Peserta */}
+          {/* Ringkasan Statistik Peserta (Berbayar & Gratis) */}
           <PsikotesSummaryCards summary={pesertaSummary} />
 
-          {/* Tabel Peserta Berbayar */}
+          {/* Tabel Data Klien */}
           <TabPesertaPsikotes
-            pesertaList={pesertaList}
-            searchQuery={searchPeserta}
-            onSearchChange={setSearchPeserta}
-            selectedPaket={selectedPaketPeserta}
-            onSelectPaketChange={setSelectedPaketPeserta}
-            paketOptions={Array.from(
-              new Set([
-                ...judulList.map((j) => j.judul),
-                ...pesertaList.map((p) => p.paket).filter(Boolean),
-              ])
-            ).filter(Boolean)}
-            isLoading={isLoadingPeserta}
-            onSelectPeserta={setSelectedPeserta}
-          />
-        </div>
-      ) : (
+          pesertaList={pesertaList}
+          searchQuery={searchPeserta}
+          onSearchChange={setSearchPeserta}
+          selectedPaket={selectedPaketPeserta}
+          onSelectPaketChange={setSelectedPaketPeserta}
+          paketOptions={Array.from(
+            new Set([
+              ...judulList.map((j) => j.judul),
+              ...pesertaList.map((p) => p.paket).filter(Boolean),
+            ])
+          ).filter(Boolean)}
+          isLoading={isLoadingPeserta}
+          onSelectPeserta={setSelectedPeserta}
+        />
+      </div>
+    ) : (
         /* Tabel Kelola Paket Psikotes */
         <TabPaketPsikotes
           judulList={judulList}

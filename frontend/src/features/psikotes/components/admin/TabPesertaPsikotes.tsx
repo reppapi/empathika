@@ -6,7 +6,7 @@ import {
   ColumnDef,
 } from "@/components/shared/AdminDataTable";
 import { ActionButtonDetail } from "@/components/shared/TableActionButtons";
-import { Filter, X } from "lucide-react";
+import { Filter, MessageCircle } from "lucide-react";
 import type { AdminPsikotesPeserta } from "../../types/adminPsikotes";
 
 export interface TabPesertaPsikotesProps {
@@ -69,14 +69,21 @@ export default function TabPesertaPsikotes({
       key: "peserta",
       header: "Nama Peserta",
       render: (peserta: AdminPsikotesPeserta) => (
-        <span className="font-extrabold text-gray-900 leading-tight block">
-          {peserta.nama}
-        </span>
+        <div className="flex flex-col">
+          <span className="font-extrabold text-gray-900 leading-tight">
+            {peserta.nama}
+          </span>
+          {peserta.usia ? (
+            <span className="text-[11px] text-gray-500 font-medium mt-0.5">
+              {peserta.usia} tahun{peserta.jenisKelamin ? ` • ${peserta.jenisKelamin}` : ""}
+            </span>
+          ) : null}
+        </div>
       ),
     },
     {
       key: "kontak",
-      header: "Kontak",
+      header: "Kontak WhatsApp",
       render: (peserta: AdminPsikotesPeserta) => {
         if (!peserta.noHp || peserta.noHp === "—") {
           return <span className="text-gray-400 italic text-xs">—</span>;
@@ -86,9 +93,11 @@ export default function TabPesertaPsikotes({
             href={`https://wa.me/${peserta.noHp.replace(/\D/g, "")}`}
             target="_blank"
             rel="noreferrer"
-            className="text-emerald-700 hover:text-emerald-800 hover:underline font-semibold text-xs sm:text-sm"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/80 transition font-semibold text-xs"
+            title="Hubungi via WhatsApp"
           >
-            {peserta.noHp}
+            <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>{peserta.noHp}</span>
           </a>
         );
       },
@@ -167,50 +176,39 @@ export default function TabPesertaPsikotes({
 
   return (
     <AdminTableContainer>
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-6">
-        <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900">
-            Daftar Klien Psikotes Berbayar
-          </h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Daftar klien yang menyelesaikan asesmen berbayar beserta kontak WhatsApp untuk ditindaklanjuti.
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        {/* Dropdown Filter per Paket Psikotes */}
+        <div className="relative w-full sm:w-64">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+            <Filter className="w-3.5 h-3.5 text-gray-400" />
+          </div>
+          <select
+            value={selectedPaket}
+            onChange={(e) => handlePaketChange(e.target.value)}
+            className="w-full appearance-none pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition shadow-2xs cursor-pointer truncate"
+          >
+            <option value="ALL">Semua Paket Psikotes</option>
+            {derivedPaketOptions.map((pkt) => (
+              <option key={pkt} value={pkt}>
+                {pkt}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
-          {/* Dropdown Filter per Paket Psikotes */}
-          <div className="relative w-full sm:w-60 shrink-0">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-              <Filter className="w-3.5 h-3.5 text-gray-400" />
-            </div>
-            <select
-              value={selectedPaket}
-              onChange={(e) => handlePaketChange(e.target.value)}
-              className="w-full appearance-none pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition shadow-2xs cursor-pointer truncate"
-            >
-              <option value="ALL">Semua Paket Psikotes</option>
-              {derivedPaketOptions.map((pkt) => (
-                <option key={pkt} value={pkt}>
-                  {pkt}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Kolom Pencarian Nama / No. WA */}
-          <div className="w-full sm:w-60 shrink-0">
-            <AdminSearchInput
-              placeholder="Cari nama atau No. WA..."
-              value={searchQuery}
-              onChange={onSearchChange}
-              className="!w-full lg:!w-full"
-            />
-          </div>
+        {/* Kolom Pencarian Nama / No. WA */}
+        <div className="w-full sm:w-64">
+          <AdminSearchInput
+            placeholder="Cari nama atau No. WA..."
+            value={searchQuery}
+            onChange={onSearchChange}
+            className="!w-full lg:!w-full"
+          />
         </div>
       </div>
 
