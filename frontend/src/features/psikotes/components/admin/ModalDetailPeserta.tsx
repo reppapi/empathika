@@ -198,6 +198,51 @@ export default function ModalDetailPeserta({
                 </p>
               </div>
 
+              {/* Rincian Dimensi RCMAS & Lie Scale */}
+              {peserta.hasil?.detail_skor?.subscales?.physiological && peserta.hasil?.detail_skor?.lieScale && (
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                  <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider block">
+                    Rincian Dimensi Kecemasan &amp; Validitas (RCMAS)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Faktor Fisiologis</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.physiological?.skor ?? 0} / 10
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Faktor Kekhawatiran</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.worry?.skor ?? 0} / 11
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Faktor Konsentrasi</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.concentration?.skor ?? 0} / 7
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Indikator Validitas / Lie Scale */}
+                  <div className="p-3 rounded-xl bg-white border border-purple-200/80 flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-purple-950">Indikator Validitas (Lie Scale):</span>
+                        <span className="font-extrabold text-[#561269] bg-purple-100 px-2 py-0.5 rounded-md text-[11px]">
+                          {peserta.hasil.detail_skor.lieScale.skor} / 9
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 leading-relaxed">
+                        Skala keinginan sosial (social desirability). Skor mentah disimpan apa adanya untuk referensi profesional psikolog.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Potensi & Area Pengembangan */}
               {(detail.kekuatanUtama.length > 0 || detail.blindspots.length > 0) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

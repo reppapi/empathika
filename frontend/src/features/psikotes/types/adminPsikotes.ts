@@ -91,6 +91,7 @@ export type AdminPsikotesPeserta = {
     makna?: string;
     tips?: any;
     tanggal_selesai?: string;
+    detail_skor?: any;
   } | null;
   peserta?: {
     id?: string;

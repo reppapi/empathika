@@ -423,7 +423,14 @@ export class PsikotesRepository {
       })
 
       if (!paket) {
-        throw new Error('Paket psikotes tidak ditemukan')
+        throw Object.assign(new Error('Paket psikotes tidak ditemukan'), { statusCode: 404 })
+      }
+
+      if (paket.status !== 'PUBLISHED') {
+        throw Object.assign(
+          new Error('Paket psikotes belum dipublikasikan atau sedang dinonaktifkan.'),
+          { statusCode: 403 }
+        )
       }
 
       // 2. Normalisasi format jawaban (baik array [{ id_soal, id_pilihan }] maupun record { [id_soal]: id_pilihan })
@@ -842,13 +849,19 @@ export class PsikotesRepository {
       id_transaksi: { not: null },
     }
 
-    const [totalBerbayar, totalSelesai, items] = await Promise.all([
+    const [totalBerbayar, totalSelesai, totalGratis, items] = await Promise.all([
       this.prisma.bookingPsikotes.count({
         where: baseCountWhere,
       }),
       this.prisma.bookingPsikotes.count({
         where: {
           ...baseCountWhere,
+          hasil_tes: { isNot: null },
+        },
+      }),
+      this.prisma.bookingPsikotes.count({
+        where: {
+          paket: { is: { jenis_akses: 'GRATIS' } },
           hasil_tes: { isNot: null },
         },
       }),
@@ -899,8 +912,8 @@ export class PsikotesRepository {
 
     return {
       summary: {
-        total_peserta: totalBerbayar,
-        total_gratis: 0,
+        total_peserta: totalBerbayar + totalGratis,
+        total_gratis: totalGratis,
         total_berbayar: totalBerbayar,
         total_selesai: totalSelesai,
       },
@@ -927,6 +940,7 @@ export class PsikotesRepository {
               deskripsi: b.hasil_tes.interpretasi?.deskripsi || '—',
               tips: (b.hasil_tes.interpretasi as any)?.tips || [],
               tanggal_selesai: b.hasil_tes.tanggal_selesai,
+              detail_skor: b.hasil_tes.detail_skor,
             }
           : null,
       })),
@@ -972,6 +986,13 @@ export class PsikotesRepository {
         if (berbayarVariant) {
           paket = berbayarVariant
         }
+      }
+
+      if (paket.status !== 'PUBLISHED') {
+        throw Object.assign(
+          new Error('Paket psikotes ini belum dipublikasikan atau sedang dinonaktifkan.'),
+          { statusCode: 403 }
+        )
       }
 
       // 2. Normalisasi data Klien (Peserta)
