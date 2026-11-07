@@ -1,11 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { Calendar } from "@/components/ui/calendar"
 import { User } from "lucide-react"
 import { useJadwalClient, formatDateToKey } from "@/features/konseling/hooks/useJadwalClient"
 
 export default function JadwalClient() {
+  const [showNonaktifModal, setShowNonaktifModal] = useState(false)
   const {
     MONTHS,
     today,
@@ -25,6 +27,10 @@ export default function JadwalClient() {
     activePsikologName,
     buildBayarUrl,
     isSlotReady,
+    isOnlineAllowed,
+    isOfflineAllowed,
+    isLayananNonaktif,
+    nonaktifLayananNama,
   } = useJadwalClient()
 
   return (
@@ -76,6 +82,37 @@ export default function JadwalClient() {
           </p>
         </div>
 
+        {/* Banner Peringatan Layanan Nonaktif */}
+        {isLayananNonaktif && (
+          <div className="mb-8 p-5 sm:p-6 bg-amber-50 border-2 border-amber-300 rounded-[1.5rem] shadow-sm flex items-start gap-4 animate-in fade-in duration-300">
+            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xl shrink-0">
+              ⚠️
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base sm:text-lg font-bold text-amber-900 mb-1">
+                Layanan &ldquo;{nonaktifLayananNama || layanan}&rdquo; Sedang Dinonaktifkan
+              </h3>
+              <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
+                Layanan konsultasi ini saat ini sedang dinonaktifkan oleh administrator dan tidak dapat dijadwalkan. Silakan pilih layanan lain yang aktif.
+              </p>
+              <div className="mt-3.5 flex flex-wrap gap-3">
+                <Link
+                  href="/layanan"
+                  className="px-5 py-2 bg-[#561269] hover:bg-[#430e52] text-white text-xs font-semibold rounded-full transition shadow-xs"
+                >
+                  Kembali ke Daftar Layanan
+                </Link>
+                <Link
+                  href="/konseling"
+                  className="px-5 py-2 bg-white border border-[#561269] text-[#561269] hover:bg-purple-50 text-xs font-semibold rounded-full transition shadow-xs"
+                >
+                  Lihat Layanan Konsultasi Lainnya
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* KIRI */}
@@ -89,27 +126,46 @@ export default function JadwalClient() {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setMetode("Online")}
+                  onClick={() => isOnlineAllowed && setMetode("Online")}
+                  disabled={!isOnlineAllowed}
                   className={`flex-1 py-3 text-xs sm:text-sm font-semibold rounded-lg border transition-all ${
-                    metode === "Online"
-                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                    !isOnlineAllowed
+                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
+                      : metode === "Online"
+                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269] cursor-pointer"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer"
                   }`}
+                  title={!isOnlineAllowed ? "Layanan ini tidak tersedia secara Online" : undefined}
                 >
                   Online
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMetode("Offline")}
+                  onClick={() => isOfflineAllowed && setMetode("Offline")}
+                  disabled={!isOfflineAllowed}
                   className={`flex-1 py-3 text-xs sm:text-sm font-semibold rounded-lg border transition-all ${
-                    metode === "Offline"
-                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                    !isOfflineAllowed
+                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
+                      : metode === "Offline"
+                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269] cursor-pointer"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer"
                   }`}
+                  title={!isOfflineAllowed ? "Layanan ini tidak tersedia secara Offline" : undefined}
                 >
                   Offline
                 </button>
               </div>
+
+              {!isOnlineAllowed && isOfflineAllowed && (
+                <p className="text-[11px] text-amber-700 font-medium mt-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                  ℹ️ Layanan ini hanya dapat dilaksanakan secara tatap muka (Offline).
+                </p>
+              )}
+              {isOnlineAllowed && !isOfflineAllowed && (
+                <p className="text-[11px] text-emerald-700 font-medium mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+                  ℹ️ Layanan ini hanya dapat dilaksanakan secara daring (Online).
+                </p>
+              )}
             </div>
 
             {/* Box 2: Pilih Tanggal */}
@@ -259,7 +315,19 @@ export default function JadwalClient() {
                 <h3 className="text-sm font-semibold text-gray-800">Pilih Slot Waktu</h3>
               </div>
 
-              {isLoadingSlots ? (
+              {isLayananNonaktif ? (
+                <div className="flex flex-col items-center justify-center p-6 border border-dashed border-amber-300 rounded-xl bg-amber-50/70 text-center gap-2 my-2">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-base">
+                    ⚠️
+                  </div>
+                  <p className="text-xs font-bold text-amber-900">
+                    Layanan Sedang Dinonaktifkan
+                  </p>
+                  <p className="text-[11px] text-amber-700 max-w-[260px] leading-relaxed">
+                    Sesi konsultasi tidak dapat dijadwalkan untuk layanan yang sedang dinonaktifkan.
+                  </p>
+                </div>
+              ) : isLoadingSlots ? (
                 <div className="text-center py-6 text-xs text-gray-400">
                   Memeriksa ketersediaan jadwal...
                 </div>
@@ -347,13 +415,21 @@ export default function JadwalClient() {
           </div>
         </div>
 
-        {isSlotReady ? (
+        {isSlotReady && !isLayananNonaktif ? (
           <Link
             href={buildBayarUrl()}
             className="bg-[#EAB308] hover:bg-yellow-500 text-black font-bold text-xs sm:text-sm px-6 sm:px-8 py-3 rounded-xl shadow-sm hover:scale-105 transition-all"
           >
             Bayar Sekarang
           </Link>
+        ) : isLayananNonaktif ? (
+          <button
+            type="button"
+            onClick={() => setShowNonaktifModal(true)}
+            className="bg-[#EAB308] hover:bg-yellow-500 text-black font-bold text-xs sm:text-sm px-6 sm:px-8 py-3 rounded-xl shadow-sm hover:scale-105 transition-all cursor-pointer"
+          >
+            Bayar Sekarang
+          </button>
         ) : (
           <button
             type="button"
@@ -364,6 +440,38 @@ export default function JadwalClient() {
           </button>
         )}
       </div>
+
+      {/* Modal Dialog Notifikasi Layanan Dinonaktifkan */}
+      {showNonaktifModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] max-w-md w-full p-6 sm:p-8 text-center shadow-2xl border border-gray-100 transform animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-4 text-3xl">
+              ⚠️
+            </div>
+            <h3 className="text-lg sm:text-xl font-extrabold text-gray-900 mb-2">
+              Pendaftaran Sesi Tidak Tersedia
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-6">
+              Mohon maaf, layanan konsultasi <span className="font-bold text-[#561269]">&ldquo;{nonaktifLayananNama || layanan}&rdquo;</span> sudah dinonaktifkan oleh admin. Anda saat ini tidak dapat melakukan pendaftaran sesi untuk layanan ini.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => setShowNonaktifModal(false)}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-full border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm hover:bg-gray-100 transition cursor-pointer"
+              >
+                Tutup
+              </button>
+              <Link
+                href="/layanan"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#561269] text-white font-bold text-xs sm:text-sm hover:bg-[#430e52] transition shadow-xs"
+              >
+                Lihat Layanan Lain
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {

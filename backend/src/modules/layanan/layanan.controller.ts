@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { LayananService } from './layanan.service'
+import { createLayananSchema, updateLayananSchema } from './layanan.schema'
 
 export class LayananController {
   private service: LayananService
@@ -9,27 +10,49 @@ export class LayananController {
   }
 
   getAll = async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = await this.service.getAll(request.query as Record<string, unknown>)
-    reply.send(data)
+    try {
+      const data = await this.service.getAll(request.query as Record<string, unknown>)
+      reply.send({ success: true, data })
+    } catch (err: any) {
+      reply.code(err.statusCode || 500).send({ success: false, message: err.message })
+    }
   }
 
   getById = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await this.service.getById(request.params.id)
-    reply.send(data)
+    try {
+      const data = await this.service.getById(request.params.id)
+      reply.send({ success: true, data })
+    } catch (err: any) {
+      reply.code(err.statusCode || 404).send({ success: false, message: err.message })
+    }
   }
 
   create = async (request: FastifyRequest, reply: FastifyReply) => {
-    const data = await this.service.create(request.body)
-    reply.code(201).send(data)
+    try {
+      const validated = createLayananSchema.parse(request.body)
+      const data = await this.service.create(validated)
+      reply.code(201).send({ success: true, message: 'Layanan berhasil dibuat', data })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ success: false, message: err.message })
+    }
   }
 
   update = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await this.service.update(request.params.id, request.body)
-    reply.send(data)
+    try {
+      const validated = updateLayananSchema.parse(request.body)
+      const data = await this.service.update(request.params.id, validated)
+      reply.send({ success: true, message: 'Layanan berhasil diperbarui', data })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ success: false, message: err.message })
+    }
   }
 
   remove = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    await this.service.delete(request.params.id)
-    reply.code(204).send()
+    try {
+      await this.service.delete(request.params.id)
+      reply.send({ success: true, message: 'Layanan berhasil dihapus' })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ success: false, message: err.message })
+    }
   }
 }

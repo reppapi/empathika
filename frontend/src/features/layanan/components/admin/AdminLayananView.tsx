@@ -5,11 +5,8 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2 } from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
-import {
-  getStoredLayanan,
-  deleteLayananById,
-  AdminLayananItem,
-} from "../../data/adminLayananData"
+import { AdminLayananItem, getStoredLayanan, updateLayananById } from "../../data/adminLayananData"
+import { layananService } from "@/services/layanan.service"
 import {
   ActionButtonDetail,
   ActionButtonEdit,
@@ -24,6 +21,21 @@ import {
   AdminStatusBadge,
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
+
+function parseRupiahNumber(val: any): number {
+  if (typeof val === "number") return isNaN(val) ? 0 : val
+  if (!val) return 0
+  const str = String(val).trim()
+  const withoutDecimals = str.replace(/[,.]00$/, "")
+  const cleaned = withoutDecimals.replace(/[^0-9]/g, "")
+  return parseInt(cleaned || "0", 10)
+}
+
+function formatRupiahStandard(val: any, fallbackStr: string = "Rp 0,00"): string {
+  if (val === undefined || val === null || val === "") return fallbackStr
+  const num = parseRupiahNumber(val)
+  return `Rp ${num.toLocaleString("id-ID")},00`
+}
 
 export default function AdminLayananView() {
   const router = useRouter()
@@ -41,22 +53,35 @@ export default function AdminLayananView() {
   )
   const [searchQuery, setSearchQuery] = useState(qParam || "")
   const [layananList, setLayananList] = useState<AdminLayananItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isError, setIsError] = useState(false)
 
   // Modal States
   const [selectedDetail, setSelectedDetail] = useState<AdminLayananItem | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
-  // Sinkronkan state saat URL query param berubah (misal tombol Back / Forward browser)
-  useEffect(() => {
-    const cp = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
-    if (cp && allowedCategories.includes(cp)) {
-      setActiveCategory(cp)
+  // Map backend response ke interface tampilan admin
+  const mapBackendLayananToAdmin = (item: any): AdminLayananItem => {
+    let catId = "01"
+    const cat = (item.kategori || "").toUpperCase()
+    if (cat === "KONSULTASI") catId = "01"
+    else if (cat === "WORKSHOP") catId = "03"
+    else if (cat === "SEMINAR") catId = "04"
+    else if (cat === "ASESMEN") catId = "05"
+
+    return {
+      id: item.id,
+      layanan: item.nama,
+      kategoriId: catId,
+      metode: item.metode || "Online/Offline",
+      weekday: formatRupiahStandard(item.harga_weekday),
+      weekend: formatRupiahStandard(item.harga_weekend),
+      status: item.aktif ? "Aktif" : "Nonaktif",
+      deskripsi: item.deskripsi || "",
+      bannerUrl: item.banner_url || "",
+      tarif_tenaga_ahli: item.tarif_tenaga_ahli || null,
     }
-    const qp = searchParams ? (searchParams.get("q") || searchParams.get("search")) : null
-    if (qp !== null && qp !== undefined) {
-      setSearchQuery(qp)
-    }
-  }, [searchParams])
+  }
 
   // Ganti tab kategori sekaligus update URL query param tanpa reload halaman
   const handleCategoryChange = (catId: string) => {
@@ -82,18 +107,74 @@ export default function AdminLayananView() {
     router.replace(targetUrl as any, { scroll: false })
   }
 
-  // Load data from persistent storage
+  // Ambil data layanan dari backend database, atau fallback data tersimpan
+  const fetchLayanan = async () => {
+    setIsLoading(true)
+    setIsError(false)
+    try {
+      const res: any = await layananService.getAll()
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+      if (list.length > 0) {
+        setLayananList(list.map(mapBackendLayananToAdmin))
+      } else {
+        setLayananList(getStoredLayanan())
+      }
+    } catch (err) {
+      console.warn("Backend offline, menggunakan data layanan terdaftar:", err)
+      const local = getStoredLayanan()
+      if (local.length > 0) {
+        setLayananList(local)
+      } else {
+        setIsError(true)
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
-    setLayananList(getStoredLayanan())
+    fetchLayanan()
   }, [])
 
-  // Handle Hapus Layanan
-  const handleDelete = (item: AdminLayananItem) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus layanan "${item.layanan}"?`)) {
-      deleteLayananById(item.id)
-      setLayananList(getStoredLayanan())
-      setToastMsg(`Layanan "${item.layanan}" telah dihapus.`)
+  // Toggle status layanan (Aktif <-> Nonaktif) - Layanan tetap ada di admin, hanya statusnya yang berganti
+  const handleToggleStatus = async (item: AdminLayananItem) => {
+    const newStatus: "Aktif" | "Nonaktif" = item.status === "Aktif" ? "Nonaktif" : "Aktif"
+    const newAktif = newStatus === "Aktif"
+
+    // 1. Optimistic UI update di tabel admin (layanan tetap ditampilkan, tidak dihilangkan)
+    setLayananList((prev) =>
+      prev.map((l) => (String(l.id) === String(item.id) ? { ...l, status: newStatus } : l))
+    )
+
+    // 2. Simpan ke local storage
+    updateLayananById(item.id, { status: newStatus })
+
+    // 3. Simpan ke database backend
+    try {
+      await layananService.update(String(item.id), {
+        status: newStatus,
+        aktif: newAktif,
+      })
+      setToastMsg(`Status layanan "${item.layanan}" diubah menjadi ${newStatus}.`)
       setTimeout(() => setToastMsg(null), 3000)
+    } catch (err: any) {
+      console.warn("Gagal update status layanan ke server:", err)
+      setToastMsg(`Status layanan "${item.layanan}" diubah menjadi ${newStatus}.`)
+      setTimeout(() => setToastMsg(null), 3000)
+    }
+  }
+
+  // Handle Hapus Layanan langsung ke database backend
+  const handleDelete = async (item: AdminLayananItem) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus layanan "${item.layanan}"?`)) {
+      try {
+        await layananService.delete(String(item.id))
+        setLayananList((prev) => prev.filter((l) => l.id !== item.id))
+        setToastMsg(`Layanan "${item.layanan}" telah dihapus.`)
+        setTimeout(() => setToastMsg(null), 3000)
+      } catch (err: any) {
+        alert(err?.message || "Gagal menghapus layanan dari server.")
+      }
     }
   }
 
@@ -113,81 +194,162 @@ export default function AdminLayananView() {
     })
   }, [layananList, activeCategory, searchQuery])
 
-  const columns: ColumnDef<AdminLayananItem>[] = [
-    {
-      key: "no",
-      header: "No",
-      align: "center",
-      width: "70px",
-      render: (_: AdminLayananItem, index: number) => (
-        <span className="font-semibold text-gray-500">{index + 1}</span>
-      ),
-    },
-    {
-      key: "layanan",
-      header: "Layanan",
-      render: (item: AdminLayananItem) => (
-        <span className="font-extrabold text-gray-900 leading-tight">
-          {item.layanan}
-        </span>
-      ),
-    },
-    {
-      key: "metode",
-      header: "Metode Pelaksanaan",
-      render: (item: AdminLayananItem) => (
-        <span className="text-gray-700 font-medium">{item.metode}</span>
-      ),
-    },
-    {
-      key: "weekday",
-      header: "Weekday",
-      render: (item: AdminLayananItem) => (
-        <span className="text-gray-700 font-semibold">{item.weekday}</span>
-      ),
-    },
-    {
-      key: "weekend",
-      header: "Weekend",
-      render: (item: AdminLayananItem) => (
-        <span className="text-gray-700 font-semibold">{item.weekend}</span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      align: "center",
-      render: (item: AdminLayananItem) => (
-        <AdminStatusBadge
-          variant={item.status === "Aktif" ? "success" : "neutral"}
-          className="w-28"
-        >
-          {item.status}
-        </AdminStatusBadge>
-      ),
-    },
-    {
-      key: "aksi",
-      header: "Aksi",
-      align: "center",
-      render: (item: AdminLayananItem) => (
-        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-          <ActionButtonDetail
-            onClick={() => setSelectedDetail(item)}
-            title="Lihat Detail"
-          />
-          <ActionButtonEdit
-            onClick={() => router.push(`/admin/layanan/edit/${item.id}`)}
-            title="Edit Layanan"
-          />
-          <ActionButtonDelete
-            onClick={() => handleDelete(item)}
-            title="Hapus Layanan"
-          />
-        </div>
-      ),
-    },
-  ]
+  const formatPrice = (val: any, fallbackStr: string = "Rp 0,00") => {
+    return formatRupiahStandard(val, fallbackStr)
+  }
+
+  const isKonsultasi = activeCategory === "01"
+
+  const columns: ColumnDef<AdminLayananItem>[] = useMemo(() => {
+    return [
+      {
+        key: "no",
+        header: "No",
+        align: "center",
+        width: "60px",
+        render: (_: AdminLayananItem, index: number) => (
+          <span className="font-semibold text-gray-500">{index + 1}</span>
+        ),
+      },
+      {
+        key: "layanan",
+        header: "Layanan",
+        render: (item: AdminLayananItem) => (
+          <span className="font-extrabold text-gray-900 leading-tight">
+            {item.layanan}
+          </span>
+        ),
+      },
+      {
+        key: "metode",
+        header: "Metode Pelaksanaan",
+        render: (item: AdminLayananItem) => (
+          <span className="text-gray-700 font-medium text-xs sm:text-sm">{item.metode}</span>
+        ),
+      },
+      {
+        key: "weekday",
+        header: isKonsultasi ? "Tarif Weekday (per Tenaga Ahli)" : "Weekday",
+        render: (item: AdminLayananItem) => {
+          if (!isKonsultasi) {
+            return <span className="text-gray-700 font-semibold">{item.weekday}</span>
+          }
+
+          const t = item.tarif_tenaga_ahli
+          const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
+          const konWd = formatPrice(t?.konselor?.weekday, item.weekday)
+          const peerWd = formatPrice(t?.peer?.weekday, item.weekday)
+
+          return (
+            <div className="space-y-1.5 py-1 text-xs min-w-[170px]">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-[#561269] shrink-0" />
+                  Psikolog
+                </span>
+                <span className="font-bold text-gray-900">{psiWd}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                  Konselor
+                </span>
+                <span className="font-bold text-gray-900">{konWd}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                  Peer
+                </span>
+                <span className="font-bold text-gray-900">{peerWd}</span>
+              </div>
+            </div>
+          )
+        },
+      },
+      {
+        key: "weekend",
+        header: isKonsultasi ? "Tarif Weekend (per Tenaga Ahli)" : "Weekend",
+        render: (item: AdminLayananItem) => {
+          if (!isKonsultasi) {
+            return <span className="text-gray-700 font-semibold">{item.weekend}</span>
+          }
+
+          const t = item.tarif_tenaga_ahli
+          const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
+          const konWk = formatPrice(t?.konselor?.weekend, item.weekend)
+          const peerWk = formatPrice(t?.peer?.weekend, item.weekend)
+
+          return (
+            <div className="space-y-1.5 py-1 text-xs min-w-[170px]">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-[#561269] shrink-0" />
+                  Psikolog
+                </span>
+                <span className="font-bold text-gray-900">{psiWk}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                  Konselor
+                </span>
+                <span className="font-bold text-gray-900">{konWk}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                  Peer
+                </span>
+                <span className="font-bold text-gray-900">{peerWk}</span>
+              </div>
+            </div>
+          )
+        },
+      },
+      {
+        key: "status",
+        header: "Status",
+        align: "center",
+        render: (item: AdminLayananItem) => (
+          <button
+            type="button"
+            onClick={() => handleToggleStatus(item)}
+            className="cursor-pointer transition-transform active:scale-95 group flex items-center justify-center mx-auto"
+            title="Klik untuk ubah status Aktif / Nonaktif"
+          >
+            <AdminStatusBadge
+              variant={item.status === "Aktif" ? "success" : "neutral"}
+              className="w-28 cursor-pointer group-hover:opacity-80 transition-opacity"
+            >
+              {item.status}
+            </AdminStatusBadge>
+          </button>
+        ),
+      },
+      {
+        key: "aksi",
+        header: "Aksi",
+        align: "center",
+        render: (item: AdminLayananItem) => (
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+            <ActionButtonDetail
+              onClick={() => setSelectedDetail(item)}
+              title="Lihat Detail"
+            />
+            <ActionButtonEdit
+              onClick={() => router.push(`/admin/layanan/edit/${item.id}`)}
+              title="Edit Layanan"
+            />
+            <ActionButtonDelete
+              onClick={() => handleDelete(item)}
+              title="Hapus Layanan"
+            />
+          </div>
+        ),
+      },
+    ]
+  }, [isKonsultasi, router])
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16 relative">
@@ -251,13 +413,42 @@ export default function AdminLayananView() {
           />
         </div>
 
+        {/* Tampilan Error & Muat Ulang */}
+        {isError && (
+          <div className="my-6 p-8 text-center bg-amber-50 border border-amber-200 rounded-3xl">
+            <p className="text-sm sm:text-base font-bold text-amber-900 mb-1">
+              ⚠️ Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi.
+            </p>
+            <p className="text-xs text-amber-700 mb-4">
+              Server database tidak dapat dijangkau saat ini.
+            </p>
+            <button
+              type="button"
+              onClick={fetchLayanan}
+              className="px-6 py-2 bg-[#561269] hover:bg-[#430e52] text-white text-xs sm:text-sm font-bold rounded-full transition shadow-xs active:scale-95 cursor-pointer"
+            >
+              Muat Ulang
+            </button>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isLoading && !isError && (
+          <div className="py-16 text-center text-gray-400 text-sm font-medium animate-pulse">
+            Memuat data layanan dari server...
+          </div>
+        )}
+
         {/* Tabel Layanan */}
-        <AdminDataTable
-          columns={columns}
-          data={filteredLayanan}
-          keyExtractor={(item: AdminLayananItem) => item.id}
-          emptyMessage="Tidak ada layanan yang ditemukan dalam kategori ini."
-        />
+        {!isLoading && !isError && (
+          <AdminDataTable
+            columns={columns}
+            data={filteredLayanan}
+            minWidth={isKonsultasi ? "920px" : "760px"}
+            keyExtractor={(item: AdminLayananItem) => item.id}
+            emptyMessage="Tidak ada layanan yang ditemukan dalam kategori ini."
+          />
+        )}
       </AdminTableContainer>
 
       {/* ── DETAIL MODAL ── */}
@@ -294,26 +485,108 @@ export default function AdminLayananView() {
                   <span className="text-xs text-gray-500 font-medium block">Metode Pelaksanaan</span>
                   <span className="font-bold text-gray-900 mt-1 block">{selectedDetail.metode}</span>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-xs text-gray-500 font-medium block">Status Layanan</span>
-                  <span className="font-bold text-emerald-600 mt-1 block">{selectedDetail.status}</span>
+                <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-gray-500 font-medium block">Status Layanan</span>
+                    <span className={`font-bold mt-1 block ${selectedDetail.status === "Aktif" ? "text-emerald-600" : "text-gray-500"}`}>
+                      {selectedDetail.status}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleToggleStatus(selectedDetail)
+                      setSelectedDetail((prev) =>
+                        prev ? { ...prev, status: prev.status === "Aktif" ? "Nonaktif" : "Aktif" } : null
+                      )
+                    }}
+                    className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                  >
+                    Ubah ke {selectedDetail.status === "Aktif" ? "Nonaktif" : "Aktif"}
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl">
-                  <span className="text-xs text-purple-800 font-medium block">Tarif Weekday</span>
-                  <span className="font-bold text-[#561269] text-sm mt-1 block">
-                    {selectedDetail.weekday}
+              {/* Detail Tarif Layanan */}
+              {selectedDetail.kategoriId === "01" ? (
+                /* Khusus Konsultasi: 3 Kartu Terpisah Tenaga Ahli */
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-[#561269] block">
+                    Tarif Konsultasi per Tenaga Ahli
                   </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* 1. Psikolog */}
+                    <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-xl space-y-1.5">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-[#561269]">
+                        <span className="w-2 h-2 rounded-full bg-[#561269]" />
+                        Psikolog
+                      </div>
+                      <div className="text-[11px] text-gray-600 space-y-0.5">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Weekday:</span>
+                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.psikolog?.weekday, selectedDetail.weekday)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Weekend:</span>
+                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.psikolog?.weekend, selectedDetail.weekend)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. Konselor */}
+                    <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-blue-700">
+                        <span className="w-2 h-2 rounded-full bg-blue-600" />
+                        Konselor
+                      </div>
+                      <div className="text-[11px] text-gray-600 space-y-0.5">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Weekday:</span>
+                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.konselor?.weekday, selectedDetail.weekday)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Weekend:</span>
+                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.konselor?.weekend, selectedDetail.weekend)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. Peer Konselor */}
+                    <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-1.5">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-700">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                        Peer Konselor
+                      </div>
+                      <div className="text-[11px] text-gray-600 space-y-0.5">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Weekday:</span>
+                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.peer?.weekday, selectedDetail.weekday)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Weekend:</span>
+                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.peer?.weekend, selectedDetail.weekend)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl">
-                  <span className="text-xs text-purple-800 font-medium block">Tarif Weekend</span>
-                  <span className="font-bold text-[#561269] text-sm mt-1 block">
-                    {selectedDetail.weekend}
-                  </span>
+              ) : (
+                /* Non-Konsultasi: 2 Kartu Reguler */
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl">
+                    <span className="text-xs text-purple-800 font-medium block">Tarif Weekday</span>
+                    <span className="font-bold text-[#561269] text-sm mt-1 block">
+                      {selectedDetail.weekday}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl">
+                    <span className="text-xs text-purple-800 font-medium block">Tarif Weekend</span>
+                    <span className="font-bold text-[#561269] text-sm mt-1 block">
+                      {selectedDetail.weekend}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="mt-6 flex justify-end gap-2.5">

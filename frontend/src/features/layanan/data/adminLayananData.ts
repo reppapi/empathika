@@ -1,7 +1,7 @@
 // frontend/src/features/layanan/data/adminLayananData.ts
 
 export interface AdminLayananItem {
-  id: number
+  id: number | string
   layanan: string
   kategoriId: string // "01" (Konsultasi), "03" (Workshop), "04" (Seminar), "05" (Asesmen)
   metode: string // "Online" | "Offline" | "Online/Offline"
@@ -10,94 +10,24 @@ export interface AdminLayananItem {
   status: "Aktif" | "Nonaktif"
   deskripsi: string
   bannerUrl?: string
+  tarif_tenaga_ahli?: {
+    psikolog?: { weekday: number | string; weekend: number | string }
+    konselor?: { weekday: number | string; weekend: number | string }
+    peer?: { weekday: number | string; weekend: number | string }
+  } | null
 }
 
 export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
-  // ── Konsultasi (01) ──
   {
     id: 1,
-    layanan: "Psikolog",
-    kategoriId: "01",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan konsultasi psikologi intensif bersama psikolog berlisensi untuk berbagai penanganan klinis, depresi, kecemasan, dan permasalahan kesehatan mental.",
-    bannerUrl: "",
-  },
-  {
-    id: 2,
-    layanan: "Peer Konselor",
-    kategoriId: "01",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan pendampingan santai bersama teman sebaya (peer counselor) yang terlatih untuk mendengarkan keluh kesah Anda tanpa penghakiman.",
-    bannerUrl: "",
-  },
-  {
-    id: 3,
-    layanan: "Hipnoterapi",
-    kategoriId: "01",
-    metode: "Offline",
-    weekday: "Rp 400.000",
-    weekend: "Rp 500.000",
-    status: "Aktif",
-    deskripsi:
-      "Terapi mendalam yang menyasar alam bawah sadar untuk membantu mengatasi trauma, kecemasan, fobia, hingga kebiasaan buruk yang sulit dihilangkan.",
-    bannerUrl: "",
-  },
-  {
-    id: 4,
-    layanan: "Home Visit",
-    kategoriId: "01",
-    metode: "Offline",
-    weekday: "Rp 500.000",
-    weekend: "Rp 600.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan spesial di mana psikolog kami akan langsung mengunjungi lokasi Anda demi kenyamanan, terutama bagi klien yang kesulitan mobilitas.",
-    bannerUrl: "",
-  },
-  // ── Workshop (03) ──
-  {
-    id: 5,
-    layanan: "Workshop Regulasi Emosi & Pelatihan Konselor Sebaya",
-    kategoriId: "03",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Pelatihan pembekalan intensif bagi siswa/mahasiswa/komunitas untuk mengelola stres dan menjadi pendengar aktif yang empatik.",
-    bannerUrl: "",
-  },
-  // ── Asesmen (05) ──
-  {
-    id: 6,
     layanan: "Asesmen Minat Bakat",
     kategoriId: "05",
     metode: "Online/Offline",
-    weekday: "Rp 400.000",
-    weekend: "Rp 500.000",
+    weekday: "Rp 400.000,00",
+    weekend: "Rp 500.000,00",
     status: "Aktif",
     deskripsi:
-      "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu.",
-    bannerUrl: "",
-  },
-  {
-    id: 7,
-    layanan: "Asesmen Kesiapan Sekolah",
-    kategoriId: "05",
-    metode: "Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, dan emosional dalam memasuki jenjang sekolah.",
+      "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu secara terstandar.",
     bannerUrl: "",
   },
 ]
@@ -120,6 +50,9 @@ export function getStoredLayanan(): AdminLayananItem[] {
   return INITIAL_ADMIN_LAYANAN
 }
 
+// Alias helper
+export const getLayananList = getStoredLayanan
+
 export function saveStoredLayanan(items: AdminLayananItem[]): void {
   if (typeof window === "undefined") return
   try {
@@ -131,7 +64,7 @@ export function saveStoredLayanan(items: AdminLayananItem[]): void {
 
 export function addLayanan(item: Omit<AdminLayananItem, "id">): AdminLayananItem {
   const current = getStoredLayanan()
-  const nextId = current.length > 0 ? Math.max(...current.map((i) => i.id)) + 1 : 1
+  const nextId = current.length > 0 ? Math.max(...current.map((i) => Number(i.id) || 0)) + 1 : 1
   const created: AdminLayananItem = { ...item, id: nextId }
   const updated = [created, ...current]
   saveStoredLayanan(updated)
@@ -139,11 +72,11 @@ export function addLayanan(item: Omit<AdminLayananItem, "id">): AdminLayananItem
 }
 
 export function updateLayananById(
-  id: number,
+  id: number | string,
   patch: Partial<Omit<AdminLayananItem, "id">>
 ): AdminLayananItem | null {
   const current = getStoredLayanan()
-  const idx = current.findIndex((i) => i.id === id)
+  const idx = current.findIndex((i) => String(i.id) === String(id))
   if (idx === -1) return null
   const updatedItem: AdminLayananItem = { ...current[idx], ...patch }
   current[idx] = updatedItem
@@ -151,15 +84,15 @@ export function updateLayananById(
   return updatedItem
 }
 
-export function deleteLayananById(id: number): boolean {
+export function deleteLayananById(id: number | string): boolean {
   const current = getStoredLayanan()
-  const filtered = current.filter((i) => i.id !== id)
+  const filtered = current.filter((i) => String(i.id) !== String(id))
   if (filtered.length === current.length) return false
   saveStoredLayanan(filtered)
   return true
 }
 
-export function getLayananById(id: number): AdminLayananItem | null {
+export function getLayananById(id: number | string): AdminLayananItem | null {
   const current = getStoredLayanan()
-  return current.find((i) => i.id === id) || null
+  return current.find((i) => String(i.id) === String(id)) || null
 }

@@ -10,17 +10,13 @@ import {
   FormulirPertanyaan,
 } from "../../types"
 import {
-  getKerjaSamaItems,
   saveKerjaSamaItems,
   getKerjaSamaConfig,
   saveKerjaSamaConfig,
-  getPengajuanKerjaSama,
   savePengajuanKerjaSama,
   getFormulirConfigs,
   saveFormulirConfigs,
-  INITIAL_KERJASAMA_ITEMS,
   INITIAL_KERJASAMA_CONFIG,
-  INITIAL_PENGAJUAN_KERJASAMA,
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 import { kerjaSamaService } from "@/services/kerja-sama.service"
@@ -100,14 +96,16 @@ export default function AdminKerjaSamaClient() {
     router.replace(targetUrl as any, { scroll: false })
   }
 
-  // State data utama
-  const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS)
+  // State data utama (100% murni sinkron dengan backend database)
+  const [items, setItems] = useState<KerjaSamaItem[]>([])
   const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG)
-  const [leads, setLeads] = useState<PengajuanKerjaSama[]>(INITIAL_PENGAJUAN_KERJASAMA)
+  const [leads, setLeads] = useState<PengajuanKerjaSama[]>([])
   const [formConfigs, setFormConfigs] = useState<FormulirConfigItem[]>(INITIAL_FORMULIR_CONFIGS)
   const [selectedFormIndex, setSelectedFormIndex] = useState<number>(0)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isError, setIsError] = useState(false)
 
   // State Tambah Pertanyaan Baru Formulir
   const [isAddingQuestion, setIsAddingQuestion] = useState(false)
@@ -119,93 +117,64 @@ export default function AdminKerjaSamaClient() {
   const [leadFilter, setLeadFilter] = useState<string>("Semua")
   const [selectedLead, setSelectedLead] = useState<PengajuanKerjaSama | null>(null)
 
-  useEffect(() => {
-    setIsMounted(true)
-    const localItems = getKerjaSamaItems()
-    const localLeads = getPengajuanKerjaSama()
-    setItems(localItems)
-    setConfig(getKerjaSamaConfig())
-    setLeads(localLeads)
-    setFormConfigs(getFormulirConfigs())
+  const fetchAllData = () => {
+    setIsLoading(true)
+    setIsError(false)
 
-    // Fungsi ambil dan sinkronkan data leads dari backend API & cache lokal
-    const fetchLeads = () => {
-      const localLeads = getPengajuanKerjaSama()
-      kerjaSamaService
-        .getPengajuanList()
-        .then((res: any) => {
-          if (res?.data && Array.isArray(res.data)) {
-            const mappedFromBackend: PengajuanKerjaSama[] = res.data.map((item: any) => {
-              const dateObj = item.createdAt ? new Date(item.createdAt) : new Date()
-              const months = [
-                "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-                "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
-              ]
-              const tanggalStr = `${dateObj.getDate()} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`
+    // 1. Ambil data leads murni dari backend database
+    const leadsPromise = kerjaSamaService
+      .getPengajuanList()
+      .then((res: any) => {
+        if (res?.data && Array.isArray(res.data)) {
+          const mappedFromBackend: PengajuanKerjaSama[] = res.data.map((item: any) => {
+            const dateObj = item.createdAt ? new Date(item.createdAt) : new Date()
+            const months = [
+              "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+              "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+            ]
+            const tanggalStr = `${dateObj.getDate()} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`
 
-              // Tentukan judul formulir yang rapi
-              let title = item.jawaban_detail?.["Tipe Formulir"]
-              if (!title) {
-                if (item.tipe_formulir === "asesmen") {
-                  title = "Formulir Kerjasama Asesmen dan Tes"
-                } else if (item.tipe_formulir === "in-house-training") {
-                  title = "Formulir In House Training"
-                } else if (item.tipe_formulir === "affiliate") {
-                  title = "Program Affiliate"
-                } else {
-                  title = `Formulir Kerjasama ${item.kategori || "Lainnya"}`
-                }
+            let title = item.jawaban_detail?.["Tipe Formulir"]
+            if (!title) {
+              if (item.tipe_formulir === "asesmen") {
+                title = "Formulir Kerjasama Asesmen dan Tes"
+              } else if (item.tipe_formulir === "in-house-training") {
+                title = "Formulir In House Training"
+              } else if (item.tipe_formulir === "affiliate") {
+                title = "Program Affiliate"
+              } else {
+                title = `Formulir Kerjasama ${item.kategori || "Lainnya"}`
               }
+            }
 
-              return {
-                id: item.id,
-                tanggal: tanggalStr,
-                namaInstansi: item.nama_instansi || "Instansi Mitra",
-                kategori: item.kategori || "Lainnya",
-                namaPIC: item.nama_pic || "PIC Mitra",
-                email: item.email || "",
-                telepon: item.no_telepon || "",
-                pesan: item.pesan || "",
-                status: mapBackendStatusToFrontend(item.status),
-                tipeFormulir: item.tipe_formulir || "lainnya",
-                formTitle: title,
-                jawabanDetail: item.jawaban_detail || {},
-              }
-            })
+            return {
+              id: item.id,
+              tanggal: tanggalStr,
+              namaInstansi: item.nama_instansi || "Instansi Mitra",
+              kategori: item.kategori || "Lainnya",
+              namaPIC: item.nama_pic || "PIC Mitra",
+              email: item.email || "",
+              telepon: item.no_telepon || "",
+              pesan: item.pesan || "",
+              status: mapBackendStatusToFrontend(item.status),
+              tipeFormulir: item.tipe_formulir || "lainnya",
+              formTitle: title,
+              jawabanDetail: item.jawaban_detail || {},
+            }
+          })
+          setLeads(mappedFromBackend)
+        }
+      })
+      .catch((err) => {
+        console.error("Gagal mengambil daftar pengajuan kerja sama:", err)
+        setIsError(true)
+      })
 
-            // Gabungkan data backend dengan cache lokal jika ada item baru di lokal
-            const combined = [...mappedFromBackend]
-            localLeads.forEach((ll) => {
-              if (!combined.some((c) => c.id === ll.id)) {
-                combined.push(ll)
-              }
-            })
-            setLeads(combined)
-            savePengajuanKerjaSama(combined)
-          }
-        })
-        .catch((err) => {
-          console.warn("Notice: Fetching backend pengajuan kerja sama:", err?.message || err)
-        })
-    }
-
-    fetchLeads()
-
-    // Real-time synchronization saat tab admin aktif kembali atau ada pengajuan baru
-    const handleSync = () => {
-      fetchLeads()
-      setConfig(getKerjaSamaConfig())
-    }
-
-    window.addEventListener("focus", handleSync)
-    window.addEventListener("storage", handleSync)
-    window.addEventListener("empathika_admin_profile_updated", handleSync)
-
-    // 2. Ambil Program Kerja Sama dari Backend API
-    kerjaSamaService
+    // 2. Ambil data program kerja sama murni dari backend database
+    const programsPromise = kerjaSamaService
       .getProgramList()
       .then((res: any) => {
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        if (res?.data && Array.isArray(res.data)) {
           const mappedPrograms: KerjaSamaItem[] = res.data.map((p: any) => ({
             id: p.id,
             slug: p.slug,
@@ -223,10 +192,32 @@ export default function AdminKerjaSamaClient() {
             urutan: p.urutan || 1,
           }))
           setItems(mappedPrograms)
-          saveKerjaSamaItems(mappedPrograms)
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error("Gagal mengambil program kerja sama:", err)
+        setIsError(true)
+      })
+
+    Promise.allSettled([leadsPromise, programsPromise]).finally(() => {
+      setIsLoading(false)
+    })
+  }
+
+  useEffect(() => {
+    setIsMounted(true)
+    setConfig(getKerjaSamaConfig())
+    setFormConfigs(getFormulirConfigs())
+    fetchAllData()
+
+    const handleSync = () => {
+      fetchAllData()
+      setConfig(getKerjaSamaConfig())
+    }
+
+    window.addEventListener("focus", handleSync)
+    window.addEventListener("storage", handleSync)
+    window.addEventListener("empathika_admin_profile_updated", handleSync)
 
     return () => {
       window.removeEventListener("focus", handleSync)
@@ -486,6 +477,25 @@ export default function AdminKerjaSamaClient() {
           }
         />
       </div>
+
+      {/* Error Banner */}
+      {isError && (
+        <div className="p-6 text-center bg-amber-50 border border-amber-200 rounded-2xl">
+          <p className="text-sm font-bold text-amber-900 mb-1">
+            ⚠️ Gagal memuat data kerja sama dari server.
+          </p>
+          <p className="text-xs text-amber-700 mb-3">
+            Silakan periksa koneksi internet Anda dan coba lagi.
+          </p>
+          <button
+            type="button"
+            onClick={fetchAllData}
+            className="px-5 py-2 bg-[#561269] hover:bg-[#430e52] text-white text-xs font-bold rounded-full transition shadow-xs cursor-pointer active:scale-95"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      )}
 
       {/* ── Tab Switcher ── */}
       <div className="flex border-b border-gray-200 text-sm font-semibold gap-2 sm:gap-6">

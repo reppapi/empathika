@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { bookingService } from "@/services/booking.service"
+import { layananService } from "@/services/layanan.service"
+import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
 
 export const BANK_LIST = [
   { id: "bca", name: "BCA", va: "1234567890123" },
@@ -58,6 +60,86 @@ export function useBayarClient() {
   const qTanggal = searchParams.get("tanggal") || "31/08"
   const qTahun = searchParams.get("tahun") || "2026"
   const qWaktu = searchParams.get("waktu") || "13:30"
+
+  // Perhitungan tarif dinamis (menyesuaikan hari kerja vs akhir pekan & kualifikasi tenaga ahli)
+  const [hargaNominal, setHargaNominal] = useState("Rp 350.000")
+  const [isLayananNonaktif, setIsLayananNonaktif] = useState(false)
+
+  useEffect(() => {
+    let isWeekend = false
+    let targetDateStr = qFullDate
+    if (!targetDateStr && qTanggal && qTahun) {
+      const parts = qTanggal.split("/")
+      if (parts.length === 2) {
+        targetDateStr = `${qTahun}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
+      }
+    }
+    if (targetDateStr) {
+      const d = new Date(targetDateStr)
+      if (!isNaN(d.getTime())) {
+        const day = d.getDay()
+        isWeekend = day === 0 || day === 6
+      }
+    }
+
+    const psiLower = (qPsikologName || "").toLowerCase()
+    const roleKey: "psikolog" | "konselor" | "peer" = psiLower.includes("peer")
+      ? "peer"
+      : psiLower.includes("konselor")
+      ? "konselor"
+      : "psikolog"
+
+    const formatRp = (num: number | string) => {
+      const n = typeof num === "string" ? parseInt(num.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10) : num
+      return `Rp ${n.toLocaleString("id-ID")}`
+    }
+
+    const checkService = () => {
+      layananService
+        .getAll({ kategori: "KONSULTASI" })
+        .then((res: any) => {
+          const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+          const item =
+            list.find((l: any) => {
+              if (qLayanan) return l.nama.toLowerCase().includes(qLayanan.toLowerCase()) || qLayanan.toLowerCase().includes(l.nama.toLowerCase())
+              return true
+            }) || list[0]
+
+          const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
+          const localItem = stored.find((l) => {
+            if (qLayanan) return l.layanan.toLowerCase().includes(qLayanan.toLowerCase()) || qLayanan.toLowerCase().includes(l.layanan.toLowerCase())
+            return true
+          })
+
+          const isNonaktif =
+            (item && (item.aktif === false || item.status === "Nonaktif")) ||
+            (localItem && localItem.status === "Nonaktif")
+          setIsLayananNonaktif(Boolean(isNonaktif))
+
+          if (item?.tarif_tenaga_ahli?.[roleKey]) {
+            const rate = isWeekend
+              ? item.tarif_tenaga_ahli[roleKey].weekend
+              : item.tarif_tenaga_ahli[roleKey].weekday
+            setHargaNominal(formatRp(rate))
+          } else if (item) {
+            const rate = isWeekend ? item.harga_weekend : item.harga_weekday
+            setHargaNominal(formatRp(rate))
+          }
+        })
+        .catch((err) => {
+          console.warn("Gagal sinkronisasi tarif dinamis pembayaran:", err)
+        })
+    }
+
+    checkService()
+    window.addEventListener("focus", checkService)
+    window.addEventListener("storage", checkService)
+
+    return () => {
+      window.removeEventListener("focus", checkService)
+      window.removeEventListener("storage", checkService)
+    }
+  }, [qFullDate, qTanggal, qTahun, qPsikologName, qLayanan])
 
   useEffect(() => {
     const qNama = searchParams.get("nama")
@@ -143,6 +225,11 @@ export function useBayarClient() {
         const el = document.getElementById("box-metode-pembayaran")
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
       }
+      return
+    }
+
+    if (isLayananNonaktif) {
+      alert("Layanan konsultasi ini sedang dinonaktifkan oleh administrator dan tidak dapat diproses.")
       return
     }
 
@@ -275,6 +362,8 @@ export function useBayarClient() {
     qBottomTime,
     qPsikologName,
     qLayanan,
+    hargaNominal,
+    isLayananNonaktif,
     handleSelectPayment,
     handleSubmit,
   }

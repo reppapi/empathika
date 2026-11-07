@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getKerjaSamaItems, getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_ITEMS, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
+import { getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
 import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
 import { kerjaSamaService } from '@/services/kerja-sama.service';
 import { adminService } from '@/services/admin.service';
@@ -11,13 +11,49 @@ interface DetailKerjaSamaClientProps {
 }
 
 export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClientProps) {
-  const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS);
+  const [items, setItems] = useState<KerjaSamaItem[]>([]);
   const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  const loadProgramDetail = () => {
+    setIsLoading(true);
+    setIsError(false);
+    kerjaSamaService
+      .getProgramList()
+      .then((res: any) => {
+        if (res?.data && Array.isArray(res.data)) {
+          const mapped: KerjaSamaItem[] = res.data.map((p: any) => ({
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            shortName: p.short_name,
+            description: p.deskripsi,
+            pelatihanTitle: p.pelatihan_title || "",
+            pelatihanDeskripsi: p.pelatihan_deskripsi || "",
+            pelatihanImage: p.pelatihan_image || "",
+            mitraTitle: p.mitra_title || "",
+            mitraDeskripsi: p.mitra_deskripsi || "",
+            mitraImage: p.mitra_image || "",
+            color: p.warna_tema || "from-purple-500 to-indigo-600",
+            status: p.status === "NONAKTIF" ? "NONAKTIF" : "AKTIF",
+            urutan: p.urutan || 1,
+          }));
+          setItems(mapped);
+        }
+      })
+      .catch((err) => {
+        console.error("Gagal mengambil detail program kerja sama:", err);
+        setIsError(true);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
 
   useEffect(() => {
     setIsMounted(true);
-    setItems(getKerjaSamaItems());
     setConfig(getKerjaSamaConfig());
 
     const refreshConfig = () => {
@@ -55,30 +91,7 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
     window.addEventListener("storage", refreshConfig);
     window.addEventListener("focus", refreshConfig);
 
-    kerjaSamaService
-      .getProgramList()
-      .then((res: any) => {
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped: KerjaSamaItem[] = res.data.map((p: any) => ({
-            id: p.id,
-            slug: p.slug,
-            title: p.title,
-            shortName: p.short_name,
-            description: p.deskripsi,
-            pelatihanTitle: p.pelatihan_title || "",
-            pelatihanDeskripsi: p.pelatihan_deskripsi || "",
-            pelatihanImage: p.pelatihan_image || "",
-            mitraTitle: p.mitra_title || "",
-            mitraDeskripsi: p.mitra_deskripsi || "",
-            mitraImage: p.mitra_image || "",
-            color: p.warna_tema || "from-purple-500 to-indigo-600",
-            status: p.status === "NONAKTIF" ? "NONAKTIF" : "AKTIF",
-            urutan: p.urutan || 1,
-          }));
-          setItems(mapped);
-        }
-      })
-      .catch(() => {});
+    loadProgramDetail();
 
     return () => {
       window.removeEventListener("empathika_admin_profile_updated", refreshConfig);
@@ -87,11 +100,11 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
     };
   }, []);
 
-  const activeItems = isMounted ? items : INITIAL_KERJASAMA_ITEMS;
+  const activeItems = items;
   const currentConfig = isMounted ? config : INITIAL_KERJASAMA_CONFIG;
 
   // Temukan item berdasarkan slug category (misal: "mahasiswa", "sekolah", dll.)
-  const item = activeItems.find((it) => it.slug === category);
+  const item = activeItems.find((it: KerjaSamaItem) => it.slug === category);
 
   // Jika item di-nonaktifkan atau tidak ditemukan, kita tampilkan fallback title
   const title = item ? item.title : `Empathika untuk ${category}`;
@@ -108,7 +121,37 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
     <div className="w-full min-h-screen bg-[#fbfbfb] font-sans pb-20 pt-32 lg:pt-40">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="flex flex-col gap-6">
+        {/* Error State */}
+        {isError && (
+          <div className="w-full my-10 p-8 text-center bg-amber-50 border border-amber-200 rounded-3xl max-w-xl mx-auto shadow-xs">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3 text-xl">
+              ⚠️
+            </div>
+            <h3 className="text-base font-bold text-amber-900 mb-1">
+              Gagal memuat detail program kerja sama
+            </h3>
+            <p className="text-xs text-amber-700 mb-4">
+              Silakan periksa koneksi Anda dan coba lagi.
+            </p>
+            <button
+              type="button"
+              onClick={loadProgramDetail}
+              className="px-6 py-2.5 bg-[#561269] hover:bg-[#430e52] text-white text-xs sm:text-sm font-bold rounded-full transition shadow-xs active:scale-95 cursor-pointer"
+            >
+              Muat Ulang
+            </button>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isLoading && !isError && (
+          <div className="py-24 text-center text-gray-400 font-medium text-sm animate-pulse">
+            Memuat detail program kerja sama...
+          </div>
+        )}
+
+        {!isLoading && !isError && (
+          <div className="flex flex-col gap-6">
           
           {/* Elegant & Clean Title Section with Gradient Accent */}
           <div className="flex flex-col items-center justify-center mb-2 mt-4 text-center">
@@ -237,6 +280,7 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
           </div>
           
         </div>
+        )}
 
       </div>
     </div>

@@ -736,7 +736,41 @@ export class BookingRepository {
         }
       }
 
-      const nominal = layanan?.harga_weekday ? Number(layanan.harga_weekday) : 200000
+      // Hitung nominal harga: Cek apakah sesi jatuh di Weekend (Sabtu / Minggu)
+      let isWeekend = false
+      if (slot?.tanggal) {
+        const slotDay = new Date(slot.tanggal).getDay() // 0 = Minggu, 6 = Sabtu
+        isWeekend = slotDay === 0 || slotDay === 6
+      }
+
+      let nominal = 200000
+      const psikologKategori = (slot?.psikolog?.kategori || '').toLowerCase()
+      const tarifJson = (layanan as any)?.tarif_tenaga_ahli
+
+      let matchedTarif: { weekday?: number; weekend?: number } | null = null
+      if (tarifJson && typeof tarifJson === 'object') {
+        if (psikologKategori.includes('peer')) {
+          matchedTarif = tarifJson.peer
+        } else if (psikologKategori.includes('konselor')) {
+          matchedTarif = tarifJson.konselor
+        } else {
+          matchedTarif = tarifJson.psikolog
+        }
+      }
+
+      if (matchedTarif) {
+        if (isWeekend && matchedTarif.weekend && Number(matchedTarif.weekend) > 0) {
+          nominal = Number(matchedTarif.weekend)
+        } else if (matchedTarif.weekday && Number(matchedTarif.weekday) > 0) {
+          nominal = Number(matchedTarif.weekday)
+        }
+      } else if (layanan) {
+        if (isWeekend && layanan.harga_weekend && Number(layanan.harga_weekend) > 0) {
+          nominal = Number(layanan.harga_weekend)
+        } else if (layanan.harga_weekday && Number(layanan.harga_weekday) > 0) {
+          nominal = Number(layanan.harga_weekday)
+        }
+      }
       // Status awal booking publik SELALU PENDING sampai diverifikasi pembayarannya
       const finalStatus: StatusBooking = 'PENDING'
       const paymentStatus: StatusPembayaran = 'PENDING'
