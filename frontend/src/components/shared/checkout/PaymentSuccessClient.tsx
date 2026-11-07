@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { adminService } from "@/services/admin.service"
 import { formatOrderId } from "@/lib/utils"
-import { Video, MessageCircle, ExternalLink } from "lucide-react"
+import { Video, MessageCircle, ExternalLink, KeyRound, Copy, Check } from "lucide-react"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
 export type PaymentType = "konseling" | "event" | "psikotes"
@@ -164,6 +164,29 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     if (j.includes("lanjutan") || j.includes("mbti-2")) return `/psikotes/mbti-2/mulai?${queryString}`
     return `/psikotes/mbti/mulai?${queryString}`
   }
+
+  const [copiedTicket, setCopiedTicket] = useState(false)
+  const handleCopyTicket = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(orderId)
+      setCopiedTicket(true)
+      setTimeout(() => setCopiedTicket(false), 2000)
+    }
+  }
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://empathika.id"
+  const psikotesAccessUrl = testId ? `${baseUrl}/psikotes/${testId}?kode=${orderId}` : `${baseUrl}/psikotes?kode=${orderId}`
+  const shareWhatsAppText = `Halo! Ini adalah kode akses untuk tes psikotes di Empathika:
+*Paket:* ${judul}
+*Kode Akses:* ${orderId}
+*Pemesan:* ${nama}
+
+*Link Pengerjaan:*
+${psikotesAccessUrl}
+
+Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjakan tes. Selesaikan tes dalam satu sesi agar jawaban tersimpan dengan baik.`
+
+  const shareWhatsAppUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareWhatsAppText)}`
 
   const [adminPhone, setAdminPhone] = useState<string>("+62 878-7878-5498")
 
@@ -398,6 +421,43 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                   </a>
                 </div>
               )}
+
+              {/* Kode Akses Tiket Psikotes */}
+              {isPsikotes && (
+                <div className="pt-3.5 mt-3 border-t border-dashed border-[#DCD0E1]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-[#561269]" />
+                      <span>KODE AKSES TIKET</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyTicket}
+                      className="text-[11px] font-bold text-[#561269] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedTicket ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-600">Tersalin!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Kode</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200/60 flex items-center justify-between">
+                    <span className="font-mono font-black text-xs sm:text-sm text-[#561269] tracking-wider">
+                      {orderId}
+                    </span>
+                    <span className="text-[10px] font-medium text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-md">
+                      1x Akses Tes
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -412,21 +472,36 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
               <div className="text-center mt-2">
                 <p className="text-[10px] text-gray-500 mb-2 font-medium">
                   {isPsikotes
-                    ? "Pembayaran paket psikotes berhasil! Silakan klik tombol di bawah untuk langsung mulai tes."
+                    ? "Pembayaran paket psikotes berhasil! Silakan mulai tes sekarang atau simpan tiket untuk dikerjakan nanti."
                     : type === "event" && linkWa
                     ? "Bergabunglah ke grup WhatsApp untuk info event terbaru dan pengumuman penting."
                     : "Hubungi kontak ini setelah anda selesai melakukan pembayaran!"}
                 </p>
                 {isPsikotes ? (
-                  <Link
-                    href={getTestStartUrl() as any}
-                    className="w-full py-3 rounded-lg bg-[#EAB308] hover:bg-[#FACC15] text-black font-extrabold text-xs sm:text-sm flex justify-center items-center gap-2 transition-colors shadow-sm"
-                  >
-                    <span>Mulai Tes</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                    </svg>
-                  </Link>
+                  <div className="flex flex-col gap-2.5">
+                    <Link
+                      href={getTestStartUrl() as any}
+                      className="w-full py-3.5 rounded-xl bg-[#EAB308] hover:bg-[#FACC15] text-black font-extrabold text-xs sm:text-sm flex justify-center items-center gap-2 transition-colors shadow-sm"
+                    >
+                      <span>Mulai Tes Sekarang</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      </svg>
+                    </Link>
+
+                    <a
+                      href={shareWhatsAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1DA851] text-white font-bold text-xs sm:text-sm flex justify-center items-center gap-2 transition-colors shadow-sm cursor-pointer"
+                    >
+                      <MessageCircle className="w-4 h-4 shrink-0" />
+                      <span>Bagikan ke WhatsApp</span>
+                    </a>
+                    <p className="text-[10px] text-gray-400 text-center leading-relaxed">
+                      Kirim tiket ke orang lain atau simpan untuk dikerjakan nanti via WhatsApp.
+                    </p>
+                  </div>
                 ) : type === "event" && linkWa ? (
                   /* Tombol Gabung Grup WhatsApp — hanya muncul jika event memiliki link WA */
                   <a

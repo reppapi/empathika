@@ -7,6 +7,7 @@ import type {
   SubmitPsikotesInput,
   PesertaQueryInput,
   CreateBookingPsikotesInput,
+  VerifyTicketInput,
 } from './psikotes.schema'
 import {
   getAlatUkur,
@@ -632,6 +633,13 @@ export class PsikotesRepository {
           where: { id: explicitBookingId },
           include: { hasil_tes: true },
         })
+
+        if (booking && (booking.status_pengerjaan === 'SELESAI' || booking.hasil_tes)) {
+          throw Object.assign(
+            new Error('Tes untuk tiket ini sudah selesai dikerjakan dan tidak dapat diulang kembali.'),
+            { statusCode: 400 }
+          )
+        }
       }
 
       // Jika belum ketemu dan bukan tamu anonim, cari booking terakhir milik klien ini untuk paket ini yang belum ada hasil_tes (status 'Berjalan')
@@ -673,6 +681,7 @@ export class PsikotesRepository {
             id_client: client.id,
             id_transaksi: null,
             riwayat_kesehatan: (input as any).riwayat_kesehatan || null,
+            status_pengerjaan: 'SELESAI',
           },
         })
       }
@@ -761,6 +770,14 @@ export class PsikotesRepository {
           interpretasi: true,
         },
       })
+
+      // 7b. Tandai status pengerjaan tiket/booking menjadi SELESAI
+      await tx.bookingPsikotes.update({
+        where: { id: booking.id },
+        data: {
+          status_pengerjaan: 'SELESAI',
+        },
+      }).catch(() => {})
 
       return {
         id_booking: booking.id,
@@ -1068,6 +1085,8 @@ export class PsikotesRepository {
           where: { id: booking.id },
           data: {
             id_transaksi: transaksi.id,
+            kode_akses: booking.kode_akses || kodeTransaksi,
+            status_pengerjaan: 'BELUM_MULAI',
           },
           include: {
             paket: {
@@ -1090,6 +1109,8 @@ export class PsikotesRepository {
             id_paket: paket.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
+            kode_akses: kodeTransaksi,
+            status_pengerjaan: 'BELUM_MULAI',
           },
           include: {
             paket: {
@@ -1226,6 +1247,104 @@ export class PsikotesRepository {
         message: `Berhasil membersihkan ${res.count} riwayat pengerjaan tamu anonim yang lebih dari ${daysOld} hari.`,
       }
     })
+  }
+
+  async verifyTicket(input: VerifyTicketInput) {
+    const rawKode = (input.kode_akses || '').trim()
+    const rawPhone = (input.no_telepon || '').trim()
+    const cleanPhone = normalizePhoneNumber(rawPhone) || rawPhone
+    const digitsOnly = rawPhone.replace(/\D/g, '')
+
+    if (!rawKode || !rawPhone) {
+      throw Object.assign(new Error('Kode akses dan nomor WhatsApp pembeli wajib diisi'), { statusCode: 400 })
+    }
+
+    // Cari booking psikotes berdasarkan kode_akses ATAU kode_transaksi
+    const booking = await this.prisma.bookingPsikotes.findFirst({
+      where: {
+        OR: [
+          { kode_akses: { equals: rawKode, mode: 'insensitive' } },
+          { transaksi: { kode_transaksi: { equals: rawKode, mode: 'insensitive' } } },
+        ],
+        client: {
+          OR: [
+            { no_telepon: cleanPhone },
+            { no_telepon: rawPhone },
+            ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
+          ],
+        },
+      },
+      include: {
+        paket: {
+          select: {
+            id: true,
+            judul: true,
+            jenis_akses: true,
+            harga: true,
+            banner_url: true,
+          },
+        },
+        client: {
+          select: {
+            id: true,
+            nama: true,
+            no_telepon: true,
+          },
+        },
+        peserta_psikotes: true,
+        hasil_tes: {
+          select: {
+            id: true,
+            total_skor: true,
+            tanggal_selesai: true,
+          },
+        },
+        transaksi: {
+          select: {
+            id: true,
+            kode_transaksi: true,
+            status_pembayaran: true,
+          },
+        },
+      },
+    })
+
+    if (!booking) {
+      throw Object.assign(
+        new Error('Kode akses atau nomor WhatsApp pembeli tidak ditemukan. Pastikan data yang dimasukkan sudah sesuai dengan saat pemesanan.'),
+        { statusCode: 404 }
+      )
+    }
+
+    if (booking.transaksi && booking.transaksi.status_pembayaran !== 'PAID') {
+      throw Object.assign(
+        new Error('Status pembayaran tiket belum lunas. Silakan selesaikan pembayaran terlebih dahulu sebelum mengerjakan tes.'),
+        { statusCode: 400 }
+      )
+    }
+
+    const isSelesai = booking.status_pengerjaan === 'SELESAI' || Boolean(booking.hasil_tes)
+    const effectiveKode = booking.kode_akses || booking.transaksi?.kode_transaksi || rawKode
+
+    return {
+      booking_id: booking.id,
+      kode_akses: effectiveKode,
+      status_pengerjaan: isSelesai ? 'SELESAI' : 'BELUM_MULAI',
+      test_id: booking.id_paket,
+      judul_paket: booking.paket.judul,
+      nama_pembeli: booking.client.nama,
+      peserta: booking.peserta_psikotes
+        ? {
+            nama_lengkap: booking.peserta_psikotes.nama_lengkap,
+            usia: booking.peserta_psikotes.usia,
+            jenis_kelamin: booking.peserta_psikotes.jenis_kelamin,
+          }
+        : null,
+      hasil_tes: booking.hasil_tes,
+      redirect_url: isSelesai
+        ? `/psikotes/${booking.id_paket}/hasil?bookingId=${booking.id}&paket=berbayar`
+        : `/psikotes/${booking.id_paket}/mulai?bookingId=${booking.id}&orderId=${effectiveKode}&paket=berbayar`,
+    }
   }
 }
 

@@ -3,9 +3,21 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "@/features/psikotes/data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { Check, FileQuestion, ArrowRight, Loader2, AlertCircle, WifiOff, RefreshCw } from "lucide-react";
+import {
+  Check,
+  FileQuestion,
+  ArrowRight,
+  Loader2,
+  AlertCircle,
+  WifiOff,
+  RefreshCw,
+  KeyRound,
+  X,
+  CheckCircle2,
+} from "lucide-react";
 
 const DEFAULT_GUIDELINES = [
   "Jawab setiap pertanyaan dengan jujur sesuai dengan dirimu. Tidak ada jawaban benar atau salah.",
@@ -17,9 +29,71 @@ const DEFAULT_GUIDELINES = [
 const DEFAULT_BANNER = "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80";
 
 export default function PsikotesDetailClient({ params }: { params: { testId: string } }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [apiData, setApiData] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // State untuk modal verifikasi tiket / kode akses
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [ticketKode, setTicketKode] = useState("");
+  const [ticketWa, setTicketWa] = useState("");
+  const [ticketLoading, setTicketLoading] = useState(false);
+  const [ticketError, setTicketError] = useState<string | null>(null);
+  const [ticketSuccess, setTicketSuccess] = useState<string | null>(null);
+
+  // Otomatis buka modal jika query param ?kode=... ada di URL (misal dari share link WhatsApp)
+  useEffect(() => {
+    const kodeParam = searchParams.get("kode");
+    if (kodeParam) {
+      setTicketKode(kodeParam);
+      setShowTicketModal(true);
+    }
+  }, [searchParams]);
+
+  const handleVerifyTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketKode.trim() || !ticketWa.trim()) {
+      setTicketError("Kode akses dan nomor WhatsApp pembeli wajib diisi.");
+      return;
+    }
+
+    setTicketLoading(true);
+    setTicketError(null);
+    setTicketSuccess(null);
+
+    try {
+      const res = await psikotesService.verifyTicket({
+        kode_akses: ticketKode.trim(),
+        no_telepon: ticketWa.trim(),
+      });
+
+      if (res && res.success && res.data) {
+        if (res.data.status_pengerjaan === "SELESAI") {
+          setTicketSuccess("Tiket ini sudah pernah diselesaikan. Anda akan dialihkan ke halaman hasil tes...");
+          setTimeout(() => {
+            router.push(res.data.redirect_url as any);
+          }, 1200);
+        } else {
+          setTicketSuccess("Kode valid! Mengalihkan ke halaman pengerjaan tes...");
+          setTimeout(() => {
+            router.push(res.data.redirect_url as any);
+          }, 800);
+        }
+      } else {
+        setTicketError("Kode akses tidak valid atau tidak ditemukan.");
+      }
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Kode akses atau nomor WhatsApp pembeli tidak sesuai. Mohon periksa kembali.";
+      setTicketError(msg);
+    } finally {
+      setTicketLoading(false);
+    }
+  };
 
   const fetchDetail = async () => {
     setIsLoading(true);
@@ -322,11 +396,127 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                 </div>
               )}
               
+              {/* Tombol Akses Tiket / Kerjakan Nanti */}
+              <div className="pt-2 border-t border-gray-100 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTicketError(null);
+                    setTicketSuccess(null);
+                    setShowTicketModal(true);
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl border border-dashed border-[#C3A4CE] hover:border-[#561269] bg-purple-50/40 hover:bg-purple-50 text-[#561269] text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Sudah bayar? Masukkan kode akses di sini</span>
+                </button>
+              </div>
+              
             </div>
           </div>
 
         </div>
       </section>
+
+      {/* 3. MODAL VERIFIKASI TIKET */}
+      {showTicketModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-gray-100 relative">
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setShowTicketModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Akses Tiket Tes</h3>
+                <p className="text-xs text-gray-500">Mulai tes atau lihat hasil tes Anda</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-5 leading-relaxed">
+              Jika Anda sudah membeli paket ini (atau tes ini dibelikan oleh orang lain), masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan.
+            </p>
+
+            {/* Status alerts */}
+            {ticketError && (
+              <div className="mb-4 p-3.5 rounded-2xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs text-red-700">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                <span className="leading-snug">{ticketError}</span>
+              </div>
+            )}
+
+            {ticketSuccess && (
+              <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-2.5 text-xs text-emerald-700">
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                <span className="leading-snug">{ticketSuccess}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleVerifyTicket} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                  Kode Akses / Nomor Order <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={ticketKode}
+                  onChange={(e) => setTicketKode(e.target.value.toUpperCase())}
+                  placeholder="Contoh: PSI-20261107-1234"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269] focus:border-transparent font-mono uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                  Nomor WhatsApp Pembeli <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={ticketWa}
+                  onChange={(e) => setTicketWa(e.target.value)}
+                  placeholder="Contoh: 081234567890"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269] focus:border-transparent"
+                />
+                <span className="text-[10px] text-gray-400 mt-1 block">
+                  Nomor kontak yang dimasukkan saat proses pembayaran.
+                </span>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={ticketLoading}
+                  className="w-full py-3.5 rounded-xl bg-[#561269] hover:bg-[#763E8B] text-white font-bold text-sm flex items-center justify-center gap-2 transition disabled:opacity-60 cursor-pointer shadow-md"
+                >
+                  {ticketLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Memverifikasi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Verifikasi & Masuk Tes</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
