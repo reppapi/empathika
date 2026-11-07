@@ -31,19 +31,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const [isLoadingDb, setIsLoadingDb] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Pastikan gesture back / popstate di laptop selalu kembali ke detail psikotes, bukan ke soal
-  useEffect(() => {
-    const handlePopState = () => {
-      router.replace(`/psikotes/${params.testId}`);
-    };
-
-    window.history.pushState(null, "", window.location.href);
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [params.testId, router]);
-
   // ── Identitas Peserta ───────────────────────────────────────────────────────
   const [peserta, setPeserta] = useState(() => {
     const rawParamNama = searchParams.get("nama") || searchParams.get("name") || "";

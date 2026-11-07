@@ -423,7 +423,14 @@ export class PsikotesRepository {
       })
 
       if (!paket) {
-        throw new Error('Paket psikotes tidak ditemukan')
+        throw Object.assign(new Error('Paket psikotes tidak ditemukan'), { statusCode: 404 })
+      }
+
+      if (paket.status !== 'PUBLISHED') {
+        throw Object.assign(
+          new Error('Paket psikotes belum dipublikasikan atau sedang dinonaktifkan.'),
+          { statusCode: 403 }
+        )
       }
 
       // 2. Normalisasi format jawaban (baik array [{ id_soal, id_pilihan }] maupun record { [id_soal]: id_pilihan })
@@ -927,6 +934,7 @@ export class PsikotesRepository {
               deskripsi: b.hasil_tes.interpretasi?.deskripsi || '—',
               tips: (b.hasil_tes.interpretasi as any)?.tips || [],
               tanggal_selesai: b.hasil_tes.tanggal_selesai,
+              detail_skor: b.hasil_tes.detail_skor,
             }
           : null,
       })),
@@ -972,6 +980,13 @@ export class PsikotesRepository {
         if (berbayarVariant) {
           paket = berbayarVariant
         }
+      }
+
+      if (paket.status !== 'PUBLISHED') {
+        throw Object.assign(
+          new Error('Paket psikotes ini belum dipublikasikan atau sedang dinonaktifkan.'),
+          { statusCode: 403 }
+        )
       }
 
       // 2. Normalisasi data Klien (Peserta)

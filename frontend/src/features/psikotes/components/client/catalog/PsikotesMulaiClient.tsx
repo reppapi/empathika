@@ -325,12 +325,20 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         query.set("skor", String(res.data.total_skor));
         query.set("bookingId", res.data.id_booking);
 
-        // Jika ada data subscales (DASS-42), simpan skor per dimensi ke URL
+        // Jika ada data subscales (DASS-42 / RCMAS), simpan skor per dimensi ke URL
         if (res.data.detail_skor?.subscales) {
           const subs = res.data.detail_skor.subscales;
           if (subs.depression?.skor !== undefined) query.set("dep", String(subs.depression.skor));
           if (subs.anxiety?.skor !== undefined) query.set("anx", String(subs.anxiety.skor));
           if (subs.stress?.skor !== undefined) query.set("str", String(subs.stress.skor));
+          if (subs.physiological?.skor !== undefined) query.set("phys", String(subs.physiological.skor));
+          if (subs.worry?.skor !== undefined) query.set("worry", String(subs.worry.skor));
+          if (subs.concentration?.skor !== undefined) query.set("conc", String(subs.concentration.skor));
+        }
+
+        // Jika ada skor Lie Scale (RCMAS), simpan ke URL (untuk dashboard psikolog)
+        if (res.data.detail_skor?.lieScale?.skor !== undefined) {
+          query.set("lie", String(res.data.detail_skor.lieScale.skor));
         }
 
         // Jika ada data evaluasi DSM (IGDS9-SF), simpan ke URL
