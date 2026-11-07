@@ -358,6 +358,22 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                     <ArrowRight className="w-4 h-4" />
                   </Link>
 
+                  {/* Tombol Akses Tiket / Kerjakan Nanti (HANYA UNTUK PAKET BERBAYAR) */}
+                  <div className="pt-2 border-t border-purple-100 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTicketError(null);
+                        setTicketSuccess(null);
+                        setShowTicketModal(true);
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl border border-dashed border-[#C3A4CE] hover:border-[#561269] bg-white hover:bg-purple-50 text-[#561269] text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                      <span>Sudah bayar? Masukkan kode akses di sini</span>
+                    </button>
+                  </div>
+
                   <p className="text-[11px] text-gray-400 text-center">
                     Pembayaran aman via QRIS, Bank Transfer, dan E-Wallet resmi.
                   </p>
@@ -395,22 +411,6 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                   </Link>
                 </div>
               )}
-              
-              {/* Tombol Akses Tiket / Kerjakan Nanti */}
-              <div className="pt-2 border-t border-gray-100 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTicketError(null);
-                    setTicketSuccess(null);
-                    setShowTicketModal(true);
-                  }}
-                  className="w-full py-2.5 px-3 rounded-xl border border-dashed border-[#C3A4CE] hover:border-[#561269] bg-purple-50/40 hover:bg-purple-50 text-[#561269] text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Sudah bayar? Masukkan kode akses di sini</span>
-                </button>
-              </div>
               
             </div>
           </div>
