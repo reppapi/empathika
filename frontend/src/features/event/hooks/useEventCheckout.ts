@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { eventService } from "@/services/event.service"
 
 export function useEventCheckout() {
   const router = useRouter()
@@ -15,6 +16,11 @@ export function useEventCheckout() {
   const [selectedEwallet, setSelectedEwallet] = useState<string | null>(null)
   const [failedAlertDismissed, setFailedAlertDismissed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Status validasi event dari server (fallback jika pendaftaran sudah ditutup/nonaktif)
+  const [isEventLoading, setIsEventLoading] = useState(false)
+  const [isEventClosed, setIsEventClosed] = useState(false)
+  const [eventClosedReason, setEventClosedReason] = useState<string>("")
 
   // Validasi form & error state
   const [errors, setErrors] = useState<{
@@ -30,6 +36,58 @@ export function useEventCheckout() {
     searchParams.get("reason") ||
     "Pembayaran tidak dapat diproses atau waktu transaksi telah berakhir."
 
+  const eventIdParam = searchParams.get("eventId")
+  const testIdParam = searchParams.get("testId")
+
+  // Cek ketersediaan event dari server jika ada eventIdParam
+  useEffect(() => {
+    if (!eventIdParam) return
+
+    let isMounted = true
+    setIsEventLoading(true)
+
+    eventService
+      .getById(eventIdParam)
+      .then((res) => {
+        if (!isMounted) return
+        const ev = res?.data
+        if (!ev) {
+          setIsEventClosed(true)
+          setEventClosedReason("Event tidak ditemukan atau pendaftaran telah dihapus.")
+          return
+        }
+
+        // Jika status selesai, dibatalkan, atau masih draft (dinonaktifkan oleh admin)
+        if (ev.status === "COMPLETED") {
+          setIsEventClosed(true)
+          setEventClosedReason("Pendaftaran untuk event ini telah selesai.")
+        } else if (ev.status === "CANCELLED") {
+          setIsEventClosed(true)
+          setEventClosedReason("Event ini telah dibatalkan oleh pihak penyelenggara.")
+        } else if (ev.status === "DRAFT") {
+          setIsEventClosed(true)
+          setEventClosedReason("Pendaftaran untuk event ini sedang dinonaktifkan.")
+        } else if (typeof ev.sisa_kuota === "number" && ev.sisa_kuota <= 0) {
+          setIsEventClosed(true)
+          setEventClosedReason("Mohon maaf, kuota pendaftaran untuk event ini sudah penuh.")
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return
+        if (err?.response?.status === 404) {
+          setIsEventClosed(true)
+          setEventClosedReason("Event tidak ditemukan atau pendaftaran telah dihapus.")
+        }
+      })
+      .finally(() => {
+        if (isMounted) setIsEventLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [eventIdParam])
+
   useEffect(() => {
     const qNama = searchParams.get("nama")
     const qWa = searchParams.get("whatsapp")
@@ -43,9 +101,6 @@ export function useEventCheckout() {
     if (qBank) setSelectedBank(qBank)
     if (qEwallet) setSelectedEwallet(qEwallet)
   }, [searchParams])
-
-  const eventIdParam = searchParams.get("eventId")
-  const testIdParam = searchParams.get("testId")
   const judulParam = searchParams.get("judul") || "Workshop SEFT"
   const deskripsiParam = searchParams.get("deskripsi")
   const subjudulParam =
@@ -191,6 +246,9 @@ export function useEventCheckout() {
     linkMeetParam,
     linkWaParam,
     bannerUrlParam,
+    isEventLoading,
+    isEventClosed,
+    eventClosedReason,
     handleSelectPayment,
     handleSubmit,
   }
