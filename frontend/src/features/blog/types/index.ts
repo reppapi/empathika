@@ -26,3 +26,35 @@ export interface BackendBlogItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface BlogListMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface BlogListApiResponse {
+  success: boolean;
+  message: string;
+  data: BackendBlogItem[];
+  meta: BlogListMeta;
+}
+
+export interface BlogDetailApiResponse {
+  success: boolean;
+  message: string;
+  data: BackendBlogItem;
+}
+
+export interface BlogMutationApiResponse {
+  success: boolean;
+  message: string;
+  data: BackendBlogItem;
+}
+
+export interface BlogQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}

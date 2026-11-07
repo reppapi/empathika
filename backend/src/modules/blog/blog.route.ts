@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { BlogController } from './blog.controller'
 import { authGuard } from '../../middlewares/auth-guard'
+import { adminGuard } from '../../middlewares/admin-guard'
 import {
   blogIdParamSchema,
   blogQuerySchema,
@@ -9,6 +10,7 @@ import {
   blogListResponseSchema,
   blogDetailResponseSchema,
   blogMutationResponseSchema,
+  blogDeleteResponseSchema,
 } from './blog.schema'
 
 export default async function blogRoutes(fastify: FastifyInstance) {
@@ -40,12 +42,12 @@ export default async function blogRoutes(fastify: FastifyInstance) {
     handler: controller.getById,
   })
 
-  // 3. Protected (Wajib Login Admin/Biro/Psikolog): Tambah artikel baru
+  // 3. Admin Only: Tambah artikel baru
   fastify.post('/', {
-    preHandler: [authGuard],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Blog'],
-      summary: 'Membuat artikel blog baru (Wajib Login)',
+      summary: 'Membuat artikel blog baru (Admin Only)',
       security: [{ bearerAuth: [] }],
       body: createBlogSchema,
       response: {
@@ -55,12 +57,12 @@ export default async function blogRoutes(fastify: FastifyInstance) {
     handler: controller.create,
   })
 
-  // 4. Protected (Wajib Login Admin/Biro/Psikolog): Update artikel
+  // 4. Admin Only: Update artikel
   fastify.put('/:id', {
-    preHandler: [authGuard],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Blog'],
-      summary: 'Memperbarui artikel blog (Wajib Login)',
+      summary: 'Memperbarui artikel blog (Admin Only)',
       security: [{ bearerAuth: [] }],
       params: blogIdParamSchema,
       body: updateBlogSchema,
@@ -71,14 +73,17 @@ export default async function blogRoutes(fastify: FastifyInstance) {
     handler: controller.update,
   })
 
-  // 5. Protected (Wajib Login Admin/Biro/Psikolog): Hapus artikel
+  // 5. Admin Only: Hapus artikel
   fastify.delete('/:id', {
-    preHandler: [authGuard],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Blog'],
-      summary: 'Menghapus artikel blog (Wajib Login)',
+      summary: 'Menghapus artikel blog (Admin Only)',
       security: [{ bearerAuth: [] }],
       params: blogIdParamSchema,
+      response: {
+        200: blogDeleteResponseSchema,
+      },
     },
     handler: controller.remove,
   })
