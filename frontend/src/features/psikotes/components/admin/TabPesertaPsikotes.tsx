@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   AdminDataTable,
   AdminTableContainer,
@@ -6,12 +6,16 @@ import {
   ColumnDef,
 } from "@/components/shared/AdminDataTable";
 import { ActionButtonDetail } from "@/components/shared/TableActionButtons";
+import { Filter, X } from "lucide-react";
 import type { AdminPsikotesPeserta } from "../../types/adminPsikotes";
 
 export interface TabPesertaPsikotesProps {
   pesertaList: AdminPsikotesPeserta[];
   searchQuery: string;
   onSearchChange: (val: string) => void;
+  selectedPaket?: string;
+  onSelectPaketChange?: (val: string) => void;
+  paketOptions?: string[];
   isLoading: boolean;
   onSelectPeserta: (peserta: AdminPsikotesPeserta) => void;
 }
@@ -20,13 +24,37 @@ export default function TabPesertaPsikotes({
   pesertaList,
   searchQuery,
   onSearchChange,
+  selectedPaket: externalSelectedPaket,
+  onSelectPaketChange: externalOnSelectPaketChange,
+  paketOptions = [],
   isLoading,
   onSelectPeserta,
 }: TabPesertaPsikotesProps) {
-  // Filter khusus peserta berbayar (non tamu anonim) & pencarian
+  // Local state jika prop eksternal tidak dipass
+  const [localSelectedPaket, setLocalSelectedPaket] = useState<string>("ALL");
+  const selectedPaket = externalSelectedPaket !== undefined ? externalSelectedPaket : localSelectedPaket;
+  const handlePaketChange = externalOnSelectPaketChange || setLocalSelectedPaket;
+
+  // Derivasi paketOptions jika tidak dipass dari parent
+  const derivedPaketOptions =
+    paketOptions.length > 0
+      ? paketOptions
+      : Array.from(new Set(pesertaList.map((p) => p.paket).filter(Boolean)));
+
+  // Filter khusus peserta berbayar (non tamu anonim) & filter paket & pencarian
   const filteredPeserta = pesertaList.filter((peserta) => {
     const isBerbayar = peserta.jenisAkses === "Berbayar" && peserta.nama !== "Tamu Anonim";
     if (!isBerbayar) return false;
+
+    // Filter berdasarkan paket psikotes
+    if (selectedPaket && selectedPaket !== "ALL") {
+      const pNama = (peserta.paket || "").toLowerCase().trim();
+      const target = selectedPaket.toLowerCase().trim();
+      if (!pNama.includes(target) && !target.includes(pNama)) {
+        return false;
+      }
+    }
+
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -139,7 +167,7 @@ export default function TabPesertaPsikotes({
 
   return (
     <AdminTableContainer>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-6">
         <div>
           <h3 className="text-base sm:text-lg font-bold text-gray-900">
             Daftar Klien Psikotes Berbayar
@@ -148,12 +176,41 @@ export default function TabPesertaPsikotes({
             Daftar klien yang menyelesaikan asesmen berbayar beserta kontak WhatsApp untuk ditindaklanjuti.
           </p>
         </div>
-        <div className="w-full sm:w-72">
-          <AdminSearchInput
-            placeholder="Cari nama peserta atau paket..."
-            value={searchQuery}
-            onChange={onSearchChange}
-          />
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
+          {/* Dropdown Filter per Paket Psikotes */}
+          <div className="relative w-full sm:w-60 shrink-0">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+              <Filter className="w-3.5 h-3.5 text-gray-400" />
+            </div>
+            <select
+              value={selectedPaket}
+              onChange={(e) => handlePaketChange(e.target.value)}
+              className="w-full appearance-none pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition shadow-2xs cursor-pointer truncate"
+            >
+              <option value="ALL">Semua Paket Psikotes</option>
+              {derivedPaketOptions.map((pkt) => (
+                <option key={pkt} value={pkt}>
+                  {pkt}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Kolom Pencarian Nama / No. WA */}
+          <div className="w-full sm:w-60 shrink-0">
+            <AdminSearchInput
+              placeholder="Cari nama atau No. WA..."
+              value={searchQuery}
+              onChange={onSearchChange}
+              className="!w-full lg:!w-full"
+            />
+          </div>
         </div>
       </div>
 

@@ -20,6 +20,7 @@ export default function AdminPsikotesClient() {
   const [activeTab, setActiveTab] = useState<"peserta" | "paket">("peserta");
   const [searchPaket, setSearchPaket] = useState("");
   const [searchPeserta, setSearchPeserta] = useState("");
+  const [selectedPaketPeserta, setSelectedPaketPeserta] = useState<string>("ALL");
 
   // Modals
   const [selectedPeserta, setSelectedPeserta] = useState<AdminPsikotesPeserta | null>(null);
@@ -325,6 +326,14 @@ export default function AdminPsikotesClient() {
             pesertaList={pesertaList}
             searchQuery={searchPeserta}
             onSearchChange={setSearchPeserta}
+            selectedPaket={selectedPaketPeserta}
+            onSelectPaketChange={setSelectedPaketPeserta}
+            paketOptions={Array.from(
+              new Set([
+                ...judulList.map((j) => j.judul),
+                ...pesertaList.map((p) => p.paket).filter(Boolean),
+              ])
+            ).filter(Boolean)}
             isLoading={isLoadingPeserta}
             onSelectPeserta={setSelectedPeserta}
           />
