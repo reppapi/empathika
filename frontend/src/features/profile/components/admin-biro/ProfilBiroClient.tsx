@@ -7,21 +7,60 @@ import { Building2, Mail, Phone, MapPin, Globe, Palette, ShieldCheck } from "luc
 import { getBiroWebsiteUrl } from "@/lib/utils"
 import { FormGantiEmail } from "@/features/profile/components/psikolog/FormGantiEmail"
 import { FormGantiPassword } from "@/features/profile/components/psikolog/FormGantiPassword"
+import { useAuthStore } from "@/store/authStore"
+import { biroAdminService } from "@/services/biro.service"
 
 export default function ProfilBiroClient() {
+  const { user } = useAuthStore()
   const [biro, setBiro] = useState<BiroKomunitas>(INITIAL_BIRO_LIST[0])
 
   useEffect(() => {
+    let isMounted = true
+
+    // 1. Coba dari backend terlebih dahulu
+    biroAdminService
+      .getMyAccount()
+      .then((res) => {
+        if (!isMounted || !res?.data) return
+        const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
+        if (beBiro) {
+          setBiro({
+            id: beBiro.id || res.data.id,
+            accountId: res.data.id,
+            nama: beBiro.nama_biro || res.data.nama,
+            slug: beBiro.slug || "",
+            logo: beBiro.logoURI || undefined,
+            deskripsi: beBiro.deskripsi || "Biro Mitra Empathika",
+            warnaIdentitas: beBiro.warna_tema || "#561269",
+            emailAdmin: res.data.email,
+            telepon: res.data.no_telepon || beBiro.no_telepon || "-",
+            alamat: beBiro.alamat || "-",
+            statusAktivasi: res.data.aktif ? "Aktif" : "Menunggu Aktivasi",
+            accountAktif: res.data.aktif,
+            websiteUrl: beBiro.slug ? getBiroWebsiteUrl(beBiro.slug) : undefined,
+            dashboardUrl: "/admin-biro",
+          })
+          return
+        }
+      })
+      .catch(() => {})
+
+    // 2. Fallback jika offline/local list
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
       if (saved) {
         const list: BiroKomunitas[] = JSON.parse(saved)
-        // Default akun biro cendekia muda (id biro-01)
-        const found = list.find((b) => b.id === "biro-01") || list[0]
+        const found =
+          list.find((b) => b.id === user?.id || b.emailAdmin === user?.email || b.nama === user?.name) ||
+          list[0]
         if (found) setBiro(found)
       }
     } catch { }
-  }, [])
+
+    return () => {
+      isMounted = false
+    }
+  }, [user])
 
   return (
     <div className="flex flex-col gap-8 font-poppins pb-16 w-full max-w-6xl">

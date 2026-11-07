@@ -89,7 +89,7 @@ export function LoginForm() {
     } else if (user.role === "ADMIN") {
       router.push("/admin");
     } else if (user.role === "BIRO") {
-      router.push("/admin-biro/transaksi");
+      router.push("/admin-biro");
     } else {
       router.push("/");
     }
