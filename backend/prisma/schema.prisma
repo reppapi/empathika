@@ -45,12 +45,9 @@ enum StatusEvent {
 
 enum KategoriLayanan {
   KONSULTASI
-  PSIKOTES
   WORKSHOP
   SEMINAR
   ASESMEN
-  PELATIHAN_PEER_HELPER
-  EVENT
 }
 
 enum StatusBooking {

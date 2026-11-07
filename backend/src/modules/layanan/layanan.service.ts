@@ -14,12 +14,9 @@ export class LayananService {
     if (!val) return 'KONSULTASI'
     const clean = val.toUpperCase().trim()
     if (clean === '01' || clean === 'KONSULTASI') return 'KONSULTASI'
-    if (clean === '02' || clean === 'PSIKOTES') return 'PSIKOTES'
     if (clean === '03' || clean === 'WORKSHOP') return 'WORKSHOP'
     if (clean === '04' || clean === 'SEMINAR') return 'SEMINAR'
     if (clean === '05' || clean === 'ASESMEN') return 'ASESMEN'
-    if (clean === 'PELATIHAN_PEER_HELPER') return 'PELATIHAN_PEER_HELPER'
-    if (clean === 'EVENT') return 'EVENT'
     return 'KONSULTASI'
   }
 
