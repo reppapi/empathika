@@ -207,7 +207,9 @@ export default function AdminTambahPsikologClient() {
         noSipp: true,
         noSilp: true,
       })
-      setFormErrorAlert("Format data belum sesuai. Silakan periksa kolom yang bertanda merah di bawah.")
+      const errorList = Object.values(formErrors).filter(Boolean)
+      const detailMsg = errorList.length > 0 ? errorList.join(" • ") : "Format data belum sesuai."
+      setFormErrorAlert(detailMsg)
       window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }

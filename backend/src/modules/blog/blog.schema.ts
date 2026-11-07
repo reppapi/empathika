@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { BLOG_CONSTANTS } from './blog.constants'
 
 // ==========================================
 // PARAMETERS & QUERY SCHEMAS
@@ -9,8 +10,13 @@ export const blogIdParamSchema = z.object({
 
 export const blogQuerySchema = z.object({
   search: z.string().trim().optional(),
-  page: z.coerce.number().int().min(1, 'Halaman minimal 1').default(1),
-  limit: z.coerce.number().int().min(1).max(100, 'Maksimal 100 item per halaman').default(10),
+  page: z.coerce.number().int().min(1, 'Halaman minimal 1').default(BLOG_CONSTANTS.DEFAULT_PAGE),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(BLOG_CONSTANTS.MAX_PAGE_SIZE, `Maksimal ${BLOG_CONSTANTS.MAX_PAGE_SIZE} item per halaman`)
+    .default(BLOG_CONSTANTS.DEFAULT_PAGE_SIZE),
 })
 
 // ==========================================
@@ -20,12 +26,12 @@ export const createBlogSchema = z.object({
   judul: z
     .string({ required_error: 'Judul artikel wajib diisi' })
     .trim()
-    .min(3, 'Judul minimal 3 karakter')
-    .max(255, 'Judul maksimal 255 karakter'),
+    .min(BLOG_CONSTANTS.TITLE_MIN_LENGTH, `Judul minimal ${BLOG_CONSTANTS.TITLE_MIN_LENGTH} karakter`)
+    .max(BLOG_CONSTANTS.TITLE_MAX_LENGTH, `Judul maksimal ${BLOG_CONSTANTS.TITLE_MAX_LENGTH} karakter`),
   isi: z
     .string({ required_error: 'Isi artikel wajib diisi' })
     .trim()
-    .min(10, 'Isi artikel minimal 10 karakter'),
+    .min(BLOG_CONSTANTS.CONTENT_MIN_LENGTH, `Isi artikel minimal ${BLOG_CONSTANTS.CONTENT_MIN_LENGTH} karakter`),
   banner_url: z
     .string()
     .trim()
@@ -42,13 +48,13 @@ export const updateBlogSchema = z.object({
   judul: z
     .string()
     .trim()
-    .min(3, 'Judul minimal 3 karakter')
-    .max(255, 'Judul maksimal 255 karakter')
+    .min(BLOG_CONSTANTS.TITLE_MIN_LENGTH, `Judul minimal ${BLOG_CONSTANTS.TITLE_MIN_LENGTH} karakter`)
+    .max(BLOG_CONSTANTS.TITLE_MAX_LENGTH, `Judul maksimal ${BLOG_CONSTANTS.TITLE_MAX_LENGTH} karakter`)
     .optional(),
   isi: z
     .string()
     .trim()
-    .min(10, 'Isi artikel minimal 10 karakter')
+    .min(BLOG_CONSTANTS.CONTENT_MIN_LENGTH, `Isi artikel minimal ${BLOG_CONSTANTS.CONTENT_MIN_LENGTH} karakter`)
     .optional(),
   banner_url: z
     .string()
@@ -99,13 +105,16 @@ export const blogMutationResponseSchema = z.object({
   data: blogItemSchema,
 })
 
+export const blogDeleteResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  data: z.null(),
+})
+
 // ==========================================
-// TYPE EXPORTS
+// INFERRED TYPES
 // ==========================================
-export type BlogIdParamInput = z.infer<typeof blogIdParamSchema>
-export type BlogQueryInput = z.infer<typeof blogQuerySchema>
 export type CreateBlogInput = z.infer<typeof createBlogSchema>
 export type UpdateBlogInput = z.infer<typeof updateBlogSchema>
-export type BlogItemResponse = z.infer<typeof blogItemSchema>
-export type BlogListResponse = z.infer<typeof blogListResponseSchema>
-export type BlogDetailResponse = z.infer<typeof blogDetailResponseSchema>
+export type BlogQueryInput = z.infer<typeof blogQuerySchema>
+export type BlogIdParamInput = z.infer<typeof blogIdParamSchema>
