@@ -16,3 +16,4 @@ DROP TYPE "KategoriLayanan";
 
 -- Step 5: Rename new enum type to KategoriLayanan
 ALTER TYPE "KategoriLayanan_new" RENAME TO "KategoriLayanan";
+

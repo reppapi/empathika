@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2 } from "lucide-react"
+import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2, ChevronDown } from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
 import {
   AdminLayananItem,
@@ -62,9 +62,14 @@ export default function AdminLayananView() {
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
 
-  // Modal States
+  // Modal & Expand States
   const [selectedDetail, setSelectedDetail] = useState<AdminLayananItem | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [expandedRowId, setExpandedRowId] = useState<string | number | null>(null)
+
+  const toggleExpand = (id: string | number) => {
+    setExpandedRowId((prev) => (prev === id ? null : id))
+  }
 
   // Map backend response ke interface tampilan admin
   const mapBackendLayananToAdmin = (item: any): AdminLayananItem => {
@@ -221,11 +226,33 @@ export default function AdminLayananView() {
       {
         key: "layanan",
         header: "Layanan",
-        render: (item: AdminLayananItem) => (
-          <span className="font-extrabold text-gray-900 leading-tight">
-            {item.layanan}
-          </span>
-        ),
+        render: (item: AdminLayananItem) => {
+          const isExpanded = expandedRowId === item.id
+          return (
+            <div className="flex items-center gap-2">
+              {isKonsultasi && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleExpand(item.id)
+                  }}
+                  className={`p-1 rounded-md transition-all cursor-pointer ${
+                    isExpanded
+                      ? "bg-[#561269] text-white rotate-180"
+                      : "bg-purple-50 text-[#561269] hover:bg-purple-100"
+                  }`}
+                  title={isExpanded ? "Tutup rincian tarif" : "Buka rincian tarif 3 tenaga ahli"}
+                >
+                  <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" />
+                </button>
+              )}
+              <span className="font-extrabold text-gray-900 leading-tight">
+                {item.layanan}
+              </span>
+            </div>
+          )
+        },
       },
       {
         key: "metode",
@@ -238,42 +265,19 @@ export default function AdminLayananView() {
         key: "weekday",
         header: "Weekday",
         render: (item: AdminLayananItem) => {
-          if (!isKonsultasi) {
-            return (
-              <span className="text-gray-800 font-semibold text-xs sm:text-sm tabular-nums">
-                {formatRupiahStandard(item.weekday)}
-              </span>
-            )
-          }
-
           const t = item.tarif_tenaga_ahli
           const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
-          const konWd = formatPrice(t?.konselor?.weekday, item.weekday)
-          const peerWd = formatPrice(t?.peer?.weekday, item.weekday)
 
           return (
-            <div className="flex flex-col gap-1.5 text-xs py-1 min-w-[160px]">
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#561269] shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                {isKonsultasi ? psiWd : formatRupiahStandard(item.weekday)}
+              </span>
+              {isKonsultasi && (
+                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
                   Psikolog
                 </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right">{psiWd}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                  Konselor
-                </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right">{konWd}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  Peer
-                </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right">{peerWd}</span>
-              </div>
+              )}
             </div>
           )
         },
@@ -282,42 +286,19 @@ export default function AdminLayananView() {
         key: "weekend",
         header: "Weekend",
         render: (item: AdminLayananItem) => {
-          if (!isKonsultasi) {
-            return (
-              <span className="text-gray-800 font-semibold text-xs sm:text-sm tabular-nums">
-                {formatRupiahStandard(item.weekend)}
-              </span>
-            )
-          }
-
           const t = item.tarif_tenaga_ahli
           const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
-          const konWk = formatPrice(t?.konselor?.weekend, item.weekend)
-          const peerWk = formatPrice(t?.peer?.weekend, item.weekend)
 
           return (
-            <div className="flex flex-col gap-1.5 text-xs py-1 min-w-[160px]">
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#561269] shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                {isKonsultasi ? psiWk : formatRupiahStandard(item.weekend)}
+              </span>
+              {isKonsultasi && (
+                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
                   Psikolog
                 </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right">{psiWk}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                  Konselor
-                </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right">{konWk}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  Peer
-                </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right">{peerWk}</span>
-              </div>
+              )}
             </div>
           )
         },
@@ -346,25 +327,43 @@ export default function AdminLayananView() {
         key: "aksi",
         header: "Aksi",
         align: "center",
-        render: (item: AdminLayananItem) => (
-          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-            <ActionButtonDetail
-              onClick={() => setSelectedDetail(item)}
-              title="Lihat Detail"
-            />
-            <ActionButtonEdit
-              onClick={() => router.push(`/admin/layanan/edit/${item.id}`)}
-              title="Edit Layanan"
-            />
-            <ActionButtonDelete
-              onClick={() => handleDelete(item)}
-              title="Hapus Layanan"
-            />
-          </div>
-        ),
+        render: (item: AdminLayananItem) => {
+          const isExpanded = expandedRowId === item.id
+          return (
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+              {isKonsultasi && (
+                <button
+                  type="button"
+                  onClick={() => toggleExpand(item.id)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                    isExpanded
+                      ? "bg-[#561269] text-white shadow-xs"
+                      : "bg-purple-50 text-[#561269] hover:bg-purple-100 border border-purple-200/80"
+                  }`}
+                  title={isExpanded ? "Tutup rincian tarif" : "Buka rincian tarif 3 tenaga ahli"}
+                >
+                  <span>Tarif</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                </button>
+              )}
+              <ActionButtonDetail
+                onClick={() => setSelectedDetail(item)}
+                title="Lihat Detail"
+              />
+              <ActionButtonEdit
+                onClick={() => router.push(`/admin/layanan/edit/${item.id}`)}
+                title="Edit Layanan"
+              />
+              <ActionButtonDelete
+                onClick={() => handleDelete(item)}
+                title="Hapus Layanan"
+              />
+            </div>
+          )
+        },
       },
     ]
-  }, [isKonsultasi, router])
+  }, [isKonsultasi, router, expandedRowId])
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16 relative">
@@ -459,9 +458,103 @@ export default function AdminLayananView() {
           <AdminDataTable
             columns={columns}
             data={filteredLayanan}
-            minWidth={isKonsultasi ? "920px" : "760px"}
+            minWidth={isKonsultasi ? "880px" : "760px"}
             keyExtractor={(item: AdminLayananItem) => item.id}
             emptyMessage="Tidak ada layanan yang ditemukan dalam kategori ini."
+            renderSubRow={(item: AdminLayananItem) => {
+              if (!isKonsultasi || expandedRowId !== item.id) return null
+
+              const t = item.tarif_tenaga_ahli
+              const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
+              const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
+              const konWd = formatPrice(t?.konselor?.weekday, item.weekday)
+              const konWk = formatPrice(t?.konselor?.weekend, item.weekend)
+              const peerWd = formatPrice(t?.peer?.weekday, item.weekday)
+              const peerWk = formatPrice(t?.peer?.weekend, item.weekend)
+
+              return (
+                <div className="py-2.5 px-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="bg-white border border-purple-200/80 rounded-2xl p-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5 pb-2.5 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#561269]" />
+                        <span className="text-xs sm:text-sm font-extrabold text-gray-900">
+                          Rincian Tarif Lengkap per Tenaga Ahli &bull; {item.layanan}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-gray-400 font-medium">
+                        Weekday (Senin - Jumat) &bull; Weekend (Sabtu - Minggu)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* 1. Psikolog */}
+                      <div className="p-3.5 bg-purple-50/60 border border-purple-200/80 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-[#561269] flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#561269]" />
+                            Psikolog
+                          </span>
+                          <span className="text-[10px] font-bold text-purple-700 bg-purple-100/90 px-2 py-0.5 rounded-md uppercase">
+                            Utama
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 pt-1 border-t border-purple-100 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-500 text-[11px]">Tarif Weekday:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums">{psiWd}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-500 text-[11px]">Tarif Weekend:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums">{psiWk}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2. Konselor */}
+                      <div className="p-3.5 bg-blue-50/60 border border-blue-200/80 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-blue-700 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-blue-600" />
+                            Konselor
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 pt-1 border-t border-blue-100 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-500 text-[11px]">Tarif Weekday:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums">{konWd}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-500 text-[11px]">Tarif Weekend:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums">{konWk}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 3. Peer Helper */}
+                      <div className="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-emerald-700 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                            Peer Helper
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 pt-1 border-t border-emerald-100 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-500 text-[11px]">Tarif Weekday:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums">{peerWd}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-500 text-[11px]">Tarif Weekend:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums">{peerWk}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            }}
           />
         )}
       </AdminTableContainer>
