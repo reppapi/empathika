@@ -236,10 +236,14 @@ export default function AdminLayananView() {
       },
       {
         key: "weekday",
-        header: isKonsultasi ? "Tarif Weekday (per Tenaga Ahli)" : "Weekday",
+        header: isKonsultasi ? "Tarif Weekday" : "Weekday",
         render: (item: AdminLayananItem) => {
           if (!isKonsultasi) {
-            return <span className="text-gray-700 font-semibold">{item.weekday}</span>
+            return (
+              <span className="inline-block px-3 py-1 rounded-lg bg-gray-50 border border-gray-200/60 text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                {item.weekday}
+              </span>
+            )
           }
 
           const t = item.tarif_tenaga_ahli
@@ -248,27 +252,24 @@ export default function AdminLayananView() {
           const peerWd = formatPrice(t?.peer?.weekday, item.weekday)
 
           return (
-            <div className="space-y-1.5 py-1 text-xs min-w-[170px]">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-[#561269] shrink-0" />
+            <div className="bg-white border border-gray-200/80 rounded-xl p-2.5 flex flex-col gap-1.5 min-w-[210px] shadow-2xs">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-purple-50 text-[#561269] border border-purple-200/70 w-20 shrink-0">
                   Psikolog
                 </span>
-                <span className="font-bold text-gray-900">{psiWd}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{psiWd}</span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-blue-50 text-blue-700 border border-blue-200/70 w-20 shrink-0">
                   Konselor
                 </span>
-                <span className="font-bold text-gray-900">{konWd}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{konWd}</span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 w-20 shrink-0">
                   Peer
                 </span>
-                <span className="font-bold text-gray-900">{peerWd}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{peerWd}</span>
               </div>
             </div>
           )
@@ -276,10 +277,14 @@ export default function AdminLayananView() {
       },
       {
         key: "weekend",
-        header: isKonsultasi ? "Tarif Weekend (per Tenaga Ahli)" : "Weekend",
+        header: isKonsultasi ? "Tarif Weekend" : "Weekend",
         render: (item: AdminLayananItem) => {
           if (!isKonsultasi) {
-            return <span className="text-gray-700 font-semibold">{item.weekend}</span>
+            return (
+              <span className="inline-block px-3 py-1 rounded-lg bg-gray-50 border border-gray-200/60 text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                {item.weekend}
+              </span>
+            )
           }
 
           const t = item.tarif_tenaga_ahli
@@ -288,27 +293,24 @@ export default function AdminLayananView() {
           const peerWk = formatPrice(t?.peer?.weekend, item.weekend)
 
           return (
-            <div className="space-y-1.5 py-1 text-xs min-w-[170px]">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-[#561269] shrink-0" />
+            <div className="bg-white border border-gray-200/80 rounded-xl p-2.5 flex flex-col gap-1.5 min-w-[210px] shadow-2xs">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-purple-50 text-[#561269] border border-purple-200/70 w-20 shrink-0">
                   Psikolog
                 </span>
-                <span className="font-bold text-gray-900">{psiWk}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{psiWk}</span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-blue-50 text-blue-700 border border-blue-200/70 w-20 shrink-0">
                   Konselor
                 </span>
-                <span className="font-bold text-gray-900">{konWk}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{konWk}</span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 w-20 shrink-0">
                   Peer
                 </span>
-                <span className="font-bold text-gray-900">{peerWk}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{peerWk}</span>
               </div>
             </div>
           )
