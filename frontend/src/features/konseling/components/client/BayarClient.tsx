@@ -139,8 +139,6 @@ export default function BayarClient() {
             </Link>
           </div>
         )}
-          </div>
-        )}
 
         {/* ── Banner Notifikasi Pembayaran Gagal ── */}
         {isFailed && (

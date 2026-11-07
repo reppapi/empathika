@@ -222,7 +222,6 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     return () => {
       isMounted = false
     }
-    }
   }, [layananId])
 
   const handleImageFile = async (file: File) => {
