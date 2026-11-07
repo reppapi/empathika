@@ -304,8 +304,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         };
       });
 
+      const bookingIdParam = searchParams.get("bookingId") || undefined;
+
       const res = await psikotesService.submitJawaban(params.testId, {
         jawaban: jawabanPayload,
+        id_booking: bookingIdParam,
+        bookingId: bookingIdParam,
         nama: pesertaNama || undefined,
         no_telepon: pesertaWa || undefined,
         email: pesertaEmail || undefined,

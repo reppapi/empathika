@@ -51,6 +51,8 @@ export interface PaketPsikotesApiResponse {
 
 export interface SubmitPsikotesPayload {
   jawaban: Array<{ id_soal: string; id_pilihan: string }> | Record<string, string>
+  id_booking?: string
+  bookingId?: string
   nama?: string
   no_telepon?: string
   email?: string
@@ -176,6 +178,33 @@ export const psikotesService = {
           client: any
         }
       }>("/psikotes/booking", payload)
+      .then((r) => r.data),
+
+  verifyTicket: (payload: { kode_akses: string; no_telepon: string }) =>
+    apiClient
+      .post<{
+        success: boolean
+        message: string
+        data: {
+          booking_id: string
+          kode_akses: string
+          status_pengerjaan: "BELUM_MULAI" | "SELESAI"
+          test_id: string
+          judul_paket: string
+          nama_pembeli: string
+          peserta?: {
+            nama_lengkap: string
+            usia?: number | null
+            jenis_kelamin?: string | null
+          } | null
+          hasil_tes?: {
+            id: string
+            total_skor: number
+            tanggal_selesai: string
+          } | null
+          redirect_url: string
+        }
+      }>("/psikotes/verify-ticket", payload)
       .then((r) => r.data),
 }
 

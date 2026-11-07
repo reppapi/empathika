@@ -326,6 +326,8 @@ export class TransaksiService {
             id_paket: paket.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
+            kode_akses: kodeTransaksi,
+            status_pengerjaan: 'BELUM_MULAI',
           },
         })
 

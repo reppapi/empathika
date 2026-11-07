@@ -83,6 +83,11 @@ enum JenisAksesPsikotes {
   BERBAYAR
 }
 
+enum StatusPengerjaan {
+  BELUM_MULAI
+  SELESAI
+}
+
 enum StatusSlot {
   TERSEDIA
   SUDAH_DIBOOKING
@@ -531,13 +536,15 @@ model HasilTes {
 }
 
 model BookingPsikotes {
-  id           String   @id @default(uuid())
-  id_paket     String
-  id_transaksi String?  @unique // Nullable untuk paket psikotes gratis
+  id                String            @id @default(uuid())
+  id_paket          String
+  id_transaksi      String?           @unique // Nullable untuk paket psikotes gratis
+  kode_akses        String?           @unique // Kode unik akses tiket pengerjaan psikotes
+  status_pengerjaan StatusPengerjaan  @default(BELUM_MULAI)
   riwayat_kesehatan Json?
-  id_client    String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id_client         String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   paket     PaketPsikotes @relation(fields: [id_paket], references: [id], onDelete: Restrict)
   transaksi Transaksi?    @relation(fields: [id_transaksi], references: [id], onDelete: SetNull)

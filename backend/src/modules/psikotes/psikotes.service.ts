@@ -7,6 +7,7 @@ import type {
   SubmitPsikotesInput,
   PesertaQueryInput,
   CreateBookingPsikotesInput,
+  VerifyTicketInput,
 } from './psikotes.schema'
 
 export class PsikotesService {
@@ -46,6 +47,10 @@ export class PsikotesService {
 
   async createBooking(input: CreateBookingPsikotesInput) {
     return this.repo.createBooking(input)
+  }
+
+  async verifyTicket(input: VerifyTicketInput) {
+    return this.repo.verifyTicket(input)
   }
 
   async getPeserta(params?: PesertaQueryInput) {
