@@ -10,107 +10,25 @@ export interface AdminLayananItem {
   status: "Aktif" | "Nonaktif"
   deskripsi: string
   bannerUrl?: string
+  tarif_tenaga_ahli?: {
+    psikolog?: { weekday: number | string; weekend: number | string }
+    konselor?: { weekday: number | string; weekend: number | string }
+    peer?: { weekday: number | string; weekend: number | string }
+  } | null
 }
 
 export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
-  // ── Konsultasi (01) ──
   {
     id: 1,
-    layanan: "Psikolog",
-    kategoriId: "01",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan konsultasi psikologi intensif bersama psikolog berlisensi untuk berbagai penanganan klinis, depresi, kecemasan, dan permasalahan kesehatan mental.",
-    bannerUrl: "",
-  },
-  {
-    id: 2,
-    layanan: "Peer Konselor",
-    kategoriId: "01",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan pendampingan santai bersama teman sebaya (peer counselor) yang terlatih untuk mendengarkan keluh kesah Anda tanpa penghakiman.",
-    bannerUrl: "",
-  },
-  {
-    id: 3,
-    layanan: "Hipnoterapi",
-    kategoriId: "01",
-    metode: "Offline",
-    weekday: "Rp 400.000",
-    weekend: "Rp 500.000",
-    status: "Aktif",
-    deskripsi:
-      "Terapi mendalam yang menyasar alam bawah sadar untuk membantu mengatasi trauma, kecemasan, fobia, hingga kebiasaan buruk yang sulit dihilangkan.",
-    bannerUrl: "",
-  },
-  {
-    id: 4,
-    layanan: "Home Visit",
-    kategoriId: "01",
-    metode: "Offline",
-    weekday: "Rp 500.000",
-    weekend: "Rp 600.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan spesial di mana psikolog kami akan langsung mengunjungi lokasi Anda demi kenyamanan, terutama bagi klien yang kesulitan mobilitas.",
-    bannerUrl: "",
-  },
-  // ── Workshop (03) ──
-  {
-    id: 5,
-    layanan: "Workshop Regulasi Emosi & Pelatihan Konselor Sebaya",
-    kategoriId: "03",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Pelatihan pembekalan intensif bagi siswa/mahasiswa/komunitas untuk mengelola stres dan menjadi pendengar aktif yang empatik.",
-    bannerUrl: "",
-  },
-  // ── Asesmen (05) ──
-  {
-    id: 6,
     layanan: "Asesmen Minat Bakat",
     kategoriId: "05",
     metode: "Online/Offline",
-    weekday: "Rp 400.000",
-    weekend: "Rp 500.000",
+    weekday: "Rp 400.000,00",
+    weekend: "Rp 500.000,00",
     status: "Aktif",
     deskripsi:
       "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu secara terstandar.",
-    bannerUrl: "https://images.unsplash.com/photo-1573497620053-ea5300f94f21?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: 7,
-    layanan: "Asesmen Kesiapan Sekolah",
-    kategoriId: "05",
-    metode: "Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, dan emosional dalam memasuki jenjang sekolah.",
-    bannerUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: 8,
-    layanan: "Asesmen Klinis",
-    kategoriId: "05",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Evaluasi psikologis mendalam untuk mengidentifikasi kondisi klinis, regulasi emosi, kecemasan, dan kesehatan mental secara menyeluruh.",
-    bannerUrl: "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?auto=format&fit=crop&w=1200&q=80",
+    bannerUrl: "",
   },
 ]
 
@@ -131,6 +49,9 @@ export function getStoredLayanan(): AdminLayananItem[] {
   }
   return INITIAL_ADMIN_LAYANAN
 }
+
+// Alias helper
+export const getLayananList = getStoredLayanan
 
 export function saveStoredLayanan(items: AdminLayananItem[]): void {
   if (typeof window === "undefined") return

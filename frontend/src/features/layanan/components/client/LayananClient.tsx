@@ -5,9 +5,10 @@ import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { CATEGORIES, SERVICES_DATA } from "../../data/layananData"
+import { CATEGORIES } from "../../data/layananData"
 import { getStoredLayanan, type AdminLayananItem } from "../../data/adminLayananData"
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
+import { layananService, type LayananApiResponse } from "@/services/layanan.service"
 import { useTenantContext } from "@/context/TenantContext"
 
 export default function LayananClient() {
@@ -16,45 +17,91 @@ export default function LayananClient() {
   const categoryQuery = searchParams.get("category")
   const [activeCategory, setActiveCategory] = useState(categoryQuery || "01") // Default ke Konsultasi
   const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
+  const [liveLayanan, setLiveLayanan] = useState<LayananApiResponse[]>([])
+  const [loadingLayanan, setLoadingLayanan] = useState(true)
+  const [isLayananError, setIsLayananError] = useState(false)
   const [loadingPsikotes, setLoadingPsikotes] = useState(true)
   const [storedAdminLayanan, setStoredAdminLayanan] = useState<AdminLayananItem[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Muat data dari dashboard Admin Layanan (tersinkronisasi jika foto diubah)
-  useEffect(() => {
-    const loadStored = () => {
-      try {
-        setStoredAdminLayanan(getStoredLayanan())
-      } catch (e) {
-        console.error("Gagal membaca admin layanan:", e)
+  const fetchLayanan = async () => {
+    try {
+      setLoadingLayanan(true)
+      setIsLayananError(false)
+      const res = await layananService.getAll()
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+      if (list.length > 0) {
+        setLiveLayanan(list)
+      } else {
+        const local = getStoredLayanan().map((it) => ({
+          id: String(it.id),
+          nama: it.layanan,
+          kategori: it.kategoriId === "05" ? "ASESMEN" : "KONSULTASI",
+          metode: it.metode,
+          harga_weekday: parseInt(it.weekday.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10),
+          harga_weekend: parseInt(it.weekend.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10),
+          deskripsi: it.deskripsi,
+          banner_url: it.bannerUrl,
+          aktif: it.status === "Aktif",
+        }))
+        setLiveLayanan(local as any)
       }
+    } catch (err) {
+      console.warn("Backend offline, menggunakan data layanan terdaftar:", err)
+      const local = getStoredLayanan().map((it) => ({
+        id: String(it.id),
+        nama: it.layanan,
+        kategori: it.kategoriId === "05" ? "ASESMEN" : "KONSULTASI",
+        metode: it.metode,
+        harga_weekday: parseInt(it.weekday.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10),
+        harga_weekend: parseInt(it.weekend.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10),
+        deskripsi: it.deskripsi,
+        banner_url: it.bannerUrl,
+        aktif: it.status === "Aktif",
+      }))
+      if (local.length > 0) {
+        setLiveLayanan(local as any)
+      } else {
+        setIsLayananError(true)
+      }
+    } finally {
+      setLoadingLayanan(false)
     }
-    loadStored()
+  }
 
-    if (typeof window !== "undefined") {
-      window.addEventListener("storage", loadStored)
-      return () => window.removeEventListener("storage", loadStored)
-    }
-  }, [])
-
-  useEffect(() => {
-    const fetchPsikotes = async () => {
-      try {
-        setLoadingPsikotes(true)
-        const res = await psikotesService.getList({ status: "PUBLISHED" })
-        if (res?.data && res.data.length > 0) {
-          setPublishedPsikotes(res.data)
-        } else {
-          setPublishedPsikotes([])
-        }
-      } catch (err) {
-        console.error("Gagal mengambil data paket psikotes layanan:", err)
+  const fetchPsikotes = async () => {
+    try {
+      setLoadingPsikotes(true)
+      const res = await psikotesService.getList({ status: "PUBLISHED" })
+      if (res?.data && res.data.length > 0) {
+        setPublishedPsikotes(res.data)
+      } else {
         setPublishedPsikotes([])
-      } finally {
-        setLoadingPsikotes(false)
       }
+    } catch (err) {
+      console.error("Gagal mengambil data paket psikotes layanan:", err)
+      setPublishedPsikotes([])
+    } finally {
+      setLoadingPsikotes(false)
     }
+  }
+
+  useEffect(() => {
     fetchPsikotes()
+    fetchLayanan()
+
+    const handleSync = () => {
+      fetchLayanan()
+      fetchPsikotes()
+    }
+
+    window.addEventListener("focus", handleSync)
+    window.addEventListener("storage", handleSync)
+
+    return () => {
+      window.removeEventListener("focus", handleSync)
+      window.removeEventListener("storage", handleSync)
+    }
   }, [])
 
   useEffect(() => {
@@ -235,86 +282,113 @@ export default function LayananClient() {
               className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
             >
               <div key={`content-${activeCategory}`} className="animate-fade-in">
+                {/* Status Error Jika Koneksi Gagal */}
+                {isLayananError && activeCategory !== "02" && (
+                  <div className="p-8 text-center bg-amber-50 border border-amber-200 rounded-2xl my-4">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-2 text-lg">
+                      ⚠️
+                    </div>
+                    <p className="text-sm font-bold text-amber-900 mb-1">
+                      Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={fetchLayanan}
+                      className="mt-3 px-5 py-2 bg-[#561269] hover:bg-[#430e52] text-white text-xs font-bold rounded-full transition shadow-xs cursor-pointer active:scale-95"
+                    >
+                      Muat Ulang
+                    </button>
+                  </div>
+                )}
+
+                {/* Loading State */}
+                {loadingLayanan && activeCategory !== "02" && !isLayananError && (
+                  <div className="py-20 text-center text-gray-400 font-medium text-sm animate-pulse">
+                    Memuat data layanan...
+                  </div>
+                )}
+
                 {/* Grid Layanan Kecil */}
-                {(() => {
-                  if (activeCategory === "02") {
-                    if (loadingPsikotes) {
-                      return (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3">
-                          <Loader2 className="w-8 h-8 text-[#561269] animate-spin" />
-                          <p className="text-sm text-gray-500 font-medium">Memuat paket psikotes...</p>
-                        </div>
-                      )
-                    }
-
-                    if (publishedPsikotes.length > 0) {
-                      return (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                          {publishedPsikotes.map((p) => {
-                            const bannerImage =
-                              p.banner_url ||
-                              "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800";
-                            const targetHref = withBiro ? withBiro(`/psikotes/${p.id}`) : `/psikotes/${p.id}`;
-
-                            return (
-                              <div
-                                key={p.id}
-                                className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full"
-                              >
-                                {/* Foto Bersih / Banner Kartun */}
-                                <div className="h-44 sm:h-52 w-full overflow-hidden relative bg-gray-100 shrink-0">
-                                  <Image
-                                    src={bannerImage}
-                                    alt={p.judul}
-                                    fill
-                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                    unoptimized
-                                  />
-                                </div>
-
-                                {/* Konten Card */}
-                                <div className="p-5 sm:p-6 flex flex-col flex-1">
-                                  <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
-                                    {p.judul}
-                                  </h3>
-                                  <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
-                                    {p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri."}
-                                  </p>
-
-                                  <div className="mt-auto pt-2">
-                                    <Link
-                                      href={targetHref}
-                                      className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
-                                    >
-                                      Ikuti Tes
-                                    </Link>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    }
-
+                {/* Grid Layanan Kecil */}
+                {!isLayananError && (!loadingLayanan || activeCategory === "02") && (() => {
+                  if (activeCategory === "02" && loadingPsikotes) {
                     return (
-                      <div className="flex flex-col items-center justify-center p-8 text-center rounded-2xl bg-white border border-gray-100 shadow-sm min-h-[220px]">
-                        <div className="w-12 h-12 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center mb-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <p className="font-bold text-gray-800 text-base mb-1">
-                          Belum Ada Paket Psikotes
-                        </p>
-                        <p className="text-sm text-gray-500 max-w-md">
-                          Saat ini belum ada paket psikotes yang tersedia atau instrumen sedang dalam pembaruan. Silakan periksa kembali nanti.
-                        </p>
+                      <div className="flex flex-col items-center justify-center py-16 gap-3">
+                        <Loader2 className="w-8 h-8 text-[#561269] animate-spin" />
+                        <p className="text-sm text-gray-500 font-medium">Memuat paket psikotes...</p>
                       </div>
                     )
                   }
 
-                  const currentServices = SERVICES_DATA[activeCategory] || []
+                  const currentServices = (() => {
+                    if (activeCategory === "02") {
+                      if (publishedPsikotes.length > 0) {
+                        return publishedPsikotes.map((p, idx) => {
+                          const colors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
+                          const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
+                          const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
+                          return {
+                            topTitle: p.judul.toUpperCase(),
+                            topSubtitle: "",
+                            bottomTitle: p.judul,
+                            bottomDescription: p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
+                            bgColor: colors[idx % colors.length],
+                            titleColor: textColors[idx % textColors.length],
+                            btnText: "Ikuti Tes",
+                            shape: shapes[idx % shapes.length],
+                            href: withBiro ? withBiro(`/psikotes/${p.id}`) : `/psikotes/${p.id}`,
+                            bannerUrl: p.banner_url,
+                          }
+                        })
+                      }
+                      return []
+                    }
+
+                    // Ambil layanan murni dari database sesuai kategori aktif
+                    const catEnum =
+                      activeCategory === "01"
+                        ? "KONSULTASI"
+                        : activeCategory === "03"
+                        ? "WORKSHOP"
+                        : activeCategory === "04"
+                        ? "SEMINAR"
+                        : "ASESMEN"
+
+                    const dbMatches = liveLayanan.filter((l) => {
+                      const matchCat = (l.kategori || "").toUpperCase() === catEnum
+                      if (!matchCat) return false
+                      if (catEnum === "KONSULTASI") {
+                        // Konsultasi tetap bisa diakses halamannya meskipun status nonaktif
+                        return true
+                      }
+                      return l.aktif !== false && (l as any).status !== "Nonaktif"
+                    })
+
+                    if (dbMatches.length > 0) {
+                      const colors = ["bg-[#561269]", "bg-[#f48520]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
+                      const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
+                      const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
+
+                      return dbMatches.map((item, idx) => ({
+                        topTitle: item.nama.toUpperCase(),
+                        topSubtitle:
+                          item.aktif === false || (item as any).status === "Nonaktif"
+                            ? `${item.metode || "Online/Offline"} • Nonaktif`
+                            : item.metode || "Online/Offline",
+                        bottomTitle: item.nama,
+                        bottomDescription: item.deskripsi || "Layanan profesional Empathika.",
+                        bgColor: colors[idx % colors.length],
+                        titleColor: textColors[idx % textColors.length],
+                        btnText: activeCategory === "01" ? "Booking Konsultasi" : "Pilih Layanan",
+                        shape: shapes[idx % shapes.length],
+                        href: activeCategory === "01" ? withBiro(`/booking?layanan=${encodeURIComponent(item.nama)}`) : undefined,
+                        bannerUrl: item.banner_url,
+                      }))
+                    }
+
+                    return []
+                  })()
+
                   if (currentServices.length > 0) {
                     return (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
@@ -327,7 +401,7 @@ export default function LayananClient() {
 
                   return (
                     <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm border border-gray-100">
-                      Konten untuk {CATEGORIES.find(c => c.id === activeCategory)?.title} belum tersedia.
+                      Belum ada layanan yang tersedia untuk kategori {CATEGORIES.find(c => c.id === activeCategory)?.title}.
                     </div>
                   )
                 })()}

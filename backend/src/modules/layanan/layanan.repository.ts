@@ -23,7 +23,7 @@ export class LayananRepository {
 
     return this.prisma.layanan.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
       include: {
         _count: {
           select: { booking_konsultasi: true },

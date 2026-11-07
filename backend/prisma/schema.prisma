@@ -210,9 +210,10 @@ model Layanan {
   kategori      KategoriLayanan
   metode        String          @default("Online/Offline")
   deskripsi     String          @db.Text
-  harga_weekday Decimal         @db.Decimal(12, 2)
-  harga_weekend Decimal         @db.Decimal(12, 2)
-  banner_url    String?
+  harga_weekday     Decimal         @db.Decimal(12, 2)
+  harga_weekend     Decimal         @db.Decimal(12, 2)
+  tarif_tenaga_ahli Json?
+  banner_url        String?
   aktif         Boolean         @default(true)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt

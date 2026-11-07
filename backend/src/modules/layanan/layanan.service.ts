@@ -64,8 +64,19 @@ export class LayananService {
     const kategori = this.normalizeKategori(input.kategori || input.kategoriId)
     const metode = input.metode?.trim() || 'Online/Offline'
     const deskripsi = input.deskripsi?.trim() || ''
-    const hargaWeekday = input.harga_weekday !== undefined ? input.harga_weekday : (input.weekday !== undefined ? input.weekday : 0)
-    const hargaWeekend = input.harga_weekend !== undefined ? input.harga_weekend : (input.weekend !== undefined ? input.weekend : 0)
+    let hargaWeekday = input.harga_weekday !== undefined ? input.harga_weekday : (input.weekday !== undefined ? input.weekday : 0)
+    let hargaWeekend = input.harga_weekend !== undefined ? input.harga_weekend : (input.weekend !== undefined ? input.weekend : 0)
+    const tarifTenagaAhli = input.tarif_tenaga_ahli || null
+
+    // Jika kategori Konsultasi dan ada tarif_tenaga_ahli, fallback harga umum ke tarif psikolog
+    if (tarifTenagaAhli && typeof tarifTenagaAhli === 'object') {
+      const psi = (tarifTenagaAhli as any).psikolog
+      if (psi) {
+        if (!hargaWeekday && psi.weekday) hargaWeekday = Number(psi.weekday)
+        if (!hargaWeekend && psi.weekend) hargaWeekend = Number(psi.weekend)
+      }
+    }
+
     const bannerUrl = input.banner_url || input.bannerUrl || null
     const aktif = this.normalizeAktif(input.aktif, input.status)
 
@@ -76,6 +87,7 @@ export class LayananService {
       deskripsi,
       harga_weekday: hargaWeekday,
       harga_weekend: hargaWeekend,
+      tarif_tenaga_ahli: tarifTenagaAhli as any,
       banner_url: bannerUrl,
       aktif,
     }
@@ -124,6 +136,19 @@ export class LayananService {
       updateData.harga_weekend = input.weekend
     }
 
+    if (input.tarif_tenaga_ahli !== undefined) {
+      updateData.tarif_tenaga_ahli = input.tarif_tenaga_ahli as any
+
+      // Jika ada tarif_tenaga_ahli psikolog, sinkronkan juga harga_weekday/weekend utama
+      if (input.tarif_tenaga_ahli && typeof input.tarif_tenaga_ahli === 'object') {
+        const psi = (input.tarif_tenaga_ahli as any).psikolog
+        if (psi) {
+          if (psi.weekday && updateData.harga_weekday === undefined) updateData.harga_weekday = Number(psi.weekday)
+          if (psi.weekend && updateData.harga_weekend === undefined) updateData.harga_weekend = Number(psi.weekend)
+        }
+      }
+    }
+
     if (input.banner_url !== undefined || input.bannerUrl !== undefined) {
       updateData.banner_url = input.banner_url ?? input.bannerUrl ?? null
     }
@@ -141,7 +166,7 @@ export class LayananService {
       throw Object.assign(new Error('Layanan tidak ditemukan'), { statusCode: 404 })
     }
 
-    if (existing._count && existing._count.booking_konsultasi > 0) {
+    if ((existing as any)._count && (existing as any)._count.booking_konsultasi > 0) {
       // Soft delete jika sudah ada riwayat booking konsultasi
       return this.repo.update(id, { aktif: false })
     }

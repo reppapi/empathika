@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
+import { layananService } from "@/services/layanan.service"
+import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
 
 export const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -107,6 +109,96 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
   })
 
   const [layanan, setLayanan] = useState(initialLayanan)
+  const [isLayananNonaktif, setIsLayananNonaktif] = useState(false)
+  const [nonaktifLayananNama, setNonaktifLayananNama] = useState("")
+
+  // Batasan metode yang didukung oleh layanan yang dipilih (Online / Offline / Keduanya)
+  const [allowedMethods, setAllowedMethods] = useState<{ online: boolean; offline: boolean }>({
+    online: true,
+    offline: true,
+  })
+
+  // Sinkronisasi ketersediaan metode pelaksanaan & status aktif dari data layanan (Backend / Local)
+  useEffect(() => {
+    let isCancelled = false
+
+    const checkServiceMethod = async () => {
+      const activeName = (layanan || searchParams?.get("layanan") || "Psikolog").toLowerCase().trim()
+      let matchedMetode = "Online/Offline"
+
+      try {
+        const res: any = await layananService.getAll({ kategori: "KONSULTASI" })
+        const beList = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        const matched = beList.find((l: any) => {
+          const lName = (l.nama || "").toLowerCase()
+          return lName.includes(activeName) || activeName.includes(lName)
+        })
+
+        // Cek juga di localStorage untuk respon instan antartab
+        const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
+        const localMatched = stored.find((l) => {
+          const lName = l.layanan.toLowerCase()
+          return lName.includes(activeName) || activeName.includes(lName)
+        })
+
+        const isNonaktif =
+          (matched && (matched.aktif === false || matched.status === "Nonaktif")) ||
+          (localMatched && localMatched.status === "Nonaktif")
+
+        if (isNonaktif) {
+          setIsLayananNonaktif(true)
+          setNonaktifLayananNama(matched?.nama || localMatched?.layanan || layanan)
+        } else {
+          setIsLayananNonaktif(false)
+        }
+
+        if (matched?.metode) {
+          matchedMetode = matched.metode
+        } else if (localMatched?.metode) {
+          matchedMetode = localMatched.metode
+        }
+      } catch {
+        const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
+        const localMatched = stored.find((l) => {
+          const lName = l.layanan.toLowerCase()
+          return lName.includes(activeName) || activeName.includes(lName)
+        })
+        if (localMatched && localMatched.status === "Nonaktif") {
+          setIsLayananNonaktif(true)
+          setNonaktifLayananNama(localMatched.layanan)
+        }
+      }
+
+      if (isCancelled) return
+
+      const norm = matchedMetode.toLowerCase()
+      const hasOnline = norm.includes("online") || norm === "keduanya" || norm === "semua"
+      const hasOffline = norm.includes("offline") || norm === "keduanya" || norm === "semua"
+
+      setAllowedMethods({
+        online: hasOnline,
+        offline: hasOffline,
+      })
+
+      // Jika hanya salah satu metode yang didukung, otomatis pilihkan metode yang aktif
+      if (hasOnline && !hasOffline) {
+        setMetode("Online")
+      } else if (!hasOnline && hasOffline) {
+        setMetode("Offline")
+      }
+    }
+
+    checkServiceMethod()
+
+    window.addEventListener("focus", checkServiceMethod)
+    window.addEventListener("storage", checkServiceMethod)
+
+    return () => {
+      isCancelled = true
+      window.removeEventListener("focus", checkServiceMethod)
+      window.removeEventListener("storage", checkServiceMethod)
+    }
+  }, [layanan, searchParams])
 
   // Waktu & slot terpilih (hanya boleh terisi jika slot TERSEDIA)
   const [waktu, setWaktu] = useState<string | null>(null)
@@ -284,7 +376,6 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
           }
         }
       } catch {}
-
       if (isCancelled) return
 
       const sortedDateStrings = Array.from(datesFound).sort()
@@ -346,7 +437,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     const fetchSlots = async () => {
       setIsLoadingSlots(true)
 
-      // 1. Ambil slot dari Backend API (hanya yang berstatus TERSEDIA murni)
+      // 1. Ambil slot dari Backend API (hanya yang berstatus TERSEDIA murni dari database)
       let apiSlots: JadwalSlotItem[] = []
       try {
         apiSlots =
@@ -359,46 +450,14 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         apiSlots = []
       }
 
-      // 2. Ambil seluruh slot dari LocalStorage untuk metadata atau fallback (abaikan seed dummy)
-      let allCustomSlots: any[] = []
-      try {
-        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed)) {
-            allCustomSlots = parsed.filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
-          }
-        }
-      } catch {}
-
-      // Buat lookup metadata (terutama 'metode') berdasarkan tanggal dan jam_mulai (5 karakter HH:mm)
-      const localMetaMap = new Map<string, any>()
-      allCustomSlots.forEach((s: any) => {
-        const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
-        if (s.tanggal && timeKey) {
-          localMetaMap.set(`${s.tanggal}_${timeKey}`, s)
-        }
-        if (s.label_waktu) {
-          localMetaMap.set(`${s.tanggal}_${s.label_waktu}`, s)
-        }
-        if (s.id) {
-          localMetaMap.set(s.id, s)
-        }
-      })
-
-      // 3. Kumpulkan kandidat slot untuk tanggal & konteks yang sesuai
+      // 2. Kumpulkan slot resmi yang berstatus TERSEDIA
       const candidateSlotsMap = new Map<string, JadwalSlotItem>()
 
-      // A. Masukkan slot API yang statusnya murni TERSEDIA
       apiSlots.forEach((slot) => {
         if (slot.status && slot.status !== "TERSEDIA") return
 
         const timeKey = (slot.jam_mulai || "").trim().substring(0, 5)
-        const localMeta =
-          localMetaMap.get(`${slot.tanggal}_${timeKey}`) ||
-          (slot.id ? localMetaMap.get(slot.id) : null)
-
-        const effectiveMetode = slot.metode || localMeta?.metode || "Keduanya"
+        const effectiveMetode = slot.metode || "Keduanya"
         candidateSlotsMap.set(timeKey, {
           ...slot,
           jam_mulai: timeKey,
@@ -407,40 +466,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         })
       })
 
-      // B. Masukkan slot dari LocalStorage jika belum ada di candidateSlotsMap
-      allCustomSlots
-        .filter((s: any) => {
-          const matchDate = s.tanggal === dateKey
-          const slotType = (s.tipe_jadwal || "KONSULTASI").toUpperCase()
-          const matchType = slotType === effectiveTipeJadwal.toUpperCase()
-          const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
-          const matchPsi =
-            effectiveTipeJadwal === "ASESMEN"
-              ? true
-              : !psikologIdParam ||
-                s.id_psikolog === psikologIdParam ||
-                (selectedPsikolog &&
-                  (s.nama_psikolog === selectedPsikolog.nama_gelar ||
-                    s.nama_psikolog === selectedPsikolog.nama ||
-                    s.nama_psikolog === selectedPsikolog.account?.nama)) ||
-                (psikologNameParam &&
-                  s.nama_psikolog &&
-                  (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
-                    psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
-          return matchDate && matchType && matchPsi && isTersedia
-        })
-        .forEach((s: any) => {
-          const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
-          if (!candidateSlotsMap.has(timeKey)) {
-            candidateSlotsMap.set(timeKey, {
-              ...s,
-              jam_mulai: timeKey,
-              jam_selesai: (s.jam_selesai || "").trim().substring(0, 5),
-            })
-          }
-        })
-
-      // 4. FILTER KETAT: Status TERSEDIA, Jam belum lewat hari ini, dan Metode Konseling
+      // 3. FILTER KETAT: Status TERSEDIA, Jam belum lewat hari ini, dan Metode Konseling
       const now = new Date()
       const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
       const currentMinutes = now.getHours() * 60 + now.getMinutes()
@@ -587,5 +613,9 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     activePrice,
     buildBayarUrl,
     isSlotReady,
+    isOnlineAllowed: allowedMethods.online,
+    isOfflineAllowed: allowedMethods.offline,
+    isLayananNonaktif,
+    nonaktifLayananNama,
   }
 }

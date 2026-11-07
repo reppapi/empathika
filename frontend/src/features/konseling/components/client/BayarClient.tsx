@@ -35,6 +35,8 @@ export default function BayarClient() {
     qLayanan,
     qHarga,
     qHari,
+    hargaNominal,
+    isLayananNonaktif,
     handleSelectPayment,
     handleSubmit,
   } = useBayarClient()
@@ -82,6 +84,31 @@ export default function BayarClient() {
             Periksa data konsultasi dan selesaikan pembayaran untuk mengonfirmasi sesi Anda.
           </p>
         </div>
+
+        {/* ── Banner Peringatan Layanan Nonaktif ── */}
+        {isLayananNonaktif && (
+          <div className="w-full bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 shadow-sm animate-in fade-in duration-300">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-800 text-lg">
+              ⚠️
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-amber-900">
+                Layanan &ldquo;{qLayanan}&rdquo; Sedang Dinonaktifkan
+              </h4>
+              <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                Layanan konsultasi ini saat ini sedang tidak aktif oleh administrator. Sesi tidak dapat diproses lebih lanjut.
+              </p>
+              <div className="mt-3">
+                <Link
+                  href="/layanan"
+                  className="inline-block px-4 py-2 bg-[#561269] text-white text-xs font-semibold rounded-full hover:bg-[#430e52] transition shadow-xs"
+                >
+                  Pilih Layanan Lain
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Banner Peringatan: Slot Jadwal Dibatalkan / Dihapus oleh Admin / Psikolog ── */}
         {isSlotUnavailable && (
@@ -178,10 +205,10 @@ export default function BayarClient() {
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
           biayaLabel={isAsesmen ? `Biaya Asesmen${qHari ? ` (${qHari})` : ""}` : "Biaya Konsultasi"}
-          biayaNominal={qHarga}
-          totalNominal={qHarga}
-          isSubmitDisabled={isSlotUnavailable}
-          submitButtonText={isSlotUnavailable ? "Jadwal Telah Dibatalkan" : "Bayar Sekarang"}
+          biayaNominal={isAsesmen ? qHarga : (hargaNominal || qHarga)}
+          totalNominal={isAsesmen ? qHarga : (hargaNominal || qHarga)}
+          isSubmitDisabled={isSlotUnavailable || isLayananNonaktif}
+          submitButtonText={isLayananNonaktif ? "Layanan Nonaktif" : isSlotUnavailable ? "Jadwal Telah Dibatalkan" : "Bayar Sekarang"}
           submittingButtonText="Memproses Booking..."
         />
 
