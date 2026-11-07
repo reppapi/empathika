@@ -117,6 +117,17 @@ export interface BiroAccountData {
     deskripsi?: string | null
     no_telepon?: string | null
   }[]
+  biro?: {
+    id: string
+    nama_biro: string
+    slug: string
+    status: string
+    logoURI?: string | null
+    warna_tema?: string | null
+    alamat?: string | null
+    deskripsi?: string | null
+    no_telepon?: string | null
+  } | null
   createdAt: string
   updatedAt?: string
 }
@@ -162,4 +173,8 @@ export const biroAdminService = {
   /** Admin memperbarui profil Biro */
   updateBiro: (accountId: string, payload: UpdateBiroPayload) =>
     api.put<{ success: boolean }>(`/biro/admin/${accountId}`, payload).then((r) => r.data),
+
+  /** Mengambil data akun & profil biro yang sedang login */
+  getMyAccount: () =>
+    api.get<{ success: boolean; data: BiroAccountData }>("/biro/account").then((r) => r.data),
 }
