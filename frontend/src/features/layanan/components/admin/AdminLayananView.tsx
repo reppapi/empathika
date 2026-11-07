@@ -37,10 +37,10 @@ function parseRupiahNumber(val: any): number {
   return parseInt(cleaned || "0", 10)
 }
 
-function formatRupiahStandard(val: any, fallbackStr: string = "Rp 0,00"): string {
+function formatRupiahStandard(val: any, fallbackStr: string = "Rp 0"): string {
   if (val === undefined || val === null || val === "") return fallbackStr
   const num = parseRupiahNumber(val)
-  return `Rp ${num.toLocaleString("id-ID")},00`
+  return `Rp ${num.toLocaleString("id-ID")}`
 }
 
 export default function AdminLayananView() {
@@ -236,12 +236,12 @@ export default function AdminLayananView() {
       },
       {
         key: "weekday",
-        header: isKonsultasi ? "Tarif Weekday" : "Weekday",
+        header: "Weekday",
         render: (item: AdminLayananItem) => {
           if (!isKonsultasi) {
             return (
-              <span className="inline-block px-3 py-1 rounded-lg bg-gray-50 border border-gray-200/60 text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
-                {item.weekday}
+              <span className="text-gray-800 font-semibold text-xs sm:text-sm tabular-nums">
+                {formatRupiahStandard(item.weekday)}
               </span>
             )
           }
@@ -252,24 +252,27 @@ export default function AdminLayananView() {
           const peerWd = formatPrice(t?.peer?.weekday, item.weekday)
 
           return (
-            <div className="bg-white border border-gray-200/80 rounded-xl p-2.5 flex flex-col gap-1.5 min-w-[210px] shadow-2xs">
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-purple-50 text-[#561269] border border-purple-200/70 w-20 shrink-0">
+            <div className="flex flex-col gap-1.5 text-xs py-1 min-w-[160px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#561269] shrink-0" />
                   Psikolog
                 </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{psiWd}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right">{psiWd}</span>
               </div>
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-blue-50 text-blue-700 border border-blue-200/70 w-20 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
                   Konselor
                 </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{konWd}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right">{konWd}</span>
               </div>
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 w-20 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                   Peer
                 </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{peerWd}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right">{peerWd}</span>
               </div>
             </div>
           )
@@ -277,12 +280,12 @@ export default function AdminLayananView() {
       },
       {
         key: "weekend",
-        header: isKonsultasi ? "Tarif Weekend" : "Weekend",
+        header: "Weekend",
         render: (item: AdminLayananItem) => {
           if (!isKonsultasi) {
             return (
-              <span className="inline-block px-3 py-1 rounded-lg bg-gray-50 border border-gray-200/60 text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
-                {item.weekend}
+              <span className="text-gray-800 font-semibold text-xs sm:text-sm tabular-nums">
+                {formatRupiahStandard(item.weekend)}
               </span>
             )
           }
@@ -293,24 +296,27 @@ export default function AdminLayananView() {
           const peerWk = formatPrice(t?.peer?.weekend, item.weekend)
 
           return (
-            <div className="bg-white border border-gray-200/80 rounded-xl p-2.5 flex flex-col gap-1.5 min-w-[210px] shadow-2xs">
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-purple-50 text-[#561269] border border-purple-200/70 w-20 shrink-0">
+            <div className="flex flex-col gap-1.5 text-xs py-1 min-w-[160px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#561269] shrink-0" />
                   Psikolog
                 </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{psiWk}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right">{psiWk}</span>
               </div>
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-blue-50 text-blue-700 border border-blue-200/70 w-20 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
                   Konselor
                 </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{konWk}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right">{konWk}</span>
               </div>
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 w-20 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium w-20 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                   Peer
                 </span>
-                <span className="font-bold text-gray-900 tabular-nums text-right flex-1">{peerWk}</span>
+                <span className="font-bold text-gray-900 tabular-nums text-right">{peerWk}</span>
               </div>
             </div>
           )
