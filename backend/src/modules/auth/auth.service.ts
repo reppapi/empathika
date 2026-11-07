@@ -104,7 +104,8 @@ export class AuthService {
   }
 
   async login(input: LoginInput) {
-    const account = await this.repo.findByEmail(input.email)
+    const cleanEmail = (input.email || "").trim().toLowerCase()
+    const account = await this.repo.findByEmail(cleanEmail)
     if (!account) {
       throw Object.assign(new Error("Email atau password yang Anda masukkan salah"), {
         statusCode: 401,
