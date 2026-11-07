@@ -133,24 +133,6 @@ export default function TabPesertaPsikotes({
       },
     },
     {
-      key: "skor",
-      header: "Hasil Asesmen",
-      render: (peserta: AdminPsikotesPeserta) => {
-        if (peserta.status === "Berjalan" || !peserta.skor || peserta.skor === "—") {
-          return (
-            <span className="text-xs font-medium text-gray-400 italic">
-              — (Sedang dikerjakan)
-            </span>
-          );
-        }
-        return (
-          <span className="text-xs font-bold text-[#561269] bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
-            {peserta.skor}
-          </span>
-        );
-      },
-    },
-    {
       key: "tanggal",
       header: "Tanggal",
       render: (peserta: AdminPsikotesPeserta) => (
