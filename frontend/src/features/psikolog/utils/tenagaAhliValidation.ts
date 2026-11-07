@@ -19,8 +19,7 @@ export interface TouchedFields {
 /**
  * Validasi Email:
  * - Wajib diisi
- * - Format email valid
- * - Wajib mengandung '@gmail' (sesuai instruksi: kalau email gaada @gmail berarti salah)
+ * - Format email valid (bebas domain apapun, contoh: .com, .id, .org, dll)
  */
 export function validateEmail(email: string): string | null {
   const val = email.trim()
@@ -29,10 +28,7 @@ export function validateEmail(email: string): string | null {
   }
   const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!basicEmailRegex.test(val)) {
-    return "Format email tidak valid (contoh: psikolog@gmail.com)"
-  }
-  if (!val.toLowerCase().includes("@gmail")) {
-    return "Email harus menggunakan domain Gmail (harus mengandung @gmail.com)"
+    return "Format email tidak valid (contoh: psikolog@empathika.id)"
   }
   return null
 }
