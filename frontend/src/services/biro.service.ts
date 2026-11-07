@@ -117,6 +117,17 @@ export interface BiroAccountData {
     deskripsi?: string | null
     no_telepon?: string | null
   }[]
+  biro?: {
+    id: string
+    nama_biro: string
+    slug: string
+    status: string
+    logoURI?: string | null
+    warna_tema?: string | null
+    alamat?: string | null
+    deskripsi?: string | null
+    no_telepon?: string | null
+  } | null
   createdAt: string
   updatedAt?: string
 }

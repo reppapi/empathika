@@ -37,6 +37,7 @@ export default function ProfilBiroClient() {
             alamat: beBiro.alamat || "-",
             statusAktivasi: res.data.aktif ? "Aktif" : "Menunggu Aktivasi",
             accountAktif: res.data.aktif,
+            tanggalDibuat: res.data.createdAt ? res.data.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
             websiteUrl: beBiro.slug ? getBiroWebsiteUrl(beBiro.slug) : undefined,
             dashboardUrl: "/admin-biro",
           })
