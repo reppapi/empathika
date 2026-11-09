@@ -162,8 +162,20 @@ export default function PsikologBerandaClient() {
     return `${year}-${month}-${day}`
   }, [])
 
+  // Batas cutoff 3 bulan ke belakang (tanggal 1 dari 3 bulan yang lalu)
+  // Contoh jika hari ini 9 November 2026: cutoff adalah 2026-08-01 (Agustus 2026 tetap tercakup utuh)
+  const threeMonthsAgoCutoff = useMemo(() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 3)
+    d.setDate(1)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }, [])
+
   const [selectedDate, setSelectedDate] = useState<string>(todayStr)
-  const [filterBulan, setFilterBulan] = useState<string>("1-bulan")
+  const [filterBulan, setFilterBulan] = useState<string>("3-bulan")
 
   const { user } = useAuthStore()
   const [psikologName, setPsikologName] = useState<string>(() => {
@@ -316,10 +328,13 @@ export default function PsikologBerandaClient() {
       }
 
       // C. Agenda yang Sudah Lewat (Masa Lalu: date < todayStr)
+      // Hanya masukkan sesi yang tidak lebih dari 3 bulan ke belakang (kalau sudah > 3 bulan tidak dimunculkan)
       if (dateStr < todayStr && dateStr !== targetDate) {
-        allPastSlots.push({ rawDate: dateStr, item })
-        const ym = dateStr.slice(0, 7) // "YYYY-MM"
-        uniquePastMonthsSet.add(ym)
+        if (dateStr >= threeMonthsAgoCutoff) {
+          allPastSlots.push({ rawDate: dateStr, item })
+          const ym = dateStr.slice(0, 7) // "YYYY-MM"
+          uniquePastMonthsSet.add(ym)
+        }
       }
     })
 
@@ -339,13 +354,13 @@ export default function PsikologBerandaClient() {
     })
 
     // Filter Agenda yang Sudah Lewat sesuai pilihan user:
-    // "1-bulan" (default) -> date >= oneMonthAgoStr
-    // "semua" -> semua masa lalu
-    // "YYYY-MM" -> hanya bulan yang dipilih
+    // "3-bulan" (default) -> semua dalam batas 3 bulan terakhir (karena allPastSlots sudah dibatasi 3 bulan)
+    // "1-bulan" -> date >= oneMonthAgoStr
+    // "YYYY-MM" -> hanya bulan spesifik yang dipilih
     let filteredPastSlots = allPastSlots
     if (filterBulan === "1-bulan") {
       filteredPastSlots = allPastSlots.filter((s) => s.rawDate >= oneMonthAgoStr)
-    } else if (filterBulan !== "semua") {
+    } else if (filterBulan !== "3-bulan" && filterBulan !== "semua") {
       filteredPastSlots = allPastSlots.filter((s) => s.rawDate.startsWith(filterBulan))
     }
 
@@ -368,10 +383,21 @@ export default function PsikologBerandaClient() {
       }
     })
 
-    // Bulan-bulan unik yang tersedia untuk dropdown filter (Urut Descending)
-    const availableMonths = Array.from(uniquePastMonthsSet).sort((a, b) => b.localeCompare(a))
+    // Bulan-bulan unik yang tersedia untuk dropdown filter (hanya dalam batas 3 bulan ke belakang)
+    const monthsSet = new Set<string>()
+    uniquePastMonthsSet.forEach((ym) => monthsSet.add(ym))
 
-    // Hitung berapa sesi yang tersembunyi karena lebih dari 1 bulan
+    // Pastikan 3 bulan kalender terakhir selalu tersedia di pilihan filter dropdown
+    const now = new Date()
+    for (let i = 0; i <= 3; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+      monthsSet.add(ym)
+    }
+
+    const availableMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a))
+
+    // Hitung berapa sesi dalam rentang 3 bulan yang tersembunyi jika filter "1-bulan" aktif
     const olderCount = allPastSlots.filter((s) => s.rawDate < oneMonthAgoStr).length
 
     const countBerikutnya = futureGroups.reduce((acc, g) => acc + g.sesi.length, 0)
@@ -386,7 +412,7 @@ export default function PsikologBerandaClient() {
       totalSesiBerikutnya: countBerikutnya,
       totalSesiLewat: countLewat,
     }
-  }, [allBookedSlots, selectedDate, todayStr, oneMonthAgoStr, filterBulan])
+  }, [allBookedSlots, selectedDate, todayStr, oneMonthAgoStr, threeMonthsAgoCutoff, filterBulan])
 
   const isTodaySelected = selectedDate === todayStr
 
@@ -415,6 +441,7 @@ export default function PsikologBerandaClient() {
               ref={dateInputRef}
               type="date"
               value={selectedDate}
+              min={threeMonthsAgoCutoff}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="rounded-xl border border-gray-200 bg-white py-2 pl-3 pr-10 text-xs font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden"
             />
@@ -530,25 +557,25 @@ export default function PsikologBerandaClient() {
                 onChange={(e) => setFilterBulan(e.target.value)}
                 className="appearance-none text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg pl-3 pr-8 py-1.5 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer shadow-2xs"
               >
-                <option value="1-bulan">1 Bulan Terakhir (Default)</option>
+                <option value="3-bulan">3 Bulan Terakhir (Default)</option>
+                <option value="1-bulan">1 Bulan Terakhir</option>
                 {availablePastMonths.map((ym) => (
                   <option key={ym} value={ym}>
                     {formatBulanTahun(ym)}
                   </option>
                 ))}
-                <option value="semua">Semua Riwayat</option>
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         </div>
 
-        {/* Info banner jika ada sesi lama yang disembunyikan */}
+        {/* Info banner jika ada sesi dalam rentang 3 bulan yang disembunyikan saat filter 1-bulan aktif */}
         {olderThanOneMonthCount > 0 && filterBulan === "1-bulan" && (
           <div className="text-[11px] text-gray-600 bg-purple-50/70 border border-purple-100/90 rounded-xl px-3 py-2 flex items-center gap-2">
             <Info className="w-3.5 h-3.5 text-[#561269] shrink-0" />
             <span>
-              Menampilkan sesi dalam <strong>1 bulan terakhir</strong>. Sesi yang lebih lama disembunyikan agar beranda tetap rapi. Pilih opsi bulan pada filter di atas jika ingin melihat riwayat sebelumnya.
+              Menampilkan sesi dalam <strong>1 bulan terakhir</strong>. Pilih opsi <strong>"3 Bulan Terakhir"</strong> pada filter di atas untuk melihat riwayat lengkap hingga 3 bulan ke belakang.
             </span>
           </div>
         )}
