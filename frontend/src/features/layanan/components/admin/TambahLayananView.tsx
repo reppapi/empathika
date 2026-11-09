@@ -681,16 +681,6 @@ export default function TambahLayananView() {
         ) : (
           /* 3. Kategori Workshop & Seminar: Program Kemitraan (Tanpa Pengisian Tarif) */
           <div className="space-y-6">
-            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 border border-amber-200/90 flex items-start gap-3.5">
-              <span className="text-2xl shrink-0">🤝</span>
-              <div>
-                <h4 className="text-sm font-bold text-amber-900">Program Kemitraan &amp; Kerja Sama Institusional</h4>
-                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                  Layanan Workshop dan Seminar tidak memerlukan pengisian tarif nominal karena pembiayaan disesuaikan melalui skema proposal kerja sama institusional (B2B / Kampus / Sekolah / Komunitas).
-                </p>
-              </div>
-            </div>
-
             {/* Foto Banner / Hero Layanan */}
             <div>
               <div className="flex items-center justify-between mb-2">

@@ -688,22 +688,7 @@ export default function AdminLayananView() {
                     </div>
                   </div>
                 </div>
-              ) : selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04" ? (
-                /* Khusus Workshop & Seminar: Program Kemitraan */
-                <div className="p-4 bg-amber-50/80 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                      <span>🤝</span> Skema Program &amp; Pembiayaan
-                    </span>
-                    <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                      Layanan ini diselenggarakan melalui pengajuan kerja sama / kemitraan institusional (B2B / Kampus / Sekolah / Komunitas).
-                    </p>
-                  </div>
-                  <span className="self-start sm:self-center px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300/80 shrink-0">
-                    Kemitraan / Kerja Sama
-                  </span>
-                </div>
-              ) : (
+              ) : selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04" ? null : (
                 /* Asesmen (05): 2 Kartu Reguler */
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 sm:p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl">
