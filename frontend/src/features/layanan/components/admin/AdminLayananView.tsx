@@ -206,7 +206,7 @@ export default function AdminLayananView() {
     })
   }, [layananList, activeCategory, searchQuery])
 
-  const formatPrice = (val: any, fallbackStr: string = "Rp 0,00") => {
+  const formatPrice = (val: any, fallbackStr: string = "Rp 0") => {
     return formatRupiahStandard(val, fallbackStr)
   }
 
@@ -562,7 +562,7 @@ export default function AdminLayananView() {
       {/* ── DETAIL MODAL ── */}
       {selectedDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative border border-gray-100">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-7 shadow-xl relative border border-gray-100 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedDetail(null)}
               className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
@@ -618,61 +618,82 @@ export default function AdminLayananView() {
               {/* Detail Tarif Layanan */}
               {selectedDetail.kategoriId === "01" ? (
                 /* Khusus Konsultasi: 3 Kartu Terpisah Tenaga Ahli */
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <span className="text-xs font-bold text-[#561269] block">
                     Tarif Konsultasi per Tenaga Ahli
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* 1. Psikolog */}
-                    <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-xl space-y-1.5">
-                      <div className="flex items-center gap-1.5 font-bold text-xs text-[#561269]">
-                        <span className="w-2 h-2 rounded-full bg-[#561269]" />
-                        Psikolog
+                    <div className="p-3.5 bg-purple-50/70 border border-purple-200/80 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 font-bold text-xs text-[#561269]">
+                          <span className="w-2 h-2 rounded-full bg-[#561269]" />
+                          Psikolog
+                        </span>
+                        <span className="text-[10px] font-bold text-purple-700 bg-purple-100/90 px-1.5 py-0.5 rounded uppercase">
+                          Utama
+                        </span>
                       </div>
-                      <div className="text-[11px] text-gray-600 space-y-0.5">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Weekday:</span>
-                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.psikolog?.weekday, selectedDetail.weekday)}</span>
+                      <div className="space-y-1.5 pt-1 border-t border-purple-100/80 text-xs">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
+                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.psikolog?.weekday, selectedDetail.weekday)}
+                          </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Weekend:</span>
-                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.psikolog?.weekend, selectedDetail.weekend)}</span>
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
+                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.psikolog?.weekend, selectedDetail.weekend)}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     {/* 2. Konselor */}
-                    <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5">
-                      <div className="flex items-center gap-1.5 font-bold text-xs text-blue-700">
-                        <span className="w-2 h-2 rounded-full bg-blue-600" />
-                        Konselor
+                    <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 font-bold text-xs text-blue-700">
+                          <span className="w-2 h-2 rounded-full bg-blue-600" />
+                          Konselor
+                        </span>
                       </div>
-                      <div className="text-[11px] text-gray-600 space-y-0.5">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Weekday:</span>
-                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.konselor?.weekday, selectedDetail.weekday)}</span>
+                      <div className="space-y-1.5 pt-1 border-t border-blue-100/80 text-xs">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
+                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.konselor?.weekday, selectedDetail.weekday)}
+                          </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Weekend:</span>
-                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.konselor?.weekend, selectedDetail.weekend)}</span>
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
+                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.konselor?.weekend, selectedDetail.weekend)}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     {/* 3. Peer Konselor */}
-                    <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-1.5">
-                      <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-700">
-                        <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                        Peer Konselor
+                    <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 font-bold text-xs text-emerald-700">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                          Peer Konselor
+                        </span>
                       </div>
-                      <div className="text-[11px] text-gray-600 space-y-0.5">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Weekday:</span>
-                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.peer?.weekday, selectedDetail.weekday)}</span>
+                      <div className="space-y-1.5 pt-1 border-t border-emerald-100/80 text-xs">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
+                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.peer?.weekday, selectedDetail.weekday)}
+                          </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Weekend:</span>
-                          <span className="font-bold text-gray-900">{formatPrice(selectedDetail.tarif_tenaga_ahli?.peer?.weekend, selectedDetail.weekend)}</span>
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
+                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.peer?.weekend, selectedDetail.weekend)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -681,15 +702,15 @@ export default function AdminLayananView() {
               ) : (
                 /* Non-Konsultasi: 2 Kartu Reguler */
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl">
+                  <div className="p-3 sm:p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl">
                     <span className="text-xs text-purple-800 font-medium block">Tarif Weekday</span>
-                    <span className="font-bold text-[#561269] text-sm mt-1 block">
+                    <span className="font-bold text-[#561269] text-sm mt-1 block whitespace-nowrap tabular-nums">
                       {selectedDetail.weekday}
                     </span>
                   </div>
-                  <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl">
+                  <div className="p-3 sm:p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl">
                     <span className="text-xs text-purple-800 font-medium block">Tarif Weekend</span>
-                    <span className="font-bold text-[#561269] text-sm mt-1 block">
+                    <span className="font-bold text-[#561269] text-sm mt-1 block whitespace-nowrap tabular-nums">
                       {selectedDetail.weekend}
                     </span>
                   </div>
