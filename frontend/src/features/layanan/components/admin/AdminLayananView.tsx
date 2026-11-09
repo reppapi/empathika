@@ -118,26 +118,17 @@ export default function AdminLayananView() {
     router.replace(targetUrl as any, { scroll: false })
   }
 
-  // Ambil data layanan dari backend database, atau fallback data tersimpan
+  // Ambil data layanan murni dari database backend
   const fetchLayanan = async () => {
     setIsLoading(true)
     setIsError(false)
     try {
       const res: any = await layananService.getAll()
       const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      if (list.length > 0) {
-        setLayananList(list.map(mapBackendLayananToAdmin))
-      } else {
-        setLayananList(getStoredLayanan())
-      }
+      setLayananList(list.map(mapBackendLayananToAdmin))
     } catch (err) {
-      console.warn("Backend offline, menggunakan data layanan terdaftar:", err)
-      const local = getStoredLayanan()
-      if (local.length > 0) {
-        setLayananList(local)
-      } else {
-        setIsError(true)
-      }
+      console.warn("Gagal memuat layanan dari server database:", err)
+      setIsError(true)
     } finally {
       setIsLoading(false)
     }

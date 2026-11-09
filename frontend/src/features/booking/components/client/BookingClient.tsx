@@ -66,23 +66,7 @@ export default function BookingClient() {
     layananService
       .getAll({ kategori: "KONSULTASI" })
       .then((res: any) => {
-        let allConsultation = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-
-        // Fallback ke getStoredLayanan jika API kosong
-        if (allConsultation.length === 0) {
-          const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
-          allConsultation = stored.map((s) => ({
-            id: String(s.id),
-            nama: s.layanan,
-            kategori: "KONSULTASI",
-            metode: s.metode,
-            harga_weekday: s.weekday,
-            harga_weekend: s.weekend,
-            status: s.status,
-            aktif: s.status === "Aktif",
-            tarif_tenaga_ahli: s.tarif_tenaga_ahli,
-          }))
-        }
+        const allConsultation = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
 
         // Deteksi apakah ada item spesifik yang cocok dengan initialLayanan
         const targetByName = initialLayanan
@@ -93,19 +77,8 @@ export default function BookingClient() {
             )
           : null
 
-        // Periksa juga status di localStorage untuk konsistensi cepat antartab
-        const localTarget = initialLayanan
-          ? getStoredLayanan().find(
-              (l) =>
-                l.kategoriId === "01" &&
-                (l.layanan.toLowerCase().includes(initialLayanan.toLowerCase()) ||
-                  initialLayanan.toLowerCase().includes(l.layanan.toLowerCase()))
-            )
-          : null
-
         const isTargetExplicitlyNonaktif =
-          (targetByName && (targetByName.aktif === false || targetByName.status === "Nonaktif")) ||
-          (localTarget && localTarget.status === "Nonaktif")
+          targetByName && (targetByName.aktif === false || targetByName.status === "Nonaktif")
 
         const activeList = allConsultation.filter(
           (l: any) => l.aktif !== false && l.status !== "Nonaktif"
@@ -113,7 +86,7 @@ export default function BookingClient() {
 
         if (isTargetExplicitlyNonaktif) {
           setIsLayananNonaktif(true)
-          setNamaLayananTerpilih(targetByName?.nama || localTarget?.layanan || initialLayanan)
+          setNamaLayananTerpilih(targetByName?.nama || initialLayanan)
         } else if (initialLayanan && !targetByName && activeList.length === 0 && allConsultation.length > 0) {
           setIsLayananNonaktif(true)
           setNamaLayananTerpilih(initialLayanan)

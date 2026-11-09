@@ -41,43 +41,10 @@ export default function KonselingClient() {
       setIsError(false)
       const res = await layananService.getAll({ kategori: "KONSULTASI" })
       const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      let list: any[] = raw
-      if (list.length === 0) {
-        const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
-        list = stored.map((s) => ({
-          id: String(s.id),
-          nama: s.layanan,
-          kategori: "KONSULTASI",
-          metode: s.metode,
-          harga_weekday: s.weekday,
-          harga_weekend: s.weekend,
-          status: s.status,
-          aktif: s.status === "Aktif",
-          deskripsi: s.deskripsi,
-          tarif_tenaga_ahli: s.tarif_tenaga_ahli,
-        }))
-      }
-      setLayananList(list as any)
+      setLayananList(raw)
     } catch (err) {
       console.error("Gagal mengambil data layanan konsultasi:", err)
-      const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
-      const list = stored.map((s) => ({
-        id: String(s.id),
-        nama: s.layanan,
-        kategori: "KONSULTASI",
-        metode: s.metode,
-        harga_weekday: s.weekday,
-        harga_weekend: s.weekend,
-        status: s.status,
-        aktif: s.status === "Aktif",
-        deskripsi: s.deskripsi,
-        tarif_tenaga_ahli: s.tarif_tenaga_ahli,
-      }))
-      if (list.length > 0) {
-        setLayananList(list as any)
-      } else {
-        setIsError(true)
-      }
+      setIsError(true)
     } finally {
       setIsLoading(false)
     }

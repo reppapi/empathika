@@ -30,40 +30,10 @@ export default function LayananClient() {
       setIsLayananError(false)
       const res = await layananService.getAll()
       const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      if (list.length > 0) {
-        setLiveLayanan(list)
-      } else {
-        const local = getStoredLayanan().map((it) => ({
-          id: String(it.id),
-          nama: it.layanan,
-          kategori: it.kategoriId === "05" ? "ASESMEN" : "KONSULTASI",
-          metode: it.metode,
-          harga_weekday: parseInt(it.weekday.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10),
-          harga_weekend: parseInt(it.weekend.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10),
-          deskripsi: it.deskripsi,
-          banner_url: it.bannerUrl,
-          aktif: it.status === "Aktif",
-        }))
-        setLiveLayanan(local as any)
-      }
+      setLiveLayanan(list)
     } catch (err) {
-      console.warn("Backend offline, menggunakan data layanan terdaftar:", err)
-      const local = getStoredLayanan().map((it) => ({
-        id: String(it.id),
-        nama: it.layanan,
-        kategori: it.kategoriId === "05" ? "ASESMEN" : "KONSULTASI",
-        metode: it.metode,
-        harga_weekday: parseInt(it.weekday.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10),
-        harga_weekend: parseInt(it.weekend.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10),
-        deskripsi: it.deskripsi,
-        banner_url: it.bannerUrl,
-        aktif: it.status === "Aktif",
-      }))
-      if (local.length > 0) {
-        setLiveLayanan(local as any)
-      } else {
-        setIsLayananError(true)
-      }
+      console.warn("Gagal memuat layanan dari server database:", err)
+      setIsLayananError(true)
     } finally {
       setLoadingLayanan(false)
     }

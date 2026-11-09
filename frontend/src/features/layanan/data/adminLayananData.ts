@@ -17,20 +17,7 @@ export interface AdminLayananItem {
   } | null
 }
 
-export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
-  {
-    id: 1,
-    layanan: "Asesmen Minat Bakat",
-    kategoriId: "05",
-    metode: "Online/Offline",
-    weekday: "Rp 400.000,00",
-    weekend: "Rp 500.000,00",
-    status: "Aktif",
-    deskripsi:
-      "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu secara terstandar.",
-    bannerUrl: "",
-  },
-]
+export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = []
 
 const STORAGE_KEY = "empathika_admin_layanan_data"
 
