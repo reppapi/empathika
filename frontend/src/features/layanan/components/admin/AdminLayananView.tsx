@@ -277,11 +277,47 @@ export default function AdminLayananView() {
           className: "whitespace-nowrap",
           render: (item: AdminLayananItem) => {
             const t = item.tarif_tenaga_ahli
-            const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
+            if (isKonsultasi) {
+              const activeExperts: { label: string; weekday: any; weekend: any }[] = []
+              if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) {
+                activeExperts.push({ label: "Psikolog", weekday: t.psikolog.weekday, weekend: t.psikolog.weekend })
+              }
+              if (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)) {
+                activeExperts.push({ label: "Konselor", weekday: t.konselor.weekday, weekend: t.konselor.weekend })
+              }
+              if (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)) {
+                activeExperts.push({ label: "Peer", weekday: t.peer.weekday, weekend: t.peer.weekend })
+              }
+
+              if (activeExperts.length === 0) {
+                return (
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
+                    {formatPrice(item.weekday)}
+                  </span>
+                )
+              }
+
+              const first = activeExperts[0]
+              return (
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                    {formatPrice(first.weekday, item.weekday)}
+                  </span>
+                  <span className="text-[10px] font-bold text-[#561269] bg-purple-100 px-1.5 py-0.5 rounded">
+                    {first.label}
+                  </span>
+                  {activeExperts.length > 1 && (
+                    <span className="text-[10px] text-gray-500 font-semibold" title={`${activeExperts.length} tenaga ahli tersedia`}>
+                      +{activeExperts.length - 1}
+                    </span>
+                  )}
+                </div>
+              )
+            }
 
             return (
               <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
-                {isKonsultasi ? psiWd : formatRupiahStandard(item.weekday)}
+                {formatRupiahStandard(item.weekday)}
               </span>
             )
           },
@@ -293,11 +329,47 @@ export default function AdminLayananView() {
           className: "whitespace-nowrap",
           render: (item: AdminLayananItem) => {
             const t = item.tarif_tenaga_ahli
-            const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
+            if (isKonsultasi) {
+              const activeExperts: { label: string; weekday: any; weekend: any }[] = []
+              if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) {
+                activeExperts.push({ label: "Psikolog", weekday: t.psikolog.weekday, weekend: t.psikolog.weekend })
+              }
+              if (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)) {
+                activeExperts.push({ label: "Konselor", weekday: t.konselor.weekday, weekend: t.konselor.weekend })
+              }
+              if (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)) {
+                activeExperts.push({ label: "Peer", weekday: t.peer.weekday, weekend: t.peer.weekend })
+              }
+
+              if (activeExperts.length === 0) {
+                return (
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
+                    {formatPrice(item.weekend)}
+                  </span>
+                )
+              }
+
+              const first = activeExperts[0]
+              return (
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                    {formatPrice(first.weekend, item.weekend)}
+                  </span>
+                  <span className="text-[10px] font-bold text-[#561269] bg-purple-100 px-1.5 py-0.5 rounded">
+                    {first.label}
+                  </span>
+                  {activeExperts.length > 1 && (
+                    <span className="text-[10px] text-gray-500 font-semibold" title={`${activeExperts.length} tenaga ahli tersedia`}>
+                      +{activeExperts.length - 1}
+                    </span>
+                  )}
+                </div>
+              )
+            }
 
             return (
               <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
-                {isKonsultasi ? psiWk : formatRupiahStandard(item.weekend)}
+                {formatRupiahStandard(item.weekend)}
               </span>
             )
           },
@@ -456,12 +528,118 @@ export default function AdminLayananView() {
               if (!isKonsultasi || expandedRowId !== item.id) return null
 
               const t = item.tarif_tenaga_ahli
-              const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
-              const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
-              const konWd = formatPrice(t?.konselor?.weekday, item.weekday)
-              const konWk = formatPrice(t?.konselor?.weekend, item.weekend)
-              const peerWd = formatPrice(t?.peer?.weekday, item.weekday)
-              const peerWk = formatPrice(t?.peer?.weekend, item.weekend)
+              const cards: React.ReactNode[] = []
+
+              // 1. Psikolog
+              if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) {
+                cards.push(
+                  <div key="psikolog" className="p-3.5 bg-purple-50/60 border border-purple-200/80 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-[#561269] flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#561269]" />
+                        Psikolog
+                      </span>
+                      <span className="text-[10px] font-bold text-purple-700 bg-purple-100/90 px-2 py-0.5 rounded-md uppercase">
+                        Tersedia
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 pt-1 border-t border-purple-100 text-xs">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
+                        <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">
+                          {formatPrice(t.psikolog.weekday, item.weekday)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
+                        <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">
+                          {formatPrice(t.psikolog.weekend, item.weekend)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              // 2. Konselor
+              if (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)) {
+                cards.push(
+                  <div key="konselor" className="p-3.5 bg-blue-50/60 border border-blue-200/80 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-blue-700 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-600" />
+                        Konselor
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md uppercase">
+                        Tersedia
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 pt-1 border-t border-blue-100 text-xs">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
+                        <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">
+                          {formatPrice(t.konselor.weekday, item.weekday)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
+                        <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">
+                          {formatPrice(t.konselor.weekend, item.weekend)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              // 3. Peer Helper
+              if (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)) {
+                cards.push(
+                  <div key="peer" className="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-emerald-700 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                        Peer Helper
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md uppercase">
+                        Tersedia
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 pt-1 border-t border-emerald-100 text-xs">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
+                        <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">
+                          {formatPrice(t.peer.weekday, item.weekday)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
+                        <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">
+                          {formatPrice(t.peer.weekend, item.weekend)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              if (cards.length === 0) {
+                cards.push(
+                  <div key="default" className="p-3.5 bg-purple-50/60 border border-purple-200/80 rounded-xl space-y-2">
+                    <span className="text-xs font-extrabold text-[#561269]">Tarif Konsultasi</span>
+                    <div className="space-y-1.5 pt-1 border-t border-purple-100 text-xs">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 text-[11px]">Tarif Weekday:</span>
+                        <span className="font-extrabold text-gray-900">{formatPrice(item.weekday)}</span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 text-[11px]">Tarif Weekend:</span>
+                        <span className="font-extrabold text-gray-900">{formatPrice(item.weekend)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
 
               return (
                 <div className="py-2.5 px-2 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -470,7 +648,7 @@ export default function AdminLayananView() {
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-[#561269]" />
                         <span className="text-xs sm:text-sm font-extrabold text-gray-900">
-                          Rincian Tarif Lengkap per Tenaga Ahli &bull; {item.layanan}
+                          Rincian Tarif Tenaga Ahli yang Tersedia &bull; {item.layanan} ({cards.length} Tenaga Ahli)
                         </span>
                       </div>
                       <span className="text-[11px] text-gray-400 font-medium">
@@ -478,69 +656,8 @@ export default function AdminLayananView() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {/* 1. Psikolog */}
-                      <div className="p-3.5 bg-purple-50/60 border border-purple-200/80 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-extrabold text-[#561269] flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-[#561269]" />
-                            Psikolog
-                          </span>
-                          <span className="text-[10px] font-bold text-purple-700 bg-purple-100/90 px-2 py-0.5 rounded-md uppercase">
-                            Utama
-                          </span>
-                        </div>
-                        <div className="space-y-1.5 pt-1 border-t border-purple-100 text-xs">
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{psiWd}</span>
-                          </div>
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{psiWk}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 2. Konselor */}
-                      <div className="p-3.5 bg-blue-50/60 border border-blue-200/80 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-extrabold text-blue-700 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-blue-600" />
-                            Konselor
-                          </span>
-                        </div>
-                        <div className="space-y-1.5 pt-1 border-t border-blue-100 text-xs">
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{konWd}</span>
-                          </div>
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{konWk}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 3. Peer Helper */}
-                      <div className="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-extrabold text-emerald-700 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                            Peer Helper
-                          </span>
-                        </div>
-                        <div className="space-y-1.5 pt-1 border-t border-emerald-100 text-xs">
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{peerWd}</span>
-                          </div>
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{peerWk}</span>
-                          </div>
-                        </div>
-                      </div>
+                    <div className={`grid grid-cols-1 ${cards.length === 1 ? "sm:grid-cols-1 max-w-sm" : cards.length === 2 ? "sm:grid-cols-2 max-w-2xl" : "sm:grid-cols-3"} gap-3`}>
+                      {cards}
                     </div>
                   </div>
                 </div>
@@ -608,88 +725,130 @@ export default function AdminLayananView() {
 
               {/* Detail Tarif Layanan */}
               {selectedDetail.kategoriId === "01" ? (
-                /* Khusus Konsultasi: 3 Kartu Terpisah Tenaga Ahli */
-                <div className="space-y-2.5">
-                  <span className="text-xs font-bold text-[#561269] block">
-                    Tarif Konsultasi per Tenaga Ahli
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* 1. Psikolog */}
-                    <div className="p-3.5 bg-purple-50/70 border border-purple-200/80 rounded-xl space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 font-bold text-xs text-[#561269]">
-                          <span className="w-2 h-2 rounded-full bg-[#561269]" />
-                          Psikolog
-                        </span>
-                        <span className="text-[10px] font-bold text-purple-700 bg-purple-100/90 px-1.5 py-0.5 rounded uppercase">
-                          Utama
-                        </span>
-                      </div>
-                      <div className="space-y-1.5 pt-1 border-t border-purple-100/80 text-xs">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
-                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
-                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.psikolog?.weekday, selectedDetail.weekday)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
-                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
-                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.psikolog?.weekend, selectedDetail.weekend)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                /* Khusus Konsultasi: Hanya Tampilkan Tenaga Ahli yang Diisi Tarifnya */
+                (() => {
+                  const t = selectedDetail.tarif_tenaga_ahli
+                  const detailCards: React.ReactNode[] = []
 
-                    {/* 2. Konselor */}
-                    <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 font-bold text-xs text-blue-700">
-                          <span className="w-2 h-2 rounded-full bg-blue-600" />
-                          Konselor
-                        </span>
-                      </div>
-                      <div className="space-y-1.5 pt-1 border-t border-blue-100/80 text-xs">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
-                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
-                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.konselor?.weekday, selectedDetail.weekday)}
+                  if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) {
+                    detailCards.push(
+                      <div key="psikolog" className="p-3.5 bg-purple-50/70 border border-purple-200/80 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 font-bold text-xs text-[#561269]">
+                            <span className="w-2 h-2 rounded-full bg-[#561269]" />
+                            Psikolog
+                          </span>
+                          <span className="text-[10px] font-bold text-purple-700 bg-purple-100/90 px-1.5 py-0.5 rounded uppercase">
+                            Tersedia
                           </span>
                         </div>
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
-                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
-                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.konselor?.weekend, selectedDetail.weekend)}
-                          </span>
+                        <div className="space-y-1.5 pt-1 border-t border-purple-100/80 text-xs">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                              {formatPrice(t.psikolog.weekday, selectedDetail.weekday)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                              {formatPrice(t.psikolog.weekend, selectedDetail.weekend)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )
+                  }
 
-                    {/* 3. Peer Konselor */}
-                    <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 font-bold text-xs text-emerald-700">
-                          <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                          Peer Konselor
-                        </span>
+                  if (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)) {
+                    detailCards.push(
+                      <div key="konselor" className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 font-bold text-xs text-blue-700">
+                            <span className="w-2 h-2 rounded-full bg-blue-600" />
+                            Konselor
+                          </span>
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded uppercase">
+                            Tersedia
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 pt-1 border-t border-blue-100/80 text-xs">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                              {formatPrice(t.konselor.weekday, selectedDetail.weekday)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                              {formatPrice(t.konselor.weekend, selectedDetail.weekend)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-1.5 pt-1 border-t border-emerald-100/80 text-xs">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
-                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
-                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.peer?.weekday, selectedDetail.weekday)}
+                    )
+                  }
+
+                  if (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)) {
+                    detailCards.push(
+                      <div key="peer" className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 font-bold text-xs text-emerald-700">
+                            <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                            Peer Konselor
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">
+                            Tersedia
                           </span>
                         </div>
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
-                          <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
-                            {formatPrice(selectedDetail.tarif_tenaga_ahli?.peer?.weekend, selectedDetail.weekend)}
-                          </span>
+                        <div className="space-y-1.5 pt-1 border-t border-emerald-100/80 text-xs">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-gray-500 text-[11px] shrink-0">Weekday:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                              {formatPrice(t.peer.weekday, selectedDetail.weekday)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-gray-500 text-[11px] shrink-0">Weekend:</span>
+                            <span className="font-bold text-gray-900 whitespace-nowrap tabular-nums text-right text-xs">
+                              {formatPrice(t.peer.weekend, selectedDetail.weekend)}
+                            </span>
+                          </div>
                         </div>
+                      </div>
+                    )
+                  }
+
+                  if (detailCards.length === 0) {
+                    detailCards.push(
+                      <div key="default" className="p-3.5 bg-purple-50/70 border border-purple-200/80 rounded-xl space-y-2">
+                        <span className="font-bold text-xs text-[#561269]">Tarif Layanan</span>
+                        <div className="space-y-1.5 pt-1 border-t border-purple-100/80 text-xs">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-gray-500 text-[11px]">Weekday:</span>
+                            <span className="font-bold text-gray-900">{formatPrice(selectedDetail.weekday)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-gray-500 text-[11px]">Weekend:</span>
+                            <span className="font-bold text-gray-900">{formatPrice(selectedDetail.weekend)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold text-[#561269] block">
+                        Tarif Konsultasi per Tenaga Ahli ({detailCards.length} Tenaga Ahli Tersedia)
+                      </span>
+                      <div className={`grid grid-cols-1 ${detailCards.length === 1 ? "sm:grid-cols-1 max-w-sm" : detailCards.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-3`}>
+                        {detailCards}
                       </div>
                     </div>
-                  </div>
-                </div>
+                  )
+                })()
               ) : selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04" ? null : (
                 /* Asesmen (05): 2 Kartu Reguler */
                 <div className="grid grid-cols-2 gap-3">
