@@ -23,39 +23,11 @@ export default function PsikologPage() {
       .getList()
       .then((dbList: any[]) => {
         const mappedFromDb = Array.isArray(dbList) ? dbList.map(mapDbPsikologToUI) : []
-
-        // Sinkronisasi data lokal dari localStorage (agar tenaga ahli yang baru ditambah langsung tampil)
-        let combined = mappedFromDb
-        try {
-          const saved = typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA) : null
-          if (saved) {
-            const localList: TenagaAhli[] = JSON.parse(saved)
-            const dbIds = new Set(mappedFromDb.map((m) => m.id))
-            const dbEmails = new Set(mappedFromDb.map((m) => m.email?.toLowerCase()).filter(Boolean))
-
-            const localOnly = localList
-              .filter((loc) => !['0', '1', '2', '3', '4'].includes(loc.id) && !loc.email?.endsWith('@empathika.test') && !dbIds.has(loc.id) && (!loc.email || !dbEmails.has(loc.email.toLowerCase())) && loc.statusAkses !== "NONAKTIF" && (loc as any).status !== "INACTIVE")
-              .map((loc) => mapDbPsikologToUI(loc))
-
-            combined = [...mappedFromDb, ...localOnly]
-          }
-        } catch {}
-
-        setDataPsikolog(combined)
+        setDataPsikolog(mappedFromDb)
       })
       .catch((err) => {
         console.error("Gagal mengambil data psikolog dari database:", err)
-        // Fallback ke localStorage jika API backend belum terhubung
-        try {
-          const saved = typeof window !== "undefined" ? localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA) : null
-          if (saved) {
-            const localList: TenagaAhli[] = JSON.parse(saved)
-            const activeOnly = localList
-              .filter((loc) => !['0', '1', '2', '3', '4'].includes(loc.id) && !loc.email?.endsWith('@empathika.test') && loc.statusAkses !== "NONAKTIF" && (loc as any).status !== "INACTIVE")
-              .map((loc) => mapDbPsikologToUI(loc))
-            setDataPsikolog(activeOnly)
-          }
-        } catch {}
+        setDataPsikolog([])
       })
       .finally(() => {
         setIsLoading(false)
