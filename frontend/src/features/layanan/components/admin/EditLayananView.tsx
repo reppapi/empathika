@@ -260,6 +260,15 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     const isKonsultasi = selectedCategory === "01"
     const isPartnership = selectedCategory === "03" || selectedCategory === "04"
 
+    if (selectedCategory === "05") {
+      const wd = parseRupiahNumber(hargaWeekday)
+      const wk = parseRupiahNumber(hargaWeekend)
+      if (wd === 0 && wk === 0) {
+        alert("Layanan asesmen wajib diisi tarifnya minimal salah satu (Weekday atau Weekend).")
+        return
+      }
+    }
+
     let tarifTenagaAhli: any = null
     let activeExpert: { weekday: number; weekend: number } | null = null
 
@@ -764,7 +773,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   value={hargaWeekday}
                   onChange={setHargaWeekday}
                   placeholder="350.000"
-                  required={true}
+                  required={false}
                 />
                 <span className={helperClass}>Tarif sesi pada hari kerja reguler (contoh: 350.000)</span>
               </div>
@@ -777,7 +786,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   value={hargaWeekend}
                   onChange={setHargaWeekend}
                   placeholder="450.000"
-                  required={true}
+                  required={false}
                 />
                 <span className={helperClass}>Tarif sesi pada akhir pekan (contoh: 450.000)</span>
               </div>

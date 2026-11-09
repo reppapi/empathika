@@ -148,6 +148,15 @@ export default function TambahLayananView() {
     const isKonsultasi = selectedCategory === "01"
     const isPartnership = selectedCategory === "03" || selectedCategory === "04"
 
+    if (selectedCategory === "05") {
+      const wd = parseRupiahNumber(hargaWeekday)
+      const wk = parseRupiahNumber(hargaWeekend)
+      if (wd === 0 && wk === 0) {
+        alert("Layanan asesmen wajib diisi tarifnya minimal salah satu (Weekday atau Weekend).")
+        return
+      }
+    }
+
     let tarifTenagaAhli: any = null
     let activeExpert: { weekday: number; weekend: number } | null = null
 
@@ -603,7 +612,7 @@ export default function TambahLayananView() {
                   value={hargaWeekday}
                   onChange={setHargaWeekday}
                   placeholder="350.000"
-                  required={true}
+                  required={false}
                 />
               </div>
 
@@ -614,7 +623,7 @@ export default function TambahLayananView() {
                   value={hargaWeekend}
                   onChange={setHargaWeekend}
                   placeholder="450.000"
-                  required={true}
+                  required={false}
                 />
               </div>
             </div>
