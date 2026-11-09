@@ -64,7 +64,7 @@ function PriceInputField({
   value,
   onChange,
   placeholder = "350.000",
-  required = true,
+  required = false,
 }: PriceInputFieldProps) {
   return (
     <div className="flex rounded-lg shadow-2xs overflow-hidden border border-gray-300 focus-within:border-[#561269] focus-within:ring-1 focus-within:ring-[#561269] transition-all bg-white">
@@ -419,7 +419,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
           {/* ── Baris 1: Banner / Poster Layanan ── */}
           <div>
             <label className={labelClass}>Banner / Poster Layanan</label>
@@ -646,6 +646,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                           value={tarifPsikologWeekday}
                           onChange={setTarifPsikologWeekday}
                           placeholder="350.000"
+                          required={false}
                         />
                       </div>
                       <div>
@@ -656,6 +657,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                           value={tarifPsikologWeekend}
                           onChange={setTarifPsikologWeekend}
                           placeholder="450.000"
+                          required={false}
                         />
                       </div>
                     </div>
@@ -688,6 +690,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                           value={tarifKonselorWeekday}
                           onChange={setTarifKonselorWeekday}
                           placeholder="250.000"
+                          required={false}
                         />
                       </div>
                       <div>
@@ -698,6 +701,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                           value={tarifKonselorWeekend}
                           onChange={setTarifKonselorWeekend}
                           placeholder="350.000"
+                          required={false}
                         />
                       </div>
                     </div>
@@ -730,6 +734,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                           value={tarifPeerWeekday}
                           onChange={setTarifPeerWeekday}
                           placeholder="150.000"
+                          required={false}
                         />
                       </div>
                       <div>
@@ -740,6 +745,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                           value={tarifPeerWeekend}
                           onChange={setTarifPeerWeekend}
                           placeholder="200.000"
+                          required={false}
                         />
                       </div>
                     </div>
@@ -758,6 +764,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   value={hargaWeekday}
                   onChange={setHargaWeekday}
                   placeholder="350.000"
+                  required={true}
                 />
                 <span className={helperClass}>Tarif sesi pada hari kerja reguler (contoh: 350.000)</span>
               </div>
@@ -770,6 +777,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   value={hargaWeekend}
                   onChange={setHargaWeekend}
                   placeholder="450.000"
+                  required={true}
                 />
                 <span className={helperClass}>Tarif sesi pada akhir pekan (contoh: 450.000)</span>
               </div>

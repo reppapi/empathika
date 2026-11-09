@@ -48,7 +48,7 @@ function PriceInputField({
   value,
   onChange,
   placeholder = "350.000",
-  required = true,
+  required = false,
 }: PriceInputFieldProps) {
   return (
     <div className="flex rounded-lg shadow-2xs overflow-hidden border border-gray-300 focus-within:border-[#561269] focus-within:ring-1 focus-within:ring-[#561269] transition-all bg-white">
@@ -276,7 +276,7 @@ export default function TambahLayananView() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* Kategori Layanan & Status Layanan */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -430,6 +430,7 @@ export default function TambahLayananView() {
                           value={tarifPsikologWeekday}
                           onChange={setTarifPsikologWeekday}
                           placeholder="350.000"
+                          required={false}
                         />
                       </div>
                       <div>
@@ -440,6 +441,7 @@ export default function TambahLayananView() {
                           value={tarifPsikologWeekend}
                           onChange={setTarifPsikologWeekend}
                           placeholder="450.000"
+                          required={false}
                         />
                       </div>
                     </div>
@@ -472,6 +474,7 @@ export default function TambahLayananView() {
                           value={tarifKonselorWeekday}
                           onChange={setTarifKonselorWeekday}
                           placeholder="250.000"
+                          required={false}
                         />
                       </div>
                       <div>
@@ -482,6 +485,7 @@ export default function TambahLayananView() {
                           value={tarifKonselorWeekend}
                           onChange={setTarifKonselorWeekend}
                           placeholder="350.000"
+                          required={false}
                         />
                       </div>
                     </div>
@@ -514,6 +518,7 @@ export default function TambahLayananView() {
                           value={tarifPeerWeekday}
                           onChange={setTarifPeerWeekday}
                           placeholder="150.000"
+                          required={false}
                         />
                       </div>
                       <div>
@@ -524,6 +529,7 @@ export default function TambahLayananView() {
                           value={tarifPeerWeekend}
                           onChange={setTarifPeerWeekend}
                           placeholder="200.000"
+                          required={false}
                         />
                       </div>
                     </div>
@@ -597,6 +603,7 @@ export default function TambahLayananView() {
                   value={hargaWeekday}
                   onChange={setHargaWeekday}
                   placeholder="350.000"
+                  required={true}
                 />
               </div>
 
@@ -607,6 +614,7 @@ export default function TambahLayananView() {
                   value={hargaWeekend}
                   onChange={setHargaWeekend}
                   placeholder="450.000"
+                  required={true}
                 />
               </div>
             </div>
