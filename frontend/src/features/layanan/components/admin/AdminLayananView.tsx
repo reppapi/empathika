@@ -229,7 +229,7 @@ export default function AdminLayananView() {
         render: (item: AdminLayananItem) => {
           const isExpanded = expandedRowId === item.id
           return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {isKonsultasi && (
                 <button
                   type="button"
@@ -237,17 +237,27 @@ export default function AdminLayananView() {
                     e.stopPropagation()
                     toggleExpand(item.id)
                   }}
-                  className={`p-1 rounded-md transition-all cursor-pointer ${
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer shrink-0 border ${
                     isExpanded
-                      ? "bg-[#561269] text-white rotate-180"
-                      : "bg-purple-50 text-[#561269] hover:bg-purple-100"
+                      ? "bg-[#561269] text-white border-[#561269] shadow-xs"
+                      : "bg-purple-50 text-[#561269] hover:bg-purple-100 hover:border-purple-300 border-purple-200/80 shadow-2xs"
                   }`}
-                  title={isExpanded ? "Tutup rincian tarif" : "Buka rincian tarif 3 tenaga ahli"}
+                  title={isExpanded ? "Tutup rincian tarif tenaga ahli" : "Buka rincian tarif 3 tenaga ahli"}
                 >
-                  <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" />
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
               )}
-              <span className="font-extrabold text-gray-900 leading-tight">
+              <span
+                onClick={() => isKonsultasi && toggleExpand(item.id)}
+                className={`font-extrabold text-gray-900 leading-tight ${
+                  isKonsultasi ? "cursor-pointer hover:text-[#561269] transition-colors" : ""
+                }`}
+                title={isKonsultasi ? (isExpanded ? "Tutup rincian tarif" : "Klik untuk buka rincian tarif") : undefined}
+              >
                 {item.layanan}
               </span>
             </div>
@@ -328,24 +338,8 @@ export default function AdminLayananView() {
         header: "Aksi",
         align: "center",
         render: (item: AdminLayananItem) => {
-          const isExpanded = expandedRowId === item.id
           return (
             <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-              {isKonsultasi && (
-                <button
-                  type="button"
-                  onClick={() => toggleExpand(item.id)}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-                    isExpanded
-                      ? "bg-[#561269] text-white shadow-xs"
-                      : "bg-purple-50 text-[#561269] hover:bg-purple-100 border border-purple-200/80"
-                  }`}
-                  title={isExpanded ? "Tutup rincian tarif" : "Buka rincian tarif 3 tenaga ahli"}
-                >
-                  <span>Tarif</span>
-                  <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                </button>
-              )}
               <ActionButtonDetail
                 onClick={() => setSelectedDetail(item)}
                 title="Lihat Detail"
@@ -458,7 +452,7 @@ export default function AdminLayananView() {
           <AdminDataTable
             columns={columns}
             data={filteredLayanan}
-            minWidth={isKonsultasi ? "880px" : "760px"}
+            minWidth={isKonsultasi ? "800px" : "760px"}
             keyExtractor={(item: AdminLayananItem) => item.id}
             emptyMessage="Tidak ada layanan yang ditemukan dalam kategori ini."
             renderSubRow={(item: AdminLayananItem) => {
@@ -500,13 +494,13 @@ export default function AdminLayananView() {
                           </span>
                         </div>
                         <div className="space-y-1.5 pt-1 border-t border-purple-100 text-xs">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500 text-[11px]">Tarif Weekday:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums">{psiWd}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{psiWd}</span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500 text-[11px]">Tarif Weekend:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums">{psiWk}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{psiWk}</span>
                           </div>
                         </div>
                       </div>
@@ -520,13 +514,13 @@ export default function AdminLayananView() {
                           </span>
                         </div>
                         <div className="space-y-1.5 pt-1 border-t border-blue-100 text-xs">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500 text-[11px]">Tarif Weekday:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums">{konWd}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{konWd}</span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500 text-[11px]">Tarif Weekend:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums">{konWk}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{konWk}</span>
                           </div>
                         </div>
                       </div>
@@ -540,13 +534,13 @@ export default function AdminLayananView() {
                           </span>
                         </div>
                         <div className="space-y-1.5 pt-1 border-t border-emerald-100 text-xs">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500 text-[11px]">Tarif Weekday:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums">{peerWd}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekday:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{peerWd}</span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500 text-[11px]">Tarif Weekend:</span>
-                            <span className="font-extrabold text-gray-900 tabular-nums">{peerWk}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-gray-500 text-[11px] shrink-0">Tarif Weekend:</span>
+                            <span className="font-extrabold text-gray-900 tabular-nums whitespace-nowrap">{peerWk}</span>
                           </div>
                         </div>
                       </div>
