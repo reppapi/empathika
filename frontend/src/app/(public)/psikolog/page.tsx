@@ -34,7 +34,7 @@ export default function PsikologPage() {
             const dbEmails = new Set(mappedFromDb.map((m) => m.email?.toLowerCase()).filter(Boolean))
 
             const localOnly = localList
-              .filter((loc) => !dbIds.has(loc.id) && (!loc.email || !dbEmails.has(loc.email.toLowerCase())) && loc.statusAkses !== "NONAKTIF" && (loc as any).status !== "INACTIVE")
+              .filter((loc) => !['0', '1', '2', '3', '4'].includes(loc.id) && !loc.email?.endsWith('@empathika.test') && !dbIds.has(loc.id) && (!loc.email || !dbEmails.has(loc.email.toLowerCase())) && loc.statusAkses !== "NONAKTIF" && (loc as any).status !== "INACTIVE")
               .map((loc) => mapDbPsikologToUI(loc))
 
             combined = [...mappedFromDb, ...localOnly]
@@ -51,7 +51,7 @@ export default function PsikologPage() {
           if (saved) {
             const localList: TenagaAhli[] = JSON.parse(saved)
             const activeOnly = localList
-              .filter((loc) => loc.statusAkses !== "NONAKTIF" && (loc as any).status !== "INACTIVE")
+              .filter((loc) => !['0', '1', '2', '3', '4'].includes(loc.id) && !loc.email?.endsWith('@empathika.test') && loc.statusAkses !== "NONAKTIF" && (loc as any).status !== "INACTIVE")
               .map((loc) => mapDbPsikologToUI(loc))
             setDataPsikolog(activeOnly)
           }

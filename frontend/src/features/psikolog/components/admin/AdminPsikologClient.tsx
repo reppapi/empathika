@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, StatusAkses, KategoriTenaga } from "../../types"
-import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import {
   ActionButtonDetail,
@@ -37,7 +37,7 @@ export default function AdminPsikologClient() {
   const refreshPsikologList = async () => {
     try {
       const dbList = await psikologService.getList({ status: "ALL" })
-      if (dbList && dbList.length > 0) {
+      if (Array.isArray(dbList)) {
         const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
         const localList: TenagaAhli[] = saved ? JSON.parse(saved) : []
 
@@ -100,13 +100,9 @@ export default function AdminPsikologClient() {
           }
         })
 
-        const dbIds = new Set(mapped.map((m) => m.id))
-        const localOnly = localList.filter((loc) => !dbIds.has(loc.id))
-        const combined = [...localOnly, ...mapped]
-
-        setDataList(combined)
-        localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(combined))
-        return combined
+        setDataList(mapped)
+        localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(mapped))
+        return mapped
       }
     } catch {
       // Offline fallback
@@ -116,8 +112,11 @@ export default function AdminPsikologClient() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        setDataList(parsed)
-        return parsed
+        const cleaned = Array.isArray(parsed)
+          ? parsed.filter((p: any) => !['0', '1', '2', '3', '4'].includes(p.id) && !p.email?.endsWith('@empathika.test'))
+          : []
+        setDataList(cleaned)
+        return cleaned
       } catch {
         setDataList([])
       }

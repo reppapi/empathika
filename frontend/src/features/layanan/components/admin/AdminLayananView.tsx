@@ -282,16 +282,9 @@ export default function AdminLayananView() {
           const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
 
           return (
-            <div className="flex items-center gap-2 whitespace-nowrap">
-              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
-                {isKonsultasi ? psiWd : formatRupiahStandard(item.weekday)}
-              </span>
-              {isKonsultasi && (
-                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/70 whitespace-nowrap shrink-0">
-                  Psikolog
-                </span>
-              )}
-            </div>
+            <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
+              {isKonsultasi ? psiWd : formatRupiahStandard(item.weekday)}
+            </span>
           )
         },
       },
@@ -309,16 +302,9 @@ export default function AdminLayananView() {
           const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
 
           return (
-            <div className="flex items-center gap-2 whitespace-nowrap">
-              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
-                {isKonsultasi ? psiWk : formatRupiahStandard(item.weekend)}
-              </span>
-              {isKonsultasi && (
-                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/70 whitespace-nowrap shrink-0">
-                  Psikolog
-                </span>
-              )}
-            </div>
+            <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
+              {isKonsultasi ? psiWk : formatRupiahStandard(item.weekend)}
+            </span>
           )
         },
       },

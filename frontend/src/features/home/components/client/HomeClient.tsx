@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 
-import { DATA_PSIKOLOG_DUMMY } from '@/features/psikolog/dummy'
 import { PsikologCard } from '@/features/psikolog/components/client/PsikologCard'
 import { HERO_SLIDES } from '../../data/homeData'
 import { useHomeSlider } from '../../hooks/useHomeSlider'
@@ -27,7 +26,7 @@ export default function HomeClient() {
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
   const [loadingPsikotes, setLoadingPsikotes] = useState(true)
-  const [psychologists, setPsychologists] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
+  const [psychologists, setPsychologists] = useState<PsikologUI[]>([])
   const [loadingPsychologists, setLoadingPsychologists] = useState(true)
   const [adminProfile, setAdminProfile] = useState<{
     alamat: string
@@ -170,11 +169,7 @@ export default function HomeClient() {
           }
         } catch {}
 
-        if (combined.length > 0) {
-          setPsychologists(combined)
-        } else {
-          setPsychologists(DATA_PSIKOLOG_DUMMY)
-        }
+        setPsychologists(combined)
       } catch (err) {
         console.error('Gagal memuat psikolog home:', err)
         try {
@@ -187,7 +182,7 @@ export default function HomeClient() {
             }
           }
         } catch {}
-        setPsychologists(DATA_PSIKOLOG_DUMMY)
+        setPsychologists([])
       } finally {
         setLoadingPsychologists(false)
       }

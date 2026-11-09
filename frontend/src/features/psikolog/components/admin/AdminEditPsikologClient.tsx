@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
-import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
@@ -116,15 +116,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         )
       } catch {}
 
-      // 2. Cek di INITIAL_TENAGA_AHLI sebagai fallback data awal
-      const initialMatch = INITIAL_TENAGA_AHLI.find(
-        (d) =>
-          String(d.id).trim() === cleanId ||
-          String(d.id).trim() === decodedId ||
-          (d.email && localData?.email && d.email.toLowerCase() === localData.email.toLowerCase())
-      )
-
-      // 3. Coba fetch dari backend DB
+      // 2. Coba fetch dari backend DB
       let backendData: any = null
       if (cleanId) {
         try {
@@ -138,8 +130,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                   String(p.id).trim() === cleanId ||
                   String(p.id).trim() === decodedId ||
                   (p.account?.id && String(p.account.id).trim() === cleanId) ||
-                  (localData?.email && p.account?.email?.toLowerCase() === localData.email.toLowerCase()) ||
-                  (initialMatch?.email && p.account?.email?.toLowerCase() === initialMatch.email.toLowerCase())
+                  (localData?.email && p.account?.email?.toLowerCase() === localData.email.toLowerCase())
               )
             }
           } catch {}
@@ -148,7 +139,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
       if (!isMounted) return
 
-      const candidate = backendData || localData || initialMatch
+      const candidate = backendData || localData
 
       if (!candidate) {
         setNotFound(true)
@@ -169,94 +160,81 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         backendData?.nama_gelar,
         backendData?.account?.nama,
         localData?.nama,
-        localData?.nama_gelar,
-        initialMatch?.nama
+        localData?.nama_gelar
       )
 
       const emailVal = pick(
         backendData?.account?.email,
         backendData?.email,
         localData?.email,
-        localData?.account?.email,
-        initialMatch?.email
+        localData?.account?.email
       )
 
       const teleponVal = pick(
         backendData?.account?.no_telepon,
         backendData?.no_telepon,
         localData?.noTelepon,
-        localData?.account?.no_telepon,
-        initialMatch?.noTelepon
+        localData?.account?.no_telepon
       )
 
       const spesialisasiVal = pick(
         backendData?.spesialisasi?.nama,
         backendData?.spesialisasi,
-        localData?.spesialisasi,
-        initialMatch?.spesialisasi
+        localData?.spesialisasi
       )
 
       const noStrVal = pick(
         backendData?.no_str,
         backendData?.noStr,
         localData?.noStr,
-        localData?.no_str,
-        initialMatch?.noStr
+        localData?.no_str
       )
 
       const noSippVal = pick(
         backendData?.no_sipp,
         backendData?.noSipp,
         localData?.noSipp,
-        localData?.no_sipp,
-        initialMatch?.noSipp
+        localData?.no_sipp
       )
 
       const noSilpVal = pick(
         backendData?.no_silp,
         backendData?.noSilp,
         localData?.noSilp,
-        localData?.no_silp,
-        initialMatch?.noSilp
+        localData?.no_silp
       )
 
       const pendidikanVal = pick(
         backendData?.pendidikan,
         backendData?.pendidikanText,
         localData?.pendidikanText,
-        localData?.pendidikan,
-        initialMatch?.pendidikanText
+        localData?.pendidikan
       )
 
       const bioVal = pick(
         backendData?.bio,
-        localData?.bio,
-        initialMatch?.bio
+        localData?.bio
       )
 
       const quoteVal = pick(
         backendData?.quote,
-        localData?.quote,
-        initialMatch?.quote
+        localData?.quote
       )
 
       const instagramVal = pick(
         backendData?.instagram,
-        localData?.instagram,
-        initialMatch?.instagram
+        localData?.instagram
       )
 
       const fotoVal = pick(
         backendData?.foto,
         backendData?.account?.foto,
-        localData?.foto,
-        initialMatch?.foto
+        localData?.foto
       )
 
       const katRaw = pick(
         backendData?.kategori,
-        localData?.kategori,
-        initialMatch?.kategori
+        localData?.kategori
       ).toLowerCase()
 
       const kategoriVal: KategoriTenaga = katRaw.includes("peer")
@@ -268,13 +246,12 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       const statusRaw = pick(
         localData?.statusAkses,
         backendData?.status === "INACTIVE" ? "NONAKTIF" : "AKTIF",
-        initialMatch?.statusAkses,
         "AKTIF"
       )
       const statusAksesVal: StatusAkses = statusRaw === "NONAKTIF" ? "NONAKTIF" : "AKTIF"
 
       let keahlianArr: string[] = []
-      const keahlianRaw = backendData?.keahlian || localData?.keahlian || initialMatch?.keahlian
+      const keahlianRaw = backendData?.keahlian || localData?.keahlian
       if (Array.isArray(keahlianRaw)) {
         keahlianArr = keahlianRaw
       } else if (typeof keahlianRaw === "string" && keahlianRaw.trim()) {
@@ -286,33 +263,29 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
           ? backendData.jumlah_sesi
           : typeof localData?.jumlahSesi === "number"
           ? localData.jumlahSesi
-          : initialMatch?.jumlahSesi ?? 0
+          : 0
 
       const tokenAktivasiVal = pick(
         backendData?.account?.token_aktivasi,
         backendData?.token_aktivasi,
         backendData?.tokenAktivasi,
-        localData?.tokenAktivasi,
-        initialMatch?.tokenAktivasi
+        localData?.tokenAktivasi
       )
 
       const tokenExpiredVal = pick(
         backendData?.account?.token_aktivasi_exp,
         backendData?.token_expired_at,
         backendData?.tokenExpiredAt,
-        localData?.tokenExpiredAt,
-        initialMatch?.tokenExpiredAt
+        localData?.tokenExpiredAt
       )
 
       const passwordVal = pick(
         localData?.password,
-        initialMatch?.password,
         "Psikolog123!"
       )
 
       const tanggalBergabungVal = pick(
         localData?.tanggalBergabung,
-        initialMatch?.tanggalBergabung,
         "Terdaftar di DB"
       )
 
@@ -484,7 +457,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     try {
       // 2. Simpan juga ke cache lokal
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-      const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
+      const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
       const updatedList = list.map((item) => (item.id === psikologId ? updatedTenaga : item))
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updatedList))
       if (typeof window !== "undefined") {
