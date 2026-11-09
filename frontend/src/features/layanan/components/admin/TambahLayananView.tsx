@@ -146,6 +146,7 @@ export default function TambahLayananView() {
     const computedMetode = isOnline && isOffline ? "Online/Offline" : isOnline ? "Online" : "Offline"
 
     const isKonsultasi = selectedCategory === "01"
+    const isPartnership = selectedCategory === "03" || selectedCategory === "04"
 
     const tarifTenagaAhli = isKonsultasi
       ? {
@@ -164,15 +165,24 @@ export default function TambahLayananView() {
         }
       : null
 
-    const finalWeekday = isKonsultasi ? tarifPsikologWeekday : hargaWeekday
-    const finalWeekend = isKonsultasi ? tarifPsikologWeekend : hargaWeekend
+    const finalWeekday = isKonsultasi
+      ? tarifPsikologWeekday
+      : isPartnership
+      ? "0"
+      : hargaWeekday
+
+    const finalWeekend = isKonsultasi
+      ? tarifPsikologWeekend
+      : isPartnership
+      ? "0"
+      : hargaWeekend
 
     addLayanan({
       layanan: namaLayanan.trim(),
       kategoriId: selectedCategory,
       metode: computedMetode,
-      weekday: formatRupiahDisplay(finalWeekday),
-      weekend: formatRupiahDisplay(finalWeekend),
+      weekday: isPartnership ? "Kemitraan" : formatRupiahDisplay(finalWeekday),
+      weekend: isPartnership ? "Kemitraan" : formatRupiahDisplay(finalWeekend),
       tarif_tenaga_ahli: tarifTenagaAhli,
       status: status,
       deskripsi: deskripsi.trim(),
@@ -360,8 +370,9 @@ export default function TambahLayananView() {
           />
         </div>
 
-        {/* Input Tarif Khusus Konsultasi (01) */}
+        {/* ── Percabangan Input Tarif & Banner Sesuai Kategori ── */}
         {selectedCategory === "01" ? (
+          /* 1. Kategori Konsultasi: Tarif 3 Tenaga Ahli + Poster */
           <div className="space-y-6">
             <div className="p-5 rounded-2xl bg-purple-50/50 border border-purple-200/80 space-y-4">
               <div>
@@ -509,13 +520,13 @@ export default function TambahLayananView() {
               </div>
             </div>
           </div>
-        ) : (
-          /* Input Harga Reguler untuk Non-Konsultasi (Workshop, Seminar, Asesmen) */
+        ) : selectedCategory === "05" ? (
+          /* 2. Kategori Asesmen: Tarif Reguler + Foto Banner */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Harga Layanan */}
+            {/* Harga Asesmen */}
             <div className="space-y-4">
               <label className="block text-sm font-medium text-gray-700">
-                Harga Layanan <span className="text-red-500">*</span>
+                Tarif Asesmen <span className="text-red-500">*</span>
               </label>
 
               {/* Weekday */}
@@ -539,136 +550,274 @@ export default function TambahLayananView() {
               </div>
             </div>
 
-          {/* Foto Banner Awal / Gambar Hero Layanan */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-bold text-gray-800">
-                Foto Banner Awal / Gambar Hero Layanan
-              </label>
-              <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs">
-                <button
-                  type="button"
-                  onClick={() => setImageInputMode("file")}
-                  className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                    imageInputMode === "file" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  Upload File
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImageInputMode("url")}
-                  className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                    imageInputMode === "url" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  Tautan URL
-                </button>
-              </div>
-            </div>
-
-            {imageInputMode === "url" ? (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={imageUrlInput}
-                    onChange={(e) => setImageUrlInput(e.target.value)}
-                    placeholder="https://example.com/foto-banner-layanan.jpg"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
-                  />
+            {/* Foto Banner / Hero Asesmen */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-bold text-gray-800">
+                  Foto Banner Awal / Gambar Hero Layanan
+                </label>
+                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (imageUrlInput.trim()) {
-                        setImagePreview(imageUrlInput.trim())
-                      }
-                    }}
-                    className="px-4 py-2 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
+                    onClick={() => setImageInputMode("file")}
+                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
+                      imageInputMode === "file" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                    }`}
                   >
-                    Terapkan
+                    Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageInputMode("url")}
+                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
+                      imageInputMode === "url" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    Tautan URL
                   </button>
                 </div>
-                {imagePreview && (
-                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
-                    <Image
-                      src={imagePreview}
-                      alt="Preview Foto Hero"
-                      width={400}
-                      height={160}
-                      className="max-h-40 w-auto object-contain"
-                      unoptimized
+              </div>
+
+              {imageInputMode === "url" ? (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={imageUrlInput}
+                      onChange={(e) => setImageUrlInput(e.target.value)}
+                      placeholder="https://example.com/foto-banner-layanan.jpg"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
                     />
                     <button
                       type="button"
                       onClick={() => {
-                        setImagePreview(null)
-                        setImageUrlInput("")
+                        if (imageUrlInput.trim()) {
+                          setImagePreview(imageUrlInput.trim())
+                        }
                       }}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer"
+                      className="px-4 py-2 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                      Terapkan
                     </button>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div
-                className={`mt-1 flex justify-center border-2 ${
-                  imagePreview
-                    ? "border-solid border-gray-200 p-2"
-                    : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
-                } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
-                onClick={handleImageClick}
-                style={{ minHeight: "160px" }}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageChange}
-                  accept="image/jpeg, image/png, image/webp"
-                  className="hidden"
-                />
-
-                {imagePreview ? (
-                  <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
-                    <Image
-                      src={imagePreview}
-                      alt="Preview Foto Hero"
-                      width={300}
-                      height={160}
-                      className="max-h-[160px] w-auto object-contain"
-                      unoptimized
-                    />
-                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
-                      📐 1200 × 675 px (16:9)
+                  {imagePreview && (
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+                      <Image
+                        src={imagePreview}
+                        alt="Preview Foto Hero"
+                        width={400}
+                        height={160}
+                        className="max-h-40 w-auto object-contain"
+                        unoptimized
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview(null)
+                          setImageUrlInput("")
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className={`mt-1 flex justify-center border-2 ${
+                    imagePreview
+                      ? "border-solid border-gray-200 p-2"
+                      : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
+                  } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
+                  onClick={handleImageClick}
+                  style={{ minHeight: "160px" }}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/jpeg, image/png, image/webp"
+                    className="hidden"
+                  />
+
+                  {imagePreview ? (
+                    <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
+                      <Image
+                        src={imagePreview}
+                        alt="Preview Foto Hero"
+                        width={300}
+                        height={160}
+                        className="max-h-[160px] w-auto object-contain"
+                        unoptimized
+                      />
+                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                        📐 1200 × 675 px (16:9)
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 text-center my-auto">
+                      <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
+                      <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
+                      <p className="text-xs font-medium text-gray-600">
+                        Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* 3. Kategori Workshop & Seminar: Program Kemitraan (Tanpa Pengisian Tarif) */
+          <div className="space-y-6">
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 border border-amber-200/90 flex items-start gap-3.5">
+              <span className="text-2xl shrink-0">🤝</span>
+              <div>
+                <h4 className="text-sm font-bold text-amber-900">Program Kemitraan &amp; Kerja Sama Institusional</h4>
+                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                  Layanan Workshop dan Seminar tidak memerlukan pengisian tarif nominal karena pembiayaan disesuaikan melalui skema proposal kerja sama institusional (B2B / Kampus / Sekolah / Komunitas).
+                </p>
+              </div>
+            </div>
+
+            {/* Foto Banner / Hero Layanan */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-bold text-gray-800">
+                  Foto Banner Awal / Gambar Hero Program
+                </label>
+                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setImageInputMode("file")}
+                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
+                      imageInputMode === "file" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageInputMode("url")}
+                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
+                      imageInputMode === "url" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    Tautan URL
+                  </button>
+                </div>
+              </div>
+
+              {imageInputMode === "url" ? (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={imageUrlInput}
+                      onChange={(e) => setImageUrlInput(e.target.value)}
+                      placeholder="https://example.com/foto-banner-layanan.jpg"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+                    />
                     <button
                       type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
+                      onClick={() => {
+                        if (imageUrlInput.trim()) {
+                          setImagePreview(imageUrlInput.trim())
+                        }
+                      }}
+                      className="px-4 py-2 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                      Terapkan
                     </button>
                   </div>
-                ) : (
-                  <div className="space-y-2 text-center my-auto">
-                    <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
-                    <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
-                    <p className="text-xs font-medium text-gray-600">
-                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
-                    </p>
-                    <p className="text-[11px] text-gray-400">
-                      Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-            <p className="text-[11px] text-gray-500 mt-1.5">
-              Foto ini akan ditampilkan sebagai gambar hero banner utama di bagian atas halaman detail layanan publik (Asesmen, Workshop, atau Konsultasi).
-            </p>
-          </div>
+                  {imagePreview && (
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+                      <Image
+                        src={imagePreview}
+                        alt="Preview Foto Hero"
+                        width={400}
+                        height={160}
+                        className="max-h-40 w-auto object-contain"
+                        unoptimized
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview(null)
+                          setImageUrlInput("")
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className={`mt-1 flex justify-center border-2 ${
+                    imagePreview
+                      ? "border-solid border-gray-200 p-2"
+                      : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
+                  } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
+                  onClick={handleImageClick}
+                  style={{ minHeight: "160px" }}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/jpeg, image/png, image/webp"
+                    className="hidden"
+                  />
+
+                  {imagePreview ? (
+                    <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
+                      <Image
+                        src={imagePreview}
+                        alt="Preview Foto Hero"
+                        width={300}
+                        height={160}
+                        className="max-h-[160px] w-auto object-contain"
+                        unoptimized
+                      />
+                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                        📐 1200 × 675 px (16:9)
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 text-center my-auto">
+                      <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
+                      <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
+                      <p className="text-xs font-medium text-gray-600">
+                        Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

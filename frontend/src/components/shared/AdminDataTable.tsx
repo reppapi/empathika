@@ -18,6 +18,7 @@ export interface AdminDataTableProps<T> {
   data: T[]
   keyExtractor: (row: T, index: number) => string | number
   onRowClick?: (row: T, index: number) => void
+  renderSubRow?: (row: T, index: number) => React.ReactNode
   isLoading?: boolean
   loadingMessage?: string
   emptyMessage?: React.ReactNode
@@ -41,6 +42,7 @@ export function AdminDataTable<T>({
   data,
   keyExtractor,
   onRowClick,
+  renderSubRow,
   isLoading = false,
   loadingMessage = "Memuat data...",
   emptyMessage = "Tidak ada data ditemukan.",
@@ -101,38 +103,47 @@ export function AdminDataTable<T>({
           ) : (
             data.map((item, rowIndex) => {
               const rowKey = keyExtractor(item, rowIndex)
+              const subRow = renderSubRow ? renderSubRow(item, rowIndex) : null
               return (
-                <tr
-                  key={rowKey}
-                  onClick={() => onRowClick && onRowClick(item, rowIndex)}
-                  className={`transition-colors hover:bg-purple-50/40 ${onRowClick ? "cursor-pointer" : ""
-                    }`}
-                >
-                  {columns.map((col, colIndex) => {
-                    const alignClass =
-                      col.align === "center"
-                        ? "text-center"
-                        : col.align === "right"
-                          ? "text-right"
-                          : "text-left"
+                <React.Fragment key={rowKey}>
+                  <tr
+                    onClick={() => onRowClick && onRowClick(item, rowIndex)}
+                    className={`transition-colors hover:bg-purple-50/40 ${onRowClick ? "cursor-pointer" : ""
+                      }`}
+                  >
+                    {columns.map((col, colIndex) => {
+                      const alignClass =
+                        col.align === "center"
+                          ? "text-center"
+                          : col.align === "right"
+                            ? "text-right"
+                            : "text-left"
 
-                    let cellContent: React.ReactNode = null
-                    if (col.render) {
-                      cellContent = col.render(item, rowIndex)
-                    } else if (col.accessor) {
-                      cellContent = (item as any)[col.accessor]
-                    }
+                      let cellContent: React.ReactNode = null
+                      if (col.render) {
+                        cellContent = col.render(item, rowIndex)
+                      } else if (col.accessor) {
+                        cellContent = (item as any)[col.accessor]
+                      }
 
-                    return (
-                      <td
-                        key={col.key || `cell-${colIndex}`}
-                        className={`py-4 px-4 sm:px-5 ${alignClass} ${col.className || ""}`}
-                      >
-                        {cellContent}
+                      return (
+                        <td
+                          key={col.key || `cell-${colIndex}`}
+                          className={`py-4 px-4 sm:px-5 ${alignClass} ${col.className || ""}`}
+                        >
+                          {cellContent}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                  {subRow && (
+                    <tr className="bg-purple-50/20 border-b border-gray-200/80">
+                      <td colSpan={columns.length} className="px-4 py-3 sm:px-6">
+                        {subRow}
                       </td>
-                    )
-                  })}
-                </tr>
+                    </tr>
+                  )}
+                </React.Fragment>
               )
             })
           )}

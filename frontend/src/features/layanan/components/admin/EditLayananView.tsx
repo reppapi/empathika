@@ -264,6 +264,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     const computedMetode = isOnline && isOffline ? "Online/Offline" : isOnline ? "Online" : "Offline"
 
     const isKonsultasi = selectedCategory === "01"
+    const isPartnership = selectedCategory === "03" || selectedCategory === "04"
 
     const tarifTenagaAhli = isKonsultasi
       ? {
@@ -282,8 +283,17 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
         }
       : null
 
-    const finalWeekday = isKonsultasi ? tarifPsikologWeekday : hargaWeekday
-    const finalWeekend = isKonsultasi ? tarifPsikologWeekend : hargaWeekend
+    const finalWeekday = isKonsultasi
+      ? tarifPsikologWeekday
+      : isPartnership
+      ? "0"
+      : hargaWeekday
+
+    const finalWeekend = isKonsultasi
+      ? tarifPsikologWeekend
+      : isPartnership
+      ? "0"
+      : hargaWeekend
 
     const updatedData: Partial<AdminLayananItem> = {
       layanan: namaLayanan.trim(),
@@ -291,8 +301,8 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       metode: computedMetode,
       status: status,
       deskripsi: deskripsi.trim(),
-      weekday: formatRupiahDisplay(finalWeekday),
-      weekend: formatRupiahDisplay(finalWeekend),
+      weekday: isPartnership ? "Kemitraan" : formatRupiahDisplay(finalWeekday),
+      weekend: isPartnership ? "Kemitraan" : formatRupiahDisplay(finalWeekend),
       tarif_tenaga_ahli: tarifTenagaAhli,
       bannerUrl: imagePreview || "",
     }
@@ -682,8 +692,8 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                 </div>
               </div>
             </div>
-          ) : (
-            /* Non-Konsultasi: Tarif Reguler */
+          ) : selectedCategory === "05" ? (
+            /* Kategori Asesmen: Tarif Reguler */
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
               <div>
                 <label htmlFor="hargaWeekday" className={labelClass}>
@@ -707,6 +717,17 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   placeholder="450.000"
                 />
                 <span className={helperClass}>Tarif sesi pada akhir pekan (contoh: 450.000)</span>
+              </div>
+            </div>
+          ) : (
+            /* Kategori Workshop & Seminar: Program Kemitraan (Tanpa Pengisian Tarif) */
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 border border-amber-200/90 flex items-start gap-3.5">
+              <span className="text-2xl shrink-0">🤝</span>
+              <div>
+                <h4 className="text-sm font-bold text-amber-900">Program Kemitraan &amp; Kerja Sama Institusional</h4>
+                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                  Layanan Workshop dan Seminar tidak memerlukan pengisian tarif nominal karena pembiayaan disesuaikan melalui skema proposal kerja sama institusional (B2B / Kampus / Sekolah / Komunitas).
+                </p>
               </div>
             </div>
           )}
