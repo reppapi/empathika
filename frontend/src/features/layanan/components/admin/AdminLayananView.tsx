@@ -40,7 +40,7 @@ function parseRupiahNumber(val: any): number {
 function formatRupiahStandard(val: any, fallbackStr: string = "Rp 0"): string {
   if (val === undefined || val === null || val === "") return fallbackStr
   const num = parseRupiahNumber(val)
-  return `Rp ${num.toLocaleString("id-ID")}`
+  return `Rp\u00A0${num.toLocaleString("id-ID")}`
 }
 
 export default function AdminLayananView() {
@@ -274,17 +274,19 @@ export default function AdminLayananView() {
       {
         key: "weekday",
         header: "Weekday",
+        width: "180px",
+        className: "whitespace-nowrap",
         render: (item: AdminLayananItem) => {
           const t = item.tarif_tenaga_ahli
           const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
 
           return (
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
                 {isKonsultasi ? psiWd : formatRupiahStandard(item.weekday)}
               </span>
               {isKonsultasi && (
-                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/70 whitespace-nowrap shrink-0">
                   Psikolog
                 </span>
               )}
@@ -295,17 +297,19 @@ export default function AdminLayananView() {
       {
         key: "weekend",
         header: "Weekend",
+        width: "180px",
+        className: "whitespace-nowrap",
         render: (item: AdminLayananItem) => {
           const t = item.tarif_tenaga_ahli
           const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
 
           return (
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
                 {isKonsultasi ? psiWk : formatRupiahStandard(item.weekend)}
               </span>
               {isKonsultasi && (
-                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/70 whitespace-nowrap shrink-0">
                   Psikolog
                 </span>
               )}
@@ -452,7 +456,7 @@ export default function AdminLayananView() {
           <AdminDataTable
             columns={columns}
             data={filteredLayanan}
-            minWidth={isKonsultasi ? "800px" : "760px"}
+            minWidth={isKonsultasi ? "920px" : "760px"}
             keyExtractor={(item: AdminLayananItem) => item.id}
             emptyMessage="Tidak ada layanan yang ditemukan dalam kategori ini."
             renderSubRow={(item: AdminLayananItem) => {
