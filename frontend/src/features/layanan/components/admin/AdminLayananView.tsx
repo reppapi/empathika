@@ -205,7 +205,7 @@ export default function AdminLayananView() {
   const isPartnership = activeCategory === "03" || activeCategory === "04"
 
   const columns: ColumnDef<AdminLayananItem>[] = useMemo(() => {
-    return [
+    const baseCols: ColumnDef<AdminLayananItem>[] = [
       {
         key: "no",
         header: "No",
@@ -263,51 +263,48 @@ export default function AdminLayananView() {
           <span className="text-gray-700 font-medium text-xs sm:text-sm">{item.metode}</span>
         ),
       },
-      {
-        key: "weekday",
-        header: isPartnership ? "Skema Tarif" : "Weekday",
-        width: isPartnership ? "200px" : "180px",
-        className: "whitespace-nowrap",
-        render: (item: AdminLayananItem) => {
-          if (isPartnership) {
+    ]
+
+    // Hanya tampilkan kolom tarif Weekday & Weekend untuk kategori yang bertarif (Konsultasi & Asesmen)
+    // Untuk Workshop & Seminar, kolom tarif disembunyikan sepenuhnya
+    if (!isPartnership) {
+      baseCols.push(
+        {
+          key: "weekday",
+          header: "Weekday",
+          width: "180px",
+          className: "whitespace-nowrap",
+          render: (item: AdminLayananItem) => {
+            const t = item.tarif_tenaga_ahli
+            const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
+
             return (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-200/90 whitespace-nowrap">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                Kemitraan / Kerja Sama
+              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
+                {isKonsultasi ? psiWd : formatRupiahStandard(item.weekday)}
               </span>
             )
-          }
-
-          const t = item.tarif_tenaga_ahli
-          const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
-
-          return (
-            <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
-              {isKonsultasi ? psiWd : formatRupiahStandard(item.weekday)}
-            </span>
-          )
+          },
         },
-      },
-      {
-        key: "weekend",
-        header: "Weekend",
-        width: isPartnership ? "90px" : "180px",
-        className: "whitespace-nowrap",
-        render: (item: AdminLayananItem) => {
-          if (isPartnership) {
-            return <span className="text-gray-400 font-semibold text-xs px-2">&mdash;</span>
-          }
+        {
+          key: "weekend",
+          header: "Weekend",
+          width: "180px",
+          className: "whitespace-nowrap",
+          render: (item: AdminLayananItem) => {
+            const t = item.tarif_tenaga_ahli
+            const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
 
-          const t = item.tarif_tenaga_ahli
-          const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
+            return (
+              <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
+                {isKonsultasi ? psiWk : formatRupiahStandard(item.weekend)}
+              </span>
+            )
+          },
+        }
+      )
+    }
 
-          return (
-            <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
-              {isKonsultasi ? psiWk : formatRupiahStandard(item.weekend)}
-            </span>
-          )
-        },
-      },
+    baseCols.push(
       {
         key: "status",
         header: "Status",
@@ -350,8 +347,10 @@ export default function AdminLayananView() {
             </div>
           )
         },
-      },
-    ]
+      }
+    )
+
+    return baseCols
   }, [isKonsultasi, isPartnership, router, expandedRowId])
 
   return (
