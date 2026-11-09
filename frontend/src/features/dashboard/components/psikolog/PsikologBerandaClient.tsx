@@ -269,7 +269,6 @@ export default function PsikologBerandaClient() {
     agendaLewat,
     availablePastMonths,
     olderThanOneMonthCount,
-    totalSesiBerikutnya,
     totalSesiLewat,
   } = useMemo(() => {
     const targetDate = selectedDate || todayStr
@@ -463,11 +462,8 @@ export default function PsikologBerandaClient() {
       {/* ── 1. Agenda Hari Ini / Terpilih ── */}
       <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-            <span>{isTodaySelected ? "Agenda Hari Ini" : `Agenda Tanggal ${formatTanggalIndo(selectedDate)}`}</span>
-            <span className="text-[11px] font-semibold text-[#561269] bg-purple-100/70 px-2 py-0.5 rounded-full">
-              {agendaHariIni.length} sesi
-            </span>
+          <h4 className="text-sm font-bold text-gray-800">
+            {isTodaySelected ? "Agenda Hari Ini" : `Agenda Tanggal ${formatTanggalIndo(selectedDate)}`}
           </h4>
         </div>
 
@@ -485,11 +481,8 @@ export default function PsikologBerandaClient() {
       {/* ── 2. Agenda Berikutnya (Mendatang / Upcoming) ── */}
       <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-            <span>Agenda Berikutnya</span>
-            <span className="text-[11px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60">
-              {totalSesiBerikutnya} sesi mendatang
-            </span>
+          <h4 className="text-sm font-bold text-gray-800">
+            Agenda Berikutnya
           </h4>
         </div>
 
