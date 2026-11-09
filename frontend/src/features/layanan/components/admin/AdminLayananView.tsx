@@ -651,9 +651,6 @@ export default function AdminLayananView() {
                           Rincian Tarif Tenaga Ahli yang Tersedia &bull; {item.layanan} ({cards.length} Tenaga Ahli)
                         </span>
                       </div>
-                      <span className="text-[11px] text-gray-400 font-medium">
-                        Weekday (Senin - Jumat) &bull; Weekend (Sabtu - Minggu)
-                      </span>
                     </div>
 
                     <div className={`grid grid-cols-1 ${cards.length === 1 ? "sm:grid-cols-1 max-w-sm" : cards.length === 2 ? "sm:grid-cols-2 max-w-2xl" : "sm:grid-cols-3"} gap-3`}>
