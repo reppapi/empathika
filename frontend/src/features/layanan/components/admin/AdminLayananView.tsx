@@ -202,6 +202,7 @@ export default function AdminLayananView() {
   }
 
   const isKonsultasi = activeCategory === "01"
+  const isPartnership = activeCategory === "03" || activeCategory === "04"
 
   const columns: ColumnDef<AdminLayananItem>[] = useMemo(() => {
     return [
@@ -264,10 +265,19 @@ export default function AdminLayananView() {
       },
       {
         key: "weekday",
-        header: "Weekday",
-        width: "180px",
+        header: isPartnership ? "Skema Tarif" : "Weekday",
+        width: isPartnership ? "200px" : "180px",
         className: "whitespace-nowrap",
         render: (item: AdminLayananItem) => {
+          if (isPartnership) {
+            return (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-200/90 whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                Kemitraan / Kerja Sama
+              </span>
+            )
+          }
+
           const t = item.tarif_tenaga_ahli
           const psiWd = formatPrice(t?.psikolog?.weekday, item.weekday)
 
@@ -288,9 +298,13 @@ export default function AdminLayananView() {
       {
         key: "weekend",
         header: "Weekend",
-        width: "180px",
+        width: isPartnership ? "90px" : "180px",
         className: "whitespace-nowrap",
         render: (item: AdminLayananItem) => {
+          if (isPartnership) {
+            return <span className="text-gray-400 font-semibold text-xs px-2">&mdash;</span>
+          }
+
           const t = item.tarif_tenaga_ahli
           const psiWk = formatPrice(t?.psikolog?.weekend, item.weekend)
 
@@ -352,7 +366,7 @@ export default function AdminLayananView() {
         },
       },
     ]
-  }, [isKonsultasi, router, expandedRowId])
+  }, [isKonsultasi, isPartnership, router, expandedRowId])
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16 relative">
@@ -688,8 +702,23 @@ export default function AdminLayananView() {
                     </div>
                   </div>
                 </div>
+              ) : selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04" ? (
+                /* Khusus Workshop & Seminar: Program Kemitraan */
+                <div className="p-4 bg-amber-50/80 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                      <span>🤝</span> Skema Program &amp; Pembiayaan
+                    </span>
+                    <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                      Layanan ini diselenggarakan melalui pengajuan kerja sama / kemitraan institusional (B2B / Kampus / Sekolah / Komunitas).
+                    </p>
+                  </div>
+                  <span className="self-start sm:self-center px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300/80 shrink-0">
+                    Kemitraan / Kerja Sama
+                  </span>
+                </div>
               ) : (
-                /* Non-Konsultasi: 2 Kartu Reguler */
+                /* Asesmen (05): 2 Kartu Reguler */
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 sm:p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl">
                     <span className="text-xs text-purple-800 font-medium block">Tarif Weekday</span>
