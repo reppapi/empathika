@@ -259,6 +259,7 @@ export default function AdminLayananView() {
       {
         key: "metode",
         header: "Metode Pelaksanaan",
+        width: isPartnership ? "240px" : "180px",
         render: (item: AdminLayananItem) => (
           <span className="text-gray-700 font-medium text-xs sm:text-sm">{item.metode}</span>
         ),
@@ -309,6 +310,7 @@ export default function AdminLayananView() {
         key: "status",
         header: "Status",
         align: "center",
+        width: isPartnership ? "180px" : "140px",
         render: (item: AdminLayananItem) => (
           <button
             type="button"
@@ -329,6 +331,7 @@ export default function AdminLayananView() {
         key: "aksi",
         header: "Aksi",
         align: "center",
+        width: isPartnership ? "180px" : "150px",
         render: (item: AdminLayananItem) => {
           return (
             <div className="flex items-center justify-center gap-1.5 sm:gap-2">

@@ -202,7 +202,7 @@ export default function LayananClient() {
       {/* Container utama */}
       <div className="relative flex h-full flex-col gap-8 lg:block">
 
-        {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL) */}
+        {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL & STABIL TANPA JUMPING) */}
         <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5 lg:pb-2">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.id
@@ -210,19 +210,21 @@ export default function LayananClient() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className="group flex flex-col items-start text-left transition-all cursor-pointer"
+                className="group flex flex-col items-start text-left cursor-pointer h-[76px] lg:h-[84px] justify-center shrink-0 transition-transform duration-200"
               >
                 <span
-                  className={`font-bold transition-all duration-300 ease-out ${isActive ? "text-[28px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
-                    }`}
+                  className={`font-bold transition-colors duration-200 leading-none ${
+                    isActive ? "text-[26px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
+                  }`}
                 >
                   {cat.id}
                 </span>
                 <span
-                  className={`transition-all duration-300 ease-out ${isActive
-                    ? "text-[34px] font-bold text-[#561269]"
-                    : "text-[24px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
-                    }`}
+                  className={`transition-colors duration-200 leading-tight mt-1 ${
+                    isActive
+                      ? "text-[30px] lg:text-[32px] font-bold text-[#561269]"
+                      : "text-[24px] lg:text-[26px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
+                  }`}
                 >
                   {cat.title}
                 </span>
@@ -236,8 +238,8 @@ export default function LayananClient() {
           {/* Card Utama */}
           <div className="flex h-full flex-col rounded-2xl border border-gray-300 bg-white shadow-[0px_4px_16px_rgba(0,0,0,0.1)] p-6 sm:p-8">
 
-            {/* Header Card Utama - Halus & Bebas Freeze */}
-            <div key={`header-${activeCategory}`} className="mb-6 shrink-0 animate-fade-in">
+            {/* Header Card Utama - Stabil tanpa re-mount jump */}
+            <div className="mb-6 shrink-0">
               <h2 className="text-2xl font-bold text-[#561269] sm:text-3xl">
                 {CATEGORIES.find(c => c.id === activeCategory)?.title}
               </h2>
@@ -251,7 +253,7 @@ export default function LayananClient() {
               ref={scrollRef}
               className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
             >
-              <div key={`content-${activeCategory}`} className="animate-fade-in">
+              <div key={`content-${activeCategory}`} className="transition-opacity duration-200">
                 {/* Status Error Jika Koneksi Gagal */}
                 {isLayananError && activeCategory !== "02" && (
                   <div className="p-8 text-center bg-amber-50 border border-amber-200 rounded-2xl my-4">
