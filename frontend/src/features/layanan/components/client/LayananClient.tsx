@@ -65,20 +65,18 @@ export default function LayananClient() {
       fetchPsikotes()
     }
 
-    window.addEventListener("focus", handleSync)
     window.addEventListener("storage", handleSync)
 
     return () => {
-      window.removeEventListener("focus", handleSync)
       window.removeEventListener("storage", handleSync)
     }
   }, [])
 
   useEffect(() => {
-    if (categoryQuery && categoryQuery !== activeCategory) {
+    if (categoryQuery) {
       setActiveCategory(categoryQuery)
     }
-  }, [categoryQuery, activeCategory])
+  }, [categoryQuery])
 
   const handleCategoryChange = (id: string) => {
     if (id === activeCategory) return

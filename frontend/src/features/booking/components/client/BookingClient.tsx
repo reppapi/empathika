@@ -244,11 +244,9 @@ export default function BookingClient() {
     }
 
     window.addEventListener("storage", handleSync)
-    window.addEventListener("focus", handleSync)
 
     return () => {
       window.removeEventListener("storage", handleSync)
-      window.removeEventListener("focus", handleSync)
     }
   }, [initialLayanan])
 
@@ -257,20 +255,19 @@ export default function BookingClient() {
     return titles.length > 0 ? titles : ["Psikolog", "Konselor", "Peer Konselor"]
   }, [daftarHarga])
 
-  useEffect(() => {
-    if (availableFilters.length > 0 && !availableFilters.includes(activeFilter)) {
-      setActiveFilter(availableFilters[0])
-    }
-  }, [availableFilters, activeFilter])
+  // Ambil filter aktif yang valid secara aman tanpa useEffect berulang
+  const currentFilter = availableFilters.includes(activeFilter)
+    ? activeFilter
+    : availableFilters[0] || "Psikolog"
 
   const filteredProfessionals = useMemo(() => {
     return dbProfessionals.filter((p) => {
-      if (activeFilter === "Psikolog") return p.category === "psikolog"
-      if (activeFilter === "Konselor") return p.category === "konselor"
-      if (activeFilter === "Peer Konselor") return p.category === "peer-konselor"
+      if (currentFilter === "Psikolog") return p.category === "psikolog"
+      if (currentFilter === "Konselor") return p.category === "konselor"
+      if (currentFilter === "Peer Konselor") return p.category === "peer-konselor"
       return true
     })
-  }, [dbProfessionals, activeFilter])
+  }, [dbProfessionals, currentFilter])
 
   const toggleAccordion = (id: string) => {
     setOpenAccordion(openAccordion === id ? null : id)
@@ -397,7 +394,7 @@ export default function BookingClient() {
                 <button
                   key={f}
                   onClick={() => setActiveFilter(f)}
-                  className={`px-6 py-2 rounded-full text-[13px] font-bold transition-all shadow-sm cursor-pointer ${activeFilter === f
+                  className={`px-6 py-2 rounded-full text-[13px] font-bold transition-all shadow-sm cursor-pointer ${currentFilter === f
                     ? "bg-[#561269] text-white"
                     : "bg-white text-[#561269] hover:bg-[#561269]/10"
                     }`}
