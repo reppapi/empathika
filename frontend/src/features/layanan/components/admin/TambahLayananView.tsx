@@ -77,8 +77,6 @@ export default function TambahLayananView() {
   const initialCategory = searchParams.get("category") || "01"
 
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
-  const [imageUrlInput, setImageUrlInput] = useState("")
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
   const [status, setStatus] = useState<"Aktif" | "Nonaktif">("Aktif")
   const [namaLayanan, setNamaLayanan] = useState("")
@@ -108,8 +106,6 @@ export default function TambahLayananView() {
 
   // Foto Kegiatan khusus Workshop ("03") & Seminar ("04") (maksimal 3 foto)
   const [fotoKegiatan, setFotoKegiatan] = useState<(string | null)[]>([null, null, null])
-  const [slotUrlInput, setSlotUrlInput] = useState<string[]>(["", "", ""])
-  const [slotMode, setSlotMode] = useState<("file" | "url")[]>(["file", "file", "file"])
   const slotFileInputRef0 = useRef<HTMLInputElement>(null)
   const slotFileInputRef1 = useRef<HTMLInputElement>(null)
   const slotFileInputRef2 = useRef<HTMLInputElement>(null)
@@ -146,20 +142,6 @@ export default function TambahLayananView() {
     }
     if (index === 0) {
       setImagePreview(null)
-    }
-  }
-
-  const handleApplySlotUrl = (index: number) => {
-    const url = slotUrlInput[index]?.trim()
-    if (url) {
-      setFotoKegiatan((prev) => {
-        const next = [...prev]
-        next[index] = url
-        return next
-      })
-      if (index === 0) {
-        setImagePreview(url)
-      }
     }
   }
 
@@ -807,130 +789,61 @@ export default function TambahLayananView() {
 
             {/* Foto Banner / Hero Asesmen */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-bold text-gray-800">
-                  Foto Banner Awal / Gambar Hero Layanan
-                </label>
-                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setImageInputMode("file")}
-                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                      imageInputMode === "file" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Upload File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageInputMode("url")}
-                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                      imageInputMode === "url" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Tautan URL
-                  </button>
-                </div>
-              </div>
+              <label className="block text-sm font-bold text-gray-800 mb-2">
+                Foto Banner Awal / Gambar Hero Layanan
+              </label>
 
-              {imageInputMode === "url" ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={imageUrlInput}
-                      onChange={(e) => setImageUrlInput(e.target.value)}
-                      placeholder="https://example.com/foto-banner-layanan.jpg"
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+              <div
+                className={`mt-1 flex justify-center border-2 ${
+                  imagePreview
+                    ? "border-solid border-gray-200 p-2"
+                    : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
+                } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
+                onClick={handleImageClick}
+                style={{ minHeight: "160px" }}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/jpeg, image/png, image/webp"
+                  className="hidden"
+                />
+
+                {imagePreview ? (
+                  <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview Foto Hero"
+                      width={300}
+                      height={160}
+                      className="max-h-[160px] w-auto object-contain"
+                      unoptimized
                     />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                      1200 × 675 px (16:9)
+                    </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (imageUrlInput.trim()) {
-                          setImagePreview(imageUrlInput.trim())
-                        }
-                      }}
-                      className="px-4 py-2 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
                     >
-                      Terapkan
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                  {imagePreview && (
-                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
-                      <Image
-                        src={imagePreview}
-                        alt="Preview Foto Hero"
-                        width={400}
-                        height={160}
-                        className="max-h-40 w-auto object-contain"
-                        unoptimized
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImagePreview(null)
-                          setImageUrlInput("")
-                        }}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div
-                  className={`mt-1 flex justify-center border-2 ${
-                    imagePreview
-                      ? "border-solid border-gray-200 p-2"
-                      : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
-                  } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
-                  onClick={handleImageClick}
-                  style={{ minHeight: "160px" }}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    accept="image/jpeg, image/png, image/webp"
-                    className="hidden"
-                  />
-
-                  {imagePreview ? (
-                    <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
-                      <Image
-                        src={imagePreview}
-                        alt="Preview Foto Hero"
-                        width={300}
-                        height={160}
-                        className="max-h-[160px] w-auto object-contain"
-                        unoptimized
-                      />
-                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
-                        📐 1200 × 675 px (16:9)
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5 text-center my-auto p-2">
-                      <CloudUpload className="mx-auto h-8 w-8 text-[#561269]" />
-                      <div className="text-sm font-semibold text-gray-700">Klik untuk upload foto banner / gambar hero</div>
-                      <p className="text-xs font-medium text-gray-600">
-                        Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
-                      </p>
-                      <p className="text-[11px] text-gray-400">
-                        Format JPG, PNG, atau WebP • Otomatis disesuaikan untuk kartu layanan dan banner asesmen
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-1.5 text-center my-auto p-2">
+                    <CloudUpload className="mx-auto h-8 w-8 text-[#561269]" />
+                    <div className="text-sm font-semibold text-gray-700">Klik untuk upload foto banner / gambar hero</div>
+                    <p className="text-xs font-medium text-gray-600">
+                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      Format JPG, PNG, atau WebP • Otomatis disesuaikan untuk kartu layanan dan banner asesmen
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ) : (
@@ -954,16 +867,14 @@ export default function TambahLayananView() {
                 {[0, 1, 2].map((slotIdx) => {
                   const isSlot0 = slotIdx === 0
                   const currentPhoto = fotoKegiatan[slotIdx]
-                  const mode = slotMode[slotIdx]
-                  const urlVal = slotUrlInput[slotIdx]
 
                   return (
                     <div
                       key={slotIdx}
                       className={`relative rounded-2xl border-2 transition-all p-3.5 flex flex-col justify-between ${
                         isSlot0
-                          ? "border-[#561269]/40 bg-purple-50/30 shadow-xs"
-                          : "border-gray-200 bg-gray-50/50 hover:border-gray-300"
+                          ? "border-[#561269]/40 bg-purple-50/20 shadow-xs ring-1 ring-[#561269]/10"
+                          : "border-gray-200 bg-gray-50/40 hover:border-gray-300"
                       }`}
                     >
                       {/* Header Slot */}
@@ -971,51 +882,22 @@ export default function TambahLayananView() {
                         <span
                           className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
                             isSlot0
-                              ? "bg-[#561269] text-white"
+                              ? "bg-[#561269] text-white shadow-xs"
                               : "bg-gray-200 text-gray-700"
                           }`}
                         >
-                          {isSlot0 ? "⭐ Foto 1 (Utama & Hero)" : `Foto Kegiatan ${slotIdx + 1}`}
+                          {isSlot0 ? "⭐ Foto 1 (Sampul & Hero)" : `Foto Kegiatan ${slotIdx + 1}`}
                         </span>
-
-                        {/* Toggle Mode File / URL */}
-                        <div className="flex items-center gap-1 bg-white p-0.5 rounded-md border border-gray-200 text-[10px]">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSlotMode((prev) => {
-                                const next = [...prev]
-                                next[slotIdx] = "file"
-                                return next
-                              })
-                            }}
-                            className={`px-1.5 py-0.5 rounded font-bold transition cursor-pointer ${
-                              mode === "file" ? "bg-[#561269] text-white" : "text-gray-500 hover:text-gray-800"
-                            }`}
-                          >
-                            File
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSlotMode((prev) => {
-                                const next = [...prev]
-                                next[slotIdx] = "url"
-                                return next
-                              })
-                            }}
-                            className={`px-1.5 py-0.5 rounded font-bold transition cursor-pointer ${
-                              mode === "url" ? "bg-[#561269] text-white" : "text-gray-500 hover:text-gray-800"
-                            }`}
-                          >
-                            URL
-                          </button>
-                        </div>
+                        {isSlot0 && (
+                          <span className="text-[10px] text-[#561269] font-bold">
+                            Utama
+                          </span>
+                        )}
                       </div>
 
-                      {/* Area Preview atau Upload */}
+                      {/* Area Upload atau Preview */}
                       {currentPhoto ? (
-                        <div className="relative w-full h-36 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center group">
+                        <div className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center group">
                           <Image
                             src={currentPhoto}
                             alt={`Foto Kegiatan ${slotIdx + 1}`}
@@ -1026,43 +908,27 @@ export default function TambahLayananView() {
                           <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium pointer-events-none">
                             1200 × 675 px
                           </div>
-                          <button
-                            type="button"
-                            onClick={(e) => handleSlotRemove(slotIdx, e)}
-                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer z-10"
-                            title="Hapus foto"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ) : mode === "url" ? (
-                        <div className="space-y-2 h-36 flex flex-col justify-center">
-                          <input
-                            type="url"
-                            value={urlVal}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setSlotUrlInput((prev) => {
-                                const next = [...prev]
-                                next[slotIdx] = val
-                                return next
-                              })
-                            }}
-                            placeholder="https://.../foto.jpg"
-                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#561269]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleApplySlotUrl(slotIdx)}
-                            className="w-full py-1.5 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
-                          >
-                            Terapkan URL
-                          </button>
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => slotFileInputRefs[slotIdx].current?.click()}
+                              className="px-3 py-1.5 rounded-full bg-white text-gray-800 text-[11px] font-bold shadow hover:bg-gray-100 transition cursor-pointer"
+                            >
+                              Ganti Foto
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleSlotRemove(slotIdx, e)}
+                              className="px-3 py-1.5 rounded-full bg-red-600 text-white text-[11px] font-bold shadow hover:bg-red-700 transition cursor-pointer"
+                            >
+                              Hapus
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div
                           onClick={() => slotFileInputRefs[slotIdx].current?.click()}
-                          className="h-36 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#561269] hover:bg-purple-50/30 flex flex-col items-center justify-center p-3 text-center cursor-pointer transition-colors"
+                          className="h-40 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#561269] hover:bg-purple-50/40 flex flex-col items-center justify-center p-3 text-center cursor-pointer transition-all group"
                         >
                           <input
                             type="file"
@@ -1071,10 +937,18 @@ export default function TambahLayananView() {
                             accept="image/jpeg, image/png, image/webp"
                             className="hidden"
                           />
-                          <CloudUpload className="w-6 h-6 text-[#561269] mb-1" />
-                          <p className="text-xs font-bold text-gray-700">Pilih Foto</p>
-                          <p className="text-[11px] font-semibold text-[#561269] mt-0.5">1200 × 675 px (16:9)</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG, WebP</p>
+                          <div className="p-2.5 rounded-full bg-white group-hover:bg-purple-100 text-gray-400 group-hover:text-[#561269] shadow-xs mb-2 transition-colors">
+                            <CloudUpload className="w-5 h-5" />
+                          </div>
+                          <p className="text-xs font-bold text-gray-700 group-hover:text-[#561269] transition-colors">
+                            {isSlot0 ? "Unggah Foto Sampul" : `Unggah Foto Kegiatan ${slotIdx + 1}`}
+                          </p>
+                          <p className="text-[11px] font-semibold text-[#561269] mt-0.5">
+                            1200 × 675 px (16:9)
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            Format JPG, PNG, atau WebP
+                          </p>
                         </div>
                       )}
                     </div>
