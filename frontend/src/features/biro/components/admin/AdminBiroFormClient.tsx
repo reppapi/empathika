@@ -10,6 +10,7 @@ import { processAndUploadImage } from "@/lib/imageCompressor"
 import { getBiroWebsiteUrl } from "@/lib/utils"
 import GenerateActivationLinkButton from "@/features/psikolog/components/admin/GenerateActivationLinkButton"
 import ActivationWarningModal from "@/components/common/ActivationWarningModal"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 import {
   formatExpiryDisplay,
   formatRemainingTime,
@@ -678,26 +679,18 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
 
             {/* No Telepon */}
             <div data-has-error={Boolean(errors.telepon)}>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                No. Telepon / Hotline <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+              <PhoneInputField
+                label="No. Telepon / Hotline"
+                required
                 value={telepon}
-                onChange={(e) => {
-                  setTelepon(e.target.value)
+                onChange={(val) => {
+                  setTelepon(val)
                   if (errors.telepon) setErrors((prev) => ({ ...prev, telepon: "" }))
                 }}
-                placeholder="+62 812-3456-7890"
-                className={`w-full rounded-xl border px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none transition shadow-xs ${
-                  errors.telepon
-                    ? "border-red-400 bg-red-50/30 focus:border-red-500"
-                    : "border-gray-200 bg-white focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
-                }`}
+                error={errors.telepon}
+                placeholder="812-3456-7890"
+                theme="purple"
               />
-              {errors.telepon && (
-                <p className="text-xs text-red-500 mt-1 font-medium">{errors.telepon}</p>
-              )}
             </div>
           </div>
 

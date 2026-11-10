@@ -367,7 +367,7 @@ export default function LayananClient() {
                             itemHref = withBiro("/layanan/workshop/peer-helper")
                           } else {
                             const foundSlug = Object.keys(WORKSHOP_DETAILS_DATA).find((s) => namaLower.includes(s))
-                            itemHref = withBiro(foundSlug ? `/layanan/workshop/${foundSlug}` : "/layanan/workshop/seft")
+                            itemHref = withBiro(foundSlug ? `/layanan/workshop/${foundSlug}` : `/layanan/workshop/${encodeURIComponent(item.id)}`)
                           }
                           btnText = "Lihat Workshop"
                         } else if (activeCategory === "04") {

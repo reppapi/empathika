@@ -2,6 +2,7 @@
 
 import React from "react"
 import { AdminProfileData, RoleType } from "../../types"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 interface CardInformasiKontakAdminProps {
   role?: RoleType
@@ -56,16 +57,17 @@ export function CardInformasiKontakAdmin({
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            Nomor WhatsApp / Telepon
-          </label>
-          <input
-            type="text"
+          <PhoneInputField
+            label="Nomor WhatsApp / Telepon"
             name="noTelepon"
             value={form.noTelepon || ""}
-            onChange={onChange}
-            placeholder="0812xxxxxxxx"
-            className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+            onChange={(val) => {
+              onChange({
+                target: { name: "noTelepon", value: val },
+              } as any)
+            }}
+            placeholder="812-3456-7890"
+            theme="purple"
           />
         </div>
 

@@ -229,7 +229,7 @@ export default function JadwalMingguanGrid({
                                   <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
                                     Lewat
                                   </span>
-                                  {onRemoveSlot && (
+                                  {onRemoveSlot && isAsesmen && (
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -237,7 +237,7 @@ export default function JadwalMingguanGrid({
                                         e.stopPropagation()
                                         onRemoveSlot(item.waktu, item.date)
                                       }}
-                                      title="Hapus slot ini dari jadwal"
+                                      title="Hapus slot asesmen ini dari jadwal"
                                       className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
                                     >
                                       <X className="w-3.5 h-3.5" />
@@ -278,7 +278,7 @@ export default function JadwalMingguanGrid({
                                   <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
                                     Tersedia
                                   </span>
-                                  {onRemoveSlot && (
+                                  {onRemoveSlot && isAsesmen && (
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -286,7 +286,7 @@ export default function JadwalMingguanGrid({
                                         e.stopPropagation()
                                         onRemoveSlot(item.waktu, item.date)
                                       }}
-                                      title="Hapus slot ini dari jadwal"
+                                      title="Hapus slot asesmen ini dari jadwal"
                                       className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
                                     >
                                       <X className="w-3.5 h-3.5" />

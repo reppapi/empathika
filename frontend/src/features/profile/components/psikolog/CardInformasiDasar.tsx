@@ -3,6 +3,7 @@
 import React, { ChangeEvent, RefObject } from "react"
 import Image from "next/image"
 import { AdminProfileData } from "../../types"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 interface CardInformasiDasarProps {
   form: AdminProfileData
@@ -125,20 +126,19 @@ export function CardInformasiDasar({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-            Nomor Telepon / WhatsApp <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="noTelepon"
-            value={form.noTelepon}
-            onChange={onChange}
+          <PhoneInputField
+            label="Nomor Telepon / WhatsApp"
             required
-            className="w-full rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 transition focus:border-[#561269] focus:outline-none"
+            value={form.noTelepon}
+            onChange={(val) => {
+              onChange({
+                target: { name: "noTelepon", value: val },
+              } as any)
+            }}
+            placeholder="812-3456-7890"
+            helperText="Nomor otomatis diawali +62 (10-14 digit angka)."
+            theme="purple"
           />
-          <p className="text-[11px] text-gray-400 mt-1">
-            Wajib diawali dengan 08 (10-14 digit angka).
-          </p>
         </div>
 
         <div>
@@ -179,7 +179,7 @@ export function CardInformasiDasar({
             name="bio"
             value={form.bio || ""}
             onChange={onChange}
-            placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog... Tekan Enter untuk membuat paragraf baru."
+            placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog..."
             className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-y min-h-[120px] whitespace-pre-wrap leading-relaxed"
           />
         </div>

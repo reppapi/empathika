@@ -69,4 +69,10 @@ export class LayananRepository {
       where: { id },
     })
   }
+
+  async countByKategori(kategori: KategoriLayanan) {
+    return this.prisma.layanan.count({
+      where: { kategori },
+    })
+  }
 }

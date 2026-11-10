@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "@/features/psikotes/data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 import {
   Check,
   FileQuestion,
@@ -18,6 +17,7 @@ import {
   X,
   CheckCircle2,
 } from "lucide-react";
+import PhoneInputField from "@/components/shared/PhoneInputField";
 
 const DEFAULT_GUIDELINES = [
   "Jawab setiap pertanyaan dengan jujur sesuai dengan dirimu. Tidak ada jawaban benar atau salah.",
@@ -51,16 +51,6 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
       setShowTicketModal(true);
     }
   }, [searchParams]);
-
-  const handleTicketWaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    if (!raw.trim() || raw.trim() === "+" || raw.trim() === "+6" || raw.trim() === "+62" || raw.trim() === "+62 ") {
-      setTicketWa("");
-      return;
-    }
-    const formatted = formatToIndonesianPhone(raw);
-    setTicketWa(formatted);
-  };
 
   const handleVerifyTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -514,22 +504,15 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                  Nomor WhatsApp Pembeli <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="tel"
-                    required
-                    value={ticketWa}
-                    onChange={handleTicketWaChange}
-                    placeholder="+62 812-3456-7890"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269] focus:border-transparent font-medium text-gray-800 placeholder:text-gray-400"
-                  />
-                </div>
-                <span className="text-[10px] text-gray-400 mt-1 block">
-                  Otomatis diawali +62 (Indonesia). Masukkan nomor WhatsApp yang digunakan saat pemesanan.
-                </span>
+                <PhoneInputField
+                  label="Nomor WhatsApp Pembeli"
+                  required
+                  value={ticketWa}
+                  onChange={(val) => setTicketWa(val)}
+                  placeholder="812-3456-7890"
+                  helperText="Nomor kontak yang dimasukkan saat proses pembayaran."
+                  theme="purple"
+                />
               </div>
 
               <div className="pt-2">

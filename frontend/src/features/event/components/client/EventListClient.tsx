@@ -110,7 +110,7 @@ export function EventListClient() {
 
         {/* Content Section */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {[1, 2, 3, 4].map((n) => (
               <div key={n} className="bg-white rounded-3xl p-6 border border-gray-100 animate-pulse flex flex-col sm:flex-row gap-5">
                 <div className="w-full sm:w-2/5 h-48 bg-gray-200 rounded-2xl shrink-0"></div>
@@ -128,7 +128,7 @@ export function EventListClient() {
              TAB: EVENT AKAN DATANG (UPCOMING)
              ============================================================== */
           upcomingEvents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               {upcomingEvents.map((ev) => {
                 const tanggalTeks = ev.tanggal
                   ? new Date(ev.tanggal).toLocaleDateString("id-ID", {
@@ -187,9 +187,9 @@ export function EventListClient() {
                 return (
                   <div
                     key={ev.id}
-                    className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group"
+                    className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group min-w-0 w-full"
                   >
-                    <div className="relative h-56 sm:h-auto sm:w-2/5 shrink-0 overflow-hidden bg-gray-100">
+                    <div className="relative h-56 sm:h-auto sm:w-[38%] md:w-[36%] lg:w-[38%] shrink-0 overflow-hidden bg-gray-100">
                       <Image
                         unoptimized
                         src={
@@ -224,86 +224,88 @@ export function EventListClient() {
                       </div>
                     </div>
 
-                    <div className="p-5 md:p-6 flex flex-col flex-1">
-                      <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-2 line-clamp-2 leading-tight">
-                        {ev.judul}
-                      </h3>
+                    <div className="p-5 md:p-6 flex flex-col flex-1 min-w-0 justify-between">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-2 line-clamp-2 leading-tight break-words">
+                          {ev.judul}
+                        </h3>
 
-                      {ev.deskripsi && (
-                        <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mb-4 leading-relaxed">
-                          {ev.deskripsi}
-                        </p>
-                      )}
+                        {ev.deskripsi && (
+                          <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mb-4 leading-relaxed break-words">
+                            {ev.deskripsi}
+                          </p>
+                        )}
 
-                      <div className="space-y-1.5 mb-5 mt-auto">
-                        <div className="flex items-center text-xs sm:text-sm text-gray-500">
-                          <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="truncate">{tanggalTeks}</span>
+                        <div className="space-y-1.5 mb-5">
+                          <div className="flex items-center text-xs sm:text-sm text-gray-500 min-w-0">
+                            <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="truncate">{tanggalTeks}</span>
+                          </div>
+                          <div className="flex items-center text-xs sm:text-sm text-gray-500 min-w-0">
+                            <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="truncate">{jamTeks}</span>
+                          </div>
+                          <div className="flex items-center text-xs sm:text-sm text-gray-500 min-w-0">
+                            <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="truncate">
+                              {ev.lokasi || (isOnline ? "Google Meet (Online)" : "Lokasi Offline")}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center text-xs sm:text-sm text-gray-500">
-                          <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="truncate">{jamTeks}</span>
-                        </div>
-                        <div className="flex items-center text-xs sm:text-sm text-gray-500">
-                          <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span className="truncate">
-                            {ev.lokasi || (isOnline ? "Google Meet (Online)" : "Lokasi Offline")}
-                          </span>
+
+                        <div className="flex items-center gap-3 mb-5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center font-bold text-xs shrink-0">
+                            {ev.nama_pembicara ? ev.nama_pembicara.charAt(0) : "E"}
+                          </div>
+                          <div className="text-sm min-w-0 flex-1">
+                            <p className="font-bold text-gray-900 truncate">{ev.nama_pembicara}</p>
+                            <p className="text-xs text-gray-500">Narasumber / Pembicara</p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 mb-5">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center font-bold text-xs shrink-0">
-                          {ev.nama_pembicara ? ev.nama_pembicara.charAt(0) : "E"}
-                        </div>
-                        <div className="text-sm min-w-0">
-                          <p className="font-bold text-gray-900 truncate">{ev.nama_pembicara}</p>
-                          <p className="text-xs text-gray-500">Narasumber / Pembicara</p>
-                        </div>
-                      </div>
-
-                      <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
-                        <div>
-                          <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
+                      <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-3 sm:gap-4 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5 truncate">Harga Tiket</p>
                           {hasBundling ? (
-                            <div>
-                              <p className="text-base sm:text-lg font-black text-[#561269] leading-tight">
+                            <div className="min-w-0">
+                              <p className="text-base sm:text-lg font-black text-[#561269] leading-tight truncate">
                                 Mulai dari {hargaTeks}
                               </p>
-                              <div className="inline-flex items-center gap-1.5 mt-1 bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-lg text-[10px] font-bold">
-                                <span>Tersedia {namaBundling} (Rp {hargaBundlingNum.toLocaleString("id-ID")})</span>
+                              <div className="inline-flex items-center gap-1.5 mt-1 bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-lg text-[10px] font-bold truncate max-w-full">
+                                <span className="truncate">Tersedia {namaBundling} (Rp {hargaBundlingNum.toLocaleString("id-ID")})</span>
                               </div>
                             </div>
                           ) : hargaCoretTeks && hargaCoretNum > hargaNum ? (
-                            <div className="flex flex-col">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="text-xs text-gray-400 line-through font-medium">
                                   {hargaCoretTeks}
                                 </span>
                                 {diskonPersen > 0 && (
-                                  <span className="text-[10px] font-extrabold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100">
+                                  <span className="text-[10px] font-extrabold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100 whitespace-nowrap">
                                     Hemat {diskonPersen}%
                                   </span>
                                 )}
                               </div>
-                              <p className="text-lg font-black text-[#561269] leading-tight">
+                              <p className="text-base sm:text-lg font-black text-[#561269] leading-tight truncate">
                                 {hargaTeks}
                               </p>
                             </div>
                           ) : (
-                            <p className="text-lg font-black text-[#561269]">{hargaTeks}</p>
+                            <p className="text-base sm:text-lg font-black text-[#561269] truncate">{hargaTeks}</p>
                           )}
                         </div>
                         <Link
                           href={checkoutHref}
-                          className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm cursor-pointer"
+                          className="bg-[#EAB308] hover:bg-yellow-500 text-black text-xs sm:text-sm font-bold py-2.5 px-5 sm:px-6 rounded-2xl transition-colors shrink-0 shadow-sm cursor-pointer whitespace-nowrap"
                         >
                           Daftar
                         </Link>

@@ -13,6 +13,8 @@
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:seed:psikotes": "tsx prisma/seeds-psikotes/seed-psikotes.ts",
     "seed:psikotes": "tsx prisma/seeds-psikotes/seed-psikotes.ts",

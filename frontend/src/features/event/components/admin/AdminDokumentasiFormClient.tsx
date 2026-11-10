@@ -274,7 +274,7 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
             value={deskripsi}
             onChange={(e) => setDeskripsi(e.target.value)}
             placeholder="Tuliskan rangkuman kegiatan, pembicara, antusiasme peserta, atau dampak dari acara yang telah diselenggarakan..."
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all placeholder:text-gray-400 font-medium resize-y"
+            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all placeholder:text-gray-400 font-medium resize-y whitespace-pre-wrap"
           />
         </div>
 

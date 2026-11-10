@@ -4,6 +4,7 @@ import React, { useState } from "react"
 import { X, Calendar, Clock, User, Phone, Video, MapPin, FileText, CheckCircle2, ShieldCheck } from "lucide-react"
 import { NewSessionData } from "../admin/ModalTambahSesi"
 import { BiroClientProfile } from "../../data/biroDashboardData"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 interface BiroModalTambahSesiProps {
   isOpen: boolean
@@ -156,17 +157,13 @@ export default function BiroModalTambahSesi({
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Nomor Kontak / WhatsApp</label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="tel"
-                    value={formData.kontak}
-                    onChange={(e) => setFormData({ ...formData, kontak: e.target.value })}
-                    placeholder="0812-xxxx-xxxx"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#561269]"
-                  />
-                </div>
+                <PhoneInputField
+                  label="Nomor Kontak / WhatsApp"
+                  value={formData.kontak}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, kontak: val }))}
+                  placeholder="812-3456-7890"
+                  theme="purple"
+                />
               </div>
             </div>
 
@@ -269,7 +266,7 @@ export default function BiroModalTambahSesi({
                 value={formData.catatan}
                 onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
                 placeholder="Catatan kebutuhan klien atau tindak lanjut..."
-                className="w-full p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#561269]"
+                className="w-full p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#561269] whitespace-pre-wrap resize-y"
               />
             </div>
           </form>

@@ -237,7 +237,7 @@ export default function TabPaketPsikotes({
             <button
               type="button"
               onClick={onRetry}
-              className="px-4 py-2 rounded-xl bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-xs cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
             >
               Coba Muat Ulang
             </button>

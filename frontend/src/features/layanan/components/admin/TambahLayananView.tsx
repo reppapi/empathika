@@ -507,7 +507,7 @@ export default function TambahLayananView() {
             onChange={(e) => setDeskripsi(e.target.value)}
             placeholder="Masukkan deskripsi mengenai layanan ini"
             rows={4}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y whitespace-pre-wrap"
           />
         </div>
 

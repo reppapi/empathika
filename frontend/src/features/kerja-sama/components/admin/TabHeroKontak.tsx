@@ -2,6 +2,7 @@
 
 import React from "react"
 import { KerjaSamaPageConfig } from "../../types"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 interface TabHeroKontakProps {
   config: KerjaSamaPageConfig
@@ -162,20 +163,16 @@ export default function TabHeroKontak({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
-              Nomor WhatsApp Official
-            </label>
-            <input
-              type="text"
+            <PhoneInputField
+              label="Nomor WhatsApp Official"
               value={config.kontak.whatsapp}
-              onChange={(e) =>
-                setConfig({ ...config, kontak: { ...config.kontak, whatsapp: e.target.value } })
+              onChange={(val) =>
+                setConfig({ ...config, kontak: { ...config.kontak, whatsapp: val } })
               }
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs"
+              placeholder="812-3456-7890"
+              helperText="Nomor ini digunakan untuk kontak web serta link chat langsung calon mitra Program Affiliate."
+              theme="purple"
             />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Nomor ini digunakan untuk kontak web serta link chat langsung calon mitra Program Affiliate.
-            </p>
           </div>
         </div>
         <p className="text-[11px] text-gray-400 mt-3">

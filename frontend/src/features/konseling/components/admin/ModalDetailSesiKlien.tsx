@@ -231,7 +231,7 @@ export default function ModalDetailSesiKlien({
               <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-1">
                 Catatan / Keluhan Awal
               </p>
-              <p className="text-xs text-gray-700 leading-relaxed">
+              <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {session.catatan}
               </p>
             </div>

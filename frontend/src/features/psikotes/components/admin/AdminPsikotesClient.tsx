@@ -238,7 +238,7 @@ export default function AdminPsikotesClient() {
             onClick={() => setActiveTab("peserta")}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === "peserta"
-                ? "bg-[#561269] text-white shadow-sm"
+                ? "bg-[#EAB308] text-gray-950 shadow-sm"
                 : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
             }`}
           >
@@ -251,7 +251,7 @@ export default function AdminPsikotesClient() {
             onClick={() => setActiveTab("paket")}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === "paket"
-                ? "bg-[#561269] text-white shadow-sm"
+                ? "bg-[#EAB308] text-gray-950 shadow-sm"
                 : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
             }`}
           >

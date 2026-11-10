@@ -217,7 +217,7 @@ export default function AdminEventDetailClient({ eventId }: Props) {
           </h3>
 
           {event.deskripsi && (
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
               {event.deskripsi}
             </p>
           )}
