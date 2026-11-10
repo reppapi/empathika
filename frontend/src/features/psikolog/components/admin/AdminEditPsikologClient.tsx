@@ -637,7 +637,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
                 error={noTeleponError}
-                helperText="Wajib diawali dengan 08 atau +62 8 (10-14 digit angka)."
+                helperText="Nomor otomatis diawali +62 (10-14 digit angka). Awalan 08 atau 62 otomatis disesuaikan."
                 theme="purple"
               />
             </div>
