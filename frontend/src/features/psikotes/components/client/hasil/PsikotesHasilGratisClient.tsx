@@ -137,19 +137,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const [isTipsExpanded, setIsTipsExpanded] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Pastikan gesture back / popstate di laptop selalu kembali ke detail psikotes, bukan ke soal
-  useEffect(() => {
-    const handlePopState = () => {
-      router.replace(`/psikotes/${params.testId}`);
-    };
-
-    window.history.pushState(null, "", window.location.href);
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [params.testId, router]);
-
   // Fetch package data from backend to get interpretasi_psikotes
   const fetchPackage = async () => {
     setIsLoadingDb(true);

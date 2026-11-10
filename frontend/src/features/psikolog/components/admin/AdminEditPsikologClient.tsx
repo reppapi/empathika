@@ -408,7 +408,9 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         noSipp: true,
         noSilp: true,
       })
-      setFormErrorAlert("Format data belum sesuai. Silakan periksa kolom yang bertanda merah di bawah.")
+      const errorList = Object.values(formErrors).filter(Boolean)
+      const detailMsg = errorList.length > 0 ? errorList.join(" • ") : "Format data belum sesuai."
+      setFormErrorAlert(detailMsg)
       window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }
@@ -749,6 +751,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
                 required
+                placeholder="contoh: psikolog@empathika.id"
                 className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
                   emailError
                     ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
@@ -764,7 +767,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 </p>
               ) : (
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Wajib menggunakan email akun Gmail (harus mengandung @gmail.com).
+                  Gunakan alamat email aktif tenaga ahli untuk pengiriman kredensial login.
                 </p>
               )}
             </div>

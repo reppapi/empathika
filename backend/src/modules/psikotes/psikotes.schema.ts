@@ -144,3 +144,11 @@ export const createBookingPsikotesSchema = z
 
 export type CreateBookingPsikotesInput = z.infer<typeof createBookingPsikotesSchema>
 
+// ── 8. Verifikasi Tiket Akses Psikotes ──
+export const verifyTicketSchema = z.object({
+  kode_akses: z.string().min(3, 'Kode akses atau nomor transaksi wajib diisi'),
+  no_telepon: z.string().min(6, 'Nomor WhatsApp pembeli wajib diisi'),
+})
+
+export type VerifyTicketInput = z.infer<typeof verifyTicketSchema>
+

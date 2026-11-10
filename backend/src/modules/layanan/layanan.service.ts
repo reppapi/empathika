@@ -84,9 +84,13 @@ export class LayananService {
       deskripsi,
       harga_weekday: hargaWeekday,
       harga_weekend: hargaWeekend,
-      tarif_tenaga_ahli: tarifTenagaAhli as any,
       banner_url: bannerUrl,
       aktif,
+    }
+
+    if (tarifTenagaAhli !== undefined) {
+      const dataWithTarif: Record<string, any> = createData
+      dataWithTarif.tarif_tenaga_ahli = tarifTenagaAhli
     }
 
     return this.repo.create(createData)
@@ -134,7 +138,8 @@ export class LayananService {
     }
 
     if (input.tarif_tenaga_ahli !== undefined) {
-      updateData.tarif_tenaga_ahli = input.tarif_tenaga_ahli as any
+      const dataWithTarif: Record<string, any> = updateData
+      dataWithTarif.tarif_tenaga_ahli = input.tarif_tenaga_ahli as any
 
       // Jika ada tarif_tenaga_ahli psikolog, sinkronkan juga harga_weekday/weekend utama
       if (input.tarif_tenaga_ahli && typeof input.tarif_tenaga_ahli === 'object') {
