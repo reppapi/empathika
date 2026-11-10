@@ -677,7 +677,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 rows={5}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog... Tekan Enter untuk membuat paragraf baru."
+                placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog..."
                 className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-y min-h-[120px] whitespace-pre-wrap leading-relaxed"
               />
             </div>
