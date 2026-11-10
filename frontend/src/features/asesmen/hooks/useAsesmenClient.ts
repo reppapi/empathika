@@ -106,6 +106,7 @@ export function useAsesmenClient() {
       const list = getStoredLayanan()
       const targetTitle = base.title.toLowerCase().trim()
       const match = list.find((item) => {
+        if (item.status === "Nonaktif" || (item as any).aktif === false) return false
         const name = (item.layanan || (item as any).nama || "").toLowerCase().trim()
         return name === targetTitle || name.includes(targetTitle) || targetTitle.includes(name)
       })
@@ -147,6 +148,7 @@ export function useAsesmenClient() {
         const list = getStoredLayanan()
         const targetTitle = selectedAsesmen.title.toLowerCase().trim()
         const match = list.find((item) => {
+          if (item.status === "Nonaktif" || (item as any).aktif === false) return false
           const name = item.layanan.toLowerCase().trim()
           return name === targetTitle || name.includes(targetTitle) || targetTitle.includes(name)
         })

@@ -31,11 +31,13 @@ export default function WorkshopDetailClient({ slug }: WorkshopDetailClientProps
     const applyCustomPhotos = (items: any[]) => {
       if (!Array.isArray(items) || items.length === 0) return
 
-      // Cari layanan workshop yang relevan dengan slug
+      // Cari layanan workshop yang relevan dengan slug yang aktif
       const match = items.find((item) => {
         const cat = (item.kategori || item.kategoriId || "").toString().toUpperCase()
         const isWs = cat === "WORKSHOP" || cat === "03"
         if (!isWs) return false
+        const isActive = item.aktif !== false && (item as any).status !== "Nonaktif"
+        if (!isActive) return false
         const name = (item.layanan || item.nama || "").toLowerCase()
         if (slug === "seft") {
           return name.includes("seft")

@@ -22,10 +22,12 @@ export default function SeminarDetailPage() {
     const applyCustomPhotos = (items: any[]) => {
       if (!Array.isArray(items) || items.length === 0) return
 
-      // Cari layanan kategori seminar
+      // Cari layanan kategori seminar yang aktif
       const match = items.find((item) => {
         const cat = (item.kategori || item.kategoriId || "").toString().toUpperCase()
-        return cat === "SEMINAR" || cat === "04"
+        const isCat = cat === "SEMINAR" || cat === "04"
+        const isActive = item.aktif !== false && (item as any).status !== "Nonaktif"
+        return isCat && isActive
       })
 
       if (match) {

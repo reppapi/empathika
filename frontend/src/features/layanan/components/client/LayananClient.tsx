@@ -94,6 +94,7 @@ export default function LayananClient() {
     if (storedAdminLayanan && storedAdminLayanan.length > 0) {
       const titleLower = (service.bottomTitle || service.topTitle || "").toLowerCase().trim()
       const match = storedAdminLayanan.find((item) => {
+        if (item.status === "Nonaktif") return false
         const name = item.layanan.toLowerCase().trim()
         return name === titleLower || titleLower.includes(name) || name.includes(titleLower)
       })
@@ -330,13 +331,13 @@ export default function LayananClient() {
                         ? "SEMINAR"
                         : "ASESMEN"
 
-                    const dbMatches = liveLayanan.filter((l) => {
-                      const matchCat = (l.kategori || "").toUpperCase() === catEnum
-                      if (!matchCat) return false
-                      if (catEnum === "KONSULTASI") {
-                        // Konsultasi tetap bisa diakses halamannya meskipun status nonaktif
-                        return true
-                      }
+                    // Cek semua item dari kategori ini yang terdaftar di database
+                    const allCatItems = liveLayanan.filter(
+                      (l) => (l.kategori || "").toUpperCase() === catEnum
+                    )
+
+                    // Hanya ambil layanan yang aktif (l.aktif !== false dan status !== "Nonaktif")
+                    const dbMatches = allCatItems.filter((l) => {
                       return l.aktif !== false && (l as any).status !== "Nonaktif"
                     })
 
@@ -378,10 +379,7 @@ export default function LayananClient() {
 
                         return {
                           topTitle: item.nama.toUpperCase(),
-                          topSubtitle:
-                            item.aktif === false || (item as any).status === "Nonaktif"
-                              ? `${item.metode || "Online/Offline"} • Nonaktif`
-                              : item.metode || "Online/Offline",
+                          topSubtitle: item.metode || "Online/Offline",
                           bottomTitle: item.nama,
                           bottomDescription: item.deskripsi || "Layanan profesional Empathika.",
                           bgColor: colors[idx % colors.length],
@@ -394,7 +392,13 @@ export default function LayananClient() {
                       })
                     }
 
-                    // Fallback jika di database belum ada layanan untuk Workshop atau Seminar
+                    // Jika di database sudah ada item kategori ini tapi SEMUANYA dinonaktifkan oleh admin,
+                    // jangan tampilkan fallback statis agar tetap tersembunyi sesuai setelan admin!
+                    if (allCatItems.length > 0) {
+                      return []
+                    }
+
+                    // Fallback HANYA jika di database benar-benar belum ada data awal untuk Workshop atau Seminar
                     if (activeCategory === "03" && WORKSHOP_SERVICES.length > 0) {
                       return WORKSHOP_SERVICES.map((ws) => ({
                         ...ws,

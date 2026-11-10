@@ -41,7 +41,8 @@ export default function KonselingClient() {
       setIsError(false)
       const res = await layananService.getAll({ kategori: "KONSULTASI" })
       const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      setLayananList(raw)
+      const activeOnly = raw.filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
+      setLayananList(activeOnly)
     } catch (err) {
       console.error("Gagal mengambil data layanan konsultasi:", err)
       setIsError(true)
