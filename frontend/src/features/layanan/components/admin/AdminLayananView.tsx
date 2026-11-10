@@ -26,6 +26,7 @@ import {
   saveStoredLayanan,
 } from "../../data/adminLayananData"
 import { layananService } from "@/services/layanan.service"
+import ClientErrorState from "@/components/shared/ClientErrorState"
 import {
   ActionButtonDetail,
   ActionButtonEdit,
@@ -637,20 +638,12 @@ export default function AdminLayananView() {
 
         {/* Tampilan Error & Muat Ulang */}
         {isError && (
-          <div className="my-6 p-8 text-center bg-amber-50 border border-amber-200 rounded-3xl">
-            <p className="text-sm sm:text-base font-bold text-amber-900 mb-1">
-              ⚠️ Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi.
-            </p>
-            <p className="text-xs text-amber-700 mb-4">
-              Server database tidak dapat dijangkau saat ini.
-            </p>
-            <button
-              type="button"
-              onClick={fetchLayanan}
-              className="px-6 py-2 bg-[#561269] hover:bg-[#430e52] text-white text-xs sm:text-sm font-bold rounded-full transition shadow-xs active:scale-95 cursor-pointer"
-            >
-              Muat Ulang
-            </button>
+          <div className="my-6">
+            <ClientErrorState
+              message="Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi."
+              onRetry={fetchLayanan}
+              isRetrying={isLoading}
+            />
           </div>
         )}
 

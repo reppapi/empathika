@@ -11,6 +11,7 @@ import { getStoredLayanan, type AdminLayananItem } from "../../data/adminLayanan
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
 import { layananService, type LayananApiResponse } from "@/services/layanan.service"
 import { useTenantContext } from "@/context/TenantContext"
+import ClientErrorState from "@/components/shared/ClientErrorState"
 
 export default function LayananClient() {
   const { withBiro } = useTenantContext()
@@ -22,6 +23,7 @@ export default function LayananClient() {
   const [loadingLayanan, setLoadingLayanan] = useState(true)
   const [isLayananError, setIsLayananError] = useState(false)
   const [loadingPsikotes, setLoadingPsikotes] = useState(true)
+  const [isPsikotesError, setIsPsikotesError] = useState(false)
   const [storedAdminLayanan, setStoredAdminLayanan] = useState<AdminLayananItem[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -43,6 +45,7 @@ export default function LayananClient() {
   const fetchPsikotes = async () => {
     try {
       setLoadingPsikotes(true)
+      setIsPsikotesError(false)
       const res = await psikotesService.getList({ status: "PUBLISHED" })
       if (res?.data && res.data.length > 0) {
         setPublishedPsikotes(res.data)
@@ -52,6 +55,7 @@ export default function LayananClient() {
     } catch (err) {
       console.error("Gagal mengambil data paket psikotes layanan:", err)
       setPublishedPsikotes([])
+      setIsPsikotesError(true)
     } finally {
       setLoadingPsikotes(false)
     }
@@ -259,43 +263,45 @@ export default function LayananClient() {
               className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
             >
               <div key={`content-${activeCategory}`} className="transition-opacity duration-200">
-                {/* Status Error Jika Koneksi Gagal */}
-                {isLayananError && activeCategory !== "02" && activeCategory !== "03" && activeCategory !== "04" && (
-                  <div className="p-8 text-center bg-amber-50 border border-amber-200 rounded-2xl my-4">
-                    <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-2 text-lg">
-                      ⚠️
+                {/* 1. Status Error Jika Koneksi Gagal (Konsultasi, Psikotes, Workshop, Seminar, Asesmen) */}
+                {(() => {
+                  const isCurrentError = activeCategory === "02" ? isPsikotesError : isLayananError
+                  if (!isCurrentError) return null
+
+                  return (
+                    <ClientErrorState
+                      message={
+                        activeCategory === "02"
+                          ? "Gagal memuat daftar paket psikotes. Silakan periksa koneksi Anda dan coba lagi."
+                          : "Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi."
+                      }
+                      onRetry={activeCategory === "02" ? fetchPsikotes : fetchLayanan}
+                      isRetrying={activeCategory === "02" ? loadingPsikotes : loadingLayanan}
+                    />
+                  )
+                })()}
+
+                {/* 2. Loading State (Konsultasi, Psikotes, Workshop, Seminar, Asesmen) */}
+                {(() => {
+                  const isCurrentError = activeCategory === "02" ? isPsikotesError : isLayananError
+                  const isCurrentLoading = activeCategory === "02" ? loadingPsikotes : loadingLayanan
+                  if (isCurrentError || !isCurrentLoading) return null
+
+                  return (
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                      <Loader2 className="w-8 h-8 text-[#561269] animate-spin" />
+                      <p className="text-sm text-gray-500 font-medium">
+                        {activeCategory === "02" ? "Memuat paket psikotes..." : "Memuat data layanan..."}
+                      </p>
                     </div>
-                    <p className="text-sm font-bold text-amber-900 mb-1">
-                      Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={fetchLayanan}
-                      className="mt-3 px-5 py-2 bg-[#561269] hover:bg-[#430e52] text-white text-xs font-bold rounded-full transition shadow-xs cursor-pointer active:scale-95"
-                    >
-                      Muat Ulang
-                    </button>
-                  </div>
-                )}
+                  )
+                })()}
 
-                {/* Loading State */}
-                {loadingLayanan && activeCategory !== "02" && activeCategory !== "03" && activeCategory !== "04" && !isLayananError && (
-                  <div className="py-20 text-center text-gray-400 font-medium text-sm animate-pulse">
-                    Memuat data layanan...
-                  </div>
-                )}
-
-                {/* Grid Layanan Kecil */}
-                {/* Grid Layanan Kecil */}
-                {!isLayananError && (!loadingLayanan || activeCategory === "02" || activeCategory === "03" || activeCategory === "04") && (() => {
-                  if (activeCategory === "02" && loadingPsikotes) {
-                    return (
-                      <div className="flex flex-col items-center justify-center py-16 gap-3">
-                        <Loader2 className="w-8 h-8 text-[#561269] animate-spin" />
-                        <p className="text-sm text-gray-500 font-medium">Memuat paket psikotes...</p>
-                      </div>
-                    )
-                  }
+                {/* 3. Grid Layanan (Hanya tampil jika tidak error dan tidak loading) */}
+                {(() => {
+                  const isCurrentError = activeCategory === "02" ? isPsikotesError : isLayananError
+                  const isCurrentLoading = activeCategory === "02" ? loadingPsikotes : loadingLayanan
+                  if (isCurrentError || isCurrentLoading) return null
 
                   const currentServices = (() => {
                     if (activeCategory === "02") {
