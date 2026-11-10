@@ -215,19 +215,42 @@ export default function AdminEventDetailModal({
               <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
                 <Tag className="w-4 h-4" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Harga Tiket</p>
-                <div className="flex flex-col">
-                  {currentEvent.hargaCoret && Number(currentEvent.hargaCoret) > Number(currentEvent.harga || 0) && (
-                    <span className="text-[10px] text-gray-400 line-through">
-                      Rp {parseInt(currentEvent.hargaCoret, 10).toLocaleString("id-ID")}
+                <div className="flex flex-col gap-1 mt-0.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {currentEvent.hargaCoret && Number(currentEvent.hargaCoret) > Number(currentEvent.harga || 0) && (
+                      <span className="text-[10px] text-gray-400 line-through">
+                        Rp {parseInt(currentEvent.hargaCoret, 10).toLocaleString("id-ID")}
+                      </span>
+                    )}
+                    <span className="text-xs font-bold text-gray-900">
+                      {currentEvent.harga && currentEvent.harga !== "0"
+                        ? `Rp ${parseInt(currentEvent.harga, 10).toLocaleString("id-ID")}`
+                        : "Gratis"}
                     </span>
-                  )}
-                  <p className="text-xs font-bold text-gray-900 truncate">
-                    {currentEvent.harga && currentEvent.harga !== "0"
-                      ? `Rp ${parseInt(currentEvent.harga, 10).toLocaleString("id-ID")}`
-                      : "Gratis"}
-                  </p>
+                  </div>
+                  {currentEvent.paketBundling && currentEvent.paketBundling.length > 0 ? (
+                    currentEvent.paketBundling.map((pkg, pIdx) => (
+                      <div key={pIdx} className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-extrabold text-[10px] shrink-0">
+                          {pkg.nama_paket} ({pkg.kuota_tiket} Tiket)
+                        </span>
+                        <span className="font-extrabold text-[#561269] text-xs">
+                          Rp {Number(pkg.harga_paket).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    ))
+                  ) : currentEvent.hargaBundling && Number(currentEvent.hargaBundling) > 0 ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-extrabold text-[10px] shrink-0">
+                        {currentEvent.namaBundling || `Paket ${currentEvent.kuotaTiketBundling || 2} Tiket`}
+                      </span>
+                      <span className="font-extrabold text-[#561269] text-xs">
+                        Rp {parseInt(currentEvent.hargaBundling, 10).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

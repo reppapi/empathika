@@ -4,6 +4,7 @@ import FormDataPeserta from "@/components/shared/checkout/FormDataPeserta"
 import MetodePembayaranBox from "@/components/shared/checkout/MetodePembayaranBox"
 import Link from "next/link"
 import { useEventCheckout } from "../../hooks/useEventCheckout"
+import { Users, User, Sparkles } from "lucide-react"
 
 export default function EventCheckoutClient() {
   const {
@@ -11,6 +12,14 @@ export default function EventCheckoutClient() {
     setNama,
     whatsapp,
     setWhatsapp,
+    selectedTicketType,
+    setSelectedTicketType,
+    hasBundling,
+    finalBundlingOptions,
+    currentSelectedBundle,
+    pesertaTambahan,
+    setPesertaTambahan,
+    hargaNormalParam,
     metodePembayaran,
     selectedBank,
     setSelectedBank,
@@ -256,17 +265,208 @@ export default function EventCheckoutClient() {
         </div>
 
         {/* ── Box 2: Data Peserta (Tanpa Kolom Email) ── */}
-        <FormDataPeserta
-          stepNumber={2}
-          nama={nama}
-          setNama={setNama}
-          whatsapp={whatsapp}
-          setWhatsapp={setWhatsapp}
-          withDeskripsi={false}
-          errors={errors}
-          setErrors={setErrors}
-          attemptedSubmit={attemptedSubmit}
-        />
+        <div id="box-data-peserta" className="space-y-6">
+          {/* Pilihan Paket Tiket (Jika Tersedia Bundling) */}
+          {hasBundling && !isPsikotes && (
+            <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-7 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">2</div>
+                <h3 className="text-sm font-bold text-gray-800">Pilih Kategori Tiket</h3>
+              </div>
+              <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+                Pilih paket tiket yang Anda inginkan. Pembelian paket bundling mewajibkan pengisian identitas untuk seluruh peserta.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Opsi Tiket Satuan */}
+                <div
+                  onClick={() => setSelectedTicketType("SINGLE")}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    selectedTicketType === "SINGLE"
+                      ? "border-[#561269] bg-purple-50/40 shadow-xs"
+                      : "border-gray-200 bg-white hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <User className={`w-4 h-4 ${selectedTicketType === "SINGLE" ? "text-[#561269]" : "text-gray-400"}`} />
+                      <span className="text-xs font-bold text-gray-900">Tiket Satuan (1 Orang)</span>
+                    </div>
+                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                      selectedTicketType === "SINGLE" ? "border-[#561269] bg-[#561269]" : "border-gray-300"
+                    }`}>
+                      {selectedTicketType === "SINGLE" && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </span>
+                  </div>
+                  <p className="text-base font-extrabold text-[#561269]">{hargaNormalParam}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Untuk 1 peserta terdaftar</p>
+                </div>
+
+                {/* Opsi Semua Paket Bundling */}
+                {finalBundlingOptions.map((pkg, bIdx) => {
+                  const bId = `BUNDLE_${bIdx}`
+                  const isSelected = selectedTicketType === bId || (bIdx === 0 && selectedTicketType === "BUNDLING")
+
+                  return (
+                    <div
+                      key={bIdx}
+                      onClick={() => setSelectedTicketType(bId)}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all relative overflow-hidden ${
+                        isSelected
+                          ? "border-[#561269] bg-purple-50/40 shadow-xs"
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="absolute top-0 right-0 bg-[#EAB308] text-black font-extrabold text-[9px] px-2.5 py-0.5 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5" /> Lebih Hemat
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Users className={`w-4 h-4 ${isSelected ? "text-[#561269]" : "text-gray-400"}`} />
+                          <span className="text-xs font-bold text-gray-900">{pkg.nama_paket}</span>
+                        </div>
+                        <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          isSelected ? "border-[#561269] bg-[#561269]" : "border-gray-300"
+                        }`}>
+                          {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </span>
+                      </div>
+                      <p className="text-base font-extrabold text-[#561269]">
+                        Rp {Number(pkg.harga_paket).toLocaleString("id-ID")}
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">Paket langsung untuk {pkg.kuota_tiket} orang peserta</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Form Peserta 1 */}
+          <FormDataPeserta
+            stepNumber={hasBundling && !isPsikotes ? 3 : 2}
+            nama={nama}
+            setNama={setNama}
+            whatsapp={whatsapp}
+            setWhatsapp={setWhatsapp}
+            withDeskripsi={false}
+            errors={errors}
+            setErrors={setErrors}
+            attemptedSubmit={attemptedSubmit}
+          />
+
+          {/* Form Peserta Tambahan (Jika Bundling Terpilih) */}
+          {currentSelectedBundle && pesertaTambahan.length > 0 && (
+            <div className="space-y-4">
+              {pesertaTambahan.map((p, idx) => {
+                const pErr = errors.pesertaTambahanErrors?.[idx]
+                return (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-7 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4 animate-in fade-in duration-200"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-purple-100 text-[#561269] text-xs font-bold flex items-center justify-center shrink-0">
+                          {idx + 2}
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-800">
+                            Data Peserta {idx + 2} ({currentSelectedBundle.nama_paket})
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Identitas orang ke-{idx + 2} yang berbeda dari peserta lainnya
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] bg-purple-50 text-[#561269] font-bold px-2 py-0.5 rounded-full">
+                        Tiket ke-{idx + 2}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                          Nama Lengkap Peserta {idx + 2} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={`Nama lengkap peserta ${idx + 2}`}
+                          value={p.nama}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setPesertaTambahan((prev) => {
+                              const next = [...prev]
+                              next[idx] = { ...next[idx], nama: val }
+                              return next
+                            })
+                            if (pErr?.nama) {
+                              setErrors((prev) => {
+                                const next = { ...prev }
+                                if (next.pesertaTambahanErrors?.[idx]) {
+                                  delete next.pesertaTambahanErrors[idx].nama
+                                }
+                                return next
+                              })
+                            }
+                          }}
+                          className={`w-full rounded-xl border bg-white px-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 ${
+                            pErr?.nama
+                              ? "border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-red-500"
+                              : "border-gray-200 focus:border-[#561269] focus:ring-[#561269]"
+                          }`}
+                        />
+                        {pErr?.nama && (
+                          <span className="block text-[11px] text-red-600 font-semibold mt-1">
+                            {pErr.nama}
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                          Nomor WhatsApp Peserta {idx + 2} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="Contoh: 08123456789"
+                          value={p.whatsapp}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setPesertaTambahan((prev) => {
+                              const next = [...prev]
+                              next[idx] = { ...next[idx], whatsapp: val }
+                              return next
+                            })
+                            if (pErr?.whatsapp) {
+                              setErrors((prev) => {
+                                const next = { ...prev }
+                                if (next.pesertaTambahanErrors?.[idx]) {
+                                  delete next.pesertaTambahanErrors[idx].whatsapp
+                                }
+                                return next
+                              })
+                            }
+                          }}
+                          className={`w-full rounded-xl border bg-white px-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 ${
+                            pErr?.whatsapp
+                              ? "border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-red-500"
+                              : "border-gray-200 focus:border-[#561269] focus:ring-[#561269]"
+                          }`}
+                        />
+                        {pErr?.whatsapp && (
+                          <span className="block text-[11px] text-red-600 font-semibold mt-1">
+                            {pErr.whatsapp}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* ── Box 3: Metode Pembayaran ── */}
         <MetodePembayaranBox
