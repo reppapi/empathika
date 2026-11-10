@@ -22,6 +22,7 @@ import {
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
 import PsikologDetailModal from "./PsikologDetailModal"
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
 
 export default function AdminPsikologClient() {
   const router = useRouter()
@@ -30,6 +31,7 @@ export default function AdminPsikologClient() {
   const [searchQuery, setSearchQuery] = useState("")
 
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<TenagaAhli | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [selectedDetailPsikolog, setSelectedDetailPsikolog] = useState<TenagaAhli | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
@@ -167,14 +169,15 @@ export default function AdminPsikologClient() {
   // Hapus Data
   const handleDeleteItem = async () => {
     if (!deleteConfirmItem) return
+    setIsDeleting(true)
     const idToDelete = deleteConfirmItem.id
     const targetName = deleteConfirmItem.nama
-    setDeleteConfirmItem(null)
 
     try {
       await psikologService.deletePsikolog(idToDelete)
       const updated = dataList.filter((d) => d.id !== idToDelete)
       persistData(updated, `Data ${targetName} telah berhasil dihapus.`)
+      setDeleteConfirmItem(null)
     } catch (err: any) {
       const errMsg =
         err?.response?.data?.message ||
@@ -182,6 +185,8 @@ export default function AdminPsikologClient() {
         `Gagal menghapus ${targetName} karena sudah memiliki data booking konsultasi dari klien.`
       setNotification(errMsg)
       setTimeout(() => setNotification(null), 5000)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -398,34 +403,14 @@ export default function AdminPsikologClient() {
       </AdminTableContainer>
 
       {/* Modal Konfirmasi Hapus */}
-      {deleteConfirmItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl space-y-4">
-            <h4 className="text-base font-bold text-gray-900">
-              Hapus Data Tenaga Ahli?
-            </h4>
-            <p className="text-xs text-gray-600">
-              Apakah Anda yakin ingin menghapus <strong>{deleteConfirmItem.nama}</strong>?
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmItem(null)}
-                className="rounded-full border border-gray-300 px-5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteItem}
-                className="rounded-full bg-red-600 px-5 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-sm transition-all active:scale-95 cursor-pointer"
-              >
-                Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminDeleteModal
+        isOpen={Boolean(deleteConfirmItem)}
+        onClose={() => !isDeleting && setDeleteConfirmItem(null)}
+        onConfirm={handleDeleteItem}
+        itemType="tenaga ahli"
+        itemName={deleteConfirmItem?.nama}
+        isLoading={isDeleting}
+      />
       {/* Modal Detail Tenaga Ahli */}
       <PsikologDetailModal
         isOpen={isDetailOpen}

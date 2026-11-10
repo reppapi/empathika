@@ -15,6 +15,7 @@ import TabPesertaPsikotes from "./TabPesertaPsikotes";
 import TabPaketPsikotes from "./TabPaketPsikotes";
 import ModalDetailPeserta from "./ModalDetailPeserta";
 import ModalDetailPaket from "./ModalDetailPaket";
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal";
 
 export default function AdminPsikotesClient() {
   const [activeTab, setActiveTab] = useState<"peserta" | "paket">("peserta");
@@ -159,32 +160,35 @@ export default function AdminPsikotesClient() {
     }
   };
 
-  // Handler: Hapus Judul Paket dari Database
-  const handleDeleteJudul = async (target: JudulPsikotesItem | string | number) => {
+  // State Modal Konfirmasi Hapus
+  const [judulToDelete, setJudulToDelete] = useState<JudulPsikotesItem | null>(null);
+  const [isDeletingJudul, setIsDeletingJudul] = useState(false);
+
+  // Handler: Buka modal konfirmasi hapus instrumen psikotes
+  const handleOpenDeleteJudul = (target: JudulPsikotesItem | string | number) => {
     const item = typeof target === "object" ? target : judulList.find((j) => j.id === target);
     if (!item) return;
+    setJudulToDelete(item);
+  };
 
-    if (
-      !confirm(
-        `Apakah Anda yakin ingin menghapus seluruh instrumen psikotes "${item.judul}" beserta seluruh paket variannya? Tindakan ini tidak dapat dibatalkan.`
-      )
-    ) {
-      return;
-    }
-
+  // Handler: Eksekusi hapus Judul Paket dari Database
+  const handleConfirmDeleteJudul = async () => {
+    if (!judulToDelete) return;
+    setIsDeletingJudul(true);
     try {
-      const packageIds = item.paketList.map((p) => String(p.id));
+      const packageIds = judulToDelete.paketList.map((p) => String(p.id));
       for (const pid of packageIds) {
         await psikotesService.delete(pid);
       }
       setNotification({
         type: "success",
-        message: `Instrumen psikotes "${item.judul}" berhasil dihapus dari sistem.`,
+        message: `Instrumen psikotes "${judulToDelete.judul}" berhasil dihapus dari sistem.`,
       });
       await loadDataFromBackend();
-      if (selectedJudul && selectedJudul.id === item.id) {
+      if (selectedJudul && selectedJudul.id === judulToDelete.id) {
         setSelectedJudul(null);
       }
+      setJudulToDelete(null);
     } catch (err: any) {
       setNotification({
         type: "error",
@@ -192,6 +196,8 @@ export default function AdminPsikotesClient() {
           err.response?.data?.message || err.message || "Terjadi kesalahan pada server"
         }`,
       });
+    } finally {
+      setIsDeletingJudul(false);
     }
   };
 
@@ -285,7 +291,7 @@ export default function AdminPsikotesClient() {
           searchQuery={searchPaket}
           onSearchChange={setSearchPaket}
           onSelectJudul={setSelectedJudul}
-          onDeleteJudul={handleDeleteJudul}
+          onDeleteJudul={handleOpenDeleteJudul}
           isLoading={isLoadingPaket}
           errorMessage={loadPaketError}
           onRetry={loadDataFromBackend}
@@ -305,6 +311,25 @@ export default function AdminPsikotesClient() {
         judulList={judulList}
         onClose={() => setSelectedPeserta(null)}
         onDownloadPdf={(peserta) => printLaporanPsikotes(peserta, judulList)}
+      />
+
+      {/* ── 5. Modal Konfirmasi Hapus Paket Psikotes ── */}
+      <AdminDeleteModal
+        isOpen={Boolean(judulToDelete)}
+        onClose={() => !isDeletingJudul && setJudulToDelete(null)}
+        onConfirm={handleConfirmDeleteJudul}
+        itemType="instrumen psikotes"
+        itemName={judulToDelete?.judul}
+        description={
+          judulToDelete ? (
+            <>
+              Apakah Anda yakin ingin menghapus instrumen psikotes{" "}
+              <span className="font-extrabold text-gray-900">&ldquo;{judulToDelete.judul}&rdquo;</span>{" "}
+              beserta seluruh paket variannya? Tindakan ini tidak dapat dibatalkan.
+            </>
+          ) : undefined
+        }
+        isLoading={isDeletingJudul}
       />
     </div>
   );

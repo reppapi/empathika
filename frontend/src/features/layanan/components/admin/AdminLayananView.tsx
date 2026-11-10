@@ -40,6 +40,7 @@ import {
   AdminStatusBadge,
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
 
 function parseRupiahNumber(val: any): number {
   if (typeof val === "number") return isNaN(val) ? 0 : val
@@ -1228,61 +1229,14 @@ export default function AdminLayananView() {
       )}
 
       {/* ── MODAL KONFIRMASI HAPUS KUSTOM ── */}
-      {itemToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
-            <button
-              type="button"
-              onClick={() => !isDeleting && setItemToDelete(null)}
-              disabled={isDeleting}
-              className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex flex-col items-center text-center">
-              <div className="w-14 h-14 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4 ring-8 ring-red-50/50">
-                <AlertTriangle className="w-7 h-7" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Hapus Layanan?</h3>
-              <p className="text-xs text-gray-600 leading-relaxed max-w-sm mb-6">
-                Apakah Anda yakin ingin menghapus layanan{" "}
-                <span className="font-extrabold text-gray-900">&ldquo;{itemToDelete.layanan}&rdquo;</span>?
-                Tindakan ini akan menonaktifkan atau menghapus data layanan dari sistem.
-              </p>
-
-              <div className="flex items-center justify-center gap-3 w-full">
-                <button
-                  type="button"
-                  onClick={() => setItemToDelete(null)}
-                  disabled={isDeleting}
-                  className="flex-1 py-2.5 px-4 rounded-full border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                  className="flex-1 py-2.5 px-4 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Menghapus...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      <span>Ya, Hapus</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminDeleteModal
+        isOpen={Boolean(itemToDelete)}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        itemType="layanan"
+        itemName={itemToDelete?.layanan}
+        isLoading={isDeleting}
+      />
     </div>
   )
 }
