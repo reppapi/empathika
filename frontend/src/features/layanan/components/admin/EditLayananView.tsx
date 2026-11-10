@@ -1064,21 +1064,13 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                 </div>
               ) : null}
 
-              {/* Box 1: Tarif Online (Pengerjaan Psikotes Daring - Tanpa Weekday/Weekend) */}
+              {/* Box 1: Tarif Online (Pengerjaan Psikotes Daring) */}
               {isOnline && (
-                <div className="p-4 rounded-xl border border-blue-200 bg-white shadow-xs space-y-2">
-                  <div className="flex items-center justify-between pb-1 border-b border-blue-100">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                      <h4 className="text-xs font-bold text-blue-900">Tarif Online (Pengerjaan Psikotes)</h4>
-                    </div>
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
-                      Tanpa Weekday / Weekend
-                    </span>
+                <div className="p-4 rounded-xl border border-blue-200 bg-white shadow-xs space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b border-blue-100">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                    <h4 className="text-xs font-bold text-blue-900">Tarif Online (Pengerjaan Psikotes)</h4>
                   </div>
-                  <p className="text-[11px] text-gray-500">
-                    Tarif tunggal untuk pengerjaan psikotes secara daring yang dapat diakses klien setiap saat.
-                  </p>
                   <div>
                     <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                       Tarif Asesmen Online <span className="text-red-500">*</span>
@@ -1093,21 +1085,13 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                 </div>
               )}
 
-              {/* Box 2: Tarif Offline (Sesi Tatap Muka di Klinik - Ada Weekday & Weekend) */}
+              {/* Box 2: Tarif Offline (Sesi Tatap Muka di Klinik) */}
               {isOffline && (
                 <div className="p-4 rounded-xl border border-purple-200 bg-white shadow-xs space-y-3">
-                  <div className="flex items-center justify-between pb-1 border-b border-purple-100">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
-                      <h4 className="text-xs font-bold text-[#561269]">Tarif Offline (Tatap Muka di Klinik)</h4>
-                    </div>
-                    <span className="text-[10px] font-bold text-[#561269] bg-purple-100 px-2 py-0.5 rounded-full">
-                      Weekday &amp; Weekend
-                    </span>
+                  <div className="flex items-center gap-2 pb-2 border-b border-purple-100">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
+                    <h4 className="text-xs font-bold text-[#561269]">Tarif Offline (Tatap Muka di Klinik)</h4>
                   </div>
-                  <p className="text-[11px] text-gray-500">
-                    Tarif sesi tatap muka langsung bersama asesor di ruang asesmen klinik Empathika.
-                  </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-gray-700 mb-1">
