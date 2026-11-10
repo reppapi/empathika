@@ -520,9 +520,6 @@ export default function TambahLayananView() {
                 <label className="block text-sm font-bold text-[#561269]">
                   Tarif Konsultasi per Tenaga Ahli <span className="text-red-500">*</span>
                 </label>
-                <span className="block text-xs text-gray-500 mt-0.5">
-                  Isi tarif minimal untuk 1 tenaga ahli yang tersedia untuk layanan ini. Kosongkan tenaga ahli jika layanan ini tidak dilayani oleh kualifikasi tersebut.
-                </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
