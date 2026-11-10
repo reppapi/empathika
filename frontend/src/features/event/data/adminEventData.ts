@@ -1,4 +1,4 @@
-import { EventItemApi } from "@/services/event.service"
+import { EventItemApi, PaketBundlingItem } from "@/services/event.service"
 import { EVENT_JENIS, EVENT_TIPE, EVENT_STATUS, EventJenis, EventTipe, EventStatus } from "../constants/eventConstants"
 
 export interface AdminEventData {
@@ -19,6 +19,10 @@ export interface AdminEventData {
   totalTiket: number
   harga?: string
   hargaCoret?: string
+  hargaBundling?: string
+  kuotaTiketBundling?: number
+  namaBundling?: string
+  paketBundling?: PaketBundlingItem[]
   deskripsi?: string
   status: EventStatus
   bannerUrl?: string
@@ -94,6 +98,10 @@ export function mapApiToAdminEvent(apiItem: EventItemApi): AdminEventData {
     totalTiket: apiItem.kuota,
     harga: String(apiItem.harga),
     hargaCoret: apiItem.harga_coret ? String(apiItem.harga_coret) : undefined,
+    hargaBundling: apiItem.harga_bundling ? String(apiItem.harga_bundling) : undefined,
+    kuotaTiketBundling: apiItem.kuota_tiket_bundling ?? 2,
+    namaBundling: apiItem.nama_bundling || undefined,
+    paketBundling: apiItem.paket_bundling || undefined,
     deskripsi: apiItem.deskripsi,
     status,
     bannerUrl: apiItem.banner_url || undefined,

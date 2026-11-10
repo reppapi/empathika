@@ -375,6 +375,14 @@ export default function HomeClient() {
                   : 0
 
               const isOnline = ev.tipe_event !== "OFFLINE"
+              const hasBundling = Boolean(ev.harga_bundling && Number(ev.harga_bundling) > 0)
+              const hargaBundlingNum = hasBundling ? Number(ev.harga_bundling) : 0
+              const kuotaBundling = ev.kuota_tiket_bundling || 2
+              const namaBundling = ev.nama_bundling || `Paket ${kuotaBundling} Tiket`
+
+              const bundlingParams = hasBundling
+                ? `&hargaBundling=${encodeURIComponent(String(hargaBundlingNum))}&kuotaBundling=${encodeURIComponent(String(kuotaBundling))}&namaBundling=${encodeURIComponent(namaBundling)}`
+                : ""
 
               return (
                 <div
@@ -400,6 +408,12 @@ export default function HomeClient() {
                       >
                         {isOnline ? "Online" : "Offline"}
                       </div>
+                      {/* Badge Bundling jika ada */}
+                      {hasBundling && (
+                        <div className="bg-amber-400 text-gray-950 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full shadow-sm tracking-wide">
+                          Tersedia {namaBundling}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="p-5 md:p-6 flex flex-col flex-1">
@@ -435,7 +449,16 @@ export default function HomeClient() {
                     <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
-                        {hargaCoretTeks && hargaCoretNum > hargaNum ? (
+                        {hasBundling ? (
+                          <div>
+                            <p className="text-base sm:text-lg font-black text-[#561269] leading-tight">
+                              Mulai dari {hargaTeks}
+                            </p>
+                            <div className="inline-flex items-center gap-1.5 mt-1 bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                              <span>Tersedia {namaBundling} (Rp {hargaBundlingNum.toLocaleString("id-ID")})</span>
+                            </div>
+                          </div>
+                        ) : hargaCoretTeks && hargaCoretNum > hargaNum ? (
                           <div className="flex flex-col">
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs text-gray-400 line-through font-medium">
@@ -457,8 +480,8 @@ export default function HomeClient() {
                       </div>
                       <Link
                         href={biroPrefix
-                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}`
-                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}`}
+                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}`
+                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}`}
                         className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
                       >
                         Daftar

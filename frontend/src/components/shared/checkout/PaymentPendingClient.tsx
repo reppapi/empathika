@@ -156,7 +156,7 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
         ...(linkMeet && { linkMeet }),
         ...(linkWa && { linkWa }),
       })
-      router.push(`${config.successHref}?${params.toString()}`)
+      router.replace(`${config.successHref}?${params.toString()}`)
     }, 2000)
 
     return () => clearTimeout(t)

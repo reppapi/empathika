@@ -31,19 +31,8 @@ export class InvoiceController {
         return reply.code(404).send({ error: 'Not Found', message: 'Invoice tidak ditemukan' })
       }
 
-      // Bangun teks pesan WA
-      const text = buildInvoiceWhatsAppText({
-        nomor: invoice.nomor,
-        tanggal_terbit: invoice.tanggal_terbit,
-        tanggal_bayar: invoice.tanggal_bayar,
-        nama_client: invoice.nama_client,
-        judul_layanan: invoice.judul_layanan,
-        nama_psikolog: invoice.nama_psikolog,
-        tanggal_sesi: invoice.tanggal_sesi,
-        jenis_sesi: invoice.jenis_sesi,
-        harga: invoice.harga,
-        metode_bayar: invoice.metode_bayar,
-      })
+      // Bangun teks pesan WA (otomatis menyesuaikan jenis transaksi: Psikotes / Konseling / Event)
+      const text = await this.service.getInvoiceText(transaksiId)
 
       // Validasi nomor WA (untuk info FE, tidak throw)
       const waValidation = validateWhatsAppNumber(invoice.no_wa_client)

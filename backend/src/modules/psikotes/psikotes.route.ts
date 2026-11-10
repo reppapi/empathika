@@ -120,6 +120,15 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     handler: controller.verifyTicket,
   })
 
+  // 5d. Publik: Ambil Laporan Hasil Asesmen Resmi Berdasarkan Booking ID (Anti-Tampering)
+  fastify.get('/booking/:bookingId/hasil', {
+    schema: {
+      tags: ['Psikotes'],
+      summary: 'Mendapatkan laporan hasil asesmen resmi terverifikasi murni dari database berdasarkan booking ID',
+    },
+    handler: controller.getHasilByBooking,
+  })
+
   // 6. Publik: Submit jawaban psikotes (dengan Rate Limiting)
   fastify.post('/:id/submit', {
     preHandler: [submitLimiter],

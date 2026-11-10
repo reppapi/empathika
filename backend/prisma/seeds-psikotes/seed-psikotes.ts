@@ -88,7 +88,7 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   console.log('Paket Aktif di Database:')
   console.log(`1. "${paketGAD7.judul}" -> GRATIS (Rp 0) [Alat: GAD-7]`)
   console.log(`2. "${paketPHQ9.judul}" -> GRATIS (Rp 0) [Alat: PHQ-9]`)
-  console.log(`3. "${paketDASS42.judul}" -> GRATIS (Rp 0) [Alat: DASS-42]`)
+  console.log(`3. "${paketDASS42.judul}" -> BERBAYAR (Rp ${Number(paketDASS42.harga).toLocaleString('id-ID')}) [Alat: DASS-42]`)
   console.log(`4. "Tes Kecanduan Game (IGDS9-SF)" -> GRATIS (Rp 0) [Alat: IGDS9-SF]`)
   console.log(`5. "${paketRCMAS.judul}" -> GRATIS (Rp 0) [Alat: RCMAS]`)
   console.log('========================================================\n')

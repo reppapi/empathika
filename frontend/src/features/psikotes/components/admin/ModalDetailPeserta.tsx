@@ -109,19 +109,44 @@ export default function ModalDetailPeserta({
           </div>
 
           {/* Data Tambahan Profil Peserta (Anak / Remaja / Dewasa) */}
-          {peserta.peserta && (peserta.peserta.nama_orang_tua || peserta.peserta.pendidikan || peserta.peserta.pekerjaan || peserta.peserta.kategori_peserta) && (
+          {peserta.peserta && (peserta.peserta.nama_orang_tua || peserta.peserta.pendidikan || peserta.peserta.pekerjaan || peserta.peserta.status_pernikahan || peserta.peserta.tempat_lahir || peserta.peserta.tanggal_lahir || peserta.peserta.kategori_peserta) && (
             <div className="p-4 rounded-2xl bg-purple-50/40 border border-purple-100/60 text-xs space-y-2">
               <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider block">
                 Profil Peserta Tes {peserta.peserta.kategori_peserta ? `(${peserta.peserta.kategori_peserta})` : ""}
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {(peserta.peserta.tempat_lahir || peserta.peserta.tanggal_lahir) && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">Tempat, Tgl Lahir</span>
+                    <span className="font-semibold text-gray-800">
+                      {[
+                        peserta.peserta.tempat_lahir,
+                        peserta.peserta.tanggal_lahir
+                          ? new Date(peserta.peserta.tanggal_lahir).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || "—"}
+                    </span>
+                  </div>
+                )}
+                {((peserta.peserta as any).no_telepon || (!peserta.peserta.nama_orang_tua && peserta.peserta.no_telepon_orang_tua)) && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">No. WhatsApp Peserta</span>
+                    <span className="font-semibold text-emerald-700">{(peserta.peserta as any).no_telepon || peserta.peserta.no_telepon_orang_tua}</span>
+                  </div>
+                )}
                 {peserta.peserta.nama_orang_tua && (
                   <div>
                     <span className="text-gray-400 block text-[10px]">Nama Orang Tua / Wali</span>
                     <span className="font-semibold text-gray-800">{peserta.peserta.nama_orang_tua}</span>
                   </div>
                 )}
-                {peserta.peserta.no_telepon_orang_tua && (
+                {peserta.peserta.nama_orang_tua && peserta.peserta.no_telepon_orang_tua && (
                   <div>
                     <span className="text-gray-400 block text-[10px]">No. HP Orang Tua</span>
                     <span className="font-semibold text-gray-800">{peserta.peserta.no_telepon_orang_tua}</span>
