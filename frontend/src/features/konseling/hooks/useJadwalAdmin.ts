@@ -877,6 +877,30 @@ export function useJadwalAdmin() {
       (s) => s.date === effectiveDateKey && (s.waktu === timeToRemove || s.waktu.includes(timeToRemove))
     )
 
+    // Guard: Admin tidak berwenang menghapus slot jadwal konsultasi yang dibuka mandiri oleh psikolog
+    const isPsikologSlot =
+      targetSession &&
+      ((targetSession.tipe_jadwal || "").toUpperCase() === "KONSULTASI" ||
+        (!targetSession.layanan?.toLowerCase().includes("asesmen") &&
+          Boolean(targetSession.psikolog) &&
+          targetSession.psikolog !== "Admin Asesmen" &&
+          targetSession.psikolog !== "Asesor Klinis Empathika" &&
+          targetSession.psikolog !== "Belum Ditentukan"))
+
+    if (
+      isPsikologSlot &&
+      (targetSession.isAvailableSlot ||
+        targetSession.status === "Tersedia" ||
+        !targetSession.namaKlien ||
+        targetSession.namaKlien.trim().toLowerCase() === "tersedia")
+    ) {
+      triggerToast(
+        "Slot jadwal ini dibuka oleh psikolog. Admin tidak dapat menghapus slot psikolog karena hanya dapat dikelola mandiri oleh psikolog bersangkutan melalui portal mereka.",
+        "danger"
+      )
+      return
+    }
+
     // 2. Optimistic update: hapus dari state lokal bookedSessions
     setBookedSessions((prev) =>
       prev.filter(
