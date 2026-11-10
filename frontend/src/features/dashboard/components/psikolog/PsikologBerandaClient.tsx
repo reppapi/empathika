@@ -196,6 +196,7 @@ export default function PsikologBerandaClient() {
 
   // State Agenda Riwayat Sesi dari Database
   const [allBookedSlots, setAllBookedSlots] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   // 1. Resolve Profil & Nama Psikolog
   useEffect(() => {
@@ -245,6 +246,7 @@ export default function PsikologBerandaClient() {
 
   // 2. Fetch data riwayat sesi real-time dari BE PostgreSQL
   useEffect(() => {
+    setIsLoading(true)
     psikologService
       .getJadwalSaya()
       .then((res: any) => {
@@ -267,6 +269,9 @@ export default function PsikologBerandaClient() {
         }
       })
       .catch(() => {})
+      .finally(() => {
+        setIsLoading(false)
+      })
   }, [])
 
   // 3. Pengelompokan & Filter:
@@ -480,7 +485,13 @@ export default function PsikologBerandaClient() {
           </h4>
         </div>
 
-        {agendaHariIni.length > 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col gap-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-24 rounded-xl bg-gray-200/60 animate-pulse" />
+            ))}
+          </div>
+        ) : agendaHariIni.length > 0 ? (
           agendaHariIni.map((sesi) => (
             <SesiCard key={sesi.id} {...sesi} />
           ))
@@ -499,7 +510,9 @@ export default function PsikologBerandaClient() {
           </h4>
         </div>
 
-        {agendaBerikutnya.length > 0 ? (
+        {isLoading ? (
+          <div className="h-24 rounded-xl bg-gray-200/60 animate-pulse" />
+        ) : agendaBerikutnya.length > 0 ? (
           agendaBerikutnya.map((grup) => (
             <div key={grup.rawDate} className="flex flex-col gap-2">
               <p className="text-xs font-bold text-[#561269] flex items-center gap-1.5 mt-1">
@@ -554,7 +567,9 @@ export default function PsikologBerandaClient() {
           </div>
         </div>
 
-        {agendaLewat.length > 0 ? (
+        {isLoading ? (
+          <div className="h-24 rounded-xl bg-gray-200/60 animate-pulse" />
+        ) : agendaLewat.length > 0 ? (
           agendaLewat.map((grup) => (
             <div key={grup.rawDate} className="flex flex-col gap-2">
               <p className="text-xs font-bold text-gray-600 flex items-center gap-1.5 mt-1">
