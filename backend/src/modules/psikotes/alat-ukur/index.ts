@@ -10,6 +10,9 @@ import { calculateDASS42 } from "./dass-42/scoring";
 import { IGDS9SF_CONFIG } from "./igds9-sf/config";
 import { calculateIGDS9SF } from "./igds9-sf/scoring";
 
+import { RCMAS_CONFIG } from "./rcmas/config";
+import { calculateRCMAS } from "./rcmas/scoring";
+
 export interface AlatUkurModule {
   config: {
     kode: string;
@@ -45,6 +48,10 @@ const registry: Record<string, AlatUkurModule> = {
   "IGDS9SF": {
     config: IGDS9SF_CONFIG,
     calculate: calculateIGDS9SF,
+  },
+  "RCMAS": {
+    config: RCMAS_CONFIG,
+    calculate: calculateRCMAS,
   },
 };
 

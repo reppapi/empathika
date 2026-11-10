@@ -89,7 +89,7 @@ export function LoginForm() {
     } else if (user.role === "ADMIN") {
       router.push("/admin");
     } else if (user.role === "BIRO") {
-      router.push("/admin-biro/transaksi");
+      router.push("/admin-biro");
     } else {
       router.push("/");
     }
@@ -223,11 +223,18 @@ export function LoginForm() {
 
     setIsLoading(true);
 
+    // Normalisasi jika user memasukkan username "admin" / "Admin Empathika"
+    let effectiveEmail = trimmedInput;
+    const lowerInput = trimmedInput.toLowerCase();
+    if (lowerInput === "admin" || lowerInput === "admin empathika" || lowerInput === "adminempathika") {
+      effectiveEmail = "admin@empathika.test";
+    }
+
     // 1. Coba login melalui endpoint Auth Backend resmi jika format email
-    if (trimmedInput.includes("@")) {
+    if (effectiveEmail.includes("@")) {
       try {
         const response = await authService.login({
-          email: trimmedInput,
+          email: effectiveEmail,
           password: trimmedPass,
           rememberMe,
         });

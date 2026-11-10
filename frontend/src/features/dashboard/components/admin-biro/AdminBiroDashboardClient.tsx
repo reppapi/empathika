@@ -17,16 +17,128 @@ import {
   getBiroTenantData,
   BiroClientProfile,
   BiroTenantData,
+  BIRO_TENANT_DATA,
 } from "../../data/biroDashboardData"
+import { useAuthStore } from "@/store/authStore"
+import { biroAdminService } from "@/services/biro.service"
+import { Wallet, Users as UsersIcon, CheckCircle2 as CheckCircle2Icon, Sparkles, Clock } from "lucide-react"
 
 export default function AdminBiroDashboardClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user } = useAuthStore()
 
-  // Tenant Biro Aktif: Biro Konseling Cendekia Muda (id: biro-01)
-  const currentTenant: BiroTenantData = useMemo(() => {
-    return getBiroTenantData("biro-01")
-  }, [])
+  const [activeTenant, setActiveTenant] = useState<BiroTenantData>(() => {
+    return getBiroTenantData(user?.id)
+  })
+
+  useEffect(() => {
+    let isMounted = true
+
+    // Coba temukan tenant yang cocok dari mock data atau buat representasi tenant dinamis dari akun yang login
+    const resolveTenant = (biroInfo?: { id?: string; nama_biro?: string; slug?: string }) => {
+      const targetId = biroInfo?.id || user?.id || ""
+      const targetSlug = biroInfo?.slug || ""
+      const foundMockKey = Object.keys(BIRO_TENANT_DATA).find(
+        (key) => key === targetId || BIRO_TENANT_DATA[key].biroSlug === targetSlug
+      )
+
+      if (foundMockKey) {
+        setActiveTenant(BIRO_TENANT_DATA[foundMockKey])
+      } else {
+        const biroName = biroInfo?.nama_biro || user?.name || "Biro Mitra Baru"
+        // Biro Baru: Data transaksi, sesi, klien, agenda, dan grafik dimulai dari 0/kosong
+        setActiveTenant({
+          biroId: targetId || "biro-baru",
+          biroName,
+          biroSlug: targetSlug || targetId || "biro-baru",
+          tagline: `Dashboard Layanan & Klien ${biroName}`,
+          color: "#561269",
+          metrics: [
+            {
+              title: "Pendapatan Bulan Ini",
+              value: "Rp 0",
+              change: "0% dari bulan lalu",
+              icon: Wallet,
+              color: "#561269",
+            },
+            {
+              title: "Klien Aktif Biro",
+              value: "0 Klien",
+              change: "Belum ada klien terdaftar",
+              icon: UsersIcon,
+              color: "#561269",
+            },
+            {
+              title: "Sesi Konseling Selesai",
+              value: "0 Sesi",
+              change: "Akumulasi bulan ini",
+              icon: CheckCircle2Icon,
+              color: "#561269",
+            },
+            {
+              title: "Pendaftar Layanan",
+              value: "0 Peserta",
+              change: "Belum ada program aktif",
+              icon: Sparkles,
+              color: "#561269",
+            },
+            {
+              title: "Menunggu Pembayaran",
+              value: "0 Transaksi",
+              change: "Tidak ada tagihan tertunda",
+              icon: Clock,
+              color: "#D97706",
+            },
+          ],
+          chartData: {
+            minggu: [
+              { label: "Sen", value: 0, height: "0%" },
+              { label: "Sel", value: 0, height: "0%" },
+              { label: "Rab", value: 0, height: "0%" },
+              { label: "Kam", value: 0, height: "0%" },
+              { label: "Jum", value: 0, height: "0%" },
+              { label: "Sab", value: 0, height: "0%" },
+              { label: "Min", value: 0, height: "0%" },
+            ],
+            bulan: [
+              { label: "M-1", value: 0, height: "0%" },
+              { label: "M-2", value: 0, height: "0%" },
+              { label: "M-3", value: 0, height: "0%" },
+              { label: "M-4", value: 0, height: "0%" },
+            ],
+            bulan_lalu: [
+              { label: "M-1", value: 0, height: "0%" },
+              { label: "M-2", value: 0, height: "0%" },
+              { label: "M-3", value: 0, height: "0%" },
+              { label: "M-4", value: 0, height: "0%" },
+            ],
+          },
+          agendaList: [],
+          todaySessions: [],
+          recentTransactions: [],
+          clients: [],
+        })
+      }
+    }
+
+    resolveTenant()
+
+    biroAdminService
+      .getMyAccount()
+      .then((res) => {
+        if (!isMounted || !res?.data) return
+        const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
+        resolveTenant(beBiro)
+      })
+      .catch(() => {})
+
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+
+  const currentTenant: BiroTenantData = activeTenant
 
   const sessions = currentTenant.todaySessions
   const clients = currentTenant.clients

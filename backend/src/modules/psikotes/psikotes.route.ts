@@ -9,6 +9,7 @@ import {
   submitPsikotesSchema,
   pesertaQuerySchema,
   createBookingPsikotesSchema,
+  verifyTicketSchema,
 } from './psikotes.schema'
 
 export default async function psikotesRoutes(fastify: FastifyInstance) {
@@ -107,6 +108,16 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
       body: createBookingPsikotesSchema,
     },
     handler: controller.createBooking,
+  })
+
+  // 5c. Publik: Verifikasi Tiket / Kode Akses Pengerjaan Psikotes Berbayar
+  fastify.post('/verify-ticket', {
+    schema: {
+      tags: ['Psikotes'],
+      summary: 'Verifikasi kode akses tiket pengerjaan psikotes berbayar',
+      body: verifyTicketSchema,
+    },
+    handler: controller.verifyTicket,
   })
 
   // 6. Publik: Submit jawaban psikotes (dengan Rate Limiting)

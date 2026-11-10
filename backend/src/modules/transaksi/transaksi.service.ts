@@ -209,6 +209,17 @@ export class TransaksiService {
           throw Object.assign(new Error('Event tidak ditemukan'), { statusCode: 404 })
         }
 
+        // Validasi status event: pendaftaran tidak bisa dilakukan jika event telah selesai, dibatalkan, atau masih draft
+        if (event.status === 'COMPLETED') {
+          throw Object.assign(new Error('Pendaftaran event ini telah selesai dan ditutup'), { statusCode: 409 })
+        }
+        if (event.status === 'CANCELLED') {
+          throw Object.assign(new Error('Event ini telah dibatalkan'), { statusCode: 409 })
+        }
+        if (event.status === 'DRAFT') {
+          throw Object.assign(new Error('Pendaftaran event ini sedang dinonaktifkan'), { statusCode: 409 })
+        }
+
         const bookedCount = event._count.booking_event
         if (bookedCount >= event.kuota) {
           throw Object.assign(new Error('Kuota pendaftaran event ini sudah penuh'), { statusCode: 409 })
@@ -326,6 +337,8 @@ export class TransaksiService {
             id_paket: paket.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
+            kode_akses: kodeTransaksi,
+            status_pengerjaan: 'BELUM_MULAI',
           },
         })
 

@@ -2,6 +2,7 @@
 
 import FormDataPeserta from "@/components/shared/checkout/FormDataPeserta"
 import MetodePembayaranBox from "@/components/shared/checkout/MetodePembayaranBox"
+import Link from "next/link"
 import { useEventCheckout } from "../../hooks/useEventCheckout"
 
 export default function EventCheckoutClient() {
@@ -33,9 +34,81 @@ export default function EventCheckoutClient() {
     isPsikotes,
     bannerUrlParam,
     tipeParam,
+    isEventLoading,
+    isEventClosed,
+    eventClosedReason,
     handleSelectPayment,
     handleSubmit,
   } = useEventCheckout()
+
+  // ── Fallback 1: Loading verifikasi event ──
+  if (isEventLoading) {
+    return (
+      <div className="min-h-screen w-full font-poppins bg-[#FAFAFA] flex flex-col items-center justify-center p-6">
+        <div className="w-12 h-12 border-4 border-[#561269]/20 border-t-[#561269] rounded-full animate-spin mb-4" />
+        <p className="text-sm font-semibold text-gray-600">Memverifikasi status pendaftaran event...</p>
+      </div>
+    )
+  }
+
+  // ── Fallback 2: Event sudah selesai, dibatalkan, atau dinonaktifkan oleh admin ──
+  if (isEventClosed) {
+    return (
+      <div className="min-h-screen w-full font-poppins bg-[#FAFAFA] flex items-center justify-center px-4 py-24 sm:py-32">
+        <div className="max-w-[560px] w-full bg-white rounded-[2rem] border border-purple-100 p-8 sm:p-12 text-center shadow-[0_4px_25px_rgba(86,18,105,0.06)] animate-in fade-in zoom-in-95 duration-300">
+          {/* Icon Badge */}
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 mb-6 shadow-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-10 h-10">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.5a9 9 0 1 1 0 18 9 9 0 0 1 0-18Zm0 14.25h.008v.008H12v-.008Z" />
+            </svg>
+          </div>
+
+          {/* Heading */}
+          <span className="inline-block px-3 py-1 bg-purple-50 text-[#561269] text-xs font-bold rounded-full mb-3 uppercase tracking-wider">
+            Status Pendaftaran
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#561269] mb-3 leading-tight">
+            Pendaftaran Telah Ditutup
+          </h2>
+
+          {/* Message */}
+          <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+            {eventClosedReason || "Mohon maaf, pendaftaran untuk event ini sudah selesai atau telah dinonaktifkan oleh admin penyelenggara."}
+          </p>
+
+          {/* Card Info Event Singkat */}
+          {judulParam && (
+            <div className="bg-[#FAF5FD] border border-purple-100/80 rounded-2xl p-4 mb-8 text-left">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                Event yang Diakses
+              </span>
+              <p className="text-sm font-extrabold text-[#561269] line-clamp-2">
+                {judulParam}
+              </p>
+              {tanggalParam && tanggalParam !== "Jadwal Segera Diumumkan" && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Jadwal: {tanggalParam} • {waktuParam}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Action Button (Cukup 1 tombol saja) */}
+          <div className="flex items-center justify-center pt-1">
+            <Link
+              href="/event"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#EAB308] hover:bg-yellow-500 text-black font-bold text-sm px-8 py-3.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-98 cursor-pointer"
+            >
+              <span>Lihat Event Lainnya</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="relative min-h-screen w-full font-poppins bg-[#FAFAFA] pb-32 pt-24 sm:pt-32">

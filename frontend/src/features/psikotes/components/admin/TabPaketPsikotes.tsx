@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   AdminDataTable,
+  AdminTableContainer,
   AdminSearchInput,
   AdminStatusBadge,
   ColumnDef,
@@ -9,6 +10,7 @@ import {
   ActionButtonDetail,
   ActionButtonDelete,
 } from "@/components/shared/TableActionButtons";
+import { Filter } from "lucide-react";
 import type { JudulPsikotesItem } from "../../types/adminPsikotes";
 
 export interface TabPaketPsikotesProps {
@@ -32,7 +34,19 @@ export default function TabPaketPsikotes({
   errorMessage = null,
   onRetry,
 }: TabPaketPsikotesProps) {
+  const [selectedJenisAkses, setSelectedJenisAkses] = useState<"ALL" | "GRATIS" | "BERBAYAR">("ALL");
+
   const filteredJudul = judulList.filter((item) => {
+    // Filter Jenis Akses (Semua, Gratis, Berbayar)
+    if (selectedJenisAkses === "GRATIS") {
+      const hasGratis = item.paketList.some((p) => p.jenisAkses === "Gratis");
+      if (!hasGratis) return false;
+    } else if (selectedJenisAkses === "BERBAYAR") {
+      const hasBerbayar = item.paketList.some((p) => p.jenisAkses === "Berbayar");
+      if (!hasBerbayar) return false;
+    }
+
+    // Filter Kata Kunci Pencarian
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -182,21 +196,36 @@ export default function TabPaketPsikotes({
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900">
-            Daftar Paket Psikotes
-          </h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Seluruh instrumen asesmen yang tersedia di sistem Empathika.
-          </p>
+    <AdminTableContainer>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        {/* Dropdown Filter Akses Paket (Persis gaya filter di Peserta) */}
+        <div className="relative w-full sm:w-64">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+            <Filter className="w-3.5 h-3.5 text-gray-400" />
+          </div>
+          <select
+            value={selectedJenisAkses}
+            onChange={(e) => setSelectedJenisAkses(e.target.value as "ALL" | "GRATIS" | "BERBAYAR")}
+            className="w-full appearance-none pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition shadow-2xs cursor-pointer truncate"
+          >
+            <option value="ALL">Semua Akses Paket</option>
+            <option value="GRATIS">Paket Gratis</option>
+            <option value="BERBAYAR">Paket Berbayar</option>
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
-        <div className="w-full sm:w-72">
+
+        {/* Kolom Pencarian */}
+        <div className="w-full sm:w-64">
           <AdminSearchInput
             placeholder="Cari judul psikotes..."
             value={searchQuery}
             onChange={onSearchChange}
+            className="!w-full lg:!w-full"
           />
         </div>
       </div>
@@ -224,6 +253,6 @@ export default function TabPaketPsikotes({
           emptyMessage="Tidak ada paket psikotes yang ditemukan. Pastikan seeder database telah dijalankan."
         />
       )}
-    </div>
+    </AdminTableContainer>
   );
 }

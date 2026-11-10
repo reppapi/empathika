@@ -7,6 +7,7 @@ import type {
   SubmitPsikotesInput,
   PesertaQueryInput,
   CreateBookingPsikotesInput,
+  VerifyTicketInput,
 } from './psikotes.schema'
 
 export class PsikotesController {
@@ -116,6 +117,26 @@ export class PsikotesController {
       return reply.code(statusCode).send({
         success: false,
         message: err.message || 'Gagal memproses booking paket psikotes',
+      })
+    }
+  }
+
+  verifyTicket = async (
+    request: FastifyRequest<{ Body: VerifyTicketInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.verifyTicket(request.body)
+      return reply.code(200).send({
+        success: true,
+        message: 'Kode akses berhasil diverifikasi',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal memverifikasi kode tiket',
       })
     }
   }
