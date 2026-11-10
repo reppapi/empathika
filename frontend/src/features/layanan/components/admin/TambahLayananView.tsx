@@ -74,7 +74,15 @@ function PriceInputField({
 export default function TambahLayananView() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialCategory = searchParams.get("category") || "01"
+  const initialCategory = (() => {
+    const fromParam = searchParams ? searchParams.get("category") : null
+    if (fromParam) return fromParam
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("empathika_admin_layanan_category")
+      if (saved) return saved
+    }
+    return "01"
+  })()
 
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
@@ -325,7 +333,10 @@ export default function TambahLayananView() {
 
     setSuccessMsg(true)
     setTimeout(() => {
-      router.push("/admin/layanan")
+      if (typeof window !== "undefined") {
+        localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+      }
+      router.push(`/admin/layanan?category=${selectedCategory}`)
     }, 1200)
   }
 
@@ -335,7 +346,12 @@ export default function TambahLayananView() {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/admin/layanan")}
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+            }
+            router.push(`/admin/layanan?category=${selectedCategory}`)
+          }}
           className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#561269] transition-colors cursor-pointer"
           aria-label="Kembali"
         >
@@ -383,7 +399,13 @@ export default function TambahLayananView() {
             </label>
             <select
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value
+                setSelectedCategory(val)
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("empathika_admin_layanan_category", val)
+                }
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white cursor-pointer"
             >
               {CATEGORIES.filter((cat) => ["01", "03", "04", "05"].includes(cat.id)).map((cat) => (
@@ -963,7 +985,12 @@ export default function TambahLayananView() {
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
           <button
             type="button"
-            onClick={() => router.push("/admin/layanan")}
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+              }
+              router.push(`/admin/layanan?category=${selectedCategory}`)
+            }}
             className="px-6 py-2.5 border border-gray-300 rounded-full text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
           >
             Batal

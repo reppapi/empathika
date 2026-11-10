@@ -4,7 +4,7 @@ import { CloudUpload, X, CheckCircle2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { CATEGORIES } from "../../data/layananData"
 import { getLayananById, updateLayananById, AdminLayananItem } from "../../data/adminLayananData"
 import { processAndUploadImage } from "@/lib/imageCompressor"
@@ -89,11 +89,20 @@ function PriceInputField({
 
 export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const categoryParam = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
   const [item, setItem] = useState<AdminLayananItem | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Form State
-  const [selectedCategory, setSelectedCategory] = useState("01")
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    if (categoryParam) return categoryParam
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("empathika_admin_layanan_category")
+      if (saved) return saved
+    }
+    return "01"
+  })
   const [namaLayanan, setNamaLayanan] = useState("")
   const [isOnline, setIsOnline] = useState(true)
   const [isOffline, setIsOffline] = useState(true)
@@ -173,7 +182,11 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       const existing = getLayananById(layananId)
       if (existing && isMounted) {
         setItem(existing)
-        setSelectedCategory(existing.kategoriId || "01")
+        const targetCat = existing.kategoriId || categoryParam || "01"
+        setSelectedCategory(targetCat)
+        if (typeof window !== "undefined") {
+          localStorage.setItem("empathika_admin_layanan_category", targetCat)
+        }
         setNamaLayanan(existing.layanan)
         const m = existing.metode || "Online/Offline"
         setIsOnline(m.toLowerCase().includes("online"))
@@ -245,7 +258,11 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
 
           setItem(mapped)
           setNamaLayanan(mapped.layanan)
-          setSelectedCategory(mapped.kategoriId)
+          const finalCatId = mapped.kategoriId || categoryParam || "01"
+          setSelectedCategory(finalCatId)
+          if (typeof window !== "undefined") {
+            localStorage.setItem("empathika_admin_layanan_category", finalCatId)
+          }
           setIsOnline((mapped.metode || "").toLowerCase().includes("online"))
           setIsOffline((mapped.metode || "").toLowerCase().includes("offline"))
           setStatus(mapped.status)
@@ -497,7 +514,10 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     if (ok || beSuccess) {
       setSuccessMsg(true)
       setTimeout(() => {
-        router.push("/admin/layanan")
+        if (typeof window !== "undefined") {
+          localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+        }
+        router.push(`/admin/layanan?category=${selectedCategory}`)
       }, 1000)
     } else {
       alert("Gagal memperbarui layanan.")
@@ -524,7 +544,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
         <p className="text-gray-800 font-bold text-lg mb-2">Layanan tidak ditemukan</p>
         <p className="text-gray-500 text-sm mb-6">ID layanan tidak valid atau data sudah dihapus.</p>
         <Link
-          href="/admin/layanan"
+          href={`/admin/layanan?category=${selectedCategory}`}
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#561269] text-white rounded-full text-sm font-bold shadow-sm hover:bg-[#430d52] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -540,7 +560,12 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/admin/layanan")}
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+            }
+            router.push(`/admin/layanan?category=${selectedCategory}`)
+          }}
           className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#561269] transition-colors cursor-pointer"
           aria-label="Kembali"
         >
@@ -788,7 +813,13 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                 id="kategori"
                 required
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSelectedCategory(val)
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("empathika_admin_layanan_category", val)
+                  }
+                }}
                 className={`${inputClass} cursor-pointer`}
               >
                 {CATEGORIES.filter((cat) => ["01", "03", "04", "05"].includes(cat.id)).map((cat) => (
@@ -1129,7 +1160,12 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
           <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
             <button
               type="button"
-              onClick={() => router.push("/admin/layanan")}
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+                }
+                router.push(`/admin/layanan?category=${selectedCategory}`)
+              }}
               className="px-6 py-2.5 rounded-full border border-gray-300 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-50 transition active:scale-95 cursor-pointer"
             >
               Batal

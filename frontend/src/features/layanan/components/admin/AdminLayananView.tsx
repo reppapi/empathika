@@ -54,9 +54,36 @@ export default function AdminLayananView() {
   const categoryParam = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
   const qParam = searchParams ? (searchParams.get("q") || searchParams.get("search")) : null
 
-  const [activeCategory, setActiveCategory] = useState(
-    categoryParam && allowedCategories.includes(categoryParam) ? categoryParam : adminCategories[0]?.id || "01"
-  )
+  const [activeCategory, setActiveCategory] = useState<string>(() => {
+    if (categoryParam && allowedCategories.includes(categoryParam)) {
+      return categoryParam
+    }
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("empathika_admin_layanan_category")
+      if (saved && allowedCategories.includes(saved)) {
+        return saved
+      }
+    }
+    return adminCategories[0]?.id || "01"
+  })
+
+  useEffect(() => {
+    if (categoryParam && allowedCategories.includes(categoryParam)) {
+      setActiveCategory(categoryParam)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("empathika_admin_layanan_category", categoryParam)
+      }
+    } else if (!categoryParam && typeof window !== "undefined") {
+      const saved = localStorage.getItem("empathika_admin_layanan_category")
+      if (saved && allowedCategories.includes(saved) && saved !== activeCategory) {
+        setActiveCategory(saved)
+        const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+        params.set("category", saved)
+        const qs = params.toString()
+        router.replace((qs ? `/admin/layanan?${qs}` : "/admin/layanan") as any, { scroll: false })
+      }
+    }
+  }, [categoryParam])
   const [searchQuery, setSearchQuery] = useState(qParam || "")
   const [layananList, setLayananList] = useState<AdminLayananItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -97,6 +124,9 @@ export default function AdminLayananView() {
   // Ganti tab kategori sekaligus update URL query param tanpa reload halaman
   const handleCategoryChange = (catId: string) => {
     setActiveCategory(catId)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("empathika_admin_layanan_category", catId)
+    }
     const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
     params.set("category", catId)
     const qs = params.toString()
@@ -470,7 +500,7 @@ export default function AdminLayananView() {
                 title="Lihat Detail"
               />
               <ActionButtonEdit
-                onClick={() => router.push(`/admin/layanan/edit/${item.id}`)}
+                onClick={() => router.push(`/admin/layanan/edit/${item.id}?category=${item.kategoriId || activeCategory}`)}
                 title="Edit Layanan"
               />
               <ActionButtonDelete
@@ -973,8 +1003,9 @@ export default function AdminLayananView() {
                 type="button"
                 onClick={() => {
                   const targetId = selectedDetail.id
+                  const targetCat = selectedDetail.kategoriId || activeCategory
                   setSelectedDetail(null)
-                  router.push(`/admin/layanan/edit/${targetId}`)
+                  router.push(`/admin/layanan/edit/${targetId}?category=${targetCat}`)
                 }}
                 className="px-5 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
               >
