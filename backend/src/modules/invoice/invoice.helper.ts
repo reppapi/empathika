@@ -19,6 +19,12 @@ export interface InvoiceData {
   harga: Decimal | number
   metode_bayar: string
   no_wa_client?: string | null
+  // Bidang tambahan spesifik tipe transaksi (Psikotes, Konseling, Event)
+  tipe_transaksi?: 'PSIKOTES' | 'KONSULTASI' | 'EVENT' | string
+  kode_akses?: string | null
+  id_paket?: string | null
+  nama_peserta?: string | null
+  masa_berlaku_hari?: number
 }
 
 // ── Format Rupiah (tanpa desimal, pemisah ribuan) ──────────────────────
@@ -75,9 +81,70 @@ export function buildInvoiceWhatsAppText(data: InvoiceData): string {
   const tanggalBayar = data.tanggal_bayar
     ? formatTanggalIndonesia(data.tanggal_bayar)
     : '-'
-  const jadwal = formatTanggalJamWIB(data.tanggal_sesi)
   const totalBayar = formatRupiahInvoice(data.harga)
   const metodeBayar = formatMetodeBayar(data.metode_bayar)
+
+  // ── 1. KHUSUS TRANSAKSI PSIKOTES ─────────────────────────────────────
+  if (data.tipe_transaksi === 'PSIKOTES') {
+    const kodeTiket = data.kode_akses || data.nomor
+    const linkTes = data.id_paket
+      ? `https://empathika.id/psikotes/${data.id_paket}`
+      : `https://empathika.id/psikotes`
+
+    const lines = [
+      `*BUKTI PEMBAYARAN & INVOICE PSIKOTES EMPATHIKA*`,
+      ``,
+      `No. Invoice   : ${data.nomor}`,
+      `Tanggal Terbit: ${tanggalTerbit}`,
+      `Tanggal Bayar : ${tanggalBayar}`,
+      `---`,
+      ``,
+      `*Data Pembeli*`,
+      `Nama : ${data.nama_client}`,
+      ...(data.no_wa_client ? [`WhatsApp : ${data.no_wa_client}`] : []),
+      ...(data.nama_peserta && data.nama_peserta !== data.nama_client ? [`Nama Peserta Tes : ${data.nama_peserta}`] : []),
+      ``,
+      `*Rincian Paket Asesmen*`,
+      `Paket Psikotes : ${data.judul_layanan}`,
+      `Akses Pengerjaan: 1x Asesmen Mandiri (Online)`,
+      `Kode Tiket Akses: *${kodeTiket}*`,
+      `Masa Berlaku   : 14 Hari (2 Minggu) sejak pembelian`,
+      ``,
+      `---`,
+      ``,
+      `*Total Bayar : ${totalBayar}*`,
+      `Metode Bayar : ${metodeBayar}`,
+      `Status       : Lunas`,
+      ``,
+      `---`,
+      ``,
+      `*Petunjuk Memulai Tes:*`,
+      `1. Buka tautan paket: ${linkTes}`,
+      `2. Klik *"Sudah bayar? Masukkan kode akses di sini"*`,
+      `3. Masukkan Kode Tiket: *${kodeTiket}* dan nomor WhatsApp yang terdaftar`,
+      `4. Selesaikan pengerjaan tes, laporan hasil & dokumen PDF resmi langsung dapat diunduh`,
+      ``,
+      `---`,
+      ``,
+      `*Ketentuan Layanan:*`,
+      `• Tiket pengerjaan & akses hasil tes berlaku selama 14 hari.`,
+      `• Pembelian paket digital bersifat final dan tidak dapat di-refund tunai. Jika membutuhkan perpanjangan atau konversi ke layanan lain, silakan hubungi Admin Empathika sebelum masa aktif berakhir.`,
+      ``,
+      `---`,
+      ``,
+      `Empathika Layanan Psikologi`,
+      `Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler`,
+      `Kota Bandung, Jawa Barat 41024`,
+      `Kontak: 0878-7878-5498`,
+      ``,
+      `_Dokumen ini diterbitkan otomatis oleh sistem Empathika._`,
+    ]
+
+    return lines.join('\n')
+  }
+
+  // ── 2. KHUSUS SESI KONSELING (TETAP SESUAI FORMAT ASLI) ───────────────
+  const jadwal = formatTanggalJamWIB(data.tanggal_sesi)
   const jenisSesi = formatJenisSesi(data.jenis_sesi)
 
   const lines = [

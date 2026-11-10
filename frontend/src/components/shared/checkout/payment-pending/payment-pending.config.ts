@@ -64,7 +64,7 @@ export const CONFIGS: Record<PaymentPendingType, PendingConfig> = {
     waitingSubtext: "Silakan selesaikan pembayaran sebelum waktu habis",
     checkingSubtext: "Sistem sedang memverifikasi transaksi Anda. Mohon tunggu beberapa saat.",
     defaultJudul: "Paket Psikotes",
-    defaultSubjudul: "Tes Psikotes Empathika",
+    defaultSubjudul: "",
     defaultHarga: "Rp 50.000",
     defaultTanggal: "05/09",
     defaultWaktu: "09:00",

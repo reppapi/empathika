@@ -373,7 +373,7 @@ function normalizeTransaksi(raw: any) {
         : ""
       jadwalDisplay = tglSelesai ? `Tes Selesai (${tglSelesai})` : "Tes Selesai"
     } else {
-      jadwalDisplay = "Akses Mandiri (Online Fleksibel)"
+      jadwalDisplay = "Akses Mandiri • Berlaku 14 Hari"
     }
   } else if (jenisLayanan === "event" && bookingEvent.event) {
     const ev = bookingEvent.event
@@ -1019,6 +1019,11 @@ export default function AdminTransaksiClient() {
                         {activeDetailItem.jenisLayanan === "psikotes" ? "Akses/Status: " : "Jadwal: "}
                         {activeDetailItem.jadwal}
                       </p>
+                      {activeDetailItem.jenisLayanan === "psikotes" && (
+                        <p className="text-gray-500">
+                          Masa Berlaku: <span className="font-semibold text-gray-800">14 Hari sejak pembelian</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 

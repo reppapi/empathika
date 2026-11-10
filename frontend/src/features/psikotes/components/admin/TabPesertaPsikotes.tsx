@@ -105,6 +105,8 @@ export default function TabPesertaPsikotes({
       "Total Skor",
       "Usia",
       "Jenis Kelamin",
+      "Tempat, Tanggal Lahir",
+      "Status Pernikahan",
       "Pendidikan",
       "Pekerjaan",
     ];
@@ -126,6 +128,21 @@ export default function TabPesertaPsikotes({
       escapeCsv(p.totalSkor ?? "—"),
       escapeCsv(p.usia ? `${p.usia} th` : "—"),
       escapeCsv(p.jenisKelamin || p.peserta?.jenis_kelamin || "—"),
+      escapeCsv(
+        [
+          p.peserta?.tempat_lahir,
+          p.peserta?.tanggal_lahir
+            ? new Date(p.peserta.tanggal_lahir).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(", ") || "—"
+      ),
+      escapeCsv(p.peserta?.status_pernikahan || "—"),
       escapeCsv(p.peserta?.pendidikan || "—"),
       escapeCsv(p.peserta?.pekerjaan || "—"),
     ]);
@@ -155,11 +172,11 @@ export default function TabPesertaPsikotes({
           <span className="font-extrabold text-gray-900 leading-tight">
             {peserta.nama}
           </span>
-          {peserta.usia ? (
-            <span className="text-[11px] text-gray-500 font-medium mt-0.5">
-              {peserta.usia} tahun{peserta.jenisKelamin ? ` • ${peserta.jenisKelamin}` : ""}
-            </span>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-1 text-[11px] text-gray-500 font-medium mt-0.5">
+            {peserta.usia ? <span>{peserta.usia} tahun</span> : null}
+            {peserta.jenisKelamin ? <span>• {peserta.jenisKelamin}</span> : null}
+            {peserta.peserta?.status_pernikahan ? <span>• {peserta.peserta.status_pernikahan}</span> : null}
+          </div>
         </div>
       ),
     },

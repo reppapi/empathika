@@ -7,6 +7,22 @@ import { usePsikotesTest } from "@/features/psikotes/hooks/usePsikotesTest";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { useAuthStore } from "@/store/authStore";
 import { Loader2, AlertCircle, WifiOff, RefreshCw } from "lucide-react";
+import PsikotesFormIdentitas, { type IdentityData } from "./PsikotesFormIdentitas";
+
+// Helper pengecekan kelengkapan data identitas peserta berbayar
+const isIdentityFullyCompleted = (data: IdentityData) => {
+  return Boolean(
+    data.nama?.trim() &&
+    data.noTelepon?.trim() &&
+    data.tempatLahir?.trim() &&
+    data.tanggalLahir?.trim() &&
+    data.status?.trim() &&
+    data.umur?.trim() &&
+    data.jenisKelamin?.trim() &&
+    data.pekerjaan?.trim() &&
+    data.pendidikan?.trim()
+  );
+};
 
 export default function PsikotesMulaiClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
@@ -18,6 +34,19 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const [localError, setLocalError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // State Identitas Peserta Khusus Paket Berbayar (DASS-42 / Berbayar)
+  const [identityData, setIdentityData] = useState<IdentityData>({
+    nama: "",
+    noTelepon: "",
+    tempatLahir: "",
+    tanggalLahir: "",
+    status: "",
+    umur: "",
+    jenisKelamin: "",
+    pekerjaan: "",
+    pendidikan: "",
+  });
+  const [isIdentityCompleted, setIsIdentityCompleted] = useState(false);
   // State Pertanyaan Tambahan (Functional Impairment) khusus GAD-7 & PHQ-9 (Wajib dideklarasikan di top-level hooks)
   const [isAtFunctionalStep, setIsAtFunctionalStep] = useState(false);
   const [functionalAnswer, setFunctionalAnswer] = useState<number | null>(null);
@@ -95,6 +124,102 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     goToNext,
   } = usePsikotesTest(totalQuestions, params.testId, calculateScore);
 
+  const isIGDS =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("IGDS") ||
+    dbData?.judul?.toUpperCase().includes("IGDS") ||
+    dbData?.judul?.toUpperCase().includes("GAMING") ||
+    params.testId.toLowerCase().includes("igds") ||
+    params.testId.toLowerCase().includes("gaming");
+
+  const isDASS = Boolean(
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
+    dbData?.judul?.toUpperCase().includes("DASS") ||
+    dbData?.judul?.toLowerCase().includes("stres") ||
+    dbData?.judul?.toLowerCase().includes("depresi, kecemasan") ||
+    params.testId.toLowerCase().includes("dass")
+  );
+
+  const isPHQ =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
+    dbData?.judul?.toUpperCase().includes("PHQ") ||
+    params.testId.toLowerCase().includes("phq");
+
+  const isGAD =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("GAD") ||
+    dbData?.judul?.toUpperCase().includes("GAD") ||
+    params.testId.toLowerCase().includes("gad");
+
+  const isPaidFlow = Boolean(
+    isDASS ||
+    (dbData && (dbData.jenis_akses === "BERBAYAR" || (typeof dbData.harga === "number" && dbData.harga > 0))) ||
+    searchParams.get("paket") === "berbayar" ||
+    searchParams.get("plan") === "berbayar" ||
+    Boolean(searchParams.get("bookingId")) ||
+    Boolean(searchParams.get("orderId"))
+  );
+
+  // 0. Prefill Data Diri Peserta dari localStorage
+  useEffect(() => {
+    try {
+      let savedNama = "";
+      let savedPhone = "";
+      let savedTempatLahir = "";
+      let savedTanggalLahir = "";
+      let savedStatus = "";
+      let savedUmur = "";
+      let savedGender = "";
+      let savedPekerjaan = "";
+      let savedPendidikan = "";
+
+      const raw = localStorage.getItem("empathika_peserta_psikotes");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // HANYA ambil nama jika ini data peserta yang sudah mengisi form identitas lengkap sebelumnya
+        // JANGAN gunakan nama pembeli dari transaksi/checkout
+        if (parsed.tempatLahir && parsed.tanggalLahir && parsed.nama) {
+          savedNama = parsed.nama;
+          savedPhone = parsed.noTelepon || parsed.no_telepon || parsed.whatsapp || "";
+          savedTempatLahir = parsed.tempatLahir;
+          savedTanggalLahir = parsed.tanggalLahir;
+          savedStatus = parsed.status || "";
+          savedUmur = parsed.umur ? String(parsed.umur) : "";
+          savedGender = parsed.jenisKelamin || "";
+          savedPekerjaan = parsed.pekerjaan || "";
+          savedPendidikan = parsed.pendidikan || "";
+        }
+      }
+
+      const mergedData: IdentityData = {
+        nama: savedNama || "",
+        noTelepon: savedPhone || "",
+        tempatLahir: savedTempatLahir || "",
+        tanggalLahir: savedTanggalLahir || "",
+        status: savedStatus || "",
+        umur: savedUmur || "",
+        jenisKelamin: savedGender || "",
+        pekerjaan: savedPekerjaan || "",
+        pendidikan: savedPendidikan || "",
+      };
+
+      setIdentityData(mergedData);
+
+      // Cek apakah data identitas sudah benar-benar lengkap terisi
+      const isComplete = isIdentityFullyCompleted(mergedData);
+      const rawSession = sessionStorage.getItem(`empathika_psikotes_progress_${params.testId}`);
+      if (rawSession && isComplete) {
+        const parsedSession = JSON.parse(rawSession);
+        if (parsedSession?.identityCompleted) {
+          setIsIdentityCompleted(true);
+        } else {
+          setIsIdentityCompleted(false);
+        }
+      } else {
+        // Jika data identitas belum lengkap, WAJIB tampilkan formulir identitas
+        setIsIdentityCompleted(false);
+      }
+    } catch {}
+  }, [params.testId, searchParams]);
+
   // 1. Session Recovery: Pulihkan progres jika halaman tidak sengaja ter-refresh
   useEffect(() => {
     if (questions.length === 0) return;
@@ -102,6 +227,21 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       const raw = sessionStorage.getItem(`empathika_psikotes_progress_${params.testId}`);
       if (raw) {
         const saved = JSON.parse(raw);
+        const currentOrderId = searchParams.get("orderId");
+        // Jika terdapat orderId di URL namun berbeda dari orderId sesi sebelumnya, bersihkan sesi lama
+        if (currentOrderId && saved.orderId && saved.orderId !== currentOrderId) {
+          sessionStorage.removeItem(`empathika_psikotes_progress_${params.testId}`);
+          setIsIdentityCompleted(false);
+          return;
+        }
+
+        // Pada paket berbayar, jika data identitas belum lengkap, jangan pulihkan progres jawaban
+        const isCompleted = isIdentityFullyCompleted(identityData);
+        if (isPaidFlow && !isCompleted) {
+          setIsIdentityCompleted(false);
+          return;
+        }
+
         if (saved && typeof saved.answers === "object" && Object.keys(saved.answers).length > 0) {
           setAnswers(saved.answers);
           if (typeof saved.currentIndex === "number" && saved.currentIndex < questions.length) {
@@ -113,27 +253,32 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (typeof saved.isAtFunctionalStep === "boolean") {
             setIsAtFunctionalStep(saved.isAtFunctionalStep);
           }
+          if (typeof saved.identityCompleted === "boolean" && isCompleted) {
+            setIsIdentityCompleted(saved.identityCompleted);
+          }
         }
       }
     } catch {}
-  }, [params.testId, questions.length, setAnswers, setCurrentIndex]);
+  }, [params.testId, questions.length, setAnswers, setCurrentIndex, searchParams, isPaidFlow, identityData]);
 
   // 2. Simpan progres sementara ke sessionStorage
   useEffect(() => {
     if (questions.length === 0) return;
-    if (Object.keys(answers).length === 0 && !isAtFunctionalStep) return;
+    if (Object.keys(answers).length === 0 && !isAtFunctionalStep && !isIdentityCompleted) return;
     try {
       sessionStorage.setItem(
         `empathika_psikotes_progress_${params.testId}`,
         JSON.stringify({
+          orderId: searchParams.get("orderId") || null,
           answers,
           currentIndex,
           functionalAnswer,
           isAtFunctionalStep,
+          identityCompleted: isIdentityCompleted,
         })
       );
     } catch {}
-  }, [answers, currentIndex, functionalAnswer, isAtFunctionalStep, params.testId, questions.length]);
+  }, [answers, currentIndex, functionalAnswer, isAtFunctionalStep, isIdentityCompleted, params.testId, questions.length, searchParams]);
 
   const currentQuestion = questions[currentIndex] || questions[0] || {
     id: "",
@@ -148,28 +293,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   // 1. Prioritaskan instruksiSingkat dari metadata alat ukur backend
   // 2. Deteksi kode instrumen baku (IGDS: 12 bulan, DASS: 1 minggu, PHQ/GAD: 2 minggu)
   // 3. Fallback netral untuk tes umum: "Pilihlah opsi yang paling menggambarkan kondisimu:"
-  const isIGDS =
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("IGDS") ||
-    dbData?.judul?.toUpperCase().includes("IGDS") ||
-    dbData?.judul?.toUpperCase().includes("GAMING") ||
-    params.testId.toLowerCase().includes("igds") ||
-    params.testId.toLowerCase().includes("gaming");
-
-  const isDASS =
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
-    dbData?.judul?.toUpperCase().includes("DASS") ||
-    params.testId.toLowerCase().includes("dass");
-
-  const isPHQ =
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
-    dbData?.judul?.toUpperCase().includes("PHQ") ||
-    params.testId.toLowerCase().includes("phq");
-
-  const isGAD =
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("GAD") ||
-    dbData?.judul?.toUpperCase().includes("GAD") ||
-    params.testId.toLowerCase().includes("gad");
-
   // Identifikasi Instrumen Fungsional GAD-7 & PHQ-9
   const isFunctionalInstrument = isPHQ || isGAD;
 
@@ -202,6 +325,8 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       : isPHQ || isGAD
       ? "Dalam 2 minggu terakhir, seberapa sering kamu:"
       : "Pilihlah opsi yang paling menggambarkan kondisimu:");
+
+  const shouldShowIdentityForm = isPaidFlow && !isIdentityCompleted;
 
   const isLastQuestion = currentIndex === totalQuestions - 1;
 
@@ -321,10 +446,28 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     try {
       // Ambil data diri peserta:
       // Pada psikotes gratis, peserta tidak mengisi formulir identitas (anonim).
-      // Data diri hanya diambil jika paket berbayar dari pendaftaran / query parameter resmi.
-      const isPaketGratis = dbData?.jenis_akses === "GRATIS" || (typeof dbData?.harga === "number" && dbData.harga === 0);
+      // Data diri hanya diambil jika paket berbayar dari pendaftaran / formulir identitas peserta.
+      const isPaketGratis = !isPaidFlow;
 
-      if (!isPaketGratis) {
+      if (isPaidFlow) {
+        pesertaNama = identityData.nama.trim();
+        pesertaWa = identityData.noTelepon?.trim() || "";
+        pesertaEmail = searchParams.get("email") || "";
+
+        if (!pesertaNama || !pesertaWa) {
+          try {
+            const raw = localStorage.getItem("empathika_peserta_psikotes");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (!pesertaNama && parsed.nama) pesertaNama = parsed.nama;
+              if (!pesertaWa && (parsed.noTelepon || parsed.no_telepon || parsed.whatsapp)) {
+                pesertaWa = parsed.noTelepon || parsed.no_telepon || parsed.whatsapp;
+              }
+              if (!pesertaEmail && parsed.email) pesertaEmail = parsed.email;
+            }
+          } catch {}
+        }
+      } else {
         pesertaNama = searchParams.get("nama") || "";
         pesertaWa = searchParams.get("whatsapp") || searchParams.get("no_telepon") || "";
         pesertaEmail = searchParams.get("email") || "";
@@ -364,19 +507,37 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         };
       });
 
-      const bookingIdParam = searchParams.get("bookingId") || undefined;
+      const bookingIdParam = searchParams.get("bookingId") || searchParams.get("orderId") || undefined;
+      const parsedUmur = identityData.umur ? parseInt(identityData.umur, 10) : undefined;
 
       const res = await psikotesService.submitJawaban(params.testId, {
         jawaban: jawabanPayload,
         id_booking: bookingIdParam,
         bookingId: bookingIdParam,
-        nama: pesertaNama || undefined,
-        no_telepon: pesertaWa || undefined,
+        nama: isPaidFlow ? (identityData.nama.trim() || pesertaNama || undefined) : (pesertaNama || undefined),
+        no_telepon: isPaidFlow ? (identityData.noTelepon?.trim() || pesertaWa || undefined) : (pesertaWa || undefined),
         email: pesertaEmail || undefined,
-        klien: pesertaNama ? {
-          nama: pesertaNama,
-          no_telepon: pesertaWa || undefined,
+        peserta: isPaidFlow
+          ? {
+              nama_lengkap: identityData.nama.trim() || pesertaNama || "Peserta Psikotes",
+              no_telepon: identityData.noTelepon?.trim() || undefined,
+              no_telepon_orang_tua: identityData.noTelepon?.trim() || undefined,
+              whatsapp: identityData.noTelepon?.trim() || undefined,
+              tempat_lahir: identityData.tempatLahir.trim() || undefined,
+              tanggal_lahir: identityData.tanggalLahir.trim() || undefined,
+              status_pernikahan: identityData.status.trim() || undefined,
+              usia: !isNaN(Number(parsedUmur)) ? Number(parsedUmur) : undefined,
+              jenis_kelamin: identityData.jenisKelamin.trim() || undefined,
+              pekerjaan: identityData.pekerjaan.trim() || undefined,
+              pendidikan: identityData.pendidikan.trim() || undefined,
+            }
+          : undefined,
+        klien: (pesertaNama || (isPaidFlow && identityData.nama)) ? {
+          nama: (isPaidFlow ? identityData.nama.trim() : pesertaNama) || undefined,
+          no_telepon: (isPaidFlow ? (identityData.noTelepon?.trim() || pesertaWa) : pesertaWa) || undefined,
           email: pesertaEmail || undefined,
+          usia: !isNaN(Number(parsedUmur)) ? Number(parsedUmur) : undefined,
+          jenis_kelamin: identityData.jenisKelamin.trim() || undefined,
         } : undefined,
       });
 
@@ -439,9 +600,25 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           sessionStorage.removeItem(`empathika_psikotes_progress_${params.testId}`);
         } catch {}
 
-        if (pesertaNama) query.set("nama", pesertaNama);
-        if (pesertaWa) query.set("whatsapp", pesertaWa);
-        if (pesertaEmail) query.set("email", pesertaEmail);
+        if (isPaidFlow) {
+          query.set("paket", "berbayar");
+          const rawBooking = searchParams.get("bookingId") || searchParams.get("orderId");
+          if (rawBooking) query.set("bookingId", rawBooking);
+          const finalNama = identityData.nama.trim() || pesertaNama;
+          const finalWa = identityData.noTelepon?.trim() || pesertaWa;
+          if (finalNama) query.set("nama", finalNama);
+          if (finalWa) query.set("whatsapp", finalWa);
+          if (identityData.status) query.set("status", identityData.status.trim());
+          if (identityData.umur) query.set("umur", identityData.umur.trim());
+          if (identityData.jenisKelamin) query.set("gender", identityData.jenisKelamin.trim());
+          if (identityData.pekerjaan) query.set("pekerjaan", identityData.pekerjaan.trim());
+          if (identityData.pendidikan) query.set("pendidikan", identityData.pendidikan.trim());
+          if (pesertaEmail) query.set("email", pesertaEmail);
+        } else {
+          if (pesertaNama) query.set("nama", pesertaNama);
+          if (pesertaWa) query.set("whatsapp", pesertaWa);
+          if (pesertaEmail) query.set("email", pesertaEmail);
+        }
         router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
         return;
       }
@@ -466,6 +643,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   // 4. Keyboard Shortcuts Listener (Desktop: 1-4, A-D, Panah Kiri/Kanan, Enter)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (shouldShowIdentityForm) return;
       if (isLoading || !dbData || questions.length === 0 || hasInvalidOptions) return;
       const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (targetTag === "input" || targetTag === "textarea" || targetTag === "select") return;
@@ -597,6 +775,17 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           </Link>
         </div>
       </div>
+    );
+  }
+
+  // Layar Formulir Identitas Peserta (Khusus Paket Berbayar / DASS-42)
+  if (shouldShowIdentityForm) {
+    return (
+      <PsikotesFormIdentitas
+        data={identityData}
+        onChange={setIdentityData}
+        onComplete={() => setIsIdentityCompleted(true)}
+      />
     );
   }
 
