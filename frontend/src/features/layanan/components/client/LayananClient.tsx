@@ -100,6 +100,9 @@ export default function LayananClient() {
       if (match?.bannerUrl && match.bannerUrl.trim().length > 0) {
         return match.bannerUrl.trim()
       }
+      if (match?.foto_kegiatan && Array.isArray(match.foto_kegiatan) && match.foto_kegiatan[0]) {
+        return match.foto_kegiatan[0].trim()
+      }
     }
     return service.bannerUrl || null
   }
@@ -369,6 +372,12 @@ export default function LayananClient() {
                           btnText = "Pilih Asesmen"
                         }
 
+                        let bannerUrl = item.banner_url
+                        const rawFotos = (item as any).foto_kegiatan || (item?.tarif_tenaga_ahli as any)?.foto_kegiatan
+                        if (!bannerUrl && Array.isArray(rawFotos) && rawFotos[0]) {
+                          bannerUrl = rawFotos[0]
+                        }
+
                         return {
                           topTitle: item.nama.toUpperCase(),
                           topSubtitle:
@@ -382,7 +391,7 @@ export default function LayananClient() {
                           btnText,
                           shape: shapes[idx % shapes.length],
                           href: itemHref,
-                          bannerUrl: item.banner_url,
+                          bannerUrl,
                         }
                       })
                     }
