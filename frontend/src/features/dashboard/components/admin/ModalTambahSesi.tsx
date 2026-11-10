@@ -38,6 +38,20 @@ export const normalizeKategori = (kat?: string): KategoriTenagaOption => {
   return "psikolog"
 }
 
+export const getSlotTimeLabel = (slot: { label_waktu?: string; jam_mulai: string; jam_selesai: string }) => {
+  if (slot.label_waktu) {
+    return slot.label_waktu.includes("WIB") ? slot.label_waktu : `${slot.label_waktu} WIB`
+  }
+  return `${slot.jam_mulai.substring(0, 5)} - ${slot.jam_selesai.substring(0, 5)} WIB`
+}
+
+export interface UniqueTimeSlotOption {
+  label: string
+  allowsOnline: boolean
+  allowsOffline: boolean
+  metodeLabel: string
+}
+
 interface ModalTambahSesiProps {
   isOpen: boolean
   onClose: () => void
@@ -320,18 +334,29 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
         setAvailableSlots(activeDateSlots)
         setAllPsikologSlots(Array.isArray(allSlots) ? allSlots : [])
 
-        // Jika slot tersedia untuk tanggal tersebut, pilih slot pertama
+        // Jika slot tersedia untuk tanggal tersebut, pilih slot pertama atau pertahankan slot terpilih
         if (activeDateSlots.length > 0) {
-          const first = activeDateSlots[0]
-          const timeLabel = first.label_waktu
-            ? (first.label_waktu.includes("WIB") ? first.label_waktu : `${first.label_waktu} WIB`)
-            : `${first.jam_mulai.substring(0, 5)} - ${first.jam_selesai.substring(0, 5)} WIB`
+          setFormData((prev) => {
+            const currentMatching = activeDateSlots.find((s) => getSlotTimeLabel(s) === prev.waktu)
+            const targetSlot = currentMatching || activeDateSlots[0]
+            const timeLabel = getSlotTimeLabel(targetSlot)
 
-          setFormData((prev) => ({
-            ...prev,
-            waktu: timeLabel,
-            metode: (first.metode?.toUpperCase() === "OFFLINE" ? "Offline" : "Online") as "Online" | "Offline",
-          }))
+            const m = (targetSlot.metode || "").toUpperCase()
+            let newMetode: "Online" | "Offline" = "Online"
+            if (m.includes("OFFLINE") && !m.includes("ONLINE") && !m.includes("KEDUANYA")) {
+              newMetode = "Offline"
+            } else if (m.includes("ONLINE") && !m.includes("OFFLINE") && !m.includes("KEDUANYA")) {
+              newMetode = "Online"
+            } else {
+              newMetode = prev.metode || "Online"
+            }
+
+            return {
+              ...prev,
+              waktu: timeLabel,
+              metode: newMetode,
+            }
+          })
         } else {
           setFormData((prev) => ({ ...prev, waktu: "" }))
         }
@@ -351,6 +376,69 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
       isMounted = false
     }
   }, [isOpen, formData.idPsikolog, formData.tanggal])
+
+  // Gabungkan slot jam unik dan tentukan ketersediaan metode untuk setiap jam
+  const timeSlotOptions = useMemo<UniqueTimeSlotOption[]>(() => {
+    const map = new Map<string, { allowsOnline: boolean; allowsOffline: boolean }>()
+
+    availableSlots.forEach((slot) => {
+      const label = getSlotTimeLabel(slot)
+      const current = map.get(label) || { allowsOnline: false, allowsOffline: false }
+
+      const m = (slot.metode || "").toUpperCase()
+      if (m.includes("KEDUANYA") || (m.includes("ONLINE") && m.includes("OFFLINE")) || m === "SEMUA") {
+        current.allowsOnline = true
+        current.allowsOffline = true
+      } else if (m.includes("OFFLINE")) {
+        current.allowsOffline = true
+      } else {
+        current.allowsOnline = true
+      }
+
+      map.set(label, current)
+    })
+
+    return Array.from(map.entries()).map(([label, opts]) => {
+      let metodeLabel = ""
+      if (opts.allowsOnline && opts.allowsOffline) {
+        metodeLabel = "[Online & Offline]"
+      } else if (opts.allowsOffline) {
+        metodeLabel = "[Offline]"
+      } else {
+        metodeLabel = "[Online]"
+      }
+      return {
+        label,
+        allowsOnline: opts.allowsOnline,
+        allowsOffline: opts.allowsOffline,
+        metodeLabel,
+      }
+    })
+  }, [availableSlots])
+
+  // Opsi slot jam yang sedang dipilih saat ini
+  const currentSlotOption = useMemo(() => {
+    if (!formData.waktu || timeSlotOptions.length === 0) return null
+    return timeSlotOptions.find((opt) => opt.label === formData.waktu) || null
+  }, [formData.waktu, timeSlotOptions])
+
+  const allowsOnline = currentSlotOption ? currentSlotOption.allowsOnline : true
+  const allowsOffline = currentSlotOption ? currentSlotOption.allowsOffline : true
+
+  // Sinkronkan otomatis pilihan metode jika slot jam hanya mengizinkan 1 metode tertentu
+  useEffect(() => {
+    if (!currentSlotOption) return
+
+    if (currentSlotOption.allowsOnline && !currentSlotOption.allowsOffline) {
+      if (formData.metode !== "Online") {
+        setFormData((prev) => ({ ...prev, metode: "Online" }))
+      }
+    } else if (currentSlotOption.allowsOffline && !currentSlotOption.allowsOnline) {
+      if (formData.metode !== "Offline") {
+        setFormData((prev) => ({ ...prev, metode: "Offline" }))
+      }
+    }
+  }, [currentSlotOption, formData.metode])
 
   // Daftar tanggal yang memiliki slot dibuka oleh psikolog ini
   const datesWithSlots = useMemo(() => {
@@ -375,6 +463,10 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     const finalIdPsikolog = formData.idPsikolog || selectedPsikolog?.id || ""
     const finalNamaPsikolog = formData.psikolog || selectedPsikolog?.nama || ""
 
+    let finalMetode: "Online" | "Offline" = formData.metode
+    if (allowsOnline && !allowsOffline) finalMetode = "Online"
+    else if (!allowsOnline && allowsOffline) finalMetode = "Offline"
+
     const newSession: NewSessionData = {
       id: "sesi_" + Date.now(),
       namaKlien: formData.namaKlien.trim(),
@@ -384,7 +476,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
       idPsikolog: finalIdPsikolog,
       tanggal: formData.tanggal,
       waktu: formData.waktu,
-      metode: formData.metode,
+      metode: finalMetode,
       catatan: formData.catatan.trim(),
       status: "Mendatang",
     }
@@ -570,37 +662,36 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
                 value={formData.waktu}
                 onChange={(e) => {
                   const selectedVal = e.target.value
-                  const found = availableSlots.find((s) => {
-                    const label = s.label_waktu
-                      ? (s.label_waktu.includes("WIB") ? s.label_waktu : `${s.label_waktu} WIB`)
-                      : `${s.jam_mulai.substring(0, 5)} - ${s.jam_selesai.substring(0, 5)} WIB`
-                    return label === selectedVal
-                  })
+                  const matchingOpt = timeSlotOptions.find((opt) => opt.label === selectedVal)
+
+                  let newMetode: "Online" | "Offline" = formData.metode
+                  if (matchingOpt) {
+                    if (matchingOpt.allowsOnline && !matchingOpt.allowsOffline) {
+                      newMetode = "Online"
+                    } else if (matchingOpt.allowsOffline && !matchingOpt.allowsOnline) {
+                      newMetode = "Offline"
+                    }
+                  }
+
                   setFormData((prev) => ({
                     ...prev,
                     waktu: selectedVal,
-                    metode: (found?.metode?.toUpperCase() === "OFFLINE" ? "Offline" : "Online") as "Online" | "Offline",
+                    metode: newMetode,
                   }))
                 }}
-                disabled={isLoadingSlots || availableSlots.length === 0}
+                disabled={isLoadingSlots || timeSlotOptions.length === 0}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer disabled:opacity-60"
               >
                 {isLoadingSlots ? (
                   <option value="">Memeriksa slot dibuka psikolog...</option>
-                ) : availableSlots.length === 0 ? (
+                ) : timeSlotOptions.length === 0 ? (
                   <option value="">Tidak ada slot dibuka oleh psikolog pada tanggal ini</option>
                 ) : (
-                  availableSlots.map((slot) => {
-                    const timeLabel = slot.label_waktu
-                      ? (slot.label_waktu.includes("WIB") ? slot.label_waktu : `${slot.label_waktu} WIB`)
-                      : `${slot.jam_mulai.substring(0, 5)} - ${slot.jam_selesai.substring(0, 5)} WIB`
-                    const metodeBadge = slot.metode ? ` [${slot.metode}]` : ""
-                    return (
-                      <option key={slot.id} value={timeLabel}>
-                        {timeLabel} {metodeBadge}
-                      </option>
-                    )
-                  })
+                  timeSlotOptions.map((opt) => (
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label} {opt.metodeLabel}
+                    </option>
+                  ))
                 )}
               </select>
             </div>
@@ -641,36 +732,105 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             </div>
           )}
 
-          {/* Metode Konseling */}
+          {/* Metode Konseling Dinamis Sesuai Slot Psikolog */}
           <div>
-            <label className="block font-bold text-gray-700 mb-2">Metode Konsultasi</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, metode: "Online" })}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border font-bold text-xs transition cursor-pointer ${
-                  formData.metode === "Online"
-                    ? "border-[#5D205E] bg-[#5D205E]/10 text-[#5D205E] ring-1 ring-[#5D205E]"
-                    : "border-gray-200 hover:bg-gray-50 text-gray-600"
-                }`}
-              >
-                <Video className="w-4 h-4" />
-                Online (Zoom Meeting)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, metode: "Offline" })}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border font-bold text-xs transition cursor-pointer ${
-                  formData.metode === "Offline"
-                    ? "border-[#5D205E] bg-[#5D205E]/10 text-[#5D205E] ring-1 ring-[#5D205E]"
-                    : "border-gray-200 hover:bg-gray-50 text-gray-600"
-                }`}
-              >
-                <MapPin className="w-4 h-4" />
-                Offline (Klinik Empathika)
-              </button>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block font-bold text-gray-700">
+                Metode Konsultasi <span className="text-red-500">*</span>
+              </label>
+              {currentSlotOption && (
+                <span className="text-[11px] font-semibold text-[#5D205E]">
+                  {currentSlotOption.allowsOnline && currentSlotOption.allowsOffline
+                    ? "Tersedia Online & Offline"
+                    : currentSlotOption.allowsOnline
+                    ? "Tersedia Online Saja"
+                    : "Tersedia Offline Saja"}
+                </span>
+              )}
             </div>
+
+            {/* Skenario 1: Jika KEDUA metode (Online & Offline) dibuka oleh psikolog */}
+            {allowsOnline && allowsOffline && (
+              <div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, metode: "Online" })}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border font-bold text-xs transition cursor-pointer ${
+                      formData.metode === "Online"
+                        ? "border-[#5D205E] bg-[#5D205E]/10 text-[#5D205E] ring-1 ring-[#5D205E]"
+                        : "border-gray-200 hover:bg-gray-50 text-gray-600"
+                    }`}
+                  >
+                    <Video className="w-4 h-4" />
+                    Online (Zoom Meeting)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, metode: "Offline" })}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border font-bold text-xs transition cursor-pointer ${
+                      formData.metode === "Offline"
+                        ? "border-[#5D205E] bg-[#5D205E]/10 text-[#5D205E] ring-1 ring-[#5D205E]"
+                        : "border-gray-200 hover:bg-gray-50 text-gray-600"
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Offline (Klinik Empathika)
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] text-gray-500">
+                  Psikolog membuka kedua metode untuk slot jam ini. Silakan pilih metode yang diinginkan klien.
+                </p>
+              </div>
+            )}
+
+            {/* Skenario 2: Jika HANYA Online yang dibuka oleh psikolog */}
+            {allowsOnline && !allowsOffline && (
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-[#5D205E]/30 bg-[#5D205E]/5 text-[#5D205E]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#5D205E]/15 flex items-center justify-center text-[#5D205E] shrink-0">
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-xs text-gray-900">Online (Zoom Meeting)</div>
+                    <div className="text-[11px] text-gray-500">
+                      Tautan video konferensi otomatis disediakan untuk sesi ini
+                    </div>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-[#5D205E]/10 text-[#5D205E] text-[10px] font-bold shrink-0">
+                  Khusus Online
+                </span>
+              </div>
+            )}
+
+            {/* Skenario 3: Jika HANYA Offline yang dibuka oleh psikolog */}
+            {!allowsOnline && allowsOffline && (
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-emerald-300 bg-emerald-50/60 text-emerald-900">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-xs text-gray-900">Offline (Klinik Empathika)</div>
+                    <div className="text-[11px] text-gray-500">
+                      Sesi tatap muka di ruang konseling Klinik Empathika
+                    </div>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
+                  Khusus Offline
+                </span>
+              </div>
+            )}
+
+            {/* Skenario 4: Jika belum ada slot jam yang dibuka */}
+            {!currentSlotOption && availableSlots.length === 0 && (
+              <div className="py-3 px-3 rounded-xl border border-dashed border-gray-200 text-gray-400 text-center text-xs bg-gray-50/50">
+                Metode konsultasi akan otomatis mengikuti slot jam yang dibuka oleh psikolog.
+              </div>
+            )}
           </div>
 
           {/* Catatan / Keluhan Awal */}
