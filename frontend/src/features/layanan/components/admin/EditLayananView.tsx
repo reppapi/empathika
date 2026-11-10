@@ -101,6 +101,9 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [deskripsi, setDeskripsi] = useState("")
   const [hargaWeekday, setHargaWeekday] = useState("")
   const [hargaWeekend, setHargaWeekend] = useState("")
+
+  // Tarif khusus kategori Asesmen (05): Online (Psikotes) tanpa weekday/weekend
+  const [hargaAsesmenOnline, setHargaAsesmenOnline] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
   const [imageUrlInput, setImageUrlInput] = useState("")
@@ -215,6 +218,24 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
           setTarifKonselorWeekend(t.konselor && (t.konselor.weekday || t.konselor.weekend) ? String(parseRupiahNumber(t.konselor.weekend) || "") : "")
           setTarifPeerWeekday(t.peer && (t.peer.weekday || t.peer.weekend) ? String(parseRupiahNumber(t.peer.weekday) || "") : "")
           setTarifPeerWeekend(t.peer && (t.peer.weekday || t.peer.weekend) ? String(parseRupiahNumber(t.peer.weekend) || "") : "")
+
+          // Asesmen Online & Offline
+          const rawOnline = (t as any)?.asesmen?.online ?? (t as any)?.online
+          const rawOfflineWk = (t as any)?.asesmen?.offline?.weekday ?? (t as any)?.offline?.weekday
+          const rawOfflineWknd = (t as any)?.asesmen?.offline?.weekend ?? (t as any)?.offline?.weekend
+
+          if (rawOnline) {
+            setHargaAsesmenOnline(String(parseRupiahNumber(rawOnline) || ""))
+          } else if ((existing.metode || "").toLowerCase().includes("online") && !(existing.metode || "").toLowerCase().includes("offline")) {
+            setHargaAsesmenOnline(cleanWeekday)
+          }
+
+          if (rawOfflineWk) {
+            setHargaWeekday(String(parseRupiahNumber(rawOfflineWk) || ""))
+          }
+          if (rawOfflineWknd) {
+            setHargaWeekend(String(parseRupiahNumber(rawOfflineWknd) || ""))
+          }
         }
       }
 
@@ -265,6 +286,24 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
             setTarifKonselorWeekend(t.konselor && (t.konselor.weekday || t.konselor.weekend) ? String(t.konselor.weekend || "") : "")
             setTarifPeerWeekday(t.peer && (t.peer.weekday || t.peer.weekend) ? String(t.peer.weekday || "") : "")
             setTarifPeerWeekend(t.peer && (t.peer.weekday || t.peer.weekend) ? String(t.peer.weekend || "") : "")
+
+            // Asesmen Online & Offline
+            const rawOnline = (t as any)?.asesmen?.online ?? (t as any)?.online
+            const rawOfflineWk = (t as any)?.asesmen?.offline?.weekday ?? (t as any)?.offline?.weekday
+            const rawOfflineWknd = (t as any)?.asesmen?.offline?.weekend ?? (t as any)?.offline?.weekend
+
+            if (rawOnline) {
+              setHargaAsesmenOnline(String(parseRupiahNumber(rawOnline) || ""))
+            } else if ((mapped.metode || "").toLowerCase().includes("online") && !(mapped.metode || "").toLowerCase().includes("offline")) {
+              setHargaAsesmenOnline(cleanWk)
+            }
+
+            if (rawOfflineWk) {
+              setHargaWeekday(String(parseRupiahNumber(rawOfflineWk) || ""))
+            }
+            if (rawOfflineWknd) {
+              setHargaWeekend(String(parseRupiahNumber(rawOfflineWknd) || ""))
+            }
           } else {
             setTarifPsikologWeekday(cleanWk)
             setTarifPsikologWeekend(cleanWknd)
@@ -272,6 +311,10 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
             setTarifKonselorWeekend("")
             setTarifPeerWeekday("")
             setTarifPeerWeekend("")
+
+            if ((mapped.metode || "").toLowerCase().includes("online") && !(mapped.metode || "").toLowerCase().includes("offline")) {
+              setHargaAsesmenOnline(cleanWk)
+            }
           }
         }
       } catch (err) {
@@ -339,10 +382,16 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       : "Offline"
 
     if (selectedCategory === "05") {
-      const wd = parseRupiahNumber(hargaWeekday)
-      const wk = parseRupiahNumber(hargaWeekend)
-      if (wd === 0 && wk === 0) {
-        alert("Layanan asesmen wajib diisi tarifnya minimal salah satu (Weekday atau Weekend).")
+      const onlineVal = parseRupiahNumber(hargaAsesmenOnline)
+      const offlineWk = parseRupiahNumber(hargaWeekday)
+      const offlineWknd = parseRupiahNumber(hargaWeekend)
+
+      if (isOnline && onlineVal === 0) {
+        alert("Metode Online dipilih, silakan masukkan Tarif Online (Pengerjaan Psikotes).")
+        return
+      }
+      if (isOffline && offlineWk === 0 && offlineWknd === 0) {
+        alert("Metode Offline dipilih, silakan masukkan minimal salah satu Tarif Offline (Weekday atau Weekend).")
         return
       }
     }
@@ -381,18 +430,45 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
         tarifTenagaAhli.peer = { weekday: peerWd, weekend: peerWk }
         if (!activeExpert) activeExpert = tarifTenagaAhli.peer
       }
+    } else if (selectedCategory === "05") {
+      const onlineVal = parseRupiahNumber(hargaAsesmenOnline)
+      const offlineWk = parseRupiahNumber(hargaWeekday)
+      const offlineWknd = parseRupiahNumber(hargaWeekend)
+
+      tarifTenagaAhli = {
+        asesmen: {
+          online: isOnline ? onlineVal : null,
+          offline: isOffline ? {
+            weekday: offlineWk,
+            weekend: offlineWknd || offlineWk,
+          } : null,
+        },
+        online: isOnline ? onlineVal : null,
+        offline: isOffline ? {
+          weekday: offlineWk,
+          weekend: offlineWknd || offlineWk,
+        } : null,
+      }
     }
 
     const finalWeekday = isKonsultasi
       ? String(activeExpert?.weekday || "0")
       : isPartnership
       ? "0"
+      : selectedCategory === "05"
+      ? isOffline
+        ? String(parseRupiahNumber(hargaWeekday) || (isOnline ? parseRupiahNumber(hargaAsesmenOnline) : 0))
+        : String(parseRupiahNumber(hargaAsesmenOnline) || 0)
       : hargaWeekday
 
     const finalWeekend = isKonsultasi
       ? String(activeExpert?.weekend || "0")
       : isPartnership
       ? "0"
+      : selectedCategory === "05"
+      ? isOffline
+        ? String(parseRupiahNumber(hargaWeekend) || parseRupiahNumber(hargaWeekday) || (isOnline ? parseRupiahNumber(hargaAsesmenOnline) : 0))
+        : String(parseRupiahNumber(hargaAsesmenOnline) || 0)
       : hargaWeekend
 
     const validFotos = fotoKegiatan.filter((f): f is string => typeof f === "string" && f.trim().length > 0)
@@ -997,33 +1073,93 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
               </div>
             </div>
           ) : selectedCategory === "05" ? (
-            /* Kategori Asesmen: Tarif Reguler */
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+            /* Kategori Asesmen: Tarif Online (Psikotes) & Tarif Offline (Weekday/Weekend) */
+            <div className="p-5 rounded-2xl bg-[#FAF5FC] border border-[#E9D7F0] space-y-4">
               <div>
-                <label htmlFor="hargaWeekday" className={labelClass}>
-                  Tarif Weekday (Senin - Jumat) <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold text-[#561269]">
+                  Tarif Layanan Asesmen <span className="text-red-500">*</span>
                 </label>
-                <PriceInputField
-                  value={hargaWeekday}
-                  onChange={setHargaWeekday}
-                  placeholder="350.000"
-                  required={false}
-                />
-                <span className={helperClass}>Tarif sesi pada hari kerja reguler (contoh: 350.000)</span>
+                <span className="block text-[11px] text-gray-500 mt-0.5">
+                  Pengisian tarif otomatis menyesuaikan metode pelaksanaan yang dipilih di atas.
+                </span>
               </div>
 
-              <div>
-                <label htmlFor="hargaWeekend" className={labelClass}>
-                  Tarif Weekend (Sabtu - Minggu) <span className="text-red-500">*</span>
-                </label>
-                <PriceInputField
-                  value={hargaWeekend}
-                  onChange={setHargaWeekend}
-                  placeholder="450.000"
-                  required={false}
-                />
-                <span className={helperClass}>Tarif sesi pada akhir pekan (contoh: 450.000)</span>
-              </div>
+              {!isOnline && !isOffline ? (
+                <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs">
+                  ⚠️ Silakan centang minimal satu <strong>Metode Pelaksanaan</strong> (Online atau Offline) pada pilihan di atas.
+                </div>
+              ) : null}
+
+              {/* Box 1: Tarif Online (Pengerjaan Psikotes Daring - Tanpa Weekday/Weekend) */}
+              {isOnline && (
+                <div className="p-4 rounded-xl border border-blue-200 bg-white shadow-xs space-y-2">
+                  <div className="flex items-center justify-between pb-1 border-b border-blue-100">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                      <h4 className="text-xs font-bold text-blue-900">Tarif Online (Pengerjaan Psikotes)</h4>
+                    </div>
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                      Tanpa Weekday / Weekend
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Tarif tunggal untuk pengerjaan psikotes secara daring yang dapat diakses klien setiap saat.
+                  </p>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                      Tarif Asesmen Online <span className="text-red-500">*</span>
+                    </label>
+                    <PriceInputField
+                      value={hargaAsesmenOnline}
+                      onChange={setHargaAsesmenOnline}
+                      placeholder="350.000"
+                      required={false}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Box 2: Tarif Offline (Sesi Tatap Muka di Klinik - Ada Weekday & Weekend) */}
+              {isOffline && (
+                <div className="p-4 rounded-xl border border-purple-200 bg-white shadow-xs space-y-3">
+                  <div className="flex items-center justify-between pb-1 border-b border-purple-100">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
+                      <h4 className="text-xs font-bold text-[#561269]">Tarif Offline (Tatap Muka di Klinik)</h4>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#561269] bg-purple-100 px-2 py-0.5 rounded-full">
+                      Weekday &amp; Weekend
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Tarif sesi tatap muka langsung bersama asesor di ruang asesmen klinik Empathika.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                        Weekday (Senin - Jumat)
+                      </label>
+                      <PriceInputField
+                        value={hargaWeekday}
+                        onChange={setHargaWeekday}
+                        placeholder="400.000"
+                        required={false}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                        Weekend (Sabtu - Minggu)
+                      </label>
+                      <PriceInputField
+                        value={hargaWeekend}
+                        onChange={setHargaWeekend}
+                        placeholder="500.000"
+                        required={false}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : null}
 

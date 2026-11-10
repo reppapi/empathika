@@ -315,6 +315,38 @@ export default function AdminLayananView() {
               )
             }
 
+            if (item.kategoriId === "05") {
+              const isOnlyOnline = (item.metode || "").toLowerCase().includes("online") && !(item.metode || "").toLowerCase().includes("offline")
+              const onlineVal = (t as any)?.asesmen?.online ?? (t as any)?.online
+              const offlineWk = (t as any)?.asesmen?.offline?.weekday ?? (t as any)?.offline?.weekday ?? item.weekday
+
+              if (isOnlyOnline) {
+                return (
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                      {formatPrice(onlineVal, item.weekday)}
+                    </span>
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+                      Online
+                    </span>
+                  </div>
+                )
+              }
+
+              return (
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                    {formatPrice(offlineWk, item.weekday)}
+                  </span>
+                  {(item.metode || "").toLowerCase().includes("offline") && (
+                    <span className="text-[10px] font-bold text-[#561269] bg-purple-100 px-1.5 py-0.5 rounded">
+                      Offline
+                    </span>
+                  )}
+                </div>
+              )
+            }
+
             return (
               <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
                 {formatRupiahStandard(item.weekday)}
@@ -361,6 +393,32 @@ export default function AdminLayananView() {
                   {activeExperts.length > 1 && (
                     <span className="text-[10px] text-gray-500 font-semibold" title={`${activeExperts.length} tenaga ahli tersedia`}>
                       +{activeExperts.length - 1}
+                    </span>
+                  )}
+                </div>
+              )
+            }
+
+            if (item.kategoriId === "05") {
+              const isOnlyOnline = (item.metode || "").toLowerCase().includes("online") && !(item.metode || "").toLowerCase().includes("offline")
+              const offlineWknd = (t as any)?.asesmen?.offline?.weekend ?? (t as any)?.offline?.weekend ?? item.weekend
+
+              if (isOnlyOnline) {
+                return (
+                  <span className="text-gray-400 font-medium text-xs italic whitespace-nowrap">
+                    - (Sama)
+                  </span>
+                )
+              }
+
+              return (
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                    {formatPrice(offlineWknd, item.weekend)}
+                  </span>
+                  {(item.metode || "").toLowerCase().includes("offline") && (
+                    <span className="text-[10px] font-bold text-[#561269] bg-purple-100 px-1.5 py-0.5 rounded">
+                      Offline
                     </span>
                   )}
                 </div>
@@ -854,21 +912,59 @@ export default function AdminLayananView() {
                   )
                 })()
               ) : selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04" ? null : (
-                /* Asesmen (05): 2 Kartu Reguler */
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 sm:p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl">
-                    <span className="text-xs text-purple-800 font-medium block">Tarif Weekday</span>
-                    <span className="font-bold text-[#561269] text-sm mt-1 block whitespace-nowrap tabular-nums">
-                      {selectedDetail.weekday}
-                    </span>
-                  </div>
-                  <div className="p-3 sm:p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl">
-                    <span className="text-xs text-purple-800 font-medium block">Tarif Weekend</span>
-                    <span className="font-bold text-[#561269] text-sm mt-1 block whitespace-nowrap tabular-nums">
-                      {selectedDetail.weekend}
-                    </span>
-                  </div>
-                </div>
+                /* Asesmen (05): Kartu Online & Offline */
+                (() => {
+                  const t = selectedDetail.tarif_tenaga_ahli
+                  const hasOnline = (selectedDetail.metode || "").toLowerCase().includes("online")
+                  const hasOffline = (selectedDetail.metode || "").toLowerCase().includes("offline")
+                  const onlineVal = (t as any)?.asesmen?.online ?? (t as any)?.online ?? (hasOnline && !hasOffline ? selectedDetail.weekday : null)
+                  const offlineWk = (t as any)?.asesmen?.offline?.weekday ?? (t as any)?.offline?.weekday ?? selectedDetail.weekday
+                  const offlineWknd = (t as any)?.asesmen?.offline?.weekend ?? (t as any)?.offline?.weekend ?? selectedDetail.weekend
+
+                  return (
+                    <div className="space-y-3">
+                      {hasOnline && (
+                        <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                              <span className="text-xs text-blue-900 font-bold">Tarif Online (Psikotes)</span>
+                            </div>
+                            <span className="text-[11px] text-gray-500 block mt-0.5">
+                              Berlaku setiap hari (tanpa perbedaan weekday/weekend)
+                            </span>
+                          </div>
+                          <span className="font-extrabold text-blue-800 text-sm whitespace-nowrap tabular-nums">
+                            {formatPrice(onlineVal, selectedDetail.weekday)}
+                          </span>
+                        </div>
+                      )}
+
+                      {hasOffline && (
+                        <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
+                          <div className="flex items-center gap-1.5 border-b border-purple-100 pb-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#561269]"></span>
+                            <span className="text-xs text-[#561269] font-bold">Tarif Offline (Tatap Muka di Klinik)</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 pt-1">
+                            <div>
+                              <span className="text-[11px] text-gray-500 font-medium block">Weekday (Senin - Jumat)</span>
+                              <span className="font-bold text-[#561269] text-sm block whitespace-nowrap tabular-nums">
+                                {formatPrice(offlineWk, selectedDetail.weekday)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[11px] text-gray-500 font-medium block">Weekend (Sabtu - Minggu)</span>
+                              <span className="font-bold text-[#561269] text-sm block whitespace-nowrap tabular-nums">
+                                {formatPrice(offlineWknd, selectedDetail.weekend)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()
               )}
             </div>
 
