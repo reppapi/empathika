@@ -145,8 +145,6 @@ export default function LayananClient() {
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                 unoptimized
               />
-              {/* Overlay gelap agar teks judul & subjudul di atasnya selalu kontras dan terbaca */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25" />
             </div>
           ) : (
             <>
@@ -166,21 +164,21 @@ export default function LayananClient() {
                   <svg className="w-16 h-16 text-pink-300 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
                 </div>
               )}
+
+              <div className="absolute inset-0 flex items-start p-6 z-10">
+                <div className="text-left w-full">
+                  <h3 className={`${service.titleColor || "text-white"} font-extrabold text-[22px] sm:text-[28px] leading-[1.1] mb-2 drop-shadow-md uppercase`}>
+                    {service.topTitle}
+                  </h3>
+                  {service.topSubtitle && (
+                    <p className={`${service.titleColor || "text-gray-200"} text-xs sm:text-sm font-medium drop-shadow-sm opacity-90`}>
+                      {service.topSubtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
             </>
           )}
-
-          <div className="absolute inset-0 flex items-start p-6 z-10">
-            <div className="text-left w-full">
-              <h3 className={`${banner ? "text-white" : service.titleColor} font-extrabold text-[22px] sm:text-[28px] leading-[1.1] mb-2 drop-shadow-md uppercase`}>
-                {service.topTitle}
-              </h3>
-              {service.topSubtitle && (
-                <p className={`${banner ? "text-gray-200" : service.titleColor} text-xs sm:text-sm font-medium drop-shadow-sm opacity-90`}>
-                  {service.topSubtitle}
-                </p>
-              )}
-            </div>
-          </div>
         </Link>
 
         <div className="p-5 sm:p-6 flex flex-col flex-1">
