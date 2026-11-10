@@ -689,7 +689,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
                 ) : (
                   timeSlotOptions.map((opt) => (
                     <option key={opt.label} value={opt.label}>
-                      {opt.label} {opt.metodeLabel}
+                      {opt.label}
                     </option>
                   ))
                 )}
