@@ -62,6 +62,7 @@ export default function AdminPsikotesClient() {
             month: "short",
             year: "numeric",
           }),
+          rawTanggal: it.tanggal,
           status: it.status as "Selesai" | "Berjalan",
           skor: it.skor,
           jenisAkses: it.jenis_akses as "Gratis" | "Berbayar",

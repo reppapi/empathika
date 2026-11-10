@@ -77,6 +77,7 @@ export type AdminPsikotesPeserta = {
   noHp: string;
   paket: string;
   tanggal: string;
+  rawTanggal?: string;
   status: string;
   skor: string;
   jenisAkses: string;

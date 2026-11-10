@@ -50,6 +50,7 @@ export function usePsikotesTest(
     currentIndex,
     setCurrentIndex,
     answers,
+    setAnswers,
     showError,
     handleOptionSelect,
     handleNext,
