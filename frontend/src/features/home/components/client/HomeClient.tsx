@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 
-import { DATA_PSIKOLOG_DUMMY } from '@/features/psikolog/dummy'
 import { PsikologCard } from '@/features/psikolog/components/client/PsikologCard'
 import { HERO_SLIDES } from '../../data/homeData'
 import { useHomeSlider } from '../../hooks/useHomeSlider'
@@ -27,7 +26,7 @@ export default function HomeClient() {
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
   const [loadingPsikotes, setLoadingPsikotes] = useState(true)
-  const [psychologists, setPsychologists] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
+  const [psychologists, setPsychologists] = useState<PsikologUI[]>([])
   const [loadingPsychologists, setLoadingPsychologists] = useState(true)
   const [adminProfile, setAdminProfile] = useState<{
     alamat: string
@@ -150,44 +149,13 @@ export default function HomeClient() {
           }
         }
 
-        // 2. Default: Ambil data psikolog platform Empathika
+        // 2. Default: Ambil data psikolog platform Empathika murni dari database
         const dbList = await psikologService.getList()
         const mappedFromDb = Array.isArray(dbList) ? dbList.map(mapDbPsikologToUI) : []
-        let combined = mappedFromDb
-
-        try {
-          const local = localStorage.getItem("empathika_tenaga_ahli_data")
-          if (local) {
-            const parsed = JSON.parse(local)
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const dbIds = new Set(mappedFromDb.map((m) => m.id))
-              const dbEmails = new Set(mappedFromDb.map((m) => m.email?.toLowerCase()).filter(Boolean))
-              const localOnly = parsed
-                .filter((loc: any) => !dbIds.has(loc.id) && (!loc.email || !dbEmails.has(loc.email.toLowerCase())) && loc.statusAkses !== "NONAKTIF" && loc.status !== "INACTIVE")
-                .map(mapDbPsikologToUI)
-              combined = [...mappedFromDb, ...localOnly]
-            }
-          }
-        } catch {}
-
-        if (combined.length > 0) {
-          setPsychologists(combined)
-        } else {
-          setPsychologists(DATA_PSIKOLOG_DUMMY)
-        }
+        setPsychologists(mappedFromDb)
       } catch (err) {
         console.error('Gagal memuat psikolog home:', err)
-        try {
-          const local = localStorage.getItem("empathika_tenaga_ahli_data")
-          if (local) {
-            const parsed = JSON.parse(local)
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setPsychologists(parsed.filter((loc: any) => loc.statusAkses !== "NONAKTIF" && loc.status !== "INACTIVE").map(mapDbPsikologToUI))
-              return
-            }
-          }
-        } catch {}
-        setPsychologists(DATA_PSIKOLOG_DUMMY)
+        setPsychologists([])
       } finally {
         setLoadingPsychologists(false)
       }

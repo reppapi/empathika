@@ -156,9 +156,7 @@ export function useProfilePsikologForm({ role = "psikolog" }: UseProfilePsikolog
           const found =
             (savedId ? list.find((d: any) => d.id === savedId || d.accountId === savedId) : null) ||
             (authEmail ? list.find((d: any) => d.email?.toLowerCase() === authEmail.toLowerCase()) : null) ||
-            (savedName ? list.find((d: any) => d.nama?.toLowerCase().includes(savedName.toLowerCase())) : null) ||
-            list.find((d: any) => d.id === "1" || d.email === "putriqoida@empathika.com") ||
-            list[0]
+            (savedName ? list.find((d: any) => d.nama?.toLowerCase().includes(savedName.toLowerCase())) : null)
 
           if (found) {
             const isKonselorProfesi =

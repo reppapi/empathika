@@ -4,7 +4,6 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { PilihTanggalBox } from "@/components/shared/PilihTanggalBox"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 import { adminService } from "@/services/admin.service"
-import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import { useAuthStore } from "@/store/authStore"
 import {
   getCancelledSessions,
@@ -131,7 +130,7 @@ export default function PsikologJadwalClient() {
 
   const resolveActivePsikolog = useCallback(() => {
     if (typeof window === "undefined") {
-      return { id: "0", nama_gelar: INITIAL_TENAGA_AHLI[0].nama, kategori: "psikolog" }
+      return { id: "0", nama_gelar: user?.name || "Psikolog Empathika", kategori: "psikolog" }
     }
     const savedName = localStorage.getItem("active_psikolog_name")
     const savedId = localStorage.getItem("active_psikolog_id")
@@ -145,7 +144,7 @@ export default function PsikologJadwalClient() {
     if (!isInvalid && savedName) {
       return { id: savedId || "0", nama_gelar: savedName, kategori: savedKat || "psikolog" }
     }
-    return { id: "0", nama_gelar: INITIAL_TENAGA_AHLI[0].nama, kategori: savedKat || "psikolog" }
+    return { id: "0", nama_gelar: user?.name || "Psikolog Empathika", kategori: savedKat || "psikolog" }
   }, [user])
 
   // State profil psikolog aktif yang diambil dari Database / LocalStorage

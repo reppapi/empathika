@@ -98,34 +98,60 @@ export default function BookingClient() {
           const targetLayanan = targetByName || activeList[0] || allConsultation[0]
           if (targetLayanan) {
             setNamaLayananTerpilih(targetLayanan.nama)
-            if (targetLayanan.tarif_tenaga_ahli) {
-              const t = targetLayanan.tarif_tenaga_ahli
-              setDaftarHarga([
-                {
-                  id: "psikolog",
-                  title: "Psikolog",
-                  weekday: t.psikolog ? formatRp(t.psikolog.weekday) : formatRp(targetLayanan.harga_weekday),
-                  weekend: t.psikolog ? formatRp(t.psikolog.weekend) : formatRp(targetLayanan.harga_weekend),
-                  description:
-                    "Psikolog adalah tenaga profesional yang memiliki kewenangan untuk melakukan asesmen dan memberikan intervensi klinis.",
-                },
-                {
-                  id: "konselor",
-                  title: "Konselor",
-                  weekday: t.konselor ? formatRp(t.konselor.weekday) : formatRp(targetLayanan.harga_weekday),
-                  weekend: t.konselor ? formatRp(t.konselor.weekend) : formatRp(targetLayanan.harga_weekend),
-                  description:
-                    "Konselor adalah tenaga konseling terarah untuk mendampingi isu-isu kehidupan harian dan relasi.",
-                },
-                {
-                  id: "peer",
-                  title: "Peer Konselor",
-                  weekday: t.peer ? formatRp(t.peer.weekday) : formatRp(targetLayanan.harga_weekday),
-                  weekend: t.peer ? formatRp(t.peer.weekend) : formatRp(targetLayanan.harga_weekend),
-                  description:
-                    "Peer konselor adalah teman sebaya yang dilatih untuk memberikan dukungan emosional tanpa stigma.",
-                },
-              ])
+            const t = targetLayanan.tarif_tenaga_ahli
+            const items: typeof DAFTAR_HARGA = []
+
+            // 1. Cek Psikolog
+            if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) {
+              items.push({
+                id: "psikolog",
+                title: "Psikolog",
+                weekday: formatRp(t.psikolog.weekday),
+                weekend: formatRp(t.psikolog.weekend),
+                description:
+                  "Psikolog adalah tenaga profesional yang memiliki kewenangan untuk melakukan asesmen dan memberikan intervensi klinis.",
+              })
+            }
+
+            // 2. Cek Konselor
+            if (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)) {
+              items.push({
+                id: "konselor",
+                title: "Konselor",
+                weekday: formatRp(t.konselor.weekday),
+                weekend: formatRp(t.konselor.weekend),
+                description:
+                  "Konselor adalah tenaga konseling terarah untuk mendampingi isu-isu kehidupan harian dan relasi.",
+              })
+            }
+
+            // 3. Cek Peer Konselor
+            if (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)) {
+              items.push({
+                id: "peer",
+                title: "Peer Konselor",
+                weekday: formatRp(t.peer.weekday),
+                weekend: formatRp(t.peer.weekend),
+                description:
+                  "Peer konselor adalah teman sebaya yang dilatih untuk memberikan dukungan emosional tanpa stigma.",
+              })
+            }
+
+            // Fallback jika belum ada objek tarif_tenaga_ahli tapi ada harga_weekday
+            if (items.length === 0) {
+              items.push({
+                id: "psikolog",
+                title: "Psikolog",
+                weekday: formatRp(targetLayanan.harga_weekday),
+                weekend: formatRp(targetLayanan.harga_weekend),
+                description:
+                  "Psikolog adalah tenaga profesional yang memiliki kewenangan untuk melakukan asesmen dan memberikan intervensi klinis.",
+              })
+            }
+
+            setDaftarHarga(items)
+            if (items.length > 0) {
+              setOpenAccordion(items[0].id)
             }
           }
         }
@@ -143,6 +169,40 @@ export default function BookingClient() {
         if (localTarget && localTarget.status === "Nonaktif") {
           setIsLayananNonaktif(true)
           setNamaLayananTerpilih(localTarget.layanan)
+        } else if (localTarget) {
+          const t = localTarget.tarif_tenaga_ahli
+          const items: typeof DAFTAR_HARGA = []
+          if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) {
+            items.push({
+              id: "psikolog",
+              title: "Psikolog",
+              weekday: formatRp(t.psikolog.weekday),
+              weekend: formatRp(t.psikolog.weekend),
+              description: "Psikolog adalah tenaga profesional yang memiliki kewenangan untuk melakukan asesmen dan memberikan intervensi klinis.",
+            })
+          }
+          if (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)) {
+            items.push({
+              id: "konselor",
+              title: "Konselor",
+              weekday: formatRp(t.konselor.weekday),
+              weekend: formatRp(t.konselor.weekend),
+              description: "Konselor adalah tenaga konseling terarah untuk mendampingi isu-isu kehidupan harian dan relasi.",
+            })
+          }
+          if (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)) {
+            items.push({
+              id: "peer",
+              title: "Peer Konselor",
+              weekday: formatRp(t.peer.weekday),
+              weekend: formatRp(t.peer.weekend),
+              description: "Peer konselor adalah teman sebaya yang dilatih untuk memberikan dukungan emosional tanpa stigma.",
+            })
+          }
+          if (items.length > 0) {
+            setDaftarHarga(items)
+            setOpenAccordion(items[0].id)
+          }
         } else {
           setIsError(true)
         }
@@ -184,24 +244,30 @@ export default function BookingClient() {
     }
 
     window.addEventListener("storage", handleSync)
-    window.addEventListener("focus", handleSync)
 
     return () => {
       window.removeEventListener("storage", handleSync)
-      window.removeEventListener("focus", handleSync)
     }
   }, [initialLayanan])
 
-  const filters = ["Psikolog", "Konselor", "Peer Konselor"]
+  const availableFilters = useMemo(() => {
+    const titles = daftarHarga.map((d) => d.title)
+    return titles.length > 0 ? titles : ["Psikolog", "Konselor", "Peer Konselor"]
+  }, [daftarHarga])
+
+  // Ambil filter aktif yang valid secara aman tanpa useEffect berulang
+  const currentFilter = availableFilters.includes(activeFilter)
+    ? activeFilter
+    : availableFilters[0] || "Psikolog"
 
   const filteredProfessionals = useMemo(() => {
     return dbProfessionals.filter((p) => {
-      if (activeFilter === "Psikolog") return p.category === "psikolog"
-      if (activeFilter === "Konselor") return p.category === "konselor"
-      if (activeFilter === "Peer Konselor") return p.category === "peer-konselor"
+      if (currentFilter === "Psikolog") return p.category === "psikolog"
+      if (currentFilter === "Konselor") return p.category === "konselor"
+      if (currentFilter === "Peer Konselor") return p.category === "peer-konselor"
       return true
     })
-  }, [dbProfessionals, activeFilter])
+  }, [dbProfessionals, currentFilter])
 
   const toggleAccordion = (id: string) => {
     setOpenAccordion(openAccordion === id ? null : id)
@@ -322,13 +388,13 @@ export default function BookingClient() {
               </div>
             </div>
 
-            {/* Filter Section */}
+            {/* Filter Section (Hanya tampilkan kategori tenaga ahli yang tersedia) */}
             <div className="mb-10 flex justify-center gap-3 flex-wrap">
-              {filters.map((f) => (
+              {availableFilters.map((f) => (
                 <button
                   key={f}
                   onClick={() => setActiveFilter(f)}
-                  className={`px-6 py-2 rounded-full text-[13px] font-bold transition-all shadow-sm ${activeFilter === f
+                  className={`px-6 py-2 rounded-full text-[13px] font-bold transition-all shadow-sm cursor-pointer ${currentFilter === f
                     ? "bg-[#561269] text-white"
                     : "bg-white text-[#561269] hover:bg-[#561269]/10"
                     }`}

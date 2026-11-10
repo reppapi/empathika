@@ -1,5 +1,4 @@
 import { BookedAssessment, ClientSessionToday, WeeklyTemplateItem } from "@/features/konseling/types"
-import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 
 export const TIME_SLOTS = [
   "09:00 - 10:00",
@@ -191,7 +190,7 @@ export function getWhatsAppPsikologUrl(session: {
   if (!phone && typeof window !== "undefined") {
     try {
       const saved = localStorage.getItem("empathika_tenaga_ahli_data")
-      const list = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
+      const list = saved ? JSON.parse(saved) : []
       const found = list.find(
         (p: any) =>
           p.nama?.toLowerCase().includes(session.psikolog.toLowerCase()) ||
@@ -201,17 +200,6 @@ export function getWhatsAppPsikologUrl(session: {
         phone = found.noTelepon
       }
     } catch { }
-  }
-
-  if (!phone) {
-    const foundInit = INITIAL_TENAGA_AHLI.find(
-      (p) =>
-        p.nama.toLowerCase().includes(session.psikolog.toLowerCase()) ||
-        session.psikolog.toLowerCase().includes(p.nama.toLowerCase())
-    )
-    if (foundInit && foundInit.noTelepon) {
-      phone = foundInit.noTelepon
-    }
   }
 
   const clean = (phone || "").replace(/\D/g, "")

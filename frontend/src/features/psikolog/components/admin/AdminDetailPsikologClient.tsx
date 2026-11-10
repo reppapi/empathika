@@ -15,7 +15,6 @@ import {
   Check,
   AlertTriangle,
 } from "lucide-react"
-import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import type { TenagaAhli } from "@/features/psikolog/types"
 import ActivationWarningModal from "@/components/common/ActivationWarningModal"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
@@ -111,11 +110,17 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
       console.warn("Gagal mengambil data dari BE, mencoba fallback lokal:", err)
     }
 
-    const found = INITIAL_TENAGA_AHLI.find((p) => p.id === id)
-    if (found) {
-      setForm(found)
-      if (found.tokenAktivasi) setActivationToken(found.tokenAktivasi)
-      if (found.tokenExpiredAt) setTokenExpiredAt(found.tokenExpiredAt)
+    const saved = typeof window !== "undefined" ? localStorage.getItem("empathika_tenaga_ahli_data") : null
+    if (saved) {
+      try {
+        const localList: TenagaAhli[] = JSON.parse(saved)
+        const found = localList.find((p) => p.id === id)
+        if (found) {
+          setForm(found)
+          if (found.tokenAktivasi) setActivationToken(found.tokenAktivasi)
+          if (found.tokenExpiredAt) setTokenExpiredAt(found.tokenExpiredAt)
+        }
+      } catch {}
     }
     setLoading(false)
   }

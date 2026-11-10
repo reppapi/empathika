@@ -188,6 +188,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
 
         if (Array.isArray(localList)) {
           localList.forEach((p: any) => {
+            if (['0', '1', '2', '3', '4'].includes(p.id) || p.email?.endsWith('@empathika.test')) return
             const nama = p.nama_gelar || p.nama || p.account?.nama
             if (nama && !Array.from(map.values()).some((item) => item.nama.toLowerCase() === nama.toLowerCase())) {
               map.set(p.id || nama, {

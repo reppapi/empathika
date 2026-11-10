@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useTenant } from "@/hooks/useTenant"
 import { getDetailPsikolog, DetailPsikologUI } from "@/features/psikolog/data/detailDummy"
 import { DetailPsikologContent } from "@/features/psikolog/components/client/DetailPsikologContent"
-import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 
 interface PageProps {
@@ -250,7 +249,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
 
         try {
           const saved = localStorage.getItem("empathika_tenaga_ahli_data")
-          const list = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
+          const list = saved ? JSON.parse(saved) : []
           const cleanId = decodeURIComponent(id).toLowerCase().replace(/-/g, " ").trim()
           const found = list.find((t: any) =>
             t.id === id ||

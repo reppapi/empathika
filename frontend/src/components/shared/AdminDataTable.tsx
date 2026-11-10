@@ -129,6 +129,7 @@ export function AdminDataTable<T>({
                       return (
                         <td
                           key={col.key || `cell-${colIndex}`}
+                          style={col.width ? { width: col.width } : undefined}
                           className={`py-4 px-4 sm:px-5 ${alignClass} ${col.className || ""}`}
                         >
                           {cellContent}

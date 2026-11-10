@@ -64,7 +64,7 @@ function PriceInputField({
   value,
   onChange,
   placeholder = "350.000",
-  required = true,
+  required = false,
 }: PriceInputFieldProps) {
   return (
     <div className="flex rounded-lg shadow-2xs overflow-hidden border border-gray-300 focus-within:border-[#561269] focus-within:ring-1 focus-within:ring-[#561269] transition-all bg-white">
@@ -143,18 +143,12 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
 
         if (existing.tarif_tenaga_ahli) {
           const t = existing.tarif_tenaga_ahli
-          if (t.psikolog) {
-            setTarifPsikologWeekday(String(parseRupiahNumber(t.psikolog.weekday) || cleanWeekday || ""))
-            setTarifPsikologWeekend(String(parseRupiahNumber(t.psikolog.weekend) || cleanWeekend || ""))
-          }
-          if (t.konselor) {
-            setTarifKonselorWeekday(String(parseRupiahNumber(t.konselor.weekday) || cleanWeekday || ""))
-            setTarifKonselorWeekend(String(parseRupiahNumber(t.konselor.weekend) || cleanWeekend || ""))
-          }
-          if (t.peer) {
-            setTarifPeerWeekday(String(parseRupiahNumber(t.peer.weekday) || cleanWeekday || ""))
-            setTarifPeerWeekend(String(parseRupiahNumber(t.peer.weekend) || cleanWeekend || ""))
-          }
+          setTarifPsikologWeekday(t.psikolog && (t.psikolog.weekday || t.psikolog.weekend) ? String(parseRupiahNumber(t.psikolog.weekday) || "") : "")
+          setTarifPsikologWeekend(t.psikolog && (t.psikolog.weekday || t.psikolog.weekend) ? String(parseRupiahNumber(t.psikolog.weekend) || "") : "")
+          setTarifKonselorWeekday(t.konselor && (t.konselor.weekday || t.konselor.weekend) ? String(parseRupiahNumber(t.konselor.weekday) || "") : "")
+          setTarifKonselorWeekend(t.konselor && (t.konselor.weekday || t.konselor.weekend) ? String(parseRupiahNumber(t.konselor.weekend) || "") : "")
+          setTarifPeerWeekday(t.peer && (t.peer.weekday || t.peer.weekend) ? String(parseRupiahNumber(t.peer.weekday) || "") : "")
+          setTarifPeerWeekend(t.peer && (t.peer.weekday || t.peer.weekend) ? String(parseRupiahNumber(t.peer.weekend) || "") : "")
         }
       }
 
@@ -193,19 +187,19 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
 
           if (beData.tarif_tenaga_ahli) {
             const t = beData.tarif_tenaga_ahli
-            setTarifPsikologWeekday(String(t.psikolog?.weekday || cleanWk || ""))
-            setTarifPsikologWeekend(String(t.psikolog?.weekend || cleanWknd || ""))
-            setTarifKonselorWeekday(String(t.konselor?.weekday || cleanWk || ""))
-            setTarifKonselorWeekend(String(t.konselor?.weekend || cleanWknd || ""))
-            setTarifPeerWeekday(String(t.peer?.weekday || cleanWk || ""))
-            setTarifPeerWeekend(String(t.peer?.weekend || cleanWknd || ""))
+            setTarifPsikologWeekday(t.psikolog && (t.psikolog.weekday || t.psikolog.weekend) ? String(t.psikolog.weekday || "") : "")
+            setTarifPsikologWeekend(t.psikolog && (t.psikolog.weekday || t.psikolog.weekend) ? String(t.psikolog.weekend || "") : "")
+            setTarifKonselorWeekday(t.konselor && (t.konselor.weekday || t.konselor.weekend) ? String(t.konselor.weekday || "") : "")
+            setTarifKonselorWeekend(t.konselor && (t.konselor.weekday || t.konselor.weekend) ? String(t.konselor.weekend || "") : "")
+            setTarifPeerWeekday(t.peer && (t.peer.weekday || t.peer.weekend) ? String(t.peer.weekday || "") : "")
+            setTarifPeerWeekend(t.peer && (t.peer.weekday || t.peer.weekend) ? String(t.peer.weekend || "") : "")
           } else {
             setTarifPsikologWeekday(cleanWk)
             setTarifPsikologWeekend(cleanWknd)
-            setTarifKonselorWeekday(cleanWk)
-            setTarifKonselorWeekend(cleanWknd)
-            setTarifPeerWeekday(cleanWk)
-            setTarifPeerWeekend(cleanWknd)
+            setTarifKonselorWeekday("")
+            setTarifKonselorWeekend("")
+            setTarifPeerWeekday("")
+            setTarifPeerWeekend("")
           }
         }
       } catch (err) {
@@ -266,31 +260,59 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     const isKonsultasi = selectedCategory === "01"
     const isPartnership = selectedCategory === "03" || selectedCategory === "04"
 
-    const tarifTenagaAhli = isKonsultasi
-      ? {
-          psikolog: {
-            weekday: parseRupiahNumber(tarifPsikologWeekday),
-            weekend: parseRupiahNumber(tarifPsikologWeekend),
-          },
-          konselor: {
-            weekday: parseRupiahNumber(tarifKonselorWeekday),
-            weekend: parseRupiahNumber(tarifKonselorWeekend),
-          },
-          peer: {
-            weekday: parseRupiahNumber(tarifPeerWeekday),
-            weekend: parseRupiahNumber(tarifPeerWeekend),
-          },
-        }
-      : null
+    if (selectedCategory === "05") {
+      const wd = parseRupiahNumber(hargaWeekday)
+      const wk = parseRupiahNumber(hargaWeekend)
+      if (wd === 0 && wk === 0) {
+        alert("Layanan asesmen wajib diisi tarifnya minimal salah satu (Weekday atau Weekend).")
+        return
+      }
+    }
+
+    let tarifTenagaAhli: any = null
+    let activeExpert: { weekday: number; weekend: number } | null = null
+
+    if (isKonsultasi) {
+      const psiWd = parseRupiahNumber(tarifPsikologWeekday)
+      const psiWk = parseRupiahNumber(tarifPsikologWeekend)
+      const konWd = parseRupiahNumber(tarifKonselorWeekday)
+      const konWk = parseRupiahNumber(tarifKonselorWeekend)
+      const peerWd = parseRupiahNumber(tarifPeerWeekday)
+      const peerWk = parseRupiahNumber(tarifPeerWeekend)
+
+      const hasPsikolog = psiWd > 0 || psiWk > 0
+      const hasKonselor = konWd > 0 || konWk > 0
+      const hasPeer = peerWd > 0 || peerWk > 0
+
+      // Validasi: Wajib isi minimal satu tenaga ahli untuk layanan konsultasi
+      if (!hasPsikolog && !hasKonselor && !hasPeer) {
+        alert("Layanan konsultasi wajib diisi tarifnya minimal untuk satu kualifikasi tenaga ahli (Psikolog, Konselor, atau Peer Konselor).")
+        return
+      }
+
+      tarifTenagaAhli = {}
+      if (hasPsikolog) {
+        tarifTenagaAhli.psikolog = { weekday: psiWd, weekend: psiWk }
+        if (!activeExpert) activeExpert = tarifTenagaAhli.psikolog
+      }
+      if (hasKonselor) {
+        tarifTenagaAhli.konselor = { weekday: konWd, weekend: konWk }
+        if (!activeExpert) activeExpert = tarifTenagaAhli.konselor
+      }
+      if (hasPeer) {
+        tarifTenagaAhli.peer = { weekday: peerWd, weekend: peerWk }
+        if (!activeExpert) activeExpert = tarifTenagaAhli.peer
+      }
+    }
 
     const finalWeekday = isKonsultasi
-      ? tarifPsikologWeekday
+      ? String(activeExpert?.weekday || "0")
       : isPartnership
       ? "0"
       : hargaWeekday
 
     const finalWeekend = isKonsultasi
-      ? tarifPsikologWeekend
+      ? String(activeExpert?.weekend || "0")
       : isPartnership
       ? "0"
       : hargaWeekend
@@ -406,7 +428,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
           {/* ── Baris 1: Banner / Poster Layanan ── */}
           <div>
             <label className={labelClass}>Banner / Poster Layanan</label>
@@ -602,94 +624,142 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   Tarif Konsultasi per Tenaga Ahli <span className="text-red-500">*</span>
                 </label>
                 <span className="block text-[11px] text-gray-500 mt-0.5">
-                  Atur tarif sesi konsultasi untuk masing-masing kualifikasi tenaga ahli (Weekday &amp; Weekend)
+                  Isi tarif minimal untuk 1 tenaga ahli yang tersedia untuk layanan ini. Kosongkan tenaga ahli jika layanan ini tidak dilayani oleh kualifikasi tersebut.
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* 1. Psikolog */}
-                <div className="p-4 rounded-xl border border-purple-200 bg-white shadow-xs space-y-3">
-                  <div className="flex items-center gap-2 pb-1 border-b border-purple-100">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
-                    <h4 className="text-xs font-bold text-gray-800">Psikolog</h4>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                      Weekday (Senin - Jumat)
-                    </label>
-                    <PriceInputField
-                      value={tarifPsikologWeekday}
-                      onChange={setTarifPsikologWeekday}
-                      placeholder="350.000"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                      Weekend (Sabtu - Minggu)
-                    </label>
-                    <PriceInputField
-                      value={tarifPsikologWeekend}
-                      onChange={setTarifPsikologWeekend}
-                      placeholder="450.000"
-                    />
-                  </div>
-                </div>
+                {(() => {
+                  const isPsiActive = Boolean(tarifPsikologWeekday.trim() || tarifPsikologWeekend.trim())
+                  return (
+                    <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${
+                      isPsiActive ? "border-purple-300 ring-1 ring-purple-200" : "border-gray-200 opacity-85"
+                    }`}>
+                      <div className="flex items-center justify-between pb-1 border-b border-purple-100">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
+                          <h4 className="text-xs font-bold text-gray-800">Psikolog</h4>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isPsiActive ? "bg-purple-100 text-[#561269]" : "bg-gray-100 text-gray-400"
+                        }`}>
+                          {isPsiActive ? "Tersedia" : "Kosong"}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          Weekday (Senin - Jumat)
+                        </label>
+                        <PriceInputField
+                          value={tarifPsikologWeekday}
+                          onChange={setTarifPsikologWeekday}
+                          placeholder="350.000"
+                          required={false}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          Weekend (Sabtu - Minggu)
+                        </label>
+                        <PriceInputField
+                          value={tarifPsikologWeekend}
+                          onChange={setTarifPsikologWeekend}
+                          placeholder="450.000"
+                          required={false}
+                        />
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 {/* 2. Konselor */}
-                <div className="p-4 rounded-xl border border-blue-200 bg-white shadow-xs space-y-3">
-                  <div className="flex items-center gap-2 pb-1 border-b border-blue-100">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                    <h4 className="text-xs font-bold text-gray-800">Konselor</h4>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                      Weekday (Senin - Jumat)
-                    </label>
-                    <PriceInputField
-                      value={tarifKonselorWeekday}
-                      onChange={setTarifKonselorWeekday}
-                      placeholder="250.000"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                      Weekend (Sabtu - Minggu)
-                    </label>
-                    <PriceInputField
-                      value={tarifKonselorWeekend}
-                      onChange={setTarifKonselorWeekend}
-                      placeholder="350.000"
-                    />
-                  </div>
-                </div>
+                {(() => {
+                  const isKonActive = Boolean(tarifKonselorWeekday.trim() || tarifKonselorWeekend.trim())
+                  return (
+                    <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${
+                      isKonActive ? "border-blue-300 ring-1 ring-blue-200" : "border-gray-200 opacity-85"
+                    }`}>
+                      <div className="flex items-center justify-between pb-1 border-b border-blue-100">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                          <h4 className="text-xs font-bold text-gray-800">Konselor</h4>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isKonActive ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400"
+                        }`}>
+                          {isKonActive ? "Tersedia" : "Kosong"}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          Weekday (Senin - Jumat)
+                        </label>
+                        <PriceInputField
+                          value={tarifKonselorWeekday}
+                          onChange={setTarifKonselorWeekday}
+                          placeholder="250.000"
+                          required={false}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          Weekend (Sabtu - Minggu)
+                        </label>
+                        <PriceInputField
+                          value={tarifKonselorWeekend}
+                          onChange={setTarifKonselorWeekend}
+                          placeholder="350.000"
+                          required={false}
+                        />
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 {/* 3. Peer Konselor */}
-                <div className="p-4 rounded-xl border border-emerald-200 bg-white shadow-xs space-y-3">
-                  <div className="flex items-center gap-2 pb-1 border-b border-emerald-100">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-                    <h4 className="text-xs font-bold text-gray-800">Peer Konselor</h4>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                      Weekday (Senin - Jumat)
-                    </label>
-                    <PriceInputField
-                      value={tarifPeerWeekday}
-                      onChange={setTarifPeerWeekday}
-                      placeholder="150.000"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                      Weekend (Sabtu - Minggu)
-                    </label>
-                    <PriceInputField
-                      value={tarifPeerWeekend}
-                      onChange={setTarifPeerWeekend}
-                      placeholder="200.000"
-                    />
-                  </div>
-                </div>
+                {(() => {
+                  const isPeerActive = Boolean(tarifPeerWeekday.trim() || tarifPeerWeekend.trim())
+                  return (
+                    <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${
+                      isPeerActive ? "border-emerald-300 ring-1 ring-emerald-200" : "border-gray-200 opacity-85"
+                    }`}>
+                      <div className="flex items-center justify-between pb-1 border-b border-emerald-100">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                          <h4 className="text-xs font-bold text-gray-800">Peer Konselor</h4>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isPeerActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-400"
+                        }`}>
+                          {isPeerActive ? "Tersedia" : "Kosong"}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          Weekday (Senin - Jumat)
+                        </label>
+                        <PriceInputField
+                          value={tarifPeerWeekday}
+                          onChange={setTarifPeerWeekday}
+                          placeholder="150.000"
+                          required={false}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          Weekend (Sabtu - Minggu)
+                        </label>
+                        <PriceInputField
+                          value={tarifPeerWeekend}
+                          onChange={setTarifPeerWeekend}
+                          placeholder="200.000"
+                          required={false}
+                        />
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           ) : selectedCategory === "05" ? (
@@ -703,6 +773,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   value={hargaWeekday}
                   onChange={setHargaWeekday}
                   placeholder="350.000"
+                  required={false}
                 />
                 <span className={helperClass}>Tarif sesi pada hari kerja reguler (contoh: 350.000)</span>
               </div>
@@ -715,22 +786,12 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   value={hargaWeekend}
                   onChange={setHargaWeekend}
                   placeholder="450.000"
+                  required={false}
                 />
                 <span className={helperClass}>Tarif sesi pada akhir pekan (contoh: 450.000)</span>
               </div>
             </div>
-          ) : (
-            /* Kategori Workshop & Seminar: Program Kemitraan (Tanpa Pengisian Tarif) */
-            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 border border-amber-200/90 flex items-start gap-3.5">
-              <span className="text-2xl shrink-0">🤝</span>
-              <div>
-                <h4 className="text-sm font-bold text-amber-900">Program Kemitraan &amp; Kerja Sama Institusional</h4>
-                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                  Layanan Workshop dan Seminar tidak memerlukan pengisian tarif nominal karena pembiayaan disesuaikan melalui skema proposal kerja sama institusional (B2B / Kampus / Sekolah / Komunitas).
-                </p>
-              </div>
-            </div>
-          )}
+          ) : null}
 
           {/* ── Baris 6: Deskripsi Layanan ── */}
           <div>
