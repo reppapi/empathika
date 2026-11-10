@@ -7,6 +7,7 @@ import { useTenantContext } from "@/context/TenantContext"
 import { SEMINAR_DETAIL_DATA, type SeminarGalleryImage } from "@/features/layanan/data/seminarData"
 import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
 import { layananService } from "@/services/layanan.service"
+import { parseWorkshopSeminarDeskripsi } from "@/features/layanan/utils/deskripsiParser"
 import { SeminarHero } from "./SeminarHero"
 import { SeminarDescriptionSection } from "./SeminarDescriptionSection"
 import { ProgramGallery } from "./ProgramGallery"
@@ -15,11 +16,16 @@ export default function SeminarDetailPage() {
   const { withBiro } = useTenantContext()
   const data = SEMINAR_DETAIL_DATA
 
+  const [title, setTitle] = useState(data.title)
+  const [intro, setIntro] = useState(data.intro)
+  const [additionalInfo, setAdditionalInfo] = useState("")
+  const [programs, setPrograms] = useState(data.programs)
+  const [closing, setClosing] = useState(data.closing)
   const [heroImage, setHeroImage] = useState(data.heroImage)
   const [gallery, setGallery] = useState<SeminarGalleryImage[]>(data.gallery)
 
   useEffect(() => {
-    const applyCustomPhotos = (items: any[]) => {
+    const applySeminarData = (items: any[]) => {
       if (!Array.isArray(items) || items.length === 0) return
 
       // Cari layanan kategori seminar yang aktif
@@ -31,6 +37,19 @@ export default function SeminarDetailPage() {
       })
 
       if (match) {
+        if (match.nama || match.layanan) {
+          setTitle(match.nama || match.layanan)
+        }
+
+        // Terapkan pemisahan deskripsi:
+        // Paragraf sebelum Enter -> intro di atas program seminar
+        // Paragraf setelah Enter -> additionalInfo (kotak penjelasan di bawah program)
+        if (match.deskripsi) {
+          const parsed = parseWorkshopSeminarDeskripsi(match.deskripsi)
+          if (parsed.intro) setIntro(parsed.intro)
+          if (parsed.additionalInfo) setAdditionalInfo(parsed.additionalInfo)
+        }
+
         const rawFotos =
           (match as any).foto_kegiatan ||
           (match?.tarif_tenaga_ahli as any)?.foto_kegiatan
@@ -64,7 +83,7 @@ export default function SeminarDetailPage() {
     // 1. Ambil dari local storage (instan)
     try {
       const stored = getStoredLayanan()
-      applyCustomPhotos(stored)
+      applySeminarData(stored)
     } catch (e) {
       console.warn("Gagal membaca foto seminar dari local storage:", e)
     }
@@ -74,7 +93,7 @@ export default function SeminarDetailPage() {
       .getAll({ kategori: "SEMINAR" })
       .then((res) => {
         const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-        applyCustomPhotos(list)
+        applySeminarData(list)
       })
       .catch((err) => {
         console.warn("Gagal mengambil data foto seminar dari backend:", err?.message)
@@ -83,7 +102,7 @@ export default function SeminarDetailPage() {
     const handleSync = () => {
       try {
         const stored = getStoredLayanan()
-        applyCustomPhotos(stored)
+        applySeminarData(stored)
       } catch {}
     }
 
@@ -95,26 +114,27 @@ export default function SeminarDetailPage() {
     <div className="min-h-screen bg-white font-poppins text-gray-800">
       {/* 1. BAGIAN ATAS: KOTAK FOTO HERO + GRADASI + JUDUL */}
       <SeminarHero
-        title={data.title}
+        title={title}
         heroImage={heroImage}
-        heroImageAlt={data.heroImageAlt}
+        heroImageAlt={`Dokumentasi ${title}`}
       />
 
-      {/* 2. BAGIAN TENGAH: DESKRIPSI (Teks Pengantar, Program Seminar & Healing, Penutup) */}
+      {/* 2. BAGIAN TENGAH: DESKRIPSI (Pengantar, 2 Kotak Program, Kotak Penjelasan di Bawah Program, Penutup) */}
       <SeminarDescriptionSection
-        intro={data.intro}
-        programs={data.programs}
-        closing={data.closing}
+        intro={intro}
+        programs={programs}
+        additionalInfo={additionalInfo}
+        closing={closing}
       />
 
-      {/* 3. BAGIAN BAWAH: 3 FOTO BERJAJAR (Kotak & Posisi Lebih Rapat ke Atas) */}
+      {/* 3. BAGIAN BAWAH: 3 FOTO BERJAJAR (Kotak & Posisi Rapat ke Atas) */}
       <ProgramGallery images={gallery} />
 
       {/* 4. BAGIAN PALING BAWAH: CTA REDIRECT KE KERJA SAMA */}
       <section className="pt-4 pb-20 sm:pb-24 text-center px-4">
         <div className="max-w-xl mx-auto flex flex-col items-center">
           <p className="text-base sm:text-lg font-bold text-[#561269] mb-4">
-            Tertarik Mengadakan Seminar Bersama Empathika?
+            Tertarik Mengadakan {title} Bersama Empathika?
           </p>
           <Link
             href={withBiro("/kerja-sama") as any}

@@ -18,7 +18,7 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: WorkshopDetailPageProps) {
   const item = WORKSHOP_DETAILS_DATA[params.slug]
   if (!item) {
-    return { title: "Workshop Tidak Ditemukan | Empathika" }
+    return { title: "Workshop | Empathika" }
   }
 
   return {
@@ -29,10 +29,6 @@ export function generateMetadata({ params }: WorkshopDetailPageProps) {
 
 export default function WorkshopDetailPage({ params }: WorkshopDetailPageProps) {
   const { slug } = params
-
-  if (!WORKSHOP_DETAILS_DATA[slug]) {
-    notFound()
-  }
 
   return (
     <Suspense fallback={<div className="min-h-screen pt-32 text-center text-gray-500">Memuat...</div>}>

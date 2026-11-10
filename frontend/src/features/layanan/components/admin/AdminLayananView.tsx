@@ -26,6 +26,7 @@ import {
   saveStoredLayanan,
 } from "../../data/adminLayananData"
 import { layananService } from "@/services/layanan.service"
+import { parseWorkshopSeminarDeskripsi } from "../../utils/deskripsiParser"
 import ClientErrorState from "@/components/shared/ClientErrorState"
 import {
   ActionButtonDetail,
@@ -824,12 +825,44 @@ export default function AdminLayananView() {
             </div>
 
             <div className="space-y-3.5 text-sm">
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <span className="text-xs text-gray-500 font-medium block mb-1">Deskripsi</span>
-                <p className="text-gray-800 leading-relaxed text-xs whitespace-pre-wrap">
-                  {selectedDetail.deskripsi || "Tidak ada deskripsi rinci untuk layanan ini."}
-                </p>
-              </div>
+              {(() => {
+                const isDetailPartnership = selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04"
+                if (isDetailPartnership && selectedDetail.deskripsi) {
+                  const { intro, additionalInfo } = parseWorkshopSeminarDeskripsi(selectedDetail.deskripsi)
+                  return (
+                    <div className="space-y-2.5">
+                      <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+                        <span className="text-[11px] text-[#561269] font-bold block mb-1">
+                          1. Teks Pengantar Utama (Di Atas Manfaat)
+                        </span>
+                        <p className="text-gray-800 leading-relaxed text-xs whitespace-pre-wrap">
+                          {intro || "Tidak ada pengantar."}
+                        </p>
+                      </div>
+
+                      {additionalInfo && (
+                        <div className="p-3 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                          <span className="text-[11px] text-emerald-800 font-bold block mb-1">
+                            2. Kotak Penjelasan di Bawah Manfaat (Teks Setelah Enter)
+                          </span>
+                          <p className="text-gray-700 leading-relaxed text-xs whitespace-pre-wrap">
+                            {additionalInfo}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="p-3 bg-gray-50 rounded-xl">
+                    <span className="text-xs text-gray-500 font-medium block mb-1">Deskripsi</span>
+                    <p className="text-gray-800 leading-relaxed text-xs whitespace-pre-wrap">
+                      {selectedDetail.deskripsi || "Tidak ada deskripsi rinci untuk layanan ini."}
+                    </p>
+                  </div>
+                )
+              })()}
 
               {(() => {
                 const isDetailPartnership = selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04"

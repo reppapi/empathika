@@ -9,6 +9,7 @@ import { CATEGORIES } from "../../data/layananData"
 import { getLayananById, updateLayananById, AdminLayananItem } from "../../data/adminLayananData"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import { layananService } from "@/services/layanan.service"
+import { parseWorkshopSeminarDeskripsi } from "../../utils/deskripsiParser"
 
 interface EditLayananViewProps {
   layananId: string
@@ -679,13 +680,61 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Deskripsi Layanan <span className="text-red-500">*</span>
             </label>
+
+            {isPartnership && (
+              <div className="mb-2.5 p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/80 text-xs text-[#561269] flex items-start gap-2.5">
+                <span className="font-bold shrink-0 text-sm">💡</span>
+                <div className="space-y-1">
+                  <p className="font-bold">Format Enter Khusus Workshop & Seminar:</p>
+                  <p className="text-gray-700 leading-relaxed">
+                    • <strong>Paragraf pertama (sebelum Enter)</strong> otomatis menjadi <strong>Teks Pengantar Utama</strong> di bagian atas.
+                    <br />
+                    • <strong>Paragraf berikutnya (setelah Enter)</strong> otomatis masuk ke <strong>kotak penjelasan di bawah bagian manfaat kegiatan</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <textarea
               value={deskripsi}
               onChange={(e) => setDeskripsi(e.target.value)}
-              placeholder="Masukkan deskripsi mengenai layanan ini"
-              rows={4}
+              placeholder={
+                isPartnership
+                  ? "Contoh:\nWorkshop SEFT adalah program pengembangan diri dan terapi emosi yang membantu peserta mengelola emosi...\n\n[Tekan Enter untuk teks kotak penjelasan di bawah manfaat]\nWorkshop ini dirancang secara praktis, aplikatif, dan interaktif..."
+                  : "Masukkan deskripsi mengenai layanan ini"
+              }
+              rows={5}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y whitespace-pre-wrap"
             />
+
+            {isPartnership && deskripsi.trim() && (() => {
+              const { intro, additionalInfo } = parseWorkshopSeminarDeskripsi(deskripsi)
+              return (
+                <div className="mt-3 p-4 rounded-xl bg-gray-50 border border-gray-200/80 space-y-2.5 text-xs">
+                  <div className="font-bold text-gray-500 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <span>👁️ Pratinjau Tampilan Teks di Halaman Website:</span>
+                  </div>
+                  <div className="p-3 bg-purple-50/50 rounded-lg border border-purple-100">
+                    <span className="font-bold text-[#561269] block mb-1 text-[11px]">
+                      1. Teks Pengantar Utama (Di Atas Manfaat):
+                    </span>
+                    <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{intro || "-"}</p>
+                  </div>
+                  <div className="p-3 bg-white rounded-lg border border-gray-200 shadow-2xs">
+                    <span className="font-bold text-emerald-800 block mb-1 text-[11px]">
+                      2. Kotak Penjelasan di Bawah Manfaat (Teks Setelah Enter):
+                    </span>
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {additionalInfo || (
+                        <span className="italic text-gray-400">
+                          (Tekan Enter di kolom deskripsi di atas untuk memindahkan/memasukkan penjelasan ke dalam kotak ini)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* ── Baris 4: Percabangan Sesuai Kategori ── */}
