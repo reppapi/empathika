@@ -59,6 +59,9 @@ export function EventBannerUpload({
               alt="Preview Banner"
               className="w-full h-full object-cover"
             />
+            <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+              1200 × 675 px (16:9)
+            </div>
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -98,7 +101,12 @@ export function EventBannerUpload({
             <div className="text-xs text-gray-600 font-medium">
               <span className="text-[#561269] font-bold">Pilih foto</span> atau tarik file ke sini
             </div>
-            <p className="text-[11px] text-gray-400">PNG, JPG, JPEG hingga 10MB</p>
+            <p className="text-xs font-medium text-gray-600">
+              Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
+            </p>
+            <p className="text-[11px] text-gray-400">
+              Format JPG, PNG, atau WebP (Maks. 10MB) • Otomatis disesuaikan untuk kartu dan rincian event
+            </p>
           </div>
         )}
       </div>

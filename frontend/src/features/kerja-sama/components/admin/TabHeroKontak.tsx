@@ -108,8 +108,11 @@ export default function TabHeroKontak({
                 }
               />
             </label>
-            <p className="text-[11px] text-gray-400 mt-1.5">
-              Format didukung: PNG, JPG, WebP (otomatis dikompresi & dioptimalkan untuk web).
+            <p className="text-xs text-gray-600 font-medium mt-2">
+              Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
+            </p>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              Format didukung: PNG, JPG, WebP • Otomatis disesuaikan untuk banner tengah halaman kerja sama
             </p>
           </div>
         </div>

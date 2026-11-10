@@ -651,6 +651,9 @@ export default function TambahLayananView() {
                       height={160}
                       className="max-h-[160px] w-auto object-contain"
                     />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                      1200 × 675 px (16:9)
+                    </div>
                     <button
                       type="button"
                       onClick={handleRemoveImage}
@@ -660,10 +663,15 @@ export default function TambahLayananView() {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2 text-center my-auto">
-                    <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
-                    <div className="text-sm text-gray-600">Klik untuk upload gambar poster / banner</div>
-                    <p className="text-xs text-gray-500">Format: JPG, PNG, WebP (Maks. 2MB)</p>
+                  <div className="space-y-1.5 text-center my-auto p-2">
+                    <CloudUpload className="mx-auto h-8 w-8 text-[#561269]" />
+                    <div className="text-sm font-semibold text-gray-700">Klik untuk upload gambar poster / banner layanan</div>
+                    <p className="text-xs font-medium text-gray-600">
+                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      Format: JPG, PNG, WebP (Maks. 2MB) • Otomatis disesuaikan untuk kartu layanan klien
+                    </p>
                   </div>
                 )}
               </div>
@@ -814,14 +822,14 @@ export default function TambahLayananView() {
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-2 text-center my-auto">
-                      <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
-                      <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
+                    <div className="space-y-1.5 text-center my-auto p-2">
+                      <CloudUpload className="mx-auto h-8 w-8 text-[#561269]" />
+                      <div className="text-sm font-semibold text-gray-700">Klik untuk upload foto banner / gambar hero</div>
                       <p className="text-xs font-medium text-gray-600">
-                        Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
+                        Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
                       </p>
                       <p className="text-[11px] text-gray-400">
-                        Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                        Format JPG, PNG, atau WebP • Otomatis disesuaikan untuk kartu layanan dan banner asesmen
                       </p>
                     </div>
                   )}
@@ -840,6 +848,9 @@ export default function TambahLayananView() {
                 </label>
                 <p className="text-xs text-gray-500 mt-1">
                   Foto pertama (Slot 1) otomatis menjadi <span className="font-semibold text-[#561269]">banner kartu layanan</span> dan <span className="font-semibold text-[#561269]">foto hero paling atas</span> pada halaman detail {selectedCategory === "03" ? "workshop" : "seminar"}.
+                  <br />
+                  <span className="font-semibold text-gray-700">Rekomendasi ukuran: </span>
+                  <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span> agar foto pas dan tajam di halaman klien.
                 </p>
               </div>
 
@@ -916,6 +927,9 @@ export default function TambahLayananView() {
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
                             unoptimized
                           />
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium pointer-events-none">
+                            1200 × 675 px
+                          </div>
                           <button
                             type="button"
                             onClick={(e) => handleSlotRemove(slotIdx, e)}
@@ -961,8 +975,9 @@ export default function TambahLayananView() {
                             accept="image/jpeg, image/png, image/webp"
                             className="hidden"
                           />
-                          <CloudUpload className="w-6 h-6 text-gray-400 mb-1" />
+                          <CloudUpload className="w-6 h-6 text-[#561269] mb-1" />
                           <p className="text-xs font-bold text-gray-700">Pilih Foto</p>
+                          <p className="text-[11px] font-semibold text-[#561269] mt-0.5">1200 × 675 px (16:9)</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG, WebP</p>
                         </div>
                       )}

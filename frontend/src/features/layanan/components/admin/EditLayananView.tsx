@@ -522,6 +522,9 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                 <label className={labelClass}>Foto Kegiatan (Maksimal 3 Foto)</label>
                 <p className="text-xs text-gray-500 mt-1">
                   Foto pertama (Slot 1) otomatis menjadi <span className="font-semibold text-[#561269]">banner kartu layanan</span> dan <span className="font-semibold text-[#561269]">foto hero paling atas</span> pada halaman detail {selectedCategory === "03" ? "workshop" : "seminar"}.
+                  <br />
+                  <span className="font-semibold text-gray-700">Rekomendasi ukuran: </span>
+                  <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span> agar foto pas dan tajam di halaman klien.
                 </p>
               </div>
 
@@ -598,6 +601,9 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
                             unoptimized
                           />
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium pointer-events-none">
+                            1200 × 675 px
+                          </div>
                           <button
                             type="button"
                             onClick={(e) => handleSlotRemove(slotIdx, e)}
@@ -643,8 +649,9 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                             accept="image/jpeg, image/png, image/webp"
                             className="hidden"
                           />
-                          <CloudUpload className="w-6 h-6 text-gray-400 mb-1" />
+                          <CloudUpload className="w-6 h-6 text-[#561269] mb-1" />
                           <p className="text-xs font-bold text-gray-700">Pilih Foto</p>
+                          <p className="text-[11px] font-semibold text-[#561269] mt-0.5">1200 × 675 px (16:9)</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG, WebP</p>
                         </div>
                       )}
@@ -723,10 +730,10 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                       <span className="text-[#561269] underline">pilih file</span>
                     </p>
                     <p className="text-xs font-medium text-gray-600 mt-1.5 text-center">
-                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
+                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
                     </p>
                     <p className="text-[11px] text-gray-400 mt-0.5 text-center">
-                      Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+                      Format JPG, PNG, atau WebP • Otomatis disesuaikan untuk kartu layanan klien
                     </p>
                   </div>
                 )}
