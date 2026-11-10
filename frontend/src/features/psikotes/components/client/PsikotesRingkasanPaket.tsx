@@ -6,12 +6,14 @@ interface PsikotesRingkasanPaketProps {
   judul: string
   subjudul: string
   kategori: string
+  bannerUrl?: string
 }
 
 export default function PsikotesRingkasanPaket({
   judul,
   subjudul,
   kategori,
+  bannerUrl,
 }: PsikotesRingkasanPaketProps) {
   return (
     <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] font-poppins">
@@ -23,26 +25,23 @@ export default function PsikotesRingkasanPaket({
       </div>
 
       <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-        {/* Visual Icon Box */}
-        <div className="relative w-full sm:w-[180px] h-[130px] rounded-2xl bg-gradient-to-br from-[#FAF5FD] to-[#EBDCF4] overflow-hidden shrink-0 border border-purple-200/80 flex flex-col items-center justify-center gap-2 shadow-2xs">
-          <Brain className="w-10 h-10 text-[#561269] opacity-80" />
-          <span className="text-[11px] font-bold text-[#561269] tracking-wider uppercase bg-white/70 px-2.5 py-0.5 rounded-full border border-purple-200">
-            {kategori}
-          </span>
+        {/* Visual Banner Box */}
+        <div className="relative w-full sm:w-[180px] h-[130px] rounded-2xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200/80 shadow-2xs flex items-center justify-center">
+          {bannerUrl ? (
+            <img
+              src={bannerUrl}
+              alt={judul}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#FAF5FD] to-[#EBDCF4] flex items-center justify-center">
+              <Brain className="w-10 h-10 text-[#561269] opacity-80" />
+            </div>
+          )}
         </div>
 
         {/* Info Detail */}
         <div className="flex flex-col w-full">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold text-purple-700 bg-purple-100/70 px-2.5 py-0.5 rounded-md">
-              {kategori}
-            </span>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-emerald-600" />
-              Paket Resmi
-            </span>
-          </div>
-
           <h2 className="text-lg sm:text-xl font-extrabold text-[#561269] mb-2 leading-tight">
             {judul}
           </h2>

@@ -43,11 +43,19 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       "";
     const rawParamEmail = searchParams.get("email") || searchParams.get("user_email") || "";
     const rawBookingId = searchParams.get("bookingId") || searchParams.get("orderId") || "";
+    const rawUmur = searchParams.get("umur") || "";
+    const rawGender = searchParams.get("gender") || searchParams.get("jenisKelamin") || "";
+    const rawPendidikan = searchParams.get("pendidikan") || "";
+    const rawPekerjaan = searchParams.get("pekerjaan") || "";
 
     return {
       nama: rawParamNama,
       noHp: rawParamWa,
       email: rawParamEmail,
+      usia: rawUmur,
+      jenisKelamin: rawGender,
+      pendidikan: rawPendidikan,
+      pekerjaan: rawPekerjaan,
       bookingId: rawBookingId,
       tanggal: new Date().toLocaleDateString("id-ID", {
         day: "numeric",
@@ -59,48 +67,148 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
   useEffect(() => {
     try {
-      // 1. Cek dari localStorage pendaftaran psikotes / checkout
+      // 1. Cek dari localStorage identitas peserta pengerjaan asesmen (BUKAN data pembeli akun/checkout)
       const raw = localStorage.getItem("empathika_peserta_psikotes");
       let savedNama = "";
       let savedWa = "";
       let savedEmail = "";
       let savedBookingId = "";
+      let savedUmur = "";
+      let savedGender = "";
+      let savedPendidikan = "";
+      let savedPekerjaan = "";
 
       if (raw) {
         const parsed = JSON.parse(raw);
-        savedNama = parsed.nama || parsed.name || "";
-        savedWa = parsed.no_telepon || parsed.whatsapp || parsed.noHp || parsed.phone || parsed.kontak || "";
-        savedEmail = parsed.email || parsed.user_email || "";
+        // HANYA ambil jika merupakan identitas formulir peserta tes (memiliki tempatLahir / tanggalLahir / noTelepon / jenisKelamin)
+        if (parsed.tempatLahir || parsed.tanggalLahir || parsed.jenisKelamin || parsed.noTelepon) {
+          savedNama = parsed.nama || "";
+          savedWa = parsed.noTelepon || parsed.no_telepon || parsed.whatsapp || "";
+          savedEmail = parsed.email || "";
+          savedUmur = parsed.umur ? String(parsed.umur) : "";
+          savedGender = parsed.jenisKelamin || "";
+          savedPendidikan = parsed.pendidikan || "";
+          savedPekerjaan = parsed.pekerjaan || "";
+        }
         savedBookingId = parsed.bookingId || parsed.orderId || "";
       }
 
-      // 2. Cek dari akun user yang sedang login jika belum ada
-      const authUser = useAuthStore.getState().user;
-      const authNama = authUser?.name || "";
-      const authEmail = authUser?.email || "";
-
       setPeserta((prev) => {
-        const finalNama = prev.nama || savedNama || authNama || "Peserta Asesmen Empathika";
+        // Penting: JANGAN gunakan fallback akun login authUser (karena pembeli/wali bisa berbeda dari peserta tes)
+        const finalNama = prev.nama || savedNama || "Peserta Asesmen Empathika";
         const finalWa = prev.noHp || savedWa || "—";
-        const finalEmail = prev.email || savedEmail || authEmail || "—";
+        const finalEmail = prev.email || savedEmail || "—";
         const finalBookingId = prev.bookingId || savedBookingId || "";
+        const finalUmur = prev.usia || savedUmur || "";
+        const finalGender = prev.jenisKelamin || savedGender || "";
+        const finalPendidikan = prev.pendidikan || savedPendidikan || "";
+        const finalPekerjaan = prev.pekerjaan || savedPekerjaan || "";
 
         return {
           ...prev,
           nama: finalNama,
           noHp: finalWa,
           email: finalEmail,
+          usia: finalUmur,
+          jenisKelamin: finalGender,
+          pendidikan: finalPendidikan,
+          pekerjaan: finalPekerjaan,
           bookingId: finalBookingId,
         };
       });
     } catch {}
   }, [searchParams]);
 
-  // Fetch package data from backend to get interpretasi_psikotes
+  const [bookingReport, setBookingReport] = useState<{
+    totalSkor: number | null;
+    dep: number | null;
+    anx: number | null;
+    str: number | null;
+    dbInterpretasi?: any | null;
+  } | null>(null);
+
+  const paramBookingId = searchParams.get("bookingId") || searchParams.get("orderId");
+
+  // Fetch package data & verified booking report from backend (Anti-Tampering)
   const fetchPackage = async () => {
     setIsLoadingDb(true);
     setErrorMessage(null);
     try {
+      // 1. Jika ada bookingId (tiket berbayar resmi), muat data otentik murni dari database
+      if (paramBookingId) {
+        try {
+          const bookingRes = await psikotesService.getHasilByBooking(paramBookingId);
+          if (bookingRes?.success && bookingRes?.data) {
+            const bData = bookingRes.data;
+            if (bData.paket) {
+              setDbPackage(bData.paket);
+            }
+
+            if (bData.peserta) {
+              setPeserta((prev) => ({
+                ...prev,
+                nama: bData.peserta.nama_lengkap || prev.nama,
+                noHp: bData.peserta.no_telepon || prev.noHp,
+                usia: bData.peserta.usia !== undefined && bData.peserta.usia !== null ? String(bData.peserta.usia) : prev.usia,
+                jenisKelamin: bData.peserta.jenis_kelamin || prev.jenisKelamin,
+                pendidikan: bData.peserta.pendidikan || prev.pendidikan,
+                pekerjaan: bData.peserta.pekerjaan || prev.pekerjaan,
+                bookingId: bData.kode_akses || bData.id_booking || prev.bookingId,
+                tanggal: bData.hasil?.tanggal_selesai
+                  ? new Date(bData.hasil.tanggal_selesai).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : prev.tanggal,
+              }));
+            }
+
+            let depScore: number | null = null;
+            let anxScore: number | null = null;
+            let strScore: number | null = null;
+
+            const ds = bData.hasil?.detail_skor;
+            if (ds) {
+              const parsedDs = typeof ds === "string" ? JSON.parse(ds) : ds;
+              if (parsedDs?.depression?.score !== undefined) depScore = parsedDs.depression.score;
+              else if (parsedDs?.subscales?.depression?.skor !== undefined) depScore = parsedDs.subscales.depression.skor;
+
+              if (parsedDs?.anxiety?.score !== undefined) anxScore = parsedDs.anxiety.score;
+              else if (parsedDs?.subscales?.anxiety?.skor !== undefined) anxScore = parsedDs.subscales.anxiety.skor;
+
+              if (parsedDs?.stress?.score !== undefined) strScore = parsedDs.stress.score;
+              else if (parsedDs?.subscales?.stress?.skor !== undefined) strScore = parsedDs.subscales.stress.skor;
+            }
+
+            setBookingReport({
+              totalSkor: typeof bData.hasil?.total_skor === "number" ? bData.hasil.total_skor : null,
+              dep: depScore,
+              anx: anxScore,
+              str: strScore,
+              dbInterpretasi: bData.hasil?.grade ? {
+                grade: bData.hasil.grade,
+                judul: bData.hasil.judul,
+                deskripsi: bData.hasil.deskripsi,
+                tips: bData.hasil.tips,
+              } : null,
+            });
+
+            setIsLoadingDb(false);
+            return;
+          }
+        } catch (bookingErr: any) {
+          const apiMsg = bookingErr?.response?.data?.message || bookingErr?.message;
+          if (apiMsg && (apiMsg.includes("berakhir") || apiMsg.includes("kedaluwarsa"))) {
+            setErrorMessage(apiMsg);
+            setIsLoadingDb(false);
+            return;
+          }
+          console.warn("Laporan via booking ID belum dapat dimuat, melanjutkan fallback paket:", bookingErr);
+        }
+      }
+
+      // 2. Fallback: ambil metadata paket
       const res = await psikotesService.getById(params.testId, { allowDraft: false });
       if (res && res.success && res.data) {
         setDbPackage(res.data);
@@ -117,34 +225,56 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
   useEffect(() => {
     fetchPackage();
-  }, [params.testId]);
+  }, [params.testId, paramBookingId]);
 
-  // Match score from URL params to the interpretasi from database
+  // Skor Prioritas: Murni dari Database (Anti-Tampering) > Fallback dari URL Query
   const rawSkor = searchParams.get("skor");
-  const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
+  const fallbackSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
+  const totalSkor = bookingReport?.totalSkor !== undefined && bookingReport?.totalSkor !== null
+    ? bookingReport.totalSkor
+    : fallbackSkor;
 
   // Dimensi DASS-42 (Depresi, Kecemasan, Stres)
   const rawDep = searchParams.get("dep");
   const rawAnx = searchParams.get("anx");
   const rawStr = searchParams.get("str");
 
+  const effectiveDep = bookingReport?.dep !== undefined && bookingReport?.dep !== null
+    ? bookingReport.dep
+    : (rawDep !== null && rawDep !== "" ? parseInt(rawDep, 10) : null);
+
+  const effectiveAnx = bookingReport?.anx !== undefined && bookingReport?.anx !== null
+    ? bookingReport.anx
+    : (rawAnx !== null && rawAnx !== "" ? parseInt(rawAnx, 10) : null);
+
+  const effectiveStr = bookingReport?.str !== undefined && bookingReport?.str !== null
+    ? bookingReport.str
+    : (rawStr !== null && rawStr !== "" ? parseInt(rawStr, 10) : null);
+
   const isDASS = Boolean(
     dbPackage?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
     dbPackage?.judul?.toUpperCase().includes("DASS") ||
+    dbPackage?.judul?.toLowerCase().includes("stres") ||
+    dbPackage?.judul?.toLowerCase().includes("depresi, kecemasan") ||
     params.testId.toLowerCase().includes("dass")
   );
 
   const dassEvaluation = isDASS
     ? evaluateDASS(
         totalSkor,
-        rawDep !== null && rawDep !== "" ? parseInt(rawDep, 10) : null,
-        rawAnx !== null && rawAnx !== "" ? parseInt(rawAnx, 10) : null,
-        rawStr !== null && rawStr !== "" ? parseInt(rawStr, 10) : null
+        effectiveDep,
+        effectiveAnx,
+        effectiveStr
       )
     : null;
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
+    // Prioritaskan interpretasi resmi yang tercatat di hasil_tes booking
+    if (bookingReport?.dbInterpretasi) {
+      return bookingReport.dbInterpretasi;
+    }
+
     if (!dbPackage) return null;
     const list = dbPackage.interpretasi_psikotes;
     if (!list || list.length === 0) return null;
@@ -232,6 +362,20 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         judulBlindspots: parsedTips.judulBlindspots || "Area yang Perlu Dikembangkan",
         judulLingkungan: parsedTips.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung",
         saranList,
+      };
+    }
+
+    // Jika tes DASS-42 (menggunakan evaluasi klinis 3 dimensi)
+    if (isDASS && dassEvaluation) {
+      return {
+        deskripsi: dassEvaluation.introText || dbPackage?.deskripsi || "Asesmen DASS-42 telah selesai dianalisis.",
+        judulKekuatan: "Potensi atau Kekuatan Utama",
+        judulBlindspots: "Area yang Perlu Dikembangkan",
+        judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
+        kekuatanUtama: [],
+        blindspots: [],
+        lingkunganOptimal: [],
+        saranList: dassEvaluation.tips || [],
       };
     }
 
@@ -375,31 +519,35 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     );
   }
 
-  // Layar Error Koneksi — Jika backend mati
+  // Layar Error / Masa Berlaku Berakhir (14 Hari)
   if (errorMessage) {
+    const isExpired = errorMessage.toLowerCase().includes("berakhir") || errorMessage.toLowerCase().includes("kedaluwarsa");
+
     return (
       <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-red-100 shadow-sm text-center">
-          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
-            <WifiOff className="w-6 h-6" />
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${isExpired ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>
+            {isExpired ? <AlertTriangle className="w-6 h-6" /> : <WifiOff className="w-6 h-6" />}
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Gagal Menghubungkan ke Server</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {isExpired ? "Masa Akses Hasil Berakhir" : "Gagal Memuat Laporan"}
+          </h2>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">{errorMessage}</p>
-          <div className="flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={fetchPackage}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-sm cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Coba Lagi</span>
-            </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href={`/psikotes/${params.testId}`}
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition shadow-sm"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold transition shadow-sm cursor-pointer"
             >
-              Kembali
+              Kembali ke Detail Tes
             </Link>
+            <a
+              href="https://wa.me/6281234567890?text=Halo%20Admin%20Empathika,%20saya%20butuh%20bantuan%20terkait%20akses%20arsip%20tiket%20psikotes%20saya"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition shadow-sm"
+            >
+              Hubungi Admin
+            </a>
           </div>
         </div>
       </div>
@@ -408,8 +556,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
   // DATA KRITIS: Kategori Interpretasi & Skoring
   // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
+  // dan bukan instrumen DASS-42 (yang memiliki perhitungan evaluasi multidimensi khusus),
   // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
-  if (!dbInterpretasi) {
+  if (!dbInterpretasi && !dassEvaluation) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
@@ -731,13 +880,19 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   </p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Terverifikasi Resmi
-              </span>
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-200">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Masa Berlaku: 14 Hari (2 Minggu)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Terverifikasi Resmi
+                </span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pdf-grid-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pdf-grid-4">
               <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
                   Nama Lengkap
@@ -753,6 +908,20 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 </span>
                 <span className="font-bold text-sm text-emerald-700 block truncate pdf-meta-val">
                   {peserta.noHp || "—"}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
+                  Profil Peserta
+                </span>
+                <span className="font-bold text-sm text-gray-800 block truncate pdf-meta-val">
+                  {[
+                    peserta.usia ? `${peserta.usia} Thn` : null,
+                    peserta.jenisKelamin || null,
+                  ]
+                    .filter(Boolean)
+                    .join(" • ") || "—"}
                 </span>
               </div>
 

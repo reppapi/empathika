@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Script from "next/script"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { adminService } from "@/services/admin.service"
 import { formatOrderId } from "@/lib/utils"
@@ -69,6 +69,7 @@ function Stepper() {
 
 // ─── Inner Content (akses useSearchParams di sini) ───────────────────────────
 function PaymentSuccessContent({ type }: { type: PaymentType }) {
+  const router = useRouter()
   const cfg = CONFIGS[type]
   const searchParams = useSearchParams()
 
@@ -83,8 +84,14 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     (rawJudul && rawJudul.toLowerCase().includes("asesmen")) ||
     (searchParams.get("kategori") && searchParams.get("kategori")!.toLowerCase().includes("asesmen"))
   )
-  const judul = rawJudul ?? (isAsesmen ? "Layanan Asesmen Offline" : (type === "konseling" ? "Layanan Konsultasi" : "Event Empathika"))
-  const subjudul = searchParams.get("subjudul") ?? (isAsesmen ? "Sesi Asesmen Klinis di Klinik Empathika" : (type === "konseling" ? "Psikolog Profesional Empathika" : ""))
+  const judul =
+    rawJudul === "Tes Psikotes Empathika"
+      ? "Paket Psikotes"
+      : (rawJudul ?? (isAsesmen ? "Layanan Asesmen Offline" : (type === "konseling" ? "Layanan Konsultasi" : type === "psikotes" ? "Paket Psikotes" : "Event Empathika")))
+  const subjudul =
+    searchParams.get("subjudul") === "Tes Psikotes Empathika"
+      ? ""
+      : (searchParams.get("subjudul") ?? (isAsesmen ? "Sesi Asesmen Klinis di Klinik Empathika" : (type === "konseling" ? "Psikolog Profesional Empathika" : "")))
   const bottomDate = searchParams.get("bottomDate") ?? `${tanggal} ${tahun}`
   const bottomTime = searchParams.get("bottomTime") ?? `${waktu} WIB`
   const metode = searchParams.get("metode") ?? "qris"
@@ -97,6 +104,19 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const isOnlineEvent = type === "event" && tipe !== "Offline"
 
   const testId = searchParams.get("testId")
+  const backTarget = testId ? `/psikotes/${testId}` : cfg.backHref
+
+  // Tangani gestur back-swipe browser / mobile agar tidak terjebak di alur pending / checkout
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      router.replace(backTarget as any);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [backTarget, router]);
 
   const isPsikotes =
     type === "psikotes" ||
@@ -150,7 +170,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
 
     const q = new URLSearchParams()
     q.set("paket", "berbayar")
-    if (nama && nama !== "PESERTA") q.set("nama", nama)
+    // Nama peserta tidak di-prefill dengan nama pembeli agar peserta dapat mengisi identitas sendiri
     const wa = searchParams.get("whatsapp") || savedWa
     if (wa) q.set("whatsapp", wa)
     const em = searchParams.get("email") || savedEmail
@@ -160,6 +180,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     const queryString = q.toString()
     if (testId) return `/psikotes/${testId}/mulai?${queryString}`
     const j = judul.toLowerCase()
+    if (j.includes("dass") || j.includes("stres") || j.includes("emosional")) return `/psikotes/dass-42/mulai?${queryString}`
     if (j.includes("love")) return `/psikotes/love-language/mulai?${queryString}`
     if (j.includes("lanjutan") || j.includes("mbti-2")) return `/psikotes/mbti-2/mulai?${queryString}`
     return `/psikotes/mbti/mulai?${queryString}`
@@ -340,15 +361,10 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
             >
               {/* Header Tiket */}
               <div className="border-b border-dashed border-[#C3A4CE] pb-5 mb-5">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <h3 className="text-xl font-extrabold text-[#2F2F2F]">{judul}</h3>
-                  {isPsikotes && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-[#561269] shrink-0">
-                      Psikotes
-                    </span>
-                  )}
-                </div>
-                {subjudul && <p className="text-xs text-gray-500 mt-1">{subjudul}</p>}
+                <h3 className="text-xl font-extrabold text-[#2F2F2F] leading-snug">{judul}</h3>
+                {subjudul && !subjudul.toLowerCase().includes("tes psikotes empathika") && (
+                  <p className="text-xs text-gray-500 mt-1">{subjudul}</p>
+                )}
               </div>
 
               {/* Tanggal & Waktu — ukuran font diperkecil agar tidak mendominasi tiket */}
@@ -448,14 +464,14 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
                       )}
                     </button>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200/60 flex items-center justify-between">
-                    <span className="font-mono font-black text-xs sm:text-sm text-[#561269] tracking-wider">
+                  <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200/60 flex items-center justify-between">
+                    <span className="font-mono font-black text-sm sm:text-base text-[#561269] tracking-wider">
                       {orderId}
                     </span>
-                    <span className="text-[10px] font-medium text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-md">
-                      1x Akses Tes
-                    </span>
                   </div>
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">
+                    1x akses tes • Berlaku 14 hari (2 minggu)
+                  </p>
                 </div>
               )}
             </div>
@@ -472,7 +488,7 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
               <div className="text-center mt-2">
                 <p className="text-[10px] text-gray-500 mb-2 font-medium">
                   {isPsikotes
-                    ? "Pembayaran paket psikotes berhasil! Silakan mulai tes sekarang atau simpan tiket untuk dikerjakan nanti."
+                    ? "Pembayaran paket psikotes berhasil! Tiket pengerjaan & akses hasil berlaku selama 14 hari. Silakan mulai tes sekarang atau simpan tiket untuk dikerjakan nanti."
                     : type === "event" && linkWa
                     ? "Bergabunglah ke grup WhatsApp untuk info event terbaru dan pengumuman penting."
                     : "Hubungi kontak ini setelah anda selesai melakukan pembayaran!"}
@@ -488,19 +504,6 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                       </svg>
                     </Link>
-
-                    <a
-                      href={shareWhatsAppUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1DA851] text-white font-bold text-xs sm:text-sm flex justify-center items-center gap-2 transition-colors shadow-sm cursor-pointer"
-                    >
-                      <MessageCircle className="w-4 h-4 shrink-0" />
-                      <span>Bagikan ke WhatsApp</span>
-                    </a>
-                    <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-                      Kirim tiket ke orang lain atau simpan untuk dikerjakan nanti via WhatsApp.
-                    </p>
                   </div>
                 ) : type === "event" && linkWa ? (
                   /* Tombol Gabung Grup WhatsApp — hanya muncul jika event memiliki link WA */
@@ -541,7 +544,7 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
           <div className="text-sm sm:text-[17px] font-bold text-black">{bottomTime}</div>
         </div>
         <Link
-          href={cfg.backHref as any}
+          href={backTarget as any}
           className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
         >
           {cfg.backLabel}

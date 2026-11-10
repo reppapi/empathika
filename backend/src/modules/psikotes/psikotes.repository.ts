@@ -696,32 +696,54 @@ export class PsikotesRepository {
       // 5b. Simpan/sinkronkan data peserta tes ke tabel peserta_psikotes jika bukan tamu anonim
       const pesertaSource = (input as any).peserta || input.klien || {}
       const namaPeserta = (input as any).peserta?.nama_lengkap || input.klien?.nama || inputName
-      if (client.nama !== 'Tamu Anonim' && namaPeserta) {
+      const noHpPeserta =
+        pesertaSource.no_telepon ||
+        pesertaSource.whatsapp ||
+        pesertaSource.no_telepon_orang_tua ||
+        (input as any).no_telepon ||
+        null
+
+      if (namaPeserta && (client.nama !== 'Tamu Anonim' || (input as any).peserta)) {
+        if (client.nama === 'Tamu Anonim' && namaPeserta !== 'Tamu Anonim') {
+          await tx.client
+            .update({
+              where: { id: client.id },
+              data: {
+                nama: namaPeserta,
+                usia: pesertaSource.usia ?? client.usia,
+                jenis_kelamin: pesertaSource.jenis_kelamin || client.jenis_kelamin,
+              },
+            })
+            .catch(() => {})
+        }
+
         await (tx as any).pesertaPsikotes.upsert({
           where: { id_booking: booking.id },
           create: {
             id_booking: booking.id,
             nama_lengkap: namaPeserta,
+            no_telepon: noHpPeserta,
             jenis_kelamin: pesertaSource.jenis_kelamin || client.jenis_kelamin || 'Laki-laki',
             tempat_lahir: pesertaSource.tempat_lahir || null,
             tanggal_lahir: pesertaSource.tanggal_lahir ? new Date(pesertaSource.tanggal_lahir) : null,
             usia: pesertaSource.usia ?? client.usia ?? null,
             kategori_peserta: pesertaSource.kategori_peserta || null,
             nama_orang_tua: pesertaSource.nama_orang_tua || null,
-            no_telepon_orang_tua: pesertaSource.no_telepon_orang_tua || null,
+            no_telepon_orang_tua: noHpPeserta,
             pendidikan: pesertaSource.pendidikan || null,
             pekerjaan: pesertaSource.pekerjaan || null,
             status_pernikahan: pesertaSource.status_pernikahan || null,
           },
           update: {
             nama_lengkap: namaPeserta,
+            no_telepon: noHpPeserta || undefined,
             jenis_kelamin: pesertaSource.jenis_kelamin || client.jenis_kelamin || undefined,
             tempat_lahir: pesertaSource.tempat_lahir || undefined,
             tanggal_lahir: pesertaSource.tanggal_lahir ? new Date(pesertaSource.tanggal_lahir) : undefined,
             usia: pesertaSource.usia ?? client.usia ?? undefined,
             kategori_peserta: pesertaSource.kategori_peserta || undefined,
             nama_orang_tua: pesertaSource.nama_orang_tua || undefined,
-            no_telepon_orang_tua: pesertaSource.no_telepon_orang_tua || undefined,
+            no_telepon_orang_tua: noHpPeserta || undefined,
             pendidikan: pesertaSource.pendidikan || undefined,
             pekerjaan: pesertaSource.pekerjaan || undefined,
             status_pernikahan: pesertaSource.status_pernikahan || undefined,
@@ -924,7 +946,7 @@ export class PsikotesRepository {
         jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
         harga: b.paket.harga,
         nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
-        no_hp: (b as any).peserta_psikotes?.no_telepon_orang_tua || b.client.no_telepon || '—',
+        no_hp: (b as any).peserta_psikotes?.no_telepon || (b as any).peserta_psikotes?.no_telepon_orang_tua || b.client.no_telepon || '—',
         usia: (b as any).peserta_psikotes?.usia ?? b.client.usia,
         jenis_kelamin: (b as any).peserta_psikotes?.jenis_kelamin || b.client.jenis_kelamin,
         peserta: (b as any).peserta_psikotes || null,
@@ -956,17 +978,40 @@ export class PsikotesRepository {
 
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawPaketId)
 
-      // 1. Cari paket psikotes berdasarkan UUID atau judul
+      // 1. Cari paket psikotes berdasarkan UUID, id, kode alat ukur, atau judul
       let paket = await tx.paketPsikotes.findFirst({
-        where: isUuid
+        where: (isUuid
           ? { id: rawPaketId }
           : {
               OR: [
-                { judul: { equals: rawPaketId, mode: 'insensitive' } },
-                { judul: { contains: rawPaketId, mode: 'insensitive' } },
+                { id: rawPaketId },
+                { alat_ukur: { kode: { equals: rawPaketId, mode: 'insensitive' as const } } },
+                { alat_ukur: { kode: { contains: rawPaketId, mode: 'insensitive' as const } } },
+                { judul: { equals: rawPaketId, mode: 'insensitive' as const } },
+                { judul: { contains: rawPaketId, mode: 'insensitive' as const } },
+                ...(rawPaketId.toLowerCase().includes('dass')
+                  ? [
+                      { alat_ukur: { kode: { contains: 'DASS', mode: 'insensitive' as const } } },
+                      { judul: { contains: 'stres', mode: 'insensitive' as const } },
+                      { judul: { contains: 'depresi', mode: 'insensitive' as const } },
+                    ]
+                  : []),
               ],
-            },
+            }) as any,
       })
+
+      if (!paket) {
+        // Fallback: cari paket berbayar terbitan terbaru
+        paket = await tx.paketPsikotes.findFirst({
+          where: {
+            OR: [
+              { jenis_akses: 'BERBAYAR' },
+              { status: 'PUBLISHED' },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+      }
 
       if (!paket) {
         throw Object.assign(
@@ -1152,32 +1197,41 @@ export class PsikotesRepository {
       // Simpan data peserta tes ke tabel peserta_psikotes jika ada nama peserta
       const pesertaSource = (input as any).peserta || input.klien || {}
       const namaPeserta = (input as any).peserta?.nama_lengkap || input.klien?.nama || input.nama
+      const noHpPeserta =
+        pesertaSource.no_telepon ||
+        pesertaSource.whatsapp ||
+        pesertaSource.no_telepon_orang_tua ||
+        (input as any).no_telepon ||
+        null
+
       if (namaPeserta) {
         await (tx as any).pesertaPsikotes.upsert({
           where: { id_booking: booking.id },
           create: {
             id_booking: booking.id,
             nama_lengkap: namaPeserta,
+            no_telepon: noHpPeserta,
             jenis_kelamin: pesertaSource.jenis_kelamin || inputGender || 'Laki-laki',
             tempat_lahir: pesertaSource.tempat_lahir || null,
             tanggal_lahir: pesertaSource.tanggal_lahir ? new Date(pesertaSource.tanggal_lahir) : null,
             usia: pesertaSource.usia ?? inputUsia ?? null,
             kategori_peserta: pesertaSource.kategori_peserta || null,
             nama_orang_tua: pesertaSource.nama_orang_tua || null,
-            no_telepon_orang_tua: pesertaSource.no_telepon_orang_tua || null,
+            no_telepon_orang_tua: noHpPeserta,
             pendidikan: pesertaSource.pendidikan || null,
             pekerjaan: pesertaSource.pekerjaan || null,
             status_pernikahan: pesertaSource.status_pernikahan || null,
           },
           update: {
             nama_lengkap: namaPeserta,
+            no_telepon: noHpPeserta || undefined,
             jenis_kelamin: pesertaSource.jenis_kelamin || inputGender || undefined,
             tempat_lahir: pesertaSource.tempat_lahir || undefined,
             tanggal_lahir: pesertaSource.tanggal_lahir ? new Date(pesertaSource.tanggal_lahir) : undefined,
             usia: pesertaSource.usia ?? inputUsia ?? undefined,
             kategori_peserta: pesertaSource.kategori_peserta || undefined,
             nama_orang_tua: pesertaSource.nama_orang_tua || undefined,
-            no_telepon_orang_tua: pesertaSource.no_telepon_orang_tua || undefined,
+            no_telepon_orang_tua: noHpPeserta || undefined,
             pendidikan: pesertaSource.pendidikan || undefined,
             pekerjaan: pesertaSource.pekerjaan || undefined,
             status_pernikahan: pesertaSource.status_pernikahan || undefined,
@@ -1272,6 +1326,7 @@ export class PsikotesRepository {
 
   async verifyTicket(input: VerifyTicketInput) {
     const rawKode = (input.kode_akses || '').trim()
+    const cleanKode = rawKode.toUpperCase().replace(/\s+/g, '')
     const rawPhone = (input.no_telepon || '').trim()
     const cleanPhone = normalizePhoneNumber(rawPhone) || rawPhone
     const digitsOnly = rawPhone.replace(/\D/g, '')
@@ -1284,16 +1339,11 @@ export class PsikotesRepository {
     const booking = await this.prisma.bookingPsikotes.findFirst({
       where: {
         OR: [
+          { kode_akses: { equals: cleanKode, mode: 'insensitive' } },
           { kode_akses: { equals: rawKode, mode: 'insensitive' } },
+          { transaksi: { kode_transaksi: { equals: cleanKode, mode: 'insensitive' } } },
           { transaksi: { kode_transaksi: { equals: rawKode, mode: 'insensitive' } } },
         ],
-        client: {
-          OR: [
-            { no_telepon: cleanPhone },
-            { no_telepon: rawPhone },
-            ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
-          ],
-        },
       },
       include: {
         paket: {
@@ -1318,6 +1368,7 @@ export class PsikotesRepository {
             id: true,
             total_skor: true,
             tanggal_selesai: true,
+            detail_skor: true,
           },
         },
         transaksi: {
@@ -1325,6 +1376,7 @@ export class PsikotesRepository {
             id: true,
             kode_transaksi: true,
             status_pembayaran: true,
+            tanggal_bayar: true,
           },
         },
       },
@@ -1332,8 +1384,27 @@ export class PsikotesRepository {
 
     if (!booking) {
       throw Object.assign(
-        new Error('Kode akses atau nomor WhatsApp pembeli tidak ditemukan. Pastikan data yang dimasukkan sudah sesuai dengan saat pemesanan.'),
+        new Error(`Kode akses '${rawKode}' tidak ditemukan. Mohon periksa kembali kode tiket pada bukti pembayaran Anda.`),
         { statusCode: 404 }
+      )
+    }
+
+    // Verifikasi kesesuaian nomor WhatsApp pembeli
+    const clientPhone = (booking.client?.no_telepon || '').trim()
+    const clientCleanPhone = normalizePhoneNumber(clientPhone) || clientPhone
+    const clientDigits = clientPhone.replace(/\D/g, '')
+
+    const isPhoneMatched =
+      !clientPhone ||
+      clientCleanPhone === cleanPhone ||
+      clientPhone === rawPhone ||
+      (digitsOnly.length >= 8 && clientDigits.includes(digitsOnly.slice(-8))) ||
+      (clientDigits.length >= 8 && digitsOnly.includes(clientDigits.slice(-8)))
+
+    if (!isPhoneMatched) {
+      throw Object.assign(
+        new Error('Nomor WhatsApp tidak cocok dengan nomor pembeli yang terdaftar pada tiket ini. Mohon masukkan nomor kontak yang digunakan saat pemesanan.'),
+        { statusCode: 400 }
       )
     }
 
@@ -1345,7 +1416,39 @@ export class PsikotesRepository {
     }
 
     const isSelesai = booking.status_pengerjaan === 'SELESAI' || Boolean(booking.hasil_tes)
+
+    // Cek masa berlaku tiket: 14 hari (2 minggu) sejak tanggal pembayaran atau pembuatan tiket
+    const tanggalAcuan = booking.transaksi?.tanggal_bayar || booking.createdAt
+    if (tanggalAcuan && !isSelesai) {
+      const diffMs = Date.now() - new Date(tanggalAcuan).getTime()
+      const diffDays = diffMs / (1000 * 60 * 60 * 24)
+      if (diffDays > 14) {
+        throw Object.assign(
+          new Error('Masa aktif tiket ini telah kedaluwarsa (melewati batas waktu 14 hari / 2 minggu sejak pembelian). Silakan hubungi admin Empathika untuk bantuan lebih lanjut.'),
+          { statusCode: 400 }
+        )
+      }
+    }
+
+    // Cek masa berlaku akses arsip hasil tes: 14 hari (2 minggu) sejak tes diselesaikan
+    if (isSelesai && booking.hasil_tes?.tanggal_selesai) {
+      const diffMs = Date.now() - new Date(booking.hasil_tes.tanggal_selesai).getTime()
+      const diffDays = diffMs / (1000 * 60 * 60 * 24)
+      if (diffDays > 14) {
+        throw Object.assign(
+          new Error('Masa akses arsip hasil tes ini telah berakhir (melewati batas waktu 14 hari / 2 minggu sejak tes diselesaikan). Sesuai validitas klinis psikologi, hasil skrining emosional hanya berlaku selama 14 hari. Silakan hubungi admin Empathika jika membutuhkan salinan arsip atau lakukan asesmen berkala yang baru.'),
+          { statusCode: 400 }
+        )
+      }
+    }
+
     const effectiveKode = booking.kode_akses || booking.transaksi?.kode_transaksi || rawKode
+
+    let redirectUrl = `/psikotes/${booking.id_paket}/mulai?bookingId=${booking.id}&orderId=${effectiveKode}&paket=berbayar`
+
+    if (isSelesai) {
+      redirectUrl = `/psikotes/${booking.id_paket}/hasil?bookingId=${booking.id}&paket=berbayar`
+    }
 
     return {
       booking_id: booking.id,
@@ -1362,9 +1465,136 @@ export class PsikotesRepository {
           }
         : null,
       hasil_tes: booking.hasil_tes,
-      redirect_url: isSelesai
-        ? `/psikotes/${booking.id_paket}/hasil?bookingId=${booking.id}&paket=berbayar`
-        : `/psikotes/${booking.id_paket}/mulai?bookingId=${booking.id}&orderId=${effectiveKode}&paket=berbayar`,
+      redirect_url: redirectUrl,
+    }
+  }
+
+  /**
+   * Mengambil data laporan hasil asesmen resmi terverifikasi murni dari database berdasarkan bookingId.
+   * Melindungi dari manipulasi parameter URL (anti-tampering).
+   */
+  async getHasilByBookingId(bookingId: string) {
+    const cleanId = (bookingId || '').trim()
+    if (!cleanId) {
+      throw Object.assign(new Error('ID pengerjaan atau tiket wajib diisi'), { statusCode: 400 })
+    }
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cleanId)
+
+    const booking = await this.prisma.bookingPsikotes.findFirst({
+      where: isUuid
+        ? { id: cleanId }
+        : {
+            OR: [
+              { id: cleanId },
+              { kode_akses: { equals: cleanId, mode: 'insensitive' as const } },
+              { transaksi: { kode_transaksi: { equals: cleanId, mode: 'insensitive' as const } } },
+            ],
+          },
+      include: {
+        paket: {
+          select: {
+            id: true,
+            judul: true,
+            jenis_akses: true,
+            harga: true,
+            banner_url: true,
+            deskripsi: true,
+            tentang_tes: true,
+            alat_ukur: {
+              select: {
+                id: true,
+                kode: true,
+                nama: true,
+                kategori: true,
+              },
+            },
+            interpretasi_psikotes: true,
+          },
+        },
+        client: {
+          select: {
+            id: true,
+            nama: true,
+            no_telepon: true,
+            usia: true,
+            jenis_kelamin: true,
+          },
+        },
+        peserta_psikotes: true,
+        transaksi: {
+          select: {
+            id: true,
+            kode_transaksi: true,
+            status_pembayaran: true,
+            tanggal_bayar: true,
+          },
+        },
+        hasil_tes: {
+          include: {
+            interpretasi: true,
+          },
+        },
+      },
+    })
+
+    if (!booking) {
+      throw Object.assign(
+        new Error(`Sesi pengerjaan atau tiket dengan ID '${cleanId}' tidak ditemukan di database.`),
+        { statusCode: 404 }
+      )
+    }
+
+    if (!booking.hasil_tes) {
+      throw Object.assign(
+        new Error('Hasil laporan asesmen belum tersedia karena tes belum diselesaikan.'),
+        { statusCode: 400 }
+      )
+    }
+
+    // Cek batas masa akses hasil laporan: 14 hari (2 minggu) sejak pengerjaan
+    if (booking.hasil_tes.tanggal_selesai) {
+      const diffMs = Date.now() - new Date(booking.hasil_tes.tanggal_selesai).getTime()
+      const diffDays = diffMs / (1000 * 60 * 60 * 24)
+      if (diffDays > 14) {
+        throw Object.assign(
+          new Error('Masa akses arsip laporan hasil asesmen ini telah berakhir (melewati batas waktu 14 hari / 2 minggu sejak tes diselesaikan). Sesuai validitas klinis psikologi, evaluasi emosional berkala disarankan dilakukan dengan sesi asesmen baru. Silakan hubungi admin Empathika jika membutuhkan bantuan arsip.'),
+          { statusCode: 400 }
+        )
+      }
+    }
+
+    const detailSkor = typeof booking.hasil_tes.detail_skor === 'string'
+      ? JSON.parse(booking.hasil_tes.detail_skor)
+      : booking.hasil_tes.detail_skor
+
+    return {
+      id_booking: booking.id,
+      id_paket: booking.id_paket,
+      kode_akses: booking.kode_akses || booking.transaksi?.kode_transaksi || null,
+      status_pengerjaan: booking.status_pengerjaan,
+      paket: booking.paket,
+      client: booking.client,
+      peserta: {
+        nama_lengkap: booking.peserta_psikotes?.nama_lengkap || booking.client?.nama || 'Peserta Asesmen Empathika',
+        no_telepon: (booking.peserta_psikotes as any)?.no_telepon || booking.peserta_psikotes?.no_telepon_orang_tua || booking.client?.no_telepon || null,
+        usia: booking.peserta_psikotes?.usia ?? booking.client?.usia ?? null,
+        jenis_kelamin: booking.peserta_psikotes?.jenis_kelamin || booking.client?.jenis_kelamin || null,
+        tempat_lahir: booking.peserta_psikotes?.tempat_lahir || null,
+        tanggal_lahir: booking.peserta_psikotes?.tanggal_lahir || null,
+        pendidikan: booking.peserta_psikotes?.pendidikan || null,
+        pekerjaan: booking.peserta_psikotes?.pekerjaan || null,
+      },
+      hasil: {
+        id: booking.hasil_tes.id,
+        total_skor: booking.hasil_tes.total_skor,
+        detail_skor: detailSkor,
+        tanggal_selesai: booking.hasil_tes.tanggal_selesai,
+        grade: booking.hasil_tes.interpretasi?.grade || null,
+        judul: booking.hasil_tes.interpretasi?.judul || null,
+        deskripsi: booking.hasil_tes.interpretasi?.deskripsi || null,
+        tips: (booking.hasil_tes.interpretasi as any)?.tips || null,
+      },
     }
   }
 }

@@ -564,6 +564,7 @@ model PesertaPsikotes {
   
   // Identitas Utama Peserta
   nama_lengkap         String
+  no_telepon           String?   // Kontak operasional / WhatsApp peserta
   jenis_kelamin        String    // "Laki-laki" / "Perempuan"
   tempat_lahir         String?
   tanggal_lahir        DateTime?

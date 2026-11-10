@@ -180,6 +180,8 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const isDASS = Boolean(
     dbPackage?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
     dbPackage?.judul?.toUpperCase().includes("DASS") ||
+    dbPackage?.judul?.toLowerCase().includes("stres") ||
+    dbPackage?.judul?.toLowerCase().includes("depresi, kecemasan") ||
     params.testId.toLowerCase().includes("dass")
   );
 

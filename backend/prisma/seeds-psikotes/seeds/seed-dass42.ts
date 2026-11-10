@@ -145,8 +145,8 @@ export async function seedDASS42(prisma: PrismaClient) {
   })
   console.log(`    ✓ AlatUkur: ${alatUkurDASS42.nama} (${alatUkurDASS42.kode})`)
 
-  // 2. Produk Paket DASS-42 (Gratis)
-  console.log('\n--- Menyemai Produk Paket DASS-42 (Gratis) ---')
+  // 2. Produk Paket DASS-42 (Berbayar)
+  console.log('\n--- Menyemai Produk Paket DASS-42 (Berbayar) ---')
   const judulPaketDASS42 = 'Tes Depresi, Kecemasan, dan Stres'
   let paketDASS42 = await prisma.paketPsikotes.findFirst({
     where: {
@@ -161,8 +161,8 @@ export async function seedDASS42(prisma: PrismaClient) {
   const paketDASS42Payload = {
     judul: judulPaketDASS42,
     id_alat_ukur: alatUkurDASS42.id,
-    jenis_akses: JenisAksesPsikotes.GRATIS,
-    harga: 0,
+    jenis_akses: JenisAksesPsikotes.BERBAYAR,
+    harga: 49000,
     banner_url: '/images/psikotes/banner-dass42.jpg',
     deskripsi:
       'Kenali kondisi emosionalmu dan pahami bagaimana perasaanmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu bisa memperoleh gambaran mengenai tingkat depresi, kecemasan, dan stres yang mungkin kamu alami selama satu minggu terakhir.',
@@ -181,7 +181,7 @@ export async function seedDASS42(prisma: PrismaClient) {
       data: paketDASS42Payload,
     })
   }
-  console.log(`    ✓ Paket: ${paketDASS42.judul} (Gratis)`)
+  console.log(`    ✓ Paket: ${paketDASS42.judul} (Berbayar - Rp ${Number(paketDASS42.harga).toLocaleString('id-ID')})`)
 
   // 3. 42 Butir Soal & 168 Opsi Jawaban DASS-42
   for (const q of DASS42_SOAL) {

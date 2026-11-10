@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "@/features/psikotes/data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
+import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 import {
   Check,
   FileQuestion,
@@ -14,7 +15,6 @@ import {
   AlertCircle,
   WifiOff,
   RefreshCw,
-  KeyRound,
   X,
   CheckCircle2,
 } from "lucide-react";
@@ -52,10 +52,39 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     }
   }, [searchParams]);
 
+  const handleTicketWaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (!raw.trim() || raw.trim() === "+" || raw.trim() === "+6" || raw.trim() === "+62" || raw.trim() === "+62 ") {
+      setTicketWa("");
+      return;
+    }
+    const formatted = formatToIndonesianPhone(raw);
+    setTicketWa(formatted);
+  };
+
   const handleVerifyTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ticketKode.trim() || !ticketWa.trim()) {
-      setTicketError("Kode akses dan nomor WhatsApp pembeli wajib diisi.");
+    const cleanDigits = ticketWa.replace(/\D/g, "");
+    const local = cleanDigits.startsWith("62") ? cleanDigits.slice(2) : cleanDigits;
+
+    if (!ticketKode.trim()) {
+      setTicketError("Kode akses / nomor order wajib diisi.");
+      return;
+    }
+    if (!ticketWa.trim() || !local) {
+      setTicketError("Nomor WhatsApp pembeli wajib diisi.");
+      return;
+    }
+    if (!local.startsWith("8")) {
+      setTicketError("Nomor tidak valid. Nomor WhatsApp harus diawali angka 8 (contoh: +62 812-xxxx-xxxx).");
+      return;
+    }
+    if (local.length < 9) {
+      setTicketError("Nomor WhatsApp terlalu pendek (minimal 10 digit, contoh: +62 812-3456-7890).");
+      return;
+    }
+    if (local.length > 13) {
+      setTicketError("Nomor WhatsApp terlalu panjang (maksimal 14 digit angka).");
       return;
     }
 
@@ -123,8 +152,17 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     fetchDetail();
   }, [params.testId]);
 
+  const isDASS = Boolean(
+    apiData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
+    apiData?.judul?.toUpperCase().includes("DASS") ||
+    apiData?.judul?.toLowerCase().includes("stres") ||
+    apiData?.judul?.toLowerCase().includes("depresi, kecemasan") ||
+    params.testId.toLowerCase().includes("dass")
+  );
+
   const isPaidPackage = Boolean(
-    apiData && (apiData.jenis_akses === "BERBAYAR" || (typeof apiData.harga === "number" && apiData.harga > 0))
+    isDASS ||
+    (apiData && (apiData.jenis_akses === "BERBAYAR" || (typeof apiData.harga === "number" && apiData.harga > 0)))
   );
 
   if (isLoading) {
@@ -214,21 +252,29 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     return "Asesmen ini dirancang untuk membantumu mengenali kondisi emosional dan psikologis diri secara lebih mendalam sebagai langkah awal merawat kesehatan mental.";
   })();
 
+  const effectivePrice =
+    typeof apiData.harga === "number" && apiData.harga > 0
+      ? apiData.harga
+      : isDASS
+      ? 49000
+      : 0;
+  const formattedPrice = effectivePrice > 0 ? `Rp ${effectivePrice.toLocaleString("id-ID")}` : "Gratis";
+
   const data = {
     title: apiData.judul || "Paket Psikotes Empathika",
     subtitle: subtitleText,
     image: bannerImage,
     description: deskripsiText,
     questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
-    price: apiData.harga || 0,
-    formattedPrice: apiData.harga ? `Rp ${apiData.harga.toLocaleString("id-ID")}` : "Gratis",
+    price: effectivePrice,
+    formattedPrice,
     guidelines: DEFAULT_GUIDELINES,
     freeBenefits: UNIVERSAL_FREE_BENEFITS,
     paidBenefits: UNIVERSAL_PAID_BENEFITS,
     paidPackageName: "Laporan Hasil Psikotes Lengkap (PDF)",
   };
 
-  const checkoutUrl = `/psikotes/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title + ' (Paket Lengkap)')}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}`;
+  const checkoutUrl = `/psikotes/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title)}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&subjudul=${encodeURIComponent('Akses paket tes psikotes lengkap beserta laporan analisis profesional.')}&bannerUrl=${encodeURIComponent(data.image)}`;
 
   return (
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">
@@ -322,20 +368,12 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                 /* Detail Plan Berbayar */
                 <div className="flex flex-col gap-5 p-5 rounded-2xl bg-gradient-to-b from-purple-50/60 to-white border border-purple-100">
                   <div>
-                    <div className="mb-1.5">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#561269] bg-purple-100 px-2.5 py-0.5 rounded-md">
-                        {data.paidPackageName}
+                    <span className="text-[11px] text-gray-500 block">Total Biaya Akses</span>
+                    <div className="flex items-baseline gap-2 pt-1">
+                      <span className="text-3xl sm:text-4xl font-extrabold text-[#561269] tracking-tight">
+                        {data.formattedPrice}
                       </span>
-                    </div>
-
-                    <div className="pt-2">
-                      <span className="text-[11px] text-gray-500 block">Total Biaya Akses</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-3xl sm:text-4xl font-extrabold text-[#561269] tracking-tight">
-                          {data.formattedPrice}
-                        </span>
-                        <span className="text-xs text-gray-400 font-medium">/ 1x tes</span>
-                      </div>
+                      <span className="text-xs text-gray-400 font-medium">/ 1x tes</span>
                     </div>
                   </div>
 
@@ -358,8 +396,8 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                     <ArrowRight className="w-4 h-4" />
                   </Link>
 
-                  {/* Tombol Akses Tiket / Kerjakan Nanti (HANYA UNTUK PAKET BERBAYAR) */}
-                  <div className="pt-2 border-t border-purple-100 text-center">
+                  {/* Link Akses Tiket (Bukan tombol, teks link halus di bawah tombol pembayaran) */}
+                  <div className="text-center -mt-1.5">
                     <button
                       type="button"
                       onClick={() => {
@@ -367,10 +405,14 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                         setTicketSuccess(null);
                         setShowTicketModal(true);
                       }}
-                      className="w-full py-2.5 px-3 rounded-xl border border-dashed border-[#C3A4CE] hover:border-[#561269] bg-white hover:bg-purple-50 text-[#561269] text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                      className="text-xs text-gray-500 hover:text-[#561269] transition inline-block cursor-pointer font-medium"
                     >
-                      <KeyRound className="w-3.5 h-3.5" />
-                      <span>Sudah bayar? Masukkan kode akses di sini</span>
+                      <span>
+                        Sudah bayar?{" "}
+                        <span className="font-semibold text-[#561269] underline underline-offset-2 hover:text-[#763E8B]">
+                          Masukkan kode akses di sini
+                        </span>
+                      </span>
                     </button>
                   </div>
 
@@ -432,18 +474,12 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
             </button>
 
             {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0">
-                <KeyRound className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Akses Tiket Tes</h3>
-                <p className="text-xs text-gray-500">Mulai tes atau lihat hasil tes Anda</p>
-              </div>
+            <div className="mb-3 pr-8">
+              <h3 className="text-xl font-bold text-gray-900">Akses Tiket Tes</h3>
             </div>
 
             <p className="text-xs text-gray-600 mb-5 leading-relaxed">
-              Jika Anda sudah membeli paket ini (atau tes ini dibelikan oleh orang lain), masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan.
+              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes berlaku selama 14 hari.
             </p>
 
             {/* Status alerts */}
@@ -481,16 +517,18 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                 <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
                   Nomor WhatsApp Pembeli <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="tel"
-                  required
-                  value={ticketWa}
-                  onChange={(e) => setTicketWa(e.target.value)}
-                  placeholder="Contoh: 081234567890"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269] focus:border-transparent"
-                />
+                <div className="relative">
+                  <input
+                    type="tel"
+                    required
+                    value={ticketWa}
+                    onChange={handleTicketWaChange}
+                    placeholder="+62 812-3456-7890"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269] focus:border-transparent font-medium text-gray-800 placeholder:text-gray-400"
+                  />
+                </div>
                 <span className="text-[10px] text-gray-400 mt-1 block">
-                  Nomor kontak yang dimasukkan saat proses pembayaran.
+                  Otomatis diawali +62 (Indonesia). Masukkan nomor WhatsApp yang digunakan saat pemesanan.
                 </span>
               </div>
 
@@ -512,6 +550,21 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                     </>
                   )}
                 </button>
+              </div>
+
+              {/* Bantuan Lupa Kode Akses */}
+              <div className="pt-3 border-t border-gray-100 text-center">
+                <p className="text-xs text-gray-500">
+                  Lupa kode akses atau nomor WhatsApp?{" "}
+                  <a
+                    href="https://wa.me/6287878785498?text=Halo%20Admin%20Empathika,%20saya%20lupa%20kode%20akses%20tiket%20psikotes%20saya.%20Mohon%20bantuannya."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#561269] font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Hubungi Admin</span>
+                  </a>
+                </p>
               </div>
             </form>
           </div>

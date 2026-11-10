@@ -141,6 +141,26 @@ export class PsikotesController {
     }
   }
 
+  getHasilByBooking = async (
+    request: FastifyRequest<{ Params: { bookingId: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getHasilByBooking(request.params.bookingId)
+      return reply.code(200).send({
+        success: true,
+        message: 'Berhasil mengambil data laporan hasil asesmen resmi',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 404
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Data hasil tes tidak ditemukan',
+      })
+    }
+  }
+
   cleanupAnonymousGuests = async (
     request: FastifyRequest<{ Querystring: { days?: string | number } }>,
     reply: FastifyReply
