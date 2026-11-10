@@ -18,6 +18,7 @@ import {
   X,
   CheckCircle2,
 } from "lucide-react";
+import PhoneInputField from "@/components/shared/PhoneInputField";
 
 const DEFAULT_GUIDELINES = [
   "Jawab setiap pertanyaan dengan jujur sesuai dengan dirimu. Tidak ada jawaban benar atau salah.",
@@ -478,20 +479,15 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                  Nomor WhatsApp Pembeli <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
+                <PhoneInputField
+                  label="Nomor WhatsApp Pembeli"
                   required
                   value={ticketWa}
-                  onChange={(e) => setTicketWa(e.target.value)}
-                  placeholder="Contoh: 081234567890"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#561269] focus:border-transparent"
+                  onChange={(val) => setTicketWa(val)}
+                  placeholder="812-3456-7890"
+                  helperText="Nomor kontak yang dimasukkan saat proses pembayaran."
+                  theme="purple"
                 />
-                <span className="text-[10px] text-gray-400 mt-1 block">
-                  Nomor kontak yang dimasukkan saat proses pembayaran.
-                </span>
               </div>
 
               <div className="pt-2">

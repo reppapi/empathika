@@ -9,6 +9,7 @@ import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 import {
   validateEmail,
   validateNoTelepon,
@@ -626,36 +627,19 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Nomor Telepon / WhatsApp <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+              <PhoneInputField
+                label="Nomor Telepon / WhatsApp"
+                required
                 value={noTelepon}
-                onChange={(e) => {
-                  setNoTelepon(e.target.value)
+                onChange={(val) => {
+                  setNoTelepon(val)
                   if (formErrorAlert) setFormErrorAlert(null)
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
-                required
-                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
-                  noTeleponError
-                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
-                    : "border-gray-200 focus:border-[#561269]"
-                }`}
+                error={noTeleponError}
+                helperText="Wajib diawali dengan 08 atau +62 8 (10-14 digit angka)."
+                theme="purple"
               />
-              {noTeleponError ? (
-                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
-                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{noTeleponError}</span>
-                </p>
-              ) : (
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Wajib diawali dengan 08 (10-14 digit angka).
-                </p>
-              )}
             </div>
 
             <div>

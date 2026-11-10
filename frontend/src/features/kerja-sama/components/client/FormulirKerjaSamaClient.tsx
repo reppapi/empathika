@@ -13,6 +13,7 @@ import {
 import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
 import { kerjaSamaService } from "@/services/kerja-sama.service"
 import { adminService } from "@/services/admin.service"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 interface FormulirKerjaSamaClientProps {
   formType?: string
@@ -402,18 +403,13 @@ export default function FormulirKerjaSamaClient({
                 </div>
 
                 <div>
-                  <input
-                    type="tel"
+                  <PhoneInputField
                     required
                     value={nomorWhatsapp}
-                    onFocus={() => setActiveInput("whatsapp")}
-                    onChange={(e) => setNomorWhatsapp(e.target.value)}
-                    placeholder="Nomor Whatsapp"
-                    className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
-                      activeInput === "whatsapp"
-                        ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
-                        : "border border-gray-300 hover:border-gray-400 focus:outline-none"
-                    }`}
+                    onChange={(val) => setNomorWhatsapp(val)}
+                    placeholder="812-3456-7890"
+                    theme="purple"
+                    inputClassName="py-3 text-sm md:text-base"
                   />
                 </div>
 

@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState } from "react"
 import { X, Calendar, Clock, User, Phone, Video, MapPin, FileText, CheckCircle2, ShieldCheck } from "lucide-react"
-import { NewSessionData, formatIndoPhoneChunks } from "../admin/ModalTambahSesi"
+import { NewSessionData } from "../admin/ModalTambahSesi"
 import { BiroClientProfile } from "../../data/biroDashboardData"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 interface BiroModalTambahSesiProps {
   isOpen: boolean
@@ -32,17 +33,6 @@ export default function BiroModalTambahSesi({
     metode: "Online" as "Online" | "Offline",
     catatan: "",
   })
-
-  const phoneDigits = useMemo(() => {
-    let cleaned = (formData.kontak || "").replace(/\D/g, "")
-    if (cleaned.startsWith("62")) cleaned = cleaned.slice(2)
-    else if (cleaned.startsWith("0")) cleaned = cleaned.slice(1)
-    return cleaned.slice(0, 13)
-  }, [formData.kontak])
-
-  const phoneDisplay = useMemo(() => {
-    return formatIndoPhoneChunks(phoneDigits)
-  }, [phoneDigits])
 
   if (!isOpen) return null
 
@@ -167,47 +157,13 @@ export default function BiroModalTambahSesi({
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1 flex items-center justify-between">
-                  <span>Nomor Kontak / WhatsApp</span>
-                  {phoneDigits.length > 0 && (
-                    <span
-                      className={`text-[10px] font-bold ${
-                        phoneDigits.length >= 10 && phoneDigits.length <= 13
-                          ? "text-emerald-700"
-                          : "text-amber-700"
-                      }`}
-                    >
-                      {phoneDigits.length} digit
-                    </span>
-                  )}
-                </label>
-                <div className="flex rounded-xl overflow-hidden border border-gray-200 bg-gray-50/50 focus-within:bg-white focus-within:border-[#561269] focus-within:ring-2 focus-within:ring-[#561269] transition-all">
-                  <span className="inline-flex items-center px-3 bg-purple-50/70 border-r border-gray-200 text-[#561269] text-xs font-bold select-none">
-                    +62
-                  </span>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="812-3456-7890"
-                    value={phoneDisplay}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      const digits = val.replace(/\D/g, "")
-                      let cleaned = digits
-                      if (cleaned.startsWith("62")) cleaned = cleaned.slice(2)
-                      else if (cleaned.startsWith("0")) cleaned = cleaned.slice(1)
-                      cleaned = cleaned.slice(0, 13)
-                      setFormData((prev) => ({
-                        ...prev,
-                        kontak: cleaned ? `+62 ${formatIndoPhoneChunks(cleaned)}` : "",
-                      }))
-                    }}
-                    className="flex-1 block w-full px-3 py-2.5 text-xs font-semibold text-gray-900 bg-transparent outline-none placeholder:text-gray-400 placeholder:font-normal"
-                  />
-                  <span className="inline-flex items-center px-2.5 bg-gray-50 border-l border-gray-200 text-gray-400 text-[10px] font-semibold select-none">
-                    {phoneDigits.length > 0 ? `${phoneDigits.length} digit` : "10-13 digit"}
-                  </span>
-                </div>
+                <PhoneInputField
+                  label="Nomor Kontak / WhatsApp"
+                  value={formData.kontak}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, kontak: val }))}
+                  placeholder="812-3456-7890"
+                  theme="purple"
+                />
               </div>
             </div>
 

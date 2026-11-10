@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { X, Calendar, Clock, User, UserCheck, Phone, Video, MapPin, FileText, CheckCircle2, AlertCircle } from "lucide-react"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 export interface NewSessionData {
   id: string
@@ -152,18 +153,6 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     metode: "Online" as "Online" | "Offline",
     catatan: "",
   })
-
-  // Format nomor WhatsApp / telepon gaya input tarif (prefix +62 dan format per digit)
-  const phoneDigits = useMemo(() => {
-    let cleaned = (formData.kontak || "").replace(/\D/g, "")
-    if (cleaned.startsWith("62")) cleaned = cleaned.slice(2)
-    else if (cleaned.startsWith("0")) cleaned = cleaned.slice(1)
-    return cleaned.slice(0, 13)
-  }, [formData.kontak])
-
-  const phoneDisplay = useMemo(() => {
-    return formatIndoPhoneChunks(phoneDigits)
-  }, [phoneDigits])
 
   const [psikologList, setPsikologList] = useState<PsikologOption[]>([])
   const [isLoadingPsikolog, setIsLoadingPsikolog] = useState(false)
@@ -565,50 +554,13 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             </div>
 
             <div>
-              <label className="block font-bold text-gray-700 mb-1.5 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-[#5D205E]" />
-                  No. WhatsApp / Kontak
-                </span>
-                {phoneDigits.length > 0 && (
-                  <span
-                    className={`text-[10px] font-bold ${
-                      phoneDigits.length >= 10 && phoneDigits.length <= 13
-                        ? "text-emerald-700"
-                        : "text-amber-700"
-                    }`}
-                  >
-                    {phoneDigits.length} digit
-                  </span>
-                )}
-              </label>
-              <div className="flex rounded-xl overflow-hidden border border-gray-200 bg-gray-50/50 focus-within:bg-white focus-within:border-[#E8C32A] focus-within:ring-2 focus-within:ring-[#E8C32A] transition-all">
-                <span className="inline-flex items-center px-3 bg-purple-50/70 border-r border-gray-200 text-[#5D205E] text-xs font-bold select-none">
-                  +62
-                </span>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  placeholder="812-3456-7890"
-                  value={phoneDisplay}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    const digits = val.replace(/\D/g, "")
-                    let cleaned = digits
-                    if (cleaned.startsWith("62")) cleaned = cleaned.slice(2)
-                    else if (cleaned.startsWith("0")) cleaned = cleaned.slice(1)
-                    cleaned = cleaned.slice(0, 13)
-                    setFormData((prev) => ({
-                      ...prev,
-                      kontak: cleaned ? `+62 ${formatIndoPhoneChunks(cleaned)}` : "",
-                    }))
-                  }}
-                  className="flex-1 block w-full px-3 py-2.5 text-xs font-semibold text-gray-900 bg-transparent outline-none placeholder:text-gray-400 placeholder:font-normal"
-                />
-                <span className="inline-flex items-center px-2.5 bg-gray-50 border-l border-gray-200 text-gray-400 text-[10px] font-semibold select-none">
-                  {phoneDigits.length > 0 ? `${phoneDigits.length} digit` : "10-13 digit"}
-                </span>
-              </div>
+              <PhoneInputField
+                label="No. WhatsApp / Kontak"
+                value={formData.kontak}
+                onChange={(val) => setFormData((prev) => ({ ...prev, kontak: val }))}
+                placeholder="812-3456-7890"
+                theme="yellow"
+              />
             </div>
           </div>
 
