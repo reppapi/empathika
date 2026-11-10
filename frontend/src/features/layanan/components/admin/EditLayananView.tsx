@@ -115,6 +115,9 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [tarifPeerWeekday, setTarifPeerWeekday] = useState("")
   const [tarifPeerWeekend, setTarifPeerWeekend] = useState("")
 
+  const isPartnership = selectedCategory === "03" || selectedCategory === "04"
+  const isKonsultasi = selectedCategory === "01"
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Load existing data
@@ -250,15 +253,21 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
       return
     }
 
-    if (!isOnline && !isOffline) {
+    const isKonsultasi = selectedCategory === "01"
+    const isPartnership = selectedCategory === "03" || selectedCategory === "04"
+
+    if (!isPartnership && !isOnline && !isOffline) {
       alert("Pilih minimal satu metode pelaksanaan (Online atau Offline).")
       return
     }
 
-    const computedMetode = isOnline && isOffline ? "Online/Offline" : isOnline ? "Online" : "Offline"
-
-    const isKonsultasi = selectedCategory === "01"
-    const isPartnership = selectedCategory === "03" || selectedCategory === "04"
+    const computedMetode = isPartnership
+      ? "-"
+      : isOnline && isOffline
+      ? "Online/Offline"
+      : isOnline
+      ? "Online"
+      : "Offline"
 
     if (selectedCategory === "05") {
       const wd = parseRupiahNumber(hargaWeekday)
@@ -567,53 +576,55 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
             </div>
           </div>
 
-          {/* ── Baris 4: Metode Pelaksanaan ── */}
-          <div>
-            <label className={labelClass}>
-              Metode Pelaksanaan <span className="text-red-500">*</span>
-            </label>
-            <div className="flex flex-wrap items-center gap-6 mt-2">
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isOnline}
-                  onChange={(e) => setIsOnline(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#561269] border-gray-300 focus:ring-[#561269] focus:ring-offset-0 cursor-pointer"
-                />
-                <span className="text-sm font-medium text-gray-700">Online (Sesi Daring)</span>
+          {/* ── Baris 4: Metode Pelaksanaan (Hanya untuk Konsultasi 01 dan Asesmen 05) ── */}
+          {!isPartnership && (
+            <div>
+              <label className={labelClass}>
+                Metode Pelaksanaan <span className="text-red-500">*</span>
               </label>
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isOffline}
-                  onChange={(e) => setIsOffline(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#561269] border-gray-300 focus:ring-[#561269] focus:ring-offset-0 cursor-pointer"
-                />
-                <span className="text-sm font-medium text-gray-700">Offline (Tatap Muka)</span>
-              </label>
+              <div className="flex flex-wrap items-center gap-6 mt-2">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isOnline}
+                    onChange={(e) => setIsOnline(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#561269] border-gray-300 focus:ring-[#561269] focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Online (Sesi Daring)</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isOffline}
+                    onChange={(e) => setIsOffline(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#561269] border-gray-300 focus:ring-[#561269] focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Offline (Tatap Muka)</span>
+                </label>
+              </div>
+              {isOnline && isOffline && (
+                <p className="text-xs text-purple-700 font-medium mt-2">
+                  ✓ Layanan fleksibel: Tersedia daring (Online) dan tatap muka (Offline).
+                </p>
+              )}
+              {isOnline && !isOffline && (
+                <p className="text-xs text-emerald-700 font-medium mt-2">
+                  ✓ Layanan hanya tersedia secara daring (Online).
+                </p>
+              )}
+              {!isOnline && isOffline && (
+                <p className="text-xs text-amber-700 font-medium mt-2">
+                  ✓ Layanan hanya tersedia secara tatap muka (Offline).
+                </p>
+              )}
+              {!isOnline && !isOffline && (
+                <p className="text-xs text-red-500 font-medium mt-2">
+                  ⚠️ Mohon pilih minimal satu metode pelaksanaan!
+                </p>
+              )}
+              <span className={helperClass}>Metode pelaksanaan sesi konseling / asesmen</span>
             </div>
-            {isOnline && isOffline && (
-              <p className="text-xs text-purple-700 font-medium mt-2">
-                ✓ Layanan fleksibel: Tersedia daring (Online) dan tatap muka (Offline).
-              </p>
-            )}
-            {isOnline && !isOffline && (
-              <p className="text-xs text-emerald-700 font-medium mt-2">
-                ✓ Layanan hanya tersedia secara daring (Online).
-              </p>
-            )}
-            {!isOnline && isOffline && (
-              <p className="text-xs text-amber-700 font-medium mt-2">
-                ✓ Layanan hanya tersedia secara tatap muka (Offline).
-              </p>
-            )}
-            {!isOnline && !isOffline && (
-              <p className="text-xs text-red-500 font-medium mt-2">
-                ⚠️ Mohon pilih minimal satu metode pelaksanaan!
-              </p>
-            )}
-            <span className={helperClass}>Metode pelaksanaan sesi konseling / asesmen</span>
-          </div>
+          )}
 
           {/* ── Baris 5: Tarif Weekday & Weekend ── */}
           {selectedCategory === "01" ? (

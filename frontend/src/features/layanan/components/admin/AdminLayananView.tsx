@@ -256,20 +256,20 @@ export default function AdminLayananView() {
           )
         },
       },
-      {
-        key: "metode",
-        header: "Metode Pelaksanaan",
-        width: isPartnership ? "240px" : "180px",
-        render: (item: AdminLayananItem) => (
-          <span className="text-gray-700 font-medium text-xs sm:text-sm">{item.metode}</span>
-        ),
-      },
     ]
 
-    // Hanya tampilkan kolom tarif Weekday & Weekend untuk kategori yang bertarif (Konsultasi & Asesmen)
-    // Untuk Workshop & Seminar, kolom tarif disembunyikan sepenuhnya
+    // Kolom Metode Pelaksanaan & Tarif Weekday/Weekend hanya untuk Konsultasi (01) & Asesmen (05)
+    // Untuk Workshop & Seminar, kolom ini disembunyikan sepenuhnya karena tidak berlaku
     if (!isPartnership) {
       baseCols.push(
+        {
+          key: "metode",
+          header: "Metode Pelaksanaan",
+          width: "180px",
+          render: (item: AdminLayananItem) => (
+            <span className="text-gray-700 font-medium text-xs sm:text-sm">{item.metode}</span>
+          ),
+        },
         {
           key: "weekday",
           header: "Weekday",
@@ -693,32 +693,39 @@ export default function AdminLayananView() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-xs text-gray-500 font-medium block">Metode Pelaksanaan</span>
-                  <span className="font-bold text-gray-900 mt-1 block">{selectedDetail.metode}</span>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-gray-500 font-medium block">Status Layanan</span>
-                    <span className={`font-bold mt-1 block ${selectedDetail.status === "Aktif" ? "text-emerald-600" : "text-gray-500"}`}>
-                      {selectedDetail.status}
-                    </span>
+              {(() => {
+                const isDetailPartnership = selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04"
+                return (
+                  <div className={`grid ${!isDetailPartnership ? "grid-cols-2" : "grid-cols-1"} gap-3`}>
+                    {!isDetailPartnership && (
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <span className="text-xs text-gray-500 font-medium block">Metode Pelaksanaan</span>
+                        <span className="font-bold text-gray-900 mt-1 block">{selectedDetail.metode}</span>
+                      </div>
+                    )}
+                    <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-gray-500 font-medium block">Status Layanan</span>
+                        <span className={`font-bold mt-1 block ${selectedDetail.status === "Aktif" ? "text-emerald-600" : "text-gray-500"}`}>
+                          {selectedDetail.status}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleToggleStatus(selectedDetail)
+                          setSelectedDetail((prev) =>
+                            prev ? { ...prev, status: prev.status === "Aktif" ? "Nonaktif" : "Aktif" } : null
+                          )
+                        }}
+                        className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                      >
+                        Ubah ke {selectedDetail.status === "Aktif" ? "Nonaktif" : "Aktif"}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleToggleStatus(selectedDetail)
-                      setSelectedDetail((prev) =>
-                        prev ? { ...prev, status: prev.status === "Aktif" ? "Nonaktif" : "Aktif" } : null
-                      )
-                    }}
-                    className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer"
-                  >
-                    Ubah ke {selectedDetail.status === "Aktif" ? "Nonaktif" : "Aktif"}
-                  </button>
-                </div>
-              </div>
+                )
+              })()}
 
               {/* Detail Tarif Layanan */}
               {selectedDetail.kategoriId === "01" ? (
