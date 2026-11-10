@@ -198,7 +198,9 @@ export default function AdminLayananView() {
     try {
       const res: any = await layananService.getAll()
       const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      setLayananList(list.map(mapBackendLayananToAdmin))
+      const mapped = list.map(mapBackendLayananToAdmin)
+      setLayananList(mapped)
+      saveStoredLayanan(mapped)
     } catch (err) {
       console.warn("Gagal memuat layanan dari server database:", err)
       setIsError(true)
@@ -547,7 +549,14 @@ export default function AdminLayananView() {
                 title="Lihat Detail"
               />
               <ActionButtonEdit
-                onClick={() => router.push(`/admin/layanan/edit/${item.id}?category=${item.kategoriId || activeCategory}`)}
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    try {
+                      sessionStorage.setItem("empathika_edit_item", JSON.stringify(item))
+                    } catch {}
+                  }
+                  router.push(`/admin/layanan/edit/${item.id}?category=${item.kategoriId || activeCategory}`)
+                }}
                 title="Edit Layanan"
               />
               <ActionButtonDelete
@@ -1193,6 +1202,11 @@ export default function AdminLayananView() {
                 onClick={() => {
                   const targetId = selectedDetail.id
                   const targetCat = selectedDetail.kategoriId || activeCategory
+                  if (typeof window !== "undefined") {
+                    try {
+                      sessionStorage.setItem("empathika_edit_item", JSON.stringify(selectedDetail))
+                    } catch {}
+                  }
                   setSelectedDetail(null)
                   router.push(`/admin/layanan/edit/${targetId}?category=${targetCat}`)
                 }}
