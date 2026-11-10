@@ -74,11 +74,17 @@ function PriceInputField({
 export default function TambahLayananView() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialCategory = searchParams.get("category") || "01"
+  const initialCategory = (() => {
+    const fromParam = searchParams ? searchParams.get("category") : null
+    if (fromParam) return fromParam
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("empathika_admin_layanan_category")
+      if (saved) return saved
+    }
+    return "01"
+  })()
 
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file")
-  const [imageUrlInput, setImageUrlInput] = useState("")
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
   const [status, setStatus] = useState<"Aktif" | "Nonaktif">("Aktif")
   const [namaLayanan, setNamaLayanan] = useState("")
@@ -88,6 +94,9 @@ export default function TambahLayananView() {
   const [hargaWeekday, setHargaWeekday] = useState("")
   const [hargaWeekend, setHargaWeekend] = useState("")
 
+  // Tarif khusus kategori Asesmen (05): Online (Psikotes) tanpa weekday/weekend
+  const [hargaAsesmenOnline, setHargaAsesmenOnline] = useState("")
+
   // Tarif spesifik per Tenaga Ahli (khusus kategori Konsultasi: 01)
   const [tarifPsikologWeekday, setTarifPsikologWeekday] = useState("")
   const [tarifPsikologWeekend, setTarifPsikologWeekend] = useState("")
@@ -96,9 +105,53 @@ export default function TambahLayananView() {
   const [tarifPeerWeekday, setTarifPeerWeekday] = useState("")
   const [tarifPeerWeekend, setTarifPeerWeekend] = useState("")
 
+  const isPartnership = selectedCategory === "03" || selectedCategory === "04"
+  const isKonsultasi = selectedCategory === "01"
+
   const [successMsg, setSuccessMsg] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Foto Kegiatan khusus Workshop ("03") & Seminar ("04") (maksimal 3 foto)
+  const [fotoKegiatan, setFotoKegiatan] = useState<(string | null)[]>([null, null, null])
+  const slotFileInputRef0 = useRef<HTMLInputElement>(null)
+  const slotFileInputRef1 = useRef<HTMLInputElement>(null)
+  const slotFileInputRef2 = useRef<HTMLInputElement>(null)
+  const slotFileInputRefs = [slotFileInputRef0, slotFileInputRef1, slotFileInputRef2]
+
+  const handleSlotFileChange = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      try {
+        const { url } = await processAndUploadImage(file, "layanan")
+        setFotoKegiatan((prev) => {
+          const next = [...prev]
+          next[index] = url
+          return next
+        })
+        if (index === 0) {
+          setImagePreview(url)
+        }
+      } catch (err: any) {
+        alert(err?.message || "Gagal memproses gambar")
+      }
+    }
+  }
+
+  const handleSlotRemove = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setFotoKegiatan((prev) => {
+      const next = [...prev]
+      next[index] = null
+      return next
+    })
+    if (slotFileInputRefs[index].current) {
+      slotFileInputRefs[index].current!.value = ""
+    }
+    if (index === 0) {
+      setImagePreview(null)
+    }
+  }
 
   useEffect(() => {
     if (initialCategory && !selectedCategory) {
@@ -138,21 +191,30 @@ export default function TambahLayananView() {
       return
     }
 
-    if (!isOnline && !isOffline) {
+    if (!isPartnership && !isOnline && !isOffline) {
       alert("Pilih minimal satu metode pelaksanaan (Online atau Offline).")
       return
     }
 
-    const computedMetode = isOnline && isOffline ? "Online/Offline" : isOnline ? "Online" : "Offline"
-
-    const isKonsultasi = selectedCategory === "01"
-    const isPartnership = selectedCategory === "03" || selectedCategory === "04"
+    const computedMetode = isPartnership
+      ? "-"
+      : isOnline && isOffline
+      ? "Online/Offline"
+      : isOnline
+      ? "Online"
+      : "Offline"
 
     if (selectedCategory === "05") {
-      const wd = parseRupiahNumber(hargaWeekday)
-      const wk = parseRupiahNumber(hargaWeekend)
-      if (wd === 0 && wk === 0) {
-        alert("Layanan asesmen wajib diisi tarifnya minimal salah satu (Weekday atau Weekend).")
+      const onlineVal = parseRupiahNumber(hargaAsesmenOnline)
+      const offlineWk = parseRupiahNumber(hargaWeekday)
+      const offlineWknd = parseRupiahNumber(hargaWeekend)
+
+      if (isOnline && onlineVal === 0) {
+        alert("Metode Online dipilih, silakan masukkan Tarif Online (Pengerjaan Psikotes).")
+        return
+      }
+      if (isOffline && offlineWk === 0 && offlineWknd === 0) {
+        alert("Metode Offline dipilih, silakan masukkan minimal salah satu Tarif Offline (Weekday atau Weekend).")
         return
       }
     }
@@ -191,19 +253,52 @@ export default function TambahLayananView() {
         tarifTenagaAhli.peer = { weekday: peerWd, weekend: peerWk }
         if (!activeExpert) activeExpert = tarifTenagaAhli.peer
       }
+    } else if (selectedCategory === "05") {
+      const onlineVal = parseRupiahNumber(hargaAsesmenOnline)
+      const offlineWk = parseRupiahNumber(hargaWeekday)
+      const offlineWknd = parseRupiahNumber(hargaWeekend)
+
+      tarifTenagaAhli = {
+        asesmen: {
+          online: isOnline ? onlineVal : null,
+          offline: isOffline ? {
+            weekday: offlineWk,
+            weekend: offlineWknd || offlineWk,
+          } : null,
+        },
+        online: isOnline ? onlineVal : null,
+        offline: isOffline ? {
+          weekday: offlineWk,
+          weekend: offlineWknd || offlineWk,
+        } : null,
+      }
     }
 
     const finalWeekday = isKonsultasi
       ? String(activeExpert?.weekday || "0")
       : isPartnership
       ? "0"
+      : selectedCategory === "05"
+      ? isOffline
+        ? String(parseRupiahNumber(hargaWeekday) || (isOnline ? parseRupiahNumber(hargaAsesmenOnline) : 0))
+        : String(parseRupiahNumber(hargaAsesmenOnline) || 0)
       : hargaWeekday
 
     const finalWeekend = isKonsultasi
       ? String(activeExpert?.weekend || "0")
       : isPartnership
       ? "0"
+      : selectedCategory === "05"
+      ? isOffline
+        ? String(parseRupiahNumber(hargaWeekend) || parseRupiahNumber(hargaWeekday) || (isOnline ? parseRupiahNumber(hargaAsesmenOnline) : 0))
+        : String(parseRupiahNumber(hargaAsesmenOnline) || 0)
       : hargaWeekend
+
+    const validFotos = fotoKegiatan.filter((f): f is string => typeof f === "string" && f.trim().length > 0)
+    // Sesuai aturan: Foto yang pertama kali dimasukkan (Slot 1) menjadi foto card dan hero paling atas
+    const finalBanner = isPartnership
+      ? (fotoKegiatan[0] || validFotos[0] || imagePreview || "")
+      : (imagePreview || "")
 
     addLayanan({
       layanan: namaLayanan.trim(),
@@ -214,7 +309,8 @@ export default function TambahLayananView() {
       tarif_tenaga_ahli: tarifTenagaAhli,
       status: status,
       deskripsi: deskripsi.trim(),
-      bannerUrl: imagePreview || "",
+      bannerUrl: finalBanner,
+      foto_kegiatan: isPartnership && validFotos.length > 0 ? validFotos : undefined,
     })
 
     // Sinkronkan ke database backend
@@ -227,7 +323,8 @@ export default function TambahLayananView() {
         harga_weekend: parseRupiahNumber(finalWeekend),
         tarif_tenaga_ahli: tarifTenagaAhli,
         deskripsi: deskripsi.trim(),
-        banner_url: imagePreview || null,
+        banner_url: finalBanner || null,
+        foto_kegiatan: isPartnership && validFotos.length > 0 ? validFotos : undefined,
         aktif: status === "Aktif",
       })
       .catch((err: any) => {
@@ -236,7 +333,10 @@ export default function TambahLayananView() {
 
     setSuccessMsg(true)
     setTimeout(() => {
-      router.push("/admin/layanan")
+      if (typeof window !== "undefined") {
+        localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+      }
+      router.push(`/admin/layanan?category=${selectedCategory}`)
     }, 1200)
   }
 
@@ -246,7 +346,12 @@ export default function TambahLayananView() {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/admin/layanan")}
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+            }
+            router.push(`/admin/layanan?category=${selectedCategory}`)
+          }}
           className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#561269] transition-colors cursor-pointer"
           aria-label="Kembali"
         >
@@ -294,7 +399,13 @@ export default function TambahLayananView() {
             </label>
             <select
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value
+                setSelectedCategory(val)
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("empathika_admin_layanan_category", val)
+                }
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white cursor-pointer"
             >
               {CATEGORIES.filter((cat) => ["01", "03", "04", "05"].includes(cat.id)).map((cat) => (
@@ -320,7 +431,7 @@ export default function TambahLayananView() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`grid grid-cols-1 ${!isPartnership ? "md:grid-cols-2" : ""} gap-6`}>
           {/* Nama Layanan */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -336,52 +447,54 @@ export default function TambahLayananView() {
             />
           </div>
 
-          {/* Metode Pelaksanaan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Metode Pelaksanaan <span className="text-red-500">*</span>
-            </label>
-            <div className="flex flex-wrap items-center gap-6 mt-2">
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isOnline}
-                  onChange={(e) => setIsOnline(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#561269] border-gray-300 focus:ring-[#561269] focus:ring-offset-0 cursor-pointer"
-                />
-                <span className="text-sm font-medium text-gray-700">Online (Sesi Daring)</span>
+          {/* Metode Pelaksanaan (Hanya untuk Konsultasi 01 dan Asesmen 05) */}
+          {!isPartnership && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Metode Pelaksanaan <span className="text-red-500">*</span>
               </label>
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isOffline}
-                  onChange={(e) => setIsOffline(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#561269] border-gray-300 focus:ring-[#561269] focus:ring-offset-0 cursor-pointer"
-                />
-                <span className="text-sm font-medium text-gray-700">Offline (Tatap Muka)</span>
-              </label>
+              <div className="flex flex-wrap items-center gap-6 mt-2">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isOnline}
+                    onChange={(e) => setIsOnline(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#561269] border-gray-300 focus:ring-[#561269] focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Online (Sesi Daring)</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isOffline}
+                    onChange={(e) => setIsOffline(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#561269] border-gray-300 focus:ring-[#561269] focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Offline (Tatap Muka)</span>
+                </label>
+              </div>
+              {isOnline && isOffline && (
+                <p className="text-xs text-purple-700 font-medium mt-2">
+                  ✓ Layanan fleksibel: Tersedia daring (Online) dan tatap muka (Offline).
+                </p>
+              )}
+              {isOnline && !isOffline && (
+                <p className="text-xs text-emerald-700 font-medium mt-2">
+                  ✓ Layanan hanya tersedia secara daring (Online).
+                </p>
+              )}
+              {!isOnline && isOffline && (
+                <p className="text-xs text-amber-700 font-medium mt-2">
+                  ✓ Layanan hanya tersedia secara tatap muka (Offline).
+                </p>
+              )}
+              {!isOnline && !isOffline && (
+                <p className="text-xs text-red-500 font-medium mt-2">
+                  ⚠️ Mohon pilih minimal satu metode pelaksanaan!
+                </p>
+              )}
             </div>
-            {isOnline && isOffline && (
-              <p className="text-xs text-purple-700 font-medium mt-2">
-                ✓ Layanan fleksibel: Tersedia daring (Online) dan tatap muka (Offline).
-              </p>
-            )}
-            {isOnline && !isOffline && (
-              <p className="text-xs text-emerald-700 font-medium mt-2">
-                ✓ Layanan hanya tersedia secara daring (Online).
-              </p>
-            )}
-            {!isOnline && isOffline && (
-              <p className="text-xs text-amber-700 font-medium mt-2">
-                ✓ Layanan hanya tersedia secara tatap muka (Offline).
-              </p>
-            )}
-            {!isOnline && !isOffline && (
-              <p className="text-xs text-red-500 font-medium mt-2">
-                ⚠️ Mohon pilih minimal satu metode pelaksanaan!
-              </p>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Deskripsi Layanan */}
@@ -407,9 +520,6 @@ export default function TambahLayananView() {
                 <label className="block text-sm font-bold text-[#561269]">
                   Tarif Konsultasi per Tenaga Ahli <span className="text-red-500">*</span>
                 </label>
-                <span className="block text-xs text-gray-500 mt-0.5">
-                  Isi tarif minimal untuk 1 tenaga ahli yang tersedia untuk layanan ini. Kosongkan tenaga ahli jika layanan ini tidak dilayani oleh kualifikasi tersebut.
-                </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
@@ -578,6 +688,9 @@ export default function TambahLayananView() {
                       height={160}
                       className="max-h-[160px] w-auto object-contain"
                     />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                      1200 × 675 px (16:9)
+                    </div>
                     <button
                       type="button"
                       onClick={handleRemoveImage}
@@ -587,304 +700,264 @@ export default function TambahLayananView() {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2 text-center my-auto">
-                    <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
-                    <div className="text-sm text-gray-600">Klik untuk upload gambar poster / banner</div>
-                    <p className="text-xs text-gray-500">Format: JPG, PNG, WebP (Maks. 2MB)</p>
+                  <div className="space-y-1.5 text-center my-auto p-2">
+                    <CloudUpload className="mx-auto h-8 w-8 text-[#561269]" />
+                    <div className="text-sm font-semibold text-gray-700">Klik untuk upload gambar poster / banner layanan</div>
+                    <p className="text-xs font-medium text-gray-600">
+                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      Format: JPG, PNG, WebP (Maks. 2MB) • Otomatis disesuaikan untuk kartu layanan klien
+                    </p>
                   </div>
                 )}
               </div>
             </div>
           </div>
         ) : selectedCategory === "05" ? (
-          /* 2. Kategori Asesmen: Tarif Reguler + Foto Banner */
+          /* 2. Kategori Asesmen: Tarif Online (Psikotes) & Tarif Offline (Weekday/Weekend) + Foto Banner */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Harga Asesmen */}
             <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700">
-                Tarif Asesmen <span className="text-red-500">*</span>
-              </label>
-
-              {/* Weekday */}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Weekday (Senin - Jumat)</label>
-                <PriceInputField
-                  value={hargaWeekday}
-                  onChange={setHargaWeekday}
-                  placeholder="350.000"
-                  required={false}
-                />
+                <label className="block text-sm font-bold text-gray-800">
+                  Tarif Layanan Asesmen <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Pengisian tarif otomatis menyesuaikan metode pelaksanaan yang dipilih di atas.
+                </p>
               </div>
 
-              {/* Weekend */}
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Weekend (Sabtu - Minggu)</label>
-                <PriceInputField
-                  value={hargaWeekend}
-                  onChange={setHargaWeekend}
-                  placeholder="450.000"
-                  required={false}
-                />
-              </div>
+              {!isOnline && !isOffline ? (
+                <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs">
+                  ⚠️ Silakan centang minimal satu <strong>Metode Pelaksanaan</strong> (Online atau Offline) pada pilihan di atas.
+                </div>
+              ) : null}
+
+              {/* Box 1: Tarif Online (Pengerjaan Psikotes Daring) */}
+              {isOnline && (
+                <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/40 space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b border-blue-100">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                    <h4 className="text-xs font-bold text-blue-900">Tarif Online (Pengerjaan Psikotes)</h4>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                      Tarif Asesmen Online <span className="text-red-500">*</span>
+                    </label>
+                    <PriceInputField
+                      value={hargaAsesmenOnline}
+                      onChange={setHargaAsesmenOnline}
+                      placeholder="350.000"
+                      required={false}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Box 2: Tarif Offline (Sesi Tatap Muka di Klinik) */}
+              {isOffline && (
+                <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/40 space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b border-purple-100">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
+                    <h4 className="text-xs font-bold text-[#561269]">Tarif Offline (Tatap Muka di Klinik)</h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                        Weekday (Senin - Jumat)
+                      </label>
+                      <PriceInputField
+                        value={hargaWeekday}
+                        onChange={setHargaWeekday}
+                        placeholder="400.000"
+                        required={false}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                        Weekend (Sabtu - Minggu)
+                      </label>
+                      <PriceInputField
+                        value={hargaWeekend}
+                        onChange={setHargaWeekend}
+                        placeholder="500.000"
+                        required={false}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Foto Banner / Hero Asesmen */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-bold text-gray-800">
-                  Foto Banner Awal / Gambar Hero Layanan
-                </label>
-                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setImageInputMode("file")}
-                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                      imageInputMode === "file" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Upload File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageInputMode("url")}
-                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                      imageInputMode === "url" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Tautan URL
-                  </button>
-                </div>
-              </div>
+              <label className="block text-sm font-bold text-gray-800 mb-2">
+                Foto Banner Awal / Gambar Hero Layanan
+              </label>
 
-              {imageInputMode === "url" ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={imageUrlInput}
-                      onChange={(e) => setImageUrlInput(e.target.value)}
-                      placeholder="https://example.com/foto-banner-layanan.jpg"
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
+              <div
+                className={`mt-1 flex justify-center border-2 ${
+                  imagePreview
+                    ? "border-solid border-gray-200 p-2"
+                    : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
+                } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
+                onClick={handleImageClick}
+                style={{ minHeight: "160px" }}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/jpeg, image/png, image/webp"
+                  className="hidden"
+                />
+
+                {imagePreview ? (
+                  <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview Foto Hero"
+                      width={300}
+                      height={160}
+                      className="max-h-[160px] w-auto object-contain"
+                      unoptimized
                     />
+                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
+                      1200 × 675 px (16:9)
+                    </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (imageUrlInput.trim()) {
-                          setImagePreview(imageUrlInput.trim())
-                        }
-                      }}
-                      className="px-4 py-2 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
                     >
-                      Terapkan
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                  {imagePreview && (
-                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
-                      <Image
-                        src={imagePreview}
-                        alt="Preview Foto Hero"
-                        width={400}
-                        height={160}
-                        className="max-h-40 w-auto object-contain"
-                        unoptimized
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImagePreview(null)
-                          setImageUrlInput("")
-                        }}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div
-                  className={`mt-1 flex justify-center border-2 ${
-                    imagePreview
-                      ? "border-solid border-gray-200 p-2"
-                      : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
-                  } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
-                  onClick={handleImageClick}
-                  style={{ minHeight: "160px" }}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    accept="image/jpeg, image/png, image/webp"
-                    className="hidden"
-                  />
-
-                  {imagePreview ? (
-                    <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
-                      <Image
-                        src={imagePreview}
-                        alt="Preview Foto Hero"
-                        width={300}
-                        height={160}
-                        className="max-h-[160px] w-auto object-contain"
-                        unoptimized
-                      />
-                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
-                        📐 1200 × 675 px (16:9)
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 text-center my-auto">
-                      <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
-                      <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
-                      <p className="text-xs font-medium text-gray-600">
-                        Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
-                      </p>
-                      <p className="text-[11px] text-gray-400">
-                        Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-1.5 text-center my-auto p-2">
+                    <CloudUpload className="mx-auto h-8 w-8 text-[#561269]" />
+                    <div className="text-sm font-semibold text-gray-700">Klik untuk upload foto banner / gambar hero</div>
+                    <p className="text-xs font-medium text-gray-600">
+                      Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      Format JPG, PNG, atau WebP • Otomatis disesuaikan untuk kartu layanan dan banner asesmen
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ) : (
-          /* 3. Kategori Workshop & Seminar: Program Kemitraan (Tanpa Pengisian Tarif) */
           <div className="space-y-6">
-            {/* Foto Banner / Hero Layanan */}
+            {/* 3. Kategori Workshop & Seminar: Program Kemitraan (Tanpa Pengisian Tarif) */}
+            {/* Foto Kegiatan (Maksimal 3 Foto) */}
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-3">
                 <label className="block text-sm font-bold text-gray-800">
-                  Foto Banner Awal / Gambar Hero Program
+                  Foto Kegiatan (Maksimal 3 Foto)
                 </label>
-                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setImageInputMode("file")}
-                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                      imageInputMode === "file" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Upload File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageInputMode("url")}
-                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                      imageInputMode === "url" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    Tautan URL
-                  </button>
-                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Foto pertama (Slot 1) otomatis menjadi <span className="font-semibold text-[#561269]">banner kartu layanan</span> dan <span className="font-semibold text-[#561269]">foto hero paling atas</span> pada halaman detail {selectedCategory === "03" ? "workshop" : "seminar"}.
+                  <br />
+                  <span className="font-semibold text-gray-700">Rekomendasi ukuran: </span>
+                  <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span> agar foto pas dan tajam di halaman klien.
+                </p>
               </div>
 
-              {imageInputMode === "url" ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={imageUrlInput}
-                      onChange={(e) => setImageUrlInput(e.target.value)}
-                      placeholder="https://example.com/foto-banner-layanan.jpg"
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (imageUrlInput.trim()) {
-                          setImagePreview(imageUrlInput.trim())
-                        }
-                      }}
-                      className="px-4 py-2 bg-[#561269] text-white rounded-lg text-xs font-bold hover:bg-[#7B1FA2] transition cursor-pointer"
-                    >
-                      Terapkan
-                    </button>
-                  </div>
-                  {imagePreview && (
-                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
-                      <Image
-                        src={imagePreview}
-                        alt="Preview Foto Hero"
-                        width={400}
-                        height={160}
-                        className="max-h-40 w-auto object-contain"
-                        unoptimized
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImagePreview(null)
-                          setImageUrlInput("")
-                        }}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-sm cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div
-                  className={`mt-1 flex justify-center border-2 ${
-                    imagePreview
-                      ? "border-solid border-gray-200 p-2"
-                      : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
-                  } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
-                  onClick={handleImageClick}
-                  style={{ minHeight: "160px" }}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    accept="image/jpeg, image/png, image/webp"
-                    className="hidden"
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[0, 1, 2].map((slotIdx) => {
+                  const isSlot0 = slotIdx === 0
+                  const currentPhoto = fotoKegiatan[slotIdx]
 
-                  {imagePreview ? (
-                    <div className="relative w-full h-full min-h-[160px] flex items-center justify-center bg-gray-100 rounded-md">
-                      <Image
-                        src={imagePreview}
-                        alt="Preview Foto Hero"
-                        width={300}
-                        height={160}
-                        className="max-h-[160px] w-auto object-contain"
-                        unoptimized
-                      />
-                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
-                        📐 1200 × 675 px (16:9)
+                  return (
+                    <div
+                      key={slotIdx}
+                      className={`relative rounded-2xl border-2 transition-all p-3.5 flex flex-col justify-between ${
+                        isSlot0
+                          ? "border-[#561269]/40 bg-purple-50/20 shadow-xs ring-1 ring-[#561269]/10"
+                          : "border-gray-200 bg-gray-50/40 hover:border-gray-300"
+                      }`}
+                    >
+                      {/* Header Slot */}
+                      <div className="flex items-center justify-between mb-2.5">
+                        <span
+                          className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                            isSlot0
+                              ? "bg-[#561269] text-white shadow-xs"
+                              : "bg-gray-200 text-gray-700"
+                          }`}
+                        >
+                          {isSlot0 ? "⭐ Foto 1 (Sampul & Hero)" : `Foto Kegiatan ${slotIdx + 1}`}
+                        </span>
+                        {isSlot0 && (
+                          <span className="text-[10px] text-[#561269] font-bold">
+                            Utama
+                          </span>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+
+                      {/* Area Upload atau Preview */}
+                      {currentPhoto ? (
+                        <div className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center group">
+                          <Image
+                            src={currentPhoto}
+                            alt={`Foto Kegiatan ${slotIdx + 1}`}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            unoptimized
+                          />
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium pointer-events-none">
+                            1200 × 675 px
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => slotFileInputRefs[slotIdx].current?.click()}
+                              className="px-3 py-1.5 rounded-full bg-white text-gray-800 text-[11px] font-bold shadow hover:bg-gray-100 transition cursor-pointer"
+                            >
+                              Ganti Foto
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleSlotRemove(slotIdx, e)}
+                              className="px-3 py-1.5 rounded-full bg-red-600 text-white text-[11px] font-bold shadow hover:bg-red-700 transition cursor-pointer"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => slotFileInputRefs[slotIdx].current?.click()}
+                          className="h-40 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#561269] hover:bg-purple-50/40 flex flex-col items-center justify-center p-3 text-center cursor-pointer transition-all group"
+                        >
+                          <input
+                            type="file"
+                            ref={slotFileInputRefs[slotIdx]}
+                            onChange={(e) => handleSlotFileChange(slotIdx, e)}
+                            accept="image/jpeg, image/png, image/webp"
+                            className="hidden"
+                          />
+                          <div className="p-2.5 rounded-full bg-white group-hover:bg-purple-100 text-gray-400 group-hover:text-[#561269] shadow-xs mb-2 transition-colors">
+                            <CloudUpload className="w-5 h-5" />
+                          </div>
+                          <p className="text-xs font-bold text-gray-700 group-hover:text-[#561269] transition-colors">
+                            {isSlot0 ? "Unggah Foto Sampul" : `Unggah Foto Kegiatan ${slotIdx + 1}`}
+                          </p>
+                          <p className="text-[11px] font-semibold text-[#561269] mt-0.5">
+                            1200 × 675 px (16:9)
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            Format JPG, PNG, atau WebP
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-2 text-center my-auto">
-                      <CloudUpload className="mx-auto h-8 w-8 text-gray-400" />
-                      <div className="text-sm text-gray-600">Klik untuk upload foto banner / gambar hero</div>
-                      <p className="text-xs font-medium text-gray-600">
-                        Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 px (rasio 16:9)</span>
-                      </p>
-                      <p className="text-[11px] text-gray-400">
-                        Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                  )
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -893,7 +966,12 @@ export default function TambahLayananView() {
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
           <button
             type="button"
-            onClick={() => router.push("/admin/layanan")}
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+              }
+              router.push(`/admin/layanan?category=${selectedCategory}`)
+            }}
             className="px-6 py-2.5 border border-gray-300 rounded-full text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
           >
             Batal

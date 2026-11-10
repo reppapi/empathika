@@ -98,10 +98,47 @@ export function useAsesmenClient() {
 
   // Dapatkan data detail paket asesmen terpilih
   const selectedAsesmen: AsesmenPackage = useMemo(() => {
-    return (
+    const base =
       ASESMEN_PACKAGES.find((a) => a.id === selectedAsesmenId) ||
       ASESMEN_PACKAGES[0]
-    )
+
+    try {
+      const list = getStoredLayanan()
+      const targetTitle = base.title.toLowerCase().trim()
+      const match = list.find((item) => {
+        if (item.status === "Nonaktif" || (item as any).aktif === false) return false
+        const name = (item.layanan || (item as any).nama || "").toLowerCase().trim()
+        return name === targetTitle || name.includes(targetTitle) || targetTitle.includes(name)
+      })
+
+      if (match) {
+        const t = (match as any).tarif_tenaga_ahli
+        const onlineVal = t?.asesmen?.online ?? t?.online
+        const offlineWk = t?.asesmen?.offline?.weekday ?? t?.offline?.weekday ?? match.weekday
+        const offlineWknd = t?.asesmen?.offline?.weekend ?? t?.offline?.weekend ?? match.weekend
+
+        return {
+          ...base,
+          onlinePrice: onlineVal
+            ? String(onlineVal).startsWith("Rp")
+              ? String(onlineVal)
+              : `Rp ${Number(onlineVal).toLocaleString("id-ID")}`
+            : base.onlinePrice,
+          weekday: offlineWk
+            ? String(offlineWk).startsWith("Rp")
+              ? String(offlineWk)
+              : `Rp ${Number(offlineWk).toLocaleString("id-ID")}`
+            : base.weekday,
+          weekend: offlineWknd
+            ? String(offlineWknd).startsWith("Rp")
+              ? String(offlineWknd)
+              : `Rp ${Number(offlineWknd).toLocaleString("id-ID")}`
+            : base.weekend,
+        }
+      }
+    } catch {}
+
+    return base
   }, [selectedAsesmenId])
 
   // Cek apakah Admin telah memasukkan foto awal / banner khusus di dashboard admin layanan
@@ -111,6 +148,7 @@ export function useAsesmenClient() {
         const list = getStoredLayanan()
         const targetTitle = selectedAsesmen.title.toLowerCase().trim()
         const match = list.find((item) => {
+          if (item.status === "Nonaktif" || (item as any).aktif === false) return false
           const name = item.layanan.toLowerCase().trim()
           return name === targetTitle || name.includes(targetTitle) || targetTitle.includes(name)
         })

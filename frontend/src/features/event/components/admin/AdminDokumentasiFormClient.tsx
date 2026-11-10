@@ -293,7 +293,11 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
             </span>
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            Pilih foto-foto momen terbaik kegiatan (maksimal 10 foto, format JPG, PNG, atau WEBP). Foto pertama akan menjadi sampul utama (thumbnail).
+            Pilih foto-foto momen terbaik kegiatan (maksimal 10 foto). Foto pertama otomatis menjadi sampul utama (thumbnail).
+            <br />
+            <span className="font-semibold text-gray-700">Rekomendasi ukuran: </span>
+            <span className="font-bold text-[#561269]">800 × 600 piksel (Rasio 4:3)</span> atau{" "}
+            <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span> agar foto pas dan tidak terpotong saat ditampilkan di galeri.
           </p>
 
           <input
@@ -365,6 +369,9 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
                       <ImagePlus className="w-5 h-5" />
                     </div>
                     <span className="text-xs font-bold text-center">Tambah Foto</span>
+                    <span className="text-[10px] font-semibold text-[#561269] text-center">
+                      4:3 / 16:9
+                    </span>
                     <span className="text-[10px] text-gray-400 text-center">
                       Maksimal {10 - photos.length} lagi
                     </span>

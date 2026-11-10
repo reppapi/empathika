@@ -66,10 +66,10 @@ export function CardFotoAdmin({
               </span>
             </div>
             <p className="text-xs text-gray-600 max-w-sm font-medium">
-              Rekomendasi: <span className="font-bold text-[#561269]">600 × 600 px (rasio 1:1, wajah di tengah)</span>
+              Rekomendasi ukuran: <span className="font-bold text-[#561269]">600 × 600 piksel (Persegi / Rasio 1:1, wajah di tengah)</span>
             </p>
             <p className="text-[11px] text-gray-400">
-              Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
+              Format JPG, PNG, atau WebP • Otomatis disesuaikan dan dikompresi untuk foto profil
             </p>
 
             {/* Tombol Aksi Foto */}

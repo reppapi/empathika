@@ -73,11 +73,11 @@ export function CardInformasiDasar({
             <p className="text-xs font-medium text-gray-700">
               Ubah pas foto formal atau foto profil profesional tenaga ahli.
             </p>
-            <p className="text-[11px] text-gray-600 font-medium">
-              Rekomendasi pas foto: <span className="font-bold text-[#561269]">600 × 600 px (rasio 1:1 / 4:3, wajah di tengah)</span>
+            <p className="text-xs text-gray-600 font-medium">
+              Rekomendasi ukuran: <span className="font-bold text-[#561269]">600 × 600 piksel (Persegi / Rasio 1:1, wajah di tengah)</span>
             </p>
             <p className="text-[11px] text-gray-400">
-              Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi untuk kartu & profil klien
+              Format JPG, PNG, atau WebP • Otomatis disesuaikan untuk kartu dan profil klien
             </p>
             <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
               <input

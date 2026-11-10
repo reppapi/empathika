@@ -10,6 +10,7 @@ import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import AdminEventDetailModal from "./AdminEventDetailModal"
 import AdminDokumentasiEventClient from "./AdminDokumentasiEventClient"
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
 
 export type EventItem = AdminEventData
 
@@ -73,21 +74,28 @@ export default function AdminEventClient() {
     }
   }, [fetchEvents, activeSection])
 
-  // Delete event via API Backend
-  const handleDeleteEvent = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    const target = events.find((ev) => ev.id === id)
-    if (!target) return
+  const [eventToDelete, setEventToDelete] = useState<AdminEventData | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus event "${target.judul}"?`)
-    if (confirmDelete) {
-      try {
-        await eventService.delete(id)
-        setEvents((prev) => prev.filter((ev) => ev.id !== id))
-      } catch (err: any) {
-        const msg = err.response?.data?.message || "Gagal menghapus event."
-        alert(msg)
-      }
+  // Buka modal konfirmasi hapus event
+  const handleOpenDeleteEvent = (target: AdminEventData, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEventToDelete(target)
+  }
+
+  // Konfirmasi Hapus event via API Backend
+  const handleConfirmDeleteEvent = async () => {
+    if (!eventToDelete) return
+    setIsDeleting(true)
+    try {
+      await eventService.delete(eventToDelete.id)
+      setEvents((prev) => prev.filter((ev) => ev.id !== eventToDelete.id))
+      setEventToDelete(null)
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Gagal menghapus event."
+      alert(msg)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -427,7 +435,7 @@ export default function AdminEventClient() {
                               title="Edit Event"
                             />
                             <ActionButtonDelete
-                              onClick={(e) => handleDeleteEvent(item.id, e)}
+                              onClick={(e) => handleOpenDeleteEvent(item, e)}
                               title="Hapus Event"
                             />
                           </div>
@@ -454,6 +462,16 @@ export default function AdminEventClient() {
         onStatusChange={() => {
           fetchEvents()
         }}
+      />
+
+      {/* Modal Konfirmasi Hapus Event */}
+      <AdminDeleteModal
+        isOpen={Boolean(eventToDelete)}
+        onClose={() => !isDeleting && setEventToDelete(null)}
+        onConfirm={handleConfirmDeleteEvent}
+        itemType="event"
+        itemName={eventToDelete?.judul}
+        isLoading={isDeleting}
       />
     </div>
   )

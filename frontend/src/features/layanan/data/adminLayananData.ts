@@ -10,11 +10,14 @@ export interface AdminLayananItem {
   status: "Aktif" | "Nonaktif"
   deskripsi: string
   bannerUrl?: string
+  foto_kegiatan?: string[]
   tarif_tenaga_ahli?: {
     psikolog?: { weekday: number | string; weekend: number | string }
     konselor?: { weekday: number | string; weekend: number | string }
     peer?: { weekday: number | string; weekend: number | string }
   } | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = []

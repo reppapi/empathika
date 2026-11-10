@@ -3,7 +3,20 @@
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2, ChevronDown } from "lucide-react"
+import {
+  CalendarClock,
+  X,
+  Eye,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  ChevronDown,
+  Image as ImageIcon,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
 import {
   AdminLayananItem,
@@ -13,6 +26,7 @@ import {
   saveStoredLayanan,
 } from "../../data/adminLayananData"
 import { layananService } from "@/services/layanan.service"
+import ClientErrorState from "@/components/shared/ClientErrorState"
 import {
   ActionButtonDetail,
   ActionButtonEdit,
@@ -27,6 +41,7 @@ import {
   AdminStatusBadge,
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
 
 function parseRupiahNumber(val: any): number {
   if (typeof val === "number") return isNaN(val) ? 0 : val
@@ -43,6 +58,23 @@ function formatRupiahStandard(val: any, fallbackStr: string = "Rp 0"): string {
   return `Rp\u00A0${num.toLocaleString("id-ID")}`
 }
 
+function formatDateIndo(dateStr?: string): string {
+  if (!dateStr) return "-"
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return "-"
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  } catch {
+    return dateStr
+  }
+}
+
 export default function AdminLayananView() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -54,9 +86,36 @@ export default function AdminLayananView() {
   const categoryParam = searchParams ? (searchParams.get("category") || searchParams.get("kategori")) : null
   const qParam = searchParams ? (searchParams.get("q") || searchParams.get("search")) : null
 
-  const [activeCategory, setActiveCategory] = useState(
-    categoryParam && allowedCategories.includes(categoryParam) ? categoryParam : adminCategories[0]?.id || "01"
-  )
+  const [activeCategory, setActiveCategory] = useState<string>(() => {
+    if (categoryParam && allowedCategories.includes(categoryParam)) {
+      return categoryParam
+    }
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("empathika_admin_layanan_category")
+      if (saved && allowedCategories.includes(saved)) {
+        return saved
+      }
+    }
+    return adminCategories[0]?.id || "01"
+  })
+
+  useEffect(() => {
+    if (categoryParam && allowedCategories.includes(categoryParam)) {
+      setActiveCategory(categoryParam)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("empathika_admin_layanan_category", categoryParam)
+      }
+    } else if (!categoryParam && typeof window !== "undefined") {
+      const saved = localStorage.getItem("empathika_admin_layanan_category")
+      if (saved && allowedCategories.includes(saved) && saved !== activeCategory) {
+        setActiveCategory(saved)
+        const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
+        params.set("category", saved)
+        const qs = params.toString()
+        router.replace((qs ? `/admin/layanan?${qs}` : "/admin/layanan") as any, { scroll: false })
+      }
+    }
+  }, [categoryParam])
   const [searchQuery, setSearchQuery] = useState(qParam || "")
   const [layananList, setLayananList] = useState<AdminLayananItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -64,6 +123,8 @@ export default function AdminLayananView() {
 
   // Modal & Expand States
   const [selectedDetail, setSelectedDetail] = useState<AdminLayananItem | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<AdminLayananItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [expandedRowId, setExpandedRowId] = useState<string | number | null>(null)
 
@@ -80,6 +141,14 @@ export default function AdminLayananView() {
     else if (cat === "SEMINAR") catId = "04"
     else if (cat === "ASESMEN") catId = "05"
 
+    const rawFotos = item.foto_kegiatan || (item.tarif_tenaga_ahli as any)?.foto_kegiatan
+    const fotosList =
+      Array.isArray(rawFotos) && rawFotos.length > 0
+        ? rawFotos.filter(Boolean)
+        : item.banner_url
+        ? [item.banner_url]
+        : undefined
+
     return {
       id: item.id,
       layanan: item.nama,
@@ -90,13 +159,19 @@ export default function AdminLayananView() {
       status: item.aktif ? "Aktif" : "Nonaktif",
       deskripsi: item.deskripsi || "",
       bannerUrl: item.banner_url || "",
+      foto_kegiatan: fotosList,
       tarif_tenaga_ahli: item.tarif_tenaga_ahli || null,
+      createdAt: item.createdAt || undefined,
+      updatedAt: item.updatedAt || undefined,
     }
   }
 
   // Ganti tab kategori sekaligus update URL query param tanpa reload halaman
   const handleCategoryChange = (catId: string) => {
     setActiveCategory(catId)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("empathika_admin_layanan_category", catId)
+    }
     const params = new URLSearchParams(searchParams ? searchParams.toString() : "")
     params.set("category", catId)
     const qs = params.toString()
@@ -125,7 +200,9 @@ export default function AdminLayananView() {
     try {
       const res: any = await layananService.getAll()
       const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      setLayananList(list.map(mapBackendLayananToAdmin))
+      const mapped = list.map(mapBackendLayananToAdmin)
+      setLayananList(mapped)
+      saveStoredLayanan(mapped)
     } catch (err) {
       console.warn("Gagal memuat layanan dari server database:", err)
       setIsError(true)
@@ -142,14 +219,15 @@ export default function AdminLayananView() {
   const handleToggleStatus = async (item: AdminLayananItem) => {
     const newStatus: "Aktif" | "Nonaktif" = item.status === "Aktif" ? "Nonaktif" : "Aktif"
     const newAktif = newStatus === "Aktif"
+    const nowIso = new Date().toISOString()
 
     // 1. Optimistic UI update di tabel admin (layanan tetap ditampilkan, tidak dihilangkan)
     setLayananList((prev) =>
-      prev.map((l) => (String(l.id) === String(item.id) ? { ...l, status: newStatus } : l))
+      prev.map((l) => (String(l.id) === String(item.id) ? { ...l, status: newStatus, updatedAt: nowIso } : l))
     )
 
     // 2. Simpan ke local storage
-    updateLayananById(item.id, { status: newStatus })
+    updateLayananById(item.id, { status: newStatus, updatedAt: nowIso })
 
     // 3. Simpan ke database backend
     try {
@@ -166,18 +244,21 @@ export default function AdminLayananView() {
     }
   }
 
-  // Handle Hapus Layanan langsung ke database backend
-  const handleDelete = async (item: AdminLayananItem) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus layanan "${item.layanan}"?`)) {
-      try {
-        await layananService.delete(String(item.id))
-        deleteLayananById(item.id)
-        setLayananList((prev) => prev.filter((l) => l.id !== item.id))
-        setToastMsg(`Layanan "${item.layanan}" telah dihapus.`)
-        setTimeout(() => setToastMsg(null), 3000)
-      } catch (err: any) {
-        alert(err?.message || "Gagal menghapus layanan dari server.")
-      }
+  // Handle Hapus Layanan langsung ke database backend via modal konfirmasi kustom
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return
+    setIsDeleting(true)
+    try {
+      await layananService.delete(String(itemToDelete.id))
+      deleteLayananById(itemToDelete.id)
+      setLayananList((prev) => prev.filter((l) => l.id !== itemToDelete.id))
+      setToastMsg(`Layanan "${itemToDelete.layanan}" telah dihapus.`)
+      setTimeout(() => setToastMsg(null), 3000)
+      setItemToDelete(null)
+    } catch (err: any) {
+      alert(err?.message || "Gagal menghapus layanan dari server.")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -256,20 +337,20 @@ export default function AdminLayananView() {
           )
         },
       },
-      {
-        key: "metode",
-        header: "Metode Pelaksanaan",
-        width: isPartnership ? "240px" : "180px",
-        render: (item: AdminLayananItem) => (
-          <span className="text-gray-700 font-medium text-xs sm:text-sm">{item.metode}</span>
-        ),
-      },
     ]
 
-    // Hanya tampilkan kolom tarif Weekday & Weekend untuk kategori yang bertarif (Konsultasi & Asesmen)
-    // Untuk Workshop & Seminar, kolom tarif disembunyikan sepenuhnya
+    // Kolom Metode Pelaksanaan & Tarif Weekday/Weekend hanya untuk Konsultasi (01) & Asesmen (05)
+    // Untuk Workshop & Seminar, kolom ini disembunyikan sepenuhnya karena tidak berlaku
     if (!isPartnership) {
       baseCols.push(
+        {
+          key: "metode",
+          header: "Metode Pelaksanaan",
+          width: "180px",
+          render: (item: AdminLayananItem) => (
+            <span className="text-gray-700 font-medium text-xs sm:text-sm">{item.metode}</span>
+          ),
+        },
         {
           key: "weekday",
           header: "Weekday",
@@ -309,6 +390,38 @@ export default function AdminLayananView() {
                   {activeExperts.length > 1 && (
                     <span className="text-[10px] text-gray-500 font-semibold" title={`${activeExperts.length} tenaga ahli tersedia`}>
                       +{activeExperts.length - 1}
+                    </span>
+                  )}
+                </div>
+              )
+            }
+
+            if (item.kategoriId === "05") {
+              const isOnlyOnline = (item.metode || "").toLowerCase().includes("online") && !(item.metode || "").toLowerCase().includes("offline")
+              const onlineVal = (t as any)?.asesmen?.online ?? (t as any)?.online
+              const offlineWk = (t as any)?.asesmen?.offline?.weekday ?? (t as any)?.offline?.weekday ?? item.weekday
+
+              if (isOnlyOnline) {
+                return (
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                      {formatPrice(onlineVal, item.weekday)}
+                    </span>
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+                      Online
+                    </span>
+                  </div>
+                )
+              }
+
+              return (
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                    {formatPrice(offlineWk, item.weekday)}
+                  </span>
+                  {(item.metode || "").toLowerCase().includes("offline") && (
+                    <span className="text-[10px] font-bold text-[#561269] bg-purple-100 px-1.5 py-0.5 rounded">
+                      Offline
                     </span>
                   )}
                 </div>
@@ -367,6 +480,32 @@ export default function AdminLayananView() {
               )
             }
 
+            if (item.kategoriId === "05") {
+              const isOnlyOnline = (item.metode || "").toLowerCase().includes("online") && !(item.metode || "").toLowerCase().includes("offline")
+              const offlineWknd = (t as any)?.asesmen?.offline?.weekend ?? (t as any)?.offline?.weekend ?? item.weekend
+
+              if (isOnlyOnline) {
+                return (
+                  <span className="text-gray-400 font-medium text-xs italic whitespace-nowrap">
+                    - (Sama)
+                  </span>
+                )
+              }
+
+              return (
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums">
+                    {formatPrice(offlineWknd, item.weekend)}
+                  </span>
+                  {(item.metode || "").toLowerCase().includes("offline") && (
+                    <span className="text-[10px] font-bold text-[#561269] bg-purple-100 px-1.5 py-0.5 rounded">
+                      Offline
+                    </span>
+                  )}
+                </div>
+              )
+            }
+
             return (
               <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
                 {formatRupiahStandard(item.weekend)}
@@ -412,11 +551,18 @@ export default function AdminLayananView() {
                 title="Lihat Detail"
               />
               <ActionButtonEdit
-                onClick={() => router.push(`/admin/layanan/edit/${item.id}`)}
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    try {
+                      sessionStorage.setItem("empathika_edit_item", JSON.stringify(item))
+                    } catch {}
+                  }
+                  router.push(`/admin/layanan/edit/${item.id}?category=${item.kategoriId || activeCategory}`)
+                }}
                 title="Edit Layanan"
               />
               <ActionButtonDelete
-                onClick={() => handleDelete(item)}
+                onClick={() => setItemToDelete(item)}
                 title="Hapus Layanan"
               />
             </div>
@@ -492,20 +638,12 @@ export default function AdminLayananView() {
 
         {/* Tampilan Error & Muat Ulang */}
         {isError && (
-          <div className="my-6 p-8 text-center bg-amber-50 border border-amber-200 rounded-3xl">
-            <p className="text-sm sm:text-base font-bold text-amber-900 mb-1">
-              ⚠️ Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi.
-            </p>
-            <p className="text-xs text-amber-700 mb-4">
-              Server database tidak dapat dijangkau saat ini.
-            </p>
-            <button
-              type="button"
-              onClick={fetchLayanan}
-              className="px-6 py-2 bg-[#561269] hover:bg-[#430e52] text-white text-xs sm:text-sm font-bold rounded-full transition shadow-xs active:scale-95 cursor-pointer"
-            >
-              Muat Ulang
-            </button>
+          <div className="my-6">
+            <ClientErrorState
+              message="Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi."
+              onRetry={fetchLayanan}
+              isRetrying={isLoading}
+            />
           </div>
         )}
 
@@ -693,32 +831,45 @@ export default function AdminLayananView() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <span className="text-xs text-gray-500 font-medium block">Metode Pelaksanaan</span>
-                  <span className="font-bold text-gray-900 mt-1 block">{selectedDetail.metode}</span>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-gray-500 font-medium block">Status Layanan</span>
-                    <span className={`font-bold mt-1 block ${selectedDetail.status === "Aktif" ? "text-emerald-600" : "text-gray-500"}`}>
-                      {selectedDetail.status}
-                    </span>
+              {(() => {
+                const isDetailPartnership = selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04"
+                return (
+                  <div className={`grid ${!isDetailPartnership ? "grid-cols-2" : "grid-cols-1"} gap-3`}>
+                    {!isDetailPartnership && (
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <span className="text-xs text-gray-500 font-medium block">Metode Pelaksanaan</span>
+                        <span className="font-bold text-gray-900 mt-1 block">{selectedDetail.metode}</span>
+                      </div>
+                    )}
+                    <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-gray-500 font-medium block">Status Layanan</span>
+                        <span className={`font-bold mt-1 block ${selectedDetail.status === "Aktif" ? "text-emerald-600" : "text-gray-500"}`}>
+                          {selectedDetail.status}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleToggleStatus(selectedDetail)
+                          setSelectedDetail((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  status: prev.status === "Aktif" ? "Nonaktif" : "Aktif",
+                                  updatedAt: new Date().toISOString(),
+                                }
+                              : null
+                          )
+                        }}
+                        className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                      >
+                        Ubah ke {selectedDetail.status === "Aktif" ? "Nonaktif" : "Aktif"}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleToggleStatus(selectedDetail)
-                      setSelectedDetail((prev) =>
-                        prev ? { ...prev, status: prev.status === "Aktif" ? "Nonaktif" : "Aktif" } : null
-                      )
-                    }}
-                    className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer"
-                  >
-                    Ubah ke {selectedDetail.status === "Aktif" ? "Nonaktif" : "Aktif"}
-                  </button>
-                </div>
-              </div>
+                )
+              })()}
 
               {/* Detail Tarif Layanan */}
               {selectedDetail.kategoriId === "01" ? (
@@ -847,22 +998,196 @@ export default function AdminLayananView() {
                   )
                 })()
               ) : selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04" ? null : (
-                /* Asesmen (05): 2 Kartu Reguler */
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 sm:p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl">
-                    <span className="text-xs text-purple-800 font-medium block">Tarif Weekday</span>
-                    <span className="font-bold text-[#561269] text-sm mt-1 block whitespace-nowrap tabular-nums">
-                      {selectedDetail.weekday}
+                /* Asesmen (05): Kartu Online & Offline */
+                (() => {
+                  const t = selectedDetail.tarif_tenaga_ahli
+                  const hasOnline = (selectedDetail.metode || "").toLowerCase().includes("online")
+                  const hasOffline = (selectedDetail.metode || "").toLowerCase().includes("offline")
+                  const onlineVal = (t as any)?.asesmen?.online ?? (t as any)?.online ?? (hasOnline && !hasOffline ? selectedDetail.weekday : null)
+                  const offlineWk = (t as any)?.asesmen?.offline?.weekday ?? (t as any)?.offline?.weekday ?? selectedDetail.weekday
+                  const offlineWknd = (t as any)?.asesmen?.offline?.weekend ?? (t as any)?.offline?.weekend ?? selectedDetail.weekend
+
+                  return (
+                    <div className="space-y-3">
+                      {hasOnline && (
+                        <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                              <span className="text-xs text-blue-900 font-bold">Tarif Online (Psikotes)</span>
+                            </div>
+                            <span className="text-[11px] text-gray-500 block mt-0.5">
+                              Berlaku setiap hari (tanpa perbedaan weekday/weekend)
+                            </span>
+                          </div>
+                          <span className="font-extrabold text-blue-800 text-sm whitespace-nowrap tabular-nums">
+                            {formatPrice(onlineVal, selectedDetail.weekday)}
+                          </span>
+                        </div>
+                      )}
+
+                      {hasOffline && (
+                        <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
+                          <div className="flex items-center gap-1.5 border-b border-purple-100 pb-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#561269]"></span>
+                            <span className="text-xs text-[#561269] font-bold">Tarif Offline (Tatap Muka di Klinik)</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 pt-1">
+                            <div>
+                              <span className="text-[11px] text-gray-500 font-medium block">Weekday (Senin - Jumat)</span>
+                              <span className="font-bold text-[#561269] text-sm block whitespace-nowrap tabular-nums">
+                                {formatPrice(offlineWk, selectedDetail.weekday)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[11px] text-gray-500 font-medium block">Weekend (Sabtu - Minggu)</span>
+                              <span className="font-bold text-[#561269] text-sm block whitespace-nowrap tabular-nums">
+                                {formatPrice(offlineWknd, selectedDetail.weekend)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()
+              )}
+
+              {/* ── Galeri Foto Kegiatan (Workshop & Seminar) atau Banner (Konsultasi & Asesmen) ── */}
+              {(() => {
+                const isDetailPartnership = selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04"
+                const rawFotos = selectedDetail.foto_kegiatan || (selectedDetail.tarif_tenaga_ahli as any)?.foto_kegiatan
+                const fotos: string[] =
+                  Array.isArray(rawFotos) && rawFotos.length > 0
+                    ? rawFotos.filter(Boolean)
+                    : selectedDetail.bannerUrl
+                    ? [selectedDetail.bannerUrl]
+                    : []
+
+                if (isDetailPartnership) {
+                  return (
+                    <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                          <ImageIcon className="w-4 h-4 text-[#561269]" />
+                          Pratinjau Foto Kegiatan (Maksimal 3 Foto)
+                        </span>
+                        <span className="text-[11px] text-gray-500 font-medium">
+                          {fotos.length} dari 3 foto terisi
+                        </span>
+                      </div>
+
+                      {fotos.length === 0 ? (
+                        <div className="py-6 text-center border-2 border-dashed border-gray-200 rounded-xl bg-white">
+                          <ImageIcon className="w-7 h-7 text-gray-300 mx-auto mb-1.5" />
+                          <p className="text-xs text-gray-500 font-medium">Belum ada foto kegiatan yang diunggah.</p>
+                          <p className="text-[10px] text-gray-400">Unggah foto kegiatan melalui tombol Edit Layanan.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          {[0, 1, 2].map((idx) => {
+                            const url = fotos[idx]
+                            return (
+                              <div
+                                key={idx}
+                                className={`relative rounded-xl overflow-hidden border ${
+                                  url ? "border-purple-200 bg-white" : "border-dashed border-gray-200 bg-gray-100/60"
+                                } flex flex-col justify-between min-h-[125px]`}
+                              >
+                                {url ? (
+                                  <>
+                                    <div className="w-full h-24 relative bg-gray-100 overflow-hidden">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={url}
+                                        alt={`Foto Kegiatan ${idx + 1}`}
+                                        className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+                                      />
+                                    </div>
+                                    <div className="w-full px-2.5 py-1.5 bg-white flex items-center justify-between border-t border-purple-100 text-[10px]">
+                                      <span className="font-bold text-gray-700">
+                                        {idx === 0 ? "⭐ Foto 1 (Utama)" : `Foto ${idx + 1}`}
+                                      </span>
+                                      <a
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[#561269] hover:underline font-semibold"
+                                      >
+                                        Buka
+                                      </a>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-center p-4 text-gray-400 my-auto">
+                                    <ImageIcon className="w-5 h-5 mx-auto mb-1 opacity-40" />
+                                    <span className="text-[10px] font-medium block">Foto {idx + 1} Kosong</span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
+                if (selectedDetail.bannerUrl) {
+                  return (
+                    <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
+                      <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                        <ImageIcon className="w-4 h-4 text-[#561269]" />
+                        Poster / Banner Layanan
+                      </span>
+                      <div className="relative rounded-xl overflow-hidden border border-purple-200 bg-white max-w-xs">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={selectedDetail.bannerUrl}
+                          alt={selectedDetail.layanan}
+                          className="w-full h-32 object-cover"
+                        />
+                        <div className="px-2.5 py-1.5 bg-white flex items-center justify-between border-t border-purple-100 text-[10px]">
+                          <span className="font-bold text-gray-700">Banner Tampilan</span>
+                          <a
+                            href={selectedDetail.bannerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#561269] hover:underline font-semibold"
+                          >
+                            Buka Penuh
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                return null
+              })()}
+
+              {/* ── Audit Log: Waktu Pembuatan & Pembaruan Terakhir ── */}
+              <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                  Informasi Aktivitas Data (Audit Log)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-gray-600 bg-white px-3 py-2 rounded-lg border border-gray-100">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="text-gray-500">Dibuat:</span>
+                    <span className="font-semibold text-gray-800 ml-auto tabular-nums">
+                      {formatDateIndo(selectedDetail.createdAt)}
                     </span>
                   </div>
-                  <div className="p-3 sm:p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl">
-                    <span className="text-xs text-purple-800 font-medium block">Tarif Weekend</span>
-                    <span className="font-bold text-[#561269] text-sm mt-1 block whitespace-nowrap tabular-nums">
-                      {selectedDetail.weekend}
+                  <div className="flex items-center gap-2 text-gray-600 bg-white px-3 py-2 rounded-lg border border-gray-100">
+                    <Clock className="w-3.5 h-3.5 text-[#561269] shrink-0" />
+                    <span className="text-gray-500">Terakhir Diperbarui:</span>
+                    <span className="font-semibold text-gray-800 ml-auto tabular-nums">
+                      {formatDateIndo(selectedDetail.updatedAt)}
                     </span>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2.5">
@@ -870,8 +1195,14 @@ export default function AdminLayananView() {
                 type="button"
                 onClick={() => {
                   const targetId = selectedDetail.id
+                  const targetCat = selectedDetail.kategoriId || activeCategory
+                  if (typeof window !== "undefined") {
+                    try {
+                      sessionStorage.setItem("empathika_edit_item", JSON.stringify(selectedDetail))
+                    } catch {}
+                  }
                   setSelectedDetail(null)
-                  router.push(`/admin/layanan/edit/${targetId}`)
+                  router.push(`/admin/layanan/edit/${targetId}?category=${targetCat}`)
                 }}
                 className="px-5 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
               >
@@ -889,6 +1220,16 @@ export default function AdminLayananView() {
           </div>
         </div>
       )}
+
+      {/* ── MODAL KONFIRMASI HAPUS KUSTOM ── */}
+      <AdminDeleteModal
+        isOpen={Boolean(itemToDelete)}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        itemType="layanan"
+        itemName={itemToDelete?.layanan}
+        isLoading={isDeleting}
+      />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useTenantContext } from "@/context/TenantContext"
 import { layananService, type LayananApiResponse } from "@/services/layanan.service"
 import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
+import ClientErrorState from "@/components/shared/ClientErrorState"
 
 const CARD_THEMES = [
   {
@@ -41,7 +42,8 @@ export default function KonselingClient() {
       setIsError(false)
       const res = await layananService.getAll({ kategori: "KONSULTASI" })
       const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      setLayananList(raw)
+      const activeOnly = raw.filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
+      setLayananList(activeOnly)
     } catch (err) {
       console.error("Gagal mengambil data layanan konsultasi:", err)
       setIsError(true)
@@ -77,16 +79,11 @@ export default function KonselingClient() {
 
       {/* Banner Error jika Backend Gagal */}
       {isError && (
-        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-red-700 text-sm font-medium">
-            ⚠️ Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi.
-          </div>
-          <button
-            onClick={fetchLayanan}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm shrink-0"
-          >
-            Muat Ulang
-          </button>
+        <div className="mb-8">
+          <ClientErrorState
+            onRetry={fetchLayanan}
+            isRetrying={isLoading}
+          />
         </div>
       )}
 

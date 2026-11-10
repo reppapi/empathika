@@ -63,7 +63,11 @@ export class LayananService {
     const deskripsi = input.deskripsi?.trim() || ''
     let hargaWeekday = input.harga_weekday !== undefined ? input.harga_weekday : (input.weekday !== undefined ? input.weekday : 0)
     let hargaWeekend = input.harga_weekend !== undefined ? input.harga_weekend : (input.weekend !== undefined ? input.weekend : 0)
-    const tarifTenagaAhli = input.tarif_tenaga_ahli || null
+    let tarifTenagaAhli: any = input.tarif_tenaga_ahli || null
+    if (input.foto_kegiatan && input.foto_kegiatan.length > 0) {
+      tarifTenagaAhli = tarifTenagaAhli && typeof tarifTenagaAhli === 'object' ? { ...tarifTenagaAhli } : {}
+      tarifTenagaAhli.foto_kegiatan = input.foto_kegiatan
+    }
 
     // Jika kategori Konsultasi dan ada tarif_tenaga_ahli, fallback harga umum ke tarif psikolog
     if (tarifTenagaAhli && typeof tarifTenagaAhli === 'object') {
@@ -74,7 +78,10 @@ export class LayananService {
       }
     }
 
-    const bannerUrl = input.banner_url || input.bannerUrl || null
+    let bannerUrl = input.banner_url || input.bannerUrl || null
+    if (!bannerUrl && input.foto_kegiatan && input.foto_kegiatan.length > 0) {
+      bannerUrl = input.foto_kegiatan[0]
+    }
     const aktif = this.normalizeAktif(input.aktif, input.status)
 
     const createData: Prisma.LayananCreateInput = {
@@ -148,6 +155,17 @@ export class LayananService {
           if (psi.weekday && updateData.harga_weekday === undefined) updateData.harga_weekday = Number(psi.weekday)
           if (psi.weekend && updateData.harga_weekend === undefined) updateData.harga_weekend = Number(psi.weekend)
         }
+      }
+    }
+
+    if (input.foto_kegiatan !== undefined) {
+      const existingTarif = (existing.tarif_tenaga_ahli && typeof existing.tarif_tenaga_ahli === 'object' ? existing.tarif_tenaga_ahli : {}) as any
+      const currentTarif = (updateData as any).tarif_tenaga_ahli || existingTarif
+      const updatedTarif = { ...currentTarif, foto_kegiatan: input.foto_kegiatan }
+      ;(updateData as any).tarif_tenaga_ahli = updatedTarif
+
+      if (input.banner_url === undefined && input.bannerUrl === undefined && input.foto_kegiatan.length > 0) {
+        updateData.banner_url = input.foto_kegiatan[0]
       }
     }
 

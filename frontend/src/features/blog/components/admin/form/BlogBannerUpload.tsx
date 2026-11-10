@@ -131,7 +131,7 @@ export function BlogBannerUpload({
                 Upload gambar poster / banner
               </span>
               <span className="block text-xs font-medium text-gray-600 mt-1">
-                Rekomendasi ukuran: <strong className="text-[#561269]">1200 × 675 px (rasio 16:9)</strong>
+                Rekomendasi ukuran: <strong className="text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</strong>
               </span>
               <span className="block text-[11px] text-gray-400 mt-0.5">
                 Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi

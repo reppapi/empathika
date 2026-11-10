@@ -8,6 +8,7 @@ import { ActionButtonDetail, ActionButtonEdit, ActionButtonDelete } from "@/comp
 import { Calendar, Image as ImageIcon, Search, Plus, Loader2 } from "lucide-react"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 import AdminDokumentasiDetailModal from "./AdminDokumentasiDetailModal"
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
 
 export default function AdminDokumentasiEventClient() {
   const router = useRouter()
@@ -15,6 +16,8 @@ export default function AdminDokumentasiEventClient() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedItemForModal, setSelectedItemForModal] = useState<EventDokumentasiApi | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<EventDokumentasiApi | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchDokumentasi = useCallback(async () => {
     try {
@@ -37,19 +40,23 @@ export default function AdminDokumentasiEventClient() {
     fetchDokumentasi()
   }, [fetchDokumentasi])
 
-  const handleDelete = async (item: EventDokumentasiApi, e: React.MouseEvent) => {
+  const handleOpenDelete = (item: EventDokumentasiApi, e: React.MouseEvent) => {
     e.stopPropagation()
-    const confirmed = window.confirm(
-      `Apakah Anda yakin ingin menghapus dokumentasi event "${item.judul}"?\nSemua foto arsip terkait juga akan dihapus dari server.`
-    )
-    if (!confirmed) return
+    setItemToDelete(item)
+  }
 
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return
+    setIsDeleting(true)
     try {
-      await eventService.deleteDokumentasi(item.id)
-      setItems((prev) => prev.filter((d) => d.id !== item.id))
+      await eventService.deleteDokumentasi(itemToDelete.id)
+      setItems((prev) => prev.filter((d) => d.id !== itemToDelete.id))
+      setItemToDelete(null)
     } catch (err: any) {
       console.error("Gagal menghapus dokumentasi:", err)
       alert(err.response?.data?.message || "Gagal menghapus dokumentasi event.")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -211,7 +218,7 @@ export default function AdminDokumentasiEventClient() {
                             title="Edit Dokumentasi"
                           />
                           <ActionButtonDelete
-                            onClick={(e) => handleDelete(item, e)}
+                            onClick={(e) => handleOpenDelete(item, e)}
                             title="Hapus Dokumentasi"
                           />
                         </div>
@@ -234,6 +241,25 @@ export default function AdminDokumentasiEventClient() {
           setSelectedItemForModal(null)
           router.push(`/admin/event/dokumentasi/edit/${id}`)
         }}
+      />
+
+      {/* Modal Konfirmasi Hapus Dokumentasi */}
+      <AdminDeleteModal
+        isOpen={Boolean(itemToDelete)}
+        onClose={() => !isDeleting && setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        itemType="dokumentasi event"
+        itemName={itemToDelete?.judul}
+        description={
+          itemToDelete ? (
+            <>
+              Apakah Anda yakin ingin menghapus dokumentasi event{" "}
+              <span className="font-extrabold text-gray-900">&ldquo;{itemToDelete.judul}&rdquo;</span>?
+              Semua foto arsip terkait juga akan dihapus secara permanen.
+            </>
+          ) : undefined
+        }
+        isLoading={isDeleting}
       />
     </div>
   )

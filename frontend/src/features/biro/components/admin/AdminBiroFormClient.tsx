@@ -585,11 +585,11 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-gray-600 font-medium">
-                  Rekomendasi ukuran: <strong className="text-[#561269]">500 × 500 px (1:1)</strong>
+                <p className="text-xs text-gray-600 font-medium">
+                  Rekomendasi ukuran: <span className="font-bold text-[#561269]">500 × 500 piksel (Persegi / Rasio 1:1, logo di tengah)</span>
                 </p>
                 <p className="text-[11px] text-gray-400">
-                  Format JPG, PNG, WEBP, atau SVG • Bebas ukuran berapa pun, otomatis dikompresi
+                  Format JPG, PNG, WEBP, atau SVG • Otomatis disesuaikan untuk navbar dan profil biro
                 </p>
                 {errors.logo && (
                   <p className="text-xs text-red-500 font-semibold">{errors.logo}</p>
