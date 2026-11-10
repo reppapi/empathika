@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { eventService, CreateEventDto, UpdateEventDto } from "@/services/event.service"
+import { eventService, CreateEventDto, UpdateEventDto, PaketBundlingItem } from "@/services/event.service"
 import { uploadService } from "@/services/upload.service"
 import { EVENT_JENIS, EVENT_TIPE, EVENT_STATUS, EventJenis, EventTipe, EventStatus } from "../../constants/eventConstants"
 import { inputClass, labelClass, helperClass } from "./form/formStyles"
@@ -25,6 +25,11 @@ export type EventFormData = {
   kuota: string
   harga: string
   hargaCoret: string
+  hargaBundling: string
+  kuotaTiketBundling: string
+  namaBundling: string
+  paketBundlingList: PaketBundlingItem[]
+  isBundlingActive: boolean
   deskripsi: string
   status: EventStatus
 }
@@ -43,6 +48,13 @@ const INITIAL_FORM: EventFormData = {
   kuota: "100",
   harga: "0",
   hargaCoret: "",
+  hargaBundling: "",
+  kuotaTiketBundling: "2",
+  namaBundling: "Paket Duo Hemat",
+  paketBundlingList: [
+    { nama_paket: "Paket Duo Hemat", kuota_tiket: 2, harga_paket: 0 },
+  ],
+  isBundlingActive: false,
   deskripsi: "",
   status: EVENT_STATUS.DIPUBLIKASI,
 }
@@ -113,6 +125,23 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
           const tipe: EventTipe = item.tipe_event === "OFFLINE" ? EVENT_TIPE.OFFLINE : EVENT_TIPE.ONLINE
 
+          const rawBundlingList = item.paket_bundling && Array.isArray(item.paket_bundling) && item.paket_bundling.length > 0
+            ? item.paket_bundling
+            : item.harga_bundling && parseFloat(String(item.harga_bundling)) > 0
+            ? [
+                {
+                  nama_paket: item.nama_bundling || "Paket Duo Hemat",
+                  kuota_tiket: item.kuota_tiket_bundling || 2,
+                  harga_paket: parseFloat(String(item.harga_bundling)),
+                },
+              ]
+            : [{ nama_paket: "Paket Duo Hemat", kuota_tiket: 2, harga_paket: 0 }]
+
+          const hasBundlingActive = Boolean(
+            (item.paket_bundling && Array.isArray(item.paket_bundling) && item.paket_bundling.length > 0) ||
+            (item.harga_bundling && parseFloat(String(item.harga_bundling)) > 0)
+          )
+
           setForm({
             judul: item.judul,
             jenis,
@@ -127,6 +156,11 @@ export default function AdminEventFormClient({ eventId }: Props) {
             kuota: String(item.kuota),
             harga: String(item.harga),
             hargaCoret: item.harga_coret ? String(item.harga_coret) : "",
+            hargaBundling: item.harga_bundling ? String(item.harga_bundling) : "",
+            kuotaTiketBundling: item.kuota_tiket_bundling ? String(item.kuota_tiket_bundling) : "2",
+            namaBundling: item.nama_bundling || "Paket Duo Hemat",
+            paketBundlingList: rawBundlingList,
+            isBundlingActive: hasBundlingActive,
             deskripsi: item.deskripsi,
             status,
           })
@@ -251,6 +285,21 @@ export default function AdminEventFormClient({ eventId }: Props) {
     const tipeEvent: "ONLINE" | "OFFLINE" = form.tipe === EVENT_TIPE.OFFLINE ? "OFFLINE" : "ONLINE"
     const hargaNum = parseFloat(form.harga) || 0
     const hargaCoretNum = form.hargaCoret && form.hargaCoret.trim() !== "" ? parseFloat(form.hargaCoret) : null
+    const validBundlingList = form.isBundlingActive
+      ? form.paketBundlingList
+          .filter((p) => p.nama_paket && p.nama_paket.trim() !== "" && p.harga_paket > 0)
+          .map((p) => ({
+            nama_paket: p.nama_paket.trim(),
+            kuota_tiket: Number(p.kuota_tiket) || 2,
+            harga_paket: Number(p.harga_paket) || 0,
+          }))
+      : []
+
+    const firstBundle = validBundlingList.length > 0 ? validBundlingList[0] : null
+    const hargaBundlingNum = firstBundle ? firstBundle.harga_paket : null
+    const kuotaTiketBundlingNum = firstBundle ? firstBundle.kuota_tiket : null
+    const namaBundlingStr = firstBundle ? firstBundle.nama_paket : null
+    const paketBundlingPayload = validBundlingList.length > 0 ? validBundlingList : null
     const finalMeetUrl = tipeEvent === "ONLINE" ? (form.linkMeet.trim() || null) : null
     const finalWaUrl = form.linkWa.trim()
 
@@ -294,6 +343,10 @@ export default function AdminEventFormClient({ eventId }: Props) {
           kuota: parseInt(form.kuota, 10) || 100,
           harga: hargaNum,
           harga_coret: hargaCoretNum,
+          harga_bundling: hargaBundlingNum,
+          kuota_tiket_bundling: kuotaTiketBundlingNum,
+          nama_bundling: namaBundlingStr,
+          paket_bundling: paketBundlingPayload,
           banner_url: finalBannerUrl,
           nama_pembicara: form.pembicara,
           status: statusEvent,
@@ -314,6 +367,10 @@ export default function AdminEventFormClient({ eventId }: Props) {
           kuota: parseInt(form.kuota, 10) || 100,
           harga: hargaNum,
           harga_coret: hargaCoretNum,
+          harga_bundling: hargaBundlingNum,
+          kuota_tiket_bundling: kuotaTiketBundlingNum,
+          nama_bundling: namaBundlingStr,
+          paket_bundling: paketBundlingPayload,
           banner_url: finalBannerUrl,
           nama_pembicara: form.pembicara,
           status: statusEvent,
@@ -454,10 +511,11 @@ export default function AdminEventFormClient({ eventId }: Props) {
             dateInputRef={dateInputRef}
           />
 
-          {/* Kuota, Harga Asli, dan Harga Coret (Efek Diskon) */}
+          {/* Kuota, Harga Asli, dan Harga Coret (Efek Diskon) + Bundling */}
           <EventPricingQuotaSection
             form={form}
             handleChange={handleChange}
+            setForm={setForm}
             errors={errors}
           />
 

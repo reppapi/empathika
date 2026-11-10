@@ -34,6 +34,13 @@ export const eventQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100, 'Maksimal 100 item per halaman').default(10),
 })
 
+export const paketBundlingItemSchema = z.object({
+  id: z.string().optional(),
+  nama_paket: z.string().trim().min(1, 'Nama paket wajib diisi'),
+  kuota_tiket: z.number().int().min(2, 'Minimal bundling adalah 2 tiket'),
+  harga_paket: z.number().min(0, 'Harga paket tidak boleh negatif'),
+})
+
 // ==========================================
 // BODY SCHEMAS
 // ==========================================
@@ -98,6 +105,26 @@ export const createEventSchema = z
       .max(EVENT_LIMITS.MAX_HARGA, 'Harga coret terlalu besar')
       .optional()
       .nullable(),
+    harga_bundling: z
+      .number()
+      .min(0, 'Harga bundling tidak boleh negatif')
+      .max(EVENT_LIMITS.MAX_HARGA, 'Harga bundling terlalu besar')
+      .optional()
+      .nullable(),
+    kuota_tiket_bundling: z
+      .number()
+      .int()
+      .min(2, 'Minimal bundling adalah 2 tiket')
+      .max(10, 'Maksimal bundling adalah 10 tiket')
+      .optional()
+      .nullable(),
+    nama_bundling: z
+      .string()
+      .trim()
+      .max(100, 'Nama bundling maksimal 100 karakter')
+      .optional()
+      .nullable(),
+    paket_bundling: z.array(paketBundlingItemSchema).optional().nullable(),
     banner_url: z.string().trim().nullish().default('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80'),
     nama_pembicara: z
       .string({ required_error: 'Nama pembicara wajib diisi' })
@@ -193,6 +220,26 @@ export const updateEventSchema = z
       .max(99999999.99, 'Harga coret terlalu besar')
       .optional()
       .nullable(),
+    harga_bundling: z
+      .number()
+      .min(0, 'Harga bundling tidak boleh negatif')
+      .max(99999999.99, 'Harga bundling terlalu besar')
+      .optional()
+      .nullable(),
+    kuota_tiket_bundling: z
+      .number()
+      .int()
+      .min(2, 'Minimal bundling adalah 2 tiket')
+      .max(10, 'Maksimal bundling adalah 10 tiket')
+      .optional()
+      .nullable(),
+    nama_bundling: z
+      .string()
+      .trim()
+      .max(100, 'Nama bundling maksimal 100 karakter')
+      .optional()
+      .nullable(),
+    paket_bundling: z.array(paketBundlingItemSchema).optional().nullable(),
     banner_url: z.string().trim().nullish(),
     nama_pembicara: z
       .string()
@@ -245,6 +292,10 @@ export const eventItemSchema = z.object({
   kuota: z.number(),
   harga: z.union([z.number(), z.string()]), // Decimal dari Prisma bisa jadi string
   harga_coret: z.union([z.number(), z.string()]).nullable().optional(),
+  harga_bundling: z.union([z.number(), z.string()]).nullable().optional(),
+  kuota_tiket_bundling: z.number().nullable().optional(),
+  nama_bundling: z.string().nullable().optional(),
+  paket_bundling: z.any().nullable().optional(),
   banner_url: z.string().nullable(),
   nama_pembicara: z.string(),
   status: statusEventEnum,

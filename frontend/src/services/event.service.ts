@@ -1,5 +1,12 @@
 import apiClient from "@/lib/axios"
 
+export interface PaketBundlingItem {
+  id?: string
+  nama_paket: string
+  kuota_tiket: number
+  harga_paket: number
+}
+
 export interface EventItemApi {
   id: string
   judul: string
@@ -15,6 +22,10 @@ export interface EventItemApi {
   kuota: number
   harga: number | string
   harga_coret?: number | string | null
+  harga_bundling?: number | string | null
+  kuota_tiket_bundling?: number | null
+  nama_bundling?: string | null
+  paket_bundling?: PaketBundlingItem[] | null
   banner_url: string | null
   nama_pembicara: string
   status: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -38,6 +49,10 @@ export interface CreateEventDto {
   kuota: number
   harga: number
   harga_coret?: number | null
+  harga_bundling?: number | null
+  kuota_tiket_bundling?: number | null
+  nama_bundling?: string | null
+  paket_bundling?: PaketBundlingItem[] | null
   banner_url?: string | null
   nama_pembicara: string
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -57,6 +72,10 @@ export interface UpdateEventDto {
   kuota?: number
   harga?: number
   harga_coret?: number | null
+  harga_bundling?: number | null
+  kuota_tiket_bundling?: number | null
+  nama_bundling?: string | null
+  paket_bundling?: PaketBundlingItem[] | null
   banner_url?: string | null
   nama_pembicara?: string
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"

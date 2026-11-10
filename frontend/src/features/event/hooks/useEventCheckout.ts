@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { eventService } from "@/services/event.service"
+import { eventService, PaketBundlingItem } from "@/services/event.service"
 
 export function useEventCheckout() {
   const router = useRouter()
@@ -10,6 +10,19 @@ export function useEventCheckout() {
 
   const [nama, setNama] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
+
+  // State untuk Paket Bundling
+  const [selectedTicketType, setSelectedTicketType] = useState<string>("SINGLE")
+  const [pesertaTambahan, setPesertaTambahan] = useState<{ nama: string; whatsapp: string }[]>([])
+
+  // State data bundling yang diambil langsung dari database server
+  const [serverEventData, setServerEventData] = useState<{
+    harga_bundling?: number | string | null
+    kuota_tiket_bundling?: number | null
+    nama_bundling?: string | null
+    paket_bundling?: PaketBundlingItem[] | null
+    harga?: number | string
+  } | null>(null)
 
   const [metodePembayaran, setMetodePembayaran] = useState<string | null>(null)
   const [selectedBank, setSelectedBank] = useState<string | null>(null)
@@ -26,6 +39,9 @@ export function useEventCheckout() {
   const [errors, setErrors] = useState<{
     nama?: string
     whatsapp?: string
+    pesertaTambahanErrors?: { nama?: string; whatsapp?: string }[]
+    namaPeserta2?: string
+    whatsappPeserta2?: string
     metodePembayaran?: string
     detailMetode?: string
   }>({})
@@ -56,6 +72,14 @@ export function useEventCheckout() {
           setEventClosedReason("Event tidak ditemukan atau pendaftaran telah dihapus.")
           return
         }
+
+        setServerEventData({
+          harga_bundling: ev.harga_bundling,
+          kuota_tiket_bundling: ev.kuota_tiket_bundling,
+          nama_bundling: ev.nama_bundling,
+          paket_bundling: ev.paket_bundling,
+          harga: ev.harga,
+        })
 
         // Jika status selesai, dibatalkan, atau masih draft (dinonaktifkan oleh admin)
         if (ev.status === "COMPLETED") {
@@ -117,6 +141,68 @@ export function useEventCheckout() {
   const waktuParam = searchParams.get("waktu") || "09:00"
   const kategoriParam = searchParams.get("kategori") || "Workshop"
   const hargaParam = searchParams.get("harga") || "Gratis"
+
+  // Parameter Bundling (Gabungan dari URL params dan Server DB response)
+  const serverBundlingList: PaketBundlingItem[] =
+    serverEventData?.paket_bundling && Array.isArray(serverEventData.paket_bundling) && serverEventData.paket_bundling.length > 0
+      ? serverEventData.paket_bundling
+      : serverEventData?.harga_bundling && Number(serverEventData.harga_bundling) > 0
+      ? [
+          {
+            nama_paket: serverEventData.nama_bundling || "Paket Duo Hemat",
+            kuota_tiket: serverEventData.kuota_tiket_bundling || 2,
+            harga_paket: Number(serverEventData.harga_bundling),
+          },
+        ]
+      : []
+
+  const urlHargaBundling = searchParams.get("hargaBundling") ? parseFloat(searchParams.get("hargaBundling")!) : 0
+  const urlKuotaBundling = parseInt(searchParams.get("kuotaBundling") || "2", 10)
+  const urlNamaBundling = searchParams.get("namaBundling") || "Paket Duo Hemat"
+
+  const finalBundlingOptions: PaketBundlingItem[] =
+    serverBundlingList.length > 0
+      ? serverBundlingList
+      : urlHargaBundling > 0
+      ? [
+          {
+            nama_paket: urlNamaBundling,
+            kuota_tiket: urlKuotaBundling,
+            harga_paket: urlHargaBundling,
+          },
+        ]
+      : []
+
+  const hasBundling = finalBundlingOptions.length > 0
+
+  // Cari paket yang sedang dipilih
+  const currentSelectedBundle =
+    selectedTicketType !== "SINGLE"
+      ? finalBundlingOptions.find((p, idx) => `BUNDLE_${idx}` === selectedTicketType || p.nama_paket === selectedTicketType) ||
+        finalBundlingOptions[0]
+      : null
+
+  const activeHargaTeks = currentSelectedBundle
+    ? `Rp ${Number(currentSelectedBundle.harga_paket).toLocaleString("id-ID")}`
+    : hargaParam
+
+  // Sesuaikan jumlah form peserta tambahan jika paket bundling dipilih
+  useEffect(() => {
+    if (currentSelectedBundle) {
+      const neededExtra = Math.max(0, currentSelectedBundle.kuota_tiket - 1)
+      setPesertaTambahan((prev) => {
+        if (prev.length === neededExtra) return prev
+        const updated = [...prev]
+        while (updated.length < neededExtra) {
+          updated.push({ nama: "", whatsapp: "" })
+        }
+        return updated.slice(0, neededExtra)
+      })
+    } else {
+      setPesertaTambahan([])
+    }
+  }, [currentSelectedBundle])
+
   const isPsikotes = kategoriParam.toLowerCase().includes("psikotes")
 
   const handleSelectPayment = (id: string) => {
@@ -145,15 +231,18 @@ export function useEventCheckout() {
     const newErrors: {
       nama?: string
       whatsapp?: string
+      pesertaTambahanErrors?: { nama?: string; whatsapp?: string }[]
+      namaPeserta2?: string
+      whatsappPeserta2?: string
       metodePembayaran?: string
       detailMetode?: string
     } = {}
 
     if (!nama.trim()) {
-      newErrors.nama = "Nama lengkap wajib diisi."
+      newErrors.nama = "Nama lengkap peserta 1 wajib diisi."
     }
     if (!whatsapp.trim()) {
-      newErrors.whatsapp = "Nomor WhatsApp aktif wajib diisi."
+      newErrors.whatsapp = "Nomor WhatsApp aktif peserta 1 wajib diisi."
     } else {
       const cleanWa = whatsapp.replace(/\D/g, "")
       const local = cleanWa.startsWith("62") ? cleanWa.slice(2) : cleanWa
@@ -163,6 +252,59 @@ export function useEventCheckout() {
         newErrors.whatsapp = "Nomor WhatsApp terlalu pendek (minimal 10 digit, contoh: +62 812-3456-7890)."
       } else if (local.length > 13) {
         newErrors.whatsapp = "Nomor WhatsApp terlalu panjang (maksimal 14 digit angka)."
+      }
+    }
+
+    // Validasi Peserta Tambahan jika memilih paket BUNDLING
+    const additionalErrors: { nama?: string; whatsapp?: string }[] = []
+    let hasAdditionalError = false
+
+    if (currentSelectedBundle && pesertaTambahan.length > 0) {
+      const allNumbers = [whatsapp.replace(/\D/g, "")]
+      const allNames = [nama.trim().toLowerCase()]
+
+      pesertaTambahan.forEach((p, pIdx) => {
+        const itemErr: { nama?: string; whatsapp?: string } = {}
+        const pNama = p.nama.trim()
+        const pWa = p.whatsapp.trim()
+
+        if (!pNama) {
+          itemErr.nama = `Nama lengkap peserta ${pIdx + 2} wajib diisi.`
+          hasAdditionalError = true
+        } else if (allNames.includes(pNama.toLowerCase())) {
+          itemErr.nama = `Nama peserta ${pIdx + 2} tidak boleh sama dengan peserta lainnya.`
+          hasAdditionalError = true
+        } else {
+          allNames.push(pNama.toLowerCase())
+        }
+
+        if (!pWa) {
+          itemErr.whatsapp = `Nomor WhatsApp peserta ${pIdx + 2} wajib diisi.`
+          hasAdditionalError = true
+        } else {
+          const clean = pWa.replace(/\D/g, "")
+          const local = clean.startsWith("62") ? clean.slice(2) : clean
+          if (!local.startsWith("8")) {
+            itemErr.whatsapp = `Nomor WhatsApp peserta ${pIdx + 2} harus diawali angka 8.`
+            hasAdditionalError = true
+          } else if (local.length < 9) {
+            itemErr.whatsapp = `Nomor WhatsApp peserta ${pIdx + 2} terlalu pendek.`
+            hasAdditionalError = true
+          } else if (local.length > 13) {
+            itemErr.whatsapp = `Nomor WhatsApp peserta ${pIdx + 2} terlalu panjang.`
+            hasAdditionalError = true
+          } else if (allNumbers.includes(clean)) {
+            itemErr.whatsapp = `Nomor WhatsApp peserta ${pIdx + 2} tidak boleh sama dengan peserta lainnya.`
+            hasAdditionalError = true
+          } else {
+            allNumbers.push(clean)
+          }
+        }
+        additionalErrors.push(itemErr)
+      })
+
+      if (hasAdditionalError) {
+        newErrors.pesertaTambahanErrors = additionalErrors
       }
     }
     if (!metodePembayaran) {
@@ -201,7 +343,13 @@ export function useEventCheckout() {
       judul: judulParam,
       subjudul: subjudulParam,
       kategori: kategoriParam,
-      harga: hargaParam,
+      harga: activeHargaTeks,
+      tipeTiket: selectedTicketType,
+      ...(currentSelectedBundle && {
+        namaBundling: currentSelectedBundle.nama_paket,
+        kuotaBundling: String(currentSelectedBundle.kuota_tiket),
+        dataPesertaTambahan: JSON.stringify(pesertaTambahan),
+      }),
       metode: metodePembayaran!,
       tipe: tipeParam,
       ...(eventIdParam && { eventId: eventIdParam }),
@@ -240,7 +388,15 @@ export function useEventCheckout() {
     tanggalParam,
     waktuParam,
     kategoriParam,
-    hargaParam,
+    hargaParam: activeHargaTeks,
+    hargaNormalParam: hargaParam,
+    selectedTicketType,
+    setSelectedTicketType,
+    hasBundling,
+    finalBundlingOptions,
+    currentSelectedBundle,
+    pesertaTambahan,
+    setPesertaTambahan,
     isPsikotes,
     tipeParam,
     linkMeetParam,

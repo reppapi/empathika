@@ -1,4 +1,5 @@
-import type { PrismaClient, Prisma, JenisEvent, StatusEvent, TipeEvent } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import type { PrismaClient, JenisEvent, StatusEvent, TipeEvent } from '@prisma/client'
 import type { CreateEventInput, UpdateEventInput } from './event.schema'
 
 export interface EventQueryInput {
@@ -63,6 +64,10 @@ export class EventRepository {
         ...item,
         harga: item.harga.toString(),
         harga_coret: item.harga_coret ? item.harga_coret.toString() : null,
+        harga_bundling: item.harga_bundling ? item.harga_bundling.toString() : null,
+        kuota_tiket_bundling: item.kuota_tiket_bundling ?? 2,
+        nama_bundling: item.nama_bundling ?? null,
+        paket_bundling: item.paket_bundling ?? null,
         jumlah_booking: item._count.booking_event,
         sisa_kuota: item.kuota - item._count.booking_event,
       })),
@@ -91,6 +96,10 @@ export class EventRepository {
       ...item,
       harga: item.harga.toString(),
       harga_coret: item.harga_coret ? item.harga_coret.toString() : null,
+      harga_bundling: item.harga_bundling ? item.harga_bundling.toString() : null,
+      kuota_tiket_bundling: item.kuota_tiket_bundling ?? 2,
+      nama_bundling: item.nama_bundling ?? null,
+      paket_bundling: item.paket_bundling ?? null,
       jumlah_booking: item._count.booking_event,
       sisa_kuota: item.kuota - item._count.booking_event,
     }
@@ -119,6 +128,10 @@ export class EventRepository {
         kuota: data.kuota,
         harga: data.harga,
         harga_coret: data.harga_coret !== undefined && data.harga_coret !== null ? data.harga_coret : null,
+        harga_bundling: data.harga_bundling !== undefined && data.harga_bundling !== null ? data.harga_bundling : null,
+        kuota_tiket_bundling: data.kuota_tiket_bundling !== undefined && data.kuota_tiket_bundling !== null ? data.kuota_tiket_bundling : 2,
+        nama_bundling: data.nama_bundling ?? null,
+        paket_bundling: data.paket_bundling !== undefined && data.paket_bundling !== null ? (data.paket_bundling as Prisma.InputJsonValue) : Prisma.JsonNull,
         banner_url: data.banner_url ?? null,
         nama_pembicara: data.nama_pembicara,
         status: data.status ?? 'UPCOMING',
@@ -134,6 +147,10 @@ export class EventRepository {
       ...created,
       harga: created.harga.toString(),
       harga_coret: created.harga_coret ? created.harga_coret.toString() : null,
+      harga_bundling: created.harga_bundling ? created.harga_bundling.toString() : null,
+      kuota_tiket_bundling: created.kuota_tiket_bundling ?? 2,
+      nama_bundling: created.nama_bundling ?? null,
+      paket_bundling: created.paket_bundling ?? null,
       jumlah_booking: created._count.booking_event,
       sisa_kuota: created.kuota - created._count.booking_event,
     }
@@ -171,6 +188,18 @@ export class EventRepository {
     if (data.harga_coret !== undefined) {
       updateData.harga_coret = data.harga_coret !== null ? data.harga_coret : null
     }
+    if (data.harga_bundling !== undefined) {
+      updateData.harga_bundling = data.harga_bundling !== null ? data.harga_bundling : null
+    }
+    if (data.kuota_tiket_bundling !== undefined) {
+      updateData.kuota_tiket_bundling = data.kuota_tiket_bundling !== null ? data.kuota_tiket_bundling : 2
+    }
+    if (data.nama_bundling !== undefined) {
+      updateData.nama_bundling = data.nama_bundling !== null ? data.nama_bundling : null
+    }
+    if (data.paket_bundling !== undefined) {
+      updateData.paket_bundling = data.paket_bundling !== null ? (data.paket_bundling as Prisma.InputJsonValue) : Prisma.JsonNull
+    }
     if (data.banner_url !== undefined) updateData.banner_url = data.banner_url
     if (data.nama_pembicara !== undefined) updateData.nama_pembicara = data.nama_pembicara
     if (data.status !== undefined) updateData.status = data.status
@@ -189,6 +218,10 @@ export class EventRepository {
       ...updated,
       harga: updated.harga.toString(),
       harga_coret: updated.harga_coret ? updated.harga_coret.toString() : null,
+      harga_bundling: updated.harga_bundling ? updated.harga_bundling.toString() : null,
+      kuota_tiket_bundling: updated.kuota_tiket_bundling ?? 2,
+      nama_bundling: updated.nama_bundling ?? null,
+      paket_bundling: updated.paket_bundling ?? null,
       jumlah_booking: updated._count.booking_event,
       sisa_kuota: updated.kuota - updated._count.booking_event,
     }

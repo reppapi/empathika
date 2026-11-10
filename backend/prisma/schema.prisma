@@ -361,6 +361,10 @@ model Event {
   link_meet      String?
   link_wa        String?
   harga_coret    Decimal?    @db.Decimal(12, 2)
+  harga_bundling Decimal?    @db.Decimal(12, 2)
+  kuota_tiket_bundling Int?    @default(2)
+  nama_bundling  String?
+  paket_bundling Json?
   status         StatusEvent @default(UPCOMING)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
