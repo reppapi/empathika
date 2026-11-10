@@ -826,7 +826,7 @@ export default function AdminLayananView() {
             <div className="space-y-3.5 text-sm">
               <div className="p-3 bg-gray-50 rounded-xl">
                 <span className="text-xs text-gray-500 font-medium block mb-1">Deskripsi</span>
-                <p className="text-gray-800 leading-relaxed text-xs">
+                <p className="text-gray-800 leading-relaxed text-xs whitespace-pre-wrap">
                   {selectedDetail.deskripsi || "Tidak ada deskripsi rinci untuk layanan ini."}
                 </p>
               </div>

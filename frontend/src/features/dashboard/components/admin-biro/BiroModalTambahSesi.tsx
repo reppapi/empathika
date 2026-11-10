@@ -266,7 +266,7 @@ export default function BiroModalTambahSesi({
                 value={formData.catatan}
                 onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
                 placeholder="Catatan kebutuhan klien atau tindak lanjut..."
-                className="w-full p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#561269]"
+                className="w-full p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#561269] whitespace-pre-wrap resize-y"
               />
             </div>
           </form>

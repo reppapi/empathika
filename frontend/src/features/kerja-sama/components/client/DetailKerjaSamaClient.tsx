@@ -164,7 +164,7 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
             <div className="w-16 h-1.5 bg-gradient-to-r from-[#561269] via-[#8e4a9e] to-[#ba68c8] rounded-full mt-5"></div>
           </div>
           
-          <p className="text-gray-800 text-sm md:text-base leading-relaxed text-center">
+          <p className="text-gray-800 text-sm md:text-base leading-relaxed text-center whitespace-pre-wrap">
             {description}
           </p>
           

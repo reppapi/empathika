@@ -156,7 +156,7 @@ export default function AdminEventDetailModal({
               )}
 
               {currentEvent.deskripsi && (
-                <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed mt-1">
+                <p className="text-xs text-gray-600 leading-relaxed mt-1 whitespace-pre-wrap">
                   {currentEvent.deskripsi}
                 </p>
               )}

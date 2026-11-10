@@ -222,7 +222,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
               if (!bioText) {
                 return []
               }
-              const paragraphs = bioText.split(/\n\s*\n/).map((p: string) => p.trim()).filter(Boolean)
+              const paragraphs = bioText.split(/\r?\n+/).map((p: string) => p.trim()).filter(Boolean)
               return paragraphs.length > 0 ? paragraphs : [bioText]
             })(),
             videoIntroUrl: data.video_intro_url || "",
@@ -290,7 +290,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
                     "Siap mendampingi proses pemulihan dan pertumbuhan diri Anda.",
                   ]
                 }
-                const paragraphs = bioText.split(/\n\s*\n/).map((p: string) => p.trim()).filter(Boolean)
+                const paragraphs = bioText.split(/\r?\n+/).map((p: string) => p.trim()).filter(Boolean)
                 return paragraphs.length > 0 ? paragraphs : [bioText]
               })(),
               videoIntroUrl: dummyDetail?.videoIntroUrl,

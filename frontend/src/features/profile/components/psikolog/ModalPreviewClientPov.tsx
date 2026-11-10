@@ -205,10 +205,10 @@ export function ModalPreviewClientPov({
               <div className="space-y-4 text-gray-800 text-sm sm:text-base leading-relaxed">
                 {form.bio && form.bio.trim() ? (
                   form.bio
-                    .split(/\n\s*\n/)
+                    .split(/\r?\n+/)
                     .filter(Boolean)
                     .map((paragraf, idx) => (
-                      <p key={idx} className="whitespace-pre-line">
+                      <p key={idx} className="whitespace-pre-wrap">
                         {paragraf}
                       </p>
                     ))

@@ -473,7 +473,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
               value={form.deskripsi}
               onChange={handleChange}
               placeholder="Jelaskan topik materi, manfaat, fasilitas, dan informasi penting lainnya..."
-              className={`${inputClass} resize-y leading-relaxed font-normal`}
+              className={`${inputClass} resize-y leading-relaxed font-normal whitespace-pre-wrap`}
             />
             <span className={helperClass}>Deskripsi detail yang akan dibaca oleh calon peserta</span>
           </div>

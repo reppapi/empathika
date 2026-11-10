@@ -59,7 +59,7 @@ export default function EventDetailClient({ id: _id, event }: Props) {
       {/* Middle Text Section */}
       <div className="w-full max-w-[900px] mx-auto px-6 py-12 md:py-20 text-center relative z-10">
         {deskripsi ? (
-          <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium">{deskripsi}</p>
+          <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium whitespace-pre-wrap">{deskripsi}</p>
         ) : (
           <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium">
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor 

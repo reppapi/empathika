@@ -850,7 +850,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
               placeholder="Tuliskan catatan khusus atau keluhan klien jika ada..."
               value={formData.catatan}
               onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium whitespace-pre-wrap resize-y"
             />
           </div>
 
