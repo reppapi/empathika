@@ -16,6 +16,8 @@ export interface AdminLayananItem {
     konselor?: { weekday: number | string; weekend: number | string }
     peer?: { weekday: number | string; weekend: number | string }
   } | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = []

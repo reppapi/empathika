@@ -3,7 +3,20 @@
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { CalendarClock, X, Eye, Edit, Trash2, CheckCircle2, ChevronDown } from "lucide-react"
+import {
+  CalendarClock,
+  X,
+  Eye,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  ChevronDown,
+  Image as ImageIcon,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react"
 import { CATEGORIES } from "../../data/layananData"
 import {
   AdminLayananItem,
@@ -41,6 +54,23 @@ function formatRupiahStandard(val: any, fallbackStr: string = "Rp 0"): string {
   if (val === undefined || val === null || val === "") return fallbackStr
   const num = parseRupiahNumber(val)
   return `Rp\u00A0${num.toLocaleString("id-ID")}`
+}
+
+function formatDateIndo(dateStr?: string): string {
+  if (!dateStr) return "-"
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return "-"
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  } catch {
+    return dateStr
+  }
 }
 
 export default function AdminLayananView() {
@@ -91,6 +121,8 @@ export default function AdminLayananView() {
 
   // Modal & Expand States
   const [selectedDetail, setSelectedDetail] = useState<AdminLayananItem | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<AdminLayananItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [expandedRowId, setExpandedRowId] = useState<string | number | null>(null)
 
@@ -107,6 +139,14 @@ export default function AdminLayananView() {
     else if (cat === "SEMINAR") catId = "04"
     else if (cat === "ASESMEN") catId = "05"
 
+    const rawFotos = item.foto_kegiatan || (item.tarif_tenaga_ahli as any)?.foto_kegiatan
+    const fotosList =
+      Array.isArray(rawFotos) && rawFotos.length > 0
+        ? rawFotos.filter(Boolean)
+        : item.banner_url
+        ? [item.banner_url]
+        : undefined
+
     return {
       id: item.id,
       layanan: item.nama,
@@ -117,7 +157,10 @@ export default function AdminLayananView() {
       status: item.aktif ? "Aktif" : "Nonaktif",
       deskripsi: item.deskripsi || "",
       bannerUrl: item.banner_url || "",
+      foto_kegiatan: fotosList,
       tarif_tenaga_ahli: item.tarif_tenaga_ahli || null,
+      createdAt: item.createdAt || undefined,
+      updatedAt: item.updatedAt || undefined,
     }
   }
 
@@ -172,14 +215,15 @@ export default function AdminLayananView() {
   const handleToggleStatus = async (item: AdminLayananItem) => {
     const newStatus: "Aktif" | "Nonaktif" = item.status === "Aktif" ? "Nonaktif" : "Aktif"
     const newAktif = newStatus === "Aktif"
+    const nowIso = new Date().toISOString()
 
     // 1. Optimistic UI update di tabel admin (layanan tetap ditampilkan, tidak dihilangkan)
     setLayananList((prev) =>
-      prev.map((l) => (String(l.id) === String(item.id) ? { ...l, status: newStatus } : l))
+      prev.map((l) => (String(l.id) === String(item.id) ? { ...l, status: newStatus, updatedAt: nowIso } : l))
     )
 
     // 2. Simpan ke local storage
-    updateLayananById(item.id, { status: newStatus })
+    updateLayananById(item.id, { status: newStatus, updatedAt: nowIso })
 
     // 3. Simpan ke database backend
     try {
@@ -196,18 +240,21 @@ export default function AdminLayananView() {
     }
   }
 
-  // Handle Hapus Layanan langsung ke database backend
-  const handleDelete = async (item: AdminLayananItem) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus layanan "${item.layanan}"?`)) {
-      try {
-        await layananService.delete(String(item.id))
-        deleteLayananById(item.id)
-        setLayananList((prev) => prev.filter((l) => l.id !== item.id))
-        setToastMsg(`Layanan "${item.layanan}" telah dihapus.`)
-        setTimeout(() => setToastMsg(null), 3000)
-      } catch (err: any) {
-        alert(err?.message || "Gagal menghapus layanan dari server.")
-      }
+  // Handle Hapus Layanan langsung ke database backend via modal konfirmasi kustom
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return
+    setIsDeleting(true)
+    try {
+      await layananService.delete(String(itemToDelete.id))
+      deleteLayananById(itemToDelete.id)
+      setLayananList((prev) => prev.filter((l) => l.id !== itemToDelete.id))
+      setToastMsg(`Layanan "${itemToDelete.layanan}" telah dihapus.`)
+      setTimeout(() => setToastMsg(null), 3000)
+      setItemToDelete(null)
+    } catch (err: any) {
+      alert(err?.message || "Gagal menghapus layanan dari server.")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -504,7 +551,7 @@ export default function AdminLayananView() {
                 title="Edit Layanan"
               />
               <ActionButtonDelete
-                onClick={() => handleDelete(item)}
+                onClick={() => setItemToDelete(item)}
                 title="Hapus Layanan"
               />
             </div>
@@ -803,7 +850,13 @@ export default function AdminLayananView() {
                         onClick={() => {
                           handleToggleStatus(selectedDetail)
                           setSelectedDetail((prev) =>
-                            prev ? { ...prev, status: prev.status === "Aktif" ? "Nonaktif" : "Aktif" } : null
+                            prev
+                              ? {
+                                  ...prev,
+                                  status: prev.status === "Aktif" ? "Nonaktif" : "Aktif",
+                                  updatedAt: new Date().toISOString(),
+                                }
+                              : null
                           )
                         }}
                         className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer"
@@ -996,6 +1049,142 @@ export default function AdminLayananView() {
                   )
                 })()
               )}
+
+              {/* ── Galeri Foto Kegiatan (Workshop & Seminar) atau Banner (Konsultasi & Asesmen) ── */}
+              {(() => {
+                const isDetailPartnership = selectedDetail.kategoriId === "03" || selectedDetail.kategoriId === "04"
+                const rawFotos = selectedDetail.foto_kegiatan || (selectedDetail.tarif_tenaga_ahli as any)?.foto_kegiatan
+                const fotos: string[] =
+                  Array.isArray(rawFotos) && rawFotos.length > 0
+                    ? rawFotos.filter(Boolean)
+                    : selectedDetail.bannerUrl
+                    ? [selectedDetail.bannerUrl]
+                    : []
+
+                if (isDetailPartnership) {
+                  return (
+                    <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                          <ImageIcon className="w-4 h-4 text-[#561269]" />
+                          Pratinjau Foto Kegiatan (Maksimal 3 Foto)
+                        </span>
+                        <span className="text-[11px] text-gray-500 font-medium">
+                          {fotos.length} dari 3 foto terisi
+                        </span>
+                      </div>
+
+                      {fotos.length === 0 ? (
+                        <div className="py-6 text-center border-2 border-dashed border-gray-200 rounded-xl bg-white">
+                          <ImageIcon className="w-7 h-7 text-gray-300 mx-auto mb-1.5" />
+                          <p className="text-xs text-gray-500 font-medium">Belum ada foto kegiatan yang diunggah.</p>
+                          <p className="text-[10px] text-gray-400">Unggah foto kegiatan melalui tombol Edit Layanan.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          {[0, 1, 2].map((idx) => {
+                            const url = fotos[idx]
+                            return (
+                              <div
+                                key={idx}
+                                className={`relative rounded-xl overflow-hidden border ${
+                                  url ? "border-purple-200 bg-white" : "border-dashed border-gray-200 bg-gray-100/60"
+                                } flex flex-col justify-between min-h-[125px]`}
+                              >
+                                {url ? (
+                                  <>
+                                    <div className="w-full h-24 relative bg-gray-100 overflow-hidden">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={url}
+                                        alt={`Foto Kegiatan ${idx + 1}`}
+                                        className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+                                      />
+                                    </div>
+                                    <div className="w-full px-2.5 py-1.5 bg-white flex items-center justify-between border-t border-purple-100 text-[10px]">
+                                      <span className="font-bold text-gray-700">
+                                        {idx === 0 ? "⭐ Foto 1 (Utama)" : `Foto ${idx + 1}`}
+                                      </span>
+                                      <a
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[#561269] hover:underline font-semibold"
+                                      >
+                                        Buka
+                                      </a>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-center p-4 text-gray-400 my-auto">
+                                    <ImageIcon className="w-5 h-5 mx-auto mb-1 opacity-40" />
+                                    <span className="text-[10px] font-medium block">Foto {idx + 1} Kosong</span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
+                if (selectedDetail.bannerUrl) {
+                  return (
+                    <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
+                      <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                        <ImageIcon className="w-4 h-4 text-[#561269]" />
+                        Poster / Banner Layanan
+                      </span>
+                      <div className="relative rounded-xl overflow-hidden border border-purple-200 bg-white max-w-xs">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={selectedDetail.bannerUrl}
+                          alt={selectedDetail.layanan}
+                          className="w-full h-32 object-cover"
+                        />
+                        <div className="px-2.5 py-1.5 bg-white flex items-center justify-between border-t border-purple-100 text-[10px]">
+                          <span className="font-bold text-gray-700">Banner Tampilan</span>
+                          <a
+                            href={selectedDetail.bannerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#561269] hover:underline font-semibold"
+                          >
+                            Buka Penuh
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                return null
+              })()}
+
+              {/* ── Audit Log: Waktu Pembuatan & Pembaruan Terakhir ── */}
+              <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                  Informasi Aktivitas Data (Audit Log)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-gray-600 bg-white px-3 py-2 rounded-lg border border-gray-100">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="text-gray-500">Dibuat:</span>
+                    <span className="font-semibold text-gray-800 ml-auto tabular-nums">
+                      {formatDateIndo(selectedDetail.createdAt)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600 bg-white px-3 py-2 rounded-lg border border-gray-100">
+                    <Clock className="w-3.5 h-3.5 text-[#561269] shrink-0" />
+                    <span className="text-gray-500">Terakhir Diperbarui:</span>
+                    <span className="font-semibold text-gray-800 ml-auto tabular-nums">
+                      {formatDateIndo(selectedDetail.updatedAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2.5">
@@ -1019,6 +1208,63 @@ export default function AdminLayananView() {
               >
                 Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL KONFIRMASI HAPUS KUSTOM ── */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => !isDeleting && setItemToDelete(null)}
+              disabled={isDeleting}
+              className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4 ring-8 ring-red-50/50">
+                <AlertTriangle className="w-7 h-7" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Hapus Layanan?</h3>
+              <p className="text-xs text-gray-600 leading-relaxed max-w-sm mb-6">
+                Apakah Anda yakin ingin menghapus layanan{" "}
+                <span className="font-extrabold text-gray-900">&ldquo;{itemToDelete.layanan}&rdquo;</span>?
+                Tindakan ini akan menonaktifkan atau menghapus data layanan dari sistem.
+              </p>
+
+              <div className="flex items-center justify-center gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setItemToDelete(null)}
+                  disabled={isDeleting}
+                  className="flex-1 py-2.5 px-4 rounded-full border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 py-2.5 px-4 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Menghapus...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Ya, Hapus</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
