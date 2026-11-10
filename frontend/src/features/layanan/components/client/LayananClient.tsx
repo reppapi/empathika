@@ -5,7 +5,8 @@ import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { CATEGORIES } from "../../data/layananData"
+import { CATEGORIES, WORKSHOP_SERVICES, SEMINAR_SERVICES } from "../../data/layananData"
+import { WORKSHOP_DETAILS_DATA } from "../../data/workshopData"
 import { getStoredLayanan, type AdminLayananItem } from "../../data/adminLayananData"
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
 import { layananService, type LayananApiResponse } from "@/services/layanan.service"
@@ -106,9 +107,31 @@ export default function LayananClient() {
   const renderServiceCard = (service: any, idx: number) => {
     const banner = resolveBanner(service)
 
+    const baseHref = service.href || (
+      activeCategory === "01"
+        ? "/booking"
+        : activeCategory === "02"
+        ? "/psikotes"
+        : activeCategory === "03"
+        ? "/layanan/workshop/seft"
+        : activeCategory === "04"
+        ? "/layanan/seminar"
+        : `/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
+    )
+
+    const rawDestination =
+      activeCategory === "05" && banner && !baseHref.includes("&banner=")
+        ? `${baseHref}${baseHref.includes("?") ? "&" : "?"}banner=${encodeURIComponent(banner)}`
+        : baseHref
+
+    const destinationHref = withBiro(rawDestination)
+
     return (
       <div key={idx} className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full">
-        <div className={`h-36 sm:h-44 w-full ${service.bgColor || "bg-[#561269]"} overflow-hidden relative shrink-0`}>
+        <Link
+          href={destinationHref as any}
+          className={`h-36 sm:h-44 w-full ${service.bgColor || "bg-[#561269]"} overflow-hidden relative shrink-0 block cursor-pointer`}
+        >
           {/* Tampilkan foto jika dimasukkan dari admin / banner */}
           {banner ? (
             <div className="absolute inset-0 z-0">
@@ -155,39 +178,21 @@ export default function LayananClient() {
               )}
             </div>
           </div>
-        </div>
+        </Link>
 
         <div className="p-5 sm:p-6 flex flex-col flex-1">
-          <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">{service.bottomTitle}</h3>
+          <Link href={destinationHref as any} className="block group-hover:text-[#561269] transition-colors">
+            <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">{service.bottomTitle}</h3>
+          </Link>
           <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6">{service.bottomDescription}</p>
 
           <div className="mt-auto pt-2">
-            {(() => {
-              const baseHref = service.href || (
-                activeCategory === "01"
-                  ? "/booking"
-                  : activeCategory === "02"
-                  ? "/psikotes"
-                  : activeCategory === "03" || activeCategory === "04"
-                  ? "/event"
-                  : `/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
-              )
-
-              const rawDestination =
-                activeCategory === "05" && banner && !baseHref.includes("&banner=")
-                  ? `${baseHref}${baseHref.includes("?") ? "&" : "?"}banner=${encodeURIComponent(banner)}`
-                  : baseHref
-
-              const destinationHref = withBiro(rawDestination)
-              return (
-                <Link
-                  href={destinationHref as any}
-                  className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
-                >
-                  {service.btnText}
-                </Link>
-              )
-            })()}
+            <Link
+              href={destinationHref as any}
+              className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
+            >
+              {service.btnText}
+            </Link>
           </div>
         </div>
       </div>
@@ -253,7 +258,7 @@ export default function LayananClient() {
             >
               <div key={`content-${activeCategory}`} className="transition-opacity duration-200">
                 {/* Status Error Jika Koneksi Gagal */}
-                {isLayananError && activeCategory !== "02" && (
+                {isLayananError && activeCategory !== "02" && activeCategory !== "03" && activeCategory !== "04" && (
                   <div className="p-8 text-center bg-amber-50 border border-amber-200 rounded-2xl my-4">
                     <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-2 text-lg">
                       ⚠️
@@ -272,7 +277,7 @@ export default function LayananClient() {
                 )}
 
                 {/* Loading State */}
-                {loadingLayanan && activeCategory !== "02" && !isLayananError && (
+                {loadingLayanan && activeCategory !== "02" && activeCategory !== "03" && activeCategory !== "04" && !isLayananError && (
                   <div className="py-20 text-center text-gray-400 font-medium text-sm animate-pulse">
                     Memuat data layanan...
                   </div>
@@ -280,7 +285,7 @@ export default function LayananClient() {
 
                 {/* Grid Layanan Kecil */}
                 {/* Grid Layanan Kecil */}
-                {!isLayananError && (!loadingLayanan || activeCategory === "02") && (() => {
+                {!isLayananError && (!loadingLayanan || activeCategory === "02" || activeCategory === "03" || activeCategory === "04") && (() => {
                   if (activeCategory === "02" && loadingPsikotes) {
                     return (
                       <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -339,20 +344,60 @@ export default function LayananClient() {
                       const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
                       const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
 
-                      return dbMatches.map((item, idx) => ({
-                        topTitle: item.nama.toUpperCase(),
-                        topSubtitle:
-                          item.aktif === false || (item as any).status === "Nonaktif"
-                            ? `${item.metode || "Online/Offline"} • Nonaktif`
-                            : item.metode || "Online/Offline",
-                        bottomTitle: item.nama,
-                        bottomDescription: item.deskripsi || "Layanan profesional Empathika.",
-                        bgColor: colors[idx % colors.length],
-                        titleColor: textColors[idx % textColors.length],
-                        btnText: activeCategory === "01" ? "Booking Konsultasi" : "Pilih Layanan",
-                        shape: shapes[idx % shapes.length],
-                        href: activeCategory === "01" ? withBiro(`/booking?layanan=${encodeURIComponent(item.nama)}`) : undefined,
-                        bannerUrl: item.banner_url,
+                      return dbMatches.map((item, idx) => {
+                        let itemHref: string | undefined = undefined
+                        let btnText = "Pilih Layanan"
+
+                        if (activeCategory === "01") {
+                          itemHref = withBiro(`/booking?layanan=${encodeURIComponent(item.nama)}`)
+                          btnText = "Booking Konsultasi"
+                        } else if (activeCategory === "03") {
+                          const namaLower = item.nama.toLowerCase()
+                          if (namaLower.includes("seft")) {
+                            itemHref = withBiro("/layanan/workshop/seft")
+                          } else if (namaLower.includes("peer") || namaLower.includes("sebaya") || namaLower.includes("konselor")) {
+                            itemHref = withBiro("/layanan/workshop/peer-helper")
+                          } else {
+                            const foundSlug = Object.keys(WORKSHOP_DETAILS_DATA).find((s) => namaLower.includes(s))
+                            itemHref = withBiro(foundSlug ? `/layanan/workshop/${foundSlug}` : "/layanan/workshop/seft")
+                          }
+                          btnText = "Lihat Workshop"
+                        } else if (activeCategory === "04") {
+                          itemHref = withBiro("/layanan/seminar")
+                          btnText = "Lihat Seminar"
+                        } else if (activeCategory === "05") {
+                          btnText = "Pilih Asesmen"
+                        }
+
+                        return {
+                          topTitle: item.nama.toUpperCase(),
+                          topSubtitle:
+                            item.aktif === false || (item as any).status === "Nonaktif"
+                              ? `${item.metode || "Online/Offline"} • Nonaktif`
+                              : item.metode || "Online/Offline",
+                          bottomTitle: item.nama,
+                          bottomDescription: item.deskripsi || "Layanan profesional Empathika.",
+                          bgColor: colors[idx % colors.length],
+                          titleColor: textColors[idx % textColors.length],
+                          btnText,
+                          shape: shapes[idx % shapes.length],
+                          href: itemHref,
+                          bannerUrl: item.banner_url,
+                        }
+                      })
+                    }
+
+                    // Fallback jika di database belum ada layanan untuk Workshop atau Seminar
+                    if (activeCategory === "03" && WORKSHOP_SERVICES.length > 0) {
+                      return WORKSHOP_SERVICES.map((ws) => ({
+                        ...ws,
+                        href: withBiro(ws.href),
+                      }))
+                    }
+                    if (activeCategory === "04" && SEMINAR_SERVICES.length > 0) {
+                      return SEMINAR_SERVICES.map((ss) => ({
+                        ...ss,
+                        href: withBiro(ss.href),
                       }))
                     }
 
