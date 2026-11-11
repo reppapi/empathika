@@ -146,6 +146,7 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
         kategori,
         harga,
         metode,
+        ...(bookingId && { bookingId }),
         ...(bottomDate && { bottomDate }),
         ...(bottomTime && { bottomTime }),
         ...(testId && { testId }),

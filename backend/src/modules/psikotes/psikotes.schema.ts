@@ -56,6 +56,7 @@ export const submitJawabanItemSchema = z.object({
 
 export const pesertaPsikotesInputSchema = z.object({
   nama_lengkap: z.string().optional(),
+  no_telepon: z.string().optional().nullable(),
   jenis_kelamin: z.string().optional(),
   tempat_lahir: z.string().optional().nullable(),
   tanggal_lahir: z.string().or(z.date()).optional().nullable(),
@@ -66,6 +67,7 @@ export const pesertaPsikotesInputSchema = z.object({
   pendidikan: z.string().optional().nullable(),
   pekerjaan: z.string().optional().nullable(),
   status_pernikahan: z.string().optional().nullable(),
+  persetujuan_wali: z.boolean().optional().nullable(),
 })
 
 export const submitPsikotesSchema = z.object({
@@ -80,6 +82,8 @@ export const submitPsikotesSchema = z.object({
   email: z.string().optional(),
   id_booking: z.string().optional(),
   bookingId: z.string().optional(),
+  orderId: z.string().optional(),
+  kode_akses: z.string().optional(),
   peserta: pesertaPsikotesInputSchema.optional(),
   klien: z
     .object({

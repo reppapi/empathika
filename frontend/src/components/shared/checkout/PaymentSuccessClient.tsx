@@ -141,6 +141,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
 
         const finalWa = searchParams.get("whatsapp") || existingWa;
         const finalEmail = searchParams.get("email") || existingEmail;
+        const finalBookingId = searchParams.get("bookingId") || undefined;
 
         localStorage.setItem(
           "empathika_peserta_psikotes",
@@ -150,6 +151,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
             whatsapp: finalWa,
             email: finalEmail,
             orderId,
+            ...(finalBookingId && { bookingId: finalBookingId }),
           })
         )
       } catch {}
@@ -175,6 +177,8 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     if (wa) q.set("whatsapp", wa)
     const em = searchParams.get("email") || savedEmail
     if (em) q.set("email", em)
+    const bookingId = searchParams.get("bookingId")
+    if (bookingId) q.set("bookingId", bookingId)
     if (orderId) q.set("orderId", orderId)
 
     const queryString = q.toString()

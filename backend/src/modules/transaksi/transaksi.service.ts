@@ -337,7 +337,7 @@ export class TransaksiService {
             id_paket: paket.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
-            kode_akses: kodeTransaksi,
+            kode_akses: kodePesanan,
             status_pengerjaan: 'BELUM_MULAI',
           },
         })
@@ -352,7 +352,7 @@ export class TransaksiService {
             email: input.email || undefined,
             mobile_number: input.no_telepon,
           },
-          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/psikotes/success?orderId=${kodePesanan}&testId=${paket.id}&status=success`,
+          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/psikotes/success?orderId=${kodePesanan}&bookingId=${bookingPsikotes.id}&testId=${paket.id}&status=success`,
           failureRedirectUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/psikotes/checkout?orderId=${kodePesanan}&testId=${paket.id}&status=failed`,
         })
 

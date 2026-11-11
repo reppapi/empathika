@@ -53,6 +53,8 @@ export interface SubmitPsikotesPayload {
   jawaban: Array<{ id_soal: string; id_pilihan: string }> | Record<string, string>
   id_booking?: string
   bookingId?: string
+  orderId?: string
+  kode_akses?: string
   nama?: string
   no_telepon?: string
   email?: string

@@ -9,11 +9,16 @@ export interface IdentityData {
   noTelepon: string;
   tempatLahir: string;
   tanggalLahir: string;
-  status: string;
   umur: string;
   jenisKelamin: string;
-  pekerjaan: string;
   pendidikan: string;
+  // Khusus Dewasa (>= 18 tahun)
+  status: string; // Status Pernikahan
+  pekerjaan: string;
+  // Khusus Anak & Remaja (< 18 tahun)
+  namaOrangTua?: string;
+  noTeleponOrangTua?: string;
+  persetujuanWali?: boolean;
 }
 
 export interface PsikotesFormIdentitasProps {
@@ -28,6 +33,10 @@ export default function PsikotesFormIdentitas({
   onComplete,
 }: PsikotesFormIdentitasProps) {
   const [identityError, setIdentityError] = useState<string | null>(null);
+
+  const numUmur = parseInt(data.umur || "", 10);
+  const isUnderAge = !isNaN(numUmur) && numUmur > 0 && numUmur < 18;
+  const isDewasa = !isNaN(numUmur) && numUmur >= 18;
 
   // Kalkulasi umur otomatis berdasarkan tanggal lahir yang dipilih
   const handleTanggalLahirChange = (val: string) => {
@@ -53,36 +62,31 @@ export default function PsikotesFormIdentitas({
     }));
   };
 
+  const validatePhone = (phone: string, label: string): string | null => {
+    const cleanDigits = phone.replace(/\D/g, "");
+    const local = cleanDigits.startsWith("62") ? cleanDigits.slice(2) : cleanDigits;
+    if (!local.startsWith("8") || local.length < 9) {
+      return `${label} tidak valid (minimal 10 digit, diawali angka 8).`;
+    }
+    if (local.length > 13) {
+      return `${label} terlalu panjang (maksimal 14 digit angka).`;
+    }
+    return null;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIdentityError(null);
 
     const nama = data.nama.trim();
-    const noTelepon = data.noTelepon.trim();
     const tempatLahir = data.tempatLahir.trim();
     const tanggalLahir = data.tanggalLahir.trim();
-    const status = data.status.trim();
     const umur = data.umur.trim();
     const jenisKelamin = data.jenisKelamin.trim();
-    const pekerjaan = data.pekerjaan.trim();
     const pendidikan = data.pendidikan.trim();
 
     if (!nama) {
       setIdentityError("Nama lengkap wajib diisi.");
-      return;
-    }
-    if (!noTelepon) {
-      setIdentityError("Nomor WhatsApp peserta wajib diisi.");
-      return;
-    }
-    const cleanDigits = noTelepon.replace(/\D/g, "");
-    const local = cleanDigits.startsWith("62") ? cleanDigits.slice(2) : cleanDigits;
-    if (!local.startsWith("8") || local.length < 9) {
-      setIdentityError("Nomor WhatsApp tidak valid (minimal 10 digit, diawali angka 8).");
-      return;
-    }
-    if (local.length > 13) {
-      setIdentityError("Nomor WhatsApp terlalu panjang (maksimal 14 digit angka).");
       return;
     }
     if (!tempatLahir) {
@@ -93,25 +97,81 @@ export default function PsikotesFormIdentitas({
       setIdentityError("Tanggal lahir wajib diisi.");
       return;
     }
-    if (!status) {
-      setIdentityError("Status pernikahan wajib dipilih.");
-      return;
-    }
-    if (!umur || isNaN(Number(umur)) || Number(umur) < 5 || Number(umur) > 120) {
-      setIdentityError("Umur wajib diisi dengan angka yang valid (5 - 120 tahun).");
+    if (!umur || isNaN(Number(umur)) || Number(umur) < 1 || Number(umur) > 120) {
+      setIdentityError("Umur wajib diisi dengan angka yang valid (1 - 120 tahun).");
       return;
     }
     if (!jenisKelamin) {
       setIdentityError("Jenis kelamin wajib dipilih.");
       return;
     }
-    if (!pekerjaan) {
-      setIdentityError("Pekerjaan wajib diisi (misal: Mahasiswa, Karyawan, Wiraswasta, dsb).");
+    if (!pendidikan) {
+      setIdentityError("Pendidikan / jenjang sekolah wajib dipilih.");
       return;
     }
-    if (!pendidikan) {
-      setIdentityError("Pendidikan terakhir wajib dipilih.");
-      return;
+
+    const currentAge = Number(umur);
+    const underAgeMode = currentAge < 18;
+
+    let finalNamaOrangTua = "";
+    let finalNoTeleponOrangTua = "";
+    let finalNoTeleponPeserta = data.noTelepon?.trim() || "";
+    let finalStatus = "";
+    let finalPekerjaan = "";
+
+    if (underAgeMode) {
+      // Validasi Khusus Anak & Remaja (< 18 tahun)
+      finalNamaOrangTua = (data.namaOrangTua || "").trim();
+      finalNoTeleponOrangTua = (data.noTeleponOrangTua || "").trim();
+
+      if (!finalNamaOrangTua) {
+        setIdentityError("Nama orang tua / wali wajib diisi untuk peserta di bawah 18 tahun.");
+        return;
+      }
+      if (!finalNoTeleponOrangTua) {
+        setIdentityError("Nomor WhatsApp orang tua / wali wajib diisi untuk peserta di bawah 18 tahun.");
+        return;
+      }
+      const errPhoneWali = validatePhone(finalNoTeleponOrangTua, "Nomor WhatsApp orang tua / wali");
+      if (errPhoneWali) {
+        setIdentityError(errPhoneWali);
+        return;
+      }
+
+      // Validasi nomor telepon peserta (opsional bagi anak/remaja)
+      if (finalNoTeleponPeserta) {
+        const errPhonePeserta = validatePhone(finalNoTeleponPeserta, "Nomor WhatsApp peserta");
+        if (errPhonePeserta) {
+          setIdentityError(errPhonePeserta);
+          return;
+        }
+      }
+
+      finalStatus = "";
+      finalPekerjaan = "";
+    } else {
+      // Validasi Khusus Peserta Dewasa (>= 18 tahun)
+      if (!finalNoTeleponPeserta) {
+        setIdentityError("Nomor WhatsApp pribadi wajib diisi untuk peserta dewasa.");
+        return;
+      }
+      const errPhone = validatePhone(finalNoTeleponPeserta, "Nomor WhatsApp");
+      if (errPhone) {
+        setIdentityError(errPhone);
+        return;
+      }
+
+      finalStatus = data.status.trim();
+      finalPekerjaan = data.pekerjaan.trim();
+
+      if (!finalPekerjaan) {
+        setIdentityError("Pekerjaan wajib diisi (misal: Karyawan, Mahasiswa, Wiraswasta, dsb).");
+        return;
+      }
+      if (!finalStatus) {
+        setIdentityError("Status pernikahan wajib dipilih.");
+        return;
+      }
     }
 
     try {
@@ -119,16 +179,21 @@ export default function PsikotesFormIdentitas({
         "empathika_peserta_psikotes",
         JSON.stringify({
           nama,
-          noTelepon,
-          no_telepon: noTelepon,
-          whatsapp: noTelepon,
+          noTelepon: underAgeMode ? (finalNoTeleponPeserta || finalNoTeleponOrangTua) : finalNoTeleponPeserta,
+          no_telepon: underAgeMode ? (finalNoTeleponPeserta || finalNoTeleponOrangTua) : finalNoTeleponPeserta,
+          whatsapp: underAgeMode ? (finalNoTeleponPeserta || finalNoTeleponOrangTua) : finalNoTeleponPeserta,
           tempatLahir,
           tanggalLahir,
-          status,
-          umur: Number(umur),
+          umur: currentAge,
           jenisKelamin,
-          pekerjaan,
           pendidikan,
+          status: underAgeMode ? "" : finalStatus,
+          pekerjaan: underAgeMode ? "" : finalPekerjaan,
+          namaOrangTua: underAgeMode ? finalNamaOrangTua : "",
+          nama_orang_tua: underAgeMode ? finalNamaOrangTua : "",
+          noTeleponOrangTua: underAgeMode ? finalNoTeleponOrangTua : "",
+          no_telepon_orang_tua: underAgeMode ? finalNoTeleponOrangTua : "",
+          persetujuanWali: underAgeMode ? Boolean(data.persetujuanWali) : false,
         })
       );
     } catch {}
@@ -140,7 +205,7 @@ export default function PsikotesFormIdentitas({
     <div className="min-h-screen bg-[#fbfbfb] font-sans pt-20 sm:pt-24 lg:pt-28 pb-10 px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
       <div className="max-w-[720px] w-full mx-auto">
         <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-9 shadow-sm border border-gray-100">
-          {/* Header Form Tanpa Icon */}
+          {/* Header Form */}
           <div className="text-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
               Data Identitas Peserta
@@ -159,49 +224,45 @@ export default function PsikotesFormIdentitas({
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Grid 2 Kolom: Nama Lengkap & Nomor WhatsApp */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Nama Lengkap */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                  Nama Lengkap <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={data.nama}
-                  onChange={(e) => onChange((prev) => ({ ...prev, nama: e.target.value }))}
-                  placeholder="Contoh: Budi Pratama"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400"
-                />
-              </div>
-
-              {/* Nomor WhatsApp Peserta */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                  Nomor WhatsApp Peserta <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={data.noTelepon}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (!raw.trim() || raw.trim() === "+" || raw.trim() === "+6" || raw.trim() === "+62" || raw.trim() === "+62 ") {
-                      onChange((prev) => ({ ...prev, noTelepon: "" }));
-                      return;
-                    }
-                    onChange((prev) => ({ ...prev, noTelepon: formatToIndonesianPhone(raw) }));
-                  }}
-                  placeholder="+62 812-3456-7890"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400 font-mono"
-                />
-              </div>
+            {/* 1. Nama Lengkap Peserta */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                Nama Lengkap Peserta <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={data.nama}
+                onChange={(e) => onChange((prev) => ({ ...prev, nama: e.target.value }))}
+                placeholder="Contoh: Budi Pratama"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400"
+              />
             </div>
 
-            {/* Grid 2 Kolom: Tempat Lahir & Tanggal Lahir */}
+            {/* 2. Nomor WhatsApp Peserta */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                {isUnderAge ? "Nomor WhatsApp Peserta (Opsional / Jika Ada)" : "Nomor WhatsApp Pribadi"} {!isUnderAge && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="tel"
+                required={!isUnderAge}
+                value={data.noTelepon}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (!raw.trim() || raw.trim() === "+" || raw.trim() === "+6" || raw.trim() === "+62" || raw.trim() === "+62 ") {
+                    onChange((prev) => ({ ...prev, noTelepon: "" }));
+                    return;
+                  }
+                  onChange((prev) => ({ ...prev, noTelepon: formatToIndonesianPhone(raw) }));
+                }}
+                placeholder="+62 812-3456-7890"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400 font-mono"
+              />
+            </div>
+
+            {/* 3. Tempat Lahir & Tanggal Lahir (Grid 2 Kolom) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Tempat Lahir */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
                   Tempat Lahir <span className="text-red-500">*</span>
@@ -216,7 +277,6 @@ export default function PsikotesFormIdentitas({
                 />
               </div>
 
-              {/* Tanggal Lahir */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
                   Tanggal Lahir <span className="text-red-500">*</span>
@@ -231,9 +291,8 @@ export default function PsikotesFormIdentitas({
               </div>
             </div>
 
-            {/* Grid 2 Kolom: Jenis Kelamin & Umur */}
+            {/* 4. Jenis Kelamin & Umur (Grid 2 Kolom) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Jenis Kelamin */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
                   Jenis Kelamin <span className="text-red-500">*</span>
@@ -262,7 +321,6 @@ export default function PsikotesFormIdentitas({
                 </div>
               </div>
 
-              {/* Umur */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
                   Umur (Tahun) <span className="text-red-500">*</span>
@@ -270,7 +328,7 @@ export default function PsikotesFormIdentitas({
                 <input
                   type="number"
                   required
-                  min={5}
+                  min={1}
                   max={120}
                   value={data.umur}
                   onChange={(e) => onChange((prev) => ({ ...prev, umur: e.target.value }))}
@@ -280,65 +338,125 @@ export default function PsikotesFormIdentitas({
               </div>
             </div>
 
-            {/* Grid 2 Kolom: Status Pernikahan & Pendidikan Terakhir */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Status Pernikahan */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                  Status Pernikahan <span className="text-red-500">*</span>
-                </label>
-                <select
-                  required
-                  value={data.status}
-                  onChange={(e) => onChange((prev) => ({ ...prev, status: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 bg-white"
-                >
-                  <option value="">Pilih Status Pernikahan</option>
-                  <option value="Belum Menikah">Belum Menikah</option>
-                  <option value="Menikah">Menikah</option>
-                  <option value="Cerai Hidup">Cerai Hidup</option>
-                  <option value="Cerai Mati">Cerai Mati</option>
-                </select>
-              </div>
-
-              {/* Pendidikan Terakhir */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                  Pendidikan Terakhir <span className="text-red-500">*</span>
-                </label>
-                <select
-                  required
-                  value={data.pendidikan}
-                  onChange={(e) => onChange((prev) => ({ ...prev, pendidikan: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 bg-white"
-                >
-                  <option value="">Pilih Pendidikan Terakhir</option>
-                  <option value="SD / Sederajat">SD / Sederajat</option>
-                  <option value="SMP / Sederajat">SMP / Sederajat</option>
-                  <option value="SMA / SMK / Sederajat">SMA / SMK / Sederajat</option>
-                  <option value="Diploma (D1 - D4)">Diploma (D1 - D4)</option>
-                  <option value="Sarjana (S1)">Sarjana (S1)</option>
-                  <option value="Magister (S2)">Magister (S2)</option>
-                  <option value="Doktor (S3)">Doktor (S3)</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Pekerjaan */}
+            {/* 5. Pendidikan / Jenjang Sekolah */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                Pekerjaan <span className="text-red-500">*</span>
+                {isUnderAge ? "Pendidikan / Jenjang Sekolah" : "Pendidikan Terakhir"} <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
-                value={data.pekerjaan}
-                onChange={(e) => onChange((prev) => ({ ...prev, pekerjaan: e.target.value }))}
-                placeholder="Contoh: Karyawan Swasta / Mahasiswa / Wiraswasta"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400"
-              />
+                value={data.pendidikan}
+                onChange={(e) => onChange((prev) => ({ ...prev, pendidikan: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 bg-white"
+              >
+                <option value="">{isUnderAge ? "Pilih Jenjang Sekolah" : "Pilih Pendidikan Terakhir"}</option>
+                {isUnderAge ? (
+                  <>
+                    <option value="Belum Sekolah">Belum Sekolah</option>
+                    <option value="SD / MI / Sederajat">SD / MI / Sederajat</option>
+                    <option value="SMP / MTs / Sederajat">SMP / MTs / Sederajat</option>
+                    <option value="SMA / SMK / MA / Sederajat">SMA / SMK / MA / Sederajat</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="SD / Sederajat">SD / Sederajat</option>
+                    <option value="SMP / Sederajat">SMP / Sederajat</option>
+                    <option value="SMA / SMK / Sederajat">SMA / SMK / Sederajat</option>
+                    <option value="Diploma (D1 - D4)">Diploma (D1 - D4)</option>
+                    <option value="Sarjana (S1)">Sarjana (S1)</option>
+                    <option value="Magister (S2)">Magister (S2)</option>
+                    <option value="Doktor (S3)">Doktor (S3)</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </>
+                )}
+              </select>
             </div>
+
+            {/* ── BAGIAN KHUSUS ANAK & REMAJA (< 18 TAHUN) ────────────────────────── */}
+            {isUnderAge && (
+              <div className="pt-2 space-y-4 border-t border-purple-100/80 animate-in fade-in duration-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Nama Orang Tua / Wali */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                      Nama Orang Tua / Wali <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={data.namaOrangTua || ""}
+                      onChange={(e) => onChange((prev) => ({ ...prev, namaOrangTua: e.target.value }))}
+                      placeholder="Contoh: Ayah / Ibu / Wali"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400"
+                    />
+                  </div>
+
+                  {/* No. WhatsApp Orang Tua / Wali */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                      Nomor WhatsApp Orang Tua / Wali <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={data.noTeleponOrangTua || ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (!raw.trim() || raw.trim() === "+" || raw.trim() === "+6" || raw.trim() === "+62" || raw.trim() === "+62 ") {
+                          onChange((prev) => ({ ...prev, noTeleponOrangTua: "" }));
+                          return;
+                        }
+                        onChange((prev) => ({ ...prev, noTeleponOrangTua: formatToIndonesianPhone(raw) }));
+                      }}
+                      placeholder="+62 812-3456-7890"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── BAGIAN KHUSUS DEWASA (≥ 18 TAHUN) ─────────────────────────────── */}
+            {!isUnderAge && (
+              <div className="pt-2 space-y-4 border-t border-gray-100 animate-in fade-in duration-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Pekerjaan */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                      Pekerjaan <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={data.pekerjaan}
+                      onChange={(e) => onChange((prev) => ({ ...prev, pekerjaan: e.target.value }))}
+                      placeholder="Contoh: Karyawan Swasta / Mahasiswa / Wiraswasta"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400"
+                    />
+                  </div>
+
+                  {/* Status Pernikahan */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                      Status Pernikahan <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={data.status}
+                      onChange={(e) => onChange((prev) => ({ ...prev, status: e.target.value }))}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 bg-white"
+                    >
+                      <option value="">Pilih Status Pernikahan</option>
+                      <option value="Belum Menikah">Belum Menikah</option>
+                      <option value="Menikah">Menikah</option>
+                      <option value="Cerai Hidup">Cerai Hidup</option>
+                      <option value="Cerai Mati">Cerai Mati</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Security / Privacy notice */}
             <div className="pt-1">
@@ -362,4 +480,3 @@ export default function PsikotesFormIdentitas({
     </div>
   );
 }
-
