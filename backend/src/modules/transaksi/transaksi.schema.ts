@@ -17,6 +17,12 @@ export const createCheckoutTransaksiSchema = z.object({
   catatan: z.string().optional(), // Deskripsi keluhan untuk konseling
   metode_pembayaran: z.enum(['TRANSFER_BANK', 'E_WALLET', 'QRIS']).optional(),
   channel_pembayaran: z.string().optional(), // BCA, BNI, GOPAY, DANA, dll
+  kuota_bundling: z.number().int().min(1).optional(), // Jumlah tiket dalam paket bundling (default 1 untuk satuan)
+  nama_bundling: z.string().optional(),
+  nama_peserta_tambahan: z.array(z.object({
+    nama: z.string(),
+    whatsapp: z.string().optional().or(z.literal('')),
+  })).optional(),
   success_redirect_url: z.string().url().optional(),
   failure_redirect_url: z.string().url().optional(),
 })

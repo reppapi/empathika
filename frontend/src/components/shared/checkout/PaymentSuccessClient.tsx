@@ -103,6 +103,17 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const linkWa = searchParams.get("linkWa")
   const isOnlineEvent = type === "event" && tipe !== "Offline"
 
+  const namaBundling = searchParams.get("namaBundling")
+  const rawPesertaTambahan = searchParams.get("dataPesertaTambahan")
+  let pesertaTambahanList: { nama: string; whatsapp?: string }[] = []
+  if (rawPesertaTambahan) {
+    try {
+      pesertaTambahanList = JSON.parse(rawPesertaTambahan)
+    } catch {
+      pesertaTambahanList = []
+    }
+  }
+
   const testId = searchParams.get("testId")
   const backTarget = testId ? `/psikotes/${testId}` : cfg.backHref
 
@@ -393,9 +404,31 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
               <div className="grid grid-cols-2 gap-4 pb-4 border-b border-dashed border-[#C3A4CE]">
                 <div>
                   <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">
-                    NAMA PEMESAN
+                    {pesertaTambahanList.length > 0 ? "DAFTAR PESERTA" : (type === "event" ? "PESERTA" : "NAMA PEMESAN")}
                   </div>
-                  <div className="text-sm font-extrabold text-[#2F2F2F]">{nama}</div>
+                  {type === "event" && pesertaTambahanList.length > 0 ? (
+                    <div className="flex flex-col gap-1.5 mt-0.5">
+                      <div className="text-xs font-semibold text-[#2F2F2F]">
+                        <span className="font-extrabold text-[#561269]">Peserta 1:</span> {nama}{" "}
+                        <span className="text-[10px] text-gray-500 font-normal">(Pemesan Utama)</span>
+                      </div>
+                      {pesertaTambahanList.map((p, idx) => (
+                        <div key={idx} className="text-xs font-semibold text-[#2F2F2F]">
+                          <span className="font-extrabold text-[#561269]">Peserta {idx + 2}:</span> {p.nama}{" "}
+                          <span className="text-[10px] text-gray-500 font-normal">(Rekan)</span>
+                        </div>
+                      ))}
+                      {namaBundling && (
+                        <div className="mt-1">
+                          <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded bg-purple-100 text-[#561269]">
+                            {namaBundling}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm font-extrabold text-[#2F2F2F]">{nama}</div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">

@@ -405,14 +405,16 @@ model EventDokumentasiFoto {
 
 
 model BookingEvent {
-  id           String        @id @default(uuid())
-  id_event     String
-  id_client    String
-  id_transaksi String        @unique // Wajib (NOT NULL) karena seluruh event publik berbayar
-  kode_tiket   String        @unique
-  status       StatusBooking @default(PENDING)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                    String        @id @default(uuid())
+  id_event              String
+  id_client             String
+  id_transaksi          String        @unique // Wajib (NOT NULL) karena seluruh event publik berbayar
+  kode_tiket            String        @unique
+  jumlah_peserta        Int           @default(1)
+  nama_peserta_tambahan Json?
+  status                StatusBooking @default(PENDING)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   event     Event     @relation(fields: [id_event], references: [id], onDelete: Restrict)
   client    Client    @relation(fields: [id_client], references: [id], onDelete: Restrict)
