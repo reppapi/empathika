@@ -1,3 +1,4 @@
+/** Konstanta daftar benefit standar untuk paket psikotes berbayar dan gratis. */
 export const UNIVERSAL_PAID_BENEFITS = [
   "Hasil analisis sesuai jenis psikotes yang dipilih",
   "Interpretasi hasil dan karakteristik secara mendalam",

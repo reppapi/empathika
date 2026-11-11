@@ -1,3 +1,4 @@
+/** Halaman detail paket psikotes (info tes, benefit, tombol mulai/beli, dan modal verifikasi kode akses). */
 "use client"
 
 import { useState, useEffect } from "react";

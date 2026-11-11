@@ -1,3 +1,4 @@
+/** Komponen router hasil psikotes untuk memisahkan tampilan hasil gratis dan laporan resmi berbayar. */
 "use client";
 
 import { useEffect } from "react";

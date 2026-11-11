@@ -1,3 +1,4 @@
+/** Kartu ringkasan statistik jumlah peserta, tes gratis, berbayar, dan yang sudah selesai. */
 import React from "react";
 import { Users, CheckCircle2, Clock, Activity } from "lucide-react";
 

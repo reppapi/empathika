@@ -1,8 +1,8 @@
+/** Halaman laporan resmi hasil psikotes berbayar lengkap dengan fitur unduh PDF dan cetak browser. */
 "use client";
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Script from "next/script";
 import Link from "next/link";
 import { 
   Calendar, 
@@ -19,8 +19,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { useAuthStore } from "@/store/authStore";
 import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
+import {
+  downloadLaporanPsikotesPdf,
+  tailwindBarToHex,
+  type LaporanPsikotesPdfData,
+} from "@/features/psikotes/utils/downloadLaporanPsikotesPdf";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
@@ -58,6 +62,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       pendidikan: rawPendidikan,
       pekerjaan: rawPekerjaan,
       kategori: rawKategori,
+      tempatLahir: "",
+      tanggalLahir: "",
+      statusPernikahan: searchParams.get("status") || "",
       namaOrangTua: "",
       noTeleponOrangTua: "",
       bookingId: rawBookingId,
@@ -166,6 +173,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 pendidikan: bData.peserta.pendidikan || prev.pendidikan,
                 pekerjaan: bData.peserta.pekerjaan || prev.pekerjaan,
                 kategori: (bData.peserta as any).kategori_peserta || prev.kategori,
+                tempatLahir: (bData.peserta as any).tempat_lahir || prev.tempatLahir,
+                tanggalLahir: (bData.peserta as any).tanggal_lahir || prev.tanggalLahir,
+                statusPernikahan: (bData.peserta as any).status_pernikahan || prev.statusPernikahan,
                 namaOrangTua: (bData.peserta as any).nama_orang_tua || prev.namaOrangTua,
                 noTeleponOrangTua: (bData.peserta as any).no_telepon_orang_tua || prev.noTeleponOrangTua,
                 bookingId: bData.kode_akses || bData.id_booking || prev.bookingId,
@@ -409,118 +419,65 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
-
-    const target = document.getElementById("laporan-berbayar-container");
-    const sidebar = document.getElementById("laporan-sidebar-aksi");
-    const leftCol = document.getElementById("laporan-kolom-kiri");
-    const headerPdf = document.getElementById("laporan-pdf-header");
-    const footerPdf = document.getElementById("laporan-pdf-footer");
-
-    if (!target) {
-      window.print();
-      setIsDownloading(false);
-      return;
-    }
-
-    const originalScrollY = window.scrollY;
-
     try {
-      // Helper untuk memuat library html2pdf jika belum ada di window
-      const getHtml2Pdf = async (): Promise<any> => {
-        if (typeof window === "undefined") return null;
-        if ((window as any).html2pdf) return (window as any).html2pdf;
+      const noDokumen = `EMP-PSI-${
+        peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"
+      }`;
 
-        return new Promise((resolve, reject) => {
-          const existing = document.querySelector('script[src*="html2pdf"]');
-          if (existing) {
-            existing.addEventListener("load", () => resolve((window as any).html2pdf));
-            existing.addEventListener("error", reject);
-            if ((window as any).html2pdf) resolve((window as any).html2pdf);
-            return;
-          }
-          const script = document.createElement("script");
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-          script.async = true;
-          script.onload = () => resolve((window as any).html2pdf);
-          script.onerror = reject;
-          document.body.appendChild(script);
-        });
+      const pdfData: LaporanPsikotesPdfData = {
+        noDokumen,
+        judulTes: displayTestName,
+        tanggalAsesmen: peserta.tanggal,
+        masaBerlaku: "Masa Berlaku: 14 Hari (2 Minggu)",
+        peserta: {
+          nama: peserta.nama || "Peserta Asesmen Empathika",
+          noHp: peserta.noHp || peserta.noTeleponOrangTua || null,
+          usia: peserta.usia || null,
+          jenisKelamin: peserta.jenisKelamin || null,
+          kategori: peserta.kategori || null,
+          tempatLahir: peserta.tempatLahir || null,
+          tanggalLahir: peserta.tanggalLahir || null,
+          pendidikan: peserta.pendidikan || null,
+          pekerjaan: peserta.pekerjaan || null,
+          statusPernikahan: peserta.statusPernikahan || null,
+          namaOrangTua: peserta.namaOrangTua || null,
+          noTeleponOrangTua: peserta.noTeleponOrangTua || null,
+        },
+        hasilUtama: {
+          prefix: dynamicResult.prefix,
+          judul: dynamicResult.value,
+          totalSkor: totalSkor,
+          deskripsi: isDASS && dassEvaluation ? dassEvaluation.introText : berbayarDetail.deskripsi,
+        },
+        subscales: dassEvaluation
+          ? dassEvaluation.subscalesList.map((s) => ({
+              name: s.name,
+              score: s.score,
+              maxScore: s.maxScore,
+              percentage: s.percentage,
+              grade: s.grade,
+              deskripsi: s.deskripsi,
+              colorHex: tailwindBarToHex(s.barColor),
+            }))
+          : undefined,
+        subscalesTitle: dassEvaluation ? "Profil 3 Dimensi: Depresi, Kecemasan, & Stres" : undefined,
+        subscalesMaxNote: dassEvaluation ? "Maks. 42 / dimensi" : undefined,
+        kekuatanUtama: berbayarDetail.kekuatanUtama,
+        judulKekuatan: berbayarDetail.judulKekuatan,
+        blindspots: berbayarDetail.blindspots,
+        judulBlindspots: berbayarDetail.judulBlindspots,
+        lingkunganOptimal: berbayarDetail.lingkunganOptimal,
+        judulLingkungan: berbayarDetail.judulLingkungan,
+        saranList: berbayarDetail.saranList.map((t: any) =>
+          typeof t === "string" ? { title: "Rekomendasi", desc: t } : t
+        ),
       };
 
-      const html2pdf = await getHtml2Pdf();
-      if (!html2pdf) {
-        throw new Error("Library html2pdf gagal dimuat");
-      }
-
-      // 1. Scroll ke paling atas untuk mencegah offset html2canvas
-      window.scrollTo(0, 0);
-
-      // 2. Aktifkan mode PDF dokumen profesional
-      target.classList.add("pdf-export-mode");
-
-      if (headerPdf) headerPdf.style.display = "block";
-      if (footerPdf) footerPdf.style.display = "block";
-      if (sidebar) sidebar.style.display = "none";
-      if (leftCol) {
-        leftCol.style.width = "100%";
-        leftCol.style.gridColumn = "1 / -1";
-      }
-
-      // Berikan jeda 300ms agar browser merender ulang layout dokumen sebelum di-capture
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const cleanFileName = `Laporan-Resmi-Psikotes-${(peserta.nama || "Peserta").replace(/[^a-zA-Z0-9]/g, "_")}-Empathika.pdf`;
-
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: cleanFileName,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          scrollX: 0,
-          scrollY: 0,
-          backgroundColor: "#ffffff",
-          onclone: (clonedDoc: any) => {
-            const clonedTarget = clonedDoc.getElementById("laporan-berbayar-container");
-            if (clonedTarget) {
-              clonedTarget.style.width = "100%";
-              clonedTarget.style.maxWidth = "100%";
-              clonedTarget.style.margin = "0 auto";
-              clonedTarget.style.padding = "0";
-              clonedTarget.style.boxSizing = "border-box";
-              if (clonedTarget.parentElement) {
-                clonedTarget.parentElement.style.width = "100%";
-                clonedTarget.parentElement.style.maxWidth = "100%";
-                clonedTarget.parentElement.style.margin = "0 auto";
-                clonedTarget.parentElement.style.padding = "0";
-              }
-            }
-          },
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: {
-          mode: ["css", "legacy"],
-          avoid: [".pdf-card", ".pdf-avoid-break", ".pdf-sub-box", ".pdf-tip-item", "#laporan-pdf-footer"],
-        },
-      };
-
-      await html2pdf().set(opt).from(target).save();
+      await downloadLaporanPsikotesPdf(pdfData);
     } catch (err) {
       console.error("[PDF Download Error]", err);
       window.print();
     } finally {
-      // 3. Kembalikan layout tampilan web seperti semula secara mulus
-      target.classList.remove("pdf-export-mode");
-      if (headerPdf) headerPdf.style.display = "none";
-      if (footerPdf) footerPdf.style.display = "none";
-      if (sidebar) sidebar.style.display = "";
-      if (leftCol) {
-        leftCol.style.width = "";
-        leftCol.style.gridColumn = "";
-      }
-      window.scrollTo(0, originalScrollY);
       setIsDownloading(false);
     }
   };
@@ -602,167 +559,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-20 px-4 sm:px-6 lg:px-8 lg:pt-32">
-      <Script
-        src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-        strategy="afterInteractive"
-      />
-
-      {/* CSS Khusus Mode Cetak & Export PDF: Dokumen Clean, Rapi, Standar A4 & Profesional */}
+      {/* CSS Khusus Mode Cetak Browser (Ctrl+P) */}
       <style dangerouslySetInnerHTML={{ __html: `
-        .pdf-export-mode {
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          border-radius: 0 !important;
-          padding: 0 !important;
-          margin: 0 auto !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          box-sizing: border-box !important;
-        }
-        .pdf-export-mode .pdf-main-grid {
-          display: block !important;
-          width: 100% !important;
-          margin: 0 auto !important;
-          padding: 0 !important;
-          gap: 0 !important;
-        }
-        .pdf-export-mode #laporan-kolom-kiri {
-          display: block !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          margin: 0 auto !important;
-          padding: 0 !important;
-        }
-        .pdf-export-mode #laporan-pdf-header {
-          width: 100% !important;
-          margin: 0 auto 14px auto !important;
-          box-sizing: border-box !important;
-        }
-        .pdf-export-mode .pdf-card {
-          box-shadow: none !important;
-          border-radius: 10px !important;
-          border: 1px solid #E5E7EB !important;
-          padding: 14px 18px !important;
-          margin: 0 auto 12px auto !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-          background: #ffffff !important;
-        }
-        .pdf-export-mode .pdf-hero-card {
-          box-shadow: none !important;
-          border-radius: 10px !important;
-          padding: 16px 20px !important;
-          margin: 0 auto 12px auto !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-          background: #FAF8FB !important;
-          border-left-width: 4px !important;
-          border-left-color: #561269 !important;
-        }
-        .pdf-export-mode .pdf-result-val {
-          font-size: 22px !important;
-          font-weight: 800 !important;
-          line-height: 1.25 !important;
-          margin-bottom: 4px !important;
-          color: #561269 !important;
-        }
-        .pdf-export-mode .pdf-heading {
-          font-size: 13.5px !important;
-          font-weight: 700 !important;
-          line-height: 1.3 !important;
-          margin-bottom: 4px !important;
-          color: #111827 !important;
-        }
-        .pdf-export-mode .pdf-subheading {
-          font-size: 10px !important;
-          color: #6B7280 !important;
-          margin-bottom: 8px !important;
-        }
-        .pdf-export-mode .pdf-body {
-          font-size: 10.5px !important;
-          line-height: 1.55 !important;
-          color: #374151 !important;
-        }
-        .pdf-export-mode .pdf-grid-4 {
-          display: grid !important;
-          grid-template-columns: repeat(4, 1fr) !important;
-          gap: 10px !important;
-        }
-        .pdf-export-mode .pdf-grid-3 {
-          display: grid !important;
-          grid-template-columns: repeat(3, 1fr) !important;
-          gap: 10px !important;
-        }
-        .pdf-export-mode .pdf-meta-box {
-          padding: 8px 12px !important;
-          border-radius: 8px !important;
-          background: #F9FAFB !important;
-          border: 1px solid #F3F4F6 !important;
-        }
-        .pdf-export-mode .pdf-meta-label {
-          font-size: 9px !important;
-          margin-bottom: 2px !important;
-          color: #6B7280 !important;
-        }
-        .pdf-export-mode .pdf-meta-val {
-          font-size: 11.5px !important;
-          font-weight: 700 !important;
-        }
-        .pdf-export-mode .pdf-sub-box {
-          padding: 10px 14px !important;
-          border-radius: 8px !important;
-        }
-        .pdf-export-mode .pdf-sub-title {
-          font-size: 10px !important;
-          margin-bottom: 4px !important;
-        }
-        .pdf-export-mode .pdf-grid-2 {
-          display: grid !important;
-          grid-template-columns: repeat(2, 1fr) !important;
-          gap: 10px !important;
-        }
-        .pdf-export-mode .pdf-list-item {
-          font-size: 10px !important;
-          line-height: 1.45 !important;
-          margin-bottom: 4px !important;
-        }
-        .pdf-export-mode .pdf-tip-item {
-          padding: 8px 12px !important;
-          border-radius: 8px !important;
-          margin-bottom: 6px !important;
-          gap: 10px !important;
-        }
-        .pdf-export-mode .pdf-tip-title {
-          font-size: 11.5px !important;
-          font-weight: 700 !important;
-        }
-        .pdf-export-mode .pdf-tip-desc {
-          font-size: 10px !important;
-          line-height: 1.4 !important;
-        }
-        .pdf-export-mode .pdf-page-break-before {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-        }
-        .pdf-export-mode .pdf-avoid-break {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-        }
-        .pdf-export-mode #laporan-kolom-kiri > * + * {
-          margin-top: 10px !important;
-        }
-        .pdf-export-mode #laporan-pdf-footer {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-          margin-top: 14px !important;
-          padding-top: 10px !important;
-        }
-
         @media print {
           .print\\:hidden { display: none !important; }
           #laporan-pdf-header { display: block !important; }
@@ -787,18 +585,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
-          .pdf-page-break-before {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
           .pdf-grid-4 {
             display: grid !important;
             grid-template-columns: repeat(4, 1fr) !important;
-            gap: 10px !important;
-          }
-          .pdf-grid-3 {
-            display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
             gap: 10px !important;
           }
           .pdf-grid-2 {
@@ -859,7 +648,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
           <div
             id="laporan-pdf-header"
             style={{ display: "none" }}
-            className="pb-4 mb-5 border-b-2 border-[#561269] pdf-avoid-break"
+            className="pb-4 mb-5 border-b-2 border-[#561269]"
           >
             <div className="flex justify-between items-start">
               <div>
@@ -887,10 +676,10 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900 leading-tight pdf-heading">
+                  <h3 className="text-sm font-bold text-gray-900 leading-tight">
                     Identitas Peserta Asesmen
                   </h3>
-                  <p className="text-xs text-gray-500 pdf-subheading">
+                  <p className="text-xs text-gray-500">
                     Data resmi peserta pengerjaan asesmen psikotes
                   </p>
                 </div>
@@ -908,29 +697,29 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pdf-grid-4">
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
                   Nama Lengkap
                 </span>
-                <span className="font-extrabold text-sm text-gray-900 block truncate pdf-meta-val">
+                <span className="font-extrabold text-sm text-gray-900 block truncate">
                   {peserta.nama || "Peserta Asesmen Empathika"}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
                   Kontak WhatsApp
                 </span>
-                <span className="font-bold text-sm text-emerald-700 block truncate pdf-meta-val">
+                <span className="font-bold text-sm text-emerald-700 block truncate">
                   {peserta.noHp || "—"}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
                   Profil Peserta
                 </span>
-                <span className="font-bold text-sm text-gray-800 block truncate pdf-meta-val">
+                <span className="font-bold text-sm text-gray-800 block truncate">
                   {[
                     peserta.usia ? `${peserta.usia} Thn` : null,
                     peserta.jenisKelamin || null,
@@ -941,11 +730,11 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 pdf-meta-box">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 pdf-meta-label">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
                   Tanggal Asesmen
                 </span>
-                <span className="font-bold text-sm text-gray-800 block truncate pdf-meta-val">
+                <span className="font-bold text-sm text-gray-800 block truncate">
                   {peserta.tanggal}
                 </span>
               </div>
@@ -953,20 +742,20 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
           </div>
 
           {/* 1. Hasil Utama (Clean & Modern Card) */}
-          <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card pdf-hero-card bg-[#FAF8FB] rounded-xl border border-purple-200/70 p-6 sm:p-8 shadow-xs text-center border-l-4 border-l-[#561269]">
+          <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-[#FAF8FB] rounded-xl border border-purple-200/70 p-6 sm:p-8 shadow-xs text-center border-l-4 border-l-[#561269]">
             {dynamicResult.prefix && (
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 pdf-subheading">{dynamicResult.prefix}</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{dynamicResult.prefix}</p>
             )}
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#561269] tracking-tight mb-2 pdf-result-val">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#561269] tracking-tight mb-2">
               {dynamicResult.value}
             </h2>
-            <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed pdf-body">
+            <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
               {isDASS && dassEvaluation ? dassEvaluation.introText : berbayarDetail.deskripsi}
             </p>
           </section>
 
           {/* 2. Grid Konten: Kolom Kiri (Analisis) & Kolom Kanan (Sidebar) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pdf-main-grid">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* Kolom Kiri: Analisis Lengkap */}
             <div id="laporan-kolom-kiri" className="lg:col-span-8 space-y-8 print:w-full print:col-span-12">
@@ -975,7 +764,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {dassEvaluation && (
                 <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                   <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 pdf-heading">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                       <Compass className="w-5 h-5 text-[#561269]" />
                       Profil 3 Dimensi: Depresi, Kecemasan, &amp; Stres
                     </h3>
@@ -1014,11 +803,11 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {/* Interpretasi Hasil & Implikasi Strategis */}
               <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2 pdf-heading">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                     <Info className="w-5 h-5 text-[#561269]" />
                     Interpretasi Hasil
                   </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed pdf-body">
+                  <p className="text-sm text-gray-600 leading-relaxed">
                     {berbayarDetail.deskripsi}
                   </p>
                 </div>
@@ -1028,11 +817,11 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {(berbayarDetail.kekuatanUtama.length > 0 || berbayarDetail.blindspots.length > 0) && (
                 <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2 pdf-heading">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-[#561269]" />
                       Analisis Karakteristik &amp; Dinamika Diri
                     </h3>
-                    <p className="text-xs text-gray-500 pdf-subheading">
+                    <p className="text-xs text-gray-500">
                       Pemetaan potensi keunggulan serta area pengembangan diri untuk berkembang optimal:
                     </p>
                   </div>
@@ -1040,16 +829,16 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pdf-grid-2">
                     {/* Potensi atau Kekuatan Utama */}
                     {berbayarDetail.kekuatanUtama.length > 0 && (
-                      <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70 pdf-sub-box">
+                      <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                          <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider pdf-sub-title">
+                          <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
                             {berbayarDetail.judulKekuatan || "Potensi atau Kekuatan Utama"}
                           </span>
                         </div>
                         <ul className="space-y-2.5 text-xs text-emerald-950">
                           {berbayarDetail.kekuatanUtama.map((point, pIdx) => (
-                            <li key={pIdx} className="flex items-start gap-2 leading-relaxed pdf-list-item">
+                            <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
                               <span>{point}</span>
                             </li>
@@ -1060,16 +849,16 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
                     {/* Area yang Perlu Dikembangkan */}
                     {berbayarDetail.blindspots.length > 0 && (
-                      <div className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200/70 pdf-sub-box">
+                      <div className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200/70">
                         <div className="flex items-center gap-2 mb-3">
                           <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                          <span className="text-xs font-bold text-rose-900 uppercase tracking-wider pdf-sub-title">
+                          <span className="text-xs font-bold text-rose-900 uppercase tracking-wider">
                             {berbayarDetail.judulBlindspots || "Area yang Perlu Dikembangkan"}
                           </span>
                         </div>
                         <ul className="space-y-2.5 text-xs text-rose-950">
                           {berbayarDetail.blindspots.map((point, pIdx) => (
-                            <li key={pIdx} className="flex items-start gap-2 leading-relaxed pdf-list-item">
+                            <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
                               <span>{point}</span>
                             </li>
@@ -1085,19 +874,19 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {berbayarDetail.lingkunganOptimal.length > 0 && (
                 <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2 pdf-heading">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
                       <Compass className="w-5 h-5 text-[#561269]" />
                       {berbayarDetail.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung"}
                     </h3>
-                    <p className="text-xs text-gray-500 pdf-subheading">
+                    <p className="text-xs text-gray-500">
                       Kondisi eksternal yang paling mendukung performa optimal dan kesejahteraan emosionalmu:
                     </p>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-amber-50/40 border border-amber-200/70 pdf-sub-box">
+                  <div className="p-5 rounded-2xl bg-amber-50/40 border border-amber-200/70">
                     <ul className="space-y-2.5 text-xs text-gray-800">
                       {berbayarDetail.lingkunganOptimal.map((ling, lIdx) => (
-                        <li key={lIdx} className="flex items-start gap-2 leading-relaxed pdf-list-item">
+                        <li key={lIdx} className="flex items-start gap-2 leading-relaxed">
                           <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                           <span>{ling}</span>
                         </li>
@@ -1111,28 +900,28 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {berbayarDetail.saranList.length > 0 && (
                 <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2 pdf-heading">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
                       <HeartHandshake className="w-5 h-5 text-[#561269]" />
                       Langkah Pengembangan Diri
                     </h3>
-                    <p className="text-xs text-gray-500 pdf-subheading">
+                    <p className="text-xs text-gray-500">
                       Saran praktis untuk memaksimalkan potensi dan menjaga keseimbangan energimu:
                     </p>
                   </div>
 
                   <div className="space-y-3">
                     {berbayarDetail.saranList.map((tip: any, index: number) => (
-                      <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 pdf-tip-item">
+                      <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
                         <div className="flex-shrink-0 mt-0.5">
                           <CheckCircle2 className="w-5 h-5 text-[#561269]" />
                         </div>
                         <div>
                           {typeof tip === "string" ? (
-                            <p className="text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip}</p>
+                            <p className="text-xs text-gray-600 leading-relaxed">{tip}</p>
                           ) : (
                             <>
-                              {tip.title && <h4 className="text-sm font-bold text-gray-900 pdf-tip-title">{tip.title}</h4>}
-                              {tip.desc && <p className="mt-0.5 text-xs text-gray-600 leading-relaxed pdf-tip-desc">{tip.desc}</p>}
+                              {tip.title && <h4 className="text-sm font-bold text-gray-900">{tip.title}</h4>}
+                              {tip.desc && <p className="mt-0.5 text-xs text-gray-600 leading-relaxed">{tip.desc}</p>}
                             </>
                           )}
                         </div>
@@ -1214,7 +1003,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
           <div
             id="laporan-pdf-footer"
             style={{ display: "none" }}
-            className="pt-4 border-t border-dashed border-gray-300 mt-6 bg-white pdf-avoid-break"
+            className="pt-4 border-t border-dashed border-gray-300 mt-6 bg-white"
           >
             <div className="flex justify-between items-end">
               <div className="text-[9px] text-gray-400 leading-relaxed max-w-xs">

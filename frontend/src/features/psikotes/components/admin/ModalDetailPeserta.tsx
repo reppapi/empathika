@@ -1,4 +1,5 @@
-import React from "react";
+/** Modal detail peserta psikotes untuk melihat biodata, skor, hasil evaluasi, dan unduh PDF. */
+import React, { useState, useEffect } from "react";
 import {
   X,
   FileText,
@@ -9,6 +10,7 @@ import {
   Compass,
   HeartHandshake,
   Clock,
+  Loader2,
 } from "lucide-react";
 import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../../types/adminPsikotes";
 import { getPesertaReportDetail } from "../../utils/adminPsikotesMapper";
@@ -17,7 +19,7 @@ export interface ModalDetailPesertaProps {
   peserta: AdminPsikotesPeserta | null;
   judulList?: JudulPsikotesItem[];
   onClose: () => void;
-  onDownloadPdf: (peserta: AdminPsikotesPeserta) => void;
+  onDownloadPdf: (peserta: AdminPsikotesPeserta) => Promise<void> | void;
 }
 
 export default function ModalDetailPeserta({
@@ -26,10 +28,32 @@ export default function ModalDetailPeserta({
   onClose,
   onDownloadPdf,
 }: ModalDetailPesertaProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPdfError(null);
+    setIsDownloading(false);
+  }, [peserta?.id]);
+
   if (!peserta) return null;
 
   const isCompleted = peserta.status === "Selesai" || Boolean(peserta.hasil);
   const detail = getPesertaReportDetail(peserta, judulList);
+
+  const handleDownloadClick = async () => {
+    if (isDownloading) return;
+    setPdfError(null);
+    setIsDownloading(true);
+    try {
+      await onDownloadPdf(peserta);
+    } catch (err) {
+      console.error("[Admin PDF Download Error]", err);
+      setPdfError("Gagal membuat file PDF laporan. Silakan coba lagi.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
@@ -349,27 +373,46 @@ export default function ModalDetailPeserta({
               )}
 
               {/* Download PDF Laporan Klien */}
-              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white text-[#561269] flex items-center justify-center font-bold shadow-xs shrink-0">
-                    <FileText className="w-5 h-5" />
+              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white text-[#561269] flex items-center justify-center font-bold shadow-xs shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-gray-900">Laporan Resmi Hasil Psikotes (PDF)</h4>
+                      <p className="text-[11px] text-gray-500">
+                        Dokumen evaluasi komprehensif terverifikasi siap unduh dan cetak 1:1 persis website klien.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-xs text-gray-900">Laporan Resmi Hasil Psikotes (PDF)</h4>
-                    <p className="text-[11px] text-gray-500">
-                      Dokumen evaluasi komprehensif terverifikasi siap unduh dan cetak 1:1 persis website klien.
-                    </p>
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadClick}
+                    disabled={isDownloading}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Menyiapkan PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Download Laporan (PDF)
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => onDownloadPdf(peserta)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Laporan (PDF)
-                </button>
+                {pdfError && (
+                  <p className="text-[11px] font-medium text-red-600 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    {pdfError}
+                  </p>
+                )}
               </div>
 
               {/* Quick WhatsApp Action */}

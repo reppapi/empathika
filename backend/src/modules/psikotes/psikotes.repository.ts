@@ -1,3 +1,4 @@
+/** Repository akses database Prisma untuk paket, soal, booking, peserta, tiket, dan hasil psikotes. */
 import type { PrismaClient, MetodePembayaran, StatusPembayaran } from '@prisma/client'
 import { generateOrderId, normalizePhoneNumber } from '../../utils'
 import type {
@@ -1680,6 +1681,7 @@ export class PsikotesRepository {
         tanggal_lahir: booking.peserta_psikotes?.tanggal_lahir || null,
         pendidikan: booking.peserta_psikotes?.pendidikan || null,
         pekerjaan: booking.peserta_psikotes?.pekerjaan || null,
+        status_pernikahan: booking.peserta_psikotes?.status_pernikahan || null,
         nama_orang_tua: booking.peserta_psikotes?.nama_orang_tua || null,
         no_telepon_orang_tua: booking.peserta_psikotes?.no_telepon_orang_tua || null,
       },

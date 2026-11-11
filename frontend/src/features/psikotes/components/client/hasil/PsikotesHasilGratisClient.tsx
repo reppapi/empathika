@@ -1,3 +1,4 @@
+/** Halaman hasil skrining psikotes gratis (ringkasan kategori, evaluasi DASS, saran, dan hotline krisis). */
 "use client";
 
 import { useState, useEffect } from "react";

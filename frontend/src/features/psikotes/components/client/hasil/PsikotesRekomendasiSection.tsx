@@ -1,3 +1,4 @@
+/** Seksi rekomendasi paket psikotes lain yang ditampilkan di bawah halaman hasil tes. */
 "use client";
 
 import { useEffect, useState } from "react";

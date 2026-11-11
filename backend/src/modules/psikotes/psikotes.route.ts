@@ -1,3 +1,4 @@
+/** Definisi routing HTTP Fastify untuk endpoint publik dan admin modul psikotes. */
 import type { FastifyInstance } from 'fastify'
 import { PsikotesController } from './psikotes.controller'
 import { adminGuard } from '../../middlewares/admin-guard'

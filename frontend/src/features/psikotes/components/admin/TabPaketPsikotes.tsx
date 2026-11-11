@@ -1,3 +1,4 @@
+/** Tab tabel daftar instrumen dan paket tes psikotes beserta filter, pencarian, dan hapus paket. */
 import React, { useState } from "react";
 import {
   AdminDataTable,

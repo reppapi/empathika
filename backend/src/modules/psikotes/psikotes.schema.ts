@@ -1,3 +1,4 @@
+/** Skema validasi Zod untuk input query, body, paket, submit jawaban, booking, dan tiket psikotes. */
 import { z } from 'zod'
 
 export const pilihanJawabanSchema = z.object({

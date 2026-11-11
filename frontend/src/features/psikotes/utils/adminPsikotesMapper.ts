@@ -1,3 +1,4 @@
+/** Helper mapper untuk mengubah respons API psikotes menjadi format tampilan tabel dan detail laporan admin. */
 import type { PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import type {
   AdminPsikotesPeserta,
