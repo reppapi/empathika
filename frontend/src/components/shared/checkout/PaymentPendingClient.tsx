@@ -51,6 +51,10 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
   const tipe = searchParams.get("tipe")
   const linkMeet = searchParams.get("linkMeet")
   const linkWa = searchParams.get("linkWa")
+  const namaBundling = searchParams.get("namaBundling")
+  const kuotaBundling = searchParams.get("kuotaBundling")
+  const dataPesertaTambahan = searchParams.get("dataPesertaTambahan")
+  const tipeTiket = searchParams.get("tipeTiket")
 
   // Timer mundur 5 menit (300 detik)
   const [seconds, setSeconds] = useState(300)
@@ -155,6 +159,10 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
         ...(tipe && { tipe }),
         ...(linkMeet && { linkMeet }),
         ...(linkWa && { linkWa }),
+        ...(namaBundling && { namaBundling }),
+        ...(kuotaBundling && { kuotaBundling }),
+        ...(dataPesertaTambahan && { dataPesertaTambahan }),
+        ...(tipeTiket && { tipeTiket }),
       })
       router.push(`${config.successHref}?${params.toString()}`)
     }, 2000)
@@ -186,6 +194,10 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
     ewallet,
     psikologName,
     email,
+    namaBundling,
+    kuotaBundling,
+    dataPesertaTambahan,
+    tipeTiket,
     router,
   ])
 

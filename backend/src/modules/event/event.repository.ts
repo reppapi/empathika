@@ -51,8 +51,13 @@ export class EventRepository {
           { jam_mulai: 'desc' },
         ],
         include: {
-          _count: {
-            select: { booking_event: true },
+          booking_event: {
+            where: {
+              status: { in: ['PENDING', 'CONFIRMED'] },
+            },
+            select: {
+              jumlah_peserta: true,
+            },
           },
         },
       }),
@@ -60,17 +65,21 @@ export class EventRepository {
     ])
 
     return {
-      items: items.map((item) => ({
-        ...item,
-        harga: item.harga.toString(),
-        harga_coret: item.harga_coret ? item.harga_coret.toString() : null,
-        harga_bundling: item.harga_bundling ? item.harga_bundling.toString() : null,
-        kuota_tiket_bundling: item.kuota_tiket_bundling ?? 2,
-        nama_bundling: item.nama_bundling ?? null,
-        paket_bundling: item.paket_bundling ?? null,
-        jumlah_booking: item._count.booking_event,
-        sisa_kuota: item.kuota - item._count.booking_event,
-      })),
+      items: items.map((item) => {
+        const totalPesertaBooked = item.booking_event.reduce((acc, curr) => acc + (curr.jumlah_peserta || 1), 0)
+        const { booking_event, ...eventData } = item
+        return {
+          ...eventData,
+          harga: item.harga.toString(),
+          harga_coret: item.harga_coret ? item.harga_coret.toString() : null,
+          harga_bundling: item.harga_bundling ? item.harga_bundling.toString() : null,
+          kuota_tiket_bundling: item.kuota_tiket_bundling ?? 2,
+          nama_bundling: item.nama_bundling ?? null,
+          paket_bundling: item.paket_bundling ?? null,
+          jumlah_booking: totalPesertaBooked,
+          sisa_kuota: item.kuota - totalPesertaBooked,
+        }
+      }),
       meta: {
         page,
         limit,
@@ -84,24 +93,32 @@ export class EventRepository {
     const item = await this.prisma.event.findUnique({
       where: { id },
       include: {
-        _count: {
-          select: { booking_event: true },
+        booking_event: {
+          where: {
+            status: { in: ['PENDING', 'CONFIRMED'] },
+          },
+          select: {
+            jumlah_peserta: true,
+          },
         },
       },
     })
 
     if (!item) return null
 
+    const totalPesertaBooked = item.booking_event.reduce((acc, curr) => acc + (curr.jumlah_peserta || 1), 0)
+    const { booking_event, ...eventData } = item
+
     return {
-      ...item,
+      ...eventData,
       harga: item.harga.toString(),
       harga_coret: item.harga_coret ? item.harga_coret.toString() : null,
       harga_bundling: item.harga_bundling ? item.harga_bundling.toString() : null,
       kuota_tiket_bundling: item.kuota_tiket_bundling ?? 2,
       nama_bundling: item.nama_bundling ?? null,
       paket_bundling: item.paket_bundling ?? null,
-      jumlah_booking: item._count.booking_event,
-      sisa_kuota: item.kuota - item._count.booking_event,
+      jumlah_booking: totalPesertaBooked,
+      sisa_kuota: item.kuota - totalPesertaBooked,
     }
   }
 
@@ -137,22 +154,30 @@ export class EventRepository {
         status: data.status ?? 'UPCOMING',
       },
       include: {
-        _count: {
-          select: { booking_event: true },
+        booking_event: {
+          where: {
+            status: { in: ['PENDING', 'CONFIRMED'] },
+          },
+          select: {
+            jumlah_peserta: true,
+          },
         },
       },
     })
 
+    const totalPesertaCreated = created.booking_event.reduce((acc, curr) => acc + (curr.jumlah_peserta || 1), 0)
+    const { booking_event: createdBookings, ...createdEventData } = created
+
     return {
-      ...created,
+      ...createdEventData,
       harga: created.harga.toString(),
       harga_coret: created.harga_coret ? created.harga_coret.toString() : null,
       harga_bundling: created.harga_bundling ? created.harga_bundling.toString() : null,
       kuota_tiket_bundling: created.kuota_tiket_bundling ?? 2,
       nama_bundling: created.nama_bundling ?? null,
       paket_bundling: created.paket_bundling ?? null,
-      jumlah_booking: created._count.booking_event,
-      sisa_kuota: created.kuota - created._count.booking_event,
+      jumlah_booking: totalPesertaCreated,
+      sisa_kuota: created.kuota - totalPesertaCreated,
     }
   }
 
@@ -208,22 +233,30 @@ export class EventRepository {
       where: { id },
       data: updateData,
       include: {
-        _count: {
-          select: { booking_event: true },
+        booking_event: {
+          where: {
+            status: { in: ['PENDING', 'CONFIRMED'] },
+          },
+          select: {
+            jumlah_peserta: true,
+          },
         },
       },
     })
 
+    const totalPesertaUpdated = updated.booking_event.reduce((acc, curr) => acc + (curr.jumlah_peserta || 1), 0)
+    const { booking_event: updatedBookings, ...updatedEventData } = updated
+
     return {
-      ...updated,
+      ...updatedEventData,
       harga: updated.harga.toString(),
       harga_coret: updated.harga_coret ? updated.harga_coret.toString() : null,
       harga_bundling: updated.harga_bundling ? updated.harga_bundling.toString() : null,
       kuota_tiket_bundling: updated.kuota_tiket_bundling ?? 2,
       nama_bundling: updated.nama_bundling ?? null,
       paket_bundling: updated.paket_bundling ?? null,
-      jumlah_booking: updated._count.booking_event,
-      sisa_kuota: updated.kuota - updated._count.booking_event,
+      jumlah_booking: totalPesertaUpdated,
+      sisa_kuota: updated.kuota - totalPesertaUpdated,
     }
   }
 
@@ -234,8 +267,15 @@ export class EventRepository {
   }
 
   async countBookings(id: string) {
-    return this.prisma.bookingEvent.count({
-      where: { id_event: id },
+    const agg = await this.prisma.bookingEvent.aggregate({
+      where: {
+        id_event: id,
+        status: { in: ['PENDING', 'CONFIRMED'] },
+      },
+      _sum: {
+        jumlah_peserta: true,
+      },
     })
+    return agg._sum.jumlah_peserta || 0
   }
 }
