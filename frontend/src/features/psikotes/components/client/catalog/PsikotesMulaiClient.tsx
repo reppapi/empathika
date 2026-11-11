@@ -11,6 +11,22 @@ import PsikotesFormIdentitas, { type IdentityData } from "./PsikotesFormIdentita
 
 // Helper pengecekan kelengkapan data identitas peserta berbayar
 const isIdentityFullyCompleted = (data: IdentityData) => {
+  const numUmur = parseInt(data.umur || "", 10);
+  const isUnderAge = !isNaN(numUmur) && numUmur > 0 && numUmur < 18;
+
+  if (isUnderAge) {
+    return Boolean(
+      data.nama?.trim() &&
+      data.tempatLahir?.trim() &&
+      data.tanggalLahir?.trim() &&
+      data.umur?.trim() &&
+      data.jenisKelamin?.trim() &&
+      data.namaOrangTua?.trim() &&
+      data.noTeleponOrangTua?.trim() &&
+      data.pendidikan?.trim()
+    );
+  }
+
   return Boolean(
     data.nama?.trim() &&
     data.noTelepon?.trim() &&
@@ -45,6 +61,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     jenisKelamin: "",
     pekerjaan: "",
     pendidikan: "",
+    namaOrangTua: "",
+    noTeleponOrangTua: "",
+    persetujuanWali: false,
   });
   const [isIdentityCompleted, setIsIdentityCompleted] = useState(false);
   // State Pertanyaan Tambahan (Functional Impairment) khusus GAD-7 & PHQ-9 (Wajib dideklarasikan di top-level hooks)
@@ -170,6 +189,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       let savedGender = "";
       let savedPekerjaan = "";
       let savedPendidikan = "";
+      let savedNamaOrangTua = "";
+      let savedNoTeleponOrangTua = "";
+      let savedPersetujuanWali = false;
 
       const raw = localStorage.getItem("empathika_peserta_psikotes");
       if (raw) {
@@ -186,6 +208,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           savedGender = parsed.jenisKelamin || "";
           savedPekerjaan = parsed.pekerjaan || "";
           savedPendidikan = parsed.pendidikan || "";
+          savedNamaOrangTua = parsed.namaOrangTua || parsed.nama_orang_tua || "";
+          savedNoTeleponOrangTua = parsed.noTeleponOrangTua || parsed.no_telepon_orang_tua || "";
+          savedPersetujuanWali = parsed.persetujuanWali ?? false;
         }
       }
 
@@ -199,6 +224,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         jenisKelamin: savedGender || "",
         pekerjaan: savedPekerjaan || "",
         pendidikan: savedPendidikan || "",
+        namaOrangTua: savedNamaOrangTua || "",
+        noTeleponOrangTua: savedNoTeleponOrangTua || "",
+        persetujuanWali: Boolean(savedPersetujuanWali),
       };
 
       setIdentityData(mergedData);
@@ -509,27 +537,41 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
       const bookingIdParam = searchParams.get("bookingId") || searchParams.get("orderId") || undefined;
       const parsedUmur = identityData.umur ? parseInt(identityData.umur, 10) : undefined;
+      const isUnderAge = !isNaN(Number(parsedUmur)) && Number(parsedUmur) < 18;
+      const calculatedKategori = !isNaN(Number(parsedUmur))
+        ? (Number(parsedUmur) < 12 ? "ANAK" : Number(parsedUmur) <= 17 ? "REMAJA" : "DEWASA")
+        : undefined;
 
       const res = await psikotesService.submitJawaban(params.testId, {
         jawaban: jawabanPayload,
         id_booking: bookingIdParam,
         bookingId: bookingIdParam,
+        orderId: searchParams.get("orderId") || undefined,
+        kode_akses: searchParams.get("orderId") || undefined,
         nama: isPaidFlow ? (identityData.nama.trim() || pesertaNama || undefined) : (pesertaNama || undefined),
-        no_telepon: isPaidFlow ? (identityData.noTelepon?.trim() || pesertaWa || undefined) : (pesertaWa || undefined),
+        no_telepon: isPaidFlow
+          ? (isUnderAge
+              ? (identityData.noTeleponOrangTua?.trim() || identityData.noTelepon?.trim() || pesertaWa || undefined)
+              : (identityData.noTelepon?.trim() || pesertaWa || undefined))
+          : (pesertaWa || undefined),
         email: pesertaEmail || undefined,
         peserta: isPaidFlow
           ? {
               nama_lengkap: identityData.nama.trim() || pesertaNama || "Peserta Psikotes",
-              no_telepon: identityData.noTelepon?.trim() || undefined,
-              no_telepon_orang_tua: identityData.noTelepon?.trim() || undefined,
-              whatsapp: identityData.noTelepon?.trim() || undefined,
+              no_telepon: isUnderAge
+                ? (identityData.noTelepon?.trim() || identityData.noTeleponOrangTua?.trim() || undefined)
+                : (identityData.noTelepon?.trim() || undefined),
+              nama_orang_tua: isUnderAge ? (identityData.namaOrangTua?.trim() || undefined) : undefined,
+              no_telepon_orang_tua: isUnderAge ? (identityData.noTeleponOrangTua?.trim() || undefined) : undefined,
               tempat_lahir: identityData.tempatLahir.trim() || undefined,
               tanggal_lahir: identityData.tanggalLahir.trim() || undefined,
-              status_pernikahan: identityData.status.trim() || undefined,
+              status_pernikahan: !isUnderAge ? (identityData.status.trim() || undefined) : undefined,
               usia: !isNaN(Number(parsedUmur)) ? Number(parsedUmur) : undefined,
+              kategori_peserta: calculatedKategori,
               jenis_kelamin: identityData.jenisKelamin.trim() || undefined,
-              pekerjaan: identityData.pekerjaan.trim() || undefined,
+              pekerjaan: !isUnderAge ? (identityData.pekerjaan.trim() || undefined) : undefined,
               pendidikan: identityData.pendidikan.trim() || undefined,
+              persetujuan_wali: isUnderAge ? Boolean(identityData.persetujuanWali) : undefined,
             }
           : undefined,
         klien: (pesertaNama || (isPaidFlow && identityData.nama)) ? {
@@ -605,13 +647,16 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           const rawBooking = searchParams.get("bookingId") || searchParams.get("orderId");
           if (rawBooking) query.set("bookingId", rawBooking);
           const finalNama = identityData.nama.trim() || pesertaNama;
-          const finalWa = identityData.noTelepon?.trim() || pesertaWa;
+          const finalWa = isUnderAge
+            ? (identityData.noTelepon?.trim() || identityData.noTeleponOrangTua?.trim() || pesertaWa)
+            : (identityData.noTelepon?.trim() || pesertaWa);
           if (finalNama) query.set("nama", finalNama);
           if (finalWa) query.set("whatsapp", finalWa);
-          if (identityData.status) query.set("status", identityData.status.trim());
+          if (calculatedKategori) query.set("kategori", calculatedKategori);
+          if (!isUnderAge && identityData.status) query.set("status", identityData.status.trim());
           if (identityData.umur) query.set("umur", identityData.umur.trim());
           if (identityData.jenisKelamin) query.set("gender", identityData.jenisKelamin.trim());
-          if (identityData.pekerjaan) query.set("pekerjaan", identityData.pekerjaan.trim());
+          if (!isUnderAge && identityData.pekerjaan) query.set("pekerjaan", identityData.pekerjaan.trim());
           if (identityData.pendidikan) query.set("pendidikan", identityData.pendidikan.trim());
           if (pesertaEmail) query.set("email", pesertaEmail);
         } else {

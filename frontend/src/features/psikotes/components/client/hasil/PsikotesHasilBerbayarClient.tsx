@@ -47,6 +47,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     const rawGender = searchParams.get("gender") || searchParams.get("jenisKelamin") || "";
     const rawPendidikan = searchParams.get("pendidikan") || "";
     const rawPekerjaan = searchParams.get("pekerjaan") || "";
+    const rawKategori = searchParams.get("kategori") || "";
 
     return {
       nama: rawParamNama,
@@ -56,6 +57,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       jenisKelamin: rawGender,
       pendidikan: rawPendidikan,
       pekerjaan: rawPekerjaan,
+      kategori: rawKategori,
+      namaOrangTua: "",
+      noTeleponOrangTua: "",
       bookingId: rawBookingId,
       tanggal: new Date().toLocaleDateString("id-ID", {
         day: "numeric",
@@ -77,6 +81,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       let savedGender = "";
       let savedPendidikan = "";
       let savedPekerjaan = "";
+      let savedNamaOrangTua = "";
+      let savedNoTeleponOrangTua = "";
 
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -89,6 +95,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
           savedGender = parsed.jenisKelamin || "";
           savedPendidikan = parsed.pendidikan || "";
           savedPekerjaan = parsed.pekerjaan || "";
+          savedNamaOrangTua = parsed.namaOrangTua || parsed.nama_orang_tua || "";
+          savedNoTeleponOrangTua = parsed.noTeleponOrangTua || parsed.no_telepon_orang_tua || "";
         }
         savedBookingId = parsed.bookingId || parsed.orderId || "";
       }
@@ -103,6 +111,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         const finalGender = prev.jenisKelamin || savedGender || "";
         const finalPendidikan = prev.pendidikan || savedPendidikan || "";
         const finalPekerjaan = prev.pekerjaan || savedPekerjaan || "";
+        const finalNamaOrangTua = prev.namaOrangTua || savedNamaOrangTua || "";
+        const finalNoTeleponOrangTua = prev.noTeleponOrangTua || savedNoTeleponOrangTua || "";
 
         return {
           ...prev,
@@ -113,6 +123,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
           jenisKelamin: finalGender,
           pendidikan: finalPendidikan,
           pekerjaan: finalPekerjaan,
+          namaOrangTua: finalNamaOrangTua,
+          noTeleponOrangTua: finalNoTeleponOrangTua,
           bookingId: finalBookingId,
         };
       });
@@ -153,6 +165,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 jenisKelamin: bData.peserta.jenis_kelamin || prev.jenisKelamin,
                 pendidikan: bData.peserta.pendidikan || prev.pendidikan,
                 pekerjaan: bData.peserta.pekerjaan || prev.pekerjaan,
+                kategori: (bData.peserta as any).kategori_peserta || prev.kategori,
+                namaOrangTua: (bData.peserta as any).nama_orang_tua || prev.namaOrangTua,
+                noTeleponOrangTua: (bData.peserta as any).no_telepon_orang_tua || prev.noTeleponOrangTua,
                 bookingId: bData.kode_akses || bData.id_booking || prev.bookingId,
                 tanggal: bData.hasil?.tanggal_selesai
                   ? new Date(bData.hasil.tanggal_selesai).toLocaleDateString("id-ID", {
@@ -919,6 +934,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   {[
                     peserta.usia ? `${peserta.usia} Thn` : null,
                     peserta.jenisKelamin || null,
+                    peserta.kategori ? `(${peserta.kategori})` : null,
                   ]
                     .filter(Boolean)
                     .join(" • ") || "—"}
