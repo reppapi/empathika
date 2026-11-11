@@ -1,3 +1,4 @@
+/** Hook logika form checkout psikotes berbayar (validasi peserta, metode pembayaran, dan submit booking). */
 "use client"
 
 import { useState, useEffect } from "react"

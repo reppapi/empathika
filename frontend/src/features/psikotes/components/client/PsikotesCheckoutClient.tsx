@@ -1,3 +1,4 @@
+/** Komponen halaman checkout untuk mendaftar dan memilih metode pembayaran paket psikotes. */
 "use client"
 
 import FormDataPeserta from "@/components/shared/checkout/FormDataPeserta"

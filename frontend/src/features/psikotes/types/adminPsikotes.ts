@@ -1,3 +1,4 @@
+/** Definisi tipe TypeScript untuk manajemen paket tes, interpretasi, dan peserta psikotes di admin. */
 export type SoalOption = { text: string; bobot: string };
 
 export type Soal = { id: string | number; tipe: string; teks: string; pilihan: SoalOption[] };

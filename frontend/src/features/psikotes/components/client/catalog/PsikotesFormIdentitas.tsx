@@ -1,3 +1,4 @@
+/** Form pengisian identitas klinis peserta (otomatis menyesuaikan kategori dewasa atau anak/remaja). */
 "use client";
 
 import React, { useState } from "react";

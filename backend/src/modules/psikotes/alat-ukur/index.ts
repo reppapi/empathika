@@ -1,3 +1,4 @@
+/** Registry pusat seluruh modul alat ukur psikotes (config & fungsi skoring masing-masing instrumen). */
 import { GAD7_CONFIG } from "./gad-7/config";
 import { calculateGAD7 } from "./gad-7/scoring";
 

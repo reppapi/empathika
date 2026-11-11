@@ -1,3 +1,4 @@
+/** Konfigurasi metadata dan instruksi alat ukur kecanduan game IGDS9-SF. */
 export const IGDS9SF_CONFIG = {
   kode: "IGDS9-SF",
   nama: "Internet Gaming Disorder Scale – Short-Form (IGDS9-SF)",

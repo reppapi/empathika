@@ -1,3 +1,4 @@
+/** Modul kalkulasi skor total, kategori keparahan, dan catatan klinis GAD-7. */
 export interface GAD7CalculationResult {
   totalSkor: number;
   kategori: string;

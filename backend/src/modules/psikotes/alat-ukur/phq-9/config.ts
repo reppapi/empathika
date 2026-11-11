@@ -1,3 +1,4 @@
+/** Konfigurasi metadata dan instruksi alat ukur skrining depresi PHQ-9. */
 export interface AlatUkurConfig {
   kode: string;
   nama: string;

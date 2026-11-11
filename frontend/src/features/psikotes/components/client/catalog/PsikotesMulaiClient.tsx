@@ -1,3 +1,4 @@
+/** Halaman pengerjaan tes psikotes (soal berurutan, pengisian identitas, proteksi reload, dan submit jawaban). */
 "use client"
 
 import { useState, useEffect, useRef } from "react";
@@ -70,6 +71,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const [isAtFunctionalStep, setIsAtFunctionalStep] = useState(false);
   const [functionalAnswer, setFunctionalAnswer] = useState<number | null>(null);
   const advanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -100,6 +102,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   useEffect(() => {
     fetchPackage();
   }, [params.testId]);
+
+  // Cegah pengerjaan ulang jika tiket pada sesi ini baru saja diselesaikan (misal akibat back/reload)
+  useEffect(() => {
+    const rawBooking = searchParams.get("bookingId") || searchParams.get("orderId");
+    if (!rawBooking) return;
+    try {
+      const completedId = localStorage.getItem(`empathika_psikotes_done_${rawBooking}`);
+      if (completedId) {
+        router.replace(`/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(completedId)}`);
+      }
+    } catch {}
+  }, [params.testId, searchParams, router]);
 
   const questions = (dbData?.soal_psikotes && dbData.soal_psikotes.length > 0)
     ? dbData.soal_psikotes.map((s) => {
@@ -430,6 +444,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   };
 
   const handleFinish = async () => {
+    if (submitLockRef.current || isSubmitting) return;
     if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
     setIsAdvancing(false);
 
@@ -465,6 +480,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       return;
     }
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
     setSubmitError(null);
     let pesertaNama = "";
@@ -645,7 +661,16 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         if (isPaidFlow) {
           query.set("paket", "berbayar");
           const rawBooking = searchParams.get("bookingId") || searchParams.get("orderId");
-          if (rawBooking) query.set("bookingId", rawBooking);
+          const canonicalBookingId = res.data.id_booking || rawBooking || "";
+          if (canonicalBookingId) {
+            query.set("bookingId", canonicalBookingId);
+            try {
+              localStorage.setItem(`empathika_psikotes_done_${canonicalBookingId}`, canonicalBookingId);
+              if (rawBooking) {
+                localStorage.setItem(`empathika_psikotes_done_${rawBooking}`, canonicalBookingId);
+              }
+            } catch {}
+          }
           const finalNama = identityData.nama.trim() || pesertaNama;
           const finalWa = isUnderAge
             ? (identityData.noTelepon?.trim() || identityData.noTeleponOrangTua?.trim() || pesertaWa)
@@ -671,9 +696,30 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       throw new Error(res?.message || "Server tidak dapat memproses jawaban psikotes.");
     } catch (err: any) {
       console.error("Gagal menyimpan jawaban psikotes ke server:", err);
+      const status = err?.response?.status;
+      const backendMessage = err?.response?.data?.message;
+      const existingBooking = searchParams.get("bookingId") || searchParams.get("orderId");
+
+      // Jika tiket ternyata sudah selesai (misal karena double-submit atau sesi sebelumnya), langsung arahkan ke hasil
+      if (
+        status === 400 &&
+        existingBooking &&
+        typeof backendMessage === "string" &&
+        backendMessage.toLowerCase().includes("sudah selesai")
+      ) {
+        try {
+          sessionStorage.removeItem(`empathika_psikotes_progress_${params.testId}`);
+        } catch {}
+        router.replace(`/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(existingBooking)}`);
+        return;
+      }
+
       setSubmitError(
-        err?.message || "Terjadi kendala saat mengirim jawaban ke server. Pastikan koneksi internet stabil lalu coba lagi."
+        backendMessage ||
+          err?.message ||
+          "Terjadi kendala saat mengirim jawaban ke server. Pastikan koneksi internet stabil lalu coba lagi."
       );
+      submitLockRef.current = false;
     } finally {
       setIsSubmitting(false);
     }
@@ -729,6 +775,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
       // Panah Kanan atau Enter: Lanjut / Selesai
       if (e.key === "ArrowRight" || e.key === "Enter") {
+        e.preventDefault();
         if (isSelesaiButton) {
           handleFinish();
         } else {

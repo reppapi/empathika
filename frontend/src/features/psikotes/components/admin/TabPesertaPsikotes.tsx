@@ -1,3 +1,4 @@
+/** Tab tabel data peserta psikotes berbayar beserta filter paket, pencarian, dan aksi detail. */
 import React, { useState } from "react";
 import {
   AdminDataTable,

@@ -1,3 +1,4 @@
+/** Konfigurasi metadata dan instruksi alat ukur kecemasan umum GAD-7. */
 export const GAD7_CONFIG = {
   kode: "GAD-7",
   nama: "Generalized Anxiety Disorder-7 (GAD-7)",
