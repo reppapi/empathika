@@ -584,7 +584,38 @@ export default function PsikologJadwalClient() {
     }
   }, [currentWeekMonday])
 
+  // Batas awal dan akhir minggu untuk bulan saat ini (terhitung dari tanggal 1 sampai akhir bulan)
+  const firstMondayOfMonth = useMemo(() => {
+    const now = new Date()
+    const d = getMonday(new Date(now.getFullYear(), now.getMonth(), 1))
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+
+  const lastMondayOfMonth = useMemo(() => {
+    const now = new Date()
+    const d = getMonday(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+
+  // Batasi navigasi mingguan: psikolog hanya bisa melihat jadwal terhitung dari tanggal 1 sampai akhir bulan
+  const canGoPrevWeek = useMemo(() => {
+    const prevMonday = new Date(currentWeekMonday)
+    prevMonday.setDate(prevMonday.getDate() - 7)
+    prevMonday.setHours(0, 0, 0, 0)
+    return prevMonday >= firstMondayOfMonth
+  }, [currentWeekMonday, firstMondayOfMonth])
+
+  const canGoNextWeek = useMemo(() => {
+    const nextMonday = new Date(currentWeekMonday)
+    nextMonday.setDate(nextMonday.getDate() + 7)
+    nextMonday.setHours(0, 0, 0, 0)
+    return nextMonday <= lastMondayOfMonth
+  }, [currentWeekMonday, lastMondayOfMonth])
+
   const goToPrevWeek = () => {
+    if (!canGoPrevWeek) return
     const prev = new Date(currentWeekMonday)
     prev.setDate(currentWeekMonday.getDate() - 7)
     setCurrentWeekMonday(prev)
@@ -594,6 +625,7 @@ export default function PsikologJadwalClient() {
   }
 
   const goToNextWeek = () => {
+    if (!canGoNextWeek) return
     const next = new Date(currentWeekMonday)
     next.setDate(currentWeekMonday.getDate() + 7)
     setCurrentWeekMonday(next)
@@ -1111,9 +1143,14 @@ export default function PsikologJadwalClient() {
           <button
             type="button"
             onClick={goToPrevWeek}
+            disabled={!canGoPrevWeek}
             aria-label="Minggu Sebelumnya"
-            title="Minggu Sebelumnya"
-            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors border border-gray-200 text-gray-600 cursor-pointer"
+            title={canGoPrevWeek ? "Minggu Sebelumnya" : "Batas awal jadwal bulan berjalan (tanggal 1)"}
+            className={`p-1.5 rounded-full transition-colors border ${
+              canGoPrevWeek
+                ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
+                : "border-gray-100 text-gray-300 opacity-40 cursor-not-allowed pointer-events-none"
+            }`}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -1123,9 +1160,14 @@ export default function PsikologJadwalClient() {
           <button
             type="button"
             onClick={goToNextWeek}
+            disabled={!canGoNextWeek}
             aria-label="Minggu Berikutnya"
-            title="Minggu Berikutnya"
-            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors border border-gray-200 text-gray-600 cursor-pointer"
+            title={canGoNextWeek ? "Minggu Berikutnya" : "Batas akhir jadwal bulan berjalan"}
+            className={`p-1.5 rounded-full transition-colors border ${
+              canGoNextWeek
+                ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
+                : "border-gray-100 text-gray-300 opacity-40 cursor-not-allowed pointer-events-none"
+            }`}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
