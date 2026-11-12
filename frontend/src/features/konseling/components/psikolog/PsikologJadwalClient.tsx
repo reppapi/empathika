@@ -584,31 +584,35 @@ export default function PsikologJadwalClient() {
     }
   }, [currentWeekMonday])
 
-  // Batas awal bulan saat ini (tidak diperbolehkan melihat riwayat bulan lampau)
-  const startOfCurrentMonth = useMemo(() => {
+  // Batas awal dan akhir minggu untuk bulan saat ini (terhitung dari tanggal 1 sampai akhir bulan)
+  const firstMondayOfMonth = useMemo(() => {
     const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+    const d = getMonday(new Date(now.getFullYear(), now.getMonth(), 1))
+    d.setHours(0, 0, 0, 0)
+    return d
   }, [])
 
-  const startOfCurrentMonthKey = useMemo(() => {
+  const lastMondayOfMonth = useMemo(() => {
     const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, "0")
-    return `${year}-${month}-01`
+    const d = getMonday(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+    d.setHours(0, 0, 0, 0)
+    return d
   }, [])
 
-  // Batasi navigasi mingguan: psikolog hanya bisa melihat jadwal mulai dari bulan saat ini ke depan
+  // Batasi navigasi mingguan: psikolog hanya bisa melihat jadwal terhitung dari tanggal 1 sampai akhir bulan
   const canGoPrevWeek = useMemo(() => {
     const prevMonday = new Date(currentWeekMonday)
     prevMonday.setDate(prevMonday.getDate() - 7)
-    // Hari Sabtu dari minggu sebelumnya (index ke-5 dari Senin)
-    const prevSaturday = new Date(prevMonday)
-    prevSaturday.setDate(prevMonday.getDate() + 5)
-    prevSaturday.setHours(23, 59, 59, 999)
+    prevMonday.setHours(0, 0, 0, 0)
+    return prevMonday >= firstMondayOfMonth
+  }, [currentWeekMonday, firstMondayOfMonth])
 
-    // Minggu sebelumnya hanya boleh diakses jika memiliki hari yang berada pada bulan berjalan atau setelahnya
-    return prevSaturday >= startOfCurrentMonth
-  }, [currentWeekMonday, startOfCurrentMonth])
+  const canGoNextWeek = useMemo(() => {
+    const nextMonday = new Date(currentWeekMonday)
+    nextMonday.setDate(nextMonday.getDate() + 7)
+    nextMonday.setHours(0, 0, 0, 0)
+    return nextMonday <= lastMondayOfMonth
+  }, [currentWeekMonday, lastMondayOfMonth])
 
   const goToPrevWeek = () => {
     if (!canGoPrevWeek) return
@@ -621,6 +625,7 @@ export default function PsikologJadwalClient() {
   }
 
   const goToNextWeek = () => {
+    if (!canGoNextWeek) return
     const next = new Date(currentWeekMonday)
     next.setDate(currentWeekMonday.getDate() + 7)
     setCurrentWeekMonday(next)
@@ -1140,7 +1145,7 @@ export default function PsikologJadwalClient() {
             onClick={goToPrevWeek}
             disabled={!canGoPrevWeek}
             aria-label="Minggu Sebelumnya"
-            title={canGoPrevWeek ? "Minggu Sebelumnya" : "Tidak dapat melihat jadwal bulan yang telah lewat"}
+            title={canGoPrevWeek ? "Minggu Sebelumnya" : "Batas awal jadwal bulan berjalan (tanggal 1)"}
             className={`p-1.5 rounded-full transition-colors border ${
               canGoPrevWeek
                 ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
@@ -1155,9 +1160,14 @@ export default function PsikologJadwalClient() {
           <button
             type="button"
             onClick={goToNextWeek}
+            disabled={!canGoNextWeek}
             aria-label="Minggu Berikutnya"
-            title="Minggu Berikutnya"
-            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors border border-gray-200 text-gray-600 cursor-pointer"
+            title={canGoNextWeek ? "Minggu Berikutnya" : "Batas akhir jadwal bulan berjalan"}
+            className={`p-1.5 rounded-full transition-colors border ${
+              canGoNextWeek
+                ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
+                : "border-gray-100 text-gray-300 opacity-40 cursor-not-allowed pointer-events-none"
+            }`}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -1169,26 +1179,19 @@ export default function PsikologJadwalClient() {
             {/* Header */}
             <div className="grid grid-cols-6 border-b border-gray-200 bg-gray-50/70">
               {weekDays.map((wd, i) => {
-                const isPastMonthDay = wd.dateKey < startOfCurrentMonthKey
                 const isPastDay = wd.dateKey < formatDateKey(today)
                 return (
                   <div
                     key={i}
                     onClick={() => {
-                      if (isPastDay || isPastMonthDay) return
+                      if (isPastDay) return
                       const targetDate = new Date(currentWeekMonday)
                       targetDate.setDate(currentWeekMonday.getDate() + i)
                       handleSelectDate(targetDate)
                     }}
-                    title={
-                      isPastMonthDay
-                        ? "Bulan telah lewat"
-                        : isPastDay
-                          ? "Tanggal telah lewat"
-                          : "Klik untuk memilih tanggal ini"
-                    }
+                    title={isPastDay ? "Tanggal telah lewat" : "Klik untuk memilih tanggal ini"}
                     className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 transition-colors ${
-                      isPastDay || isPastMonthDay
+                      isPastDay
                         ? "cursor-default opacity-60 bg-gray-50/50"
                         : "cursor-pointer hover:bg-purple-50/50"
                     } ${wd.isSameAsSelected ? "bg-purple-50/80 ring-1 ring-inset ring-[#561269]/20" : ""}`}
@@ -1213,12 +1216,9 @@ export default function PsikologJadwalClient() {
             {/* Grid Body */}
             <div className="grid grid-cols-6 min-h-[360px] divide-x divide-gray-200">
               {weekDays.map((wd, i) => {
-                const isPastMonthDay = wd.dateKey < startOfCurrentMonthKey
-                const sessions = isPastMonthDay
-                  ? []
-                  : bookedSessions
-                      .filter((s) => s.date === wd.dateKey)
-                      .sort((a, b) => a.waktu.localeCompare(b.waktu))
+                const sessions = bookedSessions
+                  .filter((s) => s.date === wd.dateKey)
+                  .sort((a, b) => a.waktu.localeCompare(b.waktu))
 
                 const isTodayColumn = wd.dateKey === formatDateKey(today)
 
