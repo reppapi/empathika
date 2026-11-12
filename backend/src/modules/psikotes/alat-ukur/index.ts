@@ -14,6 +14,9 @@ import { calculateIGDS9SF } from "./igds9-sf/scoring";
 import { RCMAS_CONFIG } from "./rcmas/config";
 import { calculateRCMAS } from "./rcmas/scoring";
 
+import { PBQ_CONFIG } from "./pbq/config";
+import { calculatePBQ } from "./pbq/scoring";
+
 export interface AlatUkurModule {
   config: {
     kode: string;
@@ -53,6 +56,10 @@ const registry: Record<string, AlatUkurModule> = {
   "RCMAS": {
     config: RCMAS_CONFIG,
     calculate: calculateRCMAS,
+  },
+  "PBQ": {
+    config: PBQ_CONFIG,
+    calculate: calculatePBQ,
   },
 };
 

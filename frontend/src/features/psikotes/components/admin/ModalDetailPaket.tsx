@@ -62,6 +62,14 @@ function getInstrumentMetadata(judul: string) {
       tipeHasil: "9 Kriteria DSM-5 IGD",
     };
   }
+  if (j.includes("pbq") || j.includes("personality belief") || j.includes("pola keyakinan")) {
+    return {
+      alatUkur: "PBQ (Beck, 126 Butir, 9 Skala)",
+      targetUsia: "Dewasa (≥ 18 Th)",
+      durasi: "25–35 Menit",
+      tipeHasil: "Profil Skor Mentah 9 Skala (0–56)",
+    };
+  }
   if (j.includes("mcmi")) {
     return {
       alatUkur: "MCMI-IV (Millon Clinical Multiaxial)",

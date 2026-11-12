@@ -23,6 +23,7 @@
     "seed:dass42": "tsx prisma/seeds-psikotes/seeds/seed-dass42.ts",
     "seed:igds9sf": "tsx prisma/seeds-psikotes/seeds/seed-igds9sf.ts",
     "seed:rcmas": "tsx prisma/seeds-psikotes/seeds/seed-rcmas.ts",
+    "seed:pbq": "tsx prisma/seeds-psikotes/seeds/seed-pbq.ts",
     "prisma:seed:event": "tsx prisma/seed-event.ts",
     "generate:docs": "tsx src/server.ts --export-docs"
   },

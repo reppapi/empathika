@@ -143,6 +143,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     dep: number | null;
     anx: number | null;
     str: number | null;
+    detailSkor?: any | null;
     dbInterpretasi?: any | null;
   } | null>(null);
 
@@ -193,9 +194,10 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             let anxScore: number | null = null;
             let strScore: number | null = null;
 
+            let parsedDs: any = null;
             const ds = bData.hasil?.detail_skor;
             if (ds) {
-              const parsedDs = typeof ds === "string" ? JSON.parse(ds) : ds;
+              parsedDs = typeof ds === "string" ? JSON.parse(ds) : ds;
               if (parsedDs?.depression?.score !== undefined) depScore = parsedDs.depression.score;
               else if (parsedDs?.subscales?.depression?.skor !== undefined) depScore = parsedDs.subscales.depression.skor;
 
@@ -211,6 +213,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               dep: depScore,
               anx: anxScore,
               str: strScore,
+              detailSkor: parsedDs,
               dbInterpretasi: bData.hasil?.grade ? {
                 grade: bData.hasil.grade,
                 judul: bData.hasil.judul,
@@ -293,6 +296,13 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       )
     : null;
 
+  const pbqProfile =
+    bookingReport?.detailSkor?.tanpaSkorTotal &&
+    Array.isArray(bookingReport?.detailSkor?.subscalesList) &&
+    bookingReport.detailSkor.subscalesList.length > 0
+      ? bookingReport.detailSkor
+      : null;
+
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
     // Prioritaskan interpretasi resmi yang tercatat di hasil_tes booking
@@ -323,6 +333,16 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       return {
         prefix: "DASS-42 • SKRINING KESEHATAN EMOSIONAL",
         value: "Profil Kesehatan Emosional",
+        color: "text-[#561269]",
+        bgColor: "bg-purple-50",
+        borderColor: "border-purple-200"
+      };
+    }
+
+    if (pbqProfile) {
+      return {
+        prefix: "PBQ • PROFIL KEYAKINAN KEPRIBADIAN",
+        value: "Profil Skor Mentah 9 Skala Kepribadian (PBQ)",
         color: "text-[#561269]",
         bgColor: "bg-purple-50",
         borderColor: "border-purple-200"
@@ -390,6 +410,22 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       };
     }
 
+    // Jika tes PBQ (profil skor mentah 9 skala tanpa total gabungan & tanpa kategori interpretasi)
+    if (pbqProfile) {
+      return {
+        deskripsi:
+          pbqProfile.deskripsi ||
+          "Skor mentah PBQ dihitung terpisah untuk masing-masing 9 skala (rentang 0–56 per skala) tanpa penjumlahan skor total gabungan. Interpretasi klinis dan Z-score normatif menunggu acuan resmi.",
+        judulKekuatan: "Potensi atau Kekuatan Utama",
+        judulBlindspots: "Area yang Perlu Dikembangkan",
+        judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
+        kekuatanUtama: [],
+        blindspots: [],
+        lingkunganOptimal: [],
+        saranList: [],
+      };
+    }
+
     // Jika tes DASS-42 (menggunakan evaluasi klinis 3 dimensi)
     if (isDASS && dassEvaluation) {
       return {
@@ -446,7 +482,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         hasilUtama: {
           prefix: dynamicResult.prefix,
           judul: dynamicResult.value,
-          totalSkor: totalSkor,
+          totalSkor: pbqProfile ? null : totalSkor,
           deskripsi: isDASS && dassEvaluation ? dassEvaluation.introText : berbayarDetail.deskripsi,
         },
         subscales: dassEvaluation
@@ -459,9 +495,31 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               deskripsi: s.deskripsi,
               colorHex: tailwindBarToHex(s.barColor),
             }))
-          : undefined,
-        subscalesTitle: dassEvaluation ? "Profil 3 Dimensi: Depresi, Kecemasan, & Stres" : undefined,
-        subscalesMaxNote: dassEvaluation ? "Maks. 42 / dimensi" : undefined,
+          : pbqProfile
+            ? pbqProfile.subscalesList.map((s: any) => {
+                const score = Number(s.skor ?? 0);
+                const maxScore = Number(s.max_skor ?? 56);
+                return {
+                  name: s.nama || s.key,
+                  score,
+                  maxScore,
+                  percentage: maxScore > 0 ? Math.round((score / maxScore) * 100) : 0,
+                  grade: `Butir ${s.rentangButir || ""}`.trim(),
+                  deskripsi: "Skor mentah per skala (interpretasi & Z-score normatif menunggu acuan resmi).",
+                  colorHex: "#561269",
+                };
+              })
+            : undefined,
+        subscalesTitle: dassEvaluation
+          ? "Profil 3 Dimensi: Depresi, Kecemasan, & Stres"
+          : pbqProfile
+            ? "Profil Skor Mentah 9 Skala Kepribadian (PBQ)"
+            : undefined,
+        subscalesMaxNote: dassEvaluation
+          ? "Maks. 42 / dimensi"
+          : pbqProfile
+            ? "Maks. 56 / skala (tanpa skor total)"
+            : undefined,
         kekuatanUtama: berbayarDetail.kekuatanUtama,
         judulKekuatan: berbayarDetail.judulKekuatan,
         blindspots: berbayarDetail.blindspots,
@@ -530,7 +588,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
   // dan bukan instrumen DASS-42 (yang memiliki perhitungan evaluasi multidimensi khusus),
   // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
-  if (!dbInterpretasi && !dassEvaluation) {
+  if (!dbInterpretasi && !dassEvaluation && !pbqProfile) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
@@ -797,6 +855,52 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                       </div>
                     ))}
                   </div>
+                </section>
+              )}
+
+              {/* Profil 9 Skala Kepribadian PBQ (Tanpa Skor Total & Tanpa Kategori Interpretasi) */}
+              {pbqProfile && (
+                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <Compass className="w-5 h-5 text-[#561269]" />
+                      Profil Skor Mentah 9 Skala Kepribadian (PBQ)
+                    </h3>
+                    <span className="text-xs font-semibold text-gray-400">Maks. 56 / skala (tanpa skor total)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {pbqProfile.subscalesList.map((sub: any) => {
+                      const score = Number(sub.skor ?? 0);
+                      const maxScore = Number(sub.max_skor ?? 56);
+                      const pct = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+
+                      return (
+                        <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <span className="font-bold text-sm text-gray-900 block">{sub.nama}</span>
+                              <span className="text-[11px] text-gray-500">Butir {sub.rentangButir}</span>
+                            </div>
+                            <span className="text-xs font-bold text-[#561269]">
+                              {score} <span className="text-gray-400 font-normal">/ {maxScore}</span>
+                            </span>
+                          </div>
+
+                          <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                              style={{ width: `${Math.max(score > 0 ? 4 : 0, pct)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-xs text-amber-900 bg-amber-50/80 border border-amber-200/80 rounded-xl p-3 leading-relaxed">
+                    Catatan: Skor ditampilkan sebagai skor mentah per skala (rentang 0–56). Kategori interpretasi dan Z-score normatif belum ditampilkan sambil menunggu acuan resmi.
+                  </p>
                 </section>
               )}
 
