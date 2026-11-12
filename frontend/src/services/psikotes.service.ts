@@ -126,9 +126,6 @@ export const psikotesService = {
   submitJawaban: (testId: string, payload: SubmitPsikotesPayload) =>
     apiClient.post<{ success: boolean; message: string; data: SubmitPsikotesResult }>(`/psikotes/${testId}/submit`, payload).then((r) => r.data),
 
-  getHasil: (testId: string) =>
-    apiClient.get(`/psikotes/${testId}/hasil`).then((r) => r.data),
-
   getPeserta: (params?: { search?: string; jenis_akses?: string; id_paket?: string; page?: number; limit?: number }) =>
     apiClient
       .get<{
