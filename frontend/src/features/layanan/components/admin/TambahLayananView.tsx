@@ -1,6 +1,6 @@
 "use client"
 
-import { CloudUpload, X, CheckCircle2 } from "lucide-react"
+import { CloudUpload, X, CheckCircle2, Plus, Trash2 } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -114,6 +114,8 @@ export default function TambahLayananView() {
 
   // Foto Kegiatan khusus Workshop ("03") & Seminar ("04") (maksimal 3 foto)
   const [fotoKegiatan, setFotoKegiatan] = useState<(string | null)[]>([null, null, null])
+  // Poin Manfaat khusus Workshop ("03") & Seminar ("04")
+  const [manfaatList, setManfaatList] = useState<string[]>([""])
   const slotFileInputRef0 = useRef<HTMLInputElement>(null)
   const slotFileInputRef1 = useRef<HTMLInputElement>(null)
   const slotFileInputRef2 = useRef<HTMLInputElement>(null)
@@ -295,10 +297,19 @@ export default function TambahLayananView() {
       : hargaWeekend
 
     const validFotos = fotoKegiatan.filter((f): f is string => typeof f === "string" && f.trim().length > 0)
+    const validManfaat = manfaatList.map((m) => m.trim()).filter((m) => m.length > 0)
     // Sesuai aturan: Foto yang pertama kali dimasukkan (Slot 1) menjadi foto card dan hero paling atas
     const finalBanner = isPartnership
       ? (fotoKegiatan[0] || validFotos[0] || imagePreview || "")
       : (imagePreview || "")
+
+    const finalTarifTenagaAhli = isPartnership
+      ? {
+          ...(tarifTenagaAhli && typeof tarifTenagaAhli === "object" ? tarifTenagaAhli : {}),
+          ...(validFotos.length > 0 ? { foto_kegiatan: validFotos } : {}),
+          ...(validManfaat.length > 0 ? { manfaat: validManfaat } : {}),
+        }
+      : tarifTenagaAhli
 
     addLayanan({
       layanan: namaLayanan.trim(),
@@ -306,11 +317,12 @@ export default function TambahLayananView() {
       metode: computedMetode,
       weekday: isPartnership ? "Kemitraan" : formatRupiahDisplay(finalWeekday),
       weekend: isPartnership ? "Kemitraan" : formatRupiahDisplay(finalWeekend),
-      tarif_tenaga_ahli: tarifTenagaAhli,
+      tarif_tenaga_ahli: finalTarifTenagaAhli,
       status: status,
       deskripsi: deskripsi.trim(),
       bannerUrl: finalBanner,
       foto_kegiatan: isPartnership && validFotos.length > 0 ? validFotos : undefined,
+      manfaat: isPartnership && validManfaat.length > 0 ? validManfaat : undefined,
     })
 
     // Sinkronkan ke database backend
@@ -321,10 +333,11 @@ export default function TambahLayananView() {
         metode: computedMetode,
         harga_weekday: parseRupiahNumber(finalWeekday),
         harga_weekend: parseRupiahNumber(finalWeekend),
-        tarif_tenaga_ahli: tarifTenagaAhli,
+        tarif_tenaga_ahli: finalTarifTenagaAhli,
         deskripsi: deskripsi.trim(),
         banner_url: finalBanner || null,
         foto_kegiatan: isPartnership && validFotos.length > 0 ? validFotos : undefined,
+        manfaat: isPartnership && validManfaat.length > 0 ? validManfaat : undefined,
         aktif: status === "Aktif",
       })
       .catch((err: any) => {
@@ -510,6 +523,64 @@ export default function TambahLayananView() {
             className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y whitespace-pre-wrap"
           />
         </div>
+
+        {/* Kolom Manfaat Khusus Workshop & Seminar */}
+        {isPartnership && (
+          <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#F8EFFF] to-white border border-purple-100 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="block text-sm font-bold text-[#561269]">
+                  Manfaat {selectedCategory === "03" ? "Workshop" : "Seminar"}
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Tambahkan poin-poin manfaat yang akan didapatkan peserta pada kartu manfaat di halaman klien.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManfaatList((prev) => [...prev, ""])}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#561269] hover:bg-[#430d52] text-white rounded-lg text-xs font-semibold transition cursor-pointer self-start sm:self-auto shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Tambah Manfaat
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {manfaatList.map((m, idx) => (
+                <div key={idx} className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                    ✓
+                  </div>
+                  <input
+                    type="text"
+                    value={m}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setManfaatList((prev) => {
+                        const next = [...prev]
+                        next[idx] = val
+                        return next
+                      })
+                    }}
+                    placeholder={`Manfaat ${idx + 1}`}
+                    className="flex-1 px-3.5 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] bg-white placeholder:text-gray-400 placeholder:font-normal"
+                  />
+                  {manfaatList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setManfaatList((prev) => prev.filter((_, i) => i !== idx))}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer shrink-0"
+                      title="Hapus manfaat ini"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Percabangan Input Tarif & Banner Sesuai Kategori ── */}
         {selectedCategory === "01" ? (

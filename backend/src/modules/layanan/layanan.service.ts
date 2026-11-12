@@ -135,6 +135,10 @@ export class LayananService {
       tarifTenagaAhli = tarifTenagaAhli && typeof tarifTenagaAhli === 'object' ? { ...tarifTenagaAhli } : {}
       tarifTenagaAhli.foto_kegiatan = input.foto_kegiatan
     }
+    if (input.manfaat !== undefined) {
+      tarifTenagaAhli = tarifTenagaAhli && typeof tarifTenagaAhli === 'object' ? { ...tarifTenagaAhli } : {}
+      tarifTenagaAhli.manfaat = input.manfaat
+    }
 
     // Jika kategori Konsultasi dan ada tarif_tenaga_ahli, fallback harga umum ke tarif psikolog
     if (tarifTenagaAhli && typeof tarifTenagaAhli === 'object') {
@@ -234,6 +238,13 @@ export class LayananService {
       if (input.banner_url === undefined && input.bannerUrl === undefined && input.foto_kegiatan.length > 0) {
         updateData.banner_url = input.foto_kegiatan[0]
       }
+    }
+
+    if (input.manfaat !== undefined) {
+      const existingTarif = (existing.tarif_tenaga_ahli && typeof existing.tarif_tenaga_ahli === 'object' ? existing.tarif_tenaga_ahli : {}) as any
+      const currentTarif = (updateData as any).tarif_tenaga_ahli || existingTarif
+      const updatedTarif = { ...currentTarif, manfaat: input.manfaat }
+      ;(updateData as any).tarif_tenaga_ahli = updatedTarif
     }
 
     if (input.banner_url !== undefined || input.bannerUrl !== undefined) {
