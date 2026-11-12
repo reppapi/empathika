@@ -15,6 +15,7 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(["development", "staging", "production", "test"]).default("development"),
+  DISABLE_DEV_DUMMY_AUTH: z.enum(["true", "false"]).optional().default("false"),
   ALLOWED_ORIGINS: z.string().default("http://localhost:3000"),
   FRONTEND_URL: z.string().default("http://localhost:3000"),
   BASE_URL: z.string().optional(), // e.g. http://localhost:3001 - untuk generate URL file upload

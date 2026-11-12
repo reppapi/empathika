@@ -14,6 +14,7 @@ import {
   getAlatUkur,
   hitungSkorAlatUkur,
 } from './alat-ukur'
+import { createHasilAccessToken, verifyHasilAccessToken } from './hasil-token'
 
 export function determineKategoriPeserta(usia?: number | null): string | null {
   if (usia === undefined || usia === null || isNaN(Number(usia))) return null
@@ -454,7 +455,15 @@ export class PsikotesRepository {
         }
       }
 
-      // Buat lookup map pilihan jawaban untuk bobot dan verifikasi
+      if (!paket.soal_psikotes || paket.soal_psikotes.length === 0) {
+        throw Object.assign(
+          new Error('Paket tes ini belum memiliki daftar soal yang valid.'),
+          { statusCode: 400 }
+        )
+      }
+
+      // Buat lookup map soal & pilihan jawaban untuk bobot dan verifikasi integritas
+      const validSoalIds = new Set(paket.soal_psikotes.map((s) => s.id))
       const pilihanMap = new Map<string, { id: string; id_soal: string; bobot: number; label: string }>()
       for (const soal of paket.soal_psikotes) {
         for (const pil of soal.pilihan_jawaban) {
@@ -463,17 +472,53 @@ export class PsikotesRepository {
       }
 
       let totalSkor = 0
+      const seenSoalIds = new Set<string>()
       const jawabanToInsert: Array<{ id_soal_psikotes: string; id_pilihan_jawaban: string; skor: number }> = []
 
       for (const ans of normalizedAnswers) {
+        if (!ans.id_soal || !ans.id_pilihan) {
+          throw Object.assign(
+            new Error('Setiap jawaban wajib menyertakan id_soal dan id_pilihan yang valid.'),
+            { statusCode: 400 }
+          )
+        }
+        if (!validSoalIds.has(ans.id_soal)) {
+          throw Object.assign(
+            new Error('Terdapat id_soal yang tidak termasuk dalam paket tes ini.'),
+            { statusCode: 400 }
+          )
+        }
+        if (seenSoalIds.has(ans.id_soal)) {
+          throw Object.assign(
+            new Error('Terdapat jawaban ganda untuk butir soal yang sama.'),
+            { statusCode: 400 }
+          )
+        }
         const pil = pilihanMap.get(ans.id_pilihan)
-        const skor = pil ? pil.bobot : 0
+        if (!pil || pil.id_soal !== ans.id_soal) {
+          throw Object.assign(
+            new Error('Pilihan jawaban tidak valid untuk butir soal yang dikirim.'),
+            { statusCode: 400 }
+          )
+        }
+
+        seenSoalIds.add(ans.id_soal)
+        const skor = pil.bobot
         totalSkor += skor
         jawabanToInsert.push({
           id_soal_psikotes: ans.id_soal,
           id_pilihan_jawaban: ans.id_pilihan,
           skor,
         })
+      }
+
+      if (seenSoalIds.size !== paket.soal_psikotes.length) {
+        throw Object.assign(
+          new Error(
+            `Semua pertanyaan harus dijawab sebelum submit (${seenSoalIds.size}/${paket.soal_psikotes.length} terjawab).`
+          ),
+          { statusCode: 400 }
+        )
       }
 
       // Jika paket terhubung dengan alat ukur baku (Code-First / Hybrid), hitung skor & diagnosa dengan engine alat ukur
@@ -490,6 +535,9 @@ export class PsikotesRepository {
           const qNum = soalObj?.urutan ?? (qNumMatch ? parseInt(qNumMatch[1], 10) : idx + 1)
           jawabanMap[qNum] = skor
         }
+        if (input.dampak_aktivitas !== undefined && input.dampak_aktivitas !== null) {
+          jawabanMap['difficulty'] = input.dampak_aktivitas
+        }
         try {
           calculationResult = hitungSkorAlatUkur(paket.alat_ukur.kode, jawabanMap)
           if (calculationResult?.tanpaSkorTotal) {
@@ -497,7 +545,10 @@ export class PsikotesRepository {
           } else if (calculationResult && typeof calculationResult.totalSkor === 'number') {
             totalSkor = calculationResult.totalSkor
           }
-        } catch (err) {
+        } catch (err: any) {
+          if (err?.statusCode) {
+            throw err
+          }
           console.warn(`[PSIKOTES] Gagal hitung skor modul ${paket.alat_ukur.kode}:`, err)
         }
       }
@@ -585,6 +636,13 @@ export class PsikotesRepository {
         if (booking && (booking.status_pengerjaan === 'SELESAI' || booking.hasil_tes)) {
           throw Object.assign(
             new Error('Tes untuk tiket ini sudah selesai dikerjakan dan tidak dapat diulang kembali.'),
+            { statusCode: 400 }
+          )
+        }
+
+        if (booking?.transaksi && booking.transaksi.status_pembayaran !== 'PAID') {
+          throw Object.assign(
+            new Error('Pembayaran tiket belum lunas. Selesaikan pembayaran terlebih dahulu sebelum mengirimkan jawaban tes.'),
             { statusCode: 400 }
           )
         }
@@ -690,8 +748,33 @@ export class PsikotesRepository {
         })
       }
 
-      // Jika ada booking berjalan yang sudah ada, gunakan kembali booking tersebut (jangan buat row baru agar tidak double!)
+      // Jika ada booking berjalan yang sudah ada, klaim secara atomik agar tidak terjadi submit ganda bersamaan
       if (booking && !booking.hasil_tes) {
+        if (booking.transaksi && booking.transaksi.status_pembayaran !== 'PAID') {
+          throw Object.assign(
+            new Error('Pembayaran tiket belum lunas. Selesaikan pembayaran terlebih dahulu sebelum mengirimkan jawaban tes.'),
+            { statusCode: 400 }
+          )
+        }
+
+        const claimResult = await tx.bookingPsikotes.updateMany({
+          where: {
+            id: booking.id,
+            status_pengerjaan: { not: 'SELESAI' },
+            hasil_tes: null,
+          },
+          data: {
+            status_pengerjaan: 'SELESAI',
+          },
+        })
+
+        if (claimResult.count === 0) {
+          throw Object.assign(
+            new Error('Tes untuk tiket ini sudah selesai dikerjakan dan tidak dapat diulang kembali.'),
+            { statusCode: 400 }
+          )
+        }
+
         if (booking.id_paket !== targetBookingPaketId) {
           booking = await tx.bookingPsikotes.update({
             where: { id: booking.id },
@@ -850,22 +933,9 @@ export class PsikotesRepository {
         },
       }).catch(() => {})
 
-      // 7c. Jika booking terhubung dengan transaksi yang masih PENDING, tandai lunas otomatis karena pengerjaan telah tuntas
-      if (booking.id_transaksi) {
-        await tx.transaksi.updateMany({
-          where: {
-            id: booking.id_transaksi,
-            status_pembayaran: 'PENDING',
-          },
-          data: {
-            status_pembayaran: 'PAID',
-            tanggal_bayar: new Date(),
-          },
-        }).catch(() => {})
-      }
-
       return {
         id_booking: booking.id,
+        access_token: createHasilAccessToken(booking.id),
         id_paket: paket.id,
         judul_paket: paket.judul,
         client: {
@@ -1027,15 +1097,28 @@ export class PsikotesRepository {
           ? null
           : (b.hasil_tes?.total_skor ?? null),
         hasil: b.hasil_tes
-          ? {
-              id: b.hasil_tes.id,
-              grade: b.hasil_tes.interpretasi?.grade || '—',
-              judul: b.hasil_tes.interpretasi?.judul || '—',
-              deskripsi: b.hasil_tes.interpretasi?.deskripsi || '—',
-              tips: (b.hasil_tes.interpretasi as any)?.tips || [],
-              tanggal_selesai: b.hasil_tes.tanggal_selesai,
-              detail_skor: b.hasil_tes.detail_skor,
-            }
+          ? (() => {
+              const ds =
+                typeof b.hasil_tes.detail_skor === 'string'
+                  ? JSON.parse(b.hasil_tes.detail_skor)
+                  : (b.hasil_tes.detail_skor as any)
+              const isNoTotal = Boolean(ds?.tanpaSkorTotal)
+              return {
+                id: b.hasil_tes.id,
+                grade:
+                  b.hasil_tes.interpretasi?.grade ||
+                  (isNoTotal ? ds?.grade || 'Profil 9 Skala PBQ' : '—'),
+                judul:
+                  b.hasil_tes.interpretasi?.judul ||
+                  (isNoTotal ? ds?.kategori || 'Profil Skor Mentah 9 Skala Kepribadian (PBQ)' : '—'),
+                deskripsi:
+                  b.hasil_tes.interpretasi?.deskripsi ||
+                  (isNoTotal ? ds?.deskripsi || '—' : '—'),
+                tips: (b.hasil_tes.interpretasi as any)?.tips || [],
+                tanggal_selesai: b.hasil_tes.tanggal_selesai,
+                detail_skor: b.hasil_tes.detail_skor,
+              }
+            })()
           : null,
       })),
     }
@@ -1266,9 +1349,11 @@ export class PsikotesRepository {
         })
       }
 
-      // Simpan data peserta tes ke tabel peserta_psikotes jika ada nama peserta
-      const pesertaSource = (input as any).peserta || input.klien || {}
-      const namaPeserta = (input as any).peserta?.nama_lengkap || input.klien?.nama || input.nama
+      // Simpan data peserta tes ke tabel peserta_psikotes HANYA jika input.peserta dikirim secara eksplisit
+      // (Jangan mengisi peserta_psikotes memakai nama/kontak pembeli transaksi)
+      const explicitPeserta = (input as any).peserta
+      const pesertaSource = explicitPeserta || {}
+      const namaPeserta = explicitPeserta?.nama_lengkap?.trim() || ''
       const usiaPeserta = pesertaSource.usia ?? inputUsia ?? null
       const isUnderAge = usiaPeserta !== null && Number(usiaPeserta) < 18
       const kategoriOtomatis =
@@ -1543,15 +1628,17 @@ export class PsikotesRepository {
     }
 
     const effectiveKode = booking.kode_akses || booking.transaksi?.kode_transaksi || rawKode
+    const accessToken = createHasilAccessToken(booking.id)
 
-    let redirectUrl = `/psikotes/${booking.id_paket}/mulai?bookingId=${booking.id}&orderId=${effectiveKode}&paket=berbayar`
+    let redirectUrl = `/psikotes/${booking.id_paket}/mulai?bookingId=${booking.id}&orderId=${effectiveKode}&paket=berbayar&token=${encodeURIComponent(accessToken)}`
 
     if (isSelesai) {
-      redirectUrl = `/psikotes/${booking.id_paket}/hasil?bookingId=${booking.id}&paket=berbayar`
+      redirectUrl = `/psikotes/${booking.id_paket}/hasil?bookingId=${booking.id}&paket=berbayar&token=${encodeURIComponent(accessToken)}`
     }
 
     return {
       booking_id: booking.id,
+      access_token: accessToken,
       kode_akses: effectiveKode,
       status_pengerjaan: isSelesai ? 'SELESAI' : 'BELUM_MULAI',
       test_id: booking.id_paket,
@@ -1575,9 +1662,12 @@ export class PsikotesRepository {
 
   /**
    * Mengambil data laporan hasil asesmen resmi terverifikasi murni dari database berdasarkan bookingId.
-   * Melindungi dari manipulasi parameter URL (anti-tampering).
+   * Melindungi dari manipulasi parameter URL (anti-tampering) dan mewajibkan HMAC token/Admin untuk paket berbayar.
    */
-  async getHasilByBookingId(bookingId: string) {
+  async getHasilByBookingId(
+    bookingId: string,
+    options?: { accessToken?: string; isAdmin?: boolean }
+  ) {
     const cleanId = (bookingId || '').trim()
     if (!cleanId) {
       throw Object.assign(new Error('ID pengerjaan atau tiket wajib diisi'), { statusCode: 400 })
@@ -1647,6 +1737,19 @@ export class PsikotesRepository {
         new Error(`Sesi pengerjaan atau tiket dengan ID '${cleanId}' tidak ditemukan di database.`),
         { statusCode: 404 }
       )
+    }
+
+    // Proteksi PII untuk paket berbayar: wajib menyertakan HMAC token terverifikasi atau kredensial Admin
+    if (booking.paket.jenis_akses === 'BERBAYAR' && !options?.isAdmin) {
+      const validToken = verifyHasilAccessToken(booking.id, options?.accessToken)
+      if (!validToken) {
+        throw Object.assign(
+          new Error(
+            'Akses laporan hasil asesmen berbayar memerlukan token verifikasi yang sah. Silakan masukkan kode tiket dan nomor WhatsApp pemesan di halaman detail tes.'
+          ),
+          { statusCode: 403 }
+        )
+      }
     }
 
     if (!booking.hasil_tes) {

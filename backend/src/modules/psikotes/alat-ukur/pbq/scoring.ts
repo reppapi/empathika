@@ -59,8 +59,8 @@ export interface PBQCalculationResult {
 
 function clampPBQAnswer(rawVal: unknown): number {
   const num =
-    typeof rawVal === "number"
-      ? rawVal
+    typeof rawVal === "number" || typeof rawVal === "string"
+      ? Number(rawVal)
       : Number((rawVal as any)?.bobot ?? (rawVal as any)?.value ?? 0);
 
   if (!Number.isFinite(num)) return 0;

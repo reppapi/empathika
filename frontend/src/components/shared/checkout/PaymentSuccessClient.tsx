@@ -7,6 +7,7 @@ import { Suspense, useEffect, useState } from "react"
 import { adminService } from "@/services/admin.service"
 import { formatOrderId } from "@/lib/utils"
 import { Video, MessageCircle, ExternalLink, KeyRound, Copy, Check } from "lucide-react"
+import { clearPsikotesDetailOrigin } from "@/features/psikotes/utils/navigationHistory"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
 export type PaymentType = "konseling" | "event" | "psikotes"
@@ -534,6 +535,7 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
                   <div className="flex flex-col gap-2.5">
                     <Link
                       href={getTestStartUrl() as any}
+                      onClick={() => clearPsikotesDetailOrigin()}
                       className="w-full py-3.5 rounded-xl bg-[#EAB308] hover:bg-[#FACC15] text-black font-extrabold text-xs sm:text-sm flex justify-center items-center gap-2 transition-colors shadow-sm"
                     >
                       <span>Mulai Tes Sekarang</span>

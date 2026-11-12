@@ -23,6 +23,27 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     message: 'Terlalu banyak pengiriman jawaban tes dalam waktu singkat. Silakan tunggu 1 menit sebelum mencoba kembali.',
   })
 
+  // Rate limiter untuk mencegah brute-force kode tiket & nomor WA (maks 10 percobaan / 5 menit per IP)
+  const verifyTicketLimiter = createRateLimiter({
+    windowMs: 5 * 60 * 1000,
+    max: 10,
+    message: 'Terlalu banyak percobaan verifikasi kode tiket. Silakan tunggu 5 menit sebelum mencoba kembali.',
+  })
+
+  // Rate limiter untuk mencegah spam pembuatan transaksi/booking psikotes (maks 10 / menit per IP)
+  const bookingLimiter = createRateLimiter({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: 'Terlalu banyak permintaan pemesanan dalam waktu singkat. Silakan tunggu 1 menit.',
+  })
+
+  // Rate limiter untuk mencegah enumerasi endpoint laporan hasil booking (maks 30 / menit per IP)
+  const hasilLimiter = createRateLimiter({
+    windowMs: 60 * 1000,
+    max: 30,
+    message: 'Terlalu banyak permintaan akses laporan hasil. Silakan tunggu 1 menit.',
+  })
+
   // 1. Publik / Admin: Ambil daftar paket psikotes
   // Jika tanpa parameter status, default hanya mengembalikan yang PUBLISHED
   fastify.get('/', {
@@ -101,8 +122,9 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     handler: controller.remove,
   })
 
-  // 5b. Publik: Booking & Pembayaran Paket Psikotes Berbayar
+  // 5b. Publik: Booking & Pembayaran Paket Psikotes Berbayar (dengan Rate Limiting)
   fastify.post('/booking', {
+    preHandler: [bookingLimiter],
     schema: {
       tags: ['Psikotes'],
       summary: 'Mencatat pembelian paket psikotes berbayar ke tabel booking_psikotes dan transaksis',
@@ -111,8 +133,9 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     handler: controller.createBooking,
   })
 
-  // 5c. Publik: Verifikasi Tiket / Kode Akses Pengerjaan Psikotes Berbayar
+  // 5c. Publik: Verifikasi Tiket / Kode Akses Pengerjaan Psikotes Berbayar (dengan Rate Limiting)
   fastify.post('/verify-ticket', {
+    preHandler: [verifyTicketLimiter],
     schema: {
       tags: ['Psikotes'],
       summary: 'Verifikasi kode akses tiket pengerjaan psikotes berbayar',
@@ -121,8 +144,9 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     handler: controller.verifyTicket,
   })
 
-  // 5d. Publik: Ambil Laporan Hasil Asesmen Resmi Berdasarkan Booking ID (Anti-Tampering)
+  // 5d. Publik: Ambil Laporan Hasil Asesmen Resmi Berdasarkan Booking ID (Anti-Tampering + Token untuk Berbayar)
   fastify.get('/booking/:bookingId/hasil', {
+    preHandler: [hasilLimiter],
     schema: {
       tags: ['Psikotes'],
       summary: 'Mendapatkan laporan hasil asesmen resmi terverifikasi murni dari database berdasarkan booking ID',

@@ -54,8 +54,11 @@ export class PsikotesService {
     return this.repo.verifyTicket(input)
   }
 
-  async getHasilByBooking(bookingId: string) {
-    return this.repo.getHasilByBookingId(bookingId)
+  async getHasilByBooking(
+    bookingId: string,
+    options?: { accessToken?: string; isAdmin?: boolean }
+  ) {
+    return this.repo.getHasilByBookingId(bookingId, options)
   }
 
   async getPeserta(params?: PesertaQueryInput) {

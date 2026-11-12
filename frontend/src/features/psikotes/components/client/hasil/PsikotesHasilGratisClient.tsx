@@ -140,6 +140,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const paramBookingId = searchParams.get("bookingId") || searchParams.get("orderId");
+  const paramToken = searchParams.get("token");
 
   // Fetch package data from backend to get interpretasi_psikotes (serta detail_skor jika tersedia)
   const fetchPackage = async () => {
@@ -155,7 +156,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
 
       if (paramBookingId) {
         try {
-          const bRes = await psikotesService.getHasilByBooking(paramBookingId);
+          const bRes = await psikotesService.getHasilByBooking(paramBookingId, paramToken);
           const rawDs = bRes?.data?.hasil?.detail_skor;
           if (rawDs) {
             const parsedDs = typeof rawDs === "string" ? JSON.parse(rawDs) : rawDs;
@@ -187,7 +188,20 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
     dbPackage?.judul?.toUpperCase().includes("PHQ") ||
     params.testId.toLowerCase().includes("phq")
   );
-  const isHarmDetected = isPHQ9 && searchParams.get("harm") === "1";
+  const isHarmDetected =
+    isPHQ9 && (Boolean(bookingDetailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
+
+  const isRCMAS = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("RCMAS") ||
+    dbPackage?.judul?.toUpperCase().includes("RCMAS") ||
+    params.testId.toLowerCase().includes("rcmas")
+  );
+
+  const isPBQ = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("PBQ") ||
+    dbPackage?.judul?.toUpperCase().includes("PBQ") ||
+    params.testId.toLowerCase().includes("pbq")
+  );
 
   // Dimensi DASS-42 (Depresi, Kecemasan, Stres)
   const rawDep = searchParams.get("dep");
@@ -197,10 +211,31 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const isDASS = Boolean(
     dbPackage?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
     dbPackage?.judul?.toUpperCase().includes("DASS") ||
-    dbPackage?.judul?.toLowerCase().includes("stres") ||
     dbPackage?.judul?.toLowerCase().includes("depresi, kecemasan") ||
     params.testId.toLowerCase().includes("dass")
   );
+
+  // Subskala kecemasan RCMAS (tanpa lieScale di sisi peserta, tanpa cutoff buatan)
+  const rcmasSubscales = isRCMAS
+    ? (() => {
+        const sub = bookingDetailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const phys = readSubScore(sub?.physiological, "phys");
+        const worry = readSubScore(sub?.worry, "worry");
+        const conc = readSubScore(sub?.concentration, "conc");
+        if (phys === null && worry === null && conc === null) return null;
+        return [
+          { key: "physiological", label: "Physiological Anxiety", score: Number(phys ?? 0), max: 10 },
+          { key: "worry", label: "Worry / Oversensitivity", score: Number(worry ?? 0), max: 11 },
+          { key: "concentration", label: "Concentration Anxiety", score: Number(conc ?? 0), max: 7 },
+        ];
+      })()
+    : null;
 
   const dassEvaluation = isDASS
     ? evaluateDASS(
@@ -278,7 +313,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   // DATA KRITIS: Kategori Interpretasi & Skoring
   // Jika skor tidak valid atau kategori interpretasi belum dikonfigurasi di database,
   // DILARANG keras memakai fallback text palsu. (Kecuali instrumen profil skala tanpa interpretasi seperti PBQ.)
-  if (!dbInterpretasi && !isProfileOnlyWithoutTotal) {
+  if ((!dbInterpretasi && !isProfileOnlyWithoutTotal) || (isPBQ && !isProfileOnlyWithoutTotal)) {
     return (
       <div className="min-h-screen bg-[#fbfbfb] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
@@ -289,10 +324,12 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
             {dbPackage?.judul || "Hasil Asesmen"}
           </h2>
           <p className="text-sm font-semibold text-gray-800 mb-2">
-            Interpretasi Skor Tidak Tersedia
+            {isPBQ ? "Profil 9 Skala PBQ Tidak Tersedia" : "Interpretasi Skor Tidak Tersedia"}
           </p>
           <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-            Demi menjaga akurasi etis dan klinis psikotes, hasil tidak dapat disimpulkan karena kategori skor untuk hasil asesmen ini belum dikonfigurasi pada database.
+            {isPBQ
+              ? "Data sesi pengerjaan PBQ tidak ditemukan atau belum lengkap. Silakan mulai tes dari halaman detail tes untuk melihat profil 9 skala keyakinan kepribadian Anda."
+              : "Demi menjaga akurasi etis dan klinis psikotes, hasil tidak dapat disimpulkan karena kategori skor untuk hasil asesmen ini belum dikonfigurasi pada database."}
           </p>
           <Link
             href={`/psikotes/${params.testId}`}
@@ -399,6 +436,41 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
             onToggleTips={() => setIsTipsExpanded(!isTipsExpanded)}
             dassEvaluation={dassEvaluation}
           />
+        )}
+
+        {/* 2a-2. Tiga Dimensi Kecemasan RCMAS (tanpa Lie Scale & tanpa cutoff buatan) */}
+        {rcmasSubscales && (
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-4">
+            <div className="space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#561269]">
+                Profil Tiga Dimensi Kecemasan RCMAS
+              </p>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Skor mentah masing-masing dimensi kecemasan yang diukur (hanya bersifat deskriptif, bukan kategori keparahan terpisah).
+              </p>
+            </div>
+            <div className="space-y-3">
+              {rcmasSubscales.map((sub) => {
+                const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                return (
+                  <div key={sub.key} className="p-3.5 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="font-bold text-gray-900">{sub.label}</span>
+                      <span className="font-extrabold text-[#561269]">
+                        {sub.score} <span className="text-xs font-medium text-gray-400">/ {sub.max}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                        style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol - Satu Persen Card Style) */}

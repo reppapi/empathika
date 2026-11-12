@@ -1,4 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
+import { hasAllowedDummyToken } from './dev-bypass'
 
 export interface RateLimiterOptions {
   windowMs?: number // Durasi jendela waktu (default: 60.000 ms = 1 menit)
@@ -38,10 +39,8 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
   }
 
   return async function rateLimitGuard(request: FastifyRequest, reply: FastifyReply) {
-    // Abaikan jika testing developer memakai dummy token di mode development
-    const isDev = process.env.NODE_ENV !== 'production'
-    const authHeader = request.headers.authorization
-    if (isDev && authHeader && authHeader.includes('dummy-')) {
+    // Abaikan hanya jika testing developer memakai dummy token di mode development
+    if (hasAllowedDummyToken(request)) {
       return
     }
 
