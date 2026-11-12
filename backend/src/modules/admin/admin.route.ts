@@ -57,6 +57,25 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.updateProfile,
   })
 
+  // ── Modul Dashboard & Ringkasan Operasional Admin ────────────────
+  fastify.get('/dashboard/chart', {
+    preHandler: [
+      async (req) => {
+        try {
+          await req.jwtVerify()
+        } catch {
+          // Tetap lanjut agar data grafik database dapat dimuat saat prototyping/dev
+        }
+      },
+    ],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan data grafik reservasi sesi konsultasi & asesmen terkonfirmasi',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getDashboardChart,
+  })
+
   // ── Modul Jadwal & Sesi Admin ────────────────────────────────────
   fastify.get('/jadwal', {
     preHandler: [

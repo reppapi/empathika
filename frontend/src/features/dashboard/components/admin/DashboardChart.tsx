@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ChevronDown } from "lucide-react"
-import { ChartPeriod } from "../../types"
+import { ChartPeriod, ChartBarItem } from "../../types"
 import { DASHBOARD_CHART_DATA, PERIOD_LABELS } from "../../data/dashboardData"
+import { adminService } from "@/services/admin.service"
 
 const VALID_PERIODS = ["minggu", "bulan", "bulan_lalu"] as const
 
@@ -20,6 +21,21 @@ export default function DashboardChart() {
 
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(initialPeriod)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [allChartData, setAllChartData] = useState<Record<ChartPeriod, ChartBarItem[]>>(DASHBOARD_CHART_DATA)
+
+  // Muat data grafik real-time dari backend database PostgreSQL
+  useEffect(() => {
+    adminService
+      .getDashboardChart()
+      .then((res: any) => {
+        if (res && res.minggu && res.bulan && res.bulan_lalu) {
+          setAllChartData(res)
+        }
+      })
+      .catch((err) => {
+        console.warn("Notice loading dashboard chart fallback:", err?.message)
+      })
+  }, [])
 
   // Sinkronkan periode saat query param URL berubah (misal tombol Back / Forward browser)
   useEffect(() => {
@@ -46,7 +62,7 @@ export default function DashboardChart() {
     router.replace(targetUrl as any, { scroll: false })
   }
 
-  const activeChart = DASHBOARD_CHART_DATA[chartPeriod]
+  const activeChart: ChartBarItem[] = allChartData[chartPeriod] || DASHBOARD_CHART_DATA[chartPeriod]
 
   return (
     <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-7 flex flex-col">
