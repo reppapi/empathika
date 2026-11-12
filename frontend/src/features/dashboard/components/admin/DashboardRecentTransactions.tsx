@@ -81,7 +81,7 @@ export default function DashboardRecentTransactions({
           </div>
         ) : displayTransactions.length === 0 ? (
           <div className="py-12 text-center text-xs text-gray-400">
-            Belum ada transaksi pembayaran pada tanggal ini.
+            Belum ada riwayat transaksi pembayaran terbaru.
           </div>
         ) : (
           displayTransactions.map((trx, idx) => (
