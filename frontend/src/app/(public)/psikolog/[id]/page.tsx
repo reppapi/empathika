@@ -28,25 +28,7 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     })
   }
 
-  const hasDbSlots = Array.isArray(rawBackendSlots) && rawBackendSlots.length > 0
 
-  if (!hasDbSlots && typeof window !== "undefined") {
-    try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      if (raw) {
-        const parsed: any[] = JSON.parse(raw)
-        const matched = parsed.filter(
-          (s) =>
-            s.id_psikolog === psikologId ||
-            (psikologNama &&
-              (s.nama_psikolog === psikologNama ||
-                s.nama_psikolog?.toLowerCase().includes(psikologNama.toLowerCase()) ||
-                psikologNama.toLowerCase().includes(s.nama_psikolog?.toLowerCase())))
-        )
-        rawSlots.push(...matched)
-      }
-    } catch {}
-  }
 
   const now = new Date()
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`

@@ -222,21 +222,11 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     return day === 0 || day === 6 ? "weekend" : "weekday"
   })
 
-  // Bersihkan seed dummy asesmen lama jika ada di localStorage
+  // Bersihkan legacy slot di localStorage agar murni dari database
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-        if (raw) {
-          const list: any[] = JSON.parse(raw)
-          if (Array.isArray(list)) {
-            const cleaned = list.filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
-            if (cleaned.length !== list.length) {
-              localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(cleaned))
-              window.dispatchEvent(new Event("storage"))
-            }
-          }
-        }
+        localStorage.removeItem("empathika_custom_jadwal_slots")
       } catch {}
     }
   }, [])
@@ -336,45 +326,9 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         }
       } catch {}
 
-      // 2. Gabungkan slot dari LocalStorage (abaikan seed dummy)
+      // 2. Auto-cleanup legacy localStorage
       try {
-        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed)) {
-            parsed
-              .filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
-              .forEach((s: any) => {
-              const slotType = (s.tipe_jadwal || "KONSULTASI").toUpperCase()
-              const matchType = slotType === effectiveTipeJadwal.toUpperCase()
-              const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
-              const matchPsi =
-                effectiveTipeJadwal === "ASESMEN"
-                  ? true
-                  : !psikologIdParam ||
-                    s.id_psikolog === psikologIdParam ||
-                    (selectedPsikolog &&
-                      (s.nama_psikolog === selectedPsikolog.nama_gelar ||
-                        s.nama_psikolog === selectedPsikolog.nama ||
-                        s.nama_psikolog === selectedPsikolog.account?.nama)) ||
-                    (psikologNameParam &&
-                      s.nama_psikolog &&
-                      (s.nama_psikolog.toLowerCase().includes(psikologNameParam.toLowerCase()) ||
-                        psikologNameParam.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
-
-              if (matchType && matchPsi && s.tanggal && isTersedia) {
-                if (s.tanggal > todayKey) {
-                  datesFound.add(s.tanggal)
-                } else if (s.tanggal === todayKey) {
-                  const startMinutes = extractMinutes(s.jam_mulai)
-                  if (startMinutes !== -1 && currentMinutes < startMinutes) {
-                    datesFound.add(s.tanggal)
-                  }
-                }
-              }
-            })
-          }
-        }
+        localStorage.removeItem("empathika_custom_jadwal_slots")
       } catch {}
       if (isCancelled) return
 

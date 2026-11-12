@@ -227,22 +227,9 @@ export default function PsikologJadwalClient() {
       prev.filter((s) => !(s.date === dateKey && s.waktu === timeToRemove))
     )
 
-    // 2. Hapus dari LocalStorage (empathika_custom_jadwal_slots)
+    // 2. Auto-cleanup legacy localStorage slot
     try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      if (raw) {
-        const current = JSON.parse(raw)
-        if (Array.isArray(current)) {
-          const time5 = timeToRemove.split("-")[0].trim().substring(0, 5)
-          const updated = current.filter((s: any) => {
-            const isMatchDate = s.tanggal === dateKey
-            const isMatchTime = (s.jam_mulai || "").substring(0, 5) === time5
-            return !(isMatchDate && isMatchTime)
-          })
-          localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(updated))
-          window.dispatchEvent(new Event("storage"))
-        }
-      }
+      localStorage.removeItem("empathika_custom_jadwal_slots")
     } catch {}
 
     // 3. Hapus dari Backend Database jika memiliki slot ID riil
@@ -424,45 +411,9 @@ export default function PsikologJadwalClient() {
         console.warn("Notice loading admin weekly sessions fallback:", err?.message)
       }
 
-      // 3. Slot dari LocalStorage (empathika_custom_jadwal_slots)
+      // 3. Auto-cleanup legacy localStorage
       try {
-        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed)) {
-            parsed.forEach((s: any) => {
-              if ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) return
-
-              const isMatch =
-                (resolvedPsikologId && s.id_psikolog && s.id_psikolog === resolvedPsikologId) ||
-                (Boolean(resolvedPsikologName) &&
-                  Boolean(s.nama_psikolog) &&
-                  s.nama_psikolog.trim() !== "" &&
-                  (s.nama_psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                    resolvedPsikologName.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
-
-              if (isMatch && s.tanggal && s.jam_mulai) {
-                const timeStr = s.label_waktu || `${s.jam_mulai.substring(0, 5)} - ${(s.jam_selesai || "10:00").substring(0, 5)}`
-                const mapKey = `${s.tanggal}_${timeStr}`
-                if (!sessionMap.has(mapKey)) {
-                  const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
-                  sessionMap.set(mapKey, {
-                    id: s.id,
-                    date: s.tanggal,
-                    waktu: timeStr,
-                    layanan: s.layanan || "Konseling Individu",
-                    metode: s.metode === "Offline" ? "Offline" : s.metode === "Keduanya" ? "Keduanya" : "Online",
-                    namaKlien: isTersedia ? "Tersedia" : (s.namaKlien || "Klien Terdaftar"),
-                    id_psikolog: s.id_psikolog || resolvedPsikologId,
-                    namaPsikolog: s.nama_psikolog || resolvedPsikologName,
-                    isAvailableSlot: isTersedia,
-                    status: s.status || "TERSEDIA",
-                  })
-                }
-              }
-            })
-          }
-        }
+        localStorage.removeItem("empathika_custom_jadwal_slots")
       } catch {}
 
       // 4. Terapkan status pembatalan admin
@@ -532,6 +483,15 @@ export default function PsikologJadwalClient() {
       window.removeEventListener("storage", handleSyncCancelled)
       window.removeEventListener("storage", loadScheduleForPsikolog)
       window.removeEventListener("empathika_session_cancelled", handleSyncCancelled as EventListener)
+    }
+  }, [])
+
+  // Auto-cleanup legacy mock / local storage slot agar jadwal 100% murni dari database PostgreSQL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("empathika_custom_jadwal_slots")
+      } catch {}
     }
   }, [])
 
@@ -725,21 +685,9 @@ export default function PsikologJadwalClient() {
       setDeletedCustomSlots((prev) => prev.filter((t) => t !== finalWaktu))
     }
 
-    // 2. Simpan juga ke localStorage (empathika_custom_jadwal_slots) agar selalu persisten dan reaktif
+    // 2. Auto-cleanup legacy localStorage
     try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      const current = raw ? JSON.parse(raw) : []
-      newSlotItems.forEach((item) => {
-        const exists = current.some(
-          (c: any) =>
-            c.tanggal === item.tanggal &&
-            c.jam_mulai === item.jam_mulai &&
-            c.nama_psikolog === item.nama_psikolog
-        )
-        if (!exists) current.push(item)
-      })
-      localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(current))
-      window.dispatchEvent(new Event("storage"))
+      localStorage.removeItem("empathika_custom_jadwal_slots")
     } catch {}
 
     // 3. Update state secara optimis

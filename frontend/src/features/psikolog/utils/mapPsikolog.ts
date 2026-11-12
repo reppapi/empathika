@@ -70,29 +70,6 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
     });
   }
 
-  const hasDbSlots = Array.isArray(item.jadwal_slot) && item.jadwal_slot.length > 0;
-
-  // Hanya gunakan localStorage jika belum ada data slot riil dari database
-  if (!hasDbSlots && typeof window !== 'undefined') {
-    try {
-      const rawCustom = localStorage.getItem('empathika_custom_jadwal_slots');
-      if (rawCustom) {
-        const parsedCustom: any[] = JSON.parse(rawCustom);
-        const matchingCustom = parsedCustom.filter(
-          (s) =>
-            s.id_psikolog === item.id ||
-            s.id_psikolog === 'psikolog-default-id' ||
-            s.id_psikolog === '1' ||
-            (item.nama_gelar && s.nama_psikolog === item.nama_gelar) ||
-            (item.account?.nama && s.nama_psikolog === item.account?.nama) ||
-            (item.nama && s.nama_psikolog === item.nama) ||
-            (item.nama_gelar && s.nama_psikolog && (item.nama_gelar.toLowerCase().includes(s.nama_psikolog.toLowerCase()) || s.nama_psikolog.toLowerCase().includes(item.nama_gelar.toLowerCase())))
-        );
-        rawSlots.push(...matchingCustom);
-      }
-    } catch {}
-  }
-
   if (rawSlots.length > 0) {
     const now = new Date();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

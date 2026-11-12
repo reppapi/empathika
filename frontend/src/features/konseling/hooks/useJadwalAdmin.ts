@@ -191,61 +191,10 @@ export function useJadwalAdmin() {
       )
     )
 
-    // Kembalikan slot ke localStorage empathika_custom_jadwal_slots agar langsung muncul kembali di halaman client
+    // Auto-cleanup legacy localStorage slot jika ada agar murni dari database
     try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      const currentSlots: any[] = raw ? JSON.parse(raw) : []
-      const time5 = (waktu || "").replace("WIB", "").trim().split("-")[0].trim().substring(0, 5)
-      const end5 = (waktu || "").includes("-")
-        ? (waktu || "").split("-")[1].replace("WIB", "").trim().substring(0, 5)
-        : ""
-
-      const alreadyExists = currentSlots.some(
-        (s: any) =>
-          s.tanggal === dateKey &&
-          (s.jam_mulai || "").trim().substring(0, 5) === time5
-      )
-
-      if (!alreadyExists && time5) {
-        currentSlots.push({
-          id: id || `slot-restored-${Date.now()}`,
-          tanggal: dateKey,
-          jam_mulai: time5,
-          jam_selesai: end5 || "10:00",
-          nama_psikolog: psikolog,
-          id_psikolog: targetToday?.idPsikolog || undefined,
-          status: "TERSEDIA",
-          tipe_jadwal: "KONSULTASI",
-          metode:
-            targetToday?.tipe?.includes("Online")
-              ? "Online"
-              : targetToday?.tipe?.includes("Offline")
-              ? "Offline"
-              : "Keduanya",
-        })
-        localStorage.setItem(
-          "empathika_custom_jadwal_slots",
-          JSON.stringify(currentSlots)
-        )
-      } else if (alreadyExists && time5) {
-        const updated = currentSlots.map((s: any) => {
-          if (
-            s.tanggal === dateKey &&
-            (s.jam_mulai || "").trim().substring(0, 5) === time5
-          ) {
-            return { ...s, status: "TERSEDIA" }
-          }
-          return s
-        })
-        localStorage.setItem(
-          "empathika_custom_jadwal_slots",
-          JSON.stringify(updated)
-        )
-      }
-      window.dispatchEvent(new Event("storage"))
-    } catch (e) {
-      console.warn("Gagal mengembalikan slot ke localStorage:", e)
-    }
+      localStorage.removeItem("empathika_custom_jadwal_slots")
+    } catch {}
 
     triggerToast(`Sesi ${namaKlien} (${waktu}) telah dibatalkan.`, "danger")
     fetchJadwalData()
@@ -552,45 +501,6 @@ export function useJadwalAdmin() {
                   (Boolean(w.clientName) && w.clientName !== "Tersedia")),
             }
           })
-          // Gabungkan slot dari empathika_custom_jadwal_slots ke weeklyGrid (hanya slot manual yang valid, abaikan seed dummy)
-          try {
-            const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-            if (raw) {
-              const parsed = JSON.parse(raw)
-              if (Array.isArray(parsed)) {
-                // Bersihkan seed_asesmen dummy jika masih tersimpan di browser
-                const validCustomList = parsed.filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
-                if (validCustomList.length !== parsed.length) {
-                  localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(validCustomList))
-                }
-
-                validCustomList.forEach((s: any) => {
-                  if (s.tanggal && s.jam_mulai) {
-                    const timeStr = s.label_waktu || `${s.jam_mulai.substring(0, 5)} - ${(s.jam_selesai || "10:00").substring(0, 5)}`
-                    const exists = mappedWeekly.some(
-                      (w) => w.date === s.tanggal && w.waktu === timeStr
-                    )
-                    if (!exists) {
-                      const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
-                      mappedWeekly.push({
-                        id: s.id || `custom_${s.tanggal}_${timeStr}`,
-                        date: s.tanggal,
-                        waktu: timeStr,
-                        layanan: s.layanan || (((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") ? "Asesmen Klinis" : "Konseling Individu"),
-                        metode: s.metode === "Offline" ? "Offline" : "Online",
-                        namaKlien: isTersedia ? "Tersedia" : (s.namaKlien || "Klien Terdaftar"),
-                        psikolog: ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) ? "" : (s.nama_psikolog || "Tenaga Ahli"),
-                        isAvailableSlot: isTersedia,
-                        status: isTersedia ? "Tersedia" : "Aktif",
-                        isBooked: !isTersedia,
-                        tipe_jadwal: ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") ? "ASESMEN" : "KONSULTASI",
-                      })
-                    }
-                  }
-                })
-              }
-            }
-          } catch {}
 
           setBookedSessions(mappedWeekly)
         } else {
@@ -617,6 +527,15 @@ export function useJadwalAdmin() {
       window.removeEventListener("empathika_session_cancelled", handleStorageChange)
     }
   }, [fetchJadwalData])
+
+  // Auto-cleanup legacy mock / local storage slot agar jadwal 100% murni dari database PostgreSQL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("empathika_custom_jadwal_slots")
+      } catch {}
+    }
+  }, [])
 
   const handleSelectDate = (newDate: Date | undefined) => {
     setDate(newDate)
@@ -758,31 +677,6 @@ export function useJadwalAdmin() {
         console.warn(`Gagal membuka slot ${finalWaktu}:`, err?.response?.data?.message || err.message)
         failErrors.push(err?.response?.data?.message || `${finalWaktu} gagal dibuka`)
       }
-      try {
-        const raw = localStorage.getItem("empathika_custom_jadwal_slots");
-        const currentList = raw ? JSON.parse(raw) : [];
-        const exists = currentList.some(
-          (s: any) =>
-            s.tanggal === tanggalStr &&
-            (s.jam_mulai || "").substring(0, 5) === jamMulai &&
-            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN"
-        );
-        if (!exists) {
-          currentList.push({
-            id: "slot_asesmen_" + tanggalStr + "_" + jamMulai + "_" + Date.now(),
-            tanggal: tanggalStr,
-            jam_mulai: jamMulai,
-            jam_selesai: jamSelesai,
-            label_waktu: jamMulai + " - " + jamSelesai,
-            tipe_jadwal: "ASESMEN",
-            metode: metode.toUpperCase(),
-            status: "TERSEDIA",
-            nama_psikolog: "",
-          });
-          localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(currentList));
-          window.dispatchEvent(new Event("storage"));
-        }
-      } catch {}
     }
 
     await fetchJadwalData()
@@ -908,22 +802,9 @@ export function useJadwalAdmin() {
       )
     )
 
-    // 3. Bersihkan dari localStorage
+    // 3. Auto-cleanup legacy localStorage
     try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      if (raw) {
-        const currentList = JSON.parse(raw)
-        const updated = currentList.filter(
-          (s: any) =>
-            !(
-              s.tanggal === effectiveDateKey &&
-              ((s.label_waktu && s.label_waktu.includes(timeToRemove)) ||
-                (s.jam_mulai && timeToRemove.startsWith(s.jam_mulai.substring(0, 5))))
-            )
-        )
-        localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(updated))
-        window.dispatchEvent(new Event("storage"))
-      }
+      localStorage.removeItem("empathika_custom_jadwal_slots")
     } catch {}
 
     // 4. Jika ada id database asli, hapus dari backend
