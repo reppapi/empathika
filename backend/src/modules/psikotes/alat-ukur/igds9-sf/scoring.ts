@@ -46,14 +46,24 @@ export function calculateIGDS9SF(
   for (let no = 1; no <= 9; no++) {
     const key = isZeroBased ? no - 1 : no;
     const rawVal = jawabanPeserta[key] ?? jawabanPeserta[String(key)];
+    if (rawVal === undefined || rawVal === null || String(rawVal).trim() === "") {
+      throw Object.assign(
+        new Error(`Jawaban IGDS9-SF butir ke-${no} wajib diisi (nilai 1–5).`),
+        { statusCode: 400 }
+      );
+    }
     const val = Number(rawVal);
-    // Skala Likert 1–5 per butir
-    const scoreVal = !isNaN(val) && val >= 1 && val <= 5 ? val : 1;
-    totalSkor += scoreVal;
+    if (!Number.isInteger(val) || val < 1 || val > 5) {
+      throw Object.assign(
+        new Error(`Jawaban IGDS9-SF butir ke-${no} tidak valid (harus bilangan bulat 1–5).`),
+        { statusCode: 400 }
+      );
+    }
+    totalSkor += val;
 
-    if (scoreVal === 5) {
+    if (val === 5) {
       kriteriaSangatSering += 1;
-    } else if (scoreVal === 4) {
+    } else if (val === 4) {
       kriteriaSering += 1;
     }
   }
@@ -71,11 +81,14 @@ export function calculateIGDS9SF(
   const isIndikasiEvaluasi = totalSkor >= 36 || kriteriaSangatSering >= 5;
 
   let statusEvaluasi = "Pola Normal / Adaptif";
-  let catatanKlinisDetail = `Skor total ${totalSkor}/45 berada dalam kategori Normal. Terpenuhi ${kriteriaSangatSering} kriteria sangat sering (skor 5).`;
+  let catatanKlinisDetail = `Skor total ${totalSkor}/45 berada dalam rentang Normal (9–35) dengan ${kriteriaSangatSering} kriteria dijawab 'Sangat Sering' (skor 5). Hasil ini merupakan skrining awal dan bukan diagnosis klinis.`;
 
-  if (totalSkor >= 36 || kriteriaSangatSering >= 5) {
-    statusEvaluasi = "Kemungkinan IGD — Disarankan Diskusi dengan Psikolog";
-    catatanKlinisDetail = `Skor total ${totalSkor}/45 mengindikasikan Kemungkinan IGD (${kriteriaSangatSering} dari 9 kriteria dijawab sangat sering). Sangat dianjurkan berkonsultasi dengan psikolog profesional.`;
+  if (totalSkor >= 36) {
+    statusEvaluasi = "Indikasi Skor Tinggi (≥ 36/45) — Disarankan Evaluasi Lanjutan dengan Psikolog";
+    catatanKlinisDetail = `Skor total ${totalSkor}/45 berada pada kategori Kemungkinan IGD (rentang 36–45) dengan ${kriteriaSangatSering} dari 9 kriteria dijawab 'Sangat Sering' (skor 5). Hasil ini bersifat evaluatif awal (bukan diagnosis pasti); disarankan berkonsultasi dengan psikolog profesional.`;
+  } else if (kriteriaSangatSering >= 5) {
+    statusEvaluasi = "Perlu Evaluasi Lanjutan Berbasis Kriteria DSM-5 (≥ 5 Kriteria Sangat Sering)";
+    catatanKlinisDetail = `Meskipun skor total (${totalSkor}/45) berada dalam rentang Normal (9–35), terdapat ${kriteriaSangatSering} dari 9 kriteria DSM-5 yang dijawab 'Sangat Sering' (skor 5). Kedua indikator ini mengukur aspek yang berbeda (akumulasi skor total vs. jumlah kriteria yang sering muncul), sehingga tetap disarankan berdiskusi dengan psikolog untuk evaluasi menyeluruh.`;
   }
 
   const catatanKlinis = [

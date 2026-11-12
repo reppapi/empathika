@@ -20,8 +20,7 @@ export async function printLaporanPsikotes(
   const paketLower = (peserta.paket || "").toLowerCase();
   const isDASS =
     paketLower.includes("dass") ||
-    paketLower.includes("depresi, kecemasan") ||
-    paketLower.includes("stres");
+    paketLower.includes("depresi, kecemasan");
 
   let subscales: LaporanPsikotesSubscale[] | undefined = undefined;
   let subscalesTitle: string | undefined = undefined;
@@ -85,6 +84,48 @@ export async function printLaporanPsikotes(
         colorHex: "#561269",
       };
     });
+  } else if (
+    paketLower.includes("rcmas") ||
+    (parsedDs?.subscales &&
+      parsedDs.subscales.physiological !== undefined &&
+      parsedDs.subscales.worry !== undefined &&
+      parsedDs.subscales.concentration !== undefined)
+  ) {
+    const sub = parsedDs?.subscales || {};
+    const phys = Number(typeof sub.physiological === "number" ? sub.physiological : sub.physiological?.skor ?? 0);
+    const worry = Number(typeof sub.worry === "number" ? sub.worry : sub.worry?.skor ?? 0);
+    const conc = Number(typeof sub.concentration === "number" ? sub.concentration : sub.concentration?.skor ?? 0);
+    subscalesTitle = "Profil Tiga Dimensi Kecemasan RCMAS";
+    subscalesMaxNote = "Skor mentah per dimensi (tanpa cutoff terpisah)";
+    subscales = [
+      {
+        name: "Physiological Anxiety",
+        score: phys,
+        maxScore: 10,
+        percentage: Math.round((phys / 10) * 100),
+        grade: `${phys} / 10`,
+        deskripsi: "Skor mentah dimensi keluhan fisiologis kecemasan (maks. 10 butir).",
+        colorHex: "#561269",
+      },
+      {
+        name: "Worry / Oversensitivity",
+        score: worry,
+        maxScore: 11,
+        percentage: Math.round((worry / 11) * 100),
+        grade: `${worry} / 11`,
+        deskripsi: "Skor mentah dimensi kekhawatiran & sensitivitas berlebih (maks. 11 butir).",
+        colorHex: "#763E8B",
+      },
+      {
+        name: "Concentration Anxiety",
+        score: conc,
+        maxScore: 7,
+        percentage: Math.round((conc / 7) * 100),
+        grade: `${conc} / 7`,
+        deskripsi: "Skor mentah dimensi kecemasan konsentrasi (maks. 7 butir).",
+        colorHex: "#0e7490",
+      },
+    ];
   }
 
   const isWithoutTotal = Boolean(parsedDs?.tanpaSkorTotal);

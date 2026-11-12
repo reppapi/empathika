@@ -1,18 +1,15 @@
 import type { FastifyRequest, FastifyReply } from "fastify"
-
-const isDev = process.env.NODE_ENV !== "production"
+import { hasAllowedDummyToken } from "./dev-bypass"
 
 export async function authGuard(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const authHeader = request.headers.authorization
-    if (isDev && authHeader && authHeader.includes("dummy-")) {
+    if (hasAllowedDummyToken(request)) {
       (request as any).user = { id: "user-dev", role: "USER" }
       return
     }
     await request.jwtVerify()
   } catch {
-    const authHeader = request.headers.authorization
-    if (isDev && authHeader && authHeader.includes("dummy-")) {
+    if (hasAllowedDummyToken(request)) {
       (request as any).user = { id: "user-dev", role: "USER" }
       return
     }

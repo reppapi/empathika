@@ -1,6 +1,7 @@
 /** Controller handler request/response HTTP untuk katalog, booking, tiket, submit tes, dan admin psikotes. */
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { PsikotesService } from './psikotes.service'
+import { hasAllowedDummyToken } from '../../middlewares/dev-bypass'
 import type {
   CreatePsikotesInput,
   UpdatePsikotesInput,
@@ -143,11 +144,28 @@ export class PsikotesController {
   }
 
   getHasilByBooking = async (
-    request: FastifyRequest<{ Params: { bookingId: string } }>,
+    request: FastifyRequest<{ Params: { bookingId: string }; Querystring: { token?: string } }>,
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.getHasilByBooking(request.params.bookingId)
+      const headerToken = request.headers['x-hasil-token']
+      const accessToken =
+        request.query?.token || (typeof headerToken === 'string' ? headerToken : undefined)
+
+      let isAdmin = hasAllowedDummyToken(request)
+      if (!isAdmin && request.headers.authorization) {
+        try {
+          await request.jwtVerify()
+          isAdmin = (request.user as any)?.role === 'ADMIN'
+        } catch {
+          isAdmin = false
+        }
+      }
+
+      const data = await this.service.getHasilByBooking(request.params.bookingId, {
+        accessToken,
+        isAdmin,
+      })
       return reply.code(200).send({
         success: true,
         message: 'Berhasil mengambil data laporan hasil asesmen resmi',

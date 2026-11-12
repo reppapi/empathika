@@ -1,5 +1,6 @@
 // File: backend/src/middlewares/account-guard.ts
 import type { FastifyRequest, FastifyReply } from "fastify"
+import { hasAllowedDummyToken } from "./dev-bypass"
 
 export interface AuthenticatedUserPayload {
   id: string
@@ -8,16 +9,13 @@ export interface AuthenticatedUserPayload {
   tokenVersion?: number
 }
 
-const isDev = process.env.NODE_ENV !== "production"
-
 /**
  * Factory untuk membuat guard berbasis role dengan verifikasi OWASP ASVS (tokenVersion & aktif)
  */
 export function createAccountGuard(allowedRoles: string[]) {
   return async function guard(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const authHeader = request.headers.authorization
-      if (isDev && authHeader && authHeader.includes("dummy-")) {
+      if (hasAllowedDummyToken(request)) {
         const devRole = allowedRoles[0] || "PSIKOLOG"
         ;(request as any).user = { id: "psikolog-dev", role: devRole }
         return
@@ -26,8 +24,7 @@ export function createAccountGuard(allowedRoles: string[]) {
       await request.jwtVerify()
       ;(request as any).user = request.user
     } catch {
-      const authHeader = request.headers.authorization
-      if (isDev && authHeader && authHeader.includes("dummy-")) {
+      if (hasAllowedDummyToken(request)) {
         const devRole = allowedRoles[0] || "PSIKOLOG"
         ;(request as any).user = { id: "psikolog-dev", role: devRole }
         return

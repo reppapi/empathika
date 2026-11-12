@@ -96,6 +96,7 @@ export const submitPsikotesSchema = z.object({
     })
     .optional(),
   id_biro: z.string().optional(),
+  dampak_aktivitas: z.number().int().min(0).max(3).optional().nullable(),
 })
 
 export type SubmitPsikotesInput = z.infer<typeof submitPsikotesSchema>

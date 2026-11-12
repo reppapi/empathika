@@ -8,6 +8,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "@/features/psikotes/data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import {
+  clearPsikotesDetailOrigin,
+  markPsikotesDetailOrigin,
+} from "@/features/psikotes/utils/navigationHistory";
+import {
   Check,
   FileQuestion,
   ArrowRight,
@@ -43,6 +47,11 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
   const [ticketLoading, setTicketLoading] = useState(false);
   const [ticketError, setTicketError] = useState<string | null>(null);
   const [ticketSuccess, setTicketSuccess] = useState<string | null>(null);
+
+  // Bersihkan penanda origin detail saat berada di halaman detail tes
+  useEffect(() => {
+    clearPsikotesDetailOrigin();
+  }, [params.testId]);
 
   // Otomatis buka modal jika query param ?kode=... ada di URL (misal dari share link WhatsApp)
   useEffect(() => {
@@ -93,11 +102,13 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
         if (res.data.status_pengerjaan === "SELESAI") {
           setTicketSuccess("Tiket ini sudah pernah diselesaikan. Anda akan dialihkan ke halaman hasil tes...");
           setTimeout(() => {
+            markPsikotesDetailOrigin(params.testId);
             router.push(res.data.redirect_url as any);
           }, 1200);
         } else {
           setTicketSuccess("Kode valid! Mengalihkan ke halaman pengerjaan tes...");
           setTimeout(() => {
+            markPsikotesDetailOrigin(params.testId);
             router.push(res.data.redirect_url as any);
           }, 800);
         }
@@ -381,6 +392,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                   {/* CTA Button Berbayar */}
                   <Link 
                     href={checkoutUrl as any}
+                    onClick={() => clearPsikotesDetailOrigin()}
                     className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
                   >
                     <span>Lanjut ke Pembayaran</span>
@@ -437,6 +449,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                   {/* CTA Button Gratis */}
                   <Link 
                     href={`/psikotes/${params.testId}/mulai`}
+                    onClick={() => markPsikotesDetailOrigin(params.testId)}
                     className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
                   >
                     <span>Mulai Tes Gratis</span>

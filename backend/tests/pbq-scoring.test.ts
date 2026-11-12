@@ -112,5 +112,29 @@ describe("PBQ Psychometrics & Scoring Engine", () => {
     expect(res.subscales.schizoid.skor).toBe(1);
     expect(res.subscales.paranoid.skor).toBe(4);
   });
+
+  it("harus mengonversi jawaban string numerik ('0'..'4'), meng-clamp negatif ke 0, dan menjaga label opsi PBQ", () => {
+    expect(PBQ_OPSI).toEqual([
+      { label: "0", text: "Tidak Yakin Sepenuhnya", bobot: 0 },
+      { label: "1", text: "Kurang Yakin", bobot: 1 },
+      { label: "2", text: "Cukup Yakin", bobot: 2 },
+      { label: "3", text: "Sangat Yakin", bobot: 3 },
+      { label: "4", text: "Yakin Sepenuhnya", bobot: 4 },
+    ]);
+
+    const res = calculatePBQ({
+      1: "4",
+      2: "-3",
+      3: "invalid",
+      15: { bobot: 3 },
+      126: "2",
+    });
+
+    expect(res.subscales.avoidant.skor).toBe(4);
+    expect(res.subscales.dependent.skor).toBe(3);
+    expect(res.subscales.paranoid.skor).toBe(2);
+    expect(res.totalSkor).toBe(0);
+    expect(res.tanpaSkorTotal).toBe(true);
+  });
 });
 

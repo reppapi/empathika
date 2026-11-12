@@ -76,10 +76,12 @@ export interface SubmitPsikotesPayload {
     jenis_kelamin?: string
   }
   id_biro?: string
+  dampak_aktivitas?: number | null
 }
 
 export interface SubmitPsikotesResult {
   id_booking: string
+  access_token?: string
   id_paket: string
   judul_paket: string
   client: {
@@ -199,6 +201,7 @@ export const psikotesService = {
         message: string
         data: {
           booking_id: string
+          access_token?: string
           kode_akses: string
           status_pengerjaan: "BELUM_MULAI" | "SELESAI"
           test_id: string
@@ -219,7 +222,7 @@ export const psikotesService = {
       }>("/psikotes/verify-ticket", payload)
       .then((r) => r.data),
 
-  getHasilByBooking: (bookingId: string) =>
+  getHasilByBooking: (bookingId: string, accessToken?: string | null) =>
     apiClient
       .get<{
         success: boolean
@@ -258,7 +261,9 @@ export const psikotesService = {
             tips?: any
           }
         }
-      }>(`/psikotes/booking/${bookingId}/hasil`)
+      }>(`/psikotes/booking/${bookingId}/hasil`, {
+        params: accessToken ? { token: accessToken } : undefined,
+      })
       .then((r) => r.data),
 }
 
