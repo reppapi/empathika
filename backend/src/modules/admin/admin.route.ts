@@ -8,6 +8,7 @@ import {
   updateBookingStatusSchema,
   updateAdminProfileSchema,
   resendActivationSchema,
+  dashboardLimitQuerySchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -84,12 +85,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan daftar sesi konseling hari ini untuk widget dashboard (default top 5)',
       security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          limit: { type: 'string' },
-        },
-      },
+      querystring: dashboardLimitQuerySchema,
     },
     handler: controller.getDashboardTodaySessions,
   })
@@ -100,12 +96,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan daftar transaksi pembayaran terbaru untuk widget dashboard (default top 5)',
       security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          limit: { type: 'string' },
-        },
-      },
+      querystring: dashboardLimitQuerySchema,
     },
     handler: controller.getDashboardRecentTransactions,
   })
@@ -116,12 +107,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan daftar agenda dan peringatan operasional mendatang langsung dari Database (default top 6)',
       security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          limit: { type: 'string' },
-        },
-      },
+      querystring: dashboardLimitQuerySchema,
     },
     handler: controller.getDashboardAgenda,
   })
