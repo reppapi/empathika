@@ -162,4 +162,61 @@ export class AdminRepository {
       pendingPaymentCount,
     }
   }
+
+  /**
+   * Mengambil sesi konseling hari ini khusus widget dashboard (dibatasi limit teratas)
+   */
+  async findDashboardTodaySessions(date: Date, limit: number = 5) {
+    const startOfDay = new Date(date)
+    startOfDay.setUTCHours(0, 0, 0, 0)
+    const endOfDay = new Date(date)
+    endOfDay.setUTCHours(23, 59, 59, 999)
+
+    const where: Prisma.BookingKonsultasiWhereInput = {
+      jadwal: {
+        tanggal: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      NOT: {
+        status: 'CANCELLED',
+      },
+    }
+
+    const [totalCount, rawSessions] = await Promise.all([
+      this.prisma.bookingKonsultasi.count({ where }),
+      this.prisma.bookingKonsultasi.findMany({
+        where,
+        include: {
+          client: true,
+          layanan: true,
+          transaksi: true,
+          jadwal: {
+            include: {
+              psikolog: {
+                include: {
+                  account: {
+                    select: {
+                      id: true,
+                      nama: true,
+                      foto: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          jadwal: {
+            jam_mulai: 'asc',
+          },
+        },
+        take: limit,
+      }),
+    ])
+
+    return { totalCount, rawSessions }
+  }
 }

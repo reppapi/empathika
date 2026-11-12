@@ -23,6 +23,7 @@ export default function AdminDashboardClient() {
 
   // 2. Ambil sesi konseling hari ini langsung dari Database PostgreSQL via adminService
   const [sessions, setSessions] = useState<TodaySessionItem[]>([])
+  const [totalTodayCount, setTotalTodayCount] = useState<number>(0)
 
   // 3. State transaksi pembayaran terbaru (dari API)
   const [transactions, setTransactions] = useState<RecentTransactionItem[]>([])
@@ -80,27 +81,38 @@ export default function AdminDashboardClient() {
       })
   }, [])
 
-  // Muat sesi konseling hari ini murni dari Database
+  // Muat sesi konseling hari ini murni dari Database (top 5 sesi terdekat untuk widget ringkasan operasional)
   useEffect(() => {
     adminService
-      .getJadwal()
+      .getDashboardTodaySessions({ limit: 5 })
       .then((res: any) => {
-        if (res && Array.isArray(res.todaySessions)) {
-          setSessions(
-            res.todaySessions.map((item: any) => ({
-              waktu: (item.waktuRange || item.waktu || "").includes("WIB")
-                ? item.waktuRange || item.waktu
-                : `${item.waktuRange || item.waktu || ""} WIB`,
-              klien: item.namaKlien,
-              psikolog: item.psikolog,
-              layanan: item.layanan,
-              metode: item.metode,
-              status: item.status,
-            }))
-          )
+        if (res && Array.isArray(res.sessions)) {
+          setSessions(res.sessions)
+          setTotalTodayCount(res.totalCount || res.sessions.length)
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        adminService
+          .getJadwal()
+          .then((res: any) => {
+            if (res && Array.isArray(res.todaySessions)) {
+              setSessions(
+                res.todaySessions.slice(0, 5).map((item: any) => ({
+                  waktu: (item.waktuRange || item.waktu || "").includes("WIB")
+                    ? item.waktuRange || item.waktu
+                    : `${item.waktuRange || item.waktu || ""} WIB`,
+                  klien: item.namaKlien,
+                  psikolog: item.psikolog,
+                  layanan: item.layanan,
+                  metode: item.metode,
+                  status: item.status,
+                }))
+              )
+              setTotalTodayCount(res.todaySessions.length)
+            }
+          })
+          .catch(() => {})
+      })
   }, [])
 
   const currentDate = new Intl.DateTimeFormat("id-ID", {
@@ -228,7 +240,7 @@ export default function AdminDashboardClient() {
 
       {/* 4. Bagian Bawah: Jadwal Konseling Hari Ini & Transaksi Pembayaran Hari Ini */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardTodaySessions sessions={sessions} />
+        <DashboardTodaySessions sessions={sessions} totalCount={totalTodayCount} />
         <DashboardRecentTransactions transactions={transactions} />
       </div>
 

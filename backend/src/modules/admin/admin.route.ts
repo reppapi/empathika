@@ -94,6 +94,30 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.getDashboardMetrics,
   })
 
+  fastify.get('/dashboard/today-sessions', {
+    preHandler: [
+      async (req) => {
+        try {
+          await req.jwtVerify()
+        } catch {
+          // Tetap lanjut agar data sesi hari ini dapat dimuat saat prototyping/dev
+        }
+      },
+    ],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar sesi konseling hari ini untuk widget dashboard (default top 5)',
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: {
+          limit: { type: 'string' },
+        },
+      },
+    },
+    handler: controller.getDashboardTodaySessions,
+  })
+
   // ── Modul Jadwal & Sesi Admin ────────────────────────────────────
   fastify.get('/jadwal', {
     preHandler: [

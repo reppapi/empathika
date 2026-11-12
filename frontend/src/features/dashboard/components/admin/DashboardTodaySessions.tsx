@@ -6,9 +6,10 @@ import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface DashboardTodaySessionsProps {
   sessions: TodaySessionItem[]
+  totalCount?: number
 }
 
-export default function DashboardTodaySessions({ sessions }: DashboardTodaySessionsProps) {
+export default function DashboardTodaySessions({ sessions, totalCount = 0 }: DashboardTodaySessionsProps) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
       <div className="flex items-center justify-between mb-5">
@@ -71,6 +72,19 @@ export default function DashboardTodaySessions({ sessions }: DashboardTodaySessi
           ))
         )}
       </div>
+
+      {totalCount > sessions.length && (
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+          <span>Menampilkan {sessions.length} dari {totalCount} sesi hari ini</span>
+          <Link
+            href={"/admin/jadwal" as any}
+            className="font-semibold text-[#5D205E] hover:underline flex items-center gap-1"
+          >
+            Lihat Semua ({totalCount})
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

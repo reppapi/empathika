@@ -4,6 +4,9 @@ export const adminService = {
   getDashboardMetrics: () =>
     apiClient.get("/admin/dashboard/metrics").then((r) => r.data),
 
+  getDashboardTodaySessions: (params?: { limit?: number }) =>
+    apiClient.get("/admin/dashboard/today-sessions", { params }).then((r) => r.data),
+
   getDashboardChart: (params?: { period?: string }) =>
     apiClient.get("/admin/dashboard/chart", { params }).then((r) => r.data),
 

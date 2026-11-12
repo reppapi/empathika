@@ -9,7 +9,7 @@ import type {
 } from './admin.schema'
 import bcrypt from 'bcrypt'
 import type { StatusBooking } from '@prisma/client'
-import { formatDateToString } from '../../utils/date-time'
+import { formatDateToString, formatTimeToString } from '../../utils/date-time'
 
 const mapsEmbedCache = new Map<string, string>()
 
@@ -528,6 +528,76 @@ export class AdminService {
         change: 'Perlu konfirmasi',
         color: '#D97706',
       },
+    }
+  }
+
+  /**
+   * Mengambil sesi konseling hari ini untuk widget dashboard (default limit: 5 sesi terdekat)
+   */
+  async getDashboardTodaySessions(limit: number = 5) {
+    const now = new Date()
+    const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000)
+    const curYear = wibNow.getUTCFullYear()
+    const curMonth = wibNow.getUTCMonth()
+    const curDate = wibNow.getUTCDate()
+    const todayDate = new Date(Date.UTC(curYear, curMonth, curDate, 0, 0, 0, 0))
+
+    const { totalCount, rawSessions } = await this.repo.findDashboardTodaySessions(todayDate, limit)
+
+    const currentMinutes = wibNow.getUTCHours() * 60 + wibNow.getUTCMinutes()
+
+    const sessions = rawSessions.map((s) => {
+      const jamMulaiStr = formatTimeToString(s.jadwal.jam_mulai)
+      const jamSelesaiStr = formatTimeToString(s.jadwal.jam_selesai)
+      const waktuRange = `${jamMulaiStr} - ${jamSelesaiStr} WIB`
+
+      // Tentukan status dinamis sesi
+      let dynamicStatus: string = 'Menunggu Jadwal'
+      if (s.status === 'COMPLETED') {
+        dynamicStatus = 'Selesai'
+      } else if (s.status === 'CANCELLED') {
+        dynamicStatus = 'Dibatalkan'
+      } else {
+        const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number)
+        const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number)
+        const startMinutes = (hMulai || 0) * 60 + (mMulai || 0)
+        const endMinutes = (hSelesai || 0) * 60 + (mSelesai || 0)
+
+        if (currentMinutes >= endMinutes) {
+          dynamicStatus = 'Selesai'
+        } else if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+          dynamicStatus = 'Sedang Berlangsung'
+        } else if (startMinutes - currentMinutes > 0 && startMinutes - currentMinutes <= 30) {
+          dynamicStatus = 'Segera Dimulai'
+        } else {
+          dynamicStatus = 'Menunggu Jadwal'
+        }
+      }
+
+      const isAsesmen =
+        s.jadwal.tipe_jadwal === 'ASESMEN' ||
+        (s.layanan?.nama || '').toLowerCase().includes('asesmen')
+
+      return {
+        id: s.id,
+        waktu: waktuRange,
+        klien: s.client.nama,
+        psikolog: isAsesmen
+          ? 'Asesor Klinis Empathika'
+          : s.jadwal.psikolog?.nama_gelar ||
+            s.jadwal.psikolog?.account?.nama ||
+            'Tenaga Ahli',
+        layanan: s.layanan?.nama || 'Konsultasi Psikologi',
+        metode: (s.metode || 'ONLINE').toUpperCase() === 'OFFLINE' ? 'Offline' : 'Online',
+        status: dynamicStatus,
+      }
+    })
+
+    return {
+      totalCount,
+      limit,
+      hasMore: totalCount > limit,
+      sessions,
     }
   }
 }
