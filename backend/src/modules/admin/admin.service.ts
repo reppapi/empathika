@@ -656,5 +656,78 @@ export class AdminService {
       transactions,
     }
   }
+
+  /**
+   * Mengambil agenda dan peringatan operasional mendatang murni dari Database
+   */
+  async getDashboardAgenda(limit: number = 6) {
+    const { upcomingEvents, upcomingSessions, pendingPayments } = await this.repo.findDashboardAgenda(limit)
+
+    const agendaList: Array<{
+      title: string
+      type: string
+      time: string
+      href: string
+      badgeColor: string
+      dotColor: string
+    }> = []
+
+    // 1. Pending Payments (Paling prioritas sebagai peringatan)
+    for (const trx of pendingPayments) {
+      agendaList.push({
+        title: `Batas Pembayaran: ${trx.client?.nama || 'Klien'} (${trx.kode_transaksi || 'Invoice'})`,
+        type: 'Peringatan',
+        time: 'Perlu Konfirmasi',
+        href: '/admin/transaksi?status=pending',
+        badgeColor: 'bg-red-50 text-red-700',
+        dotColor: 'bg-red-500',
+      })
+    }
+
+    // 2. Upcoming Sessions
+    for (const s of upcomingSessions) {
+      const jamMulaiStr = s.jadwal?.jam_mulai ? formatTimeToString(s.jadwal.jam_mulai) : ''
+      const tglStr = s.jadwal?.tanggal
+        ? new Date(s.jadwal.tanggal).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+          })
+        : 'Mendatang'
+
+      agendaList.push({
+        title: `Konseling: ${s.client?.nama || 'Klien'} (${s.layanan?.nama || 'Konsultasi'})`,
+        type: 'Konseling',
+        time: jamMulaiStr ? `${tglStr}, ${jamMulaiStr} WIB` : tglStr,
+        href: '/admin/jadwal',
+        badgeColor: 'bg-[#F3E8F5] text-[#5D205E]',
+        dotColor: 'bg-[#BFA3C5]',
+      })
+    }
+
+    // 3. Upcoming Events
+    for (const ev of upcomingEvents) {
+      const jamStr = ev.jam_mulai ? formatTimeToString(ev.jam_mulai) : ''
+      const tglStr = ev.tanggal
+        ? new Date(ev.tanggal).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+          })
+        : 'Mendatang'
+
+      agendaList.push({
+        title: ev.judul,
+        type: 'Event',
+        time: jamStr ? `${tglStr}, ${jamStr} WIB` : tglStr,
+        href: '/admin/event',
+        badgeColor: 'bg-[#5D205E] text-white',
+        dotColor: 'bg-[#5D205E]',
+      })
+    }
+
+    return {
+      total: agendaList.length,
+      agendaList: agendaList.slice(0, limit),
+    }
+  }
 }
 

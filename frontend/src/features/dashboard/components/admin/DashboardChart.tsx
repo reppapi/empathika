@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, AlertCircle, RefreshCw } from "lucide-react"
 import { ChartPeriod, ChartBarItem } from "../../types"
-import { DASHBOARD_CHART_DATA, PERIOD_LABELS } from "../../data/dashboardData"
+import { PERIOD_LABELS } from "../../data/dashboardData"
 import { adminService } from "@/services/admin.service"
 
 const VALID_PERIODS = ["minggu", "bulan", "bulan_lalu"] as const
@@ -21,21 +21,34 @@ export default function DashboardChart() {
 
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(initialPeriod)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [allChartData, setAllChartData] = useState<Record<ChartPeriod, ChartBarItem[]>>(DASHBOARD_CHART_DATA)
+  const [allChartData, setAllChartData] = useState<Record<ChartPeriod, ChartBarItem[]> | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Muat data grafik real-time dari backend database PostgreSQL
-  useEffect(() => {
+  // Muat data grafik murni dari backend database PostgreSQL
+  const fetchChart = useCallback(() => {
+    setIsLoading(true)
+    setError(null)
     adminService
       .getDashboardChart()
       .then((res: any) => {
         if (res && res.minggu && res.bulan && res.bulan_lalu) {
           setAllChartData(res)
+        } else {
+          setError("Format data grafik tidak valid.")
         }
       })
       .catch((err) => {
-        console.warn("Notice loading dashboard chart fallback:", err?.message)
+        setError(err?.response?.data?.message || err?.message || "Gagal memuat data grafik dari database.")
+      })
+      .finally(() => {
+        setIsLoading(false)
       })
   }, [])
+
+  useEffect(() => {
+    fetchChart()
+  }, [fetchChart])
 
   // Sinkronkan periode saat query param URL berubah (misal tombol Back / Forward browser)
   useEffect(() => {
@@ -62,11 +75,13 @@ export default function DashboardChart() {
     router.replace(targetUrl as any, { scroll: false })
   }
 
-  const activeChart: ChartBarItem[] = allChartData[chartPeriod] || DASHBOARD_CHART_DATA[chartPeriod]
+  const activeChart: ChartBarItem[] = allChartData ? allChartData[chartPeriod] || [] : []
+  const totalSesi = activeChart.reduce((a, b) => a + (b.value || 0), 0)
+  const avgSesi = activeChart.length > 0 ? Math.round(totalSesi / activeChart.length) : 0
 
   return (
-    <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-7 flex flex-col">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-8">
+    <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-7 flex flex-col min-h-[380px]">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <div>
           <h3 className="font-bold text-gray-900 text-lg">Grafik Reservasi Sesi</h3>
           <p className="text-xs text-gray-500 mt-0.5">Total janji temu & pendaftaran layanan klien</p>
@@ -102,31 +117,68 @@ export default function DashboardChart() {
         </div>
       </div>
 
-      {/* Bar Chart Visual */}
-      <div className="flex-1 flex items-end justify-between px-2 sm:px-6 gap-3 sm:gap-6 h-[240px] pt-4 pb-2 border-b border-gray-100">
-        {activeChart.map((item, index) => (
-          <div key={index} className="flex flex-col items-center w-full group relative h-full justify-end">
-            <span className="text-gray-900 font-bold mb-2 text-sm sm:text-base group-hover:text-[#5D205E] transition-colors">
-              {item.value}
-            </span>
-            <div
-              className="w-full max-w-[55px] bg-[#BFA3C5] rounded-t-lg transition-all duration-300 group-hover:bg-[#5D205E] cursor-pointer"
-              style={{ height: item.height }}
-            ></div>
-            <span className="text-xs font-semibold text-gray-500 mt-3">{item.label}</span>
+      {/* Konten Grafik: Loading / Error / Data */}
+      {isLoading ? (
+        <div className="flex-1 flex items-end justify-between px-2 sm:px-6 gap-3 sm:gap-6 h-[220px] pt-4 pb-2 border-b border-gray-100 animate-pulse">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="flex flex-col items-center w-full h-full justify-end gap-2">
+              <div
+                className="w-full max-w-[55px] bg-gray-200 rounded-t-lg"
+                style={{ height: `${20 + (i * 12) % 65}%` }}
+              />
+              <div className="w-8 h-3 bg-gray-200 rounded" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-red-600 gap-3 border border-red-100 rounded-xl bg-red-50/50 my-auto">
+          <AlertCircle className="w-7 h-7 text-red-500" />
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-red-700">Gagal Memuat Grafik</p>
+            <p className="text-xs text-gray-600 mt-0.5">{error}</p>
           </div>
-        ))}
-      </div>
+          <button
+            type="button"
+            onClick={fetchChart}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#5D205E] hover:bg-[#481849] text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer mt-1"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Coba Lagi</span>
+          </button>
+        </div>
+      ) : activeChart.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-xs text-gray-400 py-16">
+          Belum ada data reservasi sesi untuk periode ini.
+        </div>
+      ) : (
+        <>
+          {/* Bar Chart Visual */}
+          <div className="flex-1 flex items-end justify-between px-2 sm:px-6 gap-3 sm:gap-6 h-[220px] pt-4 pb-2 border-b border-gray-100">
+            {activeChart.map((item, index) => (
+              <div key={index} className="flex flex-col items-center w-full group relative h-full justify-end">
+                <span className="text-gray-900 font-bold mb-2 text-sm sm:text-base group-hover:text-[#5D205E] transition-colors">
+                  {item.value}
+                </span>
+                <div
+                  className="w-full max-w-[55px] bg-[#BFA3C5] rounded-t-lg transition-all duration-300 group-hover:bg-[#5D205E] cursor-pointer"
+                  style={{ height: item.height || "0%" }}
+                />
+                <span className="text-xs font-semibold text-gray-500 mt-3">{item.label}</span>
+              </div>
+            ))}
+          </div>
 
-      <div className="flex items-center justify-between text-xs text-gray-500 mt-4 pt-1">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#5D205E]"></span>
-          Reservasi Terkonfirmasi
-        </span>
-        <span>
-          Rata-rata: <strong>{Math.round(activeChart.reduce((a, b) => a + b.value, 0) / activeChart.length)} sesi / periode</strong>
-        </span>
-      </div>
+          <div className="flex items-center justify-between text-xs text-gray-500 mt-4 pt-1">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#5D205E]"></span>
+              Reservasi Terkonfirmasi
+            </span>
+            <span>
+              Rata-rata: <strong>{avgSesi} sesi / periode</strong>
+            </span>
+          </div>
+        </>
+      )}
     </div>
   )
 }

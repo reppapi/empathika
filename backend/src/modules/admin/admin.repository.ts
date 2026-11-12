@@ -284,4 +284,58 @@ export class AdminRepository {
 
     return { totalCount, rawTransactions }
   }
+
+  /**
+   * Mengambil agenda dan peringatan operasional mendatang langsung dari Database
+   */
+  async findDashboardAgenda(limit: number = 6) {
+    const today = new Date()
+    today.setUTCHours(0, 0, 0, 0)
+
+    const [upcomingEvents, upcomingSessions, pendingPayments] = await Promise.all([
+      this.prisma.event.findMany({
+        where: {
+          status: { in: ['UPCOMING', 'ONGOING'] },
+        },
+        orderBy: [{ tanggal: 'asc' }, { jam_mulai: 'asc' }],
+        take: 3,
+      }),
+      this.prisma.bookingKonsultasi.findMany({
+        where: {
+          NOT: { status: 'CANCELLED' },
+          jadwal: {
+            tanggal: { gte: today },
+          },
+        },
+        include: {
+          client: true,
+          layanan: true,
+          jadwal: true,
+        },
+        orderBy: {
+          jadwal: {
+            tanggal: 'asc',
+          },
+        },
+        take: 3,
+      }),
+      this.prisma.transaksi.findMany({
+        where: {
+          status_pembayaran: 'PENDING',
+          OR: [
+            { booking_konsultasi: { isNot: null } },
+            { booking_psikotes: { isNot: null } },
+            { booking_event: { isNot: null } },
+          ],
+        },
+        include: {
+          client: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 2,
+      }),
+    ])
+
+    return { upcomingEvents, upcomingSessions, pendingPayments }
+  }
 }

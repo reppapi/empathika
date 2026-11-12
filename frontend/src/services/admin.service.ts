@@ -10,6 +10,9 @@ export const adminService = {
   getDashboardRecentTransactions: (params?: { limit?: number }) =>
     apiClient.get("/admin/dashboard/recent-transactions", { params }).then((r) => r.data),
 
+  getDashboardAgenda: (params?: { limit?: number }) =>
+    apiClient.get("/admin/dashboard/agenda", { params }).then((r) => r.data),
+
   getDashboardChart: (params?: { period?: string }) =>
     apiClient.get("/admin/dashboard/chart", { params }).then((r) => r.data),
 

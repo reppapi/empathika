@@ -142,6 +142,30 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.getDashboardRecentTransactions,
   })
 
+  fastify.get('/dashboard/agenda', {
+    preHandler: [
+      async (req) => {
+        try {
+          await req.jwtVerify()
+        } catch {
+          // Tetap lanjut agar data agenda operasional dapat dimuat saat prototyping/dev
+        }
+      },
+    ],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar agenda dan peringatan operasional mendatang langsung dari Database (default top 6)',
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: {
+          limit: { type: 'string' },
+        },
+      },
+    },
+    handler: controller.getDashboardAgenda,
+  })
+
   // ── Modul Jadwal & Sesi Admin ────────────────────────────────────
   fastify.get('/jadwal', {
     preHandler: [
