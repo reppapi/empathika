@@ -78,6 +78,7 @@ export default function DashboardStatCards({
     }
 
     if (title.includes("Pendapatan")) return "/admin/transaksi"
+    if (title.includes("Review") || title.includes("Psikotes")) return "/admin/psikotes"
     if (title.includes("Klien Aktif")) return "/admin/jadwal"
     if (title.includes("Sesi Konseling")) return "/admin/jadwal?status=selesai"
     if (title.includes("Event") || title.includes("Workshop")) return "/admin/event"

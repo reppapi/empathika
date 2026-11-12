@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { Calendar, Plus, CheckCircle2, Wallet, Users, Sparkles, Clock } from "lucide-react"
+import { Calendar, Plus, CheckCircle2, Wallet, Users, Sparkles, Clock, FileText } from "lucide-react"
 
 import ModalTambahSesi, { NewSessionData } from "./ModalTambahSesi"
 import DashboardStatCards from "./DashboardStatCards"
@@ -56,11 +56,11 @@ export default function AdminDashboardClient() {
               color: res.pendapatanBulanIni.color || "#5D205E",
             },
             {
-              title: res.totalKlienAktif.title,
-              value: res.totalKlienAktif.value,
-              change: res.totalKlienAktif.change,
-              icon: Users,
-              color: res.totalKlienAktif.color || "#5D205E",
+              title: res.menungguReview?.title || res.totalKlienAktif?.title || "Menunggu Review",
+              value: res.menungguReview?.value || (res.totalKlienAktif?.value ? `${String(res.totalKlienAktif.value).replace(/[^0-9]/g, '') || 0} Tes` : "0 Tes"),
+              change: res.menungguReview?.change || "Perlu ditinjau psikolog",
+              icon: FileText,
+              color: res.menungguReview?.color || res.totalKlienAktif?.color || "#5D205E",
             },
             {
               title: res.sesiKonselingSelesai.title,

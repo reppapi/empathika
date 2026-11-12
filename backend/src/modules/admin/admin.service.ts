@@ -496,11 +496,18 @@ export class AdminService {
         change: incomeChange,
         color: '#5D205E',
       },
-      totalKlienAktif: {
-        title: 'Total Klien Aktif',
-        value: `${rawMetrics.totalClients} Klien`,
+      menungguReview: {
+        title: 'Menunggu Review',
+        value: `${rawMetrics.totalClients} Tes`,
         rawValue: rawMetrics.totalClients,
-        change: clientChange,
+        change: 'Perlu ditinjau psikolog',
+        color: '#5D205E',
+      },
+      totalKlienAktif: {
+        title: 'Menunggu Review',
+        value: `${rawMetrics.totalClients} Tes`,
+        rawValue: rawMetrics.totalClients,
+        change: 'Perlu ditinjau psikolog',
         color: '#5D205E',
       },
       sesiKonselingSelesai: {
