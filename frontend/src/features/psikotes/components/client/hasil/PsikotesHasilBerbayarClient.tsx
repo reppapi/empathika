@@ -26,6 +26,7 @@ import {
   type LaporanPsikotesPdfData,
 } from "@/features/psikotes/utils/downloadLaporanPsikotesPdf";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
+import CrisisHotlineCard from "./CrisisHotlineCard";
 
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
@@ -148,16 +149,26 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   } | null>(null);
 
   const paramBookingId = searchParams.get("bookingId") || searchParams.get("orderId");
+  const paramToken = (() => {
+    const urlToken = searchParams.get("token");
+    if (urlToken) return urlToken;
+    if (paramBookingId && typeof window !== "undefined") {
+      try {
+        return localStorage.getItem(`empathika_psikotes_token_${paramBookingId}`);
+      } catch {}
+    }
+    return null;
+  })();
 
   // Fetch package data & verified booking report from backend (Anti-Tampering)
   const fetchPackage = async () => {
     setIsLoadingDb(true);
     setErrorMessage(null);
     try {
-      // 1. Jika ada bookingId (tiket berbayar resmi), muat data otentik murni dari database
+      // 1. Jika ada bookingId (tiket berbayar resmi), muat data otentik murni dari database beserta token akses
       if (paramBookingId) {
         try {
-          const bookingRes = await psikotesService.getHasilByBooking(paramBookingId);
+          const bookingRes = await psikotesService.getHasilByBooking(paramBookingId, paramToken);
           if (bookingRes?.success && bookingRes?.data) {
             const bData = bookingRes.data;
             if (bData.paket) {
@@ -226,9 +237,13 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             return;
           }
         } catch (bookingErr: any) {
+          const apiStatus = bookingErr?.response?.status;
           const apiMsg = bookingErr?.response?.data?.message || bookingErr?.message;
-          if (apiMsg && (apiMsg.includes("berakhir") || apiMsg.includes("kedaluwarsa"))) {
-            setErrorMessage(apiMsg);
+          if (apiStatus === 403 || (apiMsg && (apiMsg.includes("berakhir") || apiMsg.includes("kedaluwarsa")))) {
+            setErrorMessage(
+              apiMsg ||
+                "Akses laporan hasil asesmen memerlukan verifikasi tiket yang sah. Silakan masukkan kode tiket dan nomor WhatsApp di halaman detail tes."
+            );
             setIsLoadingDb(false);
             return;
           }
@@ -282,7 +297,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const isDASS = Boolean(
     dbPackage?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
     dbPackage?.judul?.toUpperCase().includes("DASS") ||
-    dbPackage?.judul?.toLowerCase().includes("stres") ||
     dbPackage?.judul?.toLowerCase().includes("depresi, kecemasan") ||
     params.testId.toLowerCase().includes("dass")
   );
@@ -302,6 +316,63 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     bookingReport.detailSkor.subscalesList.length > 0
       ? bookingReport.detailSkor
       : null;
+
+  const isRCMAS = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("RCMAS") ||
+    dbPackage?.judul?.toUpperCase().includes("RCMAS") ||
+    params.testId.toLowerCase().includes("rcmas")
+  );
+
+  const isPHQ9 = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
+    dbPackage?.judul?.toUpperCase().includes("PHQ") ||
+    params.testId.toLowerCase().includes("phq")
+  );
+
+  const isHarmDetected =
+    isPHQ9 && (Boolean(bookingReport?.detailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
+
+  const rcmasSubscales = isRCMAS
+    ? (() => {
+        const sub = bookingReport?.detailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const phys = readSubScore(sub?.physiological, "phys");
+        const worry = readSubScore(sub?.worry, "worry");
+        const conc = readSubScore(sub?.concentration, "conc");
+        if (phys === null && worry === null && conc === null) return null;
+        return [
+          {
+            key: "physiological",
+            label: "Physiological Anxiety",
+            score: Number(phys ?? 0),
+            max: 10,
+            colorHex: "#561269",
+            deskripsi: "Skor mentah dimensi keluhan fisiologis kecemasan (maks. 10 butir).",
+          },
+          {
+            key: "worry",
+            label: "Worry / Oversensitivity",
+            score: Number(worry ?? 0),
+            max: 11,
+            colorHex: "#763E8B",
+            deskripsi: "Skor mentah dimensi kekhawatiran & sensitivitas berlebih (maks. 11 butir).",
+          },
+          {
+            key: "concentration",
+            label: "Concentration Anxiety",
+            score: Number(conc ?? 0),
+            max: 7,
+            colorHex: "#0e7490",
+            deskripsi: "Skor mentah dimensi kecemasan konsentrasi (maks. 7 butir).",
+          },
+        ];
+      })()
+    : null;
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
@@ -509,17 +580,31 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   colorHex: "#561269",
                 };
               })
-            : undefined,
+            : rcmasSubscales
+              ? rcmasSubscales.map((s) => ({
+                  name: s.label,
+                  score: s.score,
+                  maxScore: s.max,
+                  percentage: s.max > 0 ? Math.round((s.score / s.max) * 100) : 0,
+                  grade: `${s.score} / ${s.max}`,
+                  deskripsi: s.deskripsi,
+                  colorHex: s.colorHex,
+                }))
+              : undefined,
         subscalesTitle: dassEvaluation
           ? "Profil 3 Dimensi: Depresi, Kecemasan, & Stres"
           : pbqProfile
             ? "Profil Skor Mentah 9 Skala Kepribadian (PBQ)"
-            : undefined,
+            : rcmasSubscales
+              ? "Profil Tiga Dimensi Kecemasan RCMAS"
+              : undefined,
         subscalesMaxNote: dassEvaluation
           ? "Maks. 42 / dimensi"
           : pbqProfile
             ? "Maks. 56 / skala (tanpa skor total)"
-            : undefined,
+            : rcmasSubscales
+              ? "Skor mentah per dimensi (tanpa cutoff terpisah)"
+              : undefined,
         kekuatanUtama: berbayarDetail.kekuatanUtama,
         judulKekuatan: berbayarDetail.judulKekuatan,
         blindspots: berbayarDetail.blindspots,
@@ -845,7 +930,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                         <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
                           <div
                             className={`h-full ${sub.barColor} rounded-full transition-all duration-500`}
-                            style={{ width: `${Math.max(6, sub.percentage)}%` }}
+                            style={{ width: `${sub.score > 0 ? Math.max(6, sub.percentage) : 0}%` }}
                           />
                         </div>
 
@@ -903,6 +988,45 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   </p>
                 </section>
               )}
+
+              {/* Profil Tiga Dimensi Kecemasan RCMAS (tanpa Lie Scale & tanpa cutoff buatan) */}
+              {rcmasSubscales && (
+                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <Compass className="w-5 h-5 text-[#561269]" />
+                      Profil Tiga Dimensi Kecemasan RCMAS
+                    </h3>
+                    <span className="text-xs font-semibold text-gray-400">Skor mentah per dimensi</span>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {rcmasSubscales.map((sub) => {
+                      const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                      return (
+                        <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-sm text-gray-900">{sub.label}</span>
+                            <span className="text-xs font-bold text-[#561269]">
+                              {sub.score} <span className="text-gray-400 font-normal">/ {sub.max}</span>
+                            </span>
+                          </div>
+                          <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                              style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-600 leading-relaxed">{sub.deskripsi}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Safety & Crisis Hotline Card untuk PHQ-9 Butir 9 */}
+              {isHarmDetected && <CrisisHotlineCard />}
 
               {/* Interpretasi Hasil & Implikasi Strategis */}
               <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">

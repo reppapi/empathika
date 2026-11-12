@@ -9,6 +9,7 @@ import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psiko
 import { useAuthStore } from "@/store/authStore";
 import { Loader2, AlertCircle, WifiOff, RefreshCw } from "lucide-react";
 import PsikotesFormIdentitas, { type IdentityData } from "./PsikotesFormIdentitas";
+import { navigateToPsikotesHasil } from "@/features/psikotes/utils/navigationHistory";
 
 // Helper pengecekan kelengkapan data identitas peserta berbayar
 const isIdentityFullyCompleted = (data: IdentityData) => {
@@ -110,7 +111,16 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     try {
       const completedId = localStorage.getItem(`empathika_psikotes_done_${rawBooking}`);
       if (completedId) {
-        router.replace(`/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(completedId)}`);
+        const savedToken =
+          searchParams.get("token") ||
+          localStorage.getItem(`empathika_psikotes_token_${completedId}`) ||
+          localStorage.getItem(`empathika_psikotes_token_${rawBooking}`);
+        const tokenParam = savedToken ? `&token=${encodeURIComponent(savedToken)}` : "";
+        navigateToPsikotesHasil(
+          router,
+          params.testId,
+          `/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(completedId)}${tokenParam}`
+        );
       }
     } catch {}
   }, [params.testId, searchParams, router]);
@@ -167,7 +177,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const isDASS = Boolean(
     dbData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
     dbData?.judul?.toUpperCase().includes("DASS") ||
-    dbData?.judul?.toLowerCase().includes("stres") ||
     dbData?.judul?.toLowerCase().includes("depresi, kecemasan") ||
     params.testId.toLowerCase().includes("dass")
   );
@@ -560,6 +569,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
       const res = await psikotesService.submitJawaban(params.testId, {
         jawaban: jawabanPayload,
+        dampak_aktivitas: (isPHQ || isGAD) && functionalAnswer !== null ? functionalAnswer : undefined,
         id_booking: bookingIdParam,
         bookingId: bookingIdParam,
         orderId: searchParams.get("orderId") || undefined,
@@ -607,6 +617,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           query.set("skor", String(res.data.total_skor));
         }
         query.set("bookingId", res.data.id_booking);
+        if (res.data.access_token) {
+          query.set("token", res.data.access_token);
+          try {
+            localStorage.setItem(`empathika_psikotes_token_${res.data.id_booking}`, res.data.access_token);
+          } catch {}
+        }
 
         // Jika ada data subscales (DASS-42 / RCMAS), simpan skor per dimensi ke URL
         if (res.data.detail_skor?.subscales) {
@@ -670,6 +686,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             query.set("bookingId", canonicalBookingId);
             try {
               localStorage.setItem(`empathika_psikotes_done_${canonicalBookingId}`, canonicalBookingId);
+              if (res.data.access_token) {
+                localStorage.setItem(`empathika_psikotes_token_${canonicalBookingId}`, res.data.access_token);
+                if (rawBooking) {
+                  localStorage.setItem(`empathika_psikotes_token_${rawBooking}`, res.data.access_token);
+                }
+              }
               if (rawBooking) {
                 localStorage.setItem(`empathika_psikotes_done_${rawBooking}`, canonicalBookingId);
               }
@@ -689,11 +711,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (identityData.pendidikan) query.set("pendidikan", identityData.pendidikan.trim());
           if (pesertaEmail) query.set("email", pesertaEmail);
         } else {
+          query.set("paket", "gratis");
           if (pesertaNama) query.set("nama", pesertaNama);
           if (pesertaWa) query.set("whatsapp", pesertaWa);
           if (pesertaEmail) query.set("email", pesertaEmail);
         }
-        router.replace(`/psikotes/${params.testId}/hasil?${query.toString()}`);
+        navigateToPsikotesHasil(router, params.testId, `/psikotes/${params.testId}/hasil?${query.toString()}`);
         return;
       }
 
@@ -714,7 +737,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         try {
           sessionStorage.removeItem(`empathika_psikotes_progress_${params.testId}`);
         } catch {}
-        router.replace(`/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(existingBooking)}`);
+        let existingToken = searchParams.get("token") || "";
+        if (!existingToken) {
+          try {
+            existingToken = localStorage.getItem(`empathika_psikotes_token_${existingBooking}`) || "";
+          } catch {}
+        }
+        const tokenParam = existingToken ? `&token=${encodeURIComponent(existingToken)}` : "";
+        navigateToPsikotesHasil(
+          router,
+          params.testId,
+          `/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(existingBooking)}${tokenParam}`
+        );
         return;
       }
 
@@ -1036,7 +1070,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-gray-950" />
-                  <span>Menyimpan Hasil...</span>
+                  <span>Selesai</span>
                 </>
               ) : isSelesaiButton ? (
                 <span>Selesai</span>
