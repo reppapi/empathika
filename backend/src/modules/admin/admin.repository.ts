@@ -162,10 +162,15 @@ export class AdminRepository {
       0
     )
 
-    // 5. Menunggu Pembayaran
+    // 5. Menunggu Pembayaran (hanya hitung transaksi aktif yang terhubung ke booking valid)
     const pendingPaymentCount = await this.prisma.transaksi.count({
       where: {
         status_pembayaran: 'PENDING',
+        OR: [
+          { booking_konsultasi: { isNot: null } },
+          { booking_psikotes: { isNot: null } },
+          { booking_event: { isNot: null } },
+        ],
       },
     })
 
