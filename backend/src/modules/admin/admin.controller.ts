@@ -25,18 +25,6 @@ export class AdminController {
     this.service = new AdminService(fastify)
   }
 
-  getDashboardChart = async (
-    request: FastifyRequest<{ Querystring: { period?: string } }>,
-    reply: FastifyReply
-  ) => {
-    try {
-      const data = await this.service.getDashboardChartData(request.query?.period)
-      reply.send(data)
-    } catch (err: any) {
-      reply.code(400).send({ error: 'Bad Request', message: err.message })
-    }
-  }
-
   getJadwal = async (
     request: FastifyRequest<{ Querystring: GetAdminJadwalQuery }>,
     reply: FastifyReply

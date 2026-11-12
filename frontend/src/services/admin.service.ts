@@ -1,9 +1,6 @@
 import apiClient from "@/lib/axios"
 
 export const adminService = {
-  getDashboardChart: (params?: { period?: string }) =>
-    apiClient.get("/admin/dashboard/chart", { params }).then((r) => r.data),
-
   getJadwal: (params?: { date?: string; layanan?: string; status?: string }) =>
     apiClient.get("/admin/jadwal", { params }).then((r) => r.data),
 

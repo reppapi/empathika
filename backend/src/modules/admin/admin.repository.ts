@@ -27,30 +27,4 @@ export class AdminRepository {
       data,
     })
   }
-
-  /**
-   * Mengambil seluruh sesi konsultasi/asesmen terkonfirmasi dalam rentang tanggal jadwal tertentu
-   */
-  async getConfirmedSessionsBetween(startDate: Date, endDate: Date) {
-    return this.prisma.bookingKonsultasi.findMany({
-      where: {
-        jadwal: {
-          tanggal: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        OR: [
-          { status: { in: ['CONFIRMED', 'COMPLETED'] } },
-          { transaksi: { status_pembayaran: 'PAID' } },
-        ],
-        NOT: {
-          status: 'CANCELLED',
-        },
-      },
-      include: {
-        jadwal: true,
-      },
-    })
-  }
 }
