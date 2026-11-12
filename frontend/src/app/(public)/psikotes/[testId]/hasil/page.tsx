@@ -1,3 +1,4 @@
+/** Halaman hasil tes psikotes (gratis maupun laporan resmi berbayar). */
 import { Suspense } from "react"
 import PsikotesHasilClient from "@/features/psikotes/components/client/hasil/PsikotesHasilClient"
 

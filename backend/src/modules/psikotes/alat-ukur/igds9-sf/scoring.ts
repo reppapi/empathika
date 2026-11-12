@@ -1,3 +1,4 @@
+/** Modul kalkulasi skor total dan evaluasi kriteria DSM-5 untuk alat ukur IGDS9-SF. */
 export interface IGDS9SFCalculationResult {
   totalSkor: number; // Skor total 9–45
   kategori: string;

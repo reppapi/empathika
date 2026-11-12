@@ -363,8 +363,8 @@ function normalizeTransaksi(raw: any) {
     const jamStr = jamMulai && jamSelesai ? `, ${jamMulai} - ${jamSelesai} WIB` : jamMulai ? `, ${jamMulai} WIB` : ""
     jadwalDisplay = `${tglStr}${jamStr}`
   } else if (jenisLayanan === "psikotes") {
-    if (bookingPsikotes.hasil_tes) {
-      const tglSelesai = bookingPsikotes.hasil_tes.tanggal_selesai
+    if (bookingPsikotes.hasil_tes || bookingPsikotes.status_pengerjaan === "SELESAI") {
+      const tglSelesai = bookingPsikotes.hasil_tes?.tanggal_selesai
         ? new Date(bookingPsikotes.hasil_tes.tanggal_selesai).toLocaleDateString("id-ID", {
           day: "numeric",
           month: "short",

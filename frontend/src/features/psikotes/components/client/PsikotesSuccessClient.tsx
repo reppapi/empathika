@@ -1,3 +1,4 @@
+/** Pembungkus halaman pembayaran berhasil khusus layanan psikotes. */
 "use client"
 
 import PaymentSuccessClient from "@/components/shared/checkout/PaymentSuccessClient"

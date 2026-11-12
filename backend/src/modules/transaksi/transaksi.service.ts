@@ -202,7 +202,6 @@ export class TransaksiService {
       if (input.tipe === 'EVENT') {
         const event = await tx.event.findUnique({
           where: { id: input.id_item },
-          include: { _count: { select: { booking_event: true } } },
         })
 
         if (!event) {
@@ -220,12 +219,43 @@ export class TransaksiService {
           throw Object.assign(new Error('Pendaftaran event ini sedang dinonaktifkan'), { statusCode: 409 })
         }
 
-        const bookedCount = event._count.booking_event
-        if (bookedCount >= event.kuota) {
-          throw Object.assign(new Error('Kuota pendaftaran event ini sudah penuh'), { statusCode: 409 })
+        const jumlahPesertaPendaftaran = input.kuota_bundling && input.kuota_bundling > 0 ? input.kuota_bundling : 1
+
+        // Hitung total peserta yang sudah terdaftar (status PENDING atau CONFIRMED)
+        const bookedAgg = await tx.bookingEvent.aggregate({
+          where: {
+            id_event: event.id,
+            status: { in: ['PENDING', 'CONFIRMED'] },
+          },
+          _sum: {
+            jumlah_peserta: true,
+          },
+        })
+        const bookedPesertaCount = bookedAgg._sum.jumlah_peserta || 0
+
+        if (bookedPesertaCount + jumlahPesertaPendaftaran > event.kuota) {
+          throw Object.assign(new Error('Kuota pendaftaran event ini tidak mencukupi untuk jumlah tiket yang dipilih'), { statusCode: 409 })
         }
 
-        nominal = Number(event.harga)
+        // Tentukan harga: jika bundling, cari harga paket bundling yang sesuai
+        if (jumlahPesertaPendaftaran > 1) {
+          let bundlePriceFound: number | null = null
+          if (Array.isArray(event.paket_bundling)) {
+            const matchedPkg = (event.paket_bundling as any[]).find(
+              (p) => p.kuota_tiket === jumlahPesertaPendaftaran
+            )
+            if (matchedPkg && matchedPkg.harga_paket) {
+              bundlePriceFound = Number(matchedPkg.harga_paket)
+            }
+          }
+          if (bundlePriceFound === null && event.harga_bundling) {
+            bundlePriceFound = Number(event.harga_bundling)
+          }
+          nominal = bundlePriceFound !== null ? bundlePriceFound : Number(event.harga) * jumlahPesertaPendaftaran
+        } else {
+          nominal = Number(event.harga)
+        }
+
         kodePesanan = generateOrderId('EVT')
         deskripsiTagihan = `Pendaftaran Event: ${event.judul} - ${kodePesanan}`
 
@@ -249,6 +279,8 @@ export class TransaksiService {
             id_client: client.id,
             id_transaksi: transaksi.id,
             kode_tiket: kodePesanan,
+            jumlah_peserta: jumlahPesertaPendaftaran,
+            nama_peserta_tambahan: input.nama_peserta_tambahan ? (input.nama_peserta_tambahan as any) : undefined,
             status: 'PENDING',
           },
         })
@@ -337,7 +369,7 @@ export class TransaksiService {
             id_paket: paket.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
-            kode_akses: kodeTransaksi,
+            kode_akses: kodePesanan,
             status_pengerjaan: 'BELUM_MULAI',
           },
         })
@@ -352,7 +384,7 @@ export class TransaksiService {
             email: input.email || undefined,
             mobile_number: input.no_telepon,
           },
-          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/psikotes/success?orderId=${kodePesanan}&testId=${paket.id}&status=success`,
+          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/psikotes/success?orderId=${kodePesanan}&bookingId=${bookingPsikotes.id}&testId=${paket.id}&status=success`,
           failureRedirectUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/psikotes/checkout?orderId=${kodePesanan}&testId=${paket.id}&status=failed`,
         })
 

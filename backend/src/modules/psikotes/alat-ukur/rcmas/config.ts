@@ -1,3 +1,4 @@
+/** Konfigurasi metadata dan instruksi alat ukur kecemasan anak/remaja RCMAS. */
 export const RCMAS_CONFIG = {
   kode: "RCMAS",
   nama: "Revised Children's Manifest Anxiety Scale (RCMAS)",

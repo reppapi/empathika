@@ -1,3 +1,4 @@
+/** Modul kalkulasi skor total, kategori depresi, dan deteksi risiko melukai diri PHQ-9. */
 export interface PHQ9CalculationResult {
   totalSkor: number;
   kategori: string;

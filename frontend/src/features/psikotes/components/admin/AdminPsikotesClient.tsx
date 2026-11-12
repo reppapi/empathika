@@ -1,3 +1,4 @@
+/** Komponen utama dashboard admin untuk mengelola paket tes dan data peserta psikotes. */
 "use client";
 
 import { useState, useEffect } from "react";

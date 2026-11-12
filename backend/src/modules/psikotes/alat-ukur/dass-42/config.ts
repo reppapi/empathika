@@ -1,3 +1,4 @@
+/** Konfigurasi metadata dan instruksi alat ukur DASS-42 (Depresi, Kecemasan, dan Stres). */
 export interface AlatUkurConfig {
   kode: string;
   nama: string;

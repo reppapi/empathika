@@ -1,3 +1,4 @@
+/** Controller handler request/response HTTP untuk katalog, booking, tiket, submit tes, dan admin psikotes. */
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { PsikotesService } from './psikotes.service'
 import type {

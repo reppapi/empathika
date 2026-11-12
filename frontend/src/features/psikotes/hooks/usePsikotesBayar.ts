@@ -1,3 +1,4 @@
+/** Hook logika form checkout psikotes berbayar (validasi peserta, metode pembayaran, dan submit booking). */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -190,7 +191,7 @@ export function usePsikotesBayar() {
 
     // Daftarkan booking psikotes ke backend API
     try {
-      await psikotesService.createBooking({
+      const res = await psikotesService.createBooking({
         id_paket: testIdParam,
         testId: testIdParam,
         kode_transaksi: orderId,
@@ -200,6 +201,10 @@ export function usePsikotesBayar() {
         nama: nama.trim(),
         no_telepon: whatsapp.trim(),
       })
+      const createdBookingId = (res?.data as any)?.id_booking || res?.data?.booking?.id
+      if (createdBookingId) {
+        params.set("bookingId", createdBookingId)
+      }
     } catch (err) {
       console.warn("Sinkronisasi booking psikotes ke backend:", err)
     } finally {

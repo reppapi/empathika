@@ -1,3 +1,4 @@
+/** Service layer bisnis modul psikotes yang menghubungkan controller ke repository. */
 import type { FastifyInstance } from 'fastify'
 import { PsikotesRepository } from './psikotes.repository'
 import type {

@@ -1,3 +1,4 @@
+/** Modal detail instrumen psikotes (varian paket, jumlah soal, interpretasi, dan toggle status). */
 import React from "react";
 import {
   X,

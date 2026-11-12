@@ -1,3 +1,4 @@
+/** Komponen kartu ringkasan paket psikotes yang ditampilkan di halaman checkout. */
 "use client"
 
 import { CheckCircle2, FileText, Brain, ShieldCheck } from "lucide-react"
