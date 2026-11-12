@@ -16,6 +16,24 @@ export interface CreateCheckoutInput {
   failure_redirect_url?: string
 }
 
+export interface AdminTransaksiQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  status?: string
+  clientId?: string
+  all?: boolean
+}
+
+export interface PaginationMeta {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
 export const transaksiService = {
   getMyTransaksi: () =>
     apiClient.get("/transaksi/me").then((r) => r.data),
@@ -23,8 +41,14 @@ export const transaksiService = {
   getById: (id: string) =>
     apiClient.get(`/transaksi/${id}`).then((r) => r.data),
 
-  getAllAdmin: () =>
-    apiClient.get<{ success: boolean; data: any[] }>("/transaksi/admin").then((r) => r.data),
+  getAllAdmin: (params?: AdminTransaksiQueryParams) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: any[]
+        pagination?: PaginationMeta
+      }>("/transaksi/admin", { params })
+      .then((r) => r.data),
 
   checkout: (data: CreateCheckoutInput) =>
     apiClient.post<{
