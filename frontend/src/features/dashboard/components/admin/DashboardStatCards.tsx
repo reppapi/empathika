@@ -80,7 +80,7 @@ export default function DashboardStatCards({
     if (title.includes("Pendapatan")) return "/admin/transaksi"
     if (title.includes("Klien Aktif")) return "/admin/jadwal"
     if (title.includes("Sesi Konseling")) return "/admin/jadwal?status=selesai"
-    if (title.includes("Workshop") || title.includes("Event")) return "/admin/event?tab=workshop"
+    if (title.includes("Event") || title.includes("Workshop")) return "/admin/event"
     if (title.includes("Menunggu Pembayaran")) return "/admin/transaksi?status=pending"
     return "/admin"
   }

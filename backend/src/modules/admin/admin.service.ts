@@ -510,11 +510,18 @@ export class AdminService {
         change: 'Akumulasi bulan ini',
         color: '#5D205E',
       },
-      pendaftarWorkshop: {
-        title: 'Pendaftar Workshop',
+      pendaftarEvent: {
+        title: 'Pendaftar Event',
         value: `${rawMetrics.totalEventParticipants} Peserta`,
         rawValue: rawMetrics.totalEventParticipants,
-        change: `Dari ${rawMetrics.activeEventsCount} event aktif`,
+        change: `Dari ${rawMetrics.activeEventsCount} event dibuka`,
+        color: '#5D205E',
+      },
+      pendaftarWorkshop: {
+        title: 'Pendaftar Event',
+        value: `${rawMetrics.totalEventParticipants} Peserta`,
+        rawValue: rawMetrics.totalEventParticipants,
+        change: `Dari ${rawMetrics.activeEventsCount} event dibuka`,
         color: '#5D205E',
       },
       menungguPembayaran: {

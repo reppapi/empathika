@@ -70,11 +70,11 @@ export default function AdminDashboardClient() {
               color: res.sesiKonselingSelesai.color || "#5D205E",
             },
             {
-              title: res.pendaftarWorkshop.title,
-              value: res.pendaftarWorkshop.value,
-              change: res.pendaftarWorkshop.change,
+              title: res.pendaftarEvent?.title || res.pendaftarWorkshop?.title || "Pendaftar Event",
+              value: res.pendaftarEvent?.value || res.pendaftarWorkshop?.value || "0 Peserta",
+              change: res.pendaftarEvent?.change || res.pendaftarWorkshop?.change || "Event dibuka",
               icon: Sparkles,
-              color: res.pendaftarWorkshop.color || "#5D205E",
+              color: res.pendaftarEvent?.color || res.pendaftarWorkshop?.color || "#5D205E",
             },
             {
               title: res.menungguPembayaran.title,
