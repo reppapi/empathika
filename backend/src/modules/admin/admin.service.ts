@@ -126,7 +126,7 @@ export class AdminService {
   private bookingService: BookingService
 
   constructor(fastify: FastifyInstance) {
-    this.repo = new AdminRepository(fastify.prisma)
+    this.repo = new AdminRepository((fastify as any).prisma)
     this.bookingService = new BookingService(fastify)
   }
 
@@ -598,6 +598,62 @@ export class AdminService {
       limit,
       hasMore: totalCount > limit,
       sessions,
+    }
+  }
+
+  /**
+   * Mengambil transaksi pembayaran terbaru untuk widget ringkasan operasional dashboard
+   */
+  async getDashboardRecentTransactions(limit: number = 5) {
+    const { totalCount, rawTransactions } = await this.repo.findDashboardRecentTransactions(limit)
+
+    const transactions = rawTransactions.map((trx) => {
+      const clientName = trx.client?.nama || 'Klien Empathika'
+      let layananName = 'Layanan Empathika'
+      let kategori = 'Konseling'
+
+      if (trx.booking_konsultasi?.layanan?.nama) {
+        layananName = trx.booking_konsultasi.layanan.nama
+        kategori = 'Konseling'
+      } else if (trx.booking_psikotes?.paket?.judul) {
+        layananName = trx.booking_psikotes.paket.judul
+        kategori = 'Psikotes'
+      } else if (trx.booking_event?.event?.judul) {
+        layananName = trx.booking_event.event.judul
+        kategori = 'Event'
+      }
+
+      // Format metode pembayaran yang user-friendly
+      let metode = trx.channel_pembayaran || trx.metode_pembayaran || 'Transfer Bank'
+      if (metode === 'TRANSFER_BANK') metode = 'Transfer Bank'
+      else if (metode === 'E_WALLET') metode = 'E-Wallet'
+
+      // Format status
+      let status: 'Lunas' | 'Menunggu Pembayaran' | 'Gagal' | 'Refunded' = 'Menunggu Pembayaran'
+      if (trx.status_pembayaran === 'PAID') status = 'Lunas'
+      else if (trx.status_pembayaran === 'REFUNDED') status = 'Refunded'
+      else if (trx.status_pembayaran === 'FAILED') status = 'Gagal'
+
+      const total = Number(trx.total || 0)
+      const totalFormatted = total === 0 ? 'Gratis' : `Rp ${total.toLocaleString('id-ID')}`
+
+      return {
+        id: trx.kode_transaksi || trx.id,
+        client: clientName,
+        layanan: layananName,
+        kategori,
+        total: totalFormatted,
+        metode,
+        status,
+        createdAt: trx.createdAt,
+      }
+    })
+
+    return {
+      totalCount,
+      limit,
+      hasMore: totalCount > limit,
+      transactions,
     }
   }
 }

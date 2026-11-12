@@ -27,6 +27,7 @@ export default function AdminDashboardClient() {
 
   // 3. State transaksi pembayaran terbaru (dari API)
   const [transactions, setTransactions] = useState<RecentTransactionItem[]>([])
+  const [totalTransactionsCount, setTotalTransactionsCount] = useState<number>(0)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
@@ -112,6 +113,21 @@ export default function AdminDashboardClient() {
             }
           })
           .catch(() => {})
+      })
+  }, [])
+
+  // Muat transaksi pembayaran terbaru murni dari Database PostgreSQL untuk widget ringkasan operasional
+  useEffect(() => {
+    adminService
+      .getDashboardRecentTransactions({ limit: 5 })
+      .then((res: any) => {
+        if (res && Array.isArray(res.transactions)) {
+          setTransactions(res.transactions)
+          setTotalTransactionsCount(res.totalCount || res.transactions.length)
+        }
+      })
+      .catch((err) => {
+        console.warn("Gagal memuat transaksi terbaru dashboard:", err?.message)
       })
   }, [])
 
@@ -241,7 +257,7 @@ export default function AdminDashboardClient() {
       {/* 4. Bagian Bawah: Jadwal Konseling Hari Ini & Transaksi Pembayaran Hari Ini */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DashboardTodaySessions sessions={sessions} totalCount={totalTodayCount} />
-        <DashboardRecentTransactions transactions={transactions} />
+        <DashboardRecentTransactions transactions={transactions} totalCount={totalTransactionsCount} />
       </div>
 
       {/* Modal Tambah Sesi */}

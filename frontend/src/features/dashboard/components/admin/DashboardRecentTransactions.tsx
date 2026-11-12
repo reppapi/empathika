@@ -7,9 +7,10 @@ import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface DashboardRecentTransactionsProps {
   transactions?: RecentTransactionItem[]
+  totalCount?: number
 }
 
-export default function DashboardRecentTransactions({ transactions }: DashboardRecentTransactionsProps) {
+export default function DashboardRecentTransactions({ transactions, totalCount = 0 }: DashboardRecentTransactionsProps) {
   const displayTransactions = useMemo(() => {
     if (!transactions || transactions.length === 0) return []
     return transactions.map((trx: any) => ({
@@ -33,7 +34,7 @@ export default function DashboardRecentTransactions({ transactions }: DashboardR
           href={"/admin/transaksi" as any}
           className="text-xs font-bold text-[#5D205E] hover:underline flex items-center gap-1"
         >
-          Lihat Semua
+          {totalCount > 0 ? `Lihat Semua (${totalCount})` : "Lihat Semua"}
           <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
@@ -72,6 +73,8 @@ export default function DashboardRecentTransactions({ transactions }: DashboardR
                       ? "success"
                       : trx.status === "Gagal"
                       ? "danger"
+                      : trx.status === "Refunded"
+                      ? "neutral"
                       : "warning"
                   }
                   className="w-28"

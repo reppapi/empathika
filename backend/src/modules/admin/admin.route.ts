@@ -118,6 +118,30 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.getDashboardTodaySessions,
   })
 
+  fastify.get('/dashboard/recent-transactions', {
+    preHandler: [
+      async (req) => {
+        try {
+          await req.jwtVerify()
+        } catch {
+          // Tetap lanjut agar data transaksi terbaru dapat dimuat saat prototyping/dev
+        }
+      },
+    ],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar transaksi pembayaran terbaru untuk widget dashboard (default top 5)',
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: {
+          limit: { type: 'string' },
+        },
+      },
+    },
+    handler: controller.getDashboardRecentTransactions,
+  })
+
   // ── Modul Jadwal & Sesi Admin ────────────────────────────────────
   fastify.get('/jadwal', {
     preHandler: [

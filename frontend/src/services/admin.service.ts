@@ -7,6 +7,9 @@ export const adminService = {
   getDashboardTodaySessions: (params?: { limit?: number }) =>
     apiClient.get("/admin/dashboard/today-sessions", { params }).then((r) => r.data),
 
+  getDashboardRecentTransactions: (params?: { limit?: number }) =>
+    apiClient.get("/admin/dashboard/recent-transactions", { params }).then((r) => r.data),
+
   getDashboardChart: (params?: { period?: string }) =>
     apiClient.get("/admin/dashboard/chart", { params }).then((r) => r.data),
 

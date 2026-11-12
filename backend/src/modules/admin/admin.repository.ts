@@ -242,4 +242,46 @@ export class AdminRepository {
 
     return { totalCount, rawSessions }
   }
+
+  /**
+   * Mengambil transaksi pembayaran terbaru khusus widget ringkasan operasional dashboard
+   */
+  async findDashboardRecentTransactions(limit: number = 5) {
+    const where: Prisma.TransaksiWhereInput = {
+      OR: [
+        { booking_konsultasi: { isNot: null } },
+        { booking_psikotes: { isNot: null } },
+        { booking_event: { isNot: null } },
+      ],
+    }
+
+    const [totalCount, rawTransactions] = await Promise.all([
+      this.prisma.transaksi.count({ where }),
+      this.prisma.transaksi.findMany({
+        where,
+        include: {
+          client: true,
+          booking_konsultasi: {
+            include: {
+              layanan: true,
+            },
+          },
+          booking_psikotes: {
+            include: {
+              paket: true,
+            },
+          },
+          booking_event: {
+            include: {
+              event: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+    ])
+
+    return { totalCount, rawTransactions }
+  }
 }
