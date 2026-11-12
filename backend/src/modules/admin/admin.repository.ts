@@ -120,10 +120,22 @@ export class AdminRepository {
       0
     )
 
-    // 2. Total Klien Aktif
-    const totalClients = await this.prisma.client.count()
+    // 2. Total Klien Aktif (Opsi B: Hanya klien yang memiliki minimal 1 transaksi PAID atau booking aktif)
+    const activeClientWhere: Prisma.ClientWhereInput = {
+      OR: [
+        { transaksi: { some: { status_pembayaran: 'PAID' } } },
+        { booking_konsultasi: { some: { NOT: { status: 'CANCELLED' } } } },
+        { booking_psikotes: { some: {} } },
+        { booking_event: { some: { NOT: { status: 'CANCELLED' } } } },
+      ],
+    }
+
+    const totalClients = await this.prisma.client.count({
+      where: activeClientWhere,
+    })
     const clientsBeforeYesterday = await this.prisma.client.count({
       where: {
+        ...activeClientWhere,
         createdAt: { lte: yesterdayEnd },
       },
     })

@@ -486,7 +486,7 @@ export class AdminService {
     const clientChange =
       clientDiff > 0
         ? `+${clientDiff} dari kemarin`
-        : `Total klien terdaftar`
+        : `Klien beraktivitas aktif`
 
     return {
       pendapatanBulanIni: {
