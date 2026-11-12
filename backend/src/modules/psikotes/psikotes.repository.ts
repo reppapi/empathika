@@ -492,7 +492,9 @@ export class PsikotesRepository {
         }
         try {
           calculationResult = hitungSkorAlatUkur(paket.alat_ukur.kode, jawabanMap)
-          if (calculationResult && typeof calculationResult.totalSkor === 'number') {
+          if (calculationResult?.tanpaSkorTotal) {
+            totalSkor = 0
+          } else if (calculationResult && typeof calculationResult.totalSkor === 'number') {
             totalSkor = calculationResult.totalSkor
           }
         } catch (err) {
@@ -1014,8 +1016,16 @@ export class PsikotesRepository {
           : null,
         tanggal: b.createdAt,
         status: b.hasil_tes ? 'Selesai' : 'Berjalan',
-        skor: b.hasil_tes?.interpretasi?.grade || (b.hasil_tes ? `Skor: ${b.hasil_tes.total_skor}` : '—'),
-        total_skor: b.hasil_tes?.total_skor ?? null,
+        skor:
+          b.hasil_tes?.interpretasi?.grade ||
+          (b.hasil_tes
+            ? (b.hasil_tes.detail_skor as any)?.tanpaSkorTotal
+              ? (b.hasil_tes.detail_skor as any)?.grade || 'Profil 9 Skala PBQ'
+              : `Skor: ${b.hasil_tes.total_skor}`
+            : '—'),
+        total_skor: (b.hasil_tes?.detail_skor as any)?.tanpaSkorTotal
+          ? null
+          : (b.hasil_tes?.total_skor ?? null),
         hasil: b.hasil_tes
           ? {
               id: b.hasil_tes.id,
@@ -1690,9 +1700,15 @@ export class PsikotesRepository {
         total_skor: booking.hasil_tes.total_skor,
         detail_skor: detailSkor,
         tanggal_selesai: booking.hasil_tes.tanggal_selesai,
-        grade: booking.hasil_tes.interpretasi?.grade || null,
-        judul: booking.hasil_tes.interpretasi?.judul || null,
-        deskripsi: booking.hasil_tes.interpretasi?.deskripsi || null,
+        grade:
+          booking.hasil_tes.interpretasi?.grade ||
+          (detailSkor?.tanpaSkorTotal ? detailSkor?.grade || null : null),
+        judul:
+          booking.hasil_tes.interpretasi?.judul ||
+          (detailSkor?.tanpaSkorTotal ? detailSkor?.kategori || null : null),
+        deskripsi:
+          booking.hasil_tes.interpretasi?.deskripsi ||
+          (detailSkor?.tanpaSkorTotal ? detailSkor?.deskripsi || null : null),
         tips: (booking.hasil_tes.interpretasi as any)?.tips || null,
       },
     }

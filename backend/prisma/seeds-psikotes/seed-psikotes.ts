@@ -4,6 +4,7 @@ import { seedPHQ9, PHQ9_SOAL, PHQ9_OPSI, PHQ9_INTERPRETASI } from './seeds/seed-
 import { seedDASS42, DASS42_SOAL, DASS42_OPSI, DASS42_INTERPRETASI } from './seeds/seed-dass42'
 import { seedIGDS9SF, IGDS9SF_SOAL, IGDS9SF_OPSI, IGDS9SF_INTERPRETASI } from './seeds/seed-igds9sf'
 import { seedRCMAS, RCMAS_SOAL, RCMAS_OPSI, RCMAS_INTERPRETASI } from './seeds/seed-rcmas'
+import { seedPBQ, PBQ_SOAL, PBQ_OPSI } from './seeds/seed-pbq'
 
 const prisma = new PrismaClient()
 
@@ -29,6 +30,9 @@ export {
   RCMAS_SOAL,
   RCMAS_OPSI,
   RCMAS_INTERPRETASI,
+  seedPBQ,
+  PBQ_SOAL,
+  PBQ_OPSI,
 }
 
 // ============================================================================
@@ -81,6 +85,7 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   const paketDASS42 = await seedDASS42(p)
   const paketIGDS9SF = await seedIGDS9SF(p)
   const paketRCMAS = await seedRCMAS(p)
+  const paketPBQ = await seedPBQ(p)
 
   console.log('\n========================================================')
   console.log('🎉 SELURUH SEEDER PSIKOTES BERHASIL DIJALANKAN!')
@@ -91,6 +96,7 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   console.log(`3. "${paketDASS42.judul}" -> BERBAYAR (Rp ${Number(paketDASS42.harga).toLocaleString('id-ID')}) [Alat: DASS-42]`)
   console.log(`4. "Tes Kecanduan Game (IGDS9-SF)" -> GRATIS (Rp 0) [Alat: IGDS9-SF]`)
   console.log(`5. "${paketRCMAS.judul}" -> GRATIS (Rp 0) [Alat: RCMAS]`)
+  console.log(`6. "${paketPBQ.judul}" -> GRATIS (Rp 0) [Alat: PBQ]`)
   console.log('========================================================\n')
 }
 

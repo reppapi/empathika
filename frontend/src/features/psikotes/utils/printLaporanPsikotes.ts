@@ -63,7 +63,31 @@ export async function printLaporanPsikotes(
         tipsList = dassEval.tips;
       }
     }
+  } else if (parsedDs?.tanpaSkorTotal && Array.isArray(parsedDs?.subscalesList)) {
+    heroPrefix = "PBQ • PROFIL KEYAKINAN KEPRIBADIAN";
+    heroTitle = "Profil Skor Mentah 9 Skala Kepribadian (PBQ)";
+    heroDesc =
+      parsedDs.deskripsi ||
+      "Skor mentah PBQ dihitung terpisah untuk masing-masing 9 skala (rentang 0–56 per skala) tanpa penjumlahan skor total gabungan. Interpretasi klinis dan Z-score normatif menunggu acuan resmi.";
+    subscalesTitle = "Profil Skor Mentah 9 Skala Kepribadian (PBQ)";
+    subscalesMaxNote = "Maks. 56 / skala (tanpa skor total)";
+    subscales = parsedDs.subscalesList.map((s: any) => {
+      const score = Number(s.skor ?? 0);
+      const maxScore = Number(s.max_skor ?? 56);
+      const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+      return {
+        name: s.nama || s.key,
+        score,
+        maxScore,
+        percentage,
+        grade: `Butir ${s.rentangButir || ""}`.trim(),
+        deskripsi: "Skor mentah per skala (interpretasi & Z-score normatif menunggu acuan resmi).",
+        colorHex: "#561269",
+      };
+    });
   }
+
+  const isWithoutTotal = Boolean(parsedDs?.tanpaSkorTotal);
 
   const pProfile = peserta.peserta;
   const noDokumen = `EMP-PSI-${
@@ -92,7 +116,7 @@ export async function printLaporanPsikotes(
     hasilUtama: {
       prefix: heroPrefix,
       judul: heroTitle,
-      totalSkor: peserta.totalSkor ?? null,
+      totalSkor: isWithoutTotal ? null : (peserta.totalSkor ?? null),
       deskripsi: heroDesc,
     },
     subscales,
