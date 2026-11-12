@@ -11,10 +11,13 @@ export interface AdminLayananItem {
   deskripsi: string
   bannerUrl?: string
   foto_kegiatan?: string[]
+  manfaat?: string[]
   tarif_tenaga_ahli?: {
     psikolog?: { weekday: number | string; weekend: number | string }
     konselor?: { weekday: number | string; weekend: number | string }
     peer?: { weekday: number | string; weekend: number | string }
+    manfaat?: string[]
+    foto_kegiatan?: string[]
   } | null
   createdAt?: string
   updatedAt?: string

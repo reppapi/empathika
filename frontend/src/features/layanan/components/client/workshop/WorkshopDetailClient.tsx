@@ -102,6 +102,17 @@ export default function WorkshopDetailClient({ slug }: WorkshopDetailClientProps
           if (parsed.additionalInfo) setAdditionalInfo(parsed.additionalInfo)
         }
 
+        // Terapkan custom manfaat jika admin telah mengisinya
+        const rawManfaat =
+          (match as any).manfaat ||
+          (match?.tarif_tenaga_ahli as any)?.manfaat
+        if (Array.isArray(rawManfaat) && rawManfaat.length > 0) {
+          const validBenefits = rawManfaat.filter((b: any) => typeof b === "string" && b.trim().length > 0)
+          if (validBenefits.length > 0) {
+            setBenefits(validBenefits)
+          }
+        }
+
         const rawFotos =
           (match as any).foto_kegiatan ||
           (match?.tarif_tenaga_ahli as any)?.foto_kegiatan
