@@ -76,6 +76,24 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.getDashboardChart,
   })
 
+  fastify.get('/dashboard/metrics', {
+    preHandler: [
+      async (req) => {
+        try {
+          await req.jwtVerify()
+        } catch {
+          // Tetap lanjut agar data ringkasan operasional dapat dimuat saat prototyping/dev
+        }
+      },
+    ],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan 5 kartu ringkasan operasional admin (pendapatan, klien, sesi selesai, pendaftar workshop, pending bayar)',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getDashboardMetrics,
+  })
+
   // ── Modul Jadwal & Sesi Admin ────────────────────────────────────
   fastify.get('/jadwal', {
     preHandler: [

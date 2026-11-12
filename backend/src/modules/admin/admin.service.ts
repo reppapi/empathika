@@ -436,5 +436,99 @@ export class AdminService {
       bulan_lalu: chartBulanLalu,
     }
   }
+
+  /**
+   * Menghasilkan 5 metrik ringkasan operasional admin (real-time dari PostgreSQL)
+   */
+  async getDashboardMetrics() {
+    const now = new Date()
+    const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000)
+    const curYear = wibNow.getUTCFullYear()
+    const curMonth = wibNow.getUTCMonth() // 0-indexed
+    const curDate = wibNow.getUTCDate()
+
+    // 1. Rentang Bulan Ini (WIB UTC)
+    const monthStart = new Date(Date.UTC(curYear, curMonth, 1, 0, 0, 0, 0))
+    const monthEnd = new Date(Date.UTC(curYear, curMonth + 1, 0, 23, 59, 59, 999))
+
+    // 2. Rentang Bulan Lalu
+    const lastMonthYear = curMonth === 0 ? curYear - 1 : curYear
+    const lastMonth = curMonth === 0 ? 11 : curMonth - 1
+    const lastMonthStart = new Date(Date.UTC(lastMonthYear, lastMonth, 1, 0, 0, 0, 0))
+    const lastMonthEnd = new Date(Date.UTC(lastMonthYear, lastMonth + 1, 0, 23, 59, 59, 999))
+
+    // 3. Batas Kemarin (23:59:59)
+    const yesterdayEnd = new Date(Date.UTC(curYear, curMonth, curDate - 1, 23, 59, 59, 999))
+
+    const rawMetrics = await this.repo.getOperationalMetricsData(
+      monthStart,
+      monthEnd,
+      lastMonthStart,
+      lastMonthEnd,
+      yesterdayEnd
+    )
+
+    // Format Rupiah: Rp 18.750.000
+    const formatRp = (num: number) =>
+      `Rp ${Math.round(num).toLocaleString('id-ID')}`
+
+    // Hitung persentase pendapatan vs bulan lalu
+    let incomeChange = '+0% dari bulan lalu'
+    if (rawMetrics.totalIncomeLastMonth > 0) {
+      const diffPercent = Math.round(
+        ((rawMetrics.totalIncomeThisMonth - rawMetrics.totalIncomeLastMonth) /
+          rawMetrics.totalIncomeLastMonth) *
+          100
+      )
+      incomeChange = `${diffPercent >= 0 ? '+' : ''}${diffPercent}% dari bulan lalu`
+    } else if (rawMetrics.totalIncomeThisMonth > 0) {
+      incomeChange = '+100% dari bulan lalu'
+    }
+
+    // Hitung perubahan klien aktif vs kemarin
+    const clientDiff = rawMetrics.newClientsSinceYesterday
+    const clientChange =
+      clientDiff > 0
+        ? `+${clientDiff} dari kemarin`
+        : `Total klien terdaftar`
+
+    return {
+      pendapatanBulanIni: {
+        title: 'Pendapatan Bulan Ini',
+        value: formatRp(rawMetrics.totalIncomeThisMonth),
+        rawValue: rawMetrics.totalIncomeThisMonth,
+        change: incomeChange,
+        color: '#5D205E',
+      },
+      totalKlienAktif: {
+        title: 'Total Klien Aktif',
+        value: `${rawMetrics.totalClients} Klien`,
+        rawValue: rawMetrics.totalClients,
+        change: clientChange,
+        color: '#5D205E',
+      },
+      sesiKonselingSelesai: {
+        title: 'Sesi Konseling Selesai',
+        value: `${rawMetrics.completedSessionsThisMonth} Sesi`,
+        rawValue: rawMetrics.completedSessionsThisMonth,
+        change: 'Akumulasi bulan ini',
+        color: '#5D205E',
+      },
+      pendaftarWorkshop: {
+        title: 'Pendaftar Workshop',
+        value: `${rawMetrics.totalEventParticipants} Peserta`,
+        rawValue: rawMetrics.totalEventParticipants,
+        change: `Dari ${rawMetrics.activeEventsCount} event aktif`,
+        color: '#5D205E',
+      },
+      menungguPembayaran: {
+        title: 'Menunggu Pembayaran',
+        value: `${rawMetrics.pendingPaymentCount} Transaksi`,
+        rawValue: rawMetrics.pendingPaymentCount,
+        change: 'Perlu konfirmasi',
+        color: '#D97706',
+      },
+    }
+  }
 }
 

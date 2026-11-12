@@ -1,6 +1,9 @@
 import apiClient from "@/lib/axios"
 
 export const adminService = {
+  getDashboardMetrics: () =>
+    apiClient.get("/admin/dashboard/metrics").then((r) => r.data),
+
   getDashboardChart: (params?: { period?: string }) =>
     apiClient.get("/admin/dashboard/chart", { params }).then((r) => r.data),
 

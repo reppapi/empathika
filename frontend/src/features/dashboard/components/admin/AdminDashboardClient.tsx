@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react"
-import { Calendar, Plus, CheckCircle2 } from "lucide-react"
+import { Calendar, Plus, CheckCircle2, Wallet, Users, Sparkles, Clock } from "lucide-react"
 
 import ModalTambahSesi, { NewSessionData } from "./ModalTambahSesi"
 import DashboardStatCards from "./DashboardStatCards"
@@ -10,7 +10,7 @@ import DashboardAgenda from "./DashboardAgenda"
 import DashboardTodaySessions from "./DashboardTodaySessions"
 import DashboardRecentTransactions from "./DashboardRecentTransactions"
 
-import { TodaySessionItem, RecentTransactionItem } from "../../types"
+import { TodaySessionItem, RecentTransactionItem, MetricItem } from "../../types"
 import {
   INITIAL_DASHBOARD_METRICS,
   INITIAL_AGENDA_LIST,
@@ -18,14 +18,67 @@ import {
 import { adminService } from "@/services/admin.service"
 
 export default function AdminDashboardClient() {
-  // 1. Ambil sesi konseling hari ini langsung dari Database PostgreSQL via adminService
+  // 1. Ambil 5 kartu metrik ringkasan operasional real-time dari database
+  const [metrics, setMetrics] = useState<MetricItem[]>(INITIAL_DASHBOARD_METRICS)
+
+  // 2. Ambil sesi konseling hari ini langsung dari Database PostgreSQL via adminService
   const [sessions, setSessions] = useState<TodaySessionItem[]>([])
 
-  // 2. State transaksi pembayaran terbaru (dari API)
+  // 3. State transaksi pembayaran terbaru (dari API)
   const [transactions, setTransactions] = useState<RecentTransactionItem[]>([])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
+
+  // Muat 5 kartu metrik ringkasan operasional dari Database
+  useEffect(() => {
+    adminService
+      .getDashboardMetrics()
+      .then((res: any) => {
+        if (res && res.pendapatanBulanIni) {
+          setMetrics([
+            {
+              title: res.pendapatanBulanIni.title,
+              value: res.pendapatanBulanIni.value,
+              change: res.pendapatanBulanIni.change,
+              icon: Wallet,
+              color: res.pendapatanBulanIni.color || "#5D205E",
+            },
+            {
+              title: res.totalKlienAktif.title,
+              value: res.totalKlienAktif.value,
+              change: res.totalKlienAktif.change,
+              icon: Users,
+              color: res.totalKlienAktif.color || "#5D205E",
+            },
+            {
+              title: res.sesiKonselingSelesai.title,
+              value: res.sesiKonselingSelesai.value,
+              change: res.sesiKonselingSelesai.change,
+              icon: CheckCircle2,
+              color: res.sesiKonselingSelesai.color || "#5D205E",
+            },
+            {
+              title: res.pendaftarWorkshop.title,
+              value: res.pendaftarWorkshop.value,
+              change: res.pendaftarWorkshop.change,
+              icon: Sparkles,
+              color: res.pendaftarWorkshop.color || "#5D205E",
+            },
+            {
+              title: res.menungguPembayaran.title,
+              value: res.menungguPembayaran.value,
+              change: res.menungguPembayaran.change,
+              icon: Clock,
+              color: res.menungguPembayaran.color || "#D97706",
+            },
+          ])
+        }
+      })
+      .catch((err) => {
+        console.warn("Notice loading dashboard metrics fallback:", err?.message)
+      })
+  }, [])
 
   // Muat sesi konseling hari ini murni dari Database
   useEffect(() => {
@@ -165,7 +218,7 @@ export default function AdminDashboardClient() {
       </div>
 
       {/* 2. Grid Kartu Metrik (5 Kolom Seimbang & Rapi) */}
-      <DashboardStatCards metrics={INITIAL_DASHBOARD_METRICS} />
+      <DashboardStatCards metrics={metrics} />
 
       {/* 3. Baris Grafik & Agenda */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

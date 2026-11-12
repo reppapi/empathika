@@ -37,6 +37,18 @@ export class AdminController {
     }
   }
 
+  getDashboardMetrics = async (
+    _request: FastifyRequest,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getDashboardMetrics()
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
   getJadwal = async (
     request: FastifyRequest<{ Querystring: GetAdminJadwalQuery }>,
     reply: FastifyReply
