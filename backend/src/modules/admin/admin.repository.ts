@@ -64,15 +64,28 @@ export class AdminRepository {
     lastMonthEnd: Date,
     yesterdayEnd: Date
   ) {
-    // 1. Pendapatan Bulan Ini (Transaksi Berstatus PAID)
+    // 1. Pendapatan Bulan Ini (Transaksi Berstatus PAID & Memiliki Booking Layanan Riil)
+    const validBookingFilter = {
+      OR: [
+        { booking_konsultasi: { isNot: null } },
+        { booking_psikotes: { isNot: null } },
+        { booking_event: { isNot: null } },
+      ],
+    }
+
     const paidTransactionsThisMonth = await this.prisma.transaksi.findMany({
       where: {
         status_pembayaran: 'PAID',
-        OR: [
-          { tanggal_bayar: { gte: monthStart, lte: monthEnd } },
+        ...validBookingFilter,
+        AND: [
           {
-            tanggal_bayar: null,
-            createdAt: { gte: monthStart, lte: monthEnd },
+            OR: [
+              { tanggal_bayar: { gte: monthStart, lte: monthEnd } },
+              {
+                tanggal_bayar: null,
+                createdAt: { gte: monthStart, lte: monthEnd },
+              },
+            ],
           },
         ],
       },
@@ -82,11 +95,16 @@ export class AdminRepository {
     const paidTransactionsLastMonth = await this.prisma.transaksi.findMany({
       where: {
         status_pembayaran: 'PAID',
-        OR: [
-          { tanggal_bayar: { gte: lastMonthStart, lte: lastMonthEnd } },
+        ...validBookingFilter,
+        AND: [
           {
-            tanggal_bayar: null,
-            createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+            OR: [
+              { tanggal_bayar: { gte: lastMonthStart, lte: lastMonthEnd } },
+              {
+                tanggal_bayar: null,
+                createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+              },
+            ],
           },
         ],
       },
