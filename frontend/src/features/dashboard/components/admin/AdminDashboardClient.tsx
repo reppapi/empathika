@@ -185,38 +185,14 @@ export default function AdminDashboardClient() {
   }).format(new Date())
 
   const handleSessionSuccess = async (newSession: NewSessionData) => {
-    // 1. Tambahkan ke Sesi Konseling Hari Ini (Optimistic UI)
-    const item: TodaySessionItem = {
-      waktu: newSession.waktu,
-      klien: newSession.namaKlien,
-      psikolog: newSession.psikolog,
-      layanan: newSession.layanan,
-      metode: newSession.metode,
-      status: newSession.status,
-    }
-    setSessions((prev) => [item, ...prev])
-
-    // 2. Tambahkan placeholder transaksi baru ke list
-    const isAsesmen = newSession.layanan?.toLowerCase().includes("asesmen")
-    const newTrx = {
-      id: "trx_" + Date.now(),
-      client: newSession.namaKlien,
-      layanan: newSession.layanan,
-      metode: "-",
-      kategori: isAsesmen ? "Asesmen" : "Konseling",
-      total: "Menunggu",
-      status: "Menunggu Pembayaran" as const,
-    }
-    setTransactions((prev) => [newTrx, ...prev])
-
     setNotification(`Sesi konseling baru untuk "${newSession.namaKlien}" berhasil dijadwalkan!`)
     setTimeout(() => setNotification(null), 4000)
 
     try {
       const cleanWaktu = newSession.waktu.replace(" WIB", "").trim()
       const parts = cleanWaktu.split("-").map((p) => p.trim())
-      const jamMulai = parts[0]?.substring(0, 5) || "13:00"
-      const jamSelesai = parts[1]?.substring(0, 5) || "14:00"
+      const jamMulai = parts[0]?.substring(0, 5) || "09:00"
+      const jamSelesai = parts[1]?.substring(0, 5) || "10:00"
 
       await adminService.createSesiBaru({
         id_psikolog: newSession.idPsikolog || newSession.psikolog,
@@ -228,14 +204,17 @@ export default function AdminDashboardClient() {
         deskripsi_trauma: newSession.catatan,
         klien: {
           nama: newSession.namaKlien.trim(),
-          no_telepon: newSession.kontak.trim() || "081234567890",
+          no_telepon: newSession.kontak.trim(),
         },
       })
 
-      // Muat ulang jadwal terbaru dan metrik dari database
-      fetchSessions()
-      fetchMetrics()
-      fetchAgenda()
+      // Muat ulang seluruh metrik, jadwal, transaksi, dan agenda murni dari database PostgreSQL
+      await Promise.all([
+        fetchSessions(),
+        fetchMetrics(),
+        fetchAgenda(),
+        fetchTransactions(),
+      ])
     } catch (err: any) {
       console.warn("Gagal simpan sesi dari dashboard:", err?.response?.data?.message || err?.message)
     }

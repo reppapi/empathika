@@ -59,15 +59,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
 
   // ── Modul Dashboard & Ringkasan Operasional Admin ────────────────
   fastify.get('/dashboard/chart', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar data grafik database dapat dimuat saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan data grafik reservasi sesi konsultasi & asesmen terkonfirmasi',
@@ -77,15 +69,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/dashboard/metrics', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar data ringkasan operasional dapat dimuat saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan 5 kartu ringkasan operasional admin (pendapatan, klien, sesi selesai, pendaftar workshop, pending bayar)',
@@ -95,15 +79,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/dashboard/today-sessions', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar data sesi hari ini dapat dimuat saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan daftar sesi konseling hari ini untuk widget dashboard (default top 5)',
@@ -119,15 +95,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/dashboard/recent-transactions', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar data transaksi terbaru dapat dimuat saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan daftar transaksi pembayaran terbaru untuk widget dashboard (default top 5)',
@@ -143,15 +111,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/dashboard/agenda', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar data agenda operasional dapat dimuat saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan daftar agenda dan peringatan operasional mendatang langsung dari Database (default top 6)',

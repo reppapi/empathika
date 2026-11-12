@@ -320,17 +320,13 @@ export class AdminService {
     const curDate = wibNow.getUTCDate()
     const curDay = wibNow.getUTCDay() // 0 = Minggu, 1 = Senin, ...
 
-    // Helper hitung tinggi bar proporsional (max 90%, min 12%)
+    // Helper hitung tinggi bar proporsional (max 90%, 0% jika tidak ada sesi)
     const computeBarHeights = (items: { label: string; value: number }[]) => {
       const maxValue = Math.max(...items.map((i) => i.value), 0)
       return items.map((item) => {
-        let heightPercent = 12
-        if (maxValue > 0) {
-          if (item.value === 0) {
-            heightPercent = 12
-          } else {
-            heightPercent = Math.max(18, Math.round((item.value / maxValue) * 90))
-          }
+        let heightPercent = 0
+        if (maxValue > 0 && item.value > 0) {
+          heightPercent = Math.max(15, Math.round((item.value / maxValue) * 90))
         }
         return {
           label: item.label,
@@ -582,12 +578,11 @@ export class AdminService {
         id: s.id,
         waktu: waktuRange,
         klien: s.client.nama,
-        psikolog: isAsesmen
-          ? 'Asesor Klinis Empathika'
-          : s.jadwal.psikolog?.nama_gelar ||
-            s.jadwal.psikolog?.account?.nama ||
-            'Tenaga Ahli',
-        layanan: s.layanan?.nama || 'Konsultasi Psikologi',
+        psikolog:
+          s.jadwal.psikolog?.nama_gelar ||
+          s.jadwal.psikolog?.account?.nama ||
+          (isAsesmen ? 'Asesor' : '-'),
+        layanan: s.layanan?.nama || '-',
         metode: (s.metode || 'ONLINE').toUpperCase() === 'OFFLINE' ? 'Offline' : 'Online',
         status: dynamicStatus,
       }
@@ -608,9 +603,9 @@ export class AdminService {
     const { totalCount, rawTransactions } = await this.repo.findDashboardRecentTransactions(limit)
 
     const transactions = rawTransactions.map((trx) => {
-      const clientName = trx.client?.nama || 'Klien Empathika'
-      let layananName = 'Layanan Empathika'
-      let kategori = 'Konseling'
+      const clientName = trx.client?.nama || '-'
+      let layananName = '-'
+      let kategori = '-'
 
       if (trx.booking_konsultasi?.layanan?.nama) {
         layananName = trx.booking_konsultasi.layanan.nama
@@ -624,7 +619,7 @@ export class AdminService {
       }
 
       // Format metode pembayaran yang user-friendly
-      let metode = trx.channel_pembayaran || trx.metode_pembayaran || 'Transfer Bank'
+      let metode = trx.channel_pembayaran || trx.metode_pembayaran || '-'
       if (metode === 'TRANSFER_BANK') metode = 'Transfer Bank'
       else if (metode === 'E_WALLET') metode = 'E-Wallet'
 
@@ -634,7 +629,7 @@ export class AdminService {
       else if (trx.status_pembayaran === 'REFUNDED') status = 'Refunded'
       else if (trx.status_pembayaran === 'FAILED') status = 'Gagal'
 
-      const total = Number(trx.total || 0)
+      const total = Number(trx.total ?? 0)
       const totalFormatted = total === 0 ? 'Gratis' : `Rp ${total.toLocaleString('id-ID')}`
 
       return {
@@ -674,8 +669,10 @@ export class AdminService {
 
     // 1. Pending Payments (Paling prioritas sebagai peringatan)
     for (const trx of pendingPayments) {
+      const clientName = trx.client?.nama || '-'
+      const trxId = trx.kode_transaksi || trx.id
       agendaList.push({
-        title: `Batas Pembayaran: ${trx.client?.nama || 'Klien'} (${trx.kode_transaksi || 'Invoice'})`,
+        title: `Batas Pembayaran: ${clientName} (${trxId})`,
         type: 'Peringatan',
         time: 'Perlu Konfirmasi',
         href: '/admin/transaksi?status=pending',
@@ -692,10 +689,12 @@ export class AdminService {
             day: 'numeric',
             month: 'short',
           })
-        : 'Mendatang'
+        : '-'
+      const clientName = s.client?.nama || '-'
+      const layananName = s.layanan?.nama || '-'
 
       agendaList.push({
-        title: `Konseling: ${s.client?.nama || 'Klien'} (${s.layanan?.nama || 'Konsultasi'})`,
+        title: `Konseling: ${clientName} (${layananName})`,
         type: 'Konseling',
         time: jamMulaiStr ? `${tglStr}, ${jamMulaiStr} WIB` : tglStr,
         href: '/admin/jadwal',

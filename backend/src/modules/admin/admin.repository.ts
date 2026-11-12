@@ -112,11 +112,11 @@ export class AdminRepository {
     })
 
     const totalIncomeThisMonth = paidTransactionsThisMonth.reduce(
-      (acc, t) => acc + Number(t.total || 0),
+      (acc, t) => acc + Number(t.total ?? 0),
       0
     )
     const totalIncomeLastMonth = paidTransactionsLastMonth.reduce(
-      (acc, t) => acc + Number(t.total || 0),
+      (acc, t) => acc + Number(t.total ?? 0),
       0
     )
 
@@ -158,7 +158,7 @@ export class AdminRepository {
       select: { jumlah_peserta: true },
     })
     const totalEventParticipants = bookingEvents.reduce(
-      (acc, b) => acc + (b.jumlah_peserta || 1),
+      (acc, b) => acc + (b.jumlah_peserta ?? 0),
       0
     )
 
