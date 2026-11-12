@@ -229,7 +229,7 @@ export default function ModalDetailPeserta({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Hasil Analisis Resmi
                 </span>
-                {peserta.totalSkor !== null && peserta.totalSkor !== undefined && (
+                {peserta.totalSkor !== null && peserta.totalSkor !== undefined && !peserta.hasil?.detail_skor?.tanpaSkorTotal && (
                   <div className="text-xs font-extrabold text-[#561269] bg-purple-50 inline-block px-3 py-1 rounded-full border border-purple-100">
                     Total Skor: {peserta.totalSkor}
                   </div>
@@ -289,6 +289,40 @@ export default function ModalDetailPeserta({
                       </p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Rincian 9 Skala PBQ (Tanpa Skor Total & Tanpa Interpretasi Kategorikal) */}
+              {peserta.hasil?.detail_skor?.tanpaSkorTotal && Array.isArray(peserta.hasil?.detail_skor?.subscalesList) && (
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider">
+                      Profil Skor Mentah 9 Skala PBQ
+                    </span>
+                    <span className="text-[10px] font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">
+                      Rentang 0–56 per skala (tanpa skor total gabungan)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {peserta.hasil.detail_skor.subscalesList.map((sub: any) => (
+                      <div key={sub.key} className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
+                        <span className="text-[11px] font-bold text-gray-800 block truncate">
+                          {sub.nama}
+                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-gray-500">
+                            Butir {sub.rentangButir}
+                          </span>
+                          <span className="text-xs font-extrabold text-[#561269]">
+                            {sub.skor ?? 0} / {sub.max_skor ?? 56}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-gray-600 leading-relaxed">
+                    Catatan: Skor ditampilkan sebagai skor mentah per skala kepribadian. Interpretasi klinis dan Z-score normatif belum ditampilkan karena menunggu acuan resmi.
+                  </p>
                 </div>
               )}
 

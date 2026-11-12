@@ -601,7 +601,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
       if (res && res.success && res.data) {
         const query = new URLSearchParams(searchParams.toString());
-        query.set("skor", String(res.data.total_skor));
+        if (res.data.detail_skor?.tanpaSkorTotal) {
+          query.delete("skor");
+        } else {
+          query.set("skor", String(res.data.total_skor));
+        }
         query.set("bookingId", res.data.id_booking);
 
         // Jika ada data subscales (DASS-42 / RCMAS), simpan skor per dimensi ke URL
@@ -742,12 +746,13 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
       const key = e.key.toLowerCase();
 
-      // Pilihan opsi jawaban 1-4 atau A-D
+      // Pilihan opsi jawaban 1-5 atau A-E
       let optIdx: number | null = null;
       if (key === "1" || key === "a") optIdx = 0;
       else if (key === "2" || key === "b") optIdx = 1;
       else if (key === "3" || key === "c") optIdx = 2;
       else if (key === "4" || key === "d") optIdx = 3;
+      else if (key === "5" || key === "e") optIdx = 4;
 
       if (optIdx !== null) {
         if (isAtFunctionalStep) {

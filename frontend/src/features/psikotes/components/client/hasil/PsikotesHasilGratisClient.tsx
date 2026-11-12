@@ -134,11 +134,14 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const router = useRouter();
   const searchParams = useSearchParams();
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
+  const [bookingDetailSkor, setBookingDetailSkor] = useState<any | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
   const [isTipsExpanded, setIsTipsExpanded] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Fetch package data from backend to get interpretasi_psikotes
+  const paramBookingId = searchParams.get("bookingId") || searchParams.get("orderId");
+
+  // Fetch package data from backend to get interpretasi_psikotes (serta detail_skor jika tersedia)
   const fetchPackage = async () => {
     setIsLoadingDb(true);
     setErrorMessage(null);
@@ -148,6 +151,19 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         setDbPackage(res.data);
       } else {
         setErrorMessage("Data paket psikotes tidak ditemukan.");
+      }
+
+      if (paramBookingId) {
+        try {
+          const bRes = await psikotesService.getHasilByBooking(paramBookingId);
+          const rawDs = bRes?.data?.hasil?.detail_skor;
+          if (rawDs) {
+            const parsedDs = typeof rawDs === "string" ? JSON.parse(rawDs) : rawDs;
+            setBookingDetailSkor(parsedDs);
+          }
+        } catch {
+          // Non-fatal: hasil booking opsional untuk instrumen gratis
+        }
       }
     } catch (err: any) {
       console.error("Gagal mengambil data interpretasi:", err);
@@ -159,7 +175,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
 
   useEffect(() => {
     fetchPackage();
-  }, [params.testId]);
+  }, [params.testId, paramBookingId]);
 
   // Match score from URL params to the interpretasi from database
   const rawSkor = searchParams.get("skor");
@@ -194,6 +210,12 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         rawStr !== null && rawStr !== "" ? parseInt(rawStr, 10) : null
       )
     : null;
+
+  const isProfileOnlyWithoutTotal = Boolean(
+    bookingDetailSkor?.tanpaSkorTotal &&
+    Array.isArray(bookingDetailSkor?.subscalesList) &&
+    bookingDetailSkor.subscalesList.length > 0
+  );
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
@@ -255,8 +277,8 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
 
   // DATA KRITIS: Kategori Interpretasi & Skoring
   // Jika skor tidak valid atau kategori interpretasi belum dikonfigurasi di database,
-  // DILARANG keras memakai fallback text palsu.
-  if (!dbInterpretasi) {
+  // DILARANG keras memakai fallback text palsu. (Kecuali instrumen profil skala tanpa interpretasi seperti PBQ.)
+  if (!dbInterpretasi && !isProfileOnlyWithoutTotal) {
     return (
       <div className="min-h-screen bg-[#fbfbfb] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
@@ -284,7 +306,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   }
 
   // Ambil judul, deskripsi interpretasi, dan tips murni dari database
-  let headline = dbInterpretasi.judul;
+  let headline = dbInterpretasi?.judul || dbPackage?.judul || "Profil Skor Asesmen";
   if (isDASS) {
     // Pastikan tidak ada istilah GPD atau rangkaian keparahan beruntun di judul
     if (
@@ -297,7 +319,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
       headline = "Profil Kesehatan Emosional";
     }
   }
-  const interpretasiText = dbInterpretasi.deskripsi || "Asesmen psikologi telah diselesaikan.";
+  const interpretasiText = dbInterpretasi?.deskripsi || "Asesmen psikologi telah diselesaikan.";
 
   const rawTips = (dbInterpretasi as any)?.tips;
   const tipsList: any[] = Array.isArray(rawTips)
@@ -313,15 +335,71 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         {/* 1. Warm Illustration */}
         <SelfCareIllustration />
 
-        {/* 2. Clean Pastel Card (Bunda.id Inspired) */}
-        <InterpretasiCard
-          headline={headline}
-          interpretasiText={interpretasiText}
-          tipsList={tipsList}
-          isTipsExpanded={isTipsExpanded}
-          onToggleTips={() => setIsTipsExpanded(!isTipsExpanded)}
-          dassEvaluation={dassEvaluation}
-        />
+        {/* 2. Clean Pastel Card (Bunda.id Inspired) atau Profil 9 Skala PBQ */}
+        {isProfileOnlyWithoutTotal ? (
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="text-center space-y-2 border-b border-gray-100 pb-5">
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#561269] bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
+                PBQ • Profil Skor 9 Skala Kepribadian
+              </span>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
+                {dbPackage?.judul || "Personality Belief Questionnaire (PBQ)"}
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-xl mx-auto">
+                Skor mentah PBQ dihitung terpisah untuk setiap skala keyakinan kepribadian (rentang{" "}
+                <span className="font-semibold text-gray-800">0–56</span> dari 14 pernyataan per skala) dan{" "}
+                <span className="font-semibold text-gray-800">tidak dijumlahkan menjadi satu skor total</span>.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {bookingDetailSkor.subscalesList.map((sub: any) => {
+                const skor = Number(sub.skor ?? 0);
+                const maxSkor = Number(sub.max_skor ?? 56);
+                const pct = maxSkor > 0 ? Math.round((skor / maxSkor) * 100) : 0;
+
+                return (
+                  <div
+                    key={sub.key}
+                    className="p-4 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{sub.nama}</p>
+                        <p className="text-[11px] text-gray-500">Butir {sub.rentangButir}</p>
+                      </div>
+                      <span className="text-sm font-extrabold text-[#561269] shrink-0">
+                        {skor} <span className="text-xs font-medium text-gray-400">/ {maxSkor}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                        style={{ width: `${Math.max(skor > 0 ? 4 : 0, pct)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 leading-relaxed flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p>
+                <span className="font-bold">Catatan Acuan Interpretasi:</span> Kategori interpretasi (seperti rendah/sedang/tinggi) dan Z-score normatif sengaja belum ditampilkan karena masih menunggu acuan resmi dari tim Empathika. Kamu tetap dapat mendiskusikan profil skor mentah ini bersama psikolog.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <InterpretasiCard
+            headline={headline}
+            interpretasiText={interpretasiText}
+            tipsList={tipsList}
+            isTipsExpanded={isTipsExpanded}
+            onToggleTips={() => setIsTipsExpanded(!isTipsExpanded)}
+            dassEvaluation={dassEvaluation}
+          />
+        )}
 
         {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol - Satu Persen Card Style) */}
         {isHarmDetected && <CrisisHotlineCard />}
