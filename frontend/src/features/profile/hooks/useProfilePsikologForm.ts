@@ -376,7 +376,10 @@ export function useProfilePsikologForm({ role = "psikolog" }: UseProfilePsikolog
       // 4. Update data ke backend resmi
       try {
         await psikologService.updateMyProfile({
+          nama: updatedForm.nama,
           nama_gelar: updatedForm.nama,
+          no_telepon: updatedForm.noTelepon,
+          kategori: updatedForm.kategoriProfesi,
           bio: updatedForm.bio,
           foto: finalFotoUrl || undefined,
           spesialisasi: updatedForm.spesialisasi,

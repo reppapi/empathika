@@ -292,13 +292,20 @@ export class PsikologService {
       throw new Error('Data profil tenaga ahli tidak ditemukan')
     }
 
+    const finalNama = body.nama ?? body.nama_gelar
+    const finalPhone = body.no_telepon ?? body.noTelepon
+    const finalNoStr = body.no_str ?? body.noStr
+    const finalNoSipp = body.no_sipp ?? body.noSipp
+    const finalNoSilp = body.no_silp ?? body.noSilp
+    const finalPendidikan = body.pendidikan ?? body.pendidikanText
+
     const accountUpdateData: Record<string, any> = {}
-    if (body.nama !== undefined) accountUpdateData.nama = body.nama
+    if (finalNama !== undefined) accountUpdateData.nama = finalNama
     if (emailClean) accountUpdateData.email = emailClean
     if (body.password?.trim()) {
       accountUpdateData.password = await bcrypt.hash(body.password.trim(), 10)
     }
-    if (body.no_telepon !== undefined) accountUpdateData.no_telepon = body.no_telepon
+    if (finalPhone !== undefined) accountUpdateData.no_telepon = finalPhone
     if (body.foto !== undefined) accountUpdateData.foto = body.foto
     if (body.bio !== undefined) accountUpdateData.bio = body.bio
 
@@ -337,7 +344,7 @@ export class PsikologService {
     }
 
     const psikologUpdateData: Record<string, any> = {}
-    if (body.nama !== undefined) psikologUpdateData.nama_gelar = body.nama
+    if (finalNama !== undefined) psikologUpdateData.nama_gelar = finalNama
     if (body.foto !== undefined) psikologUpdateData.foto = body.foto
     if (body.bio !== undefined) psikologUpdateData.bio = body.bio
     if (body.quote !== undefined) psikologUpdateData.quote = body.quote
@@ -354,18 +361,18 @@ export class PsikologService {
     const currentKategori = (psikologUpdateData.kategori || psikolog.kategori || '').toLowerCase()
     const isProfesiPsikolog = !currentKategori.includes('peer') && !currentKategori.includes('konselor')
 
-    if (body.no_str !== undefined) psikologUpdateData.no_str = isProfesiPsikolog ? (body.no_str || null) : null
+    if (finalNoStr !== undefined) psikologUpdateData.no_str = isProfesiPsikolog ? (finalNoStr || null) : null
     else if (!isProfesiPsikolog) psikologUpdateData.no_str = null
 
-    if (body.no_sipp !== undefined) psikologUpdateData.no_sipp = isProfesiPsikolog ? (body.no_sipp || null) : null
+    if (finalNoSipp !== undefined) psikologUpdateData.no_sipp = isProfesiPsikolog ? (finalNoSipp || null) : null
     else if (!isProfesiPsikolog) psikologUpdateData.no_sipp = null
 
-    if (body.no_silp !== undefined) psikologUpdateData.no_silp = isProfesiPsikolog ? (body.no_silp || null) : null
+    if (finalNoSilp !== undefined) psikologUpdateData.no_silp = isProfesiPsikolog ? (finalNoSilp || null) : null
     else if (!isProfesiPsikolog) psikologUpdateData.no_silp = null
 
     if (spesialisasiId !== psikolog.id_spesialisasi) psikologUpdateData.id_spesialisasi = spesialisasiId
     if (keahlianStr !== undefined) psikologUpdateData.keahlian = keahlianStr
-    if (body.pendidikan !== undefined) psikologUpdateData.pendidikan = body.pendidikan
+    if (finalPendidikan !== undefined) psikologUpdateData.pendidikan = finalPendidikan
     if (body.pengalaman_tahun !== undefined)
       psikologUpdateData.pengalaman_tahun = body.pengalaman_tahun
     if (body.jenis_kelamin !== undefined) psikologUpdateData.jenis_kelamin = body.jenis_kelamin
