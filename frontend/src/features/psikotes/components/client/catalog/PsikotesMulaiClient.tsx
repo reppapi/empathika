@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePsikotesTest } from "@/features/psikotes/hooks/usePsikotesTest";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { useAuthStore } from "@/store/authStore";
-import { Loader2, AlertCircle, WifiOff, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertCircle, WifiOff, RefreshCw } from "lucide-react";
 import PsikotesFormIdentitas, { type IdentityData } from "./PsikotesFormIdentitas";
 import { navigateToPsikotesHasil } from "@/features/psikotes/utils/navigationHistory";
 import {
@@ -305,6 +305,15 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (typeof saved.isAtFunctionalStep === "boolean") {
             setIsAtFunctionalStep(saved.isAtFunctionalStep);
           }
+          if (typeof saved.catsPeristiwaLainnya === "string") {
+            setCatsPeristiwaLainnya(saved.catsPeristiwaLainnya);
+          }
+          if (typeof saved.catsPeristiwaPalingMengganggu === "string") {
+            setCatsPeristiwaPalingMengganggu(saved.catsPeristiwaPalingMengganggu);
+          }
+          if (typeof saved.catsShowDistressPrompt === "boolean") {
+            setCatsShowDistressPrompt(saved.catsShowDistressPrompt);
+          }
           if (typeof saved.identityCompleted === "boolean" && isCompleted) {
             setIsIdentityCompleted(saved.identityCompleted);
           }
@@ -326,11 +335,26 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           currentIndex,
           functionalAnswer,
           isAtFunctionalStep,
+          catsPeristiwaLainnya,
+          catsPeristiwaPalingMengganggu,
+          catsShowDistressPrompt,
           identityCompleted: isIdentityCompleted,
         })
       );
     } catch {}
-  }, [answers, currentIndex, functionalAnswer, isAtFunctionalStep, isIdentityCompleted, params.testId, questions.length, searchParams]);
+  }, [
+    answers,
+    currentIndex,
+    functionalAnswer,
+    isAtFunctionalStep,
+    isIdentityCompleted,
+    catsPeristiwaLainnya,
+    catsPeristiwaPalingMengganggu,
+    catsShowDistressPrompt,
+    params.testId,
+    questions.length,
+    searchParams,
+  ]);
 
   const currentQuestion = questions[currentIndex] || questions[0] || {
     id: "",
@@ -1078,8 +1102,8 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               </span>
             )}
             {isCATS && catsShowZeroPTEComplete && (
-              <span className="text-xs sm:text-sm font-bold text-green-700">
-                Skrining Awal Selesai (0 Peristiwa Traumatis)
+              <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wide">
+                Konfirmasi Penyelesaian
               </span>
             )}
           </div>
@@ -1130,17 +1154,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               </>
             ) : isCATS && catsShowZeroPTEComplete ? (
               <div className="text-center py-4 px-2 space-y-4 max-w-lg mx-auto">
-                <div className="w-16 h-16 rounded-3xl bg-green-50 text-green-600 flex items-center justify-center mx-auto shadow-xs border border-green-100">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <div className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
-                  Skrining Kriteria A Selesai (0 Peristiwa Traumatis)
-                </div>
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug">
                   Tidak Ada Paparan Peristiwa Traumatis Dilaporkan
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Berdasarkan 15 daftar peristiwa, anak/remaja tidak melaporkan adanya peristiwa yang berpotensi menimbulkan trauma. Sesuai panduan resmi instrumen CATS, asesmen gejala PTSD dianggap selesai dan hasil tes berada dalam batas normal.
+                  Berdasarkan jawaban pada 15 daftar peristiwa, anak/remaja tidak melaporkan adanya peristiwa yang berpotensi menimbulkan trauma. Sesuai alur asesmen, pemeriksaan gejala PTSD tidak perlu dilanjutkan karena tidak ditemukan paparan peristiwa traumatis dalam jawaban.
                 </p>
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                   <button
