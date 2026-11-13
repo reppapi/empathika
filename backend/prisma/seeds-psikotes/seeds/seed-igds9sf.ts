@@ -69,8 +69,8 @@ export const IGDS9SF_INTERPRETASI = [
   {
     min_skor: 36,
     max_skor: 45,
-    grade: 'Indikasi Gejala IGD',
-    judul: 'Pola Bermain Game Kamu Perlu Diperhatikan Lebih Lanjut (Indikasi gejala IGD)',
+    grade: 'Kemungkinan Internet Gaming Disorder (IGD)',
+    judul: 'Kemungkinan Internet Gaming Disorder (IGD)',
     deskripsi:
       'Berdasarkan jawaban yang kamu berikan, terdapat sejumlah tanda yang berkaitan dengan Internet Gaming Disorder. Hal ini dapat terlihat dari aktivitas bermain game yang mulai sulit dikendalikan atau berpotensi memengaruhi kegiatan sehari-hari, hubungan dengan orang lain, maupun tanggung jawab pribadi. Kondisi ini bukan berarti kamu pasti mengalami gangguan, tetapi dapat menjadi pengingat untuk lebih memperhatikan pola bermain game dan dampaknya terhadap kehidupanmu.',
     tips: [

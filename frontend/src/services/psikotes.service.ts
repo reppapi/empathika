@@ -17,10 +17,31 @@ export interface PaketPsikotesApiResponse {
     kode: string
     nama: string
     kategori: string
+    deskripsi?: string | null
     instruksi?: string
     instruksiSingkat?: string
     targetUsia?: string
     periode?: string
+    pengembang?: string | null
+    tahun?: string | null
+    tujuan?: string | null
+    targetResponden?: string | null
+    referensi?: string | null
+    rentangSkorTotal?: string | null
+    cutoff?: string | null
+    dimensiList?: Array<{
+      nama: string
+      deskripsi: string
+      nomorSoal: number[]
+      jumlahSoal: number
+      skorMin: number
+      skorMax: number
+    }> | null
+    aturanSkoring?: Array<{
+      kelompok: string
+      nomorSoal: number[]
+      pembobotan: string
+    }> | null
   } | null
   soal_psikotes?: Array<{
     id: string
@@ -45,6 +66,11 @@ export interface PaketPsikotesApiResponse {
     deskripsi: string
     tips?: any
   }>
+  statistik?: {
+    total_peserta: number
+    tes_selesai: number
+    tes_sedang_berlangsung: number
+  }
   _count?: {
     booking_psikotes: number
   }
