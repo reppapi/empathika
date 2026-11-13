@@ -14,6 +14,7 @@ export function useEventCheckout() {
 
   // State untuk Paket Bundling
   const [selectedTicketType, setSelectedTicketType] = useState<string>("SINGLE")
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [pesertaTambahan, setPesertaTambahan] = useState<{ nama: string; whatsapp: string }[]>([])
 
   // State data bundling yang diambil langsung dari database server
@@ -331,6 +332,7 @@ export function useEventCheckout() {
     }
 
     setIsSubmitting(true)
+    setCheckoutError(null)
 
     // Format metode pembayaran untuk backend transaksi
     let backendMetode: "TRANSFER_BANK" | "E_WALLET" | "QRIS" = "QRIS"
@@ -402,8 +404,14 @@ export function useEventCheckout() {
           proceedToPending(tId, bId, code)
         })
         .catch((err) => {
-          console.warn("Gagal auto-create transaksi event via API, fallback ke redirect pending:", err)
-          proceedToPending()
+          console.error("Gagal create transaksi event via API:", err)
+          setIsSubmitting(false)
+          const msg =
+            err?.response?.data?.message ||
+            err?.message ||
+            "Gagal memproses pendaftaran event ke server. Pastikan server backend sedang aktif."
+          setCheckoutError(msg)
+          window.scrollTo({ top: 0, behavior: "smooth" })
         })
     } else {
       proceedToPending()
@@ -454,5 +462,7 @@ export function useEventCheckout() {
     eventClosedReason,
     handleSelectPayment,
     handleSubmit,
+    checkoutError,
+    setCheckoutError,
   }
 }
