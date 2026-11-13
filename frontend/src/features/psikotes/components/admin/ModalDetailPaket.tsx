@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { JudulPsikotesItem, PaketDetailItem } from "../../types/adminPsikotes";
+import { getInstrumentCode } from "../../utils/instrumentDetector";
 
 export interface ModalDetailPaketProps {
   judul: JudulPsikotesItem | null;
@@ -21,68 +22,72 @@ export interface ModalDetailPaketProps {
  * Helper informasi instrumen berdasarkan nama alat ukur
  */
 function getInstrumentMetadata(judul: string) {
-  const j = (judul || "").toLowerCase();
-  if (j.includes("cdi")) {
-    return {
-      alatUkur: "CDI (Maria Kovacs, 1992)",
-      targetUsia: "Anak & Remaja (7–19 Th)",
-      tipeHasil: "5 Dimensi Klinis (Cut-off ≥ 19)",
-    };
+  const code = getInstrumentCode({ judul });
+  switch (code) {
+    case "CATS":
+      return {
+        alatUkur: "CATS (Sachser et al., 2017)",
+        targetUsia: "Anak & Remaja (7–17 Th)",
+        tipeHasil: "4 Klaster PTSD & PTE (Cut-off ≥ 21)",
+      };
+    case "CDI":
+      return {
+        alatUkur: "CDI (Maria Kovacs, 1992)",
+        targetUsia: "Anak & Remaja (7–19 Th)",
+        tipeHasil: "5 Dimensi Klinis (Cut-off ≥ 19)",
+      };
+    case "RCMAS":
+      return {
+        alatUkur: "RCMAS (Reynolds & Richmond, 1978)",
+        targetUsia: "Anak & Remaja (6–19 Th)",
+        tipeHasil: "Skor Otomatis (Cut-off ≥ 19 & Lie)",
+      };
+    case "PHQ":
+      return {
+        alatUkur: "PHQ-9 (Kroenke & Spitzer, 2001)",
+        targetUsia: "18 tahun ke atas",
+        tipeHasil: "Skor Otomatis (9 Kriteria DSM-5)",
+      };
+    case "GAD":
+      return {
+        alatUkur: "GAD-7 (Spitzer et al., 2006)",
+        targetUsia: "18 tahun ke atas",
+        tipeHasil: "Skor Otomatis (Ambang Cut-off)",
+      };
+    case "DASS":
+      return {
+        alatUkur: "DASS-42 (Lovibond & Lovibond, 1995)",
+        targetUsia: "Remaja & Dewasa (≥ 15 Th)",
+        tipeHasil: "3 Subskala (Depresi, Cemas, Stres)",
+      };
+    case "IGDS":
+      return {
+        alatUkur: "IGDS9-SF (Pontes & Griffiths, 2015)",
+        targetUsia: "Gamer (≥ 11 Th)",
+        tipeHasil: "9 Kriteria DSM-5 IGD",
+      };
+    case "PBQ":
+      return {
+        alatUkur: "PBQ (Beck, 126 Butir, 9 Skala)",
+        targetUsia: "Dewasa (≥ 18 Th)",
+        tipeHasil: "Profil Skor Mentah 9 Skala (0–56)",
+      };
+    default: {
+      const j = (judul || "").toLowerCase();
+      if (j.includes("mcmi")) {
+        return {
+          alatUkur: "MCMI-IV (Millon Clinical Multiaxial)",
+          targetUsia: "Dewasa (≥ 18 Th)",
+          tipeHasil: "Telaah Psikolog (SLA Maks. 3 Hari)",
+        };
+      }
+      return {
+        alatUkur: "Instrumen Psikometri Baku",
+        targetUsia: "Remaja & Dewasa",
+        tipeHasil: "Penilaian Standar Empathika",
+      };
+    }
   }
-  if (j.includes("rcmas") || ((j.includes("anak") || j.includes("remaja")) && !j.includes("depresi"))) {
-    return {
-      alatUkur: "RCMAS (Reynolds & Richmond, 1978)",
-      targetUsia: "Anak & Remaja (6–19 Th)",
-      tipeHasil: "Skor Otomatis (Cut-off ≥ 19 & Lie)",
-    };
-  }
-  if (j.includes("phq") || j.includes("depresi")) {
-    return {
-      alatUkur: "PHQ-9 (Kroenke & Spitzer, 2001)",
-      targetUsia: "18 tahun ke atas",
-      tipeHasil: "Skor Otomatis (9 Kriteria DSM-5)",
-    };
-  }
-  if (j.includes("gad") || j.includes("cemas") || j.includes("kecemasan")) {
-    return {
-      alatUkur: "GAD-7 (Spitzer et al., 2006)",
-      targetUsia: "18 tahun ke atas",
-      tipeHasil: "Skor Otomatis (Ambang Cut-off)",
-    };
-  }
-  if (j.includes("dass") || j.includes("emosional")) {
-    return {
-      alatUkur: "DASS-42 (Lovibond & Lovibond, 1995)",
-      targetUsia: "Remaja & Dewasa (≥ 15 Th)",
-      tipeHasil: "3 Subskala (Depresi, Cemas, Stres)",
-    };
-  }
-  if (j.includes("igds") || j.includes("game") || j.includes("gaming") || j.includes("kecanduan")) {
-    return {
-      alatUkur: "IGDS9-SF (Pontes & Griffiths, 2015)",
-      targetUsia: "Gamer (≥ 11 Th)",
-      tipeHasil: "9 Kriteria DSM-5 IGD",
-    };
-  }
-  if (j.includes("pbq") || j.includes("personality belief") || j.includes("pola keyakinan")) {
-    return {
-      alatUkur: "PBQ (Beck, 126 Butir, 9 Skala)",
-      targetUsia: "Dewasa (≥ 18 Th)",
-      tipeHasil: "Profil Skor Mentah 9 Skala (0–56)",
-    };
-  }
-  if (j.includes("mcmi")) {
-    return {
-      alatUkur: "MCMI-IV (Millon Clinical Multiaxial)",
-      targetUsia: "Dewasa (≥ 18 Th)",
-      tipeHasil: "Telaah Psikolog (SLA Maks. 3 Hari)",
-    };
-  }
-  return {
-    alatUkur: "Instrumen Psikometri Baku",
-    targetUsia: "Remaja & Dewasa",
-    tipeHasil: "Penilaian Standar Empathika",
-  };
 }
 
 export default function ModalDetailPaket({
