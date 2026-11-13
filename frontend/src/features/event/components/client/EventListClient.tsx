@@ -62,8 +62,6 @@ export function EventListClient() {
   // Event yang aktif / akan datang
   const upcomingEvents = events.filter((e) => e.status === "UPCOMING" || e.status === "ONGOING")
 
-  // Event reguler yang COMPLETED
-
   return (
     <div className="min-h-screen bg-[#FDFBF9] pt-28 sm:pt-36 pb-24 font-poppins">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -331,9 +329,9 @@ export function EventListClient() {
           /* ==============================================================
              TAB: RIWAYAT & ARSIP KEGIATAN (DOKUMENTASI EVENT SELESAI)
              ============================================================== */
-          dokumentasiList.length > 0 ? (
+          (dokumentasiList.length > 0) ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {/* 1. Tampilkan Dokumentasi Event Selesai Baru (Sesuai Referensi Gambar) */}
+              {/* Dokumentasi dari tabel EventDokumentasi (otomatis dari event selesai + manual) */}
               {dokumentasiList.map((dok) => {
                 return (
                   <div
@@ -366,7 +364,7 @@ export function EventListClient() {
                       </div>
                     )}
 
-                    {/* Judul & Deskripsi Langsung di Ujung Bawah Foto (Persis Referensi #TemanCerita Experience) */}
+                    {/* Judul & Deskripsi */}
                     <div className="absolute bottom-5 left-5 right-5 text-white z-10">
                       <h3 className="font-extrabold text-base sm:text-lg md:text-xl leading-snug drop-shadow-md line-clamp-2">
                         {dok.judul}
@@ -412,6 +410,7 @@ export function EventListClient() {
         onClose={() => setSelectedDokumentasi(null)}
         item={selectedDokumentasi}
       />
+
     </div>
   )
 }

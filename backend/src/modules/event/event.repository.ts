@@ -14,7 +14,100 @@ export interface EventQueryInput {
 export class EventRepository {
   constructor(private prisma: PrismaClient) {}
 
+  /**
+   * Otomatis sinkronisasi status event & buat entri EventDokumentasi:
+   * - Jika tanggal & jam selesai event sudah lewat → update status ke COMPLETED
+   * - Jika belum ada entri EventDokumentasi untuk event tersebut → buat otomatis
+   *   (dengan judul, tanggal, deskripsi, dan banner_url sebagai foto pertama)
+   */
+  async autoUpdatePassedEvents() {
+    try {
+      const activeEvents = await this.prisma.event.findMany({
+        where: {
+          status: { in: ['UPCOMING', 'ONGOING'] },
+        },
+        select: {
+          id: true,
+          judul: true,
+          tanggal: true,
+          jam_mulai: true,
+          durasi_menit: true,
+          deskripsi: true,
+          banner_url: true,
+        },
+      })
+
+      const now = new Date()
+      const passedEvents: typeof activeEvents = []
+
+      for (const ev of activeEvents) {
+        const tgl = new Date(ev.tanggal)
+        const jam = new Date(ev.jam_mulai)
+        // Gunakan UTC konsisten: gabungkan tanggal (UTC) + jam (UTC) + durasi
+        const endTimeMs =
+          Date.UTC(
+            tgl.getUTCFullYear(),
+            tgl.getUTCMonth(),
+            tgl.getUTCDate(),
+            jam.getUTCHours(),
+            jam.getUTCMinutes() + (ev.durasi_menit || 0)
+          )
+        const endTime = new Date(endTimeMs)
+        if (endTime <= now) {
+          passedEvents.push(ev)
+        }
+      }
+
+      if (passedEvents.length > 0) {
+        const passedIds = passedEvents.map((ev) => ev.id)
+
+        // 1. Update status event ke COMPLETED (status tetap tampil "Selesai" di admin)
+        await this.prisma.event.updateMany({
+          where: { id: { in: passedIds } },
+          data: { status: 'COMPLETED' },
+        })
+
+        // 2. Untuk setiap event yang baru selesai, buat entri EventDokumentasi
+        //    jika belum ada (dicek berdasarkan kesamaan judul + tanggal)
+        for (const ev of passedEvents) {
+          const existing = await this.prisma.eventDokumentasi.findFirst({
+            where: {
+              judul: ev.judul,
+              tanggal: ev.tanggal,
+            },
+          })
+
+          if (!existing) {
+            const created = await this.prisma.eventDokumentasi.create({
+              data: {
+                judul: ev.judul,
+                tanggal: ev.tanggal,
+                deskripsi: ev.deskripsi || '',
+              },
+            })
+
+            // Tambahkan banner_url sebagai foto pertama jika ada
+            if (ev.banner_url) {
+              await this.prisma.eventDokumentasiFoto.create({
+                data: {
+                  id_event_dokumentasi: created.id,
+                  foto_url: ev.banner_url,
+                  urutan: 0,
+                },
+              })
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memperbarui status event yang sudah terlewat:', err)
+    }
+  }
+
   async findAll(query?: EventQueryInput) {
+    // Sinkronisasi otomatis saat query dijalankan
+    await this.autoUpdatePassedEvents()
+
     const page = query?.page ?? 1
     const limit = query?.limit ?? 10
     const skip = (page - 1) * limit
@@ -90,6 +183,7 @@ export class EventRepository {
   }
 
   async findById(id: string) {
+    await this.autoUpdatePassedEvents()
     const item = await this.prisma.event.findUnique({
       where: { id },
       include: {
