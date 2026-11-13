@@ -1,7 +1,7 @@
 /** Halaman pengerjaan tes psikotes (soal berurutan, pengisian identitas, proteksi reload, dan submit jawaban). */
 "use client"
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePsikotesTest } from "@/features/psikotes/hooks/usePsikotesTest";
@@ -10,6 +10,15 @@ import { useAuthStore } from "@/store/authStore";
 import { Loader2, AlertCircle, WifiOff, RefreshCw } from "lucide-react";
 import PsikotesFormIdentitas, { type IdentityData } from "./PsikotesFormIdentitas";
 import { navigateToPsikotesHasil } from "@/features/psikotes/utils/navigationHistory";
+import {
+  isCATS as checkCATS,
+  isCDI as checkCDI,
+  isDASS as checkDASS,
+  isGAD as checkGAD,
+  isIGDS as checkIGDS,
+  isPHQ as checkPHQ,
+  isPackagePaid,
+} from "@/features/psikotes/utils/instrumentDetector";
 
 // Helper pengecekan kelengkapan data identitas peserta berbayar
 const isIdentityFullyCompleted = (data: IdentityData) => {
@@ -71,6 +80,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   // State Pertanyaan Tambahan (Functional Impairment) khusus GAD-7 & PHQ-9 (Wajib dideklarasikan di top-level hooks)
   const [isAtFunctionalStep, setIsAtFunctionalStep] = useState(false);
   const [functionalAnswer, setFunctionalAnswer] = useState<number | null>(null);
+  // State Khusus Instrumen CATS (Child and Adolescent Trauma Screen)
+  const [catsPeristiwaLainnya, setCatsPeristiwaLainnya] = useState<string>("");
+  const [catsPeristiwaPalingMengganggu, setCatsPeristiwaPalingMengganggu] = useState<string>("");
+  const [catsShowDistressPrompt, setCatsShowDistressPrompt] = useState<boolean>(false);
+  const [catsShowZeroPTEComplete, setCatsShowZeroPTEComplete] = useState<boolean>(false);
   const advanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const submitLockRef = useRef(false);
 
@@ -170,38 +184,17 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     goToNext,
   } = usePsikotesTest(totalQuestions, params.testId, calculateScore);
 
-  const isIGDS =
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("IGDS") ||
-    dbData?.judul?.toUpperCase().includes("IGDS") ||
-    dbData?.judul?.toUpperCase().includes("GAMING") ||
-    params.testId.toLowerCase().includes("igds") ||
-    params.testId.toLowerCase().includes("gaming");
-
-  const isDASS = Boolean(
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
-    dbData?.judul?.toUpperCase().includes("DASS") ||
-    dbData?.judul?.toLowerCase().includes("depresi, kecemasan") ||
-    params.testId.toLowerCase().includes("dass")
-  );
-
-  const isPHQ =
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
-    dbData?.judul?.toUpperCase().includes("PHQ") ||
-    params.testId.toLowerCase().includes("phq");
-
-  const isGAD =
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("GAD") ||
-    dbData?.judul?.toUpperCase().includes("GAD") ||
-    params.testId.toLowerCase().includes("gad");
-
-  const isCDI =
-    dbData?.alat_ukur?.kode?.toUpperCase().includes("CDI") ||
-    dbData?.judul?.toUpperCase().includes("CDI") ||
-    params.testId.toLowerCase().includes("cdi");
+  const isIGDS = checkIGDS(dbData, params.testId);
+  const isDASS = checkDASS(dbData, params.testId);
+  const isPHQ = checkPHQ(dbData, params.testId);
+  const isGAD = checkGAD(dbData, params.testId);
+  const isCDI = checkCDI(dbData, params.testId);
+  const isCATS = checkCATS(dbData, params.testId);
 
   const isPaidFlow = Boolean(
-    isDASS ||
-    (dbData && (dbData.jenis_akses === "BERBAYAR" || (typeof dbData.harga === "number" && dbData.harga > 0))) ||
+    (dbData
+      ? isPackagePaid(dbData)
+      : isDASS) ||
     searchParams.get("paket") === "berbayar" ||
     searchParams.get("plan") === "berbayar" ||
     Boolean(searchParams.get("bookingId")) ||
@@ -312,6 +305,15 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (typeof saved.isAtFunctionalStep === "boolean") {
             setIsAtFunctionalStep(saved.isAtFunctionalStep);
           }
+          if (typeof saved.catsPeristiwaLainnya === "string") {
+            setCatsPeristiwaLainnya(saved.catsPeristiwaLainnya);
+          }
+          if (typeof saved.catsPeristiwaPalingMengganggu === "string") {
+            setCatsPeristiwaPalingMengganggu(saved.catsPeristiwaPalingMengganggu);
+          }
+          if (typeof saved.catsShowDistressPrompt === "boolean") {
+            setCatsShowDistressPrompt(saved.catsShowDistressPrompt);
+          }
           if (typeof saved.identityCompleted === "boolean" && isCompleted) {
             setIsIdentityCompleted(saved.identityCompleted);
           }
@@ -333,11 +335,26 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           currentIndex,
           functionalAnswer,
           isAtFunctionalStep,
+          catsPeristiwaLainnya,
+          catsPeristiwaPalingMengganggu,
+          catsShowDistressPrompt,
           identityCompleted: isIdentityCompleted,
         })
       );
     } catch {}
-  }, [answers, currentIndex, functionalAnswer, isAtFunctionalStep, isIdentityCompleted, params.testId, questions.length, searchParams]);
+  }, [
+    answers,
+    currentIndex,
+    functionalAnswer,
+    isAtFunctionalStep,
+    isIdentityCompleted,
+    catsPeristiwaLainnya,
+    catsPeristiwaPalingMengganggu,
+    catsShowDistressPrompt,
+    params.testId,
+    questions.length,
+    searchParams,
+  ]);
 
   const currentQuestion = questions[currentIndex] || questions[0] || {
     id: "",
@@ -375,15 +392,20 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     });
   };
 
-  const timeframeText =
-    dbData?.alat_ukur?.instruksiSingkat ||
-    (isIGDS
-      ? "Dalam 12 bulan terakhir, seberapa sering kamu:"
-      : isDASS
-      ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
-      : isPHQ || isGAD || isCDI
-      ? "Dalam 2 minggu terakhir, seberapa sering kamu:"
-      : "Pilihlah opsi yang paling menggambarkan kondisimu:");
+  const timeframeText = isCATS
+    ? currentIndex < 15
+      ? "Berikut adalah beberapa peristiwa yang mungkin pernah dialami anak. Pilih Ya jika pernah dialami dan Tidak jika tidak pernah dialami."
+      : currentIndex < 35
+      ? "Dalam 2 minggu terakhir, seberapa sering anak mengalami hal-hal berikut:"
+      : "Pilih Ya atau Tidak untuk menunjukkan apakah masalah yang dialami anak mengganggu aspek-aspek berikut:"
+    : dbData?.alat_ukur?.instruksiSingkat ||
+      (isIGDS
+        ? "Dalam 12 bulan terakhir, seberapa sering kamu:"
+        : isDASS
+        ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
+        : isPHQ || isGAD || isCDI
+        ? "Dalam 2 minggu terakhir, seberapa sering kamu:"
+        : "Pilihlah opsi yang paling menggambarkan kondisimu:");
 
   const shouldShowIdentityForm = isPaidFlow && !isIdentityCompleted;
 
@@ -395,6 +417,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     handleOptionSelect(optionIdx);
     setLocalError(false);
     setSubmitError(null);
+
+    // Khusus CATS butir 15 (index 14) jika memilih "Ya", jangan langsung auto-advance agar peserta dapat mengisi teks peristiwa lainnya
+    if (isCATS && currentIndex === 14 && optionIdx === 1) {
+      return;
+    }
 
     // Di butir terakhir:
     if (isLastQuestion) {
@@ -419,6 +446,24 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     setIsAdvancing(true);
     if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
     advanceTimeoutRef.current = setTimeout(() => {
+      // Khusus CATS butir 15 (index 14) jika dijawab "Tidak":
+      if (isCATS && currentIndex === 14) {
+        const nextAnswers: Record<number, number> = { ...answers, [14]: optionIdx };
+        const pteCount = questions.slice(0, 15).filter((q, idx) => {
+          const a = nextAnswers[idx];
+          return a !== undefined && q.weights[a] > 0;
+        }).length;
+        if (pteCount === 0) {
+          setCatsShowZeroPTEComplete(true);
+          setIsAdvancing(false);
+          return;
+        } else {
+          setCatsShowDistressPrompt(true);
+          setIsAdvancing(false);
+          return;
+        }
+      }
+
       goToNext();
       setIsAdvancing(false);
     }, 350);
@@ -435,6 +480,30 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       return;
     }
 
+    if (isCATS && catsShowZeroPTEComplete) {
+      setCatsShowZeroPTEComplete(false);
+      setCurrentIndex(14);
+      return;
+    }
+
+    if (isCATS && catsShowDistressPrompt) {
+      setCatsShowDistressPrompt(false);
+      setCurrentIndex(14);
+      return;
+    }
+
+    if (isCATS && currentIndex === 15) {
+      const pteCount = questions.slice(0, 15).filter((q, idx) => {
+        const a = answers[idx];
+        return a !== undefined && q.weights[a] > 0;
+      }).length;
+      if (pteCount > 0) {
+        setCatsShowDistressPrompt(true);
+        setCurrentIndex(14);
+        return;
+      }
+    }
+
     handlePrev();
   };
 
@@ -443,9 +512,40 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     setIsAdvancing(false);
     setLocalError(false);
 
+    // Jika sedang di layar CATS: Pilih Peristiwa Paling Mengganggu
+    if (isCATS && catsShowDistressPrompt) {
+      setCatsShowDistressPrompt(false);
+      setCurrentIndex(15);
+      return;
+    }
+
+    // Jika sedang di layar CATS: 0 PTE Selesai
+    if (isCATS && catsShowZeroPTEComplete) {
+      handleFinish();
+      return;
+    }
+
     if (answers[currentIndex] === undefined) {
       setLocalError(true);
       return;
+    }
+
+    // Khusus CATS saat di butir 15 (index 14):
+    if (isCATS && currentIndex === 14) {
+      const pteCount = questions.slice(0, 15).filter((q, idx) => {
+        const a = answers[idx];
+        return a !== undefined && q.weights[a] > 0;
+      }).length;
+
+      if (pteCount === 0) {
+        setCatsShowZeroPTEComplete(true);
+        return;
+      }
+
+      if (!catsShowDistressPrompt) {
+        setCatsShowDistressPrompt(true);
+        return;
+      }
     }
 
     if (isLastQuestion) {
@@ -475,6 +575,20 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       return;
     }
 
+    // Hitung jawaban efektif (khusus CATS jika 0 PTE dialami, butir 16–40 otomatis bernilai 0 / Tidak Pernah)
+    const effectiveAnswers = { ...answers };
+    if (isCATS) {
+      const pteCount = questions.slice(0, 15).filter((q, idx) => {
+        const a = effectiveAnswers[idx];
+        return a !== undefined && q.weights[a] > 0;
+      }).length;
+      if (pteCount === 0) {
+        for (let i = 15; i < totalQuestions; i++) {
+          effectiveAnswers[i] = 0;
+        }
+      }
+    }
+
     // Jika sedang di functional step, validasi jawaban fungsional wajib dipilih
     if (isAtFunctionalStep && functionalAnswer === null) {
       setLocalError(true);
@@ -482,15 +596,17 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     }
 
     // Validasi 1: Butir saat ini wajib dijawab
-    if (!isAtFunctionalStep && answers[currentIndex] === undefined) {
+    if (!isAtFunctionalStep && !catsShowZeroPTEComplete && effectiveAnswers[currentIndex] === undefined) {
       setLocalError(true);
       return;
     }
 
     // Validasi 2: Integritas butir lengkap - tidak boleh ada butir terlewat
-    const missingIdx = questions.findIndex((_, idx) => answers[idx] === undefined);
+    const missingIdx = questions.findIndex((_, idx) => effectiveAnswers[idx] === undefined);
     if (missingIdx !== -1) {
       setIsAtFunctionalStep(false);
+      setCatsShowZeroPTEComplete(false);
+      setCatsShowDistressPrompt(false);
       setCurrentIndex(missingIdx);
       setLocalError(true);
       setSubmitError(`Pertanyaan nomor ${missingIdx + 1} belum dijawab. Mohon lengkapi seluruh pertanyaan terlebih dahulu.`);
@@ -560,7 +676,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
       // Susun payload jawaban untuk dikirim ke backend sesuai urutan pilihan yang ditampilkan
       const jawabanPayload = questions.map((q, idx) => {
-        const selectedOptIdx = answers[idx] ?? 0;
+        const selectedOptIdx = effectiveAnswers[idx] ?? 0;
         const pilihan = q.pilihanList[selectedOptIdx];
         return {
           id_soal: q.id,
@@ -578,6 +694,10 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       const res = await psikotesService.submitJawaban(params.testId, {
         jawaban: jawabanPayload,
         dampak_aktivitas: (isPHQ || isGAD) && functionalAnswer !== null ? functionalAnswer : undefined,
+        peristiwa_lainnya: isCATS && catsPeristiwaLainnya.trim() ? catsPeristiwaLainnya.trim() : undefined,
+        peristiwaLainnya: isCATS && catsPeristiwaLainnya.trim() ? catsPeristiwaLainnya.trim() : undefined,
+        peristiwa_paling_mengganggu: isCATS && catsPeristiwaPalingMengganggu.trim() ? catsPeristiwaPalingMengganggu.trim() : undefined,
+        peristiwaPalingMengganggu: isCATS && catsPeristiwaPalingMengganggu.trim() ? catsPeristiwaPalingMengganggu.trim() : undefined,
         id_booking: bookingIdParam,
         bookingId: bookingIdParam,
         orderId: searchParams.get("orderId") || undefined,
@@ -646,6 +766,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (subs.ineffectiveness?.skor !== undefined) query.set("cdi_ineff", String(subs.ineffectiveness.skor));
           if (subs.anhedonia?.skor !== undefined) query.set("cdi_anh", String(subs.anhedonia.skor));
           if (subs.negativeSelfEsteem?.skor !== undefined) query.set("cdi_nse", String(subs.negativeSelfEsteem.skor));
+          if (subs.intrusion?.skor !== undefined) query.set("cats_b", String(subs.intrusion.skor));
+          if (subs.avoidance?.skor !== undefined) query.set("cats_c", String(subs.avoidance.skor));
+          if (subs.cognitionMood?.skor !== undefined) query.set("cats_d", String(subs.cognitionMood.skor));
+          if (subs.arousal?.skor !== undefined) query.set("cats_e", String(subs.arousal.skor));
+        }
+
+        // Jika ada skor CATS (PTE & Fungsi Psikososial), simpan ke URL
+        if (res.data.detail_skor?.pte?.totalDialami !== undefined) {
+          query.set("cats_pte", String(res.data.detail_skor.pte.totalDialami));
+        }
+        if (res.data.detail_skor?.fungsiPsikososial?.totalTerganggu !== undefined) {
+          query.set("cats_f", String(res.data.detail_skor.fungsiPsikososial.totalTerganggu));
         }
 
         // Jika ada skor Lie Scale (RCMAS), simpan ke URL (untuk dashboard psikolog)
@@ -783,9 +915,15 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
   const isSelesaiButton =
     isAtFunctionalStep ||
-    (isLastQuestion && (!isFunctionalInstrument || !hasSymptomScoreGreaterThanZero()));
+    catsShowZeroPTEComplete ||
+    (!catsShowDistressPrompt && isLastQuestion && (!isFunctionalInstrument || !hasSymptomScoreGreaterThanZero()));
 
-  const effectiveProgressPercentage = isAtFunctionalStep ? 100 : progressPercentage;
+  const effectiveProgressPercentage =
+    isAtFunctionalStep || catsShowZeroPTEComplete
+      ? 100
+      : catsShowDistressPrompt
+      ? Math.round((15 / (totalQuestions || 40)) * 100)
+      : progressPercentage;
 
   // 4. Keyboard Shortcuts Listener (Desktop: 1-4, A-D, Panah Kiri/Kanan, Enter)
   useEffect(() => {
@@ -952,9 +1090,20 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           </div>
 
           <div className="mt-2.5 flex justify-between items-center text-xs text-gray-500">
-            {!isAtFunctionalStep && (
+            {!isAtFunctionalStep && !catsShowZeroPTEComplete && (
               <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wide">
-                Pertanyaan <span className="font-bold text-gray-800">{currentIndex + 1}</span> dari {totalQuestions}
+                {isCATS && catsShowDistressPrompt ? (
+                  <span className="text-[#561269] font-bold">Peristiwa Paling Mengganggu</span>
+                ) : (
+                  <>
+                    Pertanyaan <span className="font-bold text-gray-800">{currentIndex + 1}</span> dari {totalQuestions}
+                  </>
+                )}
+              </span>
+            )}
+            {isCATS && catsShowZeroPTEComplete && (
+              <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wide">
+                Konfirmasi Penyelesaian
               </span>
             )}
           </div>
@@ -1003,6 +1152,68 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                   })}
                 </div>
               </>
+            ) : isCATS && catsShowZeroPTEComplete ? (
+              <div className="text-center py-4 px-2 space-y-4 max-w-lg mx-auto">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug">
+                  Tidak Ada Paparan Peristiwa Traumatis Dilaporkan
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                  Berdasarkan jawaban pada 15 daftar peristiwa, anak/remaja tidak melaporkan adanya peristiwa yang berpotensi menimbulkan trauma. Sesuai alur asesmen, pemeriksaan gejala PTSD tidak perlu dilanjutkan karena tidak ditemukan paparan peristiwa traumatis dalam jawaban.
+                </p>
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleFinish}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs sm:text-sm font-bold shadow-md transition cursor-pointer"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Menyimpan Hasil...</span>
+                      </>
+                    ) : (
+                      <span>Selesaikan Asesmen & Lihat Hasil</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => setCatsShowZeroPTEComplete(false)}
+                    className="w-full sm:w-auto px-5 py-3 rounded-full border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-semibold transition cursor-pointer"
+                  >
+                    Cek Kembali Jawaban
+                  </button>
+                </div>
+              </div>
+            ) : isCATS && catsShowDistressPrompt ? (
+              <div className="space-y-6 max-w-xl mx-auto w-full">
+                <div className="text-center">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug">
+                    Mana yang paling mengganggu anak sekarang?
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-2">
+                    Dari peristiwa yang telah dipilih sebelumnya, tuliskan peristiwa yang paling mengganggu anak saat ini.
+                  </p>
+                </div>
+
+                {/* Input Teks Bebas */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-gray-700">
+                    Jawaban:
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={catsPeristiwaPalingMengganggu}
+                    onChange={(e) => {
+                      setCatsPeristiwaPalingMengganggu(e.target.value);
+                      setLocalError(false);
+                    }}
+                    placeholder="Tuliskan peristiwa yang paling mengganggu anak di sini..."
+                    className="w-full text-xs sm:text-sm p-4 rounded-2xl border border-gray-200 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                  />
+                </div>
+              </div>
             ) : (
               <>
                 <p className="text-xs sm:text-sm text-gray-400 font-medium text-center mb-2">
@@ -1041,6 +1252,22 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                     );
                   })}
                 </div>
+
+                {/* Khusus CATS butir 15 (index 14): Jika dijawab "Ya", sediakan kolom essay singkat untuk menyebutkan peristiwanya */}
+                {isCATS && currentIndex === 14 && answers[14] === 1 && (
+                  <div className="mt-4 animate-fadeIn space-y-1.5">
+                    <label className="block text-xs font-semibold text-gray-700">
+                      Sebutkan peristiwa tersebut:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={catsPeristiwaLainnya}
+                      onChange={(e) => setCatsPeristiwaLainnya(e.target.value)}
+                      placeholder="Contoh: Mengalami perundungan parah di lingkungan sekolah..."
+                      className="w-full text-xs sm:text-sm p-3.5 rounded-xl border border-gray-200 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#561269] focus:border-transparent transition shadow-2xs"
+                    />
+                  </div>
+                )}
               </>
             )}
             
@@ -1068,9 +1295,13 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           <div className="flex items-center justify-between gap-3 mt-auto pt-1">
             <button
               onClick={handleSafePrev}
-              disabled={(currentIndex === 0 && !isAtFunctionalStep) || isSubmitting || isAdvancing}
+              disabled={
+                (currentIndex === 0 && !isAtFunctionalStep && !catsShowDistressPrompt && !catsShowZeroPTEComplete) ||
+                isSubmitting ||
+                isAdvancing
+              }
               className={`px-5 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-200 text-xs sm:text-sm cursor-pointer ${
-                currentIndex === 0 && !isAtFunctionalStep
+                currentIndex === 0 && !isAtFunctionalStep && !catsShowDistressPrompt && !catsShowZeroPTEComplete
                   ? "opacity-0 pointer-events-none" 
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 shadow-xs"
               }`}
@@ -1092,6 +1323,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                 </>
               ) : isSelesaiButton ? (
                 <span>Selesai</span>
+              ) : catsShowDistressPrompt ? (
+                <>
+                  <span>Lanjut ke Pertanyaan Gejala</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+                </>
               ) : (
                 <>
                   <span>Berikutnya</span>

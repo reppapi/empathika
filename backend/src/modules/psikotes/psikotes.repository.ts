@@ -575,6 +575,20 @@ export class PsikotesRepository {
         if (input.dampak_aktivitas !== undefined && input.dampak_aktivitas !== null) {
           jawabanMap['difficulty'] = input.dampak_aktivitas
         }
+        const mostDistressing =
+          (input as any).peristiwaPalingMengganggu ||
+          input.peristiwa_paling_mengganggu
+        if (mostDistressing) {
+          jawabanMap['peristiwa_paling_mengganggu'] = mostDistressing as any
+          jawabanMap['peristiwaPalingMengganggu'] = mostDistressing as any
+        }
+        const otherEvent =
+          (input as any).peristiwaLainnya ||
+          input.peristiwa_lainnya
+        if (otherEvent) {
+          jawabanMap['peristiwa_lainnya'] = otherEvent as any
+          jawabanMap['peristiwaLainnya'] = otherEvent as any
+        }
         try {
           calculationResult = hitungSkorAlatUkur(paket.alat_ukur.kode, jawabanMap)
           if (calculationResult?.tanpaSkorTotal) {

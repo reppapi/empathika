@@ -103,6 +103,10 @@ export interface SubmitPsikotesPayload {
   }
   id_biro?: string
   dampak_aktivitas?: number | null
+  peristiwa_lainnya?: string | null
+  peristiwaLainnya?: string | null
+  peristiwa_paling_mengganggu?: string | null
+  peristiwaPalingMengganggu?: string | null
 }
 
 export interface SubmitPsikotesResult {
