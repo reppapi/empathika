@@ -476,6 +476,15 @@ export class PsikologService {
       })
     }
 
+    if (!existingPsikolog && body.email) {
+      existingPsikolog = await this.prisma.psikolog.findFirst({
+        where: {
+          account: { email: { equals: body.email.trim(), mode: 'insensitive' } },
+        },
+        include: { account: true },
+      })
+    }
+
     let account = null
     let psikolog = null
 

@@ -497,7 +497,12 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       // 2. Simpan juga ke cache lokal
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
-      const updatedList = list.map((item) => (item.id === psikologId ? updatedTenaga : item))
+      const targetId = effectiveId || psikologId
+      const updatedList = list.map((item) =>
+        item.id === targetId || (item.email && item.email.toLowerCase() === updatedTenaga.email.toLowerCase())
+          ? updatedTenaga
+          : item
+      )
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updatedList))
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("storage"))
