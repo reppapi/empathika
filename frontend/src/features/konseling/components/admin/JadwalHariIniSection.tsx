@@ -29,6 +29,7 @@ interface JadwalHariIniSectionProps {
   onCopyWhatsApp: (session: ClientSessionToday) => void
   onCopyWhatsAppPsikolog?: (session: ClientSessionToday) => void
   onResetFilter: () => void
+  isReadOnly?: boolean
 }
 
 export default function JadwalHariIniSection({
@@ -46,6 +47,7 @@ export default function JadwalHariIniSection({
   onCopyWhatsApp,
   onCopyWhatsAppPsikolog,
   onResetFilter,
+  isReadOnly = false,
 }: JadwalHariIniSectionProps) {
   const activeNearestList: ClientSessionToday[] =
     nearestSessions && nearestSessions.length > 0
@@ -455,7 +457,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
+                              {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -469,7 +471,7 @@ export default function JadwalHariIniSection({
                                 </button>
                               )}
 
-                              {item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
+                              {!isReadOnly && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
                                 <button
                                   type="button"
                                   onClick={() => {

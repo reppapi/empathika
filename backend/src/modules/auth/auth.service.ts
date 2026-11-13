@@ -238,9 +238,21 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(newPassword, 10)
     await this.repo.updatePasswordAndActivate(account.id, hashedPassword)
 
+    const expiresIn = "1d"
+    const accessToken = this.fastify.jwt.sign(
+      {
+        id: account.id,
+        email: account.email,
+        role: account.role,
+        nama: account.nama,
+      },
+      { expiresIn }
+    )
+
     return {
       success: true,
-      message: "Kata sandi berhasil dibuat dan akun telah aktif. Silakan masuk.",
+      message: "Kata sandi berhasil dibuat dan akun Anda telah aktif.",
+      accessToken,
       user: {
         id: account.id,
         nama: account.nama,

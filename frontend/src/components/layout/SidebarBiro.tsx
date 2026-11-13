@@ -9,9 +9,10 @@ export interface NavItem {
   path: string
 }
 
-// Menu khusus Admin Biro di sidebar: Ringkasan Operasional dan Transaksi (Pengaturan Akun ada di dropdown navbar)
+// Menu khusus Admin Biro di sidebar: Ringkasan Operasional, Jadwal dan Sesi, dan Transaksi
 export const biroNavItems: NavItem[] = [
   { name: "Ringkasan Operasional", path: "/admin-biro" },
+  { name: "Jadwal dan Sesi", path: "/admin-biro/jadwal" },
   { name: "Transaksi", path: "/admin-biro/transaksi" },
 ]
 
@@ -50,7 +51,7 @@ export function SidebarBiro({
         {/* Header Sidebar: Profile & Empathika (Tetap Diam di Atas, Tidak Ikut Ter-scroll) */}
         <div className="shrink-0 px-5 pt-8 pb-2 sm:px-6">
           <Link
-            href="/admin-biro/transaksi"
+            href="/admin-biro"
             onClick={onClose}
             className="flex items-center gap-3 transition-transform hover:scale-105"
           >
