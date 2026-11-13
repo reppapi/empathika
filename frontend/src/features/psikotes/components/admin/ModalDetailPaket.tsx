@@ -22,7 +22,15 @@ export interface ModalDetailPaketProps {
  */
 function getInstrumentMetadata(judul: string) {
   const j = judul.toLowerCase();
-  if (j.includes("rcmas") || j.includes("anak") || j.includes("remaja")) {
+  if (j.includes("cdi")) {
+    return {
+      alatUkur: "CDI (Maria Kovacs, 1992)",
+      targetUsia: "Anak & Remaja (7–19 Th)",
+      durasi: "15–20 Menit",
+      tipeHasil: "5 Dimensi Klinis (Cut-off ≥ 19)",
+    };
+  }
+  if (j.includes("rcmas") || ((j.includes("anak") || j.includes("remaja")) && !j.includes("depresi"))) {
     return {
       alatUkur: "RCMAS (Reynolds & Richmond, 1978)",
       targetUsia: "Anak & Remaja (6–19 Th)",

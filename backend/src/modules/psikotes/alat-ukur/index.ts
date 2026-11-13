@@ -17,6 +17,9 @@ import { calculateRCMAS } from "./rcmas/scoring";
 import { PBQ_CONFIG } from "./pbq/config";
 import { calculatePBQ } from "./pbq/scoring";
 
+import { CDI_CONFIG } from "./cdi/config";
+import { calculateCDI } from "./cdi/scoring";
+
 export interface AlatUkurModule {
   config: {
     kode: string;
@@ -60,6 +63,10 @@ const registry: Record<string, AlatUkurModule> = {
   "PBQ": {
     config: PBQ_CONFIG,
     calculate: calculatePBQ,
+  },
+  "CDI": {
+    config: CDI_CONFIG,
+    calculate: calculateCDI,
   },
 };
 

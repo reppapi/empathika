@@ -67,7 +67,7 @@ export class EventRepository {
     return {
       items: items.map((item) => {
         const totalPesertaBooked = item.booking_event.reduce((acc, curr) => acc + (curr.jumlah_peserta || 1), 0)
-        const { booking_event, ...eventData } = item
+        const { booking_event: _booking_event, ...eventData } = item
         return {
           ...eventData,
           harga: item.harga.toString(),
@@ -107,7 +107,7 @@ export class EventRepository {
     if (!item) return null
 
     const totalPesertaBooked = item.booking_event.reduce((acc, curr) => acc + (curr.jumlah_peserta || 1), 0)
-    const { booking_event, ...eventData } = item
+    const { booking_event: _booking_event, ...eventData } = item
 
     return {
       ...eventData,
@@ -166,7 +166,7 @@ export class EventRepository {
     })
 
     const totalPesertaCreated = created.booking_event.reduce((acc, curr) => acc + (curr.jumlah_peserta || 1), 0)
-    const { booking_event: createdBookings, ...createdEventData } = created
+    const { booking_event: _createdBookings, ...createdEventData } = created
 
     return {
       ...createdEventData,
@@ -245,7 +245,7 @@ export class EventRepository {
     })
 
     const totalPesertaUpdated = updated.booking_event.reduce((acc, curr) => acc + (curr.jumlah_peserta || 1), 0)
-    const { booking_event: updatedBookings, ...updatedEventData } = updated
+    const { booking_event: _updatedBookings, ...updatedEventData } = updated
 
     return {
       ...updatedEventData,

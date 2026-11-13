@@ -329,8 +329,14 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     params.testId.toLowerCase().includes("phq")
   );
 
+  const isCDI = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("CDI") ||
+    dbPackage?.judul?.toUpperCase().includes("CDI") ||
+    params.testId.toLowerCase().includes("cdi")
+  );
+
   const isHarmDetected =
-    isPHQ9 && (Boolean(bookingReport?.detailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
+    (isPHQ9 || isCDI) && (Boolean(bookingReport?.detailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
 
   const rcmasSubscales = isRCMAS
     ? (() => {
@@ -369,6 +375,66 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             max: 7,
             colorHex: "#0e7490",
             deskripsi: "Skor mentah dimensi kecemasan konsentrasi (maks. 7 butir).",
+          },
+        ];
+      })()
+    : null;
+
+  const cdiSubscales = isCDI
+    ? (() => {
+        const sub = bookingReport?.detailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const nm = readSubScore(sub?.negativeMood, "cdi_nm");
+        const ip = readSubScore(sub?.interpersonalProblem, "cdi_ip");
+        const ineff = readSubScore(sub?.ineffectiveness, "cdi_ineff");
+        const anh = readSubScore(sub?.anhedonia, "cdi_anh");
+        const nse = readSubScore(sub?.negativeSelfEsteem, "cdi_nse");
+        if (nm === null && ip === null && ineff === null && anh === null && nse === null) return null;
+        return [
+          {
+            key: "negativeMood",
+            label: "Suasana Hati Negatif (Negative Mood)",
+            score: Number(nm ?? 0),
+            max: 12,
+            colorHex: "#561269",
+            deskripsi: "Skor mentah dimensi perasaan sedih, rasa bersalah, kekhawatiran, tangisan, dan kebimbangan (maks. 12).",
+          },
+          {
+            key: "interpersonalProblem",
+            label: "Masalah Antar Pribadi (Interpersonal Problems)",
+            score: Number(ip ?? 0),
+            max: 8,
+            colorHex: "#763E8B",
+            deskripsi: "Skor mentah dimensi kesulitan interaksi sosial, penarikan diri, dan konflik pergaulan (maks. 8).",
+          },
+          {
+            key: "ineffectiveness",
+            label: "Ketidakefektifan (Ineffectiveness)",
+            score: Number(ineff ?? 0),
+            max: 8,
+            colorHex: "#0e7490",
+            deskripsi: "Skor mentah dimensi perasaan gagal, penurunan motivasi sekolah, dan inkompetensi (maks. 8).",
+          },
+          {
+            key: "anhedonia",
+            label: "Anhedonia / Kesedihan (Anhedonia)",
+            score: Number(anh ?? 0),
+            max: 16,
+            colorHex: "#c026d3",
+            deskripsi: "Skor mentah dimensi kemurungan, gangguan tidur, kelelahan, nafsu makan, dan kesepian (maks. 16).",
+          },
+          {
+            key: "negativeSelfEsteem",
+            label: "Harga Diri Negatif (Negative Self-Esteem)",
+            score: Number(nse ?? 0),
+            max: 10,
+            colorHex: "#e11d48",
+            deskripsi: "Skor mentah dimensi kebencian pada diri, keraguan keputusan, keputusasaan, dan citra diri (maks. 10).",
           },
         ];
       })()
@@ -590,21 +656,35 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   deskripsi: s.deskripsi,
                   colorHex: s.colorHex,
                 }))
-              : undefined,
+              : cdiSubscales
+                ? cdiSubscales.map((s) => ({
+                    name: s.label,
+                    score: s.score,
+                    maxScore: s.max,
+                    percentage: s.max > 0 ? Math.round((s.score / s.max) * 100) : 0,
+                    grade: `${s.score} / ${s.max}`,
+                    deskripsi: s.deskripsi,
+                    colorHex: s.colorHex,
+                  }))
+                : undefined,
         subscalesTitle: dassEvaluation
           ? "Profil 3 Dimensi: Depresi, Kecemasan, & Stres"
           : pbqProfile
             ? "Profil Skor Mentah 9 Skala Kepribadian (PBQ)"
             : rcmasSubscales
               ? "Profil Tiga Dimensi Kecemasan RCMAS"
-              : undefined,
+              : cdiSubscales
+                ? "Profil Lima Dimensi Depresi CDI"
+                : undefined,
         subscalesMaxNote: dassEvaluation
           ? "Maks. 42 / dimensi"
           : pbqProfile
             ? "Maks. 56 / skala (tanpa skor total)"
             : rcmasSubscales
               ? "Skor mentah per dimensi (tanpa cutoff terpisah)"
-              : undefined,
+              : cdiSubscales
+                ? "Skor mentah per dimensi (cut-off klinis total >= 19)"
+                : undefined,
         kekuatanUtama: berbayarDetail.kekuatanUtama,
         judulKekuatan: berbayarDetail.judulKekuatan,
         blindspots: berbayarDetail.blindspots,
@@ -1002,6 +1082,42 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
                   <div className="space-y-3.5">
                     {rcmasSubscales.map((sub) => {
+                      const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                      return (
+                        <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-sm text-gray-900">{sub.label}</span>
+                            <span className="text-xs font-bold text-[#561269]">
+                              {sub.score} <span className="text-gray-400 font-normal">/ {sub.max}</span>
+                            </span>
+                          </div>
+                          <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                              style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-600 leading-relaxed">{sub.deskripsi}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Profil Lima Dimensi Depresi CDI */}
+              {cdiSubscales && (
+                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <Compass className="w-5 h-5 text-[#561269]" />
+                      Profil Lima Dimensi Depresi CDI
+                    </h3>
+                    <span className="text-xs font-semibold text-gray-400">Skor mentah per dimensi (cut-off total ≥ 19)</span>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {cdiSubscales.map((sub) => {
                       const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
                       return (
                         <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">

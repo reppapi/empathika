@@ -44,9 +44,10 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
 
   // Evaluasi jenis akses psikotes: gratis atau berbayar
   const isExplicitFree =
-    searchParams.get("paket") === "gratis" &&
-    !searchParams.get("orderId") &&
-    !params.testId.toLowerCase().includes("dass");
+    searchParams.get("paket") === "gratis" ||
+    (searchParams.get("paket") !== "berbayar" &&
+      !searchParams.get("orderId") &&
+      !params.testId.toLowerCase().includes("dass"));
 
   const isPaid =
     !isExplicitFree &&

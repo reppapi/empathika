@@ -127,9 +127,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
   const questions = (dbData?.soal_psikotes && dbData.soal_psikotes.length > 0)
     ? dbData.soal_psikotes.map((s) => {
-        const sortedPilihan = [...(s.pilihan_jawaban || [])].sort(
-          (a, b) => (Number(a.bobot) || 0) - (Number(b.bobot) || 0)
-        );
+        const sortedPilihan = [...(s.pilihan_jawaban || [])].sort((a, b) => {
+          const numA = Number(a.label);
+          const numB = Number(b.label);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return (Number(a.bobot) || 0) - (Number(b.bobot) || 0);
+        });
         return {
           id: s.id,
           text: s.pertanyaan,
@@ -190,6 +193,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     dbData?.alat_ukur?.kode?.toUpperCase().includes("GAD") ||
     dbData?.judul?.toUpperCase().includes("GAD") ||
     params.testId.toLowerCase().includes("gad");
+
+  const isCDI =
+    dbData?.alat_ukur?.kode?.toUpperCase().includes("CDI") ||
+    dbData?.judul?.toUpperCase().includes("CDI") ||
+    params.testId.toLowerCase().includes("cdi");
 
   const isPaidFlow = Boolean(
     isDASS ||
@@ -373,7 +381,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       ? "Dalam 12 bulan terakhir, seberapa sering kamu:"
       : isDASS
       ? "Dalam 1 minggu terakhir, seberapa sering kamu:"
-      : isPHQ || isGAD
+      : isPHQ || isGAD || isCDI
       ? "Dalam 2 minggu terakhir, seberapa sering kamu:"
       : "Pilihlah opsi yang paling menggambarkan kondisimu:");
 
@@ -624,7 +632,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           } catch {}
         }
 
-        // Jika ada data subscales (DASS-42 / RCMAS), simpan skor per dimensi ke URL
+        // Jika ada data subscales (DASS-42 / RCMAS / CDI), simpan skor per dimensi ke URL
         if (res.data.detail_skor?.subscales) {
           const subs = res.data.detail_skor.subscales;
           if (subs.depression?.skor !== undefined) query.set("dep", String(subs.depression.skor));
@@ -633,6 +641,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (subs.physiological?.skor !== undefined) query.set("phys", String(subs.physiological.skor));
           if (subs.worry?.skor !== undefined) query.set("worry", String(subs.worry.skor));
           if (subs.concentration?.skor !== undefined) query.set("conc", String(subs.concentration.skor));
+          if (subs.negativeMood?.skor !== undefined) query.set("cdi_nm", String(subs.negativeMood.skor));
+          if (subs.interpersonalProblem?.skor !== undefined) query.set("cdi_ip", String(subs.interpersonalProblem.skor));
+          if (subs.ineffectiveness?.skor !== undefined) query.set("cdi_ineff", String(subs.ineffectiveness.skor));
+          if (subs.anhedonia?.skor !== undefined) query.set("cdi_anh", String(subs.anhedonia.skor));
+          if (subs.negativeSelfEsteem?.skor !== undefined) query.set("cdi_nse", String(subs.negativeSelfEsteem.skor));
         }
 
         // Jika ada skor Lie Scale (RCMAS), simpan ke URL (untuk dashboard psikolog)
@@ -647,15 +660,20 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (dsm.isIndikasiEvaluasi) query.set("dsmAlert", "1");
         }
 
-        // Protokol Krisis / Melukai Diri HANYA berlaku untuk instrumen PHQ-9 (Butir 9).
-        // Instrumen DASS-42 dan GAD-7 tidak memiliki butir skrining melukai diri.
+        // Protokol Krisis / Melukai Diri untuk instrumen PHQ-9 dan CDI (Butir 9).
+        // Instrumen DASS-42, GAD-7, dan RCMAS tidak memiliki butir skrining melukai diri.
         const isPHQ9 =
           dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
           dbData?.judul?.toUpperCase().includes("PHQ") ||
           params.testId.toLowerCase().includes("phq");
 
+        const isCDI =
+          dbData?.alat_ukur?.kode?.toUpperCase().includes("CDI") ||
+          dbData?.judul?.toUpperCase().includes("CDI") ||
+          params.testId.toLowerCase().includes("cdi");
+
         const hasHarm =
-          isPHQ9 &&
+          (isPHQ9 || isCDI) &&
           Boolean(
             res.data.detail_skor?.ideMelukaiDiri ||
             (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0)

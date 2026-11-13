@@ -57,7 +57,7 @@ export class PsikotesRepository {
         soal_psikotes: {
           include: {
             pilihan_jawaban: {
-              orderBy: { bobot: 'asc' },
+              orderBy: { label: 'asc' },
             },
           },
           orderBy: { urutan: 'asc' },
@@ -89,7 +89,7 @@ export class PsikotesRepository {
         soal_psikotes: {
           include: {
             pilihan_jawaban: {
-              orderBy: { bobot: 'asc' },
+              orderBy: { label: 'asc' },
             },
           },
           orderBy: { urutan: 'asc' },
@@ -165,7 +165,7 @@ export class PsikotesRepository {
         soal_psikotes: {
           include: {
             pilihan_jawaban: {
-              orderBy: { bobot: 'asc' },
+              orderBy: { label: 'asc' },
             },
           },
           orderBy: { urutan: 'asc' },
@@ -348,7 +348,7 @@ export class PsikotesRepository {
           soal_psikotes: {
             include: {
               pilihan_jawaban: {
-                orderBy: { bobot: 'asc' },
+                orderBy: { label: 'asc' },
               },
             },
             orderBy: { urutan: 'asc' },
@@ -422,7 +422,7 @@ export class PsikotesRepository {
           soal_psikotes: {
             include: {
               pilihan_jawaban: {
-                orderBy: { bobot: 'asc' },
+                orderBy: { label: 'asc' },
               },
             },
             orderBy: { urutan: 'asc' },
