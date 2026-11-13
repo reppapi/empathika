@@ -73,7 +73,7 @@ export class TransaksiService {
       const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
-      let client = null
+      let client: any = null
       if (loggedInClientId) {
         client = await tx.client.findUnique({ where: { id: loggedInClientId } })
       }
@@ -183,6 +183,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,
@@ -303,6 +306,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,
@@ -392,6 +398,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,

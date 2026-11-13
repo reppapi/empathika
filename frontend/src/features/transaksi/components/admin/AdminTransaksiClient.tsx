@@ -444,29 +444,32 @@ function normalizeTransaksi(raw: any) {
   }
 
   const clientName =
+    parsedDataPembayaran?.nama_pemesan ||
+    parsedDataPembayaran?.nama ||
     client.nama ||
     bookingPsikotes.client?.nama ||
     bookingEvent.client?.nama ||
-    parsedDataPembayaran?.nama ||
     client.name ||
     "–"
 
   const clientEmail =
+    parsedDataPembayaran?.email_pemesan ||
+    parsedDataPembayaran?.email ||
     client.email ||
     bookingPsikotes.client?.email ||
     bookingEvent.client?.email ||
-    parsedDataPembayaran?.email ||
     raw.email ||
     "–"
 
   const clientPhone =
+    parsedDataPembayaran?.no_telepon_pemesan ||
+    parsedDataPembayaran?.no_telepon ||
+    parsedDataPembayaran?.phone ||
     client.no_telepon ||
     bookingPsikotes.client?.no_telepon ||
     bookingEvent.client?.no_telepon ||
     client.no_hp ||
     client.phone ||
-    parsedDataPembayaran?.no_telepon ||
-    parsedDataPembayaran?.phone ||
     "–"
 
   return {
