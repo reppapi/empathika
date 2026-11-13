@@ -1,6 +1,7 @@
 "use client"
 
 import FormDataPeserta from "@/components/shared/checkout/FormDataPeserta"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 import MetodePembayaranBox from "@/components/shared/checkout/MetodePembayaranBox"
 import Link from "next/link"
 import { useEventCheckout } from "../../hooks/useEventCheckout"
@@ -424,41 +425,62 @@ export default function EventCheckoutClient() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                          Nomor WhatsApp Peserta {idx + 2} <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="tel"
-                          placeholder="Contoh: 08123456789"
+                        <PhoneInputField
+                          label={`No WhatsApp Peserta ${idx + 2}`}
+                          required
                           value={p.whatsapp}
-                          onChange={(e) => {
-                            const val = e.target.value
+                          onChange={(formatted, cleanDigits) => {
                             setPesertaTambahan((prev) => {
                               const next = [...prev]
-                              next[idx] = { ...next[idx], whatsapp: val }
+                              next[idx] = { ...next[idx], whatsapp: formatted }
                               return next
                             })
-                            if (pErr?.whatsapp) {
-                              setErrors((prev) => {
-                                const next = { ...prev }
-                                if (next.pesertaTambahanErrors?.[idx]) {
-                                  delete next.pesertaTambahanErrors[idx].whatsapp
-                                }
-                                return next
-                              })
+                            if (setErrors) {
+                              if (cleanDigits.length > 0 && !cleanDigits.startsWith("8")) {
+                                setErrors((prev: any) => {
+                                  const next = { ...prev }
+                                  if (!next.pesertaTambahanErrors) next.pesertaTambahanErrors = []
+                                  next.pesertaTambahanErrors[idx] = {
+                                    ...next.pesertaTambahanErrors[idx],
+                                    whatsapp: `Nomor WhatsApp peserta ${idx + 2} harus diawali angka 8.`,
+                                  }
+                                  return next
+                                })
+                              } else if (cleanDigits.length > 13) {
+                                setErrors((prev: any) => {
+                                  const next = { ...prev }
+                                  if (!next.pesertaTambahanErrors) next.pesertaTambahanErrors = []
+                                  next.pesertaTambahanErrors[idx] = {
+                                    ...next.pesertaTambahanErrors[idx],
+                                    whatsapp: `Nomor WhatsApp peserta ${idx + 2} terlalu panjang.`,
+                                  }
+                                  return next
+                                })
+                              } else if (attemptedSubmit && cleanDigits.length < 9) {
+                                setErrors((prev: any) => {
+                                  const next = { ...prev }
+                                  if (!next.pesertaTambahanErrors) next.pesertaTambahanErrors = []
+                                  next.pesertaTambahanErrors[idx] = {
+                                    ...next.pesertaTambahanErrors[idx],
+                                    whatsapp: `Nomor WhatsApp peserta ${idx + 2} terlalu pendek.`,
+                                  }
+                                  return next
+                                })
+                              } else {
+                                setErrors((prev: any) => {
+                                  const next = { ...prev }
+                                  if (next.pesertaTambahanErrors?.[idx]) {
+                                    delete next.pesertaTambahanErrors[idx].whatsapp
+                                  }
+                                  return next
+                                })
+                              }
                             }
                           }}
-                          className={`w-full rounded-xl border bg-white px-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 ${
-                            pErr?.whatsapp
-                              ? "border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-red-500"
-                              : "border-gray-200 focus:border-[#561269] focus:ring-[#561269]"
-                          }`}
+                          error={pErr?.whatsapp}
+                          helperText="Otomatis diawali +62 (Indonesia). Nomor harus aktif untuk tiket & pengumuman."
+                          theme="purple"
                         />
-                        {pErr?.whatsapp && (
-                          <span className="block text-[11px] text-red-600 font-semibold mt-1">
-                            {pErr.whatsapp}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>

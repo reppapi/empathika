@@ -62,6 +62,23 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
     handler: controller.createPayment,
   })
 
+  // ── Simulasi Konfirmasi Pembayaran (Frontend Mock / Testing) ───
+  fastify.post('/:id/confirm-simulation', {
+    schema: {
+      tags: ['Transaksi'],
+      summary: 'Konfirmasi pembayaran simulasi untuk development / testing tanpa webhook Xendit',
+      params: z.object({ id: z.string() }),
+      response: {
+        200: z.object({
+          success: z.boolean(),
+          message: z.string(),
+          data: z.any().optional(),
+        }),
+      },
+    },
+    handler: controller.confirmSimulation,
+  })
+
   // ── Webhook Xendit Callback ─────────────────────────────────────
   fastify.post('/webhook', {
     schema: {

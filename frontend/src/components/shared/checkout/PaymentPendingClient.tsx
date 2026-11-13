@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { bookingService } from "@/services/booking.service"
+import { transaksiService } from "@/services/transaksi.service"
 import {
   CONFIGS,
   PaymentPendingType,
@@ -26,6 +27,7 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
   const deskripsi = searchParams.get("deskripsi") ?? ""
   const rawOrderId = searchParams.get("orderId") ?? "W-EMP-0000"
   const orderId = formatOrderId(rawOrderId)
+  const transaksiId = searchParams.get("transaksiId") ?? ""
   const bookingId = searchParams.get("bookingId") ?? ""
   const slotId = searchParams.get("slotId") ?? ""
   const psikologId = searchParams.get("psikologId") ?? ""
@@ -133,6 +135,12 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
             }
           })
           .catch(() => {})
+      }
+    } else if (type === "event") {
+      // Konfirmasi simulasi pembayaran event ke transaksi terpusat
+      const targetId = transaksiId || bookingId || rawOrderId
+      if (targetId) {
+        transaksiService.confirmPaymentSimulation(targetId).catch(() => {})
       }
     }
 
