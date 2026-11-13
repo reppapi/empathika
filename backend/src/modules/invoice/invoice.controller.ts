@@ -6,7 +6,7 @@
 
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { InvoiceService } from './invoice.service'
-import { buildInvoiceWhatsAppText, validateWhatsAppNumber } from './invoice.helper'
+import { validateWhatsAppNumber } from './invoice.helper'
 
 export class InvoiceController {
   private service: InvoiceService

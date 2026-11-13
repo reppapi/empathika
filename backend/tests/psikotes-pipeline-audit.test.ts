@@ -191,7 +191,7 @@ describe('Audit Pipeline Psikotes (A–G)', () => {
         1: 4, 2: 4, 3: 4, 4: 4, 5: 4, 6: 4, 7: 4, 8: 4, 9: 4,
       })
       expect(res.totalSkor).toBe(36)
-      expect(res.kategori).toBe('Kemungkinan IGD')
+      expect(res.kategori).toBe('Kemungkinan Internet Gaming Disorder (IGD)')
       expect(res.dsmEvaluation.isIndikasiEvaluasi).toBe(true)
     })
   })

@@ -57,7 +57,7 @@ export class PsikotesRepository {
         soal_psikotes: {
           include: {
             pilihan_jawaban: {
-              orderBy: { bobot: 'asc' },
+              orderBy: { label: 'asc' },
             },
           },
           orderBy: { urutan: 'asc' },
@@ -89,12 +89,14 @@ export class PsikotesRepository {
         soal_psikotes: {
           include: {
             pilihan_jawaban: {
-              orderBy: { bobot: 'asc' },
+              orderBy: { label: 'asc' },
             },
           },
           orderBy: { urutan: 'asc' },
         },
-        interpretasi_psikotes: true,
+        interpretasi_psikotes: {
+          orderBy: { min_skor: 'asc' },
+        },
         alat_ukur: true,
         _count: {
           select: {
@@ -106,19 +108,54 @@ export class PsikotesRepository {
 
     if (!item) return null
 
-    // Lengkapi metadata dinamis alat ukur (instruksi, target usia, periode)
+    // Lengkapi metadata dinamis alat ukur (instruksi, target usia, periode, pengembang, dimensi, referensi)
     if (item.alat_ukur) {
       const modul = getAlatUkur(item.alat_ukur.kode)
       if (modul) {
         const alatUkurObj = item.alat_ukur as Record<string, any>
-        alatUkurObj.instruksi = modul.config.instruksi
-        alatUkurObj.instruksiSingkat = modul.config.instruksiSingkat || modul.config.instruksi
-        alatUkurObj.targetUsia = modul.config.targetUsia
-        alatUkurObj.periode = modul.config.periode
+        const cfg = modul.config as any
+        alatUkurObj.instruksi = cfg.instruksi
+        alatUkurObj.instruksiSingkat = cfg.instruksiSingkat || cfg.instruksi
+        alatUkurObj.targetUsia = cfg.targetUsia
+        alatUkurObj.periode = cfg.periode
+        alatUkurObj.pengembang = cfg.pengembang || null
+        alatUkurObj.tahun = cfg.tahun || null
+        alatUkurObj.tujuan = cfg.tujuan || null
+        alatUkurObj.targetResponden = cfg.targetResponden || cfg.targetUsia || null
+        alatUkurObj.referensi = cfg.referensi || null
+        alatUkurObj.rentangSkorTotal = cfg.rentangSkorTotal || null
+        alatUkurObj.cutoff = cfg.cutoff || null
+        alatUkurObj.dimensiList = cfg.dimensiList || null
+        alatUkurObj.aturanSkoring = cfg.aturanSkoring || null
       }
     }
 
-    return item
+    // Agregasi statistik aktual peserta untuk paket ini dari database
+    const statusCounts = await this.prisma.bookingPsikotes.groupBy({
+      by: ['status_pengerjaan'],
+      where: { id_paket: item.id },
+      _count: { _all: true },
+    })
+
+    let tesSelesai = 0
+    let tesSedangBerlangsung = 0
+    for (const sc of statusCounts) {
+      if (sc.status_pengerjaan === 'SELESAI') {
+        tesSelesai += sc._count._all
+      } else {
+        tesSedangBerlangsung += sc._count._all
+      }
+    }
+    const totalPeserta = tesSelesai + tesSedangBerlangsung
+
+    return {
+      ...item,
+      statistik: {
+        total_peserta: totalPeserta,
+        tes_selesai: tesSelesai,
+        tes_sedang_berlangsung: tesSedangBerlangsung,
+      },
+    }
   }
 
   async create(data: CreatePsikotesInput) {
@@ -165,7 +202,7 @@ export class PsikotesRepository {
         soal_psikotes: {
           include: {
             pilihan_jawaban: {
-              orderBy: { bobot: 'asc' },
+              orderBy: { label: 'asc' },
             },
           },
           orderBy: { urutan: 'asc' },
@@ -348,7 +385,7 @@ export class PsikotesRepository {
           soal_psikotes: {
             include: {
               pilihan_jawaban: {
-                orderBy: { bobot: 'asc' },
+                orderBy: { label: 'asc' },
               },
             },
             orderBy: { urutan: 'asc' },
@@ -422,7 +459,7 @@ export class PsikotesRepository {
           soal_psikotes: {
             include: {
               pilihan_jawaban: {
-                orderBy: { bobot: 'asc' },
+                orderBy: { label: 'asc' },
               },
             },
             orderBy: { urutan: 'asc' },

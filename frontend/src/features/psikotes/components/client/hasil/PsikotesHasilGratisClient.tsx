@@ -182,14 +182,21 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const rawSkor = searchParams.get("skor");
   const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
 
-  // Protokol darurat / Crisis Hotline HANYA untuk PHQ-9 (Butir 9 ide bunuh diri)
+  // Protokol darurat / Crisis Hotline untuk PHQ-9 & CDI (Butir 9 ide bunuh diri)
   const isPHQ9 = Boolean(
     dbPackage?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
     dbPackage?.judul?.toUpperCase().includes("PHQ") ||
     params.testId.toLowerCase().includes("phq")
   );
+
+  const isCDI = Boolean(
+    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("CDI") ||
+    dbPackage?.judul?.toUpperCase().includes("CDI") ||
+    params.testId.toLowerCase().includes("cdi")
+  );
+
   const isHarmDetected =
-    isPHQ9 && (Boolean(bookingDetailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
+    (isPHQ9 || isCDI) && (Boolean(bookingDetailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
 
   const isRCMAS = Boolean(
     dbPackage?.alat_ukur?.kode?.toUpperCase().includes("RCMAS") ||
@@ -233,6 +240,32 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
           { key: "physiological", label: "Physiological Anxiety", score: Number(phys ?? 0), max: 10 },
           { key: "worry", label: "Worry / Oversensitivity", score: Number(worry ?? 0), max: 11 },
           { key: "concentration", label: "Concentration Anxiety", score: Number(conc ?? 0), max: 7 },
+        ];
+      })()
+    : null;
+
+  // Subskala lima dimensi depresi CDI (anak & remaja 7–19 tahun)
+  const cdiSubscales = isCDI
+    ? (() => {
+        const sub = bookingDetailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const nm = readSubScore(sub?.negativeMood, "cdi_nm");
+        const ip = readSubScore(sub?.interpersonalProblem, "cdi_ip");
+        const ineff = readSubScore(sub?.ineffectiveness, "cdi_ineff");
+        const anh = readSubScore(sub?.anhedonia, "cdi_anh");
+        const nse = readSubScore(sub?.negativeSelfEsteem, "cdi_nse");
+        if (nm === null && ip === null && ineff === null && anh === null && nse === null) return null;
+        return [
+          { key: "negativeMood", label: "Suasana Hati Negatif (Negative Mood)", score: Number(nm ?? 0), max: 12 },
+          { key: "interpersonalProblem", label: "Masalah Antar Pribadi (Interpersonal Problems)", score: Number(ip ?? 0), max: 8 },
+          { key: "ineffectiveness", label: "Ketidakefektifan (Ineffectiveness)", score: Number(ineff ?? 0), max: 8 },
+          { key: "anhedonia", label: "Anhedonia / Kesedihan (Anhedonia)", score: Number(anh ?? 0), max: 16 },
+          { key: "negativeSelfEsteem", label: "Harga Diri Negatif (Negative Self-Esteem)", score: Number(nse ?? 0), max: 10 },
         ];
       })()
     : null;
@@ -451,6 +484,41 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
             </div>
             <div className="space-y-3">
               {rcmasSubscales.map((sub) => {
+                const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                return (
+                  <div key={sub.key} className="p-3.5 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="font-bold text-gray-900">{sub.label}</span>
+                      <span className="font-extrabold text-[#561269]">
+                        {sub.score} <span className="text-xs font-medium text-gray-400">/ {sub.max}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                        style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 2a-3. Lima Dimensi Depresi Anak & Remaja CDI */}
+        {cdiSubscales && (
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-4">
+            <div className="space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#561269]">
+                Profil Lima Dimensi Depresi CDI
+              </p>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Skor mentah masing-masing dimensi depresi anak &amp; remaja yang diukur (menunjukkan kedalaman aspek sindrom depresi).
+              </p>
+            </div>
+            <div className="space-y-3">
+              {cdiSubscales.map((sub) => {
                 const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
                 return (
                   <div key={sub.key} className="p-3.5 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 space-y-1.5">

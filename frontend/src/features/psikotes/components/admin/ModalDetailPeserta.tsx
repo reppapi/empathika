@@ -326,6 +326,64 @@ export default function ModalDetailPeserta({
                 </div>
               )}
 
+              {/* Rincian 5 Dimensi Depresi Anak & Remaja (CDI) */}
+              {peserta.hasil?.detail_skor?.subscales?.negativeMood && peserta.hasil?.detail_skor?.subscales?.anhedonia && (
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider">
+                      Rincian 5 Dimensi Depresi Anak &amp; Remaja (CDI)
+                    </span>
+                    <span className="text-[10px] font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">
+                      Cut-off Klinis ≥ 19 (Maks. 54)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Suasana Hati Negatif</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.negativeMood?.skor ?? 0} / 12
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Masalah Antar Pribadi</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.interpersonalProblem?.skor ?? 0} / 8
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Ketidakefektifan</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.ineffectiveness?.skor ?? 0} / 8
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Anhedonia / Kesedihan</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.anhedonia?.skor ?? 0} / 16
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Harga Diri Negatif</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.negativeSelfEsteem?.skor ?? 0} / 10
+                      </span>
+                    </div>
+                  </div>
+
+                  {peserta.hasil?.detail_skor?.ideMelukaiDiri && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200/80 flex items-start gap-2.5">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5 text-xs text-rose-950">
+                        <span className="font-bold">Indikasi Ide Melukai Diri (Butir 9 &gt; 0):</span>
+                        <p className="text-[11px] leading-relaxed">
+                          Peserta mengindikasikan adanya pikiran tentang mengakhiri hidup / menyakiti diri sendiri. Diperlukan perhatian khusus dan tindak lanjut segera.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Potensi & Area Pengembangan */}
               {(detail.kekuatanUtama.length > 0 || detail.blindspots.length > 0) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

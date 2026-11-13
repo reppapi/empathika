@@ -17,10 +17,31 @@ export interface PaketPsikotesApiResponse {
     kode: string
     nama: string
     kategori: string
+    deskripsi?: string | null
     instruksi?: string
     instruksiSingkat?: string
     targetUsia?: string
     periode?: string
+    pengembang?: string | null
+    tahun?: string | null
+    tujuan?: string | null
+    targetResponden?: string | null
+    referensi?: string | null
+    rentangSkorTotal?: string | null
+    cutoff?: string | null
+    dimensiList?: Array<{
+      nama: string
+      deskripsi: string
+      nomorSoal: number[]
+      jumlahSoal: number
+      skorMin: number
+      skorMax: number
+    }> | null
+    aturanSkoring?: Array<{
+      kelompok: string
+      nomorSoal: number[]
+      pembobotan: string
+    }> | null
   } | null
   soal_psikotes?: Array<{
     id: string
@@ -45,6 +66,11 @@ export interface PaketPsikotesApiResponse {
     deskripsi: string
     tips?: any
   }>
+  statistik?: {
+    total_peserta: number
+    tes_selesai: number
+    tes_sedang_berlangsung: number
+  }
   _count?: {
     booking_psikotes: number
   }
@@ -125,9 +151,6 @@ export const psikotesService = {
 
   submitJawaban: (testId: string, payload: SubmitPsikotesPayload) =>
     apiClient.post<{ success: boolean; message: string; data: SubmitPsikotesResult }>(`/psikotes/${testId}/submit`, payload).then((r) => r.data),
-
-  getHasil: (testId: string) =>
-    apiClient.get(`/psikotes/${testId}/hasil`).then((r) => r.data),
 
   getPeserta: (params?: { search?: string; jenis_akses?: string; id_paket?: string; page?: number; limit?: number }) =>
     apiClient
