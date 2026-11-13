@@ -200,26 +200,17 @@ export function EventListClient() {
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                       />
-                      <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
-                        <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">
+                      <div className="absolute top-3 left-3 flex flex-col gap-0.5 items-start">
+                        <span className="text-[11px] font-bold text-white drop-shadow uppercase tracking-wider">
                           {ev.jenis_event}
-                        </div>
-                        {/* Badge Online / Offline */}
-                        <div
-                          className={`backdrop-blur-sm px-3 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm tracking-wide ${
-                            isOnline
-                              ? "bg-blue-600/90 text-white"
-                              : "bg-emerald-600/90 text-white"
-                          }`}
-                        >
+                        </span>
+                        <span className={`text-[10px] font-semibold drop-shadow ${isOnline ? "text-blue-200" : "text-emerald-200"}`}>
                           {isOnline ? "Online" : "Offline"}
-                        </div>
-
-                        {/* Badge Bundling jika ada */}
+                        </span>
                         {hasBundling && (
-                          <div className="bg-amber-400 text-gray-950 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full shadow-sm tracking-wide">
+                          <span className="text-[10px] font-semibold text-amber-200 drop-shadow">
                             Tersedia {namaBundling}
-                          </div>
+                          </span>
                         )}
                       </div>
                     </div>

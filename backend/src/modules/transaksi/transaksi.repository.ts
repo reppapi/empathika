@@ -193,7 +193,19 @@ export class TransaksiRepository {
         throw Object.assign(new Error('Hanya transaksi dengan status lunas (PAID) yang dapat direfund'), { statusCode: 422 })
       }
 
+      // Validasi: Hanya Konsultasi & Asesmen Offline (BookingKonsultasi) yang dapat direfund
+      // Event, Psikotes Online, dan Webinar bersifat final dan tidak dapat direfund
+      if (transaksi.tipe_transaksi === 'EVENT' || transaksi.booking_event) {
+        throw Object.assign(new Error('Pendaftaran Event / Workshop bersifat final dan tidak dapat di-refund'), { statusCode: 422 })
+      }
+      if (transaksi.tipe_transaksi === 'PSIKOTES' || transaksi.booking_psikotes) {
+        throw Object.assign(new Error('Pembelian Paket Tes Psikotes Online bersifat final dan tidak dapat di-refund'), { statusCode: 422 })
+      }
+
       const booking = transaksi.booking_konsultasi
+      if (!booking) {
+        throw Object.assign(new Error('Refund hanya berlaku untuk layanan Konsultasi dan Asesmen Offline'), { statusCode: 422 })
+      }
 
       // Validasi H-1 untuk konsultasi
       if (booking?.jadwal) {
@@ -282,14 +294,6 @@ export class TransaksiRepository {
             data: { status: 'TERSEDIA' },
           }).catch(() => {})
         }
-      }
-
-      // 3. Jika Event: batalkan booking_event
-      if (transaksi.booking_event) {
-        await tx.bookingEvent.update({
-          where: { id: transaksi.booking_event.id },
-          data: { status: 'CANCELLED' },
-        }).catch(() => {})
       }
 
       return {

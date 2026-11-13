@@ -203,11 +203,21 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   }
 
   const [copiedTicket, setCopiedTicket] = useState(false)
+  const [copiedMeet, setCopiedMeet] = useState(false)
+
   const handleCopyTicket = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(orderId)
       setCopiedTicket(true)
       setTimeout(() => setCopiedTicket(false), 2000)
+    }
+  }
+
+  const handleCopyMeet = () => {
+    if (linkMeet && typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(linkMeet)
+      setCopiedMeet(true)
+      setTimeout(() => setCopiedMeet(false), 2000)
     }
   }
 
@@ -454,25 +464,46 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
                 </span>
               </div>
 
-              {/* Akses Event: hanya Google Meet (di dalam tiket).
-                  Tombol Gabung Grup WhatsApp dipindahkan ke luar tiket (Action Buttons). */}
+              {/* Akses Event: Google Meet link & copy box */}
               {type === "event" && isOnlineEvent && linkMeet && (
-                <div className="pt-3.5 mt-3 border-t border-dashed border-[#DCD0E1] flex flex-col gap-2">
-                  <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
-                    Akses Event Anda
-                  </div>
-                  <a
-                    href={linkMeet}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-between shadow-sm transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Video className="w-4 h-4 shrink-0" />
-                      <span>Gabung Google Meet</span>
+                <div className="pt-3.5 mt-3 border-t border-dashed border-[#DCD0E1]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Video className="w-3.5 h-3.5 text-blue-600" />
+                      <span>LINK PERTEMUAN (GOOGLE MEET)</span>
                     </div>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
+                    <button
+                      type="button"
+                      onClick={handleCopyMeet}
+                      className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedMeet ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-600">Tersalin!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200/60 flex items-center justify-between gap-2">
+                    <a
+                      href={linkMeet}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-xs text-blue-700 hover:underline truncate flex-1 flex items-center gap-1.5"
+                    >
+                      <span className="truncate">{linkMeet}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0 text-blue-500" />
+                    </a>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">
+                    Klik link untuk membuka langsung, atau salin untuk disimpan.
+                  </p>
                 </div>
               )}
 
