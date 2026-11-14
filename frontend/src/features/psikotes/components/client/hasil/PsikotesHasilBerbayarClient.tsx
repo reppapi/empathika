@@ -644,7 +644,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         noDokumen,
         judulTes: displayTestName,
         tanggalAsesmen: peserta.tanggal,
-        masaBerlaku: "Masa Berlaku: 14 Hari (2 Minggu)",
+        masaBerlaku: "Masa Berlaku: Tanpa Batas Waktu",
         peserta: {
           nama: peserta.nama || "Peserta Asesmen Empathika",
           noHp: peserta.noHp || peserta.noTeleponOrangTua || null,
@@ -967,7 +967,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-200">
                   <Calendar className="w-3.5 h-3.5" />
-                  Masa Berlaku: 14 Hari (2 Minggu)
+                  Masa Berlaku: Tanpa Batas Waktu
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <ShieldCheck className="w-3.5 h-3.5" />

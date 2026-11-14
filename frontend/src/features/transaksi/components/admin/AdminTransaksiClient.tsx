@@ -373,7 +373,7 @@ function normalizeTransaksi(raw: any) {
         : ""
       jadwalDisplay = tglSelesai ? `Tes Selesai (${tglSelesai})` : "Tes Selesai"
     } else {
-      jadwalDisplay = "Akses Mandiri • Berlaku 14 Hari"
+      jadwalDisplay = "Akses Mandiri • Tanpa Batas Waktu"
     }
   } else if (jenisLayanan === "event" && bookingEvent.event) {
     const ev = bookingEvent.event
@@ -1028,7 +1028,7 @@ export default function AdminTransaksiClient() {
                       </p>
                       {activeDetailItem.jenisLayanan === "psikotes" && (
                         <p className="text-gray-500">
-                          Masa Berlaku: <span className="font-semibold text-gray-800">14 Hari sejak pembelian</span>
+                          Masa Berlaku: <span className="font-semibold text-gray-800">Tanpa Batas Waktu</span>
                         </p>
                       )}
                     </div>

@@ -110,6 +110,43 @@ export function isGAD(data?: DetectablePackage | null, fallbackId?: string): boo
 }
 
 /**
+ * Target Rentang Usia Baku Sesuai Materi Handout & Manual Resmi Alat Ukur
+ */
+export function getInstrumentTargetUsia(
+  data?: DetectablePackage | null,
+  fallbackId?: string
+): string {
+  const code = getInstrumentCode(data, fallbackId);
+  switch (code) {
+    case "CATS":
+      return "7–17 Tahun (Anak & Remaja)";
+    case "CDI":
+      return "7–19 Tahun (Anak & Remaja)";
+    case "RCMAS":
+      return "6–19 Tahun (Anak & Remaja)";
+    case "DASS":
+      return "13 Tahun ke Atas (Remaja & Dewasa)";
+    case "IGDS":
+      return "11 Tahun ke Atas (Anak-anak hingga Dewasa)";
+    case "PHQ":
+      return "18 Tahun ke Atas (Dewasa)";
+    case "GAD":
+      return "18 Tahun ke Atas (Dewasa)";
+    case "PBQ":
+      return "18 Tahun ke Atas (Dewasa)";
+    default: {
+      const backendUsia =
+        (data?.alat_ukur as any)?.targetUsia ||
+        (data?.alat_ukur as any)?.targetResponden;
+      if (backendUsia && typeof backendUsia === "string" && backendUsia.trim()) {
+        return backendUsia.trim();
+      }
+      return "Remaja & Dewasa";
+    }
+  }
+}
+
+/**
  * Pengecekan Mutlak Status Paket Berbayar:
  * Berpegang teguh pada database `jenis_akses` dan `harga`.
  * Tidak boleh ditebak dari nama atau instrumen.

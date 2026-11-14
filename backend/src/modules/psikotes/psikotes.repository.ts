@@ -1653,30 +1653,7 @@ export class PsikotesRepository {
 
     const isSelesai = booking.status_pengerjaan === 'SELESAI' || Boolean(booking.hasil_tes)
 
-    // Cek masa berlaku tiket: 14 hari (2 minggu) sejak tanggal pembayaran atau pembuatan tiket
-    const tanggalAcuan = booking.transaksi?.tanggal_bayar || booking.createdAt
-    if (tanggalAcuan && !isSelesai) {
-      const diffMs = Date.now() - new Date(tanggalAcuan).getTime()
-      const diffDays = diffMs / (1000 * 60 * 60 * 24)
-      if (diffDays > 14) {
-        throw Object.assign(
-          new Error('Masa aktif tiket ini telah kedaluwarsa (melewati batas waktu 14 hari / 2 minggu sejak pembelian). Silakan hubungi admin Empathika untuk bantuan lebih lanjut.'),
-          { statusCode: 400 }
-        )
-      }
-    }
-
-    // Cek masa berlaku akses arsip hasil tes: 14 hari (2 minggu) sejak tes diselesaikan
-    if (isSelesai && booking.hasil_tes?.tanggal_selesai) {
-      const diffMs = Date.now() - new Date(booking.hasil_tes.tanggal_selesai).getTime()
-      const diffDays = diffMs / (1000 * 60 * 60 * 24)
-      if (diffDays > 14) {
-        throw Object.assign(
-          new Error('Masa akses arsip hasil tes ini telah berakhir (melewati batas waktu 14 hari / 2 minggu sejak tes diselesaikan). Sesuai validitas klinis psikologi, hasil skrining emosional hanya berlaku selama 14 hari. Silakan hubungi admin Empathika jika membutuhkan salinan arsip atau lakukan asesmen berkala yang baru.'),
-          { statusCode: 400 }
-        )
-      }
-    }
+    // Tiket pengerjaan & akses arsip hasil tes aktif tanpa batas waktu (dapat dikerjakan & diakses kapan saja)
 
     const effectiveKode = booking.kode_akses || booking.transaksi?.kode_transaksi || rawKode
     const accessToken = createHasilAccessToken(booking.id)
@@ -1810,17 +1787,7 @@ export class PsikotesRepository {
       )
     }
 
-    // Cek batas masa akses hasil laporan: 14 hari (2 minggu) sejak pengerjaan
-    if (booking.hasil_tes.tanggal_selesai) {
-      const diffMs = Date.now() - new Date(booking.hasil_tes.tanggal_selesai).getTime()
-      const diffDays = diffMs / (1000 * 60 * 60 * 24)
-      if (diffDays > 14) {
-        throw Object.assign(
-          new Error('Masa akses arsip laporan hasil asesmen ini telah berakhir (melewati batas waktu 14 hari / 2 minggu sejak tes diselesaikan). Sesuai validitas klinis psikologi, evaluasi emosional berkala disarankan dilakukan dengan sesi asesmen baru. Silakan hubungi admin Empathika jika membutuhkan bantuan arsip.'),
-          { statusCode: 400 }
-        )
-      }
-    }
+    // Akses arsip hasil laporan asesmen aktif tanpa batas waktu
 
     const detailSkor = typeof booking.hasil_tes.detail_skor === 'string'
       ? JSON.parse(booking.hasil_tes.detail_skor)

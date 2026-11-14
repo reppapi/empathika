@@ -7,7 +7,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "@/features/psikotes/data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { isDASS as checkDASS, isPackagePaid } from "@/features/psikotes/utils/instrumentDetector";
+import {
+  isDASS as checkDASS,
+  isPackagePaid,
+  getInstrumentTargetUsia,
+} from "@/features/psikotes/utils/instrumentDetector";
 import {
   clearPsikotesDetailOrigin,
   markPsikotesDetailOrigin,
@@ -22,6 +26,7 @@ import {
   RefreshCw,
   X,
   CheckCircle2,
+  Users,
 } from "lucide-react";
 import PhoneInputField from "@/components/shared/PhoneInputField";
 
@@ -255,12 +260,15 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
       : 0;
   const formattedPrice = effectivePrice > 0 ? `Rp ${effectivePrice.toLocaleString("id-ID")}` : "Gratis";
 
+  const targetUsia = getInstrumentTargetUsia(apiData, params.testId);
+
   const data = {
     title: apiData.judul || "Paket Psikotes Empathika",
     subtitle: subtitleText,
     image: bannerImage,
     description: deskripsiText,
     questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
+    targetUsia,
     price: effectivePrice,
     formattedPrice,
     guidelines: DEFAULT_GUIDELINES,
@@ -347,14 +355,28 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
           <div className="lg:w-1/3 w-full sticky top-[120px]">
             <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-lg border border-gray-100 flex flex-col gap-6">
               
-              {/* Info Jumlah Soal */}
-              <div className="flex items-center gap-3.5 bg-[#f8f9fa] p-4 rounded-2xl border border-gray-100">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
-                  <FileQuestion className="w-5 h-5" />
+              {/* Info Spesifikasi Tes: Jumlah Soal & Rentang Usia */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 bg-[#f8f9fa] p-3.5 rounded-2xl border border-gray-100">
+                  <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
+                    <FileQuestion className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-400 font-medium">Jumlah Soal</p>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight truncate">{data.questions}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[11px] text-gray-400 font-medium">Jumlah Soal</p>
-                  <p className="text-sm font-bold text-gray-900 leading-tight">{data.questions}</p>
+
+                <div className="flex items-center gap-3 bg-[#f8f9fa] p-3.5 rounded-2xl border border-gray-100">
+                  <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-400 font-medium">Rentang Usia</p>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight truncate" title={data.targetUsia}>
+                      {data.targetUsia}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -476,7 +498,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
             </div>
 
             <p className="text-xs text-gray-600 mb-5 leading-relaxed">
-              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes berlaku selama 14 hari.
+              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes aktif tanpa batas waktu.
             </p>
 
             {/* Status alerts */}

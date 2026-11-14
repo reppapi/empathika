@@ -539,7 +539,7 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">
-                    1x akses tes • Berlaku 14 hari (2 minggu)
+                    1x akses tes • Tanpa batas waktu
                   </p>
                 </div>
               )}
@@ -557,7 +557,7 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
               <div className="text-center mt-2">
                 <p className="text-[10px] text-gray-500 mb-2 font-medium">
                   {isPsikotes
-                    ? "Pembayaran paket psikotes berhasil! Tiket pengerjaan & akses hasil berlaku selama 14 hari. Silakan mulai tes sekarang atau simpan tiket untuk dikerjakan nanti."
+                    ? "Pembayaran paket psikotes berhasil! Tiket pengerjaan & akses hasil aktif tanpa batas waktu. Silakan mulai tes sekarang atau simpan tiket untuk dikerjakan nanti."
                     : type === "event" && linkWa
                     ? "Bergabunglah ke grup WhatsApp untuk info event terbaru dan pengumuman penting."
                     : "Hubungi kontak ini setelah anda selesai melakukan pembayaran!"}
