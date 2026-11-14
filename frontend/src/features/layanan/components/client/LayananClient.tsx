@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import { CATEGORIES, WORKSHOP_SERVICES, SEMINAR_SERVICES } from "../../data/layananData"
 import { WORKSHOP_DETAILS_DATA } from "../../data/workshopData"
 import { getStoredLayanan, type AdminLayananItem } from "../../data/adminLayananData"
@@ -18,56 +19,43 @@ export default function LayananClient() {
   const searchParams = useSearchParams()
   const categoryQuery = searchParams.get("category")
   const [activeCategory, setActiveCategory] = useState(categoryQuery || "01") // Default ke Konsultasi
-  const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
-  const [liveLayanan, setLiveLayanan] = useState<LayananApiResponse[]>([])
-  const [loadingLayanan, setLoadingLayanan] = useState(true)
-  const [isLayananError, setIsLayananError] = useState(false)
-  const [loadingPsikotes, setLoadingPsikotes] = useState(true)
-  const [isPsikotesError, setIsPsikotesError] = useState(false)
   const [storedAdminLayanan, setStoredAdminLayanan] = useState<AdminLayananItem[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const fetchLayanan = async () => {
-    try {
-      setLoadingLayanan(true)
-      setIsLayananError(false)
+  const {
+    data: liveLayananData,
+    isLoading: loadingLayanan,
+    isError: isLayananError,
+    refetch: refetchLayanan,
+  } = useQuery({
+    queryKey: ["layanan", "all"],
+    queryFn: async () => {
       const res = await layananService.getAll()
-      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      setLiveLayanan(list)
-    } catch (err) {
-      console.warn("Gagal memuat layanan dari server database:", err)
-      setIsLayananError(true)
-    } finally {
-      setLoadingLayanan(false)
-    }
-  }
+      return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const liveLayanan = liveLayananData || []
 
-  const fetchPsikotes = async () => {
-    try {
-      setLoadingPsikotes(true)
-      setIsPsikotesError(false)
+  const {
+    data: psikotesData,
+    isLoading: loadingPsikotes,
+    isError: isPsikotesError,
+    refetch: refetchPsikotes,
+  } = useQuery({
+    queryKey: ["psikotes", "published"],
+    queryFn: async () => {
       const res = await psikotesService.getList({ status: "PUBLISHED" })
-      if (res?.data && res.data.length > 0) {
-        setPublishedPsikotes(res.data)
-      } else {
-        setPublishedPsikotes([])
-      }
-    } catch (err) {
-      console.error("Gagal mengambil data paket psikotes layanan:", err)
-      setPublishedPsikotes([])
-      setIsPsikotesError(true)
-    } finally {
-      setLoadingPsikotes(false)
-    }
-  }
+      return res?.data && res.data.length > 0 ? res.data : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const publishedPsikotes = psikotesData || []
 
   useEffect(() => {
-    fetchPsikotes()
-    fetchLayanan()
-
     const handleSync = () => {
-      fetchLayanan()
-      fetchPsikotes()
+      refetchLayanan()
+      refetchPsikotes()
     }
 
     window.addEventListener("storage", handleSync)
@@ -75,7 +63,7 @@ export default function LayananClient() {
     return () => {
       window.removeEventListener("storage", handleSync)
     }
-  }, [])
+  }, [refetchLayanan, refetchPsikotes])
 
   useEffect(() => {
     if (categoryQuery) {
@@ -206,30 +194,30 @@ export default function LayananClient() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[104px] lg:pb-8 lg:h-screen lg:overflow-hidden font-poppins">
+    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[96px] lg:pb-3 lg:h-screen lg:overflow-hidden font-poppins">
 
       {/* Container utama */}
       <div className="relative flex h-full flex-col gap-8 lg:block">
 
         {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL & STABIL TANPA JUMPING) */}
-        <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5 lg:pb-2">
+        <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.id
             return (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className="group flex flex-col items-start text-left cursor-pointer h-[76px] lg:h-[84px] justify-center shrink-0 transition-transform duration-200"
+                className="group flex flex-col items-start text-left cursor-pointer h-[76px] lg:h-[84px] justify-center shrink-0 transition-all duration-300 ease-out"
               >
                 <span
-                  className={`font-bold transition-colors duration-200 leading-none ${
+                  className={`font-bold transition-all duration-300 ease-out leading-none ${
                     isActive ? "text-[26px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
                   }`}
                 >
                   {cat.id}
                 </span>
                 <span
-                  className={`transition-colors duration-200 leading-tight mt-1 ${
+                  className={`transition-all duration-300 ease-out leading-tight mt-1 ${
                     isActive
                       ? "text-[30px] lg:text-[32px] font-bold text-[#561269]"
                       : "text-[24px] lg:text-[26px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
@@ -260,9 +248,9 @@ export default function LayananClient() {
             {/* Area Konten Scrollable */}
             <div
               ref={scrollRef}
-              className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
+              className="flex-1 overflow-y-auto overscroll-contain pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
             >
-              <div key={`content-${activeCategory}`} className="transition-opacity duration-200">
+              <div key={`content-${activeCategory}`} className="animate-fade-in">
                 {/* 1. Status Error Jika Koneksi Gagal (Konsultasi, Psikotes, Workshop, Seminar, Asesmen) */}
                 {(() => {
                   const isCurrentError = activeCategory === "02" ? isPsikotesError : isLayananError
@@ -275,7 +263,7 @@ export default function LayananClient() {
                           ? "Gagal memuat daftar paket psikotes. Silakan periksa koneksi Anda dan coba lagi."
                           : "Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi."
                       }
-                      onRetry={activeCategory === "02" ? fetchPsikotes : fetchLayanan}
+                      onRetry={activeCategory === "02" ? () => refetchPsikotes() : () => refetchLayanan()}
                       isRetrying={activeCategory === "02" ? loadingPsikotes : loadingLayanan}
                     />
                   )

@@ -498,7 +498,9 @@ export default function JadwalHariIniSection({
               <tr>
                 <td colSpan={6} className="py-12 text-center">
                   <p className="text-sm font-semibold text-gray-600">
-                    Tidak ada jadwal sesi hari ini untuk layanan &quot;{selectedLayanan}&quot;.
+                    {selectedLayanan && selectedLayanan !== "Semua Layanan"
+                      ? `Tidak ada jadwal sesi hari ini untuk layanan "${selectedLayanan}".`
+                      : "Tidak ada jadwal sesi hari ini untuk konsultasi"}
                   </p>
                   {selectedLayanan !== "Semua Layanan" && (
                     <button

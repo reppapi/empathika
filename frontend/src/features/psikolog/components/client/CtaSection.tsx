@@ -22,7 +22,8 @@ export function CtaSection() {
         <div className="pt-2">
           <Link
             href={withBiro("/konseling") as any}
-            className="inline-flex items-center gap-2 bg-[#561269] hover:bg-[#430b53] text-white font-bold text-base sm:text-lg md:text-xl px-8 sm:px-12 py-3.5 sm:py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+            prefetch={true}
+            className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-base sm:text-lg md:text-xl px-8 sm:px-12 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
           >
             <span>Daftar Konseling</span>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

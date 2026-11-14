@@ -12,8 +12,10 @@ import type {
 
 export class BookingController {
   private service: BookingService
+  private fastify: any
 
   constructor(fastify: any) {
+    this.fastify = fastify
     this.service = new BookingService(fastify)
   }
 
@@ -136,7 +138,19 @@ export class BookingController {
     request: FastifyRequest<{ Querystring: GetAdminJadwalQuery }>,
     reply: FastifyReply
   ) => {
-    const data = await this.service.getJadwalOverview(request.query)
+    const user = (request as any).user
+    const query = { ...request.query }
+    if (user?.role === 'BIRO') {
+      const account = await (this.fastify as any).prisma.account.findUnique({
+        where: { id: user.id },
+        select: { id_biro: true, owned_biro: { select: { id: true } } },
+      })
+      const userBiroId = account?.owned_biro?.[0]?.id || account?.id_biro
+      if (userBiroId) {
+        query.id_biro = userBiroId
+      }
+    }
+    const data = await this.service.getJadwalOverview(query)
     reply.send(data)
   }
 

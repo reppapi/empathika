@@ -311,7 +311,7 @@ export class AdminService {
    * - "bulan": 4 minggu di bulan berjalan
    * - "bulan_lalu": 4 minggu di bulan sebelumnya
    */
-  async getDashboardChartData(_periodQuery?: string) {
+  async getDashboardChartData(_periodQuery?: string, biroId?: string) {
     const now = new Date()
     // Waktu WIB (UTC+7)
     const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000)
@@ -341,7 +341,7 @@ export class AdminService {
     const thisMonday = new Date(Date.UTC(curYear, curMonth, diffToMonday, 0, 0, 0, 0))
     const thisSunday = new Date(Date.UTC(curYear, curMonth, diffToMonday + 6, 23, 59, 59, 999))
 
-    const weekSessions = await this.repo.getConfirmedSessionsBetween(thisMonday, thisSunday)
+    const weekSessions = await this.repo.getConfirmedSessionsBetween(thisMonday, thisSunday, biroId)
 
     const dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
     const weekCounts = [0, 0, 0, 0, 0, 0, 0]
@@ -368,7 +368,7 @@ export class AdminService {
     // ── 2. Periode "Bulan Ini" (Bagi ke dalam 4 range minggu) ──
     const monthStart = new Date(Date.UTC(curYear, curMonth, 1, 0, 0, 0, 0))
     const monthEnd = new Date(Date.UTC(curYear, curMonth + 1, 0, 23, 59, 59, 999))
-    const monthSessions = await this.repo.getConfirmedSessionsBetween(monthStart, monthEnd)
+    const monthSessions = await this.repo.getConfirmedSessionsBetween(monthStart, monthEnd, biroId)
 
     const monthBuckets = [
       { label: 'Mgg 1', start: 1, end: 7, value: 0 },
@@ -400,7 +400,7 @@ export class AdminService {
     const lastMonthStart = new Date(Date.UTC(lastMonthYear, lastMonth, 1, 0, 0, 0, 0))
     const lastMonthEnd = new Date(Date.UTC(lastMonthYear, lastMonth + 1, 0, 23, 59, 59, 999))
 
-    const lastMonthSessions = await this.repo.getConfirmedSessionsBetween(lastMonthStart, lastMonthEnd)
+    const lastMonthSessions = await this.repo.getConfirmedSessionsBetween(lastMonthStart, lastMonthEnd, biroId)
 
     const lastMonthBuckets = [
       { label: 'Mgg 1', start: 1, end: 7, value: 0 },
@@ -436,7 +436,7 @@ export class AdminService {
   /**
    * Menghasilkan 5 metrik ringkasan operasional admin (real-time dari PostgreSQL)
    */
-  async getDashboardMetrics() {
+  async getDashboardMetrics(biroId?: string) {
     const now = new Date()
     const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000)
     const curYear = wibNow.getUTCFullYear()
@@ -461,7 +461,8 @@ export class AdminService {
       monthEnd,
       lastMonthStart,
       lastMonthEnd,
-      yesterdayEnd
+      yesterdayEnd,
+      biroId
     )
 
     // Format Rupiah: Rp 18.750.000
@@ -469,7 +470,7 @@ export class AdminService {
       `Rp ${Math.round(num).toLocaleString('id-ID')}`
 
     // Hitung persentase pendapatan vs bulan lalu
-    let incomeChange = '+0% dari bulan lalu'
+    let incomeChange = '0% dari bulan lalu'
     if (rawMetrics.totalIncomeLastMonth > 0) {
       const diffPercent = Math.round(
         ((rawMetrics.totalIncomeThisMonth - rawMetrics.totalIncomeLastMonth) /
@@ -482,11 +483,11 @@ export class AdminService {
     }
 
     // Hitung perubahan klien aktif vs kemarin
+    const isBiro = Boolean(biroId)
     const clientDiff = rawMetrics.newClientsSinceYesterday
-    const clientChange =
-      clientDiff > 0
-        ? `+${clientDiff} dari kemarin`
-        : `Klien beraktivitas aktif`
+    const clientChange = isBiro
+      ? (rawMetrics.totalClients > 0 ? `${rawMetrics.totalClients} klien aktif` : 'Belum ada klien terdaftar')
+      : (clientDiff > 0 ? `+${clientDiff} dari kemarin` : 'Klien beraktivitas aktif')
 
     return {
       pendapatanBulanIni: {
@@ -497,17 +498,17 @@ export class AdminService {
         color: '#5D205E',
       },
       menungguReview: {
-        title: 'Menunggu Review',
-        value: `${rawMetrics.totalClients} Tes`,
+        title: isBiro ? 'Klien Aktif Biro' : 'Menunggu Review',
+        value: isBiro ? `${rawMetrics.totalClients} Klien` : `${rawMetrics.totalClients} Tes`,
         rawValue: rawMetrics.totalClients,
-        change: 'Perlu ditinjau psikolog',
+        change: clientChange,
         color: '#5D205E',
       },
       totalKlienAktif: {
-        title: 'Menunggu Review',
-        value: `${rawMetrics.totalClients} Tes`,
+        title: isBiro ? 'Klien Aktif Biro' : 'Menunggu Review',
+        value: isBiro ? `${rawMetrics.totalClients} Klien` : `${rawMetrics.totalClients} Tes`,
         rawValue: rawMetrics.totalClients,
-        change: 'Perlu ditinjau psikolog',
+        change: clientChange,
         color: '#5D205E',
       },
       sesiKonselingSelesai: {
@@ -518,24 +519,28 @@ export class AdminService {
         color: '#5D205E',
       },
       pendaftarEvent: {
-        title: 'Pendaftar Event',
+        title: isBiro ? 'Pendaftar Layanan' : 'Pendaftar Event',
         value: `${rawMetrics.totalEventParticipants} Peserta`,
         rawValue: rawMetrics.totalEventParticipants,
-        change: `Dari ${rawMetrics.activeEventsCount} event dibuka`,
+        change: isBiro
+          ? (rawMetrics.totalEventParticipants > 0 ? `${rawMetrics.totalEventParticipants} peserta terdaftar` : 'Belum ada program aktif')
+          : `Dari ${rawMetrics.activeEventsCount} event dibuka`,
         color: '#5D205E',
       },
       pendaftarWorkshop: {
-        title: 'Pendaftar Event',
+        title: isBiro ? 'Pendaftar Layanan' : 'Pendaftar Event',
         value: `${rawMetrics.totalEventParticipants} Peserta`,
         rawValue: rawMetrics.totalEventParticipants,
-        change: `Dari ${rawMetrics.activeEventsCount} event dibuka`,
+        change: isBiro
+          ? (rawMetrics.totalEventParticipants > 0 ? `${rawMetrics.totalEventParticipants} peserta terdaftar` : 'Belum ada program aktif')
+          : `Dari ${rawMetrics.activeEventsCount} event dibuka`,
         color: '#5D205E',
       },
       menungguPembayaran: {
         title: 'Menunggu Pembayaran',
         value: `${rawMetrics.pendingPaymentCount} Transaksi`,
         rawValue: rawMetrics.pendingPaymentCount,
-        change: 'Perlu konfirmasi',
+        change: rawMetrics.pendingPaymentCount > 0 ? 'Perlu konfirmasi' : 'Tidak ada tagihan tertunda',
         color: '#D97706',
       },
     }
@@ -544,7 +549,7 @@ export class AdminService {
   /**
    * Mengambil sesi konseling hari ini untuk widget dashboard (default limit: 5 sesi terdekat)
    */
-  async getDashboardTodaySessions(limit: number = 5) {
+  async getDashboardTodaySessions(limit: number = 5, biroId?: string) {
     const now = new Date()
     const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000)
     const curYear = wibNow.getUTCFullYear()
@@ -552,7 +557,7 @@ export class AdminService {
     const curDate = wibNow.getUTCDate()
     const todayDate = new Date(Date.UTC(curYear, curMonth, curDate, 0, 0, 0, 0))
 
-    const { totalCount, rawSessions } = await this.repo.findDashboardTodaySessions(todayDate, limit)
+    const { totalCount, rawSessions } = await this.repo.findDashboardTodaySessions(todayDate, limit, biroId)
 
     const currentMinutes = wibNow.getUTCHours() * 60 + wibNow.getUTCMinutes()
 
@@ -613,8 +618,8 @@ export class AdminService {
   /**
    * Mengambil transaksi pembayaran terbaru untuk widget ringkasan operasional dashboard
    */
-  async getDashboardRecentTransactions(limit: number = 5) {
-    const { totalCount, rawTransactions } = await this.repo.findDashboardRecentTransactions(limit)
+  async getDashboardRecentTransactions(limit: number = 5, biroId?: string) {
+    const { totalCount, rawTransactions } = await this.repo.findDashboardRecentTransactions(limit, biroId)
 
     const transactions = rawTransactions.map((trx) => {
       const clientName = trx.client?.nama || '-'
@@ -669,8 +674,8 @@ export class AdminService {
   /**
    * Mengambil agenda dan peringatan operasional mendatang murni dari Database
    */
-  async getDashboardAgenda(limit: number = 6) {
-    const { upcomingEvents, upcomingSessions, pendingPayments } = await this.repo.findDashboardAgenda(limit)
+  async getDashboardAgenda(limit: number = 6, biroId?: string) {
+    const { upcomingEvents, upcomingSessions, pendingPayments } = await this.repo.findDashboardAgenda(limit, biroId)
 
     const agendaList: Array<{
       title: string

@@ -1,22 +1,22 @@
 import apiClient from "@/lib/axios"
 
 export const adminService = {
-  getDashboardMetrics: () =>
-    apiClient.get("/admin/dashboard/metrics").then((r) => r.data),
+  getDashboardMetrics: (params?: { biroId?: string }) =>
+    apiClient.get("/admin/dashboard/metrics", { params }).then((r) => r.data),
 
-  getDashboardTodaySessions: (params?: { limit?: number }) =>
+  getDashboardTodaySessions: (params?: { limit?: number; biroId?: string }) =>
     apiClient.get("/admin/dashboard/today-sessions", { params }).then((r) => r.data),
 
-  getDashboardRecentTransactions: (params?: { limit?: number }) =>
+  getDashboardRecentTransactions: (params?: { limit?: number; biroId?: string }) =>
     apiClient.get("/admin/dashboard/recent-transactions", { params }).then((r) => r.data),
 
-  getDashboardAgenda: (params?: { limit?: number }) =>
+  getDashboardAgenda: (params?: { limit?: number; biroId?: string }) =>
     apiClient.get("/admin/dashboard/agenda", { params }).then((r) => r.data),
 
-  getDashboardChart: (params?: { period?: string }) =>
+  getDashboardChart: (params?: { period?: string; biroId?: string }) =>
     apiClient.get("/admin/dashboard/chart", { params }).then((r) => r.data),
 
-  getJadwal: (params?: { date?: string; layanan?: string; status?: string }) =>
+  getJadwal: (params?: { date?: string; layanan?: string; status?: string; biroId?: string; id_biro?: string }) =>
     apiClient.get("/admin/jadwal", { params }).then((r) => r.data),
 
   createJadwalSlot: (payload: {

@@ -7,8 +7,21 @@ export class BookingRepository {
 
   // ── 1. Slot Ketersediaan & Kalender ──────────────────────────────────────────
 
-  async findJadwalSlots(params?: { date?: string; start_date?: string; end_date?: string; layanan?: string; status?: string }) {
+  async findJadwalSlots(params?: { date?: string; start_date?: string; end_date?: string; layanan?: string; status?: string; id_biro?: string; biroId?: string }) {
     const where: Prisma.JadwalSlotWhereInput = {}
+
+    const biroId = params?.id_biro || params?.biroId
+    if (biroId) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { psikolog: { account: { id_biro: biroId } } },
+            { booking_konsultasi: { client: { id_biro: biroId } } },
+          ],
+        },
+      ]
+    }
 
     if (params?.start_date && params?.end_date) {
       where.tanggal = {
@@ -76,21 +89,31 @@ export class BookingRepository {
     })
   }
 
-  async findTodaySessions(date: Date) {
+  async findTodaySessions(date: Date, biroId?: string) {
     const startOfDay = new Date(date)
     startOfDay.setUTCHours(0, 0, 0, 0)
     const endOfDay = new Date(date)
     endOfDay.setUTCHours(23, 59, 59, 999)
 
-    return this.prisma.bookingKonsultasi.findMany({
-      where: {
-        jadwal: {
-          tanggal: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+    const where: Prisma.BookingKonsultasiWhereInput = {
+      jadwal: {
+        tanggal: {
+          gte: startOfDay,
+          lte: endOfDay,
         },
       },
+      ...(biroId
+        ? {
+            OR: [
+              { client: { id_biro: biroId } },
+              { jadwal: { psikolog: { account: { id_biro: biroId } } } },
+            ],
+          }
+        : {}),
+    }
+
+    return this.prisma.bookingKonsultasi.findMany({
+      where,
       include: {
         client: true,
         layanan: true,
@@ -226,7 +249,6 @@ export class BookingRepository {
         status: { in: ['PENDING', 'CONFIRMED'] },
         ...(parsedTanggal ? { jadwal: { tanggal: parsedTanggal } } : {}),
         ...(resolvedPsikologId ? { jadwal: { id_psikolog: resolvedPsikologId } } : {}),
-        ...(params.tipe_jadwal ? { jadwal: { tipe_jadwal: params.tipe_jadwal } } : {}),
       },
       select: {
         id_jadwal: true,
@@ -258,7 +280,6 @@ export class BookingRepository {
         status: { in: ['SUDAH_DIBOOKING', 'TIDAK_TERSEDIA'] as any },
         ...(parsedTanggal ? { tanggal: parsedTanggal } : {}),
         ...(resolvedPsikologId ? { id_psikolog: resolvedPsikologId } : {}),
-        ...(params.tipe_jadwal ? { tipe_jadwal: params.tipe_jadwal } : {}),
       },
       select: {
         id: true,
@@ -278,11 +299,23 @@ export class BookingRepository {
     // 3. Query slot yang berstatus TERSEDIA
     const where: Prisma.JadwalSlotWhereInput = {
       status: 'TERSEDIA',
-      tipe_jadwal: params.tipe_jadwal || 'KONSULTASI',
       OR: [
         { booking_konsultasi: null },
         { booking_konsultasi: { status: 'CANCELLED' } },
       ],
+    }
+
+    if (params.tipe_jadwal) {
+      const tj = params.tipe_jadwal.toUpperCase()
+      if (tj === 'KONSULTASI') {
+        where.tipe_jadwal = 'KONSULTASI'
+      } else if (tj === 'ASESMEN') {
+        where.tipe_jadwal = 'ASESMEN'
+      } else {
+        where.tipe_jadwal = params.tipe_jadwal
+      }
+    } else if (resolvedPsikologId) {
+      where.tipe_jadwal = 'KONSULTASI'
     }
 
     if (parsedTanggal) {

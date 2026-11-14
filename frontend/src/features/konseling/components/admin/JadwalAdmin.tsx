@@ -240,7 +240,7 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
         }}
       />
 
-      {/* Jadwal Asesmen (Calendar & Time Slot Picker: Khusus Admin Utama, disembunyikan untuk Admin Biro) */}
+      {/* Jadwal Asesmen (Calendar & Time Slot Picker: Hanya untuk Admin Utama, disembunyikan untuk Admin Biro) */}
       {!isBiroContext && (
         <JadwalAsesmenPicker
           date={date}

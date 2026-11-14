@@ -8,8 +8,10 @@ import type {
 
 export class TransaksiController {
   private service: TransaksiService
+  private fastify: any
 
   constructor(fastify: any) {
+    this.fastify = fastify
     this.service = new TransaksiService(fastify)
   }
 
@@ -18,7 +20,20 @@ export class TransaksiController {
     reply: FastifyReply
   ) => {
     try {
-      const result = await this.service.getAll(request.query)
+      const user = (request as any).user
+      let biroId = request.query?.biroId
+      if (user?.role === 'BIRO') {
+        const account = await (this.fastify as any).prisma.account.findUnique({
+          where: { id: user.id },
+          select: { id_biro: true, owned_biro: { select: { id: true } } },
+        })
+        biroId = account?.owned_biro?.[0]?.id || account?.id_biro || undefined
+      }
+
+      const result = await this.service.getAll({
+        ...request.query,
+        ...(biroId ? { biroId } : {}),
+      })
       reply.send({
         success: true,
         data: result.data,

@@ -6,7 +6,7 @@ import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { transaksiService } from "@/services/transaksi.service"
 import { invoiceService } from "@/services/invoice.service"
 import { formatOrderId } from "@/lib/utils"
-import { AlertCircle, RotateCcw, X, DollarSign, Clock, CheckCircle2 } from "lucide-react"
+import { AlertCircle, RotateCcw, X, DollarSign, Clock, CheckCircle2, ChevronDown } from "lucide-react"
 
 type JenisLayanan = "semua" | "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
 type StatusFilter = "semua" | "Menunggu Pembayaran" | "Lunas" | "Refunded" | "Gagal"
@@ -525,6 +525,9 @@ export default function AdminTransaksiClient() {
   const dateInputRef = useRef<HTMLInputElement>(null)
   const filterBtnRef = useRef<HTMLButtonElement>(null)
   const [filterDropdownPos, setFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
+  const statusFilterBtnRef = useRef<HTMLButtonElement>(null)
+  const [statusFilterDropdownPos, setStatusFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false)
 
   // Data state
   const [allTransaksi, setAllTransaksi] = useState<ReturnType<typeof normalizeTransaksi>[]>([])
@@ -617,6 +620,15 @@ export default function AdminTransaksiClient() {
     const found = filteredTransaksi.find((t) => t.id === selectedItem?.id)
     return found || filteredTransaksi[0]
   }, [filteredTransaksi, selectedItem])
+
+  // Label filter status aktif untuk tombol header daftar transaksi
+  const activeStatusLabel = useMemo(() => {
+    if (selectedStatus === "Menunggu Pembayaran") return "Menunggu"
+    if (selectedStatus === "Lunas") return "Lunas"
+    if (selectedStatus === "Refunded") return "Refunded"
+    if (selectedStatus === "Gagal") return "Gagal"
+    return "Semua"
+  }, [selectedStatus])
 
   // Measure Detail Transaksi height so Daftar Transaksi can match it on desktop
   const detailCardRef = useRef<HTMLDivElement>(null)
@@ -879,47 +891,96 @@ export default function AdminTransaksiClient() {
       {/* ── Daftar Transaksi ── */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
-            {selectedStatus !== "semua" && (
-              <div className="flex items-center gap-1.5 bg-purple-50 text-[#561269] border border-purple-200 text-xs font-bold px-3 py-1 rounded-full">
-                <span>Filter: {selectedStatus}</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStatus("semua")}
-                  className="hover:text-red-600 transition-colors ml-0.5"
-                  title="Hapus filter status"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
 
-          {/* Quick status filter pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            {(
-              [
-                { id: "semua", label: "Semua" },
-                { id: "Menunggu Pembayaran", label: "Menunggu" },
-                { id: "Lunas", label: "Lunas" },
-                { id: "Refunded", label: "Refunded" },
-                { id: "Gagal", label: "Gagal" },
-              ] as const
-            ).map((st) => (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => setSelectedStatus(st.id)}
-                className={`text-xs font-bold px-3 py-1.5 rounded-full transition-all shrink-0 cursor-pointer ${
-                  selectedStatus === st.id
-                    ? "bg-[#561269] text-white shadow-sm"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          {/* Filter Status: Dropdown opsi pilihan dalam satu kotak rapi */}
+          <div className="relative">
+            <button
+              type="button"
+              ref={statusFilterBtnRef}
+              onClick={() => {
+                if (!isStatusFilterOpen && statusFilterBtnRef.current) {
+                  const rect = statusFilterBtnRef.current.getBoundingClientRect()
+                  const rightOffset = Math.max(16, window.innerWidth - rect.right)
+                  setStatusFilterDropdownPos({ top: rect.bottom + 8, right: rightOffset })
+                }
+                setIsStatusFilterOpen(!isStatusFilterOpen)
+              }}
+              className="flex items-center gap-2 rounded-full border border-gray-200/90 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 ease-in-out cursor-pointer active:scale-95"
+            >
+              <span className="text-gray-400 font-medium text-xs">Status:</span>
+              <span className="text-[#561269] font-bold transition-all duration-300 ease-in-out">
+                {activeStatusLabel}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                  isStatusFilterOpen ? "rotate-180" : ""
                 }`}
-              >
-                {st.label}
-              </button>
-            ))}
+              />
+            </button>
+
+            {isStatusFilterOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsStatusFilterOpen(false)}
+                />
+                <div
+                  className="fixed z-[9999] w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold"
+                  style={
+                    statusFilterDropdownPos
+                      ? { top: statusFilterDropdownPos.top, right: statusFilterDropdownPos.right }
+                      : {}
+                  }
+                >
+                  <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400">
+                    Pilih Status
+                  </p>
+                  {(
+                    [
+                      { id: "semua", label: "Semua Status" },
+                      { id: "Menunggu Pembayaran", label: "Menunggu Pembayaran" },
+                      { id: "Lunas", label: "Lunas" },
+                      { id: "Refunded", label: "Refunded" },
+                      { id: "Gagal", label: "Gagal" },
+                    ] as const
+                  ).map((st) => {
+                    const isSelected = selectedStatus === st.id
+                    return (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatus(st.id)
+                          setIsStatusFilterOpen(false)
+                        }}
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-50 text-[#561269] font-bold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className={isSelected ? "font-bold text-[#561269]" : "font-semibold text-gray-800"}>
+                          {st.label}
+                        </span>
+                        {isSelected && (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2.5}
+                            stroke="currentColor"
+                            className="h-3.5 w-3.5 text-[#561269]"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                          </svg>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -951,13 +1012,22 @@ export default function AdminTransaksiClient() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedLayanan("semua")}
-                    className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all ${selectedLayanan === "semua"
-                        ? "bg-white text-[#561269]"
-                        : "bg-white/70 text-gray-700 hover:bg-white"
-                      }`}
+                    onClick={() => {
+                      if (selectedStatus !== "semua" || selectedLayanan !== "semua") {
+                        setSelectedStatus("semua")
+                        setSelectedLayanan("semua")
+                      }
+                    }}
+                    className="rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all duration-300 ease-in-out flex items-center justify-center bg-white text-[#561269] hover:bg-white/90 active:scale-95 cursor-pointer"
+                    title={
+                      selectedStatus !== "semua"
+                        ? "Klik untuk reset filter status kembali ke Semua"
+                        : undefined
+                    }
                   >
-                    Semua
+                    <span className="transition-all duration-300 ease-in-out inline-block">
+                      {activeStatusLabel}
+                    </span>
                   </button>
                 </div>
 
@@ -1029,7 +1099,7 @@ export default function AdminTransaksiClient() {
                       <div
                         key={item.id}
                         onClick={() => setSelectedItem(item)}
-                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 ${isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
+                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-300 ease-in-out ${isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
                           }`}
                       >
                         {isSelected && (

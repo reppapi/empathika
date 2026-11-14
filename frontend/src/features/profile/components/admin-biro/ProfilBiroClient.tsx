@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { LOCAL_STORAGE_KEY_BIRO, INITIAL_BIRO_LIST } from "@/features/biro/data/initialData"
+import { LOCAL_STORAGE_KEY_BIRO } from "@/features/biro/data/initialData"
 import { BiroKomunitas } from "@/features/biro/types"
 import { Building2, Mail, Phone, MapPin, Globe, Palette, ShieldCheck } from "lucide-react"
 import { getBiroWebsiteUrl } from "@/lib/utils"
@@ -12,7 +12,24 @@ import { biroAdminService } from "@/services/biro.service"
 
 export default function ProfilBiroClient() {
   const { user } = useAuthStore()
-  const [biro, setBiro] = useState<BiroKomunitas>(INITIAL_BIRO_LIST[0])
+  const [biro, setBiro] = useState<BiroKomunitas>(() => {
+    const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
+    return {
+      id: user?.id || "biro",
+      accountId: user?.id || "biro",
+      nama: user?.name || "Biro Mitra",
+      slug: "",
+      warnaIdentitas: cachedColor || "#561269",
+      emailAdmin: user?.email || "",
+      telepon: "-",
+      alamat: "-",
+      deskripsi: "Biro Mitra Empathika",
+      statusAktivasi: "Aktif",
+      accountAktif: true,
+      tanggalDibuat: new Date().toISOString().split("T")[0],
+      dashboardUrl: "/admin-biro",
+    }
+  })
 
   useEffect(() => {
     let isMounted = true
@@ -24,6 +41,17 @@ export default function ProfilBiroClient() {
         if (!isMounted || !res?.data) return
         const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
         if (beBiro) {
+          const customColor =
+            beBiro.warna_tema ||
+            (typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null) ||
+            "#561269"
+
+          if (beBiro.warna_tema && typeof window !== "undefined") {
+            localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+            document.documentElement.style.setProperty("--biro-theme-color", beBiro.warna_tema)
+            document.documentElement.setAttribute("data-biro-theme", "true")
+          }
+
           setBiro({
             id: beBiro.id || res.data.id,
             accountId: res.data.id,
@@ -31,7 +59,7 @@ export default function ProfilBiroClient() {
             slug: beBiro.slug || "",
             logo: beBiro.logoURI || undefined,
             deskripsi: beBiro.deskripsi || "Biro Mitra Empathika",
-            warnaIdentitas: beBiro.warna_tema || "#561269",
+            warnaIdentitas: customColor,
             emailAdmin: res.data.email,
             telepon: res.data.no_telepon || beBiro.no_telepon || "-",
             alamat: beBiro.alamat || "-",
@@ -46,15 +74,16 @@ export default function ProfilBiroClient() {
       })
       .catch(() => {})
 
-    // 2. Fallback jika offline/local list
+    // 2. Fallback jika offline/local list yang cocok dengan akun ini
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
       if (saved) {
         const list: BiroKomunitas[] = JSON.parse(saved)
-        const found =
-          list.find((b) => b.id === user?.id || b.emailAdmin === user?.email || b.nama === user?.name) ||
-          list[0]
-        if (found) setBiro(found)
+        const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
+        const found = list.find((b) => b.id === user?.id || b.emailAdmin === user?.email || b.nama === user?.name)
+        if (found) {
+          setBiro(cachedColor ? { ...found, warnaIdentitas: found.warnaIdentitas || cachedColor } : found)
+        }
       }
     } catch { }
 

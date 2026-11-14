@@ -16,8 +16,14 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
   const bookedKeys = new Set<string>()
 
   if (Array.isArray(rawBackendSlots)) {
-    rawSlots.push(...rawBackendSlots)
     rawBackendSlots.forEach((s: any) => {
+      // 1. Asesmen BUKAN untuk jadwal praktik psikolog!
+      const isAsesmen =
+        (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+        (s.layanan || "").toLowerCase().includes("asesmen")
+      if (isAsesmen) return
+
+      rawSlots.push(s)
       const st = (s.status || "").toUpperCase()
       if (st === "SUDAH_DIBOOKING" || st === "TIDAK_TERSEDIA" || st === "CANCELLED" || Boolean(s.booking_konsultasi)) {
         const j = (s.jam_mulai || "").toString().match(/(\d{2}:\d{2})/)?.[1]
@@ -28,21 +34,29 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     })
   }
 
-  const hasDbSlots = Array.isArray(rawBackendSlots) && rawBackendSlots.length > 0
+  const hasDbSlots = rawSlots.length > 0
 
   if (!hasDbSlots && typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem("empathika_custom_jadwal_slots")
       if (raw) {
         const parsed: any[] = JSON.parse(raw)
-        const matched = parsed.filter(
-          (s) =>
-            s.id_psikolog === psikologId ||
-            (psikologNama &&
-              (s.nama_psikolog === psikologNama ||
-                s.nama_psikolog?.toLowerCase().includes(psikologNama.toLowerCase()) ||
-                psikologNama.toLowerCase().includes(s.nama_psikolog?.toLowerCase())))
-        )
+        const matched = parsed.filter((s: any) => {
+          // Asesmen bukan untuk jadwal praktik psikolog
+          const isAsesmen =
+            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+            (s.layanan || "").toLowerCase().includes("asesmen")
+          if (isAsesmen) return false
+
+          // Wajib secara spesifik cocok dengan ID psikolog atau nama psikolog (bukan string kosong!)
+          if (s.id_psikolog && s.id_psikolog === psikologId) return true
+          if (s.nama_psikolog && typeof s.nama_psikolog === "string" && s.nama_psikolog.trim().length > 0 && psikologNama) {
+            const sName = s.nama_psikolog.toLowerCase().trim()
+            const pName = psikologNama.toLowerCase().trim()
+            return sName === pName || sName.includes(pName) || pName.includes(sName)
+          }
+          return false
+        })
         rawSlots.push(...matched)
       }
     } catch {}
@@ -84,6 +98,12 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
 
   // Filter slot yang belum lewat
   const validSlots = rawSlots.filter((slot) => {
+    // Pastikan slot asesmen tidak lolos ke jadwal praktik psikolog
+    const isAsesmen =
+      (slot.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+      (slot.layanan || "").toLowerCase().includes("asesmen")
+    if (isAsesmen) return false
+
     const statusUpper = (slot.status || "").toUpperCase()
     if (statusUpper === "SUDAH_DIBOOKING" || statusUpper === "TIDAK_TERSEDIA" || statusUpper === "CANCELLED") {
       return false

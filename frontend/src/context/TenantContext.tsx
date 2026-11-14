@@ -71,6 +71,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   // Sinkronisasi variabel warna tema biro ke CSS root browser
   useEffect(() => {
     if (typeof document !== "undefined") {
+      // Jangan timpa / hapus tema jika pengguna berada di portal admin biro (/admin-biro)
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin-biro")) {
+        return
+      }
+
       if (isBiro && biroProfile?.warna_tema) {
         document.documentElement.style.setProperty("--biro-theme-color", biroProfile.warna_tema)
         document.documentElement.setAttribute("data-biro-theme", "true")

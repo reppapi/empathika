@@ -1044,9 +1044,21 @@ export class PsikotesRepository {
       where.id_paket = params.id_paket
     }
 
+    if (params?.id_biro) {
+      where.client = {
+        ...where.client,
+        id_biro: params.id_biro,
+      }
+    }
+
     const baseCountWhere: any = {
       paket: { is: { jenis_akses: 'BERBAYAR' } },
-      client: { is: { nama: { not: 'Tamu Anonim' } } },
+      client: {
+        is: {
+          nama: { not: 'Tamu Anonim' },
+          ...(params?.id_biro ? { id_biro: params.id_biro } : {}),
+        },
+      },
       id_transaksi: { not: null },
     }
 

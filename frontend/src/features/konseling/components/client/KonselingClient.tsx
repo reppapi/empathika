@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import Link from "next/link"
+import { useQuery } from "@tanstack/react-query"
 import { useTenantContext } from "@/context/TenantContext"
 import { layananService, type LayananApiResponse } from "@/services/layanan.service"
 import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
@@ -32,31 +33,26 @@ const CARD_THEMES = [
 
 export default function KonselingClient() {
   const { isBiro, biroProfile, withBiro } = useTenantContext()
-  const [layananList, setLayananList] = useState<LayananApiResponse[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isError, setIsError] = useState(false)
 
-  const fetchLayanan = async () => {
-    try {
-      setIsLoading(true)
-      setIsError(false)
+  const {
+    data: rawData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["layanan", "konsultasi"],
+    queryFn: async () => {
       const res = await layananService.getAll({ kategori: "KONSULTASI" })
-      const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      const activeOnly = raw.filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
-      setLayananList(activeOnly)
-    } catch (err) {
-      console.error("Gagal mengambil data layanan konsultasi:", err)
-      setIsError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const layananList = (rawData || []).filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
 
   useEffect(() => {
-    fetchLayanan()
-
     const handleSync = () => {
-      fetchLayanan()
+      refetch()
     }
 
     window.addEventListener("focus", handleSync)
@@ -66,7 +62,7 @@ export default function KonselingClient() {
       window.removeEventListener("focus", handleSync)
       window.removeEventListener("storage", handleSync)
     }
-  }, [])
+  }, [refetch])
 
   return (
     <div className="mx-auto w-full max-w-[1200px] px-6 pt-32 pb-12 lg:pt-36 lg:pb-20 font-poppins">
@@ -81,7 +77,7 @@ export default function KonselingClient() {
       {isError && (
         <div className="mb-8">
           <ClientErrorState
-            onRetry={fetchLayanan}
+            onRetry={() => refetch()}
             isRetrying={isLoading}
           />
         </div>

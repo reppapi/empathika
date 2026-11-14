@@ -13,9 +13,23 @@ export {
 
 export const dashboardLimitQuerySchema = z.object({
   limit: z.string().optional(),
+  biroId: z.string().optional(),
 })
 
 export type DashboardLimitQuery = z.infer<typeof dashboardLimitQuerySchema>
+
+export const dashboardChartQuerySchema = z.object({
+  period: z.string().optional(),
+  biroId: z.string().optional(),
+})
+
+export type DashboardChartQuery = z.infer<typeof dashboardChartQuerySchema>
+
+export const dashboardMetricsQuerySchema = z.object({
+  biroId: z.string().optional(),
+})
+
+export type DashboardMetricsQuery = z.infer<typeof dashboardMetricsQuerySchema>
 
 export const updateAdminProfileSchema = z.object({
   nama: z.string().min(1, 'Nama lengkap wajib diisi').optional(),

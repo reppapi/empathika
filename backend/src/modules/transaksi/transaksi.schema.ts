@@ -47,6 +47,7 @@ export const adminTransaksiQuerySchema = z.object({
   search: z.string().trim().optional(),
   status: z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).optional(),
   clientId: z.string().optional(),
+  biroId: z.string().optional(),
   all: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
 })
 

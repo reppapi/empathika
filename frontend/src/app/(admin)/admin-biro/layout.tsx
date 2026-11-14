@@ -19,7 +19,13 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const { user } = useAuthStore()
   const [biroName, setBiroName] = useState<string>(user?.name || "Biro Mitra")
-  const [biroColor, setBiroColor] = useState<string>("#561269")
+  const [biroColor, setBiroColor] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("biro_theme_color")
+      if (cached) return cached
+    }
+    return "#561269"
+  })
   const [biroLogo, setBiroLogo] = useState<string | null>(null)
 
   useEffect(() => {
@@ -39,6 +45,9 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
         }
         if (beBiro?.warna_tema) {
           setBiroColor(beBiro.warna_tema)
+          if (typeof window !== "undefined") {
+            localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+          }
         }
         if (beBiro?.logoURI) {
           setBiroLogo(beBiro.logoURI)
@@ -53,14 +62,13 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
 
   // Terapkan tema warna biro ke seluruh halaman portal admin biro
   useEffect(() => {
-    if (typeof document !== "undefined") {
-      if (biroColor) {
-        document.documentElement.style.setProperty("--biro-theme-color", biroColor)
-        document.documentElement.setAttribute("data-biro-theme", "true")
-      }
+    if (typeof document !== "undefined" && biroColor) {
+      document.documentElement.style.setProperty("--biro-theme-color", biroColor)
+      document.documentElement.setAttribute("data-biro-theme", "true")
     }
     return () => {
-      if (typeof document !== "undefined") {
+      // Hapus hanya jika pengguna bernavigasi KELUAR dari portal admin biro
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin-biro")) {
         document.documentElement.style.removeProperty("--biro-theme-color")
         document.documentElement.removeAttribute("data-biro-theme")
       }

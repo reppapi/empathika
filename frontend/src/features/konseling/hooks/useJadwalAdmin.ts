@@ -27,7 +27,6 @@ import {
 
 import { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
 import { useAuthStore } from "@/store/authStore"
-import { getBiroTenantData } from "@/features/dashboard/data/biroDashboardData"
 
 export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
   const isBiroContext = options?.isBiroContext ?? false
@@ -272,19 +271,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
   // ── 3. Filter Layanan & Derived Values ──
   const layananOptions = useMemo(() => {
-    const defaultList = [
-      "Semua Layanan",
-      "Konseling",
-      "Konseling Individu",
-      "Konseling Pasangan",
-      "Konseling Remaja",
-      "Konseling Karir",
-      "Konseling Pribadi",
-      "Hipnoterapi",
-      "Home Visit",
-      "Asesmen",
-      "Asesmen Klinis",
-    ]
+    const defaultList = ["Semua Layanan", "Konsultasi", "Asesmen"]
     const set = new Set<string>(defaultList)
     todaySessions.forEach((s) => {
       if (s.layanan) set.add(s.layanan.trim())
@@ -292,11 +279,19 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     bookedSessions.forEach((b) => {
       if (b.layanan) set.add(b.layanan.trim())
     })
-    WEEK_VARIATIONS.forEach((v) => {
-      v.forEach((item) => {
-        if (item.layanan) set.add(item.layanan.trim())
-      })
-    })
+    try {
+      const rawLocal = localStorage.getItem("empathika_admin_layanan_list")
+      if (rawLocal) {
+        const parsed = JSON.parse(rawLocal)
+        if (Array.isArray(parsed)) {
+          parsed.forEach((item: any) => {
+            if (item.status !== "Nonaktif" && item.layanan) {
+              set.add(item.layanan.trim())
+            }
+          })
+        }
+      }
+    } catch {}
     return Array.from(set)
   }, [todaySessions, bookedSessions])
 
@@ -495,6 +490,13 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
   // Muat data jadwal & sesi riil langsung dari Database PostgreSQL
   const fetchJadwalData = useCallback(async () => {
+    if (isBiroContext) {
+      // Data jadwal biro belum diatur, jangan ambil data jadwal dari Admin Utama
+      setTodaySessions([])
+      setBookedSessions([])
+      setIsLoading(false)
+      return
+    }
     setIsLoading(true)
     try {
       const res: any = await adminService.getJadwal({ date: datePickerValue })
@@ -530,22 +532,6 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
             }
           })
           setTodaySessions(applyTimeStatusToSessions(mappedToday, datePickerValue))
-        } else if (isBiroContext) {
-          const tenant = getBiroTenantData(user?.id)
-          const mockMapped: ClientSessionToday[] = tenant.todaySessions.map((s, idx) => ({
-            id: `biro_sesi_${idx + 1}`,
-            date: datePickerValue,
-            waktu: s.waktu,
-            namaKlien: s.klien,
-            klienId: `KLN-${100 + idx}`,
-            kontak: "0812-3456-7890",
-            psikolog: s.psikolog,
-            layanan: s.layanan,
-            tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
-            status: s.status as any,
-            tanggal: datePickerValue,
-          }))
-          setTodaySessions(applyTimeStatusToSessions(mockMapped, datePickerValue))
         } else {
           setTodaySessions([])
         }
@@ -784,12 +770,11 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
         const exists = currentList.some(
           (s: any) =>
             s.tanggal === tanggalStr &&
-            (s.jam_mulai || "").substring(0, 5) === jamMulai &&
-            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN"
+            (s.jam_mulai || "").substring(0, 5) === jamMulai
         );
         if (!exists) {
           currentList.push({
-            id: "slot_asesmen_" + tanggalStr + "_" + jamMulai + "_" + Date.now(),
+            id: "slot_" + tanggalStr + "_" + jamMulai + "_" + Date.now(),
             tanggal: tanggalStr,
             jam_mulai: jamMulai,
             jam_selesai: jamSelesai,
@@ -798,6 +783,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
             metode: metode.toUpperCase(),
             status: "TERSEDIA",
             nama_psikolog: "",
+            layanan: "Asesmen",
           });
           localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(currentList));
           window.dispatchEvent(new Event("storage"));

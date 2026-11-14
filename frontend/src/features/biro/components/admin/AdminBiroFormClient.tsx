@@ -399,6 +399,16 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           tokenExpiredAt: tokenExpiredAt || undefined,
         }
 
+        // Sinkronisasi update ke localStorage agar fallback tidak memakai warna lama
+        try {
+          const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
+          if (saved) {
+            const list: BiroKomunitas[] = JSON.parse(saved)
+            const updatedList = list.map((b) => (b.id === targetAccountId || b.accountId === targetAccountId ? resultBiro : b))
+            localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(updatedList))
+          }
+        } catch {}
+
         setSubmittedBiro(resultBiro)
         setIsSuccessModalOpen(true)
       } else {
