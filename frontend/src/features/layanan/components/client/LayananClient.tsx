@@ -206,20 +206,20 @@ export default function LayananClient() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[88px] lg:pb-6 lg:h-screen lg:overflow-hidden font-poppins">
+    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[96px] lg:pb-3 lg:h-screen lg:overflow-hidden font-poppins">
 
       {/* Container utama */}
       <div className="relative flex h-full flex-col gap-8 lg:block">
 
         {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL & STABIL TANPA JUMPING) */}
-        <div className="flex shrink-0 flex-col gap-2 lg:w-1/3 lg:gap-2.5 xl:gap-3">
+        <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.id
             return (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className="group flex flex-col items-start text-left cursor-pointer h-[66px] lg:h-[70px] xl:h-[72px] justify-center shrink-0 transition-transform duration-200"
+                className="group flex flex-col items-start text-left cursor-pointer h-[76px] lg:h-[84px] justify-center shrink-0 transition-transform duration-200"
               >
                 <span
                   className={`font-bold transition-colors duration-200 leading-none ${
