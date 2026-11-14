@@ -884,22 +884,7 @@ export default function AdminTransaksiClient() {
       {/* ── Daftar Transaksi ── */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
-            {selectedStatus !== "semua" && (
-              <div className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold px-3 py-1 rounded-full shadow-2xs">
-                <span>Filter: {selectedStatus}</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStatus("semua")}
-                  className="hover:text-red-600 transition-colors ml-0.5 cursor-pointer"
-                  title="Hapus filter status"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
 
           {/* Quick status filter buttons */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
