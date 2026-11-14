@@ -306,9 +306,16 @@ export class BookingRepository {
     }
 
     if (params.tipe_jadwal) {
-      where.tipe_jadwal = {
-        in: [params.tipe_jadwal, 'KEDUANYA', 'SEMUA', 'KONSULTASI', 'ASESMEN'],
+      const tj = params.tipe_jadwal.toUpperCase()
+      if (tj === 'KONSULTASI') {
+        where.tipe_jadwal = { in: ['KONSULTASI', 'KEDUANYA', 'SEMUA'] }
+      } else if (tj === 'ASESMEN') {
+        where.tipe_jadwal = { in: ['ASESMEN', 'KEDUANYA', 'SEMUA'] }
+      } else {
+        where.tipe_jadwal = params.tipe_jadwal
       }
+    } else if (resolvedPsikologId) {
+      where.tipe_jadwal = { in: ['KONSULTASI', 'KEDUANYA', 'SEMUA'] }
     }
 
     if (parsedTanggal) {

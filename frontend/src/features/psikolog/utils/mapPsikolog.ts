@@ -50,10 +50,16 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
   };
 
   if (item.jadwal_slot && Array.isArray(item.jadwal_slot)) {
-    rawSlots.push(...item.jadwal_slot);
-
     // Kumpulkan seluruh slot yang sudah dibooking atau tidak aktif di database
     item.jadwal_slot.forEach((s: any) => {
+      // Slot Asesmen TIDAK BOLEH masuk ke jadwal praktik psikolog
+      const isAsesmen =
+        (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+        (s.layanan || "").toLowerCase().includes("asesmen");
+      if (isAsesmen) return;
+
+      rawSlots.push(s);
+
       const statusUpper = (s.status || '').toUpperCase();
       const isBooked =
         statusUpper === 'SUDAH_DIBOOKING' ||
@@ -70,7 +76,7 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
     });
   }
 
-  const hasDbSlots = Array.isArray(item.jadwal_slot) && item.jadwal_slot.length > 0;
+  const hasDbSlots = rawSlots.length > 0;
 
   // Hanya gunakan localStorage jika belum ada data slot riil dari database
   if (!hasDbSlots && typeof window !== 'undefined') {
@@ -78,16 +84,27 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
       const rawCustom = localStorage.getItem('empathika_custom_jadwal_slots');
       if (rawCustom) {
         const parsedCustom: any[] = JSON.parse(rawCustom);
-        const matchingCustom = parsedCustom.filter(
-          (s) =>
-            s.id_psikolog === item.id ||
-            s.id_psikolog === 'psikolog-default-id' ||
-            s.id_psikolog === '1' ||
-            (item.nama_gelar && s.nama_psikolog === item.nama_gelar) ||
-            (item.account?.nama && s.nama_psikolog === item.account?.nama) ||
-            (item.nama && s.nama_psikolog === item.nama) ||
-            (item.nama_gelar && s.nama_psikolog && (item.nama_gelar.toLowerCase().includes(s.nama_psikolog.toLowerCase()) || s.nama_psikolog.toLowerCase().includes(item.nama_gelar.toLowerCase())))
-        );
+        const matchingCustom = parsedCustom.filter((s: any) => {
+          // Asesmen bukan untuk jadwal praktik psikolog
+          const isAsesmen =
+            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+            (s.layanan || "").toLowerCase().includes("asesmen");
+          if (isAsesmen) return false;
+
+          if (s.id_psikolog && s.id_psikolog === item.id) return true;
+          if (s.nama_psikolog && typeof s.nama_psikolog === "string" && s.nama_psikolog.trim().length > 0) {
+            const sName = s.nama_psikolog.toLowerCase().trim();
+            if (item.nama_gelar) {
+              const pName = item.nama_gelar.toLowerCase().trim();
+              if (sName === pName || sName.includes(pName) || pName.includes(sName)) return true;
+            }
+            if (item.account?.nama) {
+              const aName = item.account.nama.toLowerCase().trim();
+              if (sName === aName || sName.includes(aName) || aName.includes(sName)) return true;
+            }
+          }
+          return false;
+        });
         rawSlots.push(...matchingCustom);
       }
     } catch {}
@@ -105,6 +122,12 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
 
     // Filter slot yang masih tersedia dan belum lewat jamnya
     const validSlots = rawSlots.filter((slot) => {
+      // Slot Asesmen TIDAK BOLEH masuk ke jadwal praktik psikolog
+      const isAsesmen =
+        (slot.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+        (slot.layanan || "").toLowerCase().includes("asesmen");
+      if (isAsesmen) return false;
+
       // 1. Cek status slot jika tersedia
       const statusUpper = (slot.status || '').toUpperCase();
       if (statusUpper === 'SUDAH_DIBOOKING' || statusUpper === 'TIDAK_TERSEDIA' || statusUpper === 'CANCELLED') {

@@ -760,7 +760,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
           tanggal: tanggalStr,
           jam_mulai: jamMulai,
           jam_selesai: jamSelesai,
-          tipe_jadwal: "KONSULTASI",
+          tipe_jadwal: "ASESMEN",
           metode: metode.toUpperCase(),
         })
         successCount++
@@ -783,10 +783,11 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
             jam_mulai: jamMulai,
             jam_selesai: jamSelesai,
             label_waktu: jamMulai + " - " + jamSelesai,
-            tipe_jadwal: "KONSULTASI",
+            tipe_jadwal: "ASESMEN",
             metode: metode.toUpperCase(),
             status: "TERSEDIA",
             nama_psikolog: "",
+            layanan: "Asesmen",
           });
           localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(currentList));
           window.dispatchEvent(new Event("storage"));

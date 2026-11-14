@@ -481,6 +481,10 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
               .filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
               .forEach((s: any) => {
                 const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
+                const sTipe = (s.tipe_jadwal || "").toUpperCase()
+                if (effectiveTipeJadwal === "KONSULTASI" && (sTipe === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen"))) return
+                if (effectiveTipeJadwal === "ASESMEN" && sTipe === "KONSULTASI") return
+
                 if (s.tanggal === dateKey && isTersedia) {
                   const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
                   if (timeKey && !candidateSlotsMap.has(timeKey)) {
