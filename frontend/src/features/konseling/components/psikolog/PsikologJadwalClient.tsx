@@ -20,7 +20,19 @@ import {
   User,
   CheckCircle2,
   Trash2,
+  Sparkles,
+  ChevronDown,
 } from "lucide-react"
+import { layananService } from "@/services/layanan.service"
+
+export const DEFAULT_LAYANAN_KONSULTASI = [
+  "Semua Layanan Konsultasi",
+  "Konseling Individu",
+  "Konseling Pasangan",
+  "Konseling Remaja & Anak",
+  "Konseling Karir",
+  "Hipnoterapi Klinis",
+]
 
 export const DEFAULT_TIME_SLOTS = [
   "09:00 - 10:00",
@@ -150,6 +162,8 @@ export default function PsikologJadwalClient() {
   // State profil psikolog aktif yang diambil dari Database / LocalStorage
   const [activePsikolog, setActivePsikolog] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any } | null>(resolveActivePsikolog)
 
+  const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan Konsultasi")
+  const [layananOptions, setLayananOptions] = useState<string[]>(DEFAULT_LAYANAN_KONSULTASI)
   const [selectedMetode, setSelectedMetode] = useState<MetodeKonsultasi>("Online")
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])
   const [date, setDate] = useState<Date | undefined>(() => {
@@ -498,6 +512,31 @@ export default function PsikologJadwalClient() {
     loadScheduleForPsikolog()
   }, [loadScheduleForPsikolog, currentWeekMonday])
 
+  // Ambil daftar layanan kategori KONSULTASI dari database/API agar selalu up to date
+  useEffect(() => {
+    let isMounted = true
+    layananService
+      .getAll({ kategori: "KONSULTASI" })
+      .then((res: any) => {
+        if (!isMounted) return
+        const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        const activeNames = raw
+          .filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
+          .map((l: any) => l.nama?.trim())
+          .filter(Boolean)
+        if (activeNames.length > 0) {
+          setLayananOptions(
+            Array.from(new Set(["Semua Layanan Konsultasi", ...activeNames, ...DEFAULT_LAYANAN_KONSULTASI]))
+          )
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   // Listener real-time: jika admin membatalkan sesi di halaman admin, otomatis jadwal psikolog ter-update
   useEffect(() => {
     const handleSyncCancelled = (e?: any) => {
@@ -686,6 +725,7 @@ export default function PsikologJadwalClient() {
           jam_selesai: jamSelesai,
           tipe_jadwal: "KONSULTASI",
           metode: selectedMetode,
+          layanan: selectedLayanan,
         })
         if (res && res.id) {
           savedSlotId = res.id
@@ -703,6 +743,7 @@ export default function PsikologJadwalClient() {
         jam_selesai: jamSelesai,
         label_waktu: finalWaktu,
         metode: selectedMetode,
+        layanan: selectedLayanan,
         status: "TERSEDIA",
         tipe_jadwal: "KONSULTASI",
       })
@@ -711,7 +752,7 @@ export default function PsikologJadwalClient() {
         id: savedSlotId,
         date: dateKey,
         waktu: finalWaktu,
-        layanan: "Konseling Individu",
+        layanan: selectedLayanan,
         metode: selectedMetode,
         namaKlien: "Tersedia",
         id_psikolog: psikologId,
@@ -833,9 +874,37 @@ export default function PsikologJadwalClient() {
                 </button>
               </div>
 
+              {/* Pilihan Layanan Konsultasi */}
+              <div className="mb-3 bg-purple-50/50 p-3 rounded-2xl border border-[#EDE0F2]">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#561269]" />
+                    Pilih Layanan Konsultasi:
+                  </span>
+                  <span className="text-[11px] font-semibold text-[#561269] bg-white px-2 py-0.5 rounded-full border border-purple-200 line-clamp-1 max-w-[170px] text-right">
+                    {selectedLayanan}
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={selectedLayanan}
+                    onChange={(e) => setSelectedLayanan(e.target.value)}
+                    className="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] cursor-pointer shadow-2xs appearance-none pr-8 transition-colors hover:border-purple-300"
+                  >
+                    {layananOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
               {/* Pilihan Metode Konsultasi (Compact & Modern dengan Icons) */}
-              <div className="mb-4 bg-purple-50/50 p-3.5 rounded-2xl border border-[#EDE0F2]">
-                <div className="flex items-center justify-between mb-2.5">
+              <div className="mb-3.5 bg-purple-50/50 p-3 rounded-2xl border border-[#EDE0F2]">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-gray-800">
                     Pilih Metode Konsultasi:
                   </span>
@@ -885,8 +954,8 @@ export default function PsikologJadwalClient() {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500 mb-3">
-                Pilih slot jam yang ingin dibuka untuk metode <span className="font-bold text-[#561269]">{selectedMetode}</span>:
+              <p className="text-xs text-gray-500 mb-2.5">
+                Pilih slot jam yang ingin dibuka untuk layanan <span className="font-bold text-[#561269]">{selectedLayanan}</span> ({selectedMetode}):
               </p>
 
               {/* Checkbox List Slot Waktu */}
@@ -965,8 +1034,11 @@ export default function PsikologJadwalClient() {
                         )}
                         {isAlreadyOpened && !isChecked && !isAlreadyCancelled && (
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-semibold text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full">
-                              Dibuka ({openedMetode})
+                            <span
+                              className="text-[10px] font-semibold text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full"
+                              title={`Layanan: ${openedSession?.layanan || "Konsultasi"}`}
+                            >
+                              Dibuka ({openedSession?.layanan && openedSession.layanan !== "Semua Layanan Konsultasi" ? `${openedSession.layanan.split(" ")[0]} • ` : ""}{openedMetode})
                             </span>
                             <button
                               type="button"
@@ -1117,9 +1189,9 @@ export default function PsikologJadwalClient() {
                       }`}
                   >
                     {selectedTimes.length > 0
-                      ? `Buka ${selectedTimes.length} Jam Sesi Sekaligus (${selectedMetode})`
+                      ? `Buka ${selectedTimes.length} Jam Sesi Sekaligus (${selectedLayanan} • ${selectedMetode})`
                       : isCustomValid
-                        ? `Buka Jam Kustom: ${customStart} - ${customEnd} (${selectedMetode})`
+                        ? `Buka Jam Kustom: ${customStart} - ${customEnd} (${selectedLayanan} • ${selectedMetode})`
                         : isCustomTime
                           ? "Tentukan Jam Mulai & Selesai Dulu"
                           : "Pilih Jam Terlebih Dahulu"}
