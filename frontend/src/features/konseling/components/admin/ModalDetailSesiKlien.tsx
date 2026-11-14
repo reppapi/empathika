@@ -60,8 +60,14 @@ export default function ModalDetailSesiKlien({
   const isHariH = !canCancelSession(session.date)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn">
-      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-7 flex flex-col justify-between">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-7 flex flex-col justify-between"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header Modal */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-5">
           <div className="flex items-center gap-3">

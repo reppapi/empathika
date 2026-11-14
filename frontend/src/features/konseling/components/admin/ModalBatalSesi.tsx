@@ -17,8 +17,14 @@ export default function ModalBatalSesi({
   if (!session) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn">
-      <div className="bg-white rounded-3xl shadow-xl border border-gray-100 w-full max-w-sm p-6 text-center">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl shadow-xl border border-gray-100 w-full max-w-sm p-6 text-center"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
           <AlertTriangle className="w-6 h-6" />
         </div>
