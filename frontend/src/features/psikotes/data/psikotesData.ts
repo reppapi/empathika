@@ -12,3 +12,11 @@ export const UNIVERSAL_FREE_BENEFITS = [
   "Penjelasan mengenai kondisi berdasarkan hasil asesmen.",
   "Saran tindak lanjut berdasarkan hasil asesmen.",
 ];
+
+/** Konstanta daftar benefit ringkas untuk kartu checkout / pendaftaran psikotes */
+export const CHECKOUT_PAID_BENEFITS = [
+  "Laporan Analisis Lengkap (PDF)",
+  "Pemetaan Skor & Profil Emosi",
+  "Panduan Tindak Lanjut",
+  "Privasi 100% Aman",
+];

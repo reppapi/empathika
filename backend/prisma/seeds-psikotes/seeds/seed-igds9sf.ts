@@ -120,7 +120,7 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-gaming-disorder.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Bermain game bisa menjadi hiburan yang menyenangkan. Namun, bagaimana jika aktivitas tersebut mulai sulit dikendalikan atau mengganggu kegiatan lainnya? Tes ini membantu mengenali pola bermain game selama 12 bulan terakhir, termasuk kesulitan mengontrol waktu bermain dan dampaknya terhadap kehidupan sehari-hari.',
     status: 'PUBLISHED',

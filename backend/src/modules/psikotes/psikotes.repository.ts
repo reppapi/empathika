@@ -559,7 +559,7 @@ export class PsikotesRepository {
       // Jika paket terhubung dengan alat ukur baku (Code-First / Hybrid), hitung skor & diagnosa dengan engine alat ukur
       let calculationResult: any = null
       if (paket.alat_ukur) {
-        const jawabanMap: Record<number | string, number> = {}
+        const jawabanMap: Record<number | string, any> = {}
         for (let idx = 0; idx < normalizedAnswers.length; idx++) {
           const ans = normalizedAnswers[idx]
           const pil = pilihanMap.get(ans.id_pilihan)
@@ -568,7 +568,28 @@ export class PsikotesRepository {
           const soalObj = paket.soal_psikotes.find((s) => s.id === ans.id_soal)
           const qNumMatch = ans.id_soal.match(/q-(\d+)/i) || ans.id_soal.match(/(\d+)$/)
           const qNum = soalObj?.urutan ?? (qNumMatch ? parseInt(qNumMatch[1], 10) : idx + 1)
-          jawabanMap[qNum] = skor
+
+          const teksAns =
+            (ans as any).teks_jawaban ||
+            (ans as any).teks ||
+            (input as any).choci_isian?.[String(qNum)] ||
+            (input as any).choci_isian?.[String(idx)]
+          if (typeof teksAns === 'string' && teksAns.trim()) {
+            jawabanMap[qNum] = teksAns.trim()
+          } else {
+            jawabanMap[qNum] = skor
+          }
+        }
+        if ((input as any).choci_isian && typeof (input as any).choci_isian === 'object') {
+          const rawIsian = (input as any).choci_isian as Record<string, string>
+          // Petakan indeks 0-based ke nomor butir 1-based CHOCI secara aman
+          if (rawIsian['10'] && typeof rawIsian['10'] === 'string') jawabanMap[11] = rawIsian['10'].trim()
+          if (rawIsian['11'] && typeof rawIsian['11'] === 'string') jawabanMap[12] = rawIsian['11'].trim()
+          if (rawIsian['12'] && typeof rawIsian['12'] === 'string') jawabanMap[13] = rawIsian['12'].trim()
+          if (rawIsian['29'] && typeof rawIsian['29'] === 'string') jawabanMap[30] = rawIsian['29'].trim()
+          if (rawIsian['30'] && typeof rawIsian['30'] === 'string') jawabanMap[31] = rawIsian['30'].trim()
+          if (rawIsian['31'] && typeof rawIsian['31'] === 'string') jawabanMap[32] = rawIsian['31'].trim()
+          jawabanMap['choci_isian'] = rawIsian
         }
         if (input.dampak_aktivitas !== undefined && input.dampak_aktivitas !== null) {
           jawabanMap['difficulty'] = input.dampak_aktivitas

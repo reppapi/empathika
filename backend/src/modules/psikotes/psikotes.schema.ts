@@ -52,6 +52,7 @@ export type PsikotesQueryInput = z.infer<typeof psikotesQuerySchema>
 export const submitJawabanItemSchema = z.object({
   id_soal: z.string().min(1, 'ID soal wajib diisi'),
   id_pilihan: z.string().min(1, 'ID pilihan jawaban wajib diisi'),
+  teks_jawaban: z.string().optional().nullable(),
 })
 
 export const pesertaPsikotesInputSchema = z.object({
@@ -100,6 +101,7 @@ export const submitPsikotesSchema = z.object({
   peristiwaLainnya: z.string().optional().nullable(),
   peristiwa_paling_mengganggu: z.string().optional().nullable(),
   peristiwaPalingMengganggu: z.string().optional().nullable(),
+  choci_isian: z.record(z.string(), z.string()).optional().nullable(),
 })
 
 export type SubmitPsikotesInput = z.infer<typeof submitPsikotesSchema>
