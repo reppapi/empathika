@@ -240,15 +240,17 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
         }}
       />
 
-      {/* Jadwal Asesmen (Calendar & Time Slot Picker) */}
-      <JadwalAsesmenPicker
-        date={date}
-        onSelectDate={handleSelectDate}
-        bookedSessions={bookedSessions}
-        bookingSuccessMsg={bookingSuccessMsg}
-        onBooking={handleBooking}
-        timeSlots={TIME_SLOTS}
-      />
+      {/* Jadwal Asesmen (Calendar & Time Slot Picker: Khusus Admin Utama, disembunyikan untuk Admin Biro) */}
+      {!isBiroContext && (
+        <JadwalAsesmenPicker
+          date={date}
+          onSelectDate={handleSelectDate}
+          bookedSessions={bookedSessions}
+          bookingSuccessMsg={bookingSuccessMsg}
+          onBooking={handleBooking}
+          timeSlots={TIME_SLOTS}
+        />
+      )}
 
       {/* Jadwal Mingguan (Weekly Assessment Schedule Grid) */}
       <JadwalMingguanGrid
@@ -262,7 +264,7 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
         matchLayanan={matchLayanan}
         today={today}
         onSelectSession={handleSelectWeeklySession}
-        onRemoveSlot={handleRemoveWeeklySlot}
+        onRemoveSlot={isBiroContext ? undefined : handleRemoveWeeklySlot}
       />
 
       {/* ── Modal Tambah Sesi ── */}

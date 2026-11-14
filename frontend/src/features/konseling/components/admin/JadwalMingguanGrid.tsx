@@ -44,7 +44,9 @@ export default function JadwalMingguanGrid({
     <div className="mt-8 bg-white border border-gray-100 shadow-sm rounded-2xl p-6 sm:p-8 font-poppins">
       <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Mingguan</h2>
       <p className="text-gray-500 text-sm mb-6">
-        Lihat ringkasan layanan yang telah dibooking oleh klien dalam satu minggu (klik sesi untuk melihat opsi pembatalan)
+        {onRemoveSlot
+          ? "Lihat ringkasan layanan yang telah dibooking oleh klien dalam satu minggu (klik sesi untuk melihat opsi pembatalan)"
+          : "Lihat ringkasan layanan yang telah dibooking oleh klien dalam satu minggu"}
       </p>
 
       {/* Week Selector */}
