@@ -62,8 +62,6 @@ export function EventListClient() {
   // Event yang aktif / akan datang
   const upcomingEvents = events.filter((e) => e.status === "UPCOMING" || e.status === "ONGOING")
 
-  // Event reguler yang COMPLETED
-
   return (
     <div className="min-h-screen bg-[#FDFBF9] pt-28 sm:pt-36 pb-24 font-poppins">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -200,26 +198,17 @@ export function EventListClient() {
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                       />
-                      <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
-                        <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">
+                      <div className="absolute top-3 left-3 flex flex-col gap-0.5 items-start">
+                        <span className="text-[11px] font-bold text-white drop-shadow uppercase tracking-wider">
                           {ev.jenis_event}
-                        </div>
-                        {/* Badge Online / Offline */}
-                        <div
-                          className={`backdrop-blur-sm px-3 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm tracking-wide ${
-                            isOnline
-                              ? "bg-blue-600/90 text-white"
-                              : "bg-emerald-600/90 text-white"
-                          }`}
-                        >
+                        </span>
+                        <span className={`text-[10px] font-semibold drop-shadow ${isOnline ? "text-blue-200" : "text-emerald-200"}`}>
                           {isOnline ? "Online" : "Offline"}
-                        </div>
-
-                        {/* Badge Bundling jika ada */}
+                        </span>
                         {hasBundling && (
-                          <div className="bg-amber-400 text-gray-950 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full shadow-sm tracking-wide">
+                          <span className="text-[10px] font-semibold text-amber-200 drop-shadow">
                             Tersedia {namaBundling}
-                          </div>
+                          </span>
                         )}
                       </div>
                     </div>
@@ -340,9 +329,9 @@ export function EventListClient() {
           /* ==============================================================
              TAB: RIWAYAT & ARSIP KEGIATAN (DOKUMENTASI EVENT SELESAI)
              ============================================================== */
-          dokumentasiList.length > 0 ? (
+          (dokumentasiList.length > 0) ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {/* 1. Tampilkan Dokumentasi Event Selesai Baru (Sesuai Referensi Gambar) */}
+              {/* Dokumentasi dari tabel EventDokumentasi (otomatis dari event selesai + manual) */}
               {dokumentasiList.map((dok) => {
                 return (
                   <div
@@ -375,7 +364,7 @@ export function EventListClient() {
                       </div>
                     )}
 
-                    {/* Judul & Deskripsi Langsung di Ujung Bawah Foto (Persis Referensi #TemanCerita Experience) */}
+                    {/* Judul & Deskripsi */}
                     <div className="absolute bottom-5 left-5 right-5 text-white z-10">
                       <h3 className="font-extrabold text-base sm:text-lg md:text-xl leading-snug drop-shadow-md line-clamp-2">
                         {dok.judul}
@@ -421,6 +410,7 @@ export function EventListClient() {
         onClose={() => setSelectedDokumentasi(null)}
         item={selectedDokumentasi}
       />
+
     </div>
   )
 }

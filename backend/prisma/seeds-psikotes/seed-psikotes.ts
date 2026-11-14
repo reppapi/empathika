@@ -5,6 +5,8 @@ import { seedDASS42, DASS42_SOAL, DASS42_OPSI, DASS42_INTERPRETASI } from './see
 import { seedIGDS9SF, IGDS9SF_SOAL, IGDS9SF_OPSI, IGDS9SF_INTERPRETASI } from './seeds/seed-igds9sf'
 import { seedRCMAS, RCMAS_SOAL, RCMAS_OPSI, RCMAS_INTERPRETASI } from './seeds/seed-rcmas'
 import { seedPBQ, PBQ_SOAL, PBQ_OPSI } from './seeds/seed-pbq'
+import { seedCDI, CDI_SOAL, CDI_INTERPRETASI } from './seeds/seed-cdi'
+import { seedCATS, CATS_SOAL, CATS_OPSI_YA_TIDAK, CATS_OPSI_GEJALA, CATS_INTERPRETASI } from './seeds/seed-cats'
 
 const prisma = new PrismaClient()
 
@@ -33,6 +35,14 @@ export {
   seedPBQ,
   PBQ_SOAL,
   PBQ_OPSI,
+  seedCDI,
+  CDI_SOAL,
+  CDI_INTERPRETASI,
+  seedCATS,
+  CATS_SOAL,
+  CATS_OPSI_YA_TIDAK,
+  CATS_OPSI_GEJALA,
+  CATS_INTERPRETASI,
 }
 
 // ============================================================================
@@ -86,6 +96,8 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   const paketIGDS9SF = await seedIGDS9SF(p)
   const paketRCMAS = await seedRCMAS(p)
   const paketPBQ = await seedPBQ(p)
+  const paketCDI = await seedCDI(p)
+  const paketCATS = await seedCATS(p)
 
   console.log('\n========================================================')
   console.log('🎉 SELURUH SEEDER PSIKOTES BERHASIL DIJALANKAN!')
@@ -97,6 +109,8 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   console.log(`4. "Tes Kecanduan Game (IGDS9-SF)" -> GRATIS (Rp 0) [Alat: IGDS9-SF]`)
   console.log(`5. "${paketRCMAS.judul}" -> GRATIS (Rp 0) [Alat: RCMAS]`)
   console.log(`6. "${paketPBQ.judul}" -> GRATIS (Rp 0) [Alat: PBQ]`)
+  console.log(`7. "Tes Gejala Depresi Anak & Remaja (CDI)" -> GRATIS (Rp 0) [Alat: CDI]`)
+  console.log(`8. "${paketCATS.judul}" -> GRATIS (Rp 0) [Alat: CATS]`)
   console.log('========================================================\n')
 }
 

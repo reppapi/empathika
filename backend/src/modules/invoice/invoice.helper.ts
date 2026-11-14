@@ -128,7 +128,7 @@ export function buildInvoiceWhatsAppText(data: InvoiceData): string {
       ``,
       `*Ketentuan Layanan:*`,
       `• Tiket pengerjaan & akses hasil tes berlaku selama 14 hari.`,
-      `• Pembelian paket digital bersifat final dan tidak dapat di-refund tunai. Jika membutuhkan perpanjangan atau konversi ke layanan lain, silakan hubungi Admin Empathika sebelum masa aktif berakhir.`,
+      `• Pembelian paket digital psikotes online bersifat final dan tidak dapat dibatalkan atau di-refund.`,
       ``,
       `---`,
       ``,
@@ -143,7 +143,53 @@ export function buildInvoiceWhatsAppText(data: InvoiceData): string {
     return lines.join('\n')
   }
 
-  // ── 2. KHUSUS SESI KONSELING (TETAP SESUAI FORMAT ASLI) ───────────────
+  // ── 2. KHUSUS TRANSAKSI EVENT / WORKSHOP / WEBINAR ──────────────────
+  if (data.tipe_transaksi === 'EVENT') {
+    const jadwal = formatTanggalJamWIB(data.tanggal_sesi)
+    const lines = [
+      `*BUKTI PEMBAYARAN & TIKET EVENT EMPATHIKA*`,
+      ``,
+      `No. Invoice   : ${data.nomor}`,
+      `Tanggal Terbit: ${tanggalTerbit}`,
+      `Tanggal Bayar : ${tanggalBayar}`,
+      `---`,
+      ``,
+      `*Data Peserta*`,
+      `Nama     : ${data.nama_client}`,
+      ...(data.no_wa_client ? [`WhatsApp : ${data.no_wa_client}`] : []),
+      ``,
+      `*Rincian Event*`,
+      `Event    : ${data.judul_layanan}`,
+      `Pemateri : ${data.nama_psikolog}`,
+      `Jadwal   : ${jadwal}`,
+      ``,
+      `---`,
+      ``,
+      `*Total Bayar : ${totalBayar}*`,
+      `Metode Bayar : ${metodeBayar}`,
+      `Status       : Lunas (Tiket Terkonfirmasi)`,
+      ``,
+      `---`,
+      ``,
+      `*Ketentuan Event:*`,
+      `• Tiket pendaftaran event/workshop/webinar ini berlaku sah untuk peserta terdaftar.`,
+      `• Pendaftaran bersifat final dan tidak dapat dibatalkan ataupun di-refund.`,
+      `• Tautan/link pertemuan daring maupun panduan kehadiran akan dikirimkan kembali oleh admin pada hari pelaksanaan (Hari-H).`,
+      ``,
+      `---`,
+      ``,
+      `Empathika Layanan Psikologi`,
+      `Jl. Cikutra No.312, Neglasari, Kec. Cibeunying Kaler`,
+      `Kota Bandung, Jawa Barat 41024`,
+      `Kontak: 0878-7878-5498`,
+      ``,
+      `_Dokumen ini diterbitkan otomatis oleh sistem Empathika._`,
+    ]
+
+    return lines.join('\n')
+  }
+
+  // ── 3. KHUSUS SESI KONSELING & ASESMEN OFFLINE ────────────────────────
   const jadwal = formatTanggalJamWIB(data.tanggal_sesi)
   const jenisSesi = formatJenisSesi(data.jenis_sesi)
 

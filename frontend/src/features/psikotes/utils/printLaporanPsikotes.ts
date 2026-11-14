@@ -126,9 +126,149 @@ export async function printLaporanPsikotes(
         colorHex: "#0e7490",
       },
     ];
+  } else if (
+    paketLower.includes("cdi") ||
+    (parsedDs?.subscales &&
+      parsedDs.subscales.negativeMood !== undefined &&
+      parsedDs.subscales.anhedonia !== undefined)
+  ) {
+    const sub = parsedDs?.subscales || {};
+    const nm = Number(typeof sub.negativeMood === "number" ? sub.negativeMood : sub.negativeMood?.skor ?? 0);
+    const ip = Number(typeof sub.interpersonalProblem === "number" ? sub.interpersonalProblem : sub.interpersonalProblem?.skor ?? 0);
+    const ineff = Number(typeof sub.ineffectiveness === "number" ? sub.ineffectiveness : sub.ineffectiveness?.skor ?? 0);
+    const anh = Number(typeof sub.anhedonia === "number" ? sub.anhedonia : sub.anhedonia?.skor ?? 0);
+    const nse = Number(typeof sub.negativeSelfEsteem === "number" ? sub.negativeSelfEsteem : sub.negativeSelfEsteem?.skor ?? 0);
+    subscalesTitle = "Profil Lima Dimensi Depresi CDI";
+    subscalesMaxNote = "Skor mentah per dimensi (cut-off klinis total >= 19)";
+    subscales = [
+      {
+        name: "Suasana Hati Negatif (Negative Mood)",
+        score: nm,
+        maxScore: 12,
+        percentage: Math.round((nm / 12) * 100),
+        grade: `${nm} / 12`,
+        deskripsi: "Skor mentah dimensi perasaan sedih, rasa bersalah, kekhawatiran, tangisan, dan kebimbangan (maks. 12).",
+        colorHex: "#561269",
+      },
+      {
+        name: "Masalah Antar Pribadi (Interpersonal Problems)",
+        score: ip,
+        maxScore: 8,
+        percentage: Math.round((ip / 8) * 100),
+        grade: `${ip} / 8`,
+        deskripsi: "Skor mentah dimensi kesulitan interaksi sosial, penarikan diri, dan konflik pergaulan (maks. 8).",
+        colorHex: "#763E8B",
+      },
+      {
+        name: "Ketidakefektifan (Ineffectiveness)",
+        score: ineff,
+        maxScore: 8,
+        percentage: Math.round((ineff / 8) * 100),
+        grade: `${ineff} / 8`,
+        deskripsi: "Skor mentah dimensi perasaan gagal, penurunan motivasi sekolah, dan inkompetensi (maks. 8).",
+        colorHex: "#0e7490",
+      },
+      {
+        name: "Anhedonia / Kesedihan (Anhedonia)",
+        score: anh,
+        maxScore: 16,
+        percentage: Math.round((anh / 16) * 100),
+        grade: `${anh} / 16`,
+        deskripsi: "Skor mentah dimensi kemurungan, gangguan tidur, kelelahan, nafsu makan, dan kesepian (maks. 16).",
+        colorHex: "#c026d3",
+      },
+      {
+        name: "Harga Diri Negatif (Negative Self-Esteem)",
+        score: nse,
+        maxScore: 10,
+        percentage: Math.round((nse / 10) * 100),
+        grade: `${nse} / 10`,
+        deskripsi: "Skor mentah dimensi kebencian pada diri, keraguan keputusan, keputusasaan, dan citra diri (maks. 10).",
+        colorHex: "#e11d48",
+      },
+    ];
+  } else if (
+    paketLower.includes("cats") ||
+    (parsedDs?.subscales &&
+      (parsedDs.subscales.intrusion !== undefined ||
+        parsedDs.subscales.avoidance !== undefined))
+  ) {
+    const sub = parsedDs?.subscales || {};
+    const intr = Number(typeof sub.intrusion === "number" ? sub.intrusion : sub.intrusion?.skor ?? 0);
+    const avoid = Number(typeof sub.avoidance === "number" ? sub.avoidance : sub.avoidance?.skor ?? 0);
+    const cog = Number(typeof sub.cognitionMood === "number" ? sub.cognitionMood : sub.cognitionMood?.skor ?? 0);
+    const arsl = Number(typeof sub.arousal === "number" ? sub.arousal : sub.arousal?.skor ?? 0);
+    subscalesTitle = "Profil Empat Klaster Gejala PTSD (DSM-5)";
+    subscalesMaxNote = "Skor mentah per klaster (cut-off klinis total >= 21)";
+    subscales = [
+      {
+        name: "Kriteria B: Intrusi / Gangguan (Intrusion)",
+        score: intr,
+        maxScore: 15,
+        percentage: Math.round((intr / 15) * 100),
+        grade: `${intr} / 15`,
+        deskripsi: "Pikiran mengganggu berulang, mimpi buruk, kilas balik, serta distres emosional & fisik saat teringat trauma.",
+        colorHex: "#561269",
+      },
+      {
+        name: "Kriteria C: Penghindaran (Avoidance)",
+        score: avoid,
+        maxScore: 6,
+        percentage: Math.round((avoid / 6) * 100),
+        grade: `${avoid} / 6`,
+        deskripsi: "Upaya aktif menghindari ingatan, perasaan, tempat, aktivitas, atau orang yang memicu ingatan traumatis.",
+        colorHex: "#763E8B",
+      },
+      {
+        name: "Kriteria D: Kognisi & Suasana Hati Negatif",
+        score: cog,
+        maxScore: 21,
+        percentage: Math.round((cog / 21) * 100),
+        grade: `${cog} / 21`,
+        deskripsi: "Keyakinan negatif diri/dunia, menyalahkan diri, emosi negatif menetap, anhedonia, dan merasa terasing.",
+        colorHex: "#0e7490",
+      },
+      {
+        name: "Kriteria E: Hyperarousal & Reaktivitas",
+        score: arsl,
+        maxScore: 18,
+        percentage: Math.round((arsl / 18) * 100),
+        grade: `${arsl} / 18`,
+        deskripsi: "Iritabilitas/luapan amarah, perilaku berisiko, hiperkewaspadaan, respon terkejut, konsentrasi, dan tidur.",
+        colorHex: "#c026d3",
+      },
+    ];
+
+    if (parsedDs?.pte?.totalDialami !== undefined) {
+      const pteNote = `Kriteria A (Paparan Trauma): Dilaporkan ${parsedDs.pte.totalDialami} peristiwa berpotensi traumatis.${
+        parsedDs.pte.peristiwaPalingMengganggu ? ` Peristiwa paling mengganggu: "${parsedDs.pte.peristiwaPalingMengganggu}".` : ""
+      }`;
+      if (!detail.kekuatanUtama.includes(pteNote)) {
+        detail.kekuatanUtama = [pteNote, ...detail.kekuatanUtama];
+        detail.judulKekuatan = "Paparan Peristiwa Traumatis (Kriteria A)";
+      }
+    }
+
+    if (parsedDs?.fungsiPsikososial?.totalTerganggu !== undefined) {
+      const fungsiNote = `Dampak terhadap Fungsi Psikososial: Terdeteksi kendala pada ${parsedDs.fungsiPsikososial.totalTerganggu} dari 5 area kehidupan (pergaulan, hobi, sekolah, keluarga, kebahagiaan).`;
+      if (!detail.blindspots.includes(fungsiNote)) {
+        detail.blindspots = [fungsiNote, ...detail.blindspots];
+        detail.judulBlindspots = "Dampak terhadap Fungsi Kehidupan Sehari-hari";
+      }
+    }
   }
 
   const isWithoutTotal = Boolean(parsedDs?.tanpaSkorTotal);
+
+  // Jika terindikasi ide melukai diri / bunuh diri (misal Butir 9 CDI atau PHQ-9 > 0), sematkan catatan keselamatan prioritas pada PDF
+  if (parsedDs?.ideMelukaiDiri) {
+    const safetyNote =
+      "PERHATIAN KHUSUS KESELAMATAN: Terindikasi adanya pikiran menyakiti diri sendiri / mengakhiri hidup (Butir 9 > 0). Diperlukan asesmen keselamatan mendalam dan konsultasi segera bersama orang tua/wali serta profesional kesehatan mental.";
+    if (!detail.blindspots.includes(safetyNote)) {
+      detail.blindspots = [safetyNote, ...detail.blindspots];
+      detail.judulBlindspots = "Perhatian Khusus & Area Kritis";
+    }
+  }
 
   const pProfile = peserta.peserta;
   const noDokumen = `EMP-PSI-${

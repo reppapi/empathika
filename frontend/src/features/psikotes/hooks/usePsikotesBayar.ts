@@ -65,9 +65,9 @@ export function usePsikotesBayar() {
     (() => {
       const t = testIdParam.toLowerCase();
       if (t.includes("dass")) return "/images/psikotes/banner-dass42.jpg";
-      if (t.includes("phq") || t.includes("depresi")) return "/images/psikotes/banner-depresi.jpg";
+      if (t.includes("phq") || t.includes("depresi") || t.includes("cdi")) return "/images/psikotes/banner-depresi.jpg";
       if (t.includes("gad") || t.includes("cemas")) return "/images/psikotes/banner-kecemasan.jpg";
-      if (t.includes("rcmas") || t.includes("anak")) return "/images/psikotes/banner-rcmas.jpg";
+      if (t.includes("rcmas") || (t.includes("anak") && !t.includes("depresi"))) return "/images/psikotes/banner-rcmas.jpg";
       if (t.includes("igds") || t.includes("game")) return "/images/psikotes/banner-game.jpg";
       return "";
     })();

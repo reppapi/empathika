@@ -93,6 +93,25 @@ export class TransaksiController {
     }
   }
 
+  confirmSimulation = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const result = await this.service.confirmSimulation(request.params.id)
+      reply.send({
+        success: true,
+        message: 'Pembayaran simulasi berhasil diverifikasi dan status transaksi diperbarui',
+        data: result,
+      })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({
+        error: err.name || 'Bad Request',
+        message: err.message || 'Gagal memverifikasi simulasi pembayaran',
+      })
+    }
+  }
+
   createPayment = async (request: FastifyRequest<{ Body: CreateTransaksiInput }>, reply: FastifyReply) => {
     try {
       const user = request.user as { id: string }

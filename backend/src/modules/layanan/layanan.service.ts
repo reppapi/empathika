@@ -94,7 +94,6 @@ export class LayananService {
   }
 
   async getAll(params?: Record<string, unknown>) {
-    await this.ensureDefaultPartnershipServices()
     const queryParams: { kategori?: string; aktif?: boolean; search?: string } = {}
     if (params?.kategori && typeof params.kategori === 'string') {
       queryParams.kategori = this.normalizeKategori(params.kategori)

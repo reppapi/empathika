@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "@/features/psikotes/data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
+import { isDASS as checkDASS, isPackagePaid } from "@/features/psikotes/utils/instrumentDetector";
 import {
   clearPsikotesDetailOrigin,
   markPsikotesDetailOrigin,
@@ -154,17 +155,9 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     fetchDetail();
   }, [params.testId]);
 
-  const isDASS = Boolean(
-    apiData?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
-    apiData?.judul?.toUpperCase().includes("DASS") ||
-    apiData?.judul?.toLowerCase().includes("stres") ||
-    apiData?.judul?.toLowerCase().includes("depresi, kecemasan") ||
-    params.testId.toLowerCase().includes("dass")
-  );
-
+  const isDASSInstrument = checkDASS(apiData, params.testId);
   const isPaidPackage = Boolean(
-    isDASS ||
-    (apiData && (apiData.jenis_akses === "BERBAYAR" || (typeof apiData.harga === "number" && apiData.harga > 0)))
+    apiData ? isPackagePaid(apiData) : isDASSInstrument
   );
 
   if (isLoading) {
@@ -257,7 +250,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
   const effectivePrice =
     typeof apiData.harga === "number" && apiData.harga > 0
       ? apiData.harga
-      : isDASS
+      : (apiData.jenis_akses === "BERBAYAR" || (!apiData && isDASSInstrument))
       ? 49000
       : 0;
   const formattedPrice = effectivePrice > 0 ? `Rp ${effectivePrice.toLocaleString("id-ID")}` : "Gratis";

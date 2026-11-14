@@ -20,7 +20,7 @@ export function SeminarDescriptionSection({
     <section className="w-full pt-14 pb-6 sm:pt-20 sm:pb-8 bg-white">
       <div className="max-w-4xl mx-auto px-6 sm:px-8">
         {/* Teks Pengantar Utama (Di atas Program/Manfaat Seminar) */}
-        <p className="text-base sm:text-lg md:text-xl text-gray-800 leading-relaxed font-medium mb-10 text-center sm:text-left whitespace-pre-wrap">
+        <p className="text-base sm:text-lg md:text-xl text-gray-800 leading-relaxed font-medium mb-10 text-justify whitespace-pre-wrap">
           {intro}
         </p>
 
@@ -35,7 +35,7 @@ export function SeminarDescriptionSection({
                 <h2 className="text-xl sm:text-2xl font-bold text-[#561269] mb-3">
                   {prog.name}
                 </h2>
-                <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap text-justify">
                   {prog.description}
                 </p>
               </div>
@@ -46,7 +46,7 @@ export function SeminarDescriptionSection({
         {/* Penjelasan Kotak di Bawah Manfaat / Program Seminar (Teks Setelah Enter) */}
         {additionalInfo && (
           <div className="my-6 p-6 sm:p-7 rounded-2xl bg-white border border-gray-200/80 shadow-xs">
-            <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap text-justify">
               {additionalInfo}
             </p>
           </div>
@@ -55,7 +55,7 @@ export function SeminarDescriptionSection({
         {/* Teks Penutup */}
         {closing && (
           <div className="mt-8 p-6 sm:p-7 rounded-2xl bg-gray-50 border border-gray-100">
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed text-center sm:text-left whitespace-pre-wrap">
+            <p className="text-sm sm:text-base text-gray-600 leading-relaxed whitespace-pre-wrap text-justify">
               {closing}
             </p>
           </div>

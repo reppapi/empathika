@@ -74,7 +74,7 @@ export class TransaksiService {
       const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
-      let client = null
+      let client: any = null
       if (loggedInClientId) {
         client = await tx.client.findUnique({ where: { id: loggedInClientId } })
       }
@@ -184,6 +184,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,
@@ -304,6 +307,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,
@@ -393,6 +399,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,
@@ -540,6 +549,70 @@ export class TransaksiService {
           },
         })
       }
+    })
+  }
+
+  /**
+   * Simulasi konfirmasi pembayaran (development/testing frontend)
+   */
+  async confirmSimulation(identifier: string) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const transaksi = await tx.transaksi.findFirst({
+        where: {
+          OR: [
+            { id: identifier },
+            { kode_transaksi: identifier },
+            { booking_konsultasi: { id: identifier } },
+            { booking_konsultasi: { kode_pesanan: identifier } },
+            { booking_event: { id: identifier } },
+            { booking_event: { kode_tiket: identifier } },
+            { booking_psikotes: { id: identifier } },
+          ],
+        },
+        include: {
+          booking_konsultasi: true,
+          booking_event: true,
+          booking_psikotes: true,
+        },
+      })
+
+      if (!transaksi) {
+        throw Object.assign(new Error('Transaksi tidak ditemukan'), { statusCode: 404 })
+      }
+
+      if (transaksi.status_pembayaran === 'PAID') {
+        return { message: 'Transaksi sudah dibayar sebelumnya', transaksi }
+      }
+
+      const updatedTrx = await tx.transaksi.update({
+        where: { id: transaksi.id },
+        data: {
+          status_pembayaran: 'PAID',
+          tanggal_bayar: new Date(),
+        },
+      })
+
+      if (transaksi.booking_konsultasi) {
+        await tx.bookingKonsultasi.update({
+          where: { id: transaksi.booking_konsultasi.id },
+          data: { status: 'CONFIRMED' },
+        })
+        if (transaksi.booking_konsultasi.id_jadwal) {
+          await tx.jadwalSlot.update({
+            where: { id: transaksi.booking_konsultasi.id_jadwal },
+            data: { status: 'SUDAH_DIBOOKING' },
+          }).catch(() => {})
+        }
+      }
+
+      if (transaksi.booking_event) {
+        await tx.bookingEvent.update({
+          where: { id: transaksi.booking_event.id },
+          data: { status: 'CONFIRMED' },
+        })
+      }
+
+      return { transaksi: updatedTrx }
     })
   }
 }

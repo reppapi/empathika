@@ -112,7 +112,9 @@ export default function AdminEventClient() {
   const filteredEvents = events.filter((event) => {
     if (activeTab === "seminar" && event.jenis !== "Seminar") return false
     if (activeTab === "workshop" && event.jenis !== "Workshop") return false
+    // Tab "selesai" = event yang sudah diarsipkan (status Selesai)
     if (activeTab === "selesai" && event.status !== "Selesai") return false
+    // Tab "semua" = semua event (termasuk arsip) — tidak perlu filter
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
@@ -416,6 +418,7 @@ export default function AdminEventClient() {
                         {/* Tiket Terjual */}
                         <td className="py-4 px-4 text-center text-xs font-bold text-gray-800">
                           {item.tiketTerjual}
+                          <span className="font-normal text-gray-400"> / {item.totalTiket}</span>
                         </td>
 
                         {/* Status */}

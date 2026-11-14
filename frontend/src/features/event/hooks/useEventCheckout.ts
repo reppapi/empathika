@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { eventService, PaketBundlingItem } from "@/services/event.service"
+import { transaksiService } from "@/services/transaksi.service"
 
 export function useEventCheckout() {
   const router = useRouter()
@@ -13,6 +14,7 @@ export function useEventCheckout() {
 
   // State untuk Paket Bundling
   const [selectedTicketType, setSelectedTicketType] = useState<string>("SINGLE")
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [pesertaTambahan, setPesertaTambahan] = useState<{ nama: string; whatsapp: string }[]>([])
 
   // State data bundling yang diambil langsung dari database server
@@ -330,37 +332,90 @@ export function useEventCheckout() {
     }
 
     setIsSubmitting(true)
+    setCheckoutError(null)
 
-    const params = new URLSearchParams({
-      nama: nama.toUpperCase(),
-      whatsapp,
-      orderId:
-        (isPsikotes ? "PSI-" : "EV-") +
-        String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"),
-      tanggal: tanggalParam,
-      tahun: "2026",
-      waktu: waktuParam,
-      judul: judulParam,
-      subjudul: subjudulParam,
-      kategori: kategoriParam,
-      harga: activeHargaTeks,
-      tipeTiket: selectedTicketType,
-      ...(currentSelectedBundle && {
-        namaBundling: currentSelectedBundle.nama_paket,
-        kuotaBundling: String(currentSelectedBundle.kuota_tiket),
-        dataPesertaTambahan: JSON.stringify(pesertaTambahan),
-      }),
-      metode: metodePembayaran!,
-      tipe: tipeParam,
-      ...(eventIdParam && { eventId: eventIdParam }),
-      ...(linkMeetParam && { linkMeet: linkMeetParam }),
-      ...(linkWaParam && { linkWa: linkWaParam }),
-      ...(testIdParam && { testId: testIdParam }),
-      ...(selectedBank && { bank: selectedBank }),
-      ...(selectedEwallet && { ewallet: selectedEwallet }),
-    })
+    // Format metode pembayaran untuk backend transaksi
+    let backendMetode: "TRANSFER_BANK" | "E_WALLET" | "QRIS" = "QRIS"
+    let backendChannel: string | undefined = undefined
+    if (metodePembayaran === "bank") {
+      backendMetode = "TRANSFER_BANK"
+      backendChannel = selectedBank?.toUpperCase()
+    } else if (metodePembayaran === "ewallet") {
+      backendMetode = "E_WALLET"
+      backendChannel = selectedEwallet?.toUpperCase()
+    } else if (metodePembayaran === "qris") {
+      backendMetode = "QRIS"
+      backendChannel = "QRIS"
+    }
 
-    router.push(`/event/pending?${params.toString()}`)
+    const kuotaBundlingNum = currentSelectedBundle ? currentSelectedBundle.kuota_tiket : 1
+
+    const proceedToPending = (transaksiId?: string, bookingId?: string, orderKode?: string) => {
+      const finalOrderId = orderKode || (isPsikotes ? "PSI-" : "EV-") + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")
+      const params = new URLSearchParams({
+        nama: nama.toUpperCase(),
+        whatsapp,
+        orderId: finalOrderId,
+        ...(transaksiId && { transaksiId }),
+        ...(bookingId && { bookingId }),
+        tanggal: tanggalParam,
+        tahun: "2026",
+        waktu: waktuParam,
+        judul: judulParam,
+        subjudul: subjudulParam,
+        kategori: kategoriParam,
+        harga: activeHargaTeks,
+        tipeTiket: selectedTicketType,
+        ...(currentSelectedBundle && {
+          namaBundling: currentSelectedBundle.nama_paket,
+          kuotaBundling: String(currentSelectedBundle.kuota_tiket),
+          dataPesertaTambahan: JSON.stringify(pesertaTambahan),
+        }),
+        metode: metodePembayaran!,
+        tipe: tipeParam,
+        ...(eventIdParam && { eventId: eventIdParam }),
+        ...(linkMeetParam && { linkMeet: linkMeetParam }),
+        ...(linkWaParam && { linkWa: linkWaParam }),
+        ...(testIdParam && { testId: testIdParam }),
+        ...(selectedBank && { bank: selectedBank }),
+        ...(selectedEwallet && { ewallet: selectedEwallet }),
+      })
+
+      router.push(`/event/pending?${params.toString()}`)
+    }
+
+    if (eventIdParam && !isPsikotes) {
+      transaksiService
+        .checkout({
+          tipe: "EVENT",
+          id_item: eventIdParam,
+          nama: nama.trim(),
+          no_telepon: whatsapp.trim(),
+          metode_pembayaran: backendMetode,
+          channel_pembayaran: backendChannel,
+          kuota_bundling: kuotaBundlingNum,
+          nama_bundling: currentSelectedBundle?.nama_paket,
+          nama_peserta_tambahan: pesertaTambahan.length > 0 ? pesertaTambahan : undefined,
+        })
+        .then((res) => {
+          const tId = res?.data?.transaksi?.id
+          const bId = res?.data?.booking?.id
+          const code = res?.data?.booking?.kode_tiket || res?.data?.transaksi?.kode_transaksi
+          proceedToPending(tId, bId, code)
+        })
+        .catch((err) => {
+          console.error("Gagal create transaksi event via API:", err)
+          setIsSubmitting(false)
+          const msg =
+            err?.response?.data?.message ||
+            err?.message ||
+            "Gagal memproses pendaftaran event ke server. Pastikan server backend sedang aktif."
+          setCheckoutError(msg)
+          window.scrollTo({ top: 0, behavior: "smooth" })
+        })
+    } else {
+      proceedToPending()
+    }
   }
 
   return {
@@ -407,5 +462,7 @@ export function useEventCheckout() {
     eventClosedReason,
     handleSelectPayment,
     handleSubmit,
+    checkoutError,
+    setCheckoutError,
   }
 }

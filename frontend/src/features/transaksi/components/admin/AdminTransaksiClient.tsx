@@ -446,29 +446,32 @@ function normalizeTransaksi(raw: any) {
   }
 
   const clientName =
+    parsedDataPembayaran?.nama_pemesan ||
+    parsedDataPembayaran?.nama ||
     client.nama ||
     bookingPsikotes.client?.nama ||
     bookingEvent.client?.nama ||
-    parsedDataPembayaran?.nama ||
     client.name ||
     "–"
 
   const clientEmail =
+    parsedDataPembayaran?.email_pemesan ||
+    parsedDataPembayaran?.email ||
     client.email ||
     bookingPsikotes.client?.email ||
     bookingEvent.client?.email ||
-    parsedDataPembayaran?.email ||
     raw.email ||
     "–"
 
   const clientPhone =
+    parsedDataPembayaran?.no_telepon_pemesan ||
+    parsedDataPembayaran?.no_telepon ||
+    parsedDataPembayaran?.phone ||
     client.no_telepon ||
     bookingPsikotes.client?.no_telepon ||
     bookingEvent.client?.no_telepon ||
     client.no_hp ||
     client.phone ||
-    parsedDataPembayaran?.no_telepon ||
-    parsedDataPembayaran?.phone ||
     "–"
 
   return {
@@ -498,6 +501,8 @@ function normalizeTransaksi(raw: any) {
     metodePembayaran: metodePembayaranFormatted,
     waktuPembayaran,
     tanggalTransaksi,
+    // Status Refundable: Hanya Konseling dan Asesmen Offline yang bisa di-refund
+    canRefund: (jenisLayanan === "konseling" || jenisLayanan === "asesment") && status === "Lunas" && !raw.status_pembayaran?.includes("REFUNDED"),
     // Informasi Refund
     isRefunded: raw.status_pembayaran === "REFUNDED",
     refundAt: raw.refund_at
@@ -1113,7 +1118,9 @@ export default function AdminTransaksiClient() {
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-gray-900">{activeDetailItem.clientName}</span>
-                        <span className="text-xs text-gray-500">{activeDetailItem.clientEmail}</span>
+                        {activeDetailItem.clientEmail && activeDetailItem.clientEmail !== "–" && (
+                          <span className="text-xs text-gray-500">{activeDetailItem.clientEmail}</span>
+                        )}
                         <span className="text-xs text-gray-500">{activeDetailItem.clientPhone}</span>
                       </div>
                     </div>
@@ -1232,8 +1239,8 @@ export default function AdminTransaksiClient() {
                       Kirim Invoice ke WA
                     </button>
 
-                    {/* Refund button - only for PAID transactions */}
-                    {activeDetailItem.status === "Lunas" && (
+                    {/* Refund button - only for PAID transactions on refundable services (Konseling & Asesmen Offline) */}
+                    {activeDetailItem.canRefund && (
                       <button
                         type="button"
                         onClick={() => setTransaksiToRefund(activeDetailItem._raw)}

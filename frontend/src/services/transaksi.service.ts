@@ -12,6 +12,9 @@ export interface CreateCheckoutInput {
   catatan?: string
   metode_pembayaran?: "TRANSFER_BANK" | "E_WALLET" | "QRIS"
   channel_pembayaran?: string
+  kuota_bundling?: number
+  nama_bundling?: string
+  nama_peserta_tambahan?: { nama: string; whatsapp?: string }[]
   success_redirect_url?: string
   failure_redirect_url?: string
 }
@@ -61,6 +64,9 @@ export const transaksiService = {
         invoiceId: string
       }
     }>("/transaksi/checkout", data).then((r) => r.data),
+
+  confirmPaymentSimulation: (transaksiId: string) =>
+    apiClient.post<{ success: boolean; message: string; data?: any }>(`/transaksi/${transaksiId}/confirm-simulation`).then((r) => r.data),
 
   processRefund: (transaksiId: string, payload: { alasan: string }) =>
     apiClient.post(`/transaksi/${transaksiId}/refund`, payload).then((r) => r.data),

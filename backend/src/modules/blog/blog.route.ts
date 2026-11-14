@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import { BlogController } from './blog.controller'
-import { authGuard } from '../../middlewares/auth-guard'
 import { adminGuard } from '../../middlewares/admin-guard'
 import {
   blogIdParamSchema,

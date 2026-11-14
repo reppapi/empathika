@@ -108,7 +108,7 @@ export default function PsikotesListClient() {
                   if (process.env.NODE_ENV === "development") {
                     console.warn(`[DEV WARNING][PsikotesList] 'deskripsi' untuk paket '${test.id}' kosong di DB.`);
                   }
-                  return "Ikuti asesmen psikologis terstandar ini untuk memahami kondisi dirimu secara lebih mendalam.";
+                  return "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.";
                 })();
 
               return (
@@ -132,7 +132,7 @@ export default function PsikotesListClient() {
                     <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
                       {test.judul}
                     </h3>
-                    <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-3">
+                    <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
                       {deskripsiText}
                     </p>
 
