@@ -19,6 +19,8 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const { user } = useAuthStore()
   const [biroName, setBiroName] = useState<string>(user?.name || "Biro Mitra")
+  const [biroColor, setBiroColor] = useState<string>("#561269")
+  const [biroLogo, setBiroLogo] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -34,6 +36,12 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
           setBiroName(beBiro.nama_biro)
         } else if (res.data.nama) {
           setBiroName(res.data.nama)
+        }
+        if (beBiro?.warna_tema) {
+          setBiroColor(beBiro.warna_tema)
+        }
+        if (beBiro?.logoURI) {
+          setBiroLogo(beBiro.logoURI)
         }
       })
       .catch(() => {})
@@ -59,6 +67,8 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           biroName={biroName}
+          biroColor={biroColor}
+          biroLogo={biroLogo}
         />
 
         {/* 2. Area Konten Kanan */}

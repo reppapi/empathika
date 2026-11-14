@@ -9,6 +9,7 @@ export interface PublicBiroProfile {
   no_telepon: string | null
   website_url: string | null
   logoURI: string | null
+  warna_tema?: string | null
   status: string
   owner: {
     nama: string

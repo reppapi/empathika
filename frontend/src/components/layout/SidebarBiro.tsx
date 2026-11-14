@@ -20,12 +20,16 @@ interface SidebarBiroProps {
   isOpen?: boolean
   onClose?: () => void
   biroName?: string
+  biroColor?: string
+  biroLogo?: string | null
 }
 
 export function SidebarBiro({
   isOpen,
   onClose,
   biroName = "Biro Mitra Empathika",
+  biroColor = "#561269",
+  biroLogo,
 }: SidebarBiroProps) {
   const pathname = usePathname()
 
@@ -45,8 +49,9 @@ export function SidebarBiro({
 
       {/* ── Sidebar Container ── */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col bg-[#561269] font-poppins text-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        className={`fixed left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col font-poppins text-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
+        style={{ backgroundColor: biroColor || "#561269" }}
       >
         {/* Header Sidebar: Profile & Empathika (Tetap Diam di Atas, Tidak Ikut Ter-scroll) */}
         <div className="shrink-0 px-5 pt-8 pb-2 sm:px-6">
@@ -55,8 +60,15 @@ export function SidebarBiro({
             onClick={onClose}
             className="flex items-center gap-3 transition-transform hover:scale-105"
           >
-            <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm flex items-center justify-center font-bold text-[#561269] text-base">
-              B
+            <div 
+              className="h-11 w-11 shrink-0 rounded-full bg-white shadow-sm flex items-center justify-center font-bold text-base overflow-hidden"
+              style={{ color: biroColor || "#561269" }}
+            >
+              {biroLogo ? (
+                <img src={biroLogo} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                (biroName?.[0] || "B").toUpperCase()
+              )}
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-[20px] font-extrabold tracking-wide text-white uppercase truncate">

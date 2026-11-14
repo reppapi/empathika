@@ -109,6 +109,11 @@ export class BiroService {
             nama_biro: true,
             slug: true,
             status: true,
+            logoURI: true,
+            warna_tema: true,
+            alamat: true,
+            deskripsi: true,
+            no_telepon: true,
           },
         },
         owned_biro: {
@@ -191,7 +196,19 @@ export class BiroService {
   }
 
   async getBiroById(accountId: string) {
-    const account = await this.prisma.account.findUnique({
+    const biroSelect = {
+      id: true,
+      nama_biro: true,
+      slug: true,
+      status: true,
+      logoURI: true,
+      warna_tema: true,
+      alamat: true,
+      deskripsi: true,
+      no_telepon: true,
+    }
+
+    let account = await this.prisma.account.findUnique({
       where: { id: accountId },
       select: {
         id: true,
@@ -204,23 +221,44 @@ export class BiroService {
         token_aktivasi: true,
         token_aktivasi_exp: true,
         id_biro: true,
-        owned_biro: {
-          select: {
-            id: true,
-            nama_biro: true,
-            slug: true,
-            status: true,
-            logoURI: true,
-            warna_tema: true,
-            alamat: true,
-            deskripsi: true,
-            no_telepon: true,
-          },
-        },
+        biro: { select: biroSelect },
+        owned_biro: { select: biroSelect },
         createdAt: true,
         updatedAt: true,
       } as any,
     })
+
+    if (!account) {
+      const biroData = await this.prisma.biro.findFirst({
+        where: {
+          OR: [{ id: accountId }, { slug: accountId }],
+        },
+        select: {
+          id_account: true,
+        },
+      })
+      if (biroData?.id_account) {
+        account = await this.prisma.account.findUnique({
+          where: { id: biroData.id_account },
+          select: {
+            id: true,
+            nama: true,
+            email: true,
+            role: true,
+            no_telepon: true,
+            aktif: true,
+            password: true,
+            token_aktivasi: true,
+            token_aktivasi_exp: true,
+            id_biro: true,
+            biro: { select: biroSelect },
+            owned_biro: { select: biroSelect },
+            createdAt: true,
+            updatedAt: true,
+          } as any,
+        })
+      }
+    }
 
     if (!account) {
       throw Object.assign(new Error("Akun tidak ditemukan"), { statusCode: 404 })
@@ -316,10 +354,32 @@ export class BiroService {
   }
 
   async updateBiroProfile(accountId: string, input: UpdateBiroProfileInput) {
-    const account = await this.prisma.account.findUnique({
+    let account = await this.prisma.account.findUnique({
       where: { id: accountId },
-      include: { owned_biro: { take: 1 } },
+      include: {
+        owned_biro: true,
+        biro: true,
+      },
     } as any)
+
+    if (!account) {
+      const biroData = await this.prisma.biro.findFirst({
+        where: {
+          OR: [{ id: accountId }, { slug: accountId }],
+        },
+        include: {
+          owner: {
+            include: {
+              owned_biro: true,
+              biro: true,
+            },
+          },
+        },
+      })
+      if (biroData?.owner) {
+        account = biroData.owner
+      }
+    }
 
     if (!account) {
       throw Object.assign(new Error("Akun tidak ditemukan"), { statusCode: 404 })
@@ -329,19 +389,33 @@ export class BiroService {
       throw Object.assign(new Error("Akun ini bukan akun Biro"), { statusCode: 400 })
     }
 
-    const biro = (account as any).owned_biro?.[0]
+    let biro = (account as any).owned_biro?.[0] || (account as any).biro
+    if (!biro) {
+      biro = await this.prisma.biro.findFirst({
+        where: {
+          OR: [
+            { id_account: account.id },
+            { id: account.id_biro || undefined },
+            { id: accountId },
+          ],
+        },
+      })
+    }
 
     // Update email jika berubah
-    if (input.email && input.email !== account.email) {
-      const existingEmail = await this.prisma.account.findUnique({ where: { email: input.email } })
-      if (existingEmail && existingEmail.id !== accountId) {
+    if (input.email && input.email.trim().toLowerCase() !== account.email.toLowerCase()) {
+      const existingEmail = await this.prisma.account.findUnique({
+        where: { email: input.email.trim().toLowerCase() },
+      })
+      if (existingEmail && existingEmail.id !== account.id) {
         throw Object.assign(new Error("Email sudah digunakan oleh akun lain"), { statusCode: 409 })
       }
     }
 
     // Update slug jika berubah
-    if (input.slug && biro && input.slug !== biro.slug) {
-      const existingSlug = await this.prisma.biro.findUnique({ where: { slug: input.slug } })
+    const cleanSlug = input.slug ? input.slug.trim().toLowerCase() : undefined
+    if (cleanSlug && biro && cleanSlug !== biro.slug) {
+      const existingSlug = await this.prisma.biro.findUnique({ where: { slug: cleanSlug } })
       if (existingSlug && existingSlug.id !== biro.id) {
         throw Object.assign(new Error("Slug sudah digunakan oleh biro lain"), { statusCode: 409 })
       }
@@ -349,34 +423,52 @@ export class BiroService {
 
     // Update account
     const accountUpdateData: any = {}
-    if (input.nama !== undefined) accountUpdateData.nama = input.nama
-    if (input.email !== undefined) accountUpdateData.email = input.email
-    if (input.noTelepon !== undefined) accountUpdateData.no_telepon = input.noTelepon
+    if (input.nama !== undefined) accountUpdateData.nama = input.nama.trim()
+    if (input.email !== undefined) accountUpdateData.email = input.email.trim().toLowerCase()
+    if (input.noTelepon !== undefined) accountUpdateData.no_telepon = input.noTelepon ? input.noTelepon.trim() : null
+    if (input.status === "ACTIVE") {
+      accountUpdateData.aktif = true
+    } else if (input.status === "INACTIVE" || input.status === "SUSPENDED") {
+      accountUpdateData.aktif = false
+    }
 
     if (Object.keys(accountUpdateData).length > 0) {
-      await this.prisma.account.update({ where: { id: accountId }, data: accountUpdateData })
+      await this.prisma.account.update({ where: { id: account.id }, data: accountUpdateData })
     }
 
     // Update biro
     if (biro) {
       const biroUpdateData: any = {}
-      if (input.nama !== undefined) biroUpdateData.nama_biro = input.nama
-      if (input.slug !== undefined) biroUpdateData.slug = input.slug
-      if (input.alamat !== undefined) biroUpdateData.alamat = input.alamat
-      if (input.deskripsi !== undefined) biroUpdateData.deskripsi = input.deskripsi
-      if (input.warnaIdentitas !== undefined) biroUpdateData.warna_tema = input.warnaIdentitas
-      if (input.logoURI !== undefined) biroUpdateData.logoURI = input.logoURI
+      if (input.nama !== undefined) biroUpdateData.nama_biro = input.nama.trim()
+      if (cleanSlug !== undefined) biroUpdateData.slug = cleanSlug
+      if (input.alamat !== undefined) biroUpdateData.alamat = input.alamat ? input.alamat.trim() : null
+      if (input.deskripsi !== undefined) biroUpdateData.deskripsi = input.deskripsi ? input.deskripsi.trim() : null
+      if (input.warnaIdentitas !== undefined) {
+        biroUpdateData.warna_tema = input.warnaIdentitas ? input.warnaIdentitas.trim().toUpperCase() : null
+      }
+      if (input.logoURI !== undefined) biroUpdateData.logoURI = input.logoURI || null
       if (input.status !== undefined) biroUpdateData.status = input.status
-      if (input.noTelepon !== undefined) biroUpdateData.no_telepon = input.noTelepon
+      if (input.noTelepon !== undefined) biroUpdateData.no_telepon = input.noTelepon ? input.noTelepon.trim() : null
 
       if (Object.keys(biroUpdateData).length > 0) {
         await this.prisma.biro.update({ where: { id: biro.id }, data: biroUpdateData })
       }
+
+      // Pastikan account.id_biro sinkron
+      if (!account.id_biro || account.id_biro !== biro.id) {
+        await this.prisma.account.update({
+          where: { id: account.id },
+          data: { id_biro: biro.id },
+        })
+      }
     }
+
+    const updatedAccount = await this.getBiroById(account.id)
 
     return {
       success: true,
-      message: "Profil biro berhasil diperbarui",
+      message: "Profil biro berhasil diperbarui dan disinkronkan",
+      data: updatedAccount.data,
     }
   }
 
@@ -409,9 +501,9 @@ export class BiroService {
       throw Object.assign(new Error("Biro tidak ditemukan"), { statusCode: 404 })
     }
 
-    if (biro.status !== "ACTIVE") {
+    if (biro.status === "INACTIVE" || biro.status === "SUSPENDED") {
       throw Object.assign(
-        new Error("Website biro sedang tidak aktif atau dalam proses peninjauan"),
+        new Error("Website biro sedang tidak aktif atau dinonaktifkan oleh administrator"),
         { statusCode: 403 }
       )
     }
@@ -442,6 +534,7 @@ export class BiroService {
         no_telepon: biro.no_telepon,
         website_url: biro.website_url,
         logoURI: biro.logoURI,
+        warna_tema: biro.warna_tema,
         status: biro.status,
         createdAt: biro.createdAt,
         owner: biro.owner,
@@ -467,7 +560,7 @@ export class BiroService {
       throw Object.assign(new Error("Biro tidak ditemukan"), { statusCode: 404 })
     }
 
-    if (biro.status !== "ACTIVE") {
+    if (biro.status === "INACTIVE" || biro.status === "SUSPENDED") {
       throw Object.assign(new Error("Website biro sedang tidak aktif"), { statusCode: 403 })
     }
 
@@ -577,7 +670,7 @@ export class BiroService {
       select: { id: true, status: true, nama_biro: true },
     })
 
-    if (!biro || biro.status !== "ACTIVE") {
+    if (!biro || biro.status === "INACTIVE" || biro.status === "SUSPENDED") {
       throw Object.assign(new Error("Biro tidak ditemukan atau tidak aktif"), { statusCode: 404 })
     }
 
@@ -658,7 +751,7 @@ export class BiroService {
       select: { id: true, status: true },
     })
 
-    if (!biro || biro.status !== "ACTIVE") {
+    if (!biro || biro.status === "INACTIVE" || biro.status === "SUSPENDED") {
       throw Object.assign(new Error("Biro tidak ditemukan atau tidak aktif"), { statusCode: 404 })
     }
 
@@ -696,7 +789,7 @@ export class BiroService {
       select: { id: true, status: true },
     })
 
-    if (!biro || biro.status !== "ACTIVE") {
+    if (!biro || biro.status === "INACTIVE" || biro.status === "SUSPENDED") {
       throw Object.assign(new Error("Biro tidak ditemukan atau tidak aktif"), { statusCode: 404 })
     }
 
@@ -764,7 +857,7 @@ export class BiroService {
       select: { id: true, slug: true, nama_biro: true, status: true },
     })
 
-    if (!biro || biro.status !== "ACTIVE") {
+    if (!biro || biro.status === "INACTIVE" || biro.status === "SUSPENDED") {
       throw Object.assign(new Error("Biro tidak ditemukan atau tidak aktif"), { statusCode: 404 })
     }
 
@@ -935,7 +1028,7 @@ export class BiroService {
       select: { id: true, nama_biro: true, slug: true, status: true },
     })
 
-    if (!biro || biro.status !== "ACTIVE") {
+    if (!biro || biro.status === "INACTIVE" || biro.status === "SUSPENDED") {
       throw Object.assign(new Error("Biro tidak ditemukan atau tidak aktif"), { statusCode: 404 })
     }
 
@@ -1001,7 +1094,7 @@ export class BiroService {
       select: { id: true, nama_biro: true, slug: true, status: true, owner: { select: { email: true, nama: true } } },
     })
 
-    if (!biro || biro.status !== "ACTIVE") {
+    if (!biro || biro.status === "INACTIVE" || biro.status === "SUSPENDED") {
       throw Object.assign(new Error("Biro tidak ditemukan atau tidak aktif"), { statusCode: 404 })
     }
 
