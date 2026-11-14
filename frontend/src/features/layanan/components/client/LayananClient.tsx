@@ -260,7 +260,7 @@ export default function LayananClient() {
             {/* Area Konten Scrollable */}
             <div
               ref={scrollRef}
-              className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
+              className="flex-1 overflow-y-auto overscroll-contain pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
             >
               <div key={`content-${activeCategory}`} className="animate-fade-in">
                 {/* 1. Status Error Jika Koneksi Gagal (Konsultasi, Psikotes, Workshop, Seminar, Asesmen) */}

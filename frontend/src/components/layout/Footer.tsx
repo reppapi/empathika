@@ -100,9 +100,11 @@ export function Footer() {
   const linkedinUrl = getValidUrl(contact.linkedin);
   const ytUrl = getValidUrl(contact.youtube);
 
+  const isLayanan = pathname === "/layanan" || pathname?.endsWith("/layanan") || pathname?.includes("/layanan?");
+
   return (
-    <footer className="bg-[#EFE9F3] pt-16 pb-8 text-gray-800">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className={`bg-[#EFE9F3] text-gray-800 ${isLayanan ? "min-h-screen flex flex-col justify-between pt-24 pb-8" : "pt-16 pb-8"}`}>
+      <div className={`max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 w-full ${isLayanan ? "flex-1 flex flex-col justify-center" : ""}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-12">
           
           {/* Brand & Description */}
