@@ -10,15 +10,15 @@ import {
   webhookXenditSchema,
 } from './transaksi.schema'
 import { authGuard } from '../../middlewares/auth-guard'
-import { adminGuard } from '../../middlewares/admin-guard'
+import { adminGuard, adminOrBiroGuard } from '../../middlewares/admin-guard'
 
 export default async function transaksiRoutes(fastify: FastifyInstance) {
   const controller = new TransaksiController(fastify)
   const webhookCtrl = new WebhookController(fastify)
 
-  // ── Admin routes ────────────────────────────────────────────────
+  // ── Admin & Biro routes ──────────────────────────────────────────
   fastify.get('/admin', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Transaksi - Admin'],
       summary: 'Admin melihat semua riwayat transaksi dengan paginasi dan filter',

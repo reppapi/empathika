@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { LOCAL_STORAGE_KEY_BIRO, INITIAL_BIRO_LIST } from "@/features/biro/data/initialData"
+import { LOCAL_STORAGE_KEY_BIRO } from "@/features/biro/data/initialData"
 import { BiroKomunitas } from "@/features/biro/types"
 import { Building2, Mail, Phone, MapPin, Globe, Palette, ShieldCheck } from "lucide-react"
 import { getBiroWebsiteUrl } from "@/lib/utils"
@@ -14,8 +14,21 @@ export default function ProfilBiroClient() {
   const { user } = useAuthStore()
   const [biro, setBiro] = useState<BiroKomunitas>(() => {
     const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
-    const base = INITIAL_BIRO_LIST[0]
-    return cachedColor ? { ...base, warnaIdentitas: cachedColor } : base
+    return {
+      id: user?.id || "biro",
+      accountId: user?.id || "biro",
+      nama: user?.name || "Biro Mitra",
+      slug: "",
+      warnaIdentitas: cachedColor || "#561269",
+      emailAdmin: user?.email || "",
+      telepon: "-",
+      alamat: "-",
+      deskripsi: "Biro Mitra Empathika",
+      statusAktivasi: "Aktif",
+      accountAktif: true,
+      tanggalDibuat: new Date().toISOString().split("T")[0],
+      dashboardUrl: "/admin-biro",
+    }
   })
 
   useEffect(() => {
@@ -61,15 +74,13 @@ export default function ProfilBiroClient() {
       })
       .catch(() => {})
 
-    // 2. Fallback jika offline/local list
+    // 2. Fallback jika offline/local list yang cocok dengan akun ini
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
       if (saved) {
         const list: BiroKomunitas[] = JSON.parse(saved)
         const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
-        const found =
-          list.find((b) => b.id === user?.id || b.emailAdmin === user?.email || b.nama === user?.name) ||
-          list[0]
+        const found = list.find((b) => b.id === user?.id || b.emailAdmin === user?.email || b.nama === user?.name)
         if (found) {
           setBiro(cachedColor ? { ...found, warnaIdentitas: found.warnaIdentitas || cachedColor } : found)
         }

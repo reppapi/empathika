@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { AdminController } from './admin.controller'
-import { adminGuard } from '../../middlewares/admin-guard'
+import { adminGuard, adminOrBiroGuard } from '../../middlewares/admin-guard'
 import {
   getAdminJadwalQuerySchema,
   createAdminJadwalSlotSchema,
@@ -58,9 +58,9 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.updateProfile,
   })
 
-  // ── Modul Dashboard & Ringkasan Operasional Admin ────────────────
+  // ── Modul Dashboard & Ringkasan Operasional Admin & Biro ───────────
   fastify.get('/dashboard/chart', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan data grafik reservasi sesi konsultasi & asesmen terkonfirmasi',
@@ -70,7 +70,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/dashboard/metrics', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan 5 kartu ringkasan operasional admin (pendapatan, klien, sesi selesai, pendaftar workshop, pending bayar)',
@@ -80,7 +80,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/dashboard/today-sessions', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan daftar sesi konseling hari ini untuk widget dashboard (default top 5)',
@@ -91,7 +91,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/dashboard/recent-transactions', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan daftar transaksi pembayaran terbaru untuk widget dashboard (default top 5)',

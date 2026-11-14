@@ -27,7 +27,6 @@ import {
 
 import { NewSessionData } from "@/features/dashboard/components/admin/ModalTambahSesi"
 import { useAuthStore } from "@/store/authStore"
-import { getBiroTenantData } from "@/features/dashboard/data/biroDashboardData"
 
 export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
   const isBiroContext = options?.isBiroContext ?? false
@@ -530,22 +529,6 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
             }
           })
           setTodaySessions(applyTimeStatusToSessions(mappedToday, datePickerValue))
-        } else if (isBiroContext) {
-          const tenant = getBiroTenantData(user?.id)
-          const mockMapped: ClientSessionToday[] = tenant.todaySessions.map((s, idx) => ({
-            id: `biro_sesi_${idx + 1}`,
-            date: datePickerValue,
-            waktu: s.waktu,
-            namaKlien: s.klien,
-            klienId: `KLN-${100 + idx}`,
-            kontak: "0812-3456-7890",
-            psikolog: s.psikolog,
-            layanan: s.layanan,
-            tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
-            status: s.status as any,
-            tanggal: datePickerValue,
-          }))
-          setTodaySessions(applyTimeStatusToSessions(mockMapped, datePickerValue))
         } else {
           setTodaySessions([])
         }
