@@ -704,8 +704,8 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* PSIKOTES SECTION */}
       {/* ======================================= */}
-      <section id="psikotes" className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 scroll-mt-28">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+      <section id="psikotes" className="w-full max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 scroll-mt-28">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 lg:mb-12 gap-4 sm:gap-6">
           <h2 className="text-2xl md:text-3xl font-semibold text-[#561269] tracking-tight">
             Kenali Dirimu dengan Psikotes <span className="font-bold">Empathika</span>
           </h2>
@@ -721,7 +721,7 @@ export default function HomeClient() {
             <p className="text-sm text-gray-500 font-medium">Memuat daftar psikotes...</p>
           </div>
         ) : publishedPsikotes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
             {publishedPsikotes.map((item, idx) => {
               const bgColors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
               const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
@@ -733,8 +733,8 @@ export default function HomeClient() {
                   key={item.id}
                   className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
                 >
-                  {/* Foto Bersih (Tanpa Tulisan Apapun) */}
-                  <div className="h-52 w-full overflow-hidden relative bg-gray-100">
+                  {/* Banner 16:9 Presisi Sesuai Ukuran Asli Gambar (1376x768) */}
+                  <div className="w-full aspect-[16/9] overflow-hidden relative bg-gray-100">
                     <Image
                       src={
                         item.banner_url ||
@@ -747,18 +747,18 @@ export default function HomeClient() {
                     />
                   </div>
 
-                  <div className="p-6 flex flex-col flex-1">
-                    <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-2 leading-snug line-clamp-2">
                       {item.judul}
                     </h3>
-                    <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
+                    <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-5 line-clamp-2">
                       {item.tentang_tes || "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini."}
                     </p>
 
                     <div className="mt-auto">
                       <Link
                         href={biroPrefix ? `${biroPrefix}/psikotes/${item.id}` : `/psikotes/${item.id}`}
-                        className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
+                        className="w-full flex items-center justify-center py-2.5 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
                       >
                         Ikuti Tes
                       </Link>
