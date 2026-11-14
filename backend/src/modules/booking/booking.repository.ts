@@ -308,14 +308,14 @@ export class BookingRepository {
     if (params.tipe_jadwal) {
       const tj = params.tipe_jadwal.toUpperCase()
       if (tj === 'KONSULTASI') {
-        where.tipe_jadwal = { in: ['KONSULTASI', 'KEDUANYA', 'SEMUA'] }
+        where.tipe_jadwal = 'KONSULTASI'
       } else if (tj === 'ASESMEN') {
-        where.tipe_jadwal = { in: ['ASESMEN', 'KEDUANYA', 'SEMUA'] }
+        where.tipe_jadwal = 'ASESMEN'
       } else {
         where.tipe_jadwal = params.tipe_jadwal
       }
     } else if (resolvedPsikologId) {
-      where.tipe_jadwal = { in: ['KONSULTASI', 'KEDUANYA', 'SEMUA'] }
+      where.tipe_jadwal = 'KONSULTASI'
     }
 
     if (parsedTanggal) {

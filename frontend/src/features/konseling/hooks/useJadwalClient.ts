@@ -349,8 +349,8 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
               const isAsesmenSlot = slotType === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")
               const matchType =
                 effectiveTipeJadwal === "ASESMEN"
-                  ? isAsesmenSlot || slotType === "KEDUANYA" || slotType === "SEMUA"
-                  : !isAsesmenSlot && (slotType === "KONSULTASI" || slotType === "KEDUANYA" || slotType === "SEMUA")
+                  ? isAsesmenSlot
+                  : !isAsesmenSlot && slotType === "KONSULTASI"
               const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
               const matchPsi =
                 effectiveTipeJadwal === "ASESMEN"
