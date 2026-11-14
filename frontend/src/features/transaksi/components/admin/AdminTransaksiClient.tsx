@@ -618,6 +618,15 @@ export default function AdminTransaksiClient() {
     return found || filteredTransaksi[0]
   }, [filteredTransaksi, selectedItem])
 
+  // Label filter status aktif untuk tombol header daftar transaksi
+  const activeStatusLabel = useMemo(() => {
+    if (selectedStatus === "Menunggu Pembayaran") return "Menunggu"
+    if (selectedStatus === "Lunas") return "Lunas"
+    if (selectedStatus === "Refunded") return "Refunded"
+    if (selectedStatus === "Gagal") return "Gagal"
+    return "Semua"
+  }, [selectedStatus])
+
   // Measure Detail Transaksi height so Daftar Transaksi can match it on desktop
   const detailCardRef = useRef<HTMLDivElement>(null)
   const [detailHeight, setDetailHeight] = useState<number | null>(null)
@@ -947,13 +956,36 @@ export default function AdminTransaksiClient() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedLayanan("semua")}
-                    className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all ${selectedLayanan === "semua"
-                        ? "bg-white text-[#561269]"
-                        : "bg-white/70 text-gray-700 hover:bg-white"
-                      }`}
+                    onClick={() => {
+                      if (selectedStatus !== "semua" || selectedLayanan !== "semua") {
+                        setSelectedStatus("semua")
+                        setSelectedLayanan("semua")
+                      }
+                    }}
+                    className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center gap-1.5 ${
+                      selectedStatus !== "semua"
+                        ? "bg-white text-[#561269] ring-1 ring-purple-300 cursor-pointer"
+                        : "bg-white text-[#561269]"
+                    }`}
+                    title={
+                      selectedStatus !== "semua"
+                        ? "Klik untuk reset filter status kembali ke Semua"
+                        : undefined
+                    }
                   >
-                    Semua
+                    <span>{activeStatusLabel}</span>
+                    {selectedStatus !== "semua" && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedStatus("semua")
+                        }}
+                        className="text-[11px] text-[#561269]/70 hover:text-red-500 font-bold ml-1 cursor-pointer"
+                        title="Kembalikan ke Semua"
+                      >
+                        ✕
+                      </span>
+                    )}
                   </button>
                 </div>
 

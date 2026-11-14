@@ -756,13 +756,15 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
       const jamSelesai = parts[1]?.substring(0, 5) || "10:00"
 
       try {
-        await adminService.createJadwalSlot({
-          tanggal: tanggalStr,
-          jam_mulai: jamMulai,
-          jam_selesai: jamSelesai,
-          tipe_jadwal: "ASESMEN",
-          metode: metode.toUpperCase(),
-        })
+        if (!isBiroContext) {
+          await adminService.createJadwalSlot({
+            tanggal: tanggalStr,
+            jam_mulai: jamMulai,
+            jam_selesai: jamSelesai,
+            tipe_jadwal: "ASESMEN",
+            metode: metode.toUpperCase(),
+          })
+        }
         successCount++
       } catch (err: any) {
         console.warn(`Gagal membuka slot ${finalWaktu}:`, err?.response?.data?.message || err.message)
