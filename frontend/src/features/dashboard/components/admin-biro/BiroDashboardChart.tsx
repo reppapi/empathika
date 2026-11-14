@@ -61,7 +61,7 @@ export default function BiroDashboardChart({ chartData, biroName }: BiroDashboar
   const avgReservasi = activeChart.length > 0 ? Math.round(totalReservasi / activeChart.length) : 0
 
   return (
-    <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-7 flex flex-col justify-between">
+    <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-7 flex flex-col justify-between">
       <div>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-8">
           <div>

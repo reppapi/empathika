@@ -6,7 +6,6 @@ import { Calendar, Users, Building2, CheckCircle2 } from "lucide-react"
 
 import DashboardStatCards from "../admin/DashboardStatCards"
 import BiroDashboardChart from "./BiroDashboardChart"
-import BiroDashboardAgenda from "./BiroDashboardAgenda"
 import BiroDashboardTodaySessions from "./BiroDashboardTodaySessions"
 import BiroDashboardRecentTransactions from "./BiroDashboardRecentTransactions"
 import BiroClientDetailModal from "./BiroClientDetailModal"
@@ -267,14 +266,11 @@ export default function AdminBiroDashboardClient() {
       {/* ── 2. Grid Kartu Metrik (5 Kolom Seimbang & Rapi Tanpa Teks Terpotong) ── */}
       <DashboardStatCards metrics={currentTenant.metrics} />
 
-      {/* ── 3. Baris Grafik & Agenda Kemitraan Biro ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <BiroDashboardChart
-          chartData={currentTenant.chartData}
-          biroName={currentTenant.biroName}
-        />
-        <BiroDashboardAgenda agendaList={currentTenant.agendaList} />
-      </div>
+      {/* ── 3. Baris Grafik Reservasi Klien Biro ── */}
+      <BiroDashboardChart
+        chartData={currentTenant.chartData}
+        biroName={currentTenant.biroName}
+      />
 
       {/* ── 4. Bagian Bawah: Sesi Konseling Hari Ini & Transaksi Pembayaran Klien Biro ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
