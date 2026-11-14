@@ -4,6 +4,7 @@ import {
   AdminDataTable,
   AdminTableContainer,
   AdminSearchInput,
+  AdminStatusBadge,
   ColumnDef,
 } from "@/components/shared/AdminDataTable";
 import { ActionButtonDetail } from "@/components/shared/TableActionButtons";
@@ -193,7 +194,7 @@ export default function TabPesertaPsikotes({
             href={`https://wa.me/${peserta.noHp.replace(/\D/g, "")}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/80 transition font-semibold text-xs"
+            className="inline-flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition font-medium text-xs hover:underline"
             title="Hubungi via WhatsApp"
           >
             <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -215,20 +216,12 @@ export default function TabPesertaPsikotes({
       render: (peserta: AdminPsikotesPeserta) => {
         const isSelesai = peserta.status === "Selesai";
         return (
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-              isSelesai
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-amber-50 text-amber-700 border border-amber-200"
-            }`}
+          <AdminStatusBadge
+            variant={isSelesai ? "success" : "warning"}
+            className="w-28"
           >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isSelesai ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
-              }`}
-            />
-            {isSelesai ? "Selesai" : "Berjalan"}
-          </span>
+            {peserta.status || (isSelesai ? "Selesai" : "Berjalan")}
+          </AdminStatusBadge>
         );
       },
     },
