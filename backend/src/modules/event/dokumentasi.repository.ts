@@ -15,6 +15,10 @@ export class DokumentasiRepository {
 
     const where: Prisma.EventDokumentasiWhereInput = {}
 
+    if (query?.kategori) {
+      where.kategori = query.kategori
+    }
+
     if (query?.search && query.search.trim() !== '') {
       const q = query.search.trim()
       where.OR = [
@@ -78,6 +82,7 @@ export class DokumentasiRepository {
     const created = await this.prisma.eventDokumentasi.create({
       data: {
         judul: data.judul,
+        kategori: data.kategori || 'KOLABORASI',
         tanggal: new Date(data.tanggal),
         deskripsi: data.deskripsi,
         foto: {
@@ -105,6 +110,7 @@ export class DokumentasiRepository {
     const updateData: Prisma.EventDokumentasiUpdateInput = {}
 
     if (data.judul !== undefined) updateData.judul = data.judul
+    if (data.kategori !== undefined) updateData.kategori = data.kategori
     if (data.tanggal !== undefined) updateData.tanggal = new Date(data.tanggal)
     if (data.deskripsi !== undefined) updateData.deskripsi = data.deskripsi
 
