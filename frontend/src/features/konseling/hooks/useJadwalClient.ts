@@ -346,12 +346,11 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
               .filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
               .forEach((s: any) => {
               const slotType = (s.tipe_jadwal || "KONSULTASI").toUpperCase()
+              const isAsesmenSlot = slotType === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")
               const matchType =
-                slotType === effectiveTipeJadwal.toUpperCase() ||
-                slotType === "KEDUANYA" ||
-                slotType === "SEMUA" ||
-                slotType === "KONSULTASI" ||
-                slotType === "ASESMEN"
+                effectiveTipeJadwal === "ASESMEN"
+                  ? isAsesmenSlot || slotType === "KEDUANYA" || slotType === "SEMUA"
+                  : !isAsesmenSlot && (slotType === "KONSULTASI" || slotType === "KEDUANYA" || slotType === "SEMUA")
               const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
               const matchPsi =
                 effectiveTipeJadwal === "ASESMEN"

@@ -196,7 +196,7 @@ export class BookingService {
       throw new Error('Jam selesai harus lebih akhir dari jam mulai')
     }
 
-    const targetTipeJadwal = (input.tipe_jadwal || 'KONSULTASI').toUpperCase()
+    const targetTipeJadwal = (input.tipe_jadwal || 'ASESMEN').toUpperCase()
     const isAsesmen = targetTipeJadwal === 'ASESMEN'
 
     let targetMetode = isAsesmen ? 'OFFLINE' : 'ONLINE'
