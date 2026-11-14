@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Mail, AlertCircle, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react"
+import { Mail, AlertCircle, CheckCircle2, Clock, XCircle, Loader2, Eye, EyeOff } from "lucide-react"
 import { accountSettingsService, PendingEmailResponse } from "@/services/account-settings.service"
 import { emailChangeFormSchema } from "@/schemas/account-settings.schema"
 
@@ -15,6 +15,7 @@ export function FormGantiEmail({ initialEmail = "", hideHeader = false }: FormGa
   const [currentEmail, setCurrentEmail] = useState(initialEmail)
   const [newEmail, setNewEmail] = useState("")
   const [currentPassword, setCurrentPassword] = useState("")
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [pendingData, setPendingData] = useState<PendingEmailResponse["pendingRequest"] | null>(null)
 
   const [loading, setLoading] = useState(false)
@@ -86,7 +87,7 @@ export function FormGantiEmail({ initialEmail = "", hideHeader = false }: FormGa
   }
 
   return (
-    <div className={hideHeader ? "font-poppins" : "bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 font-poppins"}>
+    <div className={hideHeader ? "font-poppins h-full flex flex-col" : "h-full flex flex-col justify-between bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 font-poppins"}>
       {!hideHeader && (
         <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
           <div className="p-2.5 rounded-xl bg-purple-50 text-[#561269]">
@@ -94,7 +95,7 @@ export function FormGantiEmail({ initialEmail = "", hideHeader = false }: FormGa
           </div>
           <div>
             <h2 className="text-lg font-bold text-gray-900">Pengaturan Alamat Email</h2>
-            <p className="text-xs text-gray-500">Perbarui alamat email akun login Psikolog Anda</p>
+            <p className="text-xs text-gray-500">Perbarui alamat email akun login Anda</p>
           </div>
         </div>
       )}
@@ -146,72 +147,82 @@ export function FormGantiEmail({ initialEmail = "", hideHeader = false }: FormGa
         </div>
       )}
 
-      <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
-        {/* Email Saat Ini (Read Only) */}
-        <div>
-          <label htmlFor="current-registered-email" className="block text-xs font-semibold text-gray-700 mb-1.5">
-            Email Saat Ini
-          </label>
-          <div className="relative">
-            <input
-              id="current-registered-email"
-              type="email"
-              value={currentEmail}
-              disabled
-              readOnly
-              tabIndex={-1}
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-500 cursor-not-allowed select-none"
-            />
+      <form onSubmit={handleSubmit} autoComplete="off" className="flex-1 flex flex-col justify-between">
+        <div className="space-y-4">
+          {/* Email Saat Ini (Read Only) */}
+          <div>
+            <label htmlFor="current-registered-email" className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Email Saat Ini
+            </label>
+            <div className="relative">
+              <input
+                id="current-registered-email"
+                type="email"
+                value={currentEmail}
+                disabled
+                readOnly
+                tabIndex={-1}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-500 cursor-not-allowed select-none"
+              />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">Alamat email yang aktif saat ini untuk masuk ke akun Anda.</p>
           </div>
-          <p className="text-[11px] text-gray-400 mt-1">Alamat email yang aktif saat ini untuk masuk ke akun Anda.</p>
+
+          {/* Input Email Baru */}
+          <div>
+            <label htmlFor="new-account-email" className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Alamat Email Baru <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                id="new-account-email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="nama@emailbaru.com"
+                required
+                autoComplete="off"
+                disabled={loading}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+              />
+            </div>
+          </div>
+
+          {/* Re-autentikasi: Password Saat Ini */}
+          <div>
+            <label htmlFor="current-account-password" className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Kata Sandi Saat Ini <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                id="current-account-password"
+                type={showCurrentPassword ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Masukkan password Anda saat ini"
+                required
+                autoComplete="new-password"
+                disabled={loading}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">Dibutuhkan untuk memverifikasi kepemilikan akun (OWASP ASVS).</p>
+          </div>
         </div>
 
-        {/* Input Email Baru */}
-        <div>
-          <label htmlFor="new-account-email" className="block text-xs font-semibold text-gray-700 mb-1.5">
-            Alamat Email Baru <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              id="new-account-email"
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="nama@emailbaru.com"
-              required
-              autoComplete="off"
-              disabled={loading}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-            />
-          </div>
-        </div>
-
-        {/* Re-autentikasi: Password Saat Ini */}
-        <div>
-          <label htmlFor="current-account-password" className="block text-xs font-semibold text-gray-700 mb-1.5">
-            Kata Sandi Saat Ini <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              id="current-account-password"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Masukkan password Anda saat ini"
-              required
-              autoComplete="new-password"
-              disabled={loading}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-            />
-          </div>
-          <p className="text-[11px] text-gray-400 mt-1">Dibutuhkan untuk memverifikasi kepemilikan akun (OWASP ASVS).</p>
-        </div>
-
-        <div className="pt-2">
+        <div className="pt-6 mt-auto">
           <button
             type="submit"
             disabled={loading || !newEmail || !currentPassword}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#561269] text-white text-xs font-bold hover:bg-[#430e52] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-sm"
+            className="w-full sm:w-auto min-w-[260px] h-11 px-6 py-2.5 rounded-xl bg-[#561269] text-white text-xs font-bold hover:bg-[#430e52] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-sm"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             Kirim Verifikasi ke Email Baru

@@ -19,6 +19,8 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const { user } = useAuthStore()
   const [biroName, setBiroName] = useState<string>(user?.name || "Biro Mitra")
+  const [biroColor, setBiroColor] = useState<string>("#561269")
+  const [biroLogo, setBiroLogo] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -35,6 +37,12 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
         } else if (res.data.nama) {
           setBiroName(res.data.nama)
         }
+        if (beBiro?.warna_tema) {
+          setBiroColor(beBiro.warna_tema)
+        }
+        if (beBiro?.logoURI) {
+          setBiroLogo(beBiro.logoURI)
+        }
       })
       .catch(() => {})
 
@@ -43,10 +51,28 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
     }
   }, [user])
 
+  // Terapkan tema warna biro ke seluruh halaman portal admin biro
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (biroColor) {
+        document.documentElement.style.setProperty("--biro-theme-color", biroColor)
+        document.documentElement.setAttribute("data-biro-theme", "true")
+      }
+    }
+    return () => {
+      if (typeof document !== "undefined") {
+        document.documentElement.style.removeProperty("--biro-theme-color")
+        document.documentElement.removeAttribute("data-biro-theme")
+      }
+    }
+  }, [biroColor])
+
   // Menentukan judul navbar berdasarkan URL
-  let pageTitle = "Riwayat Transaksi & Pembayaran"
+  let pageTitle = "Ringkasan Operasional"
   if (pathname === "/admin-biro") pageTitle = "Ringkasan Operasional"
+  else if (pathname?.startsWith("/admin-biro/jadwal")) pageTitle = "Jadwal dan Sesi"
   else if (pathname?.startsWith("/admin-biro/transaksi")) pageTitle = "Riwayat Transaksi & Pembayaran"
+  else if (pathname?.startsWith("/admin-biro/psikotes")) pageTitle = "Data Klien Psikotes"
   else if (pathname?.startsWith("/admin-biro/pengaturan-akun")) pageTitle = "Pengaturan Akun Biro"
   else if (pathname?.startsWith("/admin-biro/profile")) pageTitle = "Pengaturan Profil Biro"
 
@@ -58,6 +84,8 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           biroName={biroName}
+          biroColor={biroColor}
+          biroLogo={biroLogo}
         />
 
         {/* 2. Area Konten Kanan */}

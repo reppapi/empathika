@@ -10,6 +10,7 @@ import { useTenantContext } from "@/context/TenantContext";
 export function Footer() {
   const pathname = usePathname();
   const { isBiro, biroProfile, withBiro } = useTenantContext();
+  const themeColor = isBiro && biroProfile?.warna_tema ? biroProfile.warna_tema : "#561269";
 
   const handleNavClick = (path: string) => {
     if (isBiro && path.includes("#")) {
@@ -112,14 +113,20 @@ export function Footer() {
               className="inline-flex items-center gap-3"
             >
               {/* Logo (Circle) */}
-              <div className="h-14 w-14 shrink-0 rounded-full bg-[#561269] flex items-center justify-center text-white font-extrabold text-xl overflow-hidden">
+              <div 
+                className="h-14 w-14 shrink-0 rounded-full flex items-center justify-center text-white font-extrabold text-xl overflow-hidden shadow-sm"
+                style={{ backgroundColor: themeColor }}
+              >
                 {biroProfile?.logoURI ? (
                   <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
                   (biroProfile?.nama_biro?.[0] || "E").toUpperCase()
                 )}
               </div>
-              <span className="text-[22px] font-extrabold tracking-widest text-[#561269] uppercase truncate">
+              <span 
+                className="text-[22px] font-extrabold tracking-widest uppercase truncate"
+                style={{ color: themeColor }}
+              >
                 {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "EMPATHIKA"}
               </span>
             </Link>

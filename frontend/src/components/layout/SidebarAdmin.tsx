@@ -11,11 +11,11 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { name: "Ringkasan Operasional", path: "/admin" },
+  { name: "Transaksi", path: "/admin/transaksi" },
   { name: "Jadwal & Sesi", path: "/admin/jadwal" },
   { name: "Event", path: "/admin/event" },
-  { name: "Transaksi", path: "/admin/transaksi" },
-  { name: "Data psikolog", path: "/admin/psikolog" },
   { name: "Psikotes", path: "/admin/psikotes" },
+  { name: "Data psikolog", path: "/admin/psikolog" },
   { name: "Blog", path: "/admin/blog" },
   { name: "Layanan", path: "/admin/layanan" },
   { name: "Pengaturan Biro", path: "/admin/biro" },

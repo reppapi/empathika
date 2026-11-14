@@ -27,6 +27,7 @@ interface ModalDetailSesiKlienProps {
   onMarkCompleted: (id: string, namaKlien: string) => void
   onCopyWhatsApp: (session: ClientSessionToday) => void
   onCopyWhatsAppPsikolog?: (session: ClientSessionToday) => void
+  isReadOnly?: boolean
 }
 
 export default function ModalDetailSesiKlien({
@@ -36,6 +37,7 @@ export default function ModalDetailSesiKlien({
   onMarkCompleted,
   onCopyWhatsApp,
   onCopyWhatsAppPsikolog,
+  isReadOnly = false,
 }: ModalDetailSesiKlienProps) {
   const [showInvoice, setShowInvoice] = useState(false)
 
@@ -350,7 +352,7 @@ export default function ModalDetailSesiKlien({
             </button>
           )}
 
-          {session.status !== "Selesai" && session.status !== "Dibatalkan" && session.status !== "Dibatalkan (Refund)" && (
+          {!isReadOnly && session.status !== "Selesai" && session.status !== "Dibatalkan" && session.status !== "Dibatalkan (Refund)" && (
             <>
 
               {/* Tombol Batalkan Sesi: HANYA untuk jadwal sebelum hari H */}

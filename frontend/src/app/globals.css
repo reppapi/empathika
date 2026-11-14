@@ -88,3 +88,282 @@ input::-ms-clear {
     transform: none;
   }
 }
+
+/* ============================================================== */
+/* ── DYNAMIC BIRO THEME OVERRIDES ──                              */
+/* Ketika pengunjung/admin mengakses website tenant biro atau     */
+/* portal admin biro, semua warna khas Empathika otomatis         */
+/* berubah mengikuti warna identitas biro (var(--biro-theme-color))*/
+/* ============================================================== */
+
+html[data-biro-theme="true"],
+[data-biro-theme="true"] {
+  --empathika-primary: var(--biro-theme-color, #561269);
+}
+
+/* 1. Warna Teks (Text Colors) */
+html[data-biro-theme="true"] .text-\[\#561269\],
+html[data-biro-theme="true"] .text-\[\#3B074B\],
+html[data-biro-theme="true"] .text-\[\#3b074b\],
+html[data-biro-theme="true"] .text-\[\#3b0a48\],
+html[data-biro-theme="true"] .text-\[\#360842\],
+html[data-biro-theme="true"] .text-\[\#763E8B\],
+html[data-biro-theme="true"] .text-\[\#6f1b87\],
+html[data-biro-theme="true"] .text-\[\#701a8a\],
+html[data-biro-theme="true"] .text-\[\#7a2291\],
+html[data-biro-theme="true"] .text-\[\#430b53\],
+html[data-biro-theme="true"] .text-\[\#430e52\],
+html[data-biro-theme="true"] .text-\[\#430d52\],
+html[data-biro-theme="true"] .text-\[\#3d0b4b\],
+html[data-biro-theme="true"] .text-\[\#491c68\],
+html[data-biro-theme="true"] .text-\[\#2a0835\],
+[data-biro-theme="true"] .text-\[\#561269\],
+[data-biro-theme="true"] .text-\[\#3B074B\],
+[data-biro-theme="true"] .text-\[\#3b074b\],
+[data-biro-theme="true"] .text-\[\#3b0a48\],
+[data-biro-theme="true"] .text-\[\#360842\],
+[data-biro-theme="true"] .text-\[\#763E8B\],
+[data-biro-theme="true"] .text-\[\#6f1b87\],
+[data-biro-theme="true"] .text-\[\#701a8a\],
+[data-biro-theme="true"] .text-\[\#7a2291\],
+[data-biro-theme="true"] .text-\[\#430b53\],
+[data-biro-theme="true"] .text-\[\#430e52\],
+[data-biro-theme="true"] .text-\[\#430d52\],
+[data-biro-theme="true"] .text-\[\#3d0b4b\],
+[data-biro-theme="true"] .text-\[\#491c68\],
+[data-biro-theme="true"] .text-\[\#2a0835\] {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+/* 2. Warna Background (Background Colors) */
+html[data-biro-theme="true"] .bg-\[\#561269\],
+html[data-biro-theme="true"] .bg-\[\#3B074B\],
+html[data-biro-theme="true"] .bg-\[\#763E8B\],
+html[data-biro-theme="true"] .bg-\[\#430b53\],
+html[data-biro-theme="true"] .bg-\[\#430e52\],
+html[data-biro-theme="true"] .bg-\[\#430d52\],
+html[data-biro-theme="true"] .bg-\[\#6f1b87\],
+[data-biro-theme="true"] .bg-\[\#561269\],
+[data-biro-theme="true"] .bg-\[\#3B074B\],
+[data-biro-theme="true"] .bg-\[\#763E8B\],
+[data-biro-theme="true"] .bg-\[\#430b53\],
+[data-biro-theme="true"] .bg-\[\#430e52\],
+[data-biro-theme="true"] .bg-\[\#430d52\],
+[data-biro-theme="true"] .bg-\[\#6f1b87\] {
+  background-color: var(--biro-theme-color, #561269) !important;
+}
+
+/* 3. Warna Border & Outline */
+html[data-biro-theme="true"] .border-\[\#561269\],
+html[data-biro-theme="true"] .border-\[\#763E8B\],
+[data-biro-theme="true"] .border-\[\#561269\],
+[data-biro-theme="true"] .border-\[\#763E8B\] {
+  border-color: var(--biro-theme-color, #561269) !important;
+}
+
+/* 4. Hover States */
+html[data-biro-theme="true"] .hover\:text-\[\#561269\]:hover,
+html[data-biro-theme="true"] .hover\:text-\[\#763E8B\]:hover,
+html[data-biro-theme="true"] .hover\:text-\[\#3d0b4b\]:hover,
+[data-biro-theme="true"] .hover\:text-\[\#561269\]:hover,
+[data-biro-theme="true"] .hover\:text-\[\#763E8B\]:hover,
+[data-biro-theme="true"] .hover\:text-\[\#3d0b4b\]:hover {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] .hover\:bg-\[\#561269\]:hover,
+html[data-biro-theme="true"] .hover\:bg-\[\#430b53\]:hover,
+html[data-biro-theme="true"] .hover\:bg-\[\#430d52\]:hover,
+html[data-biro-theme="true"] .hover\:bg-\[\#430e52\]:hover,
+html[data-biro-theme="true"] .hover\:bg-\[\#430c52\]:hover,
+html[data-biro-theme="true"] .hover\:bg-\[\#6f1b87\]:hover,
+[data-biro-theme="true"] .hover\:bg-\[\#561269\]:hover,
+[data-biro-theme="true"] .hover\:bg-\[\#430b53\]:hover,
+[data-biro-theme="true"] .hover\:bg-\[\#430d52\]:hover,
+[data-biro-theme="true"] .hover\:bg-\[\#430e52\]:hover,
+[data-biro-theme="true"] .hover\:bg-\[\#430c52\]:hover,
+[data-biro-theme="true"] .hover\:bg-\[\#6f1b87\]:hover {
+  background-color: var(--biro-theme-color, #561269) !important;
+  filter: brightness(0.92);
+}
+
+html[data-biro-theme="true"] .hover\:border-\[\#561269\]:hover,
+[data-biro-theme="true"] .hover\:border-\[\#561269\]:hover {
+  border-color: var(--biro-theme-color, #561269) !important;
+}
+
+/* 5. Focus & Ring States */
+html[data-biro-theme="true"] .focus\:border-\[\#561269\]:focus,
+[data-biro-theme="true"] .focus\:border-\[\#561269\]:focus {
+  border-color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] .focus\:ring-\[\#561269\]:focus,
+[data-biro-theme="true"] .focus\:ring-\[\#561269\]:focus {
+  --tw-ring-color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] .ring-\[\#561269\],
+html[data-biro-theme="true"] .ring-\[\#561269\]\/15,
+html[data-biro-theme="true"] .ring-\[\#561269\]\/20,
+[data-biro-theme="true"] .ring-\[\#561269\],
+[data-biro-theme="true"] .ring-\[\#561269\]\/15,
+[data-biro-theme="true"] .ring-\[\#561269\]\/20 {
+  --tw-ring-color: color-mix(in srgb, var(--biro-theme-color, #561269) 20%, transparent) !important;
+}
+
+/* 6. Group Hover States */
+html[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#561269\],
+[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#561269\] {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] .group:hover .group-hover\:bg-\[\#561269\],
+[data-biro-theme="true"] .group:hover .group-hover\:bg-\[\#561269\] {
+  background-color: var(--biro-theme-color, #561269) !important;
+}
+
+/* 7. Opacity Tints (Backgrounds & Borders) */
+html[data-biro-theme="true"] .bg-\[\#561269\]\/10,
+[data-biro-theme="true"] .bg-\[\#561269\]\/10 {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 10%, transparent) !important;
+}
+
+html[data-biro-theme="true"] .bg-\[\#561269\]\/20,
+[data-biro-theme="true"] .bg-\[\#561269\]\/20 {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 20%, transparent) !important;
+}
+
+html[data-biro-theme="true"] .border-\[\#561269\]\/30,
+[data-biro-theme="true"] .border-\[\#561269\]\/30 {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 30%, transparent) !important;
+}
+
+html[data-biro-theme="true"] .border-\[\#561269\]\/40,
+[data-biro-theme="true"] .border-\[\#561269\]\/40 {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 40%, transparent) !important;
+}
+
+/* 8. Soft Badges & Light Purple Utilities */
+html[data-biro-theme="true"] .bg-purple-50,
+html[data-biro-theme="true"] .bg-purple-100,
+html[data-biro-theme="true"] .bg-purple-50\/50,
+html[data-biro-theme="true"] .bg-purple-50\/60,
+html[data-biro-theme="true"] .bg-purple-50\/70,
+html[data-biro-theme="true"] .bg-\[\#F9F5FA\],
+html[data-biro-theme="true"] .bg-\[\#FAF4FC\],
+html[data-biro-theme="true"] .bg-\[\#FAF5FD\],
+html[data-biro-theme="true"] .bg-\[\#EFE9F3\],
+html[data-biro-theme="true"] .bg-\[\#E8D4F0\],
+[data-biro-theme="true"] .bg-purple-50,
+[data-biro-theme="true"] .bg-purple-100,
+[data-biro-theme="true"] .bg-purple-50\/50,
+[data-biro-theme="true"] .bg-purple-50\/60,
+[data-biro-theme="true"] .bg-purple-50\/70,
+[data-biro-theme="true"] .bg-\[\#F9F5FA\],
+[data-biro-theme="true"] .bg-\[\#FAF4FC\],
+[data-biro-theme="true"] .bg-\[\#FAF5FD\],
+[data-biro-theme="true"] .bg-\[\#EFE9F3\],
+[data-biro-theme="true"] .bg-\[\#E8D4F0\] {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 12%, transparent) !important;
+}
+
+html[data-biro-theme="true"] .border-purple-100,
+html[data-biro-theme="true"] .border-purple-200,
+html[data-biro-theme="true"] .border-purple-200\/60,
+html[data-biro-theme="true"] .border-\[\#dccddd\],
+[data-biro-theme="true"] .border-purple-100,
+[data-biro-theme="true"] .border-purple-200,
+[data-biro-theme="true"] .border-purple-200\/60,
+[data-biro-theme="true"] .border-\[\#dccddd\] {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 25%, transparent) !important;
+}
+
+html[data-biro-theme="true"] .text-purple-600,
+html[data-biro-theme="true"] .text-purple-700,
+html[data-biro-theme="true"] .text-purple-800,
+html[data-biro-theme="true"] .text-purple-900,
+[data-biro-theme="true"] .text-purple-600,
+[data-biro-theme="true"] .text-purple-700,
+[data-biro-theme="true"] .text-purple-800,
+[data-biro-theme="true"] .text-purple-900 {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+/* 9. Underline Decoration */
+html[data-biro-theme="true"] .decoration-\[\#561269\],
+[data-biro-theme="true"] .decoration-\[\#561269\] {
+  text-decoration-color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] .decoration-\[\#561269\]\/40,
+[data-biro-theme="true"] .decoration-\[\#561269\]\/40 {
+  text-decoration-color: color-mix(in srgb, var(--biro-theme-color, #561269) 40%, transparent) !important;
+}
+
+/* 10. Chart Bar Highlight */
+html[data-biro-theme="true"] .bg-\[\#BFA3C5\],
+[data-biro-theme="true"] .bg-\[\#BFA3C5\] {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 35%, transparent) !important;
+}
+
+/* 11. Gradients */
+html[data-biro-theme="true"] .from-\[\#561269\],
+[data-biro-theme="true"] .from-\[\#561269\] {
+  --tw-gradient-from: var(--biro-theme-color, #561269) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 80%, black) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+/* 12. Dashboard Metric Summary Cards (Aksen Kotak & Ikon Metrik) */
+html[data-biro-theme="true"] .stat-card-accent-bar:not([data-amber="true"]),
+[data-biro-theme="true"] .stat-card-accent-bar:not([data-amber="true"]) {
+  background-color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] .stat-card-icon-box:not([data-amber="true"]),
+[data-biro-theme="true"] .stat-card-icon-box:not([data-amber="true"]) {
+  color: var(--biro-theme-color, #561269) !important;
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 12%, transparent) !important;
+}
+
+/* 13. Header Tabel Sesi & Data (Warna Identitas Biro Versi Muda/Pastel) */
+html[data-biro-theme="true"] .biro-table-header,
+html[data-biro-theme="true"] .bg-\[\#D3C4D8\],
+html[data-biro-theme="true"] thead.bg-\[\#D3C4D8\],
+html[data-biro-theme="true"] tr.bg-\[\#D3C4D8\],
+html[data-biro-theme="true"] th.bg-\[\#D3C4D8\],
+[data-biro-theme="true"] .biro-table-header,
+[data-biro-theme="true"] .bg-\[\#D3C4D8\],
+[data-biro-theme="true"] thead.bg-\[\#D3C4D8\],
+[data-biro-theme="true"] tr.bg-\[\#D3C4D8\],
+[data-biro-theme="true"] th.bg-\[\#D3C4D8\] {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 22%, white) !important;
+}
+
+/* 14. Soft Purple Tints & Borders untuk Kartu & Komponen Biro */
+html[data-biro-theme="true"] .bg-purple-50,
+[data-biro-theme="true"] .bg-purple-50 {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 8%, white) !important;
+}
+
+html[data-biro-theme="true"] .bg-purple-100,
+[data-biro-theme="true"] .bg-purple-100 {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 15%, white) !important;
+}
+
+html[data-biro-theme="true"] .border-purple-100,
+[data-biro-theme="true"] .border-purple-100 {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 18%, transparent) !important;
+}
+
+html[data-biro-theme="true"] .border-purple-200,
+[data-biro-theme="true"] .border-purple-200,
+html[data-biro-theme="true"] .hover\:border-purple-200:hover,
+[data-biro-theme="true"] .hover\:border-purple-200:hover {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 30%, transparent) !important;
+}
+
+
+
+

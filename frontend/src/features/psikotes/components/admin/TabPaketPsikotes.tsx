@@ -1,5 +1,7 @@
 /** Tab tabel daftar instrumen dan paket tes psikotes beserta filter, pencarian, dan hapus paket. */
 import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AdminDataTable,
   AdminTableContainer,
@@ -35,6 +37,7 @@ export default function TabPaketPsikotes({
   errorMessage = null,
   onRetry,
 }: TabPaketPsikotesProps) {
+  const router = useRouter();
   const [selectedJenisAkses, setSelectedJenisAkses] = useState<"ALL" | "GRATIS" | "BERBAYAR">("ALL");
 
   const filteredJudul = judulList.filter((item) => {
@@ -67,12 +70,12 @@ export default function TabPaketPsikotes({
             <img src={item.image} alt={item.judul} className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col">
-            <span
-              onClick={() => onSelectJudul(item)}
+            <Link
+              href={`/admin/psikotes/${item.paketList[0]?.id || item.id}`}
               className="font-extrabold text-gray-900 leading-tight hover:text-[#561269] transition-colors cursor-pointer"
             >
               {item.judul}
-            </span>
+            </Link>
             <span className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.deskripsi}</span>
           </div>
         </div>
@@ -180,11 +183,15 @@ export default function TabPaketPsikotes({
       header: "Aksi",
       align: "center",
       render: (item: JudulPsikotesItem) => {
+        const targetId = item.paketList[0]?.id || item.id;
         return (
-          <div className="flex items-center justify-center gap-2">
+          <div
+            className="flex items-center justify-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             <ActionButtonDetail
-              onClick={() => onSelectJudul(item)}
-              title="Lihat Detail & Kelola Status"
+              href={`/admin/psikotes/${targetId}`}
+              title="Buka Halaman Detail Paket"
             />
             <ActionButtonDelete
               onClick={() => onDeleteJudul(item)}
@@ -249,6 +256,10 @@ export default function TabPaketPsikotes({
           columns={columns}
           data={filteredJudul}
           keyExtractor={(item) => String(item.id)}
+          onRowClick={(item) => {
+            const targetId = item.paketList[0]?.id || item.id;
+            router.push(`/admin/psikotes/${targetId}`);
+          }}
           isLoading={isLoading}
           loadingMessage="Memuat daftar paket psikotes..."
           emptyMessage="Tidak ada paket psikotes yang ditemukan. Pastikan seeder database telah dijalankan."

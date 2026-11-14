@@ -190,7 +190,7 @@ export default function LayananClient() {
           <Link href={destinationHref as any} className="block group-hover:text-[#561269] transition-colors">
             <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">{service.bottomTitle}</h3>
           </Link>
-          <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6">{service.bottomDescription}</p>
+          <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">{service.bottomDescription}</p>
 
           <div className="mt-auto pt-2">
             <Link
@@ -314,7 +314,9 @@ export default function LayananClient() {
                             topTitle: p.judul.toUpperCase(),
                             topSubtitle: "",
                             bottomTitle: p.judul,
-                            bottomDescription: p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri.",
+                            bottomDescription:
+                              p.deskripsi ||
+                              "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.",
                             bgColor: colors[idx % colors.length],
                             titleColor: textColors[idx % textColors.length],
                             btnText: "Ikuti Tes",

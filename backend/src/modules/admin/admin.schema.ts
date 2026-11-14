@@ -11,6 +11,12 @@ export {
   type UpdateBookingStatusInput,
 } from '../booking/booking.schema'
 
+export const dashboardLimitQuerySchema = z.object({
+  limit: z.string().optional(),
+})
+
+export type DashboardLimitQuery = z.infer<typeof dashboardLimitQuerySchema>
+
 export const updateAdminProfileSchema = z.object({
   nama: z.string().min(1, 'Nama lengkap wajib diisi').optional(),
   email: z.string().email('Format email tidak valid').optional(),

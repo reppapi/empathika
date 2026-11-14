@@ -27,8 +27,8 @@ export const IGDS9SF_LEVELS = [
   {
     min: 36,
     max: 45,
-    grade: "Kemungkinan IGD" as const,
-    kategori: "Kemungkinan IGD",
+    grade: "Kemungkinan Internet Gaming Disorder (IGD)" as any,
+    kategori: "Kemungkinan Internet Gaming Disorder (IGD)",
   },
 ];
 

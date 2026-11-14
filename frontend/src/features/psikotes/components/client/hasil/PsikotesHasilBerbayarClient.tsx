@@ -21,6 +21,13 @@ import {
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
 import {
+  isCATS as checkCATS,
+  isCDI as checkCDI,
+  isDASS as checkDASS,
+  isPHQ as checkPHQ,
+  isRCMAS as checkRCMAS,
+} from "@/features/psikotes/utils/instrumentDetector";
+import {
   downloadLaporanPsikotesPdf,
   tailwindBarToHex,
   type LaporanPsikotesPdfData,
@@ -294,12 +301,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     ? bookingReport.str
     : (rawStr !== null && rawStr !== "" ? parseInt(rawStr, 10) : null);
 
-  const isDASS = Boolean(
-    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
-    dbPackage?.judul?.toUpperCase().includes("DASS") ||
-    dbPackage?.judul?.toLowerCase().includes("depresi, kecemasan") ||
-    params.testId.toLowerCase().includes("dass")
-  );
+  const isDASS = checkDASS(dbPackage, params.testId);
 
   const dassEvaluation = isDASS
     ? evaluateDASS(
@@ -317,20 +319,13 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       ? bookingReport.detailSkor
       : null;
 
-  const isRCMAS = Boolean(
-    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("RCMAS") ||
-    dbPackage?.judul?.toUpperCase().includes("RCMAS") ||
-    params.testId.toLowerCase().includes("rcmas")
-  );
-
-  const isPHQ9 = Boolean(
-    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
-    dbPackage?.judul?.toUpperCase().includes("PHQ") ||
-    params.testId.toLowerCase().includes("phq")
-  );
+  const isRCMAS = checkRCMAS(dbPackage, params.testId);
+  const isPHQ9 = checkPHQ(dbPackage, params.testId);
+  const isCDI = checkCDI(dbPackage, params.testId);
+  const isCATS = checkCATS(dbPackage, params.testId);
 
   const isHarmDetected =
-    isPHQ9 && (Boolean(bookingReport?.detailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
+    (isPHQ9 || isCDI) && (Boolean(bookingReport?.detailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
 
   const rcmasSubscales = isRCMAS
     ? (() => {
@@ -373,6 +368,120 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         ];
       })()
     : null;
+
+  const cdiSubscales = isCDI
+    ? (() => {
+        const sub = bookingReport?.detailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const nm = readSubScore(sub?.negativeMood, "cdi_nm");
+        const ip = readSubScore(sub?.interpersonalProblem, "cdi_ip");
+        const ineff = readSubScore(sub?.ineffectiveness, "cdi_ineff");
+        const anh = readSubScore(sub?.anhedonia, "cdi_anh");
+        const nse = readSubScore(sub?.negativeSelfEsteem, "cdi_nse");
+        if (nm === null && ip === null && ineff === null && anh === null && nse === null) return null;
+        return [
+          {
+            key: "negativeMood",
+            label: "Suasana Hati Negatif (Negative Mood)",
+            score: Number(nm ?? 0),
+            max: 12,
+            colorHex: "#561269",
+            deskripsi: "Skor mentah dimensi perasaan sedih, rasa bersalah, kekhawatiran, tangisan, dan kebimbangan (maks. 12).",
+          },
+          {
+            key: "interpersonalProblem",
+            label: "Masalah Antar Pribadi (Interpersonal Problems)",
+            score: Number(ip ?? 0),
+            max: 8,
+            colorHex: "#763E8B",
+            deskripsi: "Skor mentah dimensi kesulitan interaksi sosial, penarikan diri, dan konflik pergaulan (maks. 8).",
+          },
+          {
+            key: "ineffectiveness",
+            label: "Ketidakefektifan (Ineffectiveness)",
+            score: Number(ineff ?? 0),
+            max: 8,
+            colorHex: "#0e7490",
+            deskripsi: "Skor mentah dimensi perasaan gagal, penurunan motivasi sekolah, dan inkompetensi (maks. 8).",
+          },
+          {
+            key: "anhedonia",
+            label: "Anhedonia / Kesedihan (Anhedonia)",
+            score: Number(anh ?? 0),
+            max: 16,
+            colorHex: "#c026d3",
+            deskripsi: "Skor mentah dimensi kemurungan, gangguan tidur, kelelahan, nafsu makan, dan kesepian (maks. 16).",
+          },
+          {
+            key: "negativeSelfEsteem",
+            label: "Harga Diri Negatif (Negative Self-Esteem)",
+            score: Number(nse ?? 0),
+            max: 10,
+            colorHex: "#e11d48",
+            deskripsi: "Skor mentah dimensi kebencian pada diri, keraguan keputusan, keputusasaan, dan citra diri (maks. 10).",
+          },
+        ];
+      })()
+    : null;
+
+  const catsSubscales = isCATS
+    ? (() => {
+        const sub = bookingReport?.detailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const intr = readSubScore(sub?.intrusion, "cats_b");
+        const avoid = readSubScore(sub?.avoidance, "cats_c");
+        const cog = readSubScore(sub?.cognitionMood, "cats_d");
+        const arsl = readSubScore(sub?.arousal, "cats_e");
+        if (intr === null && avoid === null && cog === null && arsl === null) return null;
+        return [
+          {
+            key: "intrusion",
+            label: "Kriteria B: Intrusi / Gangguan (Intrusion)",
+            score: Number(intr ?? 0),
+            max: 15,
+            colorHex: "#561269",
+            deskripsi: "Pikiran mengganggu berulang, mimpi buruk, kilas balik, serta distres emosional & fisik saat teringat trauma.",
+          },
+          {
+            key: "avoidance",
+            label: "Kriteria C: Penghindaran (Avoidance)",
+            score: Number(avoid ?? 0),
+            max: 6,
+            colorHex: "#763E8B",
+            deskripsi: "Upaya aktif menghindari ingatan, perasaan, tempat, aktivitas, atau orang yang memicu ingatan traumatis.",
+          },
+          {
+            key: "cognitionMood",
+            label: "Kriteria D: Kognisi & Suasana Hati Negatif",
+            score: Number(cog ?? 0),
+            max: 21,
+            colorHex: "#0e7490",
+            deskripsi: "Keyakinan negatif diri/dunia, menyalahkan diri, emosi negatif menetap, anhedonia, dan merasa terasing.",
+          },
+          {
+            key: "arousal",
+            label: "Kriteria E: Hyperarousal & Reaktivitas",
+            score: Number(arsl ?? 0),
+            max: 18,
+            colorHex: "#c026d3",
+            deskripsi: "Iritabilitas/luapan amarah, perilaku berisiko, hiperkewaspadaan, respon terkejut, konsentrasi, dan tidur.",
+          },
+        ];
+      })()
+    : null;
+
+  const catsPTE = isCATS ? bookingReport?.detailSkor?.pte : null;
+  const catsFungsi = isCATS ? bookingReport?.detailSkor?.fungsiPsikososial : null;
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
@@ -590,21 +699,49 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   deskripsi: s.deskripsi,
                   colorHex: s.colorHex,
                 }))
-              : undefined,
+              : cdiSubscales
+                ? cdiSubscales.map((s) => ({
+                    name: s.label,
+                    score: s.score,
+                    maxScore: s.max,
+                    percentage: s.max > 0 ? Math.round((s.score / s.max) * 100) : 0,
+                    grade: `${s.score} / ${s.max}`,
+                    deskripsi: s.deskripsi,
+                    colorHex: s.colorHex,
+                  }))
+                : catsSubscales
+                  ? catsSubscales.map((s) => ({
+                      name: s.label,
+                      score: s.score,
+                      maxScore: s.max,
+                      percentage: s.max > 0 ? Math.round((s.score / s.max) * 100) : 0,
+                      grade: `${s.score} / ${s.max}`,
+                      deskripsi: s.deskripsi,
+                      colorHex: s.colorHex,
+                    }))
+                  : undefined,
         subscalesTitle: dassEvaluation
           ? "Profil 3 Dimensi: Depresi, Kecemasan, & Stres"
           : pbqProfile
             ? "Profil Skor Mentah 9 Skala Kepribadian (PBQ)"
             : rcmasSubscales
               ? "Profil Tiga Dimensi Kecemasan RCMAS"
-              : undefined,
+              : cdiSubscales
+                ? "Profil Lima Dimensi Depresi CDI"
+                : catsSubscales
+                  ? "Profil Empat Klaster Gejala PTSD (DSM-5)"
+                  : undefined,
         subscalesMaxNote: dassEvaluation
           ? "Maks. 42 / dimensi"
           : pbqProfile
             ? "Maks. 56 / skala (tanpa skor total)"
             : rcmasSubscales
               ? "Skor mentah per dimensi (tanpa cutoff terpisah)"
-              : undefined,
+              : cdiSubscales
+                ? "Skor mentah per dimensi (cut-off klinis total >= 19)"
+                : catsSubscales
+                  ? "Skor mentah per klaster (cut-off klinis total >= 21)"
+                  : undefined,
         kekuatanUtama: berbayarDetail.kekuatanUtama,
         judulKekuatan: berbayarDetail.judulKekuatan,
         blindspots: berbayarDetail.blindspots,
@@ -1002,6 +1139,153 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
                   <div className="space-y-3.5">
                     {rcmasSubscales.map((sub) => {
+                      const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                      return (
+                        <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-sm text-gray-900">{sub.label}</span>
+                            <span className="text-xs font-bold text-[#561269]">
+                              {sub.score} <span className="text-gray-400 font-normal">/ {sub.max}</span>
+                            </span>
+                          </div>
+                          <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                              style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-600 leading-relaxed">{sub.deskripsi}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Hasil Skrining Trauma & PTSD Anak/Remaja (CATS) */}
+              {isCATS && (
+                <div className="space-y-6">
+                  {/* Kriteria A: Paparan Peristiwa Traumatis (PTE) */}
+                  {catsPTE && (
+                    <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-4">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <Compass className="w-5 h-5 text-[#561269]" />
+                          Kriteria A: Paparan Peristiwa Berpotensi Traumatis
+                        </h3>
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-100">
+                          {catsPTE.totalDialami} Peristiwa Dilaporkan
+                        </span>
+                      </div>
+
+                      {catsPTE.totalDialami > 0 ? (
+                        <div className="space-y-3">
+                          <p className="text-xs font-semibold text-gray-700">Daftar peristiwa yang dialami:</p>
+                          <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 bg-gray-50/80 p-4 rounded-2xl border border-gray-100">
+                            {catsPTE.daftarPeristiwa?.map((p: any) => (
+                              <li key={p.no} className="leading-relaxed">
+                                {p.teks}
+                              </li>
+                            ))}
+                          </ul>
+                          {catsPTE.peristiwaPalingMengganggu && (
+                            <p className="text-xs text-purple-900 bg-purple-50/60 p-3.5 rounded-xl border border-purple-100">
+                              <strong>Paling mengganggu saat ini:</strong> {catsPTE.peristiwaPalingMengganggu}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                          Tidak ada peristiwa berpotensi traumatis yang dilaporkan. Sesuai panduan klinis CATS, skrining dianggap selesai dalam kategori normal.
+                        </p>
+                      )}
+                    </section>
+                  )}
+
+                  {/* Profil Empat Klaster Gejala PTSD DSM-5 */}
+                  {catsSubscales && (
+                    <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <Compass className="w-5 h-5 text-[#561269]" />
+                          Profil Empat Klaster Gejala PTSD (DSM-5)
+                        </h3>
+                        <span className="text-xs font-semibold text-gray-400">Skor mentah per klaster (cut-off total ≥ 21)</span>
+                      </div>
+
+                      <div className="space-y-3.5">
+                        {catsSubscales.map((sub) => {
+                          const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                          return (
+                            <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-bold text-sm text-gray-900">{sub.label}</span>
+                                <span className="text-xs font-bold text-[#561269]">
+                                  {sub.score} <span className="text-gray-400 font-normal">/ {sub.max}</span>
+                                </span>
+                              </div>
+                              <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                                  style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-gray-600 leading-relaxed">{sub.deskripsi}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Dampak terhadap Fungsi Psikososial */}
+                  {catsFungsi && (
+                    <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-4">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <Compass className="w-5 h-5 text-[#561269]" />
+                          Dampak terhadap Fungsi Psikososial
+                        </h3>
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                          {catsFungsi.totalTerganggu} dari 5 Area Terganggu
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        {catsFungsi.rincian?.map((r: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs font-medium ${
+                              r.terganggu
+                                ? "bg-rose-50/70 border-rose-200 text-rose-900"
+                                : "bg-emerald-50/50 border-emerald-200 text-emerald-800"
+                            }`}
+                          >
+                            <span>{r.nama}</span>
+                            <span className="font-bold px-2.5 py-0.5 rounded text-[11px]">
+                              {r.terganggu ? "Terganggu (Ya)" : "Tidak"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              )}
+
+              {/* Profil Lima Dimensi Depresi CDI */}
+              {cdiSubscales && (
+                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <Compass className="w-5 h-5 text-[#561269]" />
+                      Profil Lima Dimensi Depresi CDI
+                    </h3>
+                    <span className="text-xs font-semibold text-gray-400">Skor mentah per dimensi (cut-off total ≥ 19)</span>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {cdiSubscales.map((sub) => {
                       const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
                       return (
                         <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">

@@ -5,12 +5,14 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Lock, Eye, EyeOff, AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
 import { authService } from "@/services/auth.service"
-import { removeAuthCookie } from "@/lib/cookie"
+import { setAuthCookie, removeAuthCookie } from "@/lib/cookie"
+import { useAuthStore } from "@/store/authStore"
 
 function SetPasswordContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const token = searchParams.get("token") || ""
+  const { setAuth } = useAuthStore()
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -21,6 +23,9 @@ function SetPasswordContent() {
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
   const [tokenValid, setTokenValid] = useState(false)
+  const [accountRole, setAccountRole] = useState<string>("")
+  const [accountEmail, setAccountEmail] = useState<string>("")
+  const [accountName, setAccountName] = useState<string>("")
 
   useEffect(() => {
     let active = true
@@ -40,12 +45,16 @@ function SetPasswordContent() {
         if (!active) return
 
         if (res?.alreadyActive || res?.reason === "already_active") {
-          router.replace("/login?status=already-active")
+          const roleQuery = res?.role ? `&role=${String(res.role).toLowerCase()}` : ""
+          router.replace(`/login?status=already-active${roleQuery}`)
           return
         }
 
         if (res?.valid) {
           setTokenValid(true)
+          if (res.role) setAccountRole(String(res.role).toUpperCase())
+          if (res.email) setAccountEmail(res.email)
+          if (res.nama) setAccountName(res.nama)
           return
         }
 
@@ -58,7 +67,8 @@ function SetPasswordContent() {
         if (!active) return
         const alreadyActive = err.response?.data?.alreadyActive || err.response?.data?.reason === "already_active"
         if (alreadyActive) {
-          router.replace("/login?status=already-active")
+          const roleQuery = err.response?.data?.role ? `&role=${String(err.response.data.role).toLowerCase()}` : ""
+          router.replace(`/login?status=already-active${roleQuery}`)
           return
         }
         setTokenValid(false)
@@ -119,17 +129,69 @@ function SetPasswordContent() {
           sessionStorage.clear()
         }
 
-        setSuccessMessage(res.message || "Kata sandi berhasil dibuat dan akun Anda telah aktif!")
+        const targetRole = String(res.user?.role || accountRole || "").toUpperCase()
+        if (targetRole) setAccountRole(targetRole)
+
+        // Jika backend langsung menerbitkan accessToken, otentikasi sesi otomatis & alihkan ke portal yang tepat
+        if (res.accessToken && res.user) {
+          setAuthCookie("access_token", res.accessToken)
+          sessionStorage.setItem("access_token", res.accessToken)
+          sessionStorage.setItem("user_role", targetRole)
+
+          setAuth(
+            {
+              id: res.user.id,
+              name: res.user.nama || accountName,
+              email: res.user.email || accountEmail,
+              role: targetRole as any,
+            },
+            res.accessToken
+          )
+
+          if (targetRole === "BIRO") {
+            setSuccessMessage("Kata sandi berhasil dibuat! Akun Admin Biro Anda telah aktif. Mengalihkan ke Portal Admin Biro...")
+            setTimeout(() => {
+              router.push("/admin-biro")
+            }, 2000)
+            return
+          } else if (targetRole === "PSIKOLOG") {
+            sessionStorage.setItem("active_psikolog_id", res.user.id)
+            sessionStorage.setItem("active_psikolog_name", res.user.nama)
+            sessionStorage.setItem("active_psikolog_email", res.user.email)
+
+            setSuccessMessage("Kata sandi berhasil dibuat! Akun Psikolog Anda telah aktif. Mengalihkan ke Portal Psikolog...")
+            setTimeout(() => {
+              router.push("/psikolog-web/beranda" as any)
+            }, 2000)
+            return
+          } else if (targetRole === "ADMIN") {
+            setSuccessMessage("Kata sandi berhasil dibuat! Akun Admin Anda telah aktif. Mengalihkan ke Portal Admin...")
+            setTimeout(() => {
+              router.push("/admin")
+            }, 2000)
+            return
+          }
+        }
+
+        // Fallback jika tidak ada accessToken langsung
+        const roleQuery = targetRole ? `&role=${targetRole.toLowerCase()}` : ""
+        const emailQuery = accountEmail ? `&email=${encodeURIComponent(accountEmail)}` : ""
+        setSuccessMessage(
+          targetRole === "BIRO"
+            ? "Kata sandi berhasil dibuat dan akun Admin Biro Anda telah aktif! Mengalihkan ke halaman masuk..."
+            : res.message || "Kata sandi berhasil dibuat dan akun Anda telah aktif!"
+        )
         setTimeout(() => {
-          router.push("/login?status=activated")
-        }, 2500)
+          router.push(`/login?status=activated${roleQuery}${emailQuery}`)
+        }, 2200)
       } else {
         setError(res.message || "Gagal mengaktifkan akun. Silakan coba kembali.")
       }
     } catch (err: any) {
       const alreadyActive = err.response?.data?.alreadyActive || err.response?.data?.errorCode === "ACCOUNT_ALREADY_ACTIVE"
       if (alreadyActive) {
-        router.replace("/login?status=already-active")
+        const roleQuery = accountRole ? `&role=${accountRole.toLowerCase()}` : ""
+        router.replace(`/login?status=already-active${roleQuery}`)
         return
       }
       const msg =
@@ -141,6 +203,8 @@ function SetPasswordContent() {
       setIsLoading(false)
     }
   }
+
+  const effectiveRole = accountRole.toUpperCase()
 
   return (
     <div className="min-h-screen flex font-poppins selection:bg-[#561269]/20 selection:text-[#561269]">
@@ -157,10 +221,20 @@ function SetPasswordContent() {
           {/* Heading */}
           <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#561269] mb-3">
-              Aktivasi Akun<br />Empathika
+              {effectiveRole === "BIRO"
+                ? "Aktivasi Akun Biro"
+                : effectiveRole === "PSIKOLOG"
+                ? "Aktivasi Akun Psikolog"
+                : "Aktivasi Akun"}<br />Empathika
             </h1>
             <p className="text-gray-500 text-sm leading-relaxed px-4">
-              Silakan buat kata sandi baru Anda<br />untuk mengaktifkan akun dan melanjutkan ke portal.
+              Silakan buat kata sandi baru Anda<br />
+              untuk mengaktifkan akun dan melanjutkan ke{" "}
+              {effectiveRole === "BIRO"
+                ? "Portal Admin Biro"
+                : effectiveRole === "PSIKOLOG"
+                ? "Portal Psikolog"
+                : "portal"}.
             </p>
           </div>
 
@@ -195,14 +269,31 @@ function SetPasswordContent() {
               <p className="text-sm text-gray-600 mt-2 px-4">{successMessage}</p>
               <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400">
                 <div className="w-4 h-4 border-2 border-[#561269] border-t-transparent rounded-full animate-spin" />
-                <span>Mengalihkan ke halaman masuk...</span>
+                <span>
+                  {effectiveRole === "BIRO"
+                    ? "Mengalihkan ke Portal Admin Biro..."
+                    : effectiveRole === "PSIKOLOG"
+                    ? "Mengalihkan ke Portal Psikolog..."
+                    : "Mengalihkan ke halaman berikutnya..."}
+                </span>
               </div>
               <div className="mt-6">
                 <Link
-                  href="/login?status=activated"
+                  href={
+                    effectiveRole === "BIRO"
+                      ? "/admin-biro"
+                      : effectiveRole === "PSIKOLOG"
+                      ? "/psikolog-web/beranda"
+                      : "/login?status=activated"
+                  }
                   className="inline-flex items-center gap-2 text-sm font-bold text-[#561269] hover:underline"
                 >
-                  Klik di sini jika tidak beralih otomatis <ArrowRight className="w-4 h-4" />
+                  {effectiveRole === "BIRO"
+                    ? "Buka Portal Admin Biro Sekarang"
+                    : effectiveRole === "PSIKOLOG"
+                    ? "Buka Portal Psikolog Sekarang"
+                    : "Klik di sini jika tidak beralih otomatis"}{" "}
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>

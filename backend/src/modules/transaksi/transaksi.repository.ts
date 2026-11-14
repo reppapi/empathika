@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
+import type { AdminTransaksiQueryInput } from './transaksi.schema'
 
 export class TransaksiRepository {
   constructor(private prisma: PrismaClient) {}
@@ -53,9 +54,14 @@ export class TransaksiRepository {
     }
   }
 
-  async findAll(_params?: { clientId?: string; status?: string }) {
+  async findAll(_params?: AdminTransaksiQueryInput & { clientId?: string }) {
     // Jalankan pembersihan otomatis untuk transaksi yang sudah lewat tahun
     await this.purgeExpiredTransactions()
+
+    const page = _params?.page ?? 1
+    const limit = _params?.limit ?? 20
+    const isAll = _params?.all === true
+    const skip = (page - 1) * limit
 
     const currentYear = new Date().getFullYear()
     const startOfCurrentYear = new Date(currentYear, 0, 1)
@@ -78,25 +84,36 @@ export class TransaksiRepository {
       where.status_pembayaran = _params.status as any
     }
 
-    return this.prisma.transaksi.findMany({
-      where,
-      include: {
-        client: true,
-        booking_konsultasi: {
-          include: {
-            layanan: true,
-            jadwal: {
-              include: {
-                psikolog: {
-                  include: {
-                    account: {
-                      select: {
-                        id: true,
-                        nama: true,
-                        email: true,
-                        no_telepon: true,
-                        foto: true,
-                      },
+    if (_params?.search?.trim()) {
+      const term = _params.search.trim()
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { kode_transaksi: { contains: term, mode: 'insensitive' } },
+            { client: { nama: { contains: term, mode: 'insensitive' } } },
+            { client: { email: { contains: term, mode: 'insensitive' } } },
+          ],
+        },
+      ]
+    }
+
+    const include = {
+      client: true,
+      booking_konsultasi: {
+        include: {
+          layanan: true,
+          jadwal: {
+            include: {
+              psikolog: {
+                include: {
+                  account: {
+                    select: {
+                      id: true,
+                      nama: true,
+                      email: true,
+                      no_telepon: true,
+                      foto: true,
                     },
                   },
                 },
@@ -104,27 +121,74 @@ export class TransaksiRepository {
             },
           },
         },
-        booking_psikotes: {
-          include: {
-            paket: true,
-            client: true,
-            hasil_tes: {
-              include: {
-                interpretasi: true,
-              },
+      },
+      booking_psikotes: {
+        include: {
+          paket: true,
+          client: true,
+          hasil_tes: {
+            include: {
+              interpretasi: true,
             },
           },
         },
-        booking_event: {
-          include: {
-            event: true,
-            client: true,
-          },
-        },
-        invoice: true,
       },
-      orderBy: { createdAt: 'desc' },
-    })
+      booking_event: {
+        include: {
+          event: true,
+          client: true,
+        },
+      },
+      invoice: true,
+    }
+
+    if (isAll) {
+      const [data, total] = await Promise.all([
+        this.prisma.transaksi.findMany({
+          where,
+          include,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.transaksi.count({ where }),
+      ])
+
+      return {
+        data,
+        pagination: {
+          total,
+          page: 1,
+          limit: total,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.transaksi.findMany({
+        where,
+        include,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.transaksi.count({ where }),
+    ])
+
+    const totalPages = Math.ceil(total / limit) || 1
+
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    }
   }
 
   async findById(id: string) {

@@ -3,6 +3,7 @@ import { TransaksiRepository } from './transaksi.repository'
 import type {
   CreateTransaksiInput,
   CreateCheckoutTransaksiInput,
+  AdminTransaksiQueryInput,
 } from './transaksi.schema'
 import { paymentService } from './payment/payment.service'
 import { env } from '../../config/env'
@@ -17,7 +18,7 @@ export class TransaksiService {
     this.prisma = fastify.prisma
   }
 
-  async getAll(params?: { clientId?: string }) {
+  async getAll(params?: AdminTransaksiQueryInput & { clientId?: string }) {
     return this.repo.findAll(params)
   }
 

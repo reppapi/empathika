@@ -18,7 +18,11 @@ import ModalDetailPeserta from "./ModalDetailPeserta";
 import ModalDetailPaket from "./ModalDetailPaket";
 import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal";
 
-export default function AdminPsikotesClient() {
+export interface AdminPsikotesClientProps {
+  isBiroContext?: boolean;
+}
+
+export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsikotesClientProps = {}) {
   const [activeTab, setActiveTab] = useState<"peserta" | "paket">("peserta");
   const [searchPaket, setSearchPaket] = useState("");
   const [searchPeserta, setSearchPeserta] = useState("");
@@ -102,6 +106,10 @@ export default function AdminPsikotesClient() {
 
   // Baca URL query parameter saat pertama kali dibuka (misal /admin/psikotes?tab=paket)
   useEffect(() => {
+    if (isBiroContext) {
+      setActiveTab("peserta");
+      return;
+    }
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
@@ -109,7 +117,7 @@ export default function AdminPsikotesClient() {
         setActiveTab(tabParam);
       }
     }
-  }, []);
+  }, [isBiroContext]);
 
   useEffect(() => {
     loadDataFromBackend();
@@ -247,18 +255,20 @@ export default function AdminPsikotesClient() {
             <span>Data Klien ({pesertaSummary.total_berbayar})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("paket")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === "paket"
-                ? "bg-[#EAB308] text-gray-950 shadow-sm"
-                : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span>Katalog Paket ({judulList.length})</span>
-          </button>
+          {!isBiroContext && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("paket")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === "paket"
+                  ? "bg-[#EAB308] text-gray-950 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Katalog Paket ({judulList.length})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -299,12 +309,14 @@ export default function AdminPsikotesClient() {
         />
       )}
 
-      {/* ── 3. Modal Detail Paket & Kelola Status ── */}
-      <ModalDetailPaket
-        judul={selectedJudul}
-        onClose={() => setSelectedJudul(null)}
-        onToggleStatus={handleToggleStatus}
-      />
+      {/* ── 3. Modal Detail Paket & Kelola Status (Khusus Admin Utama) ── */}
+      {!isBiroContext && (
+        <ModalDetailPaket
+          judul={selectedJudul}
+          onClose={() => setSelectedJudul(null)}
+          onToggleStatus={handleToggleStatus}
+        />
+      )}
 
       {/* ── 4. Modal Detail Peserta (Hasil Dokumen PDF Klien) ── */}
       <ModalDetailPeserta
@@ -314,24 +326,26 @@ export default function AdminPsikotesClient() {
         onDownloadPdf={(peserta) => printLaporanPsikotes(peserta, judulList)}
       />
 
-      {/* ── 5. Modal Konfirmasi Hapus Paket Psikotes ── */}
-      <AdminDeleteModal
-        isOpen={Boolean(judulToDelete)}
-        onClose={() => !isDeletingJudul && setJudulToDelete(null)}
-        onConfirm={handleConfirmDeleteJudul}
-        itemType="instrumen psikotes"
-        itemName={judulToDelete?.judul}
-        description={
-          judulToDelete ? (
-            <>
-              Apakah Anda yakin ingin menghapus instrumen psikotes{" "}
-              <span className="font-extrabold text-gray-900">&ldquo;{judulToDelete.judul}&rdquo;</span>{" "}
-              beserta seluruh paket variannya? Tindakan ini tidak dapat dibatalkan.
-            </>
-          ) : undefined
-        }
-        isLoading={isDeletingJudul}
-      />
+      {/* ── 5. Modal Konfirmasi Hapus Paket Psikotes (Khusus Admin Utama) ── */}
+      {!isBiroContext && (
+        <AdminDeleteModal
+          isOpen={Boolean(judulToDelete)}
+          onClose={() => !isDeletingJudul && setJudulToDelete(null)}
+          onConfirm={handleConfirmDeleteJudul}
+          itemType="instrumen psikotes"
+          itemName={judulToDelete?.judul}
+          description={
+            judulToDelete ? (
+              <>
+                Apakah Anda yakin ingin menghapus instrumen psikotes{" "}
+                <span className="font-extrabold text-gray-900">&ldquo;{judulToDelete.judul}&rdquo;</span>{" "}
+                beserta seluruh paket variannya? Tindakan ini tidak dapat dibatalkan.
+              </>
+            ) : undefined
+          }
+          isLoading={isDeletingJudul}
+        />
+      )}
     </div>
   );
 }
