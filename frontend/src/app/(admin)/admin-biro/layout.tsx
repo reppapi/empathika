@@ -51,6 +51,22 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
     }
   }, [user])
 
+  // Terapkan tema warna biro ke seluruh halaman portal admin biro
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (biroColor) {
+        document.documentElement.style.setProperty("--biro-theme-color", biroColor)
+        document.documentElement.setAttribute("data-biro-theme", "true")
+      }
+    }
+    return () => {
+      if (typeof document !== "undefined") {
+        document.documentElement.style.removeProperty("--biro-theme-color")
+        document.documentElement.removeAttribute("data-biro-theme")
+      }
+    }
+  }, [biroColor])
+
   // Menentukan judul navbar berdasarkan URL
   let pageTitle = "Ringkasan Operasional"
   if (pathname === "/admin-biro") pageTitle = "Ringkasan Operasional"

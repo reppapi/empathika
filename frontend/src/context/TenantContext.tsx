@@ -73,8 +73,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     if (typeof document !== "undefined") {
       if (isBiro && biroProfile?.warna_tema) {
         document.documentElement.style.setProperty("--biro-theme-color", biroProfile.warna_tema)
+        document.documentElement.setAttribute("data-biro-theme", "true")
       } else {
         document.documentElement.style.removeProperty("--biro-theme-color")
+        document.documentElement.removeAttribute("data-biro-theme")
       }
     }
   }, [isBiro, biroProfile?.warna_tema])
