@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { transaksiService } from "@/services/transaksi.service"
 import { invoiceService } from "@/services/invoice.service"
 import { formatOrderId } from "@/lib/utils"
-import { AlertCircle, RotateCcw, X, DollarSign } from "lucide-react"
+import { AlertCircle, RotateCcw, X, DollarSign, Clock, CheckCircle2 } from "lucide-react"
 
 type JenisLayanan = "semua" | "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
+type StatusFilter = "semua" | "Menunggu Pembayaran" | "Lunas" | "Refunded" | "Gagal"
 
 const LAYANAN_OPTIONS: { id: JenisLayanan; label: string }[] = [
   { id: "semua", label: "Semua Layanan" },
@@ -529,7 +531,10 @@ export default function AdminTransaksiClient() {
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
+  const searchParams = useSearchParams()
+
   // Filter State
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("semua")
   const [selectedLayanan, setSelectedLayanan] = useState<JenisLayanan>("semua")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string>("")
@@ -537,6 +542,24 @@ export default function AdminTransaksiClient() {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
   })
+
+  // Sync parameter status dari URL (misal: saat diklik dari kartu dashboard /admin/transaksi?status=pending)
+  useEffect(() => {
+    const statusParam = searchParams.get("status")
+    if (statusParam) {
+      const lower = statusParam.toLowerCase()
+      if (lower === "pending" || lower === "menunggu") {
+        setSelectedStatus("Menunggu Pembayaran")
+        setSelectedMonth("") // Reset batasan bulan agar pending dari bulan manapun dapat langsung terpantau
+      } else if (lower === "paid" || lower === "lunas" || lower === "success") {
+        setSelectedStatus("Lunas")
+      } else if (lower === "refunded") {
+        setSelectedStatus("Refunded")
+      } else if (lower === "failed" || lower === "gagal") {
+        setSelectedStatus("Gagal")
+      }
+    }
+  }, [searchParams])
 
   // Detail & Refund state
   const [selectedItem, setSelectedItem] = useState<ReturnType<typeof normalizeTransaksi> | null>(null)
@@ -576,6 +599,7 @@ export default function AdminTransaksiClient() {
   // Filter & Sort
   const filteredTransaksi = useMemo(() => {
     const list = allTransaksi.filter((item) => {
+      if (selectedStatus !== "semua" && item.status !== selectedStatus) return false
       if (selectedLayanan !== "semua" && item.jenisLayanan !== selectedLayanan) return false
       if (selectedDate) {
         if (item.tanggalTransaksi !== selectedDate) return false
@@ -585,7 +609,7 @@ export default function AdminTransaksiClient() {
       return true
     })
     return list.sort((a, b) => b.tanggalTransaksi.localeCompare(a.tanggalTransaksi))
-  }, [allTransaksi, selectedLayanan, selectedDate, selectedMonth])
+  }, [allTransaksi, selectedStatus, selectedLayanan, selectedDate, selectedMonth])
 
   // Active detail item
   const activeDetailItem = useMemo(() => {
@@ -772,31 +796,128 @@ export default function AdminTransaksiClient() {
         </div>
       </div>
 
-      {/* ── Summary Cards ── */}
+      {/* ── Summary Cards (Interaktif untuk filter status instan) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="rounded-3xl border border-gray-200/90 bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between">
-          <p className="text-xs sm:text-sm font-semibold text-gray-500">{summaryMetrics.pendapatanLabel}</p>
+        <button
+          type="button"
+          onClick={() => setSelectedStatus("semua")}
+          className={`text-left rounded-3xl border bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all cursor-pointer ${
+            selectedStatus === "semua"
+              ? "border-[#561269] ring-2 ring-[#561269]/20 shadow-md"
+              : "border-gray-200/90 hover:border-gray-300 hover:shadow-sm"
+          }`}
+          title="Tampilkan semua transaksi"
+        >
+          <div className="flex items-center justify-between w-full">
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">{summaryMetrics.pendapatanLabel}</p>
+            {selectedStatus === "semua" && (
+              <span className="text-[10px] font-bold bg-purple-100 text-[#561269] px-2 py-0.5 rounded-full">
+                Semua
+              </span>
+            )}
+          </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#561269] mt-2">
             Rp. {summaryMetrics.totalPendapatan.toLocaleString("id-ID")}
           </p>
-        </div>
-        <div className="rounded-3xl border border-gray-200/90 bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between">
-          <p className="text-xs sm:text-sm font-semibold text-gray-500">Transaksi Berhasil</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSelectedStatus(selectedStatus === "Lunas" ? "semua" : "Lunas")}
+          className={`text-left rounded-3xl border bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all cursor-pointer ${
+            selectedStatus === "Lunas"
+              ? "border-emerald-600 ring-2 ring-emerald-600/20 bg-emerald-50/10 shadow-md"
+              : "border-gray-200/90 hover:border-gray-300 hover:shadow-sm"
+          }`}
+          title="Klik untuk filter transaksi lunas"
+        >
+          <div className="flex items-center justify-between w-full">
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">Transaksi Berhasil</p>
+            {selectedStatus === "Lunas" ? (
+              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                Difilter
+              </span>
+            ) : (
+              <span className="text-[10px] text-gray-400 font-medium">Klik filter</span>
+            )}
+          </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 mt-2">
             {summaryMetrics.transaksiBerhasil}
           </p>
-        </div>
-        <div className="rounded-3xl border border-gray-200/90 bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between">
-          <p className="text-xs sm:text-sm font-semibold text-gray-500">Menunggu Pembayaran</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSelectedStatus(selectedStatus === "Menunggu Pembayaran" ? "semua" : "Menunggu Pembayaran")}
+          className={`text-left rounded-3xl border bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all cursor-pointer ${
+            selectedStatus === "Menunggu Pembayaran"
+              ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/20 shadow-md"
+              : "border-gray-200/90 hover:border-gray-300 hover:shadow-sm"
+          }`}
+          title="Klik untuk filter transaksi yang menunggu pembayaran"
+        >
+          <div className="flex items-center justify-between w-full">
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">Menunggu Pembayaran</p>
+            {selectedStatus === "Menunggu Pembayaran" ? (
+              <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                Difilter
+              </span>
+            ) : (
+              <span className="text-[10px] text-gray-400 font-medium">Klik filter</span>
+            )}
+          </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#E5A800] mt-2">
             {summaryMetrics.menungguBayar}
           </p>
-        </div>
+        </button>
       </div>
 
       {/* ── Daftar Transaksi ── */}
       <div className="flex flex-col gap-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
+            {selectedStatus !== "semua" && (
+              <div className="flex items-center gap-1.5 bg-purple-50 text-[#561269] border border-purple-200 text-xs font-bold px-3 py-1 rounded-full">
+                <span>Filter: {selectedStatus}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus("semua")}
+                  className="hover:text-red-600 transition-colors ml-0.5"
+                  title="Hapus filter status"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Quick status filter pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {(
+              [
+                { id: "semua", label: "Semua" },
+                { id: "Menunggu Pembayaran", label: "Menunggu" },
+                { id: "Lunas", label: "Lunas" },
+                { id: "Refunded", label: "Refunded" },
+                { id: "Gagal", label: "Gagal" },
+              ] as const
+            ).map((st) => (
+              <button
+                key={st.id}
+                type="button"
+                onClick={() => setSelectedStatus(st.id)}
+                className={`text-xs font-bold px-3 py-1.5 rounded-full transition-all shrink-0 cursor-pointer ${
+                  selectedStatus === st.id
+                    ? "bg-[#561269] text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {st.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
@@ -1088,6 +1209,19 @@ export default function AdminTransaksiClient() {
                         <span className="text-gray-500 font-medium">Alasan / Catatan Refund: </span>
                         <span className="text-red-700 font-medium">{activeDetailItem.refundReason || "Tidak ada alasan spesifik"}</span>
                       </div>
+                    </div>
+                  )}
+
+                  {/* ── KETERANGAN STATUS MENUNGGU PEMBAYARAN ── */}
+                  {activeDetailItem.status === "Menunggu Pembayaran" && (
+                    <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-xs text-amber-800 flex flex-col gap-1.5">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                        <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Menunggu Pembayaran dari Klien</span>
+                      </div>
+                      <p className="text-[11px] text-amber-700/90 leading-relaxed">
+                        Transaksi ini tercatat dalam sistem dan sedang menunggu konfirmasi pembayaran. Admin dapat mengirim pesan invoice atau instruksi pembayaran via WhatsApp ke klien.
+                      </p>
                     </div>
                   )}
 

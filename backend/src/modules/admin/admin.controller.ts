@@ -37,6 +37,57 @@ export class AdminController {
     }
   }
 
+  getDashboardMetrics = async (
+    _request: FastifyRequest,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getDashboardMetrics()
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  getDashboardTodaySessions = async (
+    request: FastifyRequest<{ Querystring: { limit?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const limit = request.query?.limit ? parseInt(request.query.limit, 10) : 5
+      const data = await this.service.getDashboardTodaySessions(isNaN(limit) ? 5 : limit)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  getDashboardRecentTransactions = async (
+    request: FastifyRequest<{ Querystring: { limit?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const limit = request.query?.limit ? parseInt(request.query.limit, 10) : 5
+      const data = await this.service.getDashboardRecentTransactions(isNaN(limit) ? 5 : limit)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  getDashboardAgenda = async (
+    request: FastifyRequest<{ Querystring: { limit?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const limit = request.query?.limit ? parseInt(request.query.limit, 10) : 6
+      const data = await this.service.getDashboardAgenda(isNaN(limit) ? 6 : limit)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
   getJadwal = async (
     request: FastifyRequest<{ Querystring: GetAdminJadwalQuery }>,
     reply: FastifyReply
