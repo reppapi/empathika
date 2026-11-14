@@ -27,11 +27,6 @@ import { layananService } from "@/services/layanan.service"
 
 export const DEFAULT_LAYANAN_KONSULTASI = [
   "Semua Layanan Konsultasi",
-  "Konseling Individu",
-  "Konseling Pasangan",
-  "Konseling Remaja & Anak",
-  "Konseling Karir",
-  "Hipnoterapi Klinis",
 ]
 
 export const DEFAULT_TIME_SLOTS = [
@@ -512,7 +507,7 @@ export default function PsikologJadwalClient() {
     loadScheduleForPsikolog()
   }, [loadScheduleForPsikolog, currentWeekMonday])
 
-  // Ambil daftar layanan kategori KONSULTASI dari database/API agar selalu up to date
+  // Ambil daftar layanan kategori KONSULTASI murni dari database/API (tanpa data dummy/hardcode)
   useEffect(() => {
     let isMounted = true
     layananService
@@ -520,17 +515,40 @@ export default function PsikologJadwalClient() {
       .then((res: any) => {
         if (!isMounted) return
         const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-        const activeNames = raw
+        const activeNames: string[] = raw
           .filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
-          .map((l: any) => l.nama?.trim())
+          .map((l: any) => (l.nama?.trim() as string))
           .filter(Boolean)
-        if (activeNames.length > 0) {
-          setLayananOptions(
-            Array.from(new Set(["Semua Layanan Konsultasi", ...activeNames, ...DEFAULT_LAYANAN_KONSULTASI]))
-          )
+
+        // Periksa juga jika ada layanan konsultasi aktif dari database/admin storage lokal
+        try {
+          const rawLocal = localStorage.getItem("empathika_admin_layanan_list")
+          if (rawLocal) {
+            const parsed = JSON.parse(rawLocal)
+            if (Array.isArray(parsed)) {
+              parsed.forEach((item: any) => {
+                if (
+                  (item.kategoriId === "01" || (item.kategori || "").toUpperCase() === "KONSULTASI") &&
+                  item.status !== "Nonaktif" &&
+                  item.layanan
+                ) {
+                  activeNames.push(item.layanan.trim())
+                }
+              })
+            }
+          }
+        } catch {}
+
+        const uniqueNames: string[] = Array.from(new Set<string>(activeNames))
+        if (uniqueNames.length > 0) {
+          setLayananOptions(["Semua Layanan Konsultasi", ...uniqueNames])
+        } else {
+          setLayananOptions(["Semua Layanan Konsultasi"])
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.warn("Gagal memuat layanan konsultasi:", err?.message)
+      })
 
     return () => {
       isMounted = false

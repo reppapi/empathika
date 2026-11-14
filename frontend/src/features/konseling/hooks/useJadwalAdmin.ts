@@ -271,19 +271,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
   // ── 3. Filter Layanan & Derived Values ──
   const layananOptions = useMemo(() => {
-    const defaultList = [
-      "Semua Layanan",
-      "Konseling",
-      "Konseling Individu",
-      "Konseling Pasangan",
-      "Konseling Remaja",
-      "Konseling Karir",
-      "Konseling Pribadi",
-      "Hipnoterapi",
-      "Home Visit",
-      "Asesmen",
-      "Asesmen Klinis",
-    ]
+    const defaultList = ["Semua Layanan", "Konsultasi", "Asesmen"]
     const set = new Set<string>(defaultList)
     todaySessions.forEach((s) => {
       if (s.layanan) set.add(s.layanan.trim())
@@ -291,11 +279,19 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     bookedSessions.forEach((b) => {
       if (b.layanan) set.add(b.layanan.trim())
     })
-    WEEK_VARIATIONS.forEach((v) => {
-      v.forEach((item) => {
-        if (item.layanan) set.add(item.layanan.trim())
-      })
-    })
+    try {
+      const rawLocal = localStorage.getItem("empathika_admin_layanan_list")
+      if (rawLocal) {
+        const parsed = JSON.parse(rawLocal)
+        if (Array.isArray(parsed)) {
+          parsed.forEach((item: any) => {
+            if (item.status !== "Nonaktif" && item.layanan) {
+              set.add(item.layanan.trim())
+            }
+          })
+        }
+      }
+    } catch {}
     return Array.from(set)
   }, [todaySessions, bookedSessions])
 
