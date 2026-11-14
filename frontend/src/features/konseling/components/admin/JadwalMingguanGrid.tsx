@@ -84,7 +84,7 @@ export default function JadwalMingguanGrid({
           <button
             type="button"
             onClick={goToCurrentWeek}
-            className="text-xs px-2.5 py-1 font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors ml-1 cursor-pointer"
+            className="text-xs px-2.5 py-1 font-semibold text-[#561269] bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors ml-1 cursor-pointer"
           >
             Minggu Ini
           </button>
@@ -99,7 +99,7 @@ export default function JadwalMingguanGrid({
             {weekDays.map((wd, i) => (
               <div
                 key={i}
-                className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 ${wd.isSameAsSelected ? "bg-purple-50/80" : ""
+                className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 ${wd.isSameAsSelected ? "bg-purple-50/80 ring-1 ring-inset ring-[#561269]/20" : ""
                   }`}
               >
                 <span
