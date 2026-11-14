@@ -279,34 +279,41 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* OVERLAPPING STATS SECTION */}
       {/* ======================================= */}
-      <div className="relative z-40 max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 lg:-mt-12">
+      <div className="relative z-40 max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 lg:-mt-12">
         <div className="bg-gradient-to-b from-[#e5e7eb] to-[#f3f4f6] rounded-[2rem] shadow-xl py-6 lg:py-8 px-6 md:px-10 flex flex-col md:flex-row justify-between items-center gap-4 lg:gap-6 text-center">
           
-          <div className="flex-1 w-full flex flex-col items-center">
-            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2">0+</h3>
-            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[200px]">
-              Cerita telah dipercayakan kepada kami
+          <div className="flex-1 w-full flex flex-col items-center justify-start self-stretch">
+            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2 leading-none flex items-center justify-center min-h-[32px] lg:min-h-[42px]">
+              1.000+
+            </h3>
+            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[220px]">
+              Sesi konseling & asesmen terlaksana
             </p>
           </div>
+
+          {/* Garis pemisah samar */}
+          <div className="hidden md:block w-px h-12 bg-gray-300/80 shrink-0 self-center" />
+          <div className="md:hidden w-28 h-px bg-gray-300/70 my-1" />
           
-          <div className="flex-1 w-full flex flex-col items-center">
-            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2">0+</h3>
-            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[200px]">
-              Praktisi profesional berlisensi dan berpengalaman
+          <div className="flex-1 w-full flex flex-col items-center justify-start self-stretch">
+            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2 leading-none flex items-center justify-center min-h-[32px] lg:min-h-[42px]">
+              {psychologists.length > 0 ? `${psychologists.length}+` : "10+"}
+            </h3>
+            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[220px]">
+              Psikolog & konselor berlisensi
             </p>
           </div>
+
+          {/* Garis pemisah samar */}
+          <div className="hidden md:block w-px h-12 bg-gray-300/80 shrink-0 self-center" />
+          <div className="md:hidden w-28 h-px bg-gray-300/70 my-1" />
           
-          <div className="flex-1 w-full flex flex-col items-center">
-            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2">0%</h3>
-            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[200px]">
-              #PejuangKesehatanMental merasa puas
-            </p>
-          </div>
-          
-          <div className="flex-1 w-full flex flex-col items-center">
-            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2">0%</h3>
-            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[200px]">
-              #PejuangKesehatanMental rutin kembali
+          <div className="flex-1 w-full flex flex-col items-center justify-start self-stretch">
+            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2 leading-none flex items-center justify-center min-h-[32px] lg:min-h-[42px]">
+              100%
+            </h3>
+            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[220px]">
+              Kerahasiaan & privasi data terjamin
             </p>
           </div>
 
