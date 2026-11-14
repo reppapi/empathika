@@ -36,15 +36,24 @@ export default function AdminBiroDashboardClient() {
     let isMounted = true
 
     // Coba temukan tenant yang cocok dari mock data atau buat representasi tenant dinamis dari akun yang login
-    const resolveTenant = (biroInfo?: { id?: string; nama_biro?: string; slug?: string }) => {
+    const resolveTenant = (biroInfo?: { id?: string; nama_biro?: string; slug?: string; warna_tema?: string }) => {
       const targetId = biroInfo?.id || user?.id || ""
       const targetSlug = biroInfo?.slug || ""
       const foundMockKey = Object.keys(BIRO_TENANT_DATA).find(
         (key) => key === targetId || BIRO_TENANT_DATA[key].biroSlug === targetSlug
       )
 
+      const biroCustomColor = biroInfo?.warna_tema || (foundMockKey ? BIRO_TENANT_DATA[foundMockKey].color : "#561269")
+
       if (foundMockKey) {
-        setActiveTenant(BIRO_TENANT_DATA[foundMockKey])
+        const base = BIRO_TENANT_DATA[foundMockKey]
+        setActiveTenant({
+          ...base,
+          color: biroCustomColor,
+          metrics: base.metrics.map((m) =>
+            m.color === "#561269" || m.color === base.color ? { ...m, color: biroCustomColor } : m
+          ),
+        })
       } else {
         const biroName = biroInfo?.nama_biro || user?.name || "Biro Mitra Baru"
         // Biro Baru: Data transaksi, sesi, klien, agenda, dan grafik dimulai dari 0/kosong
@@ -53,35 +62,35 @@ export default function AdminBiroDashboardClient() {
           biroName,
           biroSlug: targetSlug || targetId || "biro-baru",
           tagline: `Dashboard Layanan & Klien ${biroName}`,
-          color: "#561269",
+          color: biroCustomColor,
           metrics: [
             {
               title: "Pendapatan Bulan Ini",
               value: "Rp 0",
               change: "0% dari bulan lalu",
               icon: Wallet,
-              color: "#561269",
+              color: biroCustomColor,
             },
             {
               title: "Klien Aktif Biro",
               value: "0 Klien",
               change: "Belum ada klien terdaftar",
               icon: UsersIcon,
-              color: "#561269",
+              color: biroCustomColor,
             },
             {
               title: "Sesi Konseling Selesai",
               value: "0 Sesi",
               change: "Akumulasi bulan ini",
               icon: CheckCircle2Icon,
-              color: "#561269",
+              color: biroCustomColor,
             },
             {
               title: "Pendaftar Layanan",
               value: "0 Peserta",
               change: "Belum ada program aktif",
               icon: Sparkles,
-              color: "#561269",
+              color: biroCustomColor,
             },
             {
               title: "Menunggu Pembayaran",

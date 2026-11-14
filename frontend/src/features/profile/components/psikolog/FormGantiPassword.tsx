@@ -73,7 +73,7 @@ export function FormGantiPassword({ hideHeader = false }: FormGantiPasswordProps
   }
 
   return (
-    <div className={hideHeader ? "font-poppins" : "bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 font-poppins"}>
+    <div className={hideHeader ? "font-poppins h-full flex flex-col" : "h-full flex flex-col justify-between bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 font-poppins"}>
       {!hideHeader && (
         <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
           <div className="p-2.5 rounded-xl bg-purple-50 text-[#561269]">
@@ -100,111 +100,113 @@ export function FormGantiPassword({ hideHeader = false }: FormGantiPasswordProps
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Password Lama */}
-        <div>
-          <label htmlFor="old-account-password" className="block text-xs font-semibold text-gray-700 mb-1.5">
-            Kata Sandi Lama <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              id="old-account-password"
-              type={showCurrent ? "text" : "password"}
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Masukkan kata sandi lama Anda"
-              required
-              autoComplete="current-password"
-              disabled={loading}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-            />
-            <button
-              type="button"
-              onClick={() => setShowCurrent(!showCurrent)}
-              tabIndex={-1}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
+        <div className="space-y-4">
+          {/* Password Lama */}
+          <div>
+            <label htmlFor="old-account-password" className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Kata Sandi Lama <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                id="old-account-password"
+                type={showCurrent ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Masukkan kata sandi lama Anda"
+                required
+                autoComplete="current-password"
+                disabled={loading}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Password Baru */}
+          <div>
+            <label htmlFor="new-account-password" className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Kata Sandi Baru <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                id="new-account-password"
+                type={showNew ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minimal 8 karakter unik"
+                required
+                autoComplete="new-password"
+                disabled={loading}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew(!showNew)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Indikator Kekuatan Password */}
+            <PasswordStrengthMeter password={newPassword} />
+          </div>
+
+          {/* Konfirmasi Password Baru */}
+          <div>
+            <label htmlFor="confirm-account-password" className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Konfirmasi Kata Sandi Baru <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                id="confirm-account-password"
+                type={showConfirm ? "text" : "password"}
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="Ulangi kata sandi baru"
+                required
+                autoComplete="new-password"
+                disabled={loading}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {confirmNewPassword && newPassword !== confirmNewPassword && (
+              <p className="text-xs text-red-600 mt-1 flex items-center gap-1 font-medium">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                Kata sandi tidak cocok. Pastikan penulisan sama persis.
+              </p>
+            )}
+            {confirmNewPassword && newPassword === confirmNewPassword && (
+              <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                Kata sandi konfirmasi cocok!
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Password Baru */}
-        <div>
-          <label htmlFor="new-account-password" className="block text-xs font-semibold text-gray-700 mb-1.5">
-            Kata Sandi Baru <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              id="new-account-password"
-              type={showNew ? "text" : "password"}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Minimal 8 karakter unik"
-              required
-              autoComplete="new-password"
-              disabled={loading}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-            />
-            <button
-              type="button"
-              onClick={() => setShowNew(!showNew)}
-              tabIndex={-1}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-
-          {/* Indikator Kekuatan Password */}
-          <PasswordStrengthMeter password={newPassword} />
-        </div>
-
-        {/* Konfirmasi Password Baru */}
-        <div>
-          <label htmlFor="confirm-account-password" className="block text-xs font-semibold text-gray-700 mb-1.5">
-            Konfirmasi Kata Sandi Baru <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              id="confirm-account-password"
-              type={showConfirm ? "text" : "password"}
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-              placeholder="Ulangi kata sandi baru"
-              required
-              autoComplete="new-password"
-              disabled={loading}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirm(!showConfirm)}
-              tabIndex={-1}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-          {confirmNewPassword && newPassword !== confirmNewPassword && (
-            <p className="text-xs text-red-600 mt-1 flex items-center gap-1 font-medium">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              Kata sandi tidak cocok. Pastikan penulisan sama persis.
-            </p>
-          )}
-          {confirmNewPassword && newPassword === confirmNewPassword && (
-            <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              Kata sandi konfirmasi cocok!
-            </p>
-          )}
-        </div>
-
-        <div className="pt-2">
+        <div className="pt-6 mt-auto">
           <button
             type="submit"
             disabled={loading || !currentPassword || !newPassword || !confirmNewPassword}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#561269] text-white text-xs font-bold hover:bg-[#430e52] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-sm"
+            className="w-full sm:w-auto min-w-[260px] h-11 px-6 py-2.5 rounded-xl bg-[#561269] text-white text-xs font-bold hover:bg-[#430e52] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-sm"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             Simpan Perubahan Kata Sandi

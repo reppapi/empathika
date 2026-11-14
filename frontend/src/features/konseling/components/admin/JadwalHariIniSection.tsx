@@ -29,6 +29,7 @@ interface JadwalHariIniSectionProps {
   onCopyWhatsApp: (session: ClientSessionToday) => void
   onCopyWhatsAppPsikolog?: (session: ClientSessionToday) => void
   onResetFilter: () => void
+  isReadOnly?: boolean
 }
 
 export default function JadwalHariIniSection({
@@ -46,6 +47,7 @@ export default function JadwalHariIniSection({
   onCopyWhatsApp,
   onCopyWhatsAppPsikolog,
   onResetFilter,
+  isReadOnly = false,
 }: JadwalHariIniSectionProps) {
   const activeNearestList: ClientSessionToday[] =
     nearestSessions && nearestSessions.length > 0
@@ -266,14 +268,14 @@ export default function JadwalHariIniSection({
           }`}
       >
         <table className="w-full text-left border-collapse min-w-[880px]">
-          <thead className="sticky top-0 z-10 bg-[#D3C4D8]">
-            <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold">
-              <th className="py-4 px-6 font-bold min-w-[140px] sticky top-0 bg-[#D3C4D8] z-10">Waktu Sesi</th>
-              <th className="py-4 px-6 font-bold min-w-[130px] sticky top-0 bg-[#D3C4D8] z-10">Nama Klien</th>
-              <th className="py-4 px-6 font-bold min-w-[160px] sticky top-0 bg-[#D3C4D8] z-10">Psikolog</th>
-              <th className="py-4 px-6 font-bold min-w-[170px] sticky top-0 bg-[#D3C4D8] z-10">Layanan</th>
-              <th className="py-4 px-6 font-bold min-w-[180px] sticky top-0 bg-[#D3C4D8] z-10">Tipe & Status</th>
-              <th className="py-4 px-4 font-bold text-center sticky top-0 bg-[#D3C4D8] z-10 w-24">Aksi</th>
+          <thead className="sticky top-0 z-10 bg-[#D3C4D8] biro-table-header">
+            <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold biro-table-header">
+              <th className="py-4 px-6 font-bold min-w-[140px] sticky top-0 bg-[#D3C4D8] biro-table-header z-10">Waktu Sesi</th>
+              <th className="py-4 px-6 font-bold min-w-[130px] sticky top-0 bg-[#D3C4D8] biro-table-header z-10">Nama Klien</th>
+              <th className="py-4 px-6 font-bold min-w-[160px] sticky top-0 bg-[#D3C4D8] biro-table-header z-10">Psikolog</th>
+              <th className="py-4 px-6 font-bold min-w-[170px] sticky top-0 bg-[#D3C4D8] biro-table-header z-10">Layanan</th>
+              <th className="py-4 px-6 font-bold min-w-[180px] sticky top-0 bg-[#D3C4D8] biro-table-header z-10">Tipe & Status</th>
+              <th className="py-4 px-4 font-bold text-center sticky top-0 bg-[#D3C4D8] biro-table-header z-10 w-24">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
@@ -455,7 +457,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
+                              {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -469,7 +471,7 @@ export default function JadwalHariIniSection({
                                 </button>
                               )}
 
-                              {item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
+                              {!isReadOnly && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
                                 <button
                                   type="button"
                                   onClick={() => {

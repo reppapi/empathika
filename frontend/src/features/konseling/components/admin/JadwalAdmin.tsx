@@ -24,7 +24,11 @@ import ModalTambahSesi from "@/features/dashboard/components/admin/ModalTambahSe
 export type { BookedAssessment, ClientSessionToday } from "@/features/konseling/types"
 export { RAW_CLIENT_SESSIONS, getInitialSessionsBasedOnTime } from "@/features/konseling/data/jadwalAdminData"
 
-export default function JadwalAdmin() {
+interface JadwalAdminProps {
+  isBiroContext?: boolean
+}
+
+export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps) {
   const {
     // Dates & Filter State
     date,
@@ -82,7 +86,7 @@ export default function JadwalAdmin() {
 
     // Toast
     actionToast,
-  } = useJadwalAdmin()
+  } = useJadwalAdmin({ isBiroContext })
 
   return (
     <div className="w-full max-w-[1400px] mx-auto flex flex-col gap-8 font-poppins pb-10">
@@ -194,15 +198,17 @@ export default function JadwalAdmin() {
           </button>
         </div>
 
-        {/* Button Sesi Baru */}
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-98 cursor-pointer"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          Sesi Baru
-        </button>
+        {/* Button Sesi Baru: Hanya ditampilkan untuk Admin Pusat */}
+        {!isBiroContext && (
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-98 cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            Sesi Baru
+          </button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -214,6 +220,7 @@ export default function JadwalAdmin() {
 
       {/* Sesi Klien Hari Ini (Highlight & Table) */}
       <JadwalHariIniSection
+        isReadOnly={isBiroContext}
         filteredTodaySessions={filteredTodaySessions}
         todaySessionsCount={todaySessions.length}
         nearestSession={nearestSession}
@@ -233,15 +240,17 @@ export default function JadwalAdmin() {
         }}
       />
 
-      {/* Jadwal Asesmen (Calendar & Time Slot Picker) */}
-      <JadwalAsesmenPicker
-        date={date}
-        onSelectDate={handleSelectDate}
-        bookedSessions={bookedSessions}
-        bookingSuccessMsg={bookingSuccessMsg}
-        onBooking={handleBooking}
-        timeSlots={TIME_SLOTS}
-      />
+      {/* Jadwal Asesmen (Calendar & Time Slot Picker: Khusus Admin Utama, disembunyikan untuk Admin Biro) */}
+      {!isBiroContext && (
+        <JadwalAsesmenPicker
+          date={date}
+          onSelectDate={handleSelectDate}
+          bookedSessions={bookedSessions}
+          bookingSuccessMsg={bookingSuccessMsg}
+          onBooking={handleBooking}
+          timeSlots={TIME_SLOTS}
+        />
+      )}
 
       {/* Jadwal Mingguan (Weekly Assessment Schedule Grid) */}
       <JadwalMingguanGrid
@@ -255,7 +264,7 @@ export default function JadwalAdmin() {
         matchLayanan={matchLayanan}
         today={today}
         onSelectSession={handleSelectWeeklySession}
-        onRemoveSlot={handleRemoveWeeklySlot}
+        onRemoveSlot={isBiroContext ? undefined : handleRemoveWeeklySlot}
       />
 
       {/* ── Modal Tambah Sesi ── */}
@@ -267,6 +276,7 @@ export default function JadwalAdmin() {
 
       {/* ── Modal Detail Sesi Klien ── */}
       <ModalDetailSesiKlien
+        isReadOnly={isBiroContext}
         session={selectedDetailSession}
         onClose={() => setSelectedDetailSession(null)}
         onCancelClick={(session) => {

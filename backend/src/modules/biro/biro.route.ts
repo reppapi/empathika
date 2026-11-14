@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify"
 import { BiroController } from "./biro.controller"
 import { authGuard } from "../../middlewares/auth-guard"
 import {
+  biroAccountIdParamsSchema,
   updateBiroAccountSchema,
   createBiroSchema,
   updateBiroProfileSchema,
@@ -46,7 +47,7 @@ export default async function biroRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ["Biro - Admin"],
       summary: "Admin mendapatkan detail akun Biro berdasarkan accountId",
-      params: { type: "object", properties: { accountId: { type: "string" } }, required: ["accountId"] },
+      params: biroAccountIdParamsSchema,
     },
     handler: controller.getBiroById,
   })
@@ -56,7 +57,7 @@ export default async function biroRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ["Biro - Admin"],
       summary: "Admin memperbarui profil Biro (nama, slug, deskripsi, dsb.)",
-      params: { type: "object", properties: { accountId: { type: "string" } }, required: ["accountId"] },
+      params: biroAccountIdParamsSchema,
       body: updateBiroProfileSchema,
     },
     handler: controller.updateBiroProfile,

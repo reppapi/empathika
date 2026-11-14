@@ -193,7 +193,7 @@ export default function ProfilePsikologClient({ role = "psikolog" }: ProfileClie
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           <FormGantiEmail initialEmail={form.email} />
           <FormGantiPassword />
         </div>

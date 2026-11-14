@@ -7,6 +7,7 @@ import { setAuthCookie, removeAuthCookie } from "@/lib/cookie";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { psikologService } from "@/services/psikolog.service";
+import { biroAdminService } from "@/services/biro.service";
 
 declare global {
   interface Window {
@@ -29,10 +30,29 @@ export function LoginForm() {
   useEffect(() => {
     const status = searchParams.get("status");
     const expired = searchParams.get("expired");
+    const roleParam = searchParams.get("role");
+    const emailParam = searchParams.get("email");
+
+    if (emailParam && !emailOrName) {
+      setEmailOrName(emailParam);
+    }
+
     if (status === "activated") {
-      setInfoMessage("Kata sandi berhasil dibuat dan akun Anda telah aktif! Silakan masuk.");
+      if (roleParam === "biro") {
+        setInfoMessage("Akun Admin Biro Anda telah aktif! Silakan masuk untuk mengakses Portal Admin Biro.");
+      } else if (roleParam === "psikolog") {
+        setInfoMessage("Akun Psikolog Anda telah aktif! Silakan masuk untuk mengakses Portal Psikolog.");
+      } else {
+        setInfoMessage("Kata sandi berhasil dibuat dan akun Anda telah aktif! Silakan masuk.");
+      }
     } else if (status === "already-active") {
-      setInfoMessage("Akun sudah aktif. Silakan masuk menggunakan kata sandi Anda.");
+      if (roleParam === "biro") {
+        setInfoMessage("Akun Admin Biro sudah aktif. Silakan masuk menggunakan kata sandi Anda.");
+      } else if (roleParam === "psikolog") {
+        setInfoMessage("Akun Psikolog sudah aktif. Silakan masuk menggunakan kata sandi Anda.");
+      } else {
+        setInfoMessage("Akun sudah aktif. Silakan masuk menggunakan kata sandi Anda.");
+      }
     } else if (status === "expired" || expired === "true") {
       setInfoMessage("Sesi Anda telah berakhir demi keamanan. Silakan login kembali.");
     }
@@ -251,7 +271,44 @@ export function LoginForm() {
       }
     }
 
-    // 4. Cek Akun Psikolog dari Database (Bisa dengan Email ATAU Nama Psikolog)
+    // 2. Cek Akun Biro dari Database (Bisa dengan Email, Nama Biro, atau Slug Biro)
+    try {
+      const biroRes = await biroAdminService.getList();
+      if (biroRes?.data && Array.isArray(biroRes.data)) {
+        const queryLower = trimmedInput.toLowerCase();
+        const matchedBiro: any = biroRes.data.find((b: any) => {
+          const emailMatch = (b.email || "").toLowerCase() === queryLower;
+          const nameMatch =
+            (b.nama || "").toLowerCase() === queryLower ||
+            (b.owned_biro?.[0]?.nama_biro || "").toLowerCase() === queryLower ||
+            (b.owned_biro?.[0]?.nama_biro || "").toLowerCase().includes(queryLower);
+          const slugMatch = (b.owned_biro?.[0]?.slug || "").toLowerCase() === queryLower;
+          return emailMatch || nameMatch || slugMatch;
+        });
+
+        if (matchedBiro && matchedBiro.email) {
+          try {
+            const biroLogin = await authService.login({
+              email: matchedBiro.email,
+              password: trimmedPass,
+              rememberMe,
+            });
+            if (biroLogin.success && biroLogin.data?.accessToken) {
+              handleSuccessLogin(biroLogin.data.user, biroLogin.data.accessToken);
+              return;
+            }
+          } catch {
+            setError("Email/Nama biro atau kata sandi yang Anda masukkan salah.");
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+    } catch (biroErr) {
+      console.warn("Biro login check error:", biroErr);
+    }
+
+    // 3. Cek Akun Psikolog dari Database (Bisa dengan Email ATAU Nama Psikolog)
     try {
       const list = await psikologService.getList();
       if (list && list.length > 0) {

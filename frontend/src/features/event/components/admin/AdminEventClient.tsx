@@ -149,7 +149,7 @@ export default function AdminEventClient() {
           onClick={() => handleSectionChange("baru")}
           className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             activeSection === "baru"
-              ? "bg-[#561269] text-white shadow-sm"
+              ? "bg-[#EAB308] text-gray-950 shadow-sm"
               : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
           }`}
         >
@@ -161,7 +161,7 @@ export default function AdminEventClient() {
           onClick={() => handleSectionChange("selesai")}
           className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             activeSection === "selesai"
-              ? "bg-[#561269] text-white shadow-sm"
+              ? "bg-[#EAB308] text-gray-950 shadow-sm"
               : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
           }`}
         >

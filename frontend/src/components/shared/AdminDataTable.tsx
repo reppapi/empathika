@@ -61,8 +61,8 @@ export function AdminDataTable<T>({
       } ${containerClassName}`}
     >
       <table className={`w-full text-left border-collapse ${tableClassName}`} style={{ minWidth }}>
-        <thead className="sticky top-0 z-10 bg-[#D3C4D8]">
-          <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold">
+        <thead className="sticky top-0 z-10 bg-[#D3C4D8] biro-table-header">
+          <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold biro-table-header">
             {columns.map((col, idx) => {
               const alignClass =
                 col.align === "center"
@@ -75,7 +75,7 @@ export function AdminDataTable<T>({
                 <th
                   key={col.key || `col-${idx}`}
                   style={col.width ? { width: col.width } : undefined}
-                  className={`py-4 px-4 sm:px-5 sticky top-0 bg-[#D3C4D8] z-10 ${alignClass} ${col.headerClassName || ""}`}
+                  className={`py-4 px-4 sm:px-5 sticky top-0 bg-[#D3C4D8] biro-table-header z-10 ${alignClass} ${col.headerClassName || ""}`}
                 >
                   {col.header}
                 </th>
