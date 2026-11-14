@@ -381,6 +381,7 @@ model Event {
 model EventDokumentasi {
   id        String   @id @default(uuid())
   judul     String
+  kategori  String   @default("KOLABORASI") // SEMINAR | WORKSHOP | KOLABORASI
   tanggal   DateTime @db.Date
   deskripsi String   @db.Text
   createdAt DateTime @default(now())
@@ -447,7 +448,6 @@ model PaketPsikotes {
   jenis_akses JenisAksesPsikotes
   harga       Decimal            @db.Decimal(12, 2)
   banner_url  String?
-  deskripsi   String?            @db.Text
   tentang_tes String?            @db.Text
   status      String             @default("PUBLISHED")
   createdAt   DateTime           @default(now())

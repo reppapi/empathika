@@ -29,6 +29,7 @@ export class EventRepository {
         select: {
           id: true,
           judul: true,
+          jenis_event: true,
           tanggal: true,
           jam_mulai: true,
           durasi_menit: true,
@@ -78,9 +79,17 @@ export class EventRepository {
           })
 
           if (!existing) {
+            const kategoriDokumentasi =
+              ev.jenis_event === 'SEMINAR'
+                ? 'SEMINAR'
+                : ev.jenis_event === 'WORKSHOP'
+                ? 'WORKSHOP'
+                : 'KOLABORASI'
+
             const created = await this.prisma.eventDokumentasi.create({
               data: {
                 judul: ev.judul,
+                kategori: kategoriDokumentasi,
                 tanggal: ev.tanggal,
                 deskripsi: ev.deskripsi || '',
               },

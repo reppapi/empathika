@@ -105,12 +105,13 @@ export async function seedRCMAS(prisma: PrismaClient) {
 
   // 2. Produk Paket RCMAS (Gratis)
   console.log('\n--- Menyemai Produk Paket RCMAS (Gratis) ---')
-  const judulPaket = 'Tes Kecemasan Anak & Remaja'
+  const judulPaket = 'Tes Kecemasan Anak dan Remaja'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
         { judul: judulPaket },
         { judul: { contains: 'RCMAS', mode: 'insensitive' } },
+        { judul: { contains: 'Kecemasan Anak', mode: 'insensitive' } },
         { id_alat_ukur: alatUkur.id },
       ],
     },
@@ -122,10 +123,8 @@ export async function seedRCMAS(prisma: PrismaClient) {
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
     banner_url: '/images/psikotes/banner-rcmas.jpg',
-    deskripsi:
-      'Kenali gambaran tingkat kecemasan yang kamu alami, mulai dari respons fisik, rasa khawatir berlebih, hingga kesulitan berkonsentrasi. Pahami kondisi emosionalmu agar kamu dapat lebih mengenali dan memahami diri sendiri.',
     tentang_tes:
-      'Kecemasan dapat muncul dalam berbagai bentuk, baik melalui respons fisik maupun perasaan dan pikiran yang mengganggu. Tes ini membantu memberikan gambaran mengenai kecemasan yang kamu alami melalui tiga aspek, yaitu fisiologis, kekhawatiran atau hipersensitivitas, serta konsentrasi. Hasilnya dapat menjadi langkah awal untuk mengenali respons emosional diri, memahami hal-hal yang mungkin memicu kecemasan, dan mengetahui kapan kamu membutuhkan dukungan lebih lanjut.',
+      'Rasa cemas bisa muncul dalam berbagai bentuk, baik melalui perasaan maupun respons tubuh. Tes ini membantu mengenali pengalaman kecemasan pada anak dan remaja, seperti keluhan fisik, kekhawatiran berlebihan, serta kesulitan berkonsentrasi.',
     status: 'PUBLISHED',
   }
 

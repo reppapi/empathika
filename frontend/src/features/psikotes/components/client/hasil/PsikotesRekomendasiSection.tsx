@@ -61,8 +61,8 @@ export default function PsikotesRekomendasiSection({ currentTestId }: PsikotesRe
               key={pkg.id}
               className="bg-white rounded-3xl shadow-xs border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
             >
-              {/* Foto Bersih (Tanpa Tulisan Apapun) */}
-              <div className="h-44 w-full overflow-hidden relative bg-gray-100">
+              {/* Banner 16:9 Presisi Sesuai Ukuran Asli Gambar (1376x768) */}
+              <div className="w-full aspect-[16/9] overflow-hidden relative bg-gray-100">
                 <Image
                   src={bannerImage}
                   alt={pkg.judul}
@@ -78,12 +78,12 @@ export default function PsikotesRekomendasiSection({ currentTestId }: PsikotesRe
                   <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
                     {pkg.judul}
                   </h3>
-                  {/* Deskripsi di bawah judul diambil dari pkg.deskripsi */}
+                  {/* Deskripsi di bawah judul diambil dari pkg.tentang_tes */}
                   <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                    {pkg.deskripsi ||
+                    {pkg.tentang_tes ||
                       (() => {
                         if (process.env.NODE_ENV === "development") {
-                          console.warn(`[DEV WARNING][Rekomendasi] 'deskripsi' untuk paket '${pkg.id}' kosong di DB.`);
+                          console.warn(`[DEV WARNING][Rekomendasi] 'tentang_tes' untuk paket '${pkg.id}' kosong di DB.`);
                         }
                         return "Ikuti asesmen psikologis terstandar ini untuk memahami kondisi dirimu secara lebih mendalam.";
                       })()}

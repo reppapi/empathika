@@ -4,11 +4,67 @@ import type { AdminTransaksiQueryInput } from './transaksi.schema'
 export class TransaksiRepository {
   constructor(private prisma: PrismaClient) {}
 
+  /**
+   * Otomatis membersihkan transaksi yang bukan tahun berjalan (sudah lewat tahunnya):
+   * Jika sekarang tahun 2026, semua transaksi sebelum 1 Januari 2026 00:00:00 otomatis dihapus.
+   */
+  async purgeExpiredTransactions() {
+    try {
+      const currentYear = new Date().getFullYear()
+      const startOfCurrentYear = new Date(currentYear, 0, 1)
+
+      const oldTransactions = await this.prisma.transaksi.findMany({
+        where: {
+          createdAt: { lt: startOfCurrentYear },
+        },
+        select: { id: true },
+      })
+
+      if (!oldTransactions.length) return
+
+      const oldIds = oldTransactions.map((t) => t.id)
+
+      // 1. Hapus invoice terkait (karena onDelete: Restrict)
+      await this.prisma.invoice.deleteMany({
+        where: { id_transaksi: { in: oldIds } },
+      })
+
+      // 2. Hapus booking_event terkait (karena onDelete: Restrict)
+      await this.prisma.bookingEvent.deleteMany({
+        where: { id_transaksi: { in: oldIds } },
+      })
+
+      // 3. Putus relasi booking_konsultasi & booking_psikotes jika ada
+      await this.prisma.bookingKonsultasi.updateMany({
+        where: { id_transaksi: { in: oldIds } },
+        data: { id_transaksi: null },
+      })
+
+      await this.prisma.bookingPsikotes.updateMany({
+        where: { id_transaksi: { in: oldIds } },
+        data: { id_transaksi: null },
+      })
+
+      // 4. Hapus data transaksi
+      await this.prisma.transaksi.deleteMany({
+        where: { id: { in: oldIds } },
+      })
+    } catch (err) {
+      console.warn('Gagal membersihkan transaksi tahun sebelumnya:', err)
+    }
+  }
+
   async findAll(_params?: AdminTransaksiQueryInput & { clientId?: string }) {
+    // Jalankan pembersihan otomatis untuk transaksi yang sudah lewat tahun
+    await this.purgeExpiredTransactions()
+
     const page = _params?.page ?? 1
     const limit = _params?.limit ?? 20
     const isAll = _params?.all === true
     const skip = (page - 1) * limit
+
+    const currentYear = new Date().getFullYear()
+    const startOfCurrentYear = new Date(currentYear, 0, 1)
 
     const where: any = {
       OR: [
@@ -16,6 +72,8 @@ export class TransaksiRepository {
         { booking_psikotes: { isNot: null } },
         { booking_event: { isNot: null } },
       ],
+      // Hanya ambil transaksi tahun berjalan (jika sekarang 2026, hanya 2026 yang tampil)
+      createdAt: { gte: startOfCurrentYear },
     }
 
     if (_params?.clientId) {

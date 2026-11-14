@@ -7,7 +7,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UNIVERSAL_PAID_BENEFITS, UNIVERSAL_FREE_BENEFITS } from "@/features/psikotes/data/psikotesData";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { isDASS as checkDASS, isPackagePaid } from "@/features/psikotes/utils/instrumentDetector";
+import {
+  isDASS as checkDASS,
+  isPackagePaid,
+  getInstrumentTargetUsia,
+} from "@/features/psikotes/utils/instrumentDetector";
 import {
   clearPsikotesDetailOrigin,
   markPsikotesDetailOrigin,
@@ -233,16 +237,9 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     return DEFAULT_BANNER;
   })();
 
-  const subtitleText = apiData.deskripsi || (() => {
+  const deskripsiText = apiData.tentang_tes || (() => {
     if (process.env.NODE_ENV === "development") {
-      console.warn(`[DEV WARNING][PsikotesDetail] 'deskripsi' untuk paket '${params.testId}' kosong di DB.`);
-    }
-    return "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.";
-  })();
-
-  const deskripsiText = apiData.tentang_tes || apiData.deskripsi || (() => {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`[DEV WARNING][PsikotesDetail] 'tentang_tes' dan 'deskripsi' untuk paket '${params.testId}' kosong di DB.`);
+      console.warn(`[DEV WARNING][PsikotesDetail] 'tentang_tes' untuk paket '${params.testId}' kosong di DB.`);
     }
     return "Asesmen ini dirancang untuk membantumu mengenali kondisi emosional dan psikologis diri secara lebih mendalam sebagai langkah awal merawat kesehatan mental.";
   })();
@@ -255,12 +252,14 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
       : 0;
   const formattedPrice = effectivePrice > 0 ? `Rp ${effectivePrice.toLocaleString("id-ID")}` : "Gratis";
 
+  const targetUsia = getInstrumentTargetUsia(apiData, params.testId);
+
   const data = {
     title: apiData.judul || "Paket Psikotes Empathika",
-    subtitle: subtitleText,
     image: bannerImage,
     description: deskripsiText,
     questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
+    targetUsia,
     price: effectivePrice,
     formattedPrice,
     guidelines: DEFAULT_GUIDELINES,
@@ -275,7 +274,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">
       
       {/* 1. HERO BANNER */}
-      <section className="relative w-full h-[400px] lg:h-[500px] bg-[#1c352d]">
+      <section className="relative w-full h-[380px] sm:h-[420px] lg:h-[450px] bg-[#1c352d] overflow-hidden">
         <Image 
           src={data.image} 
           alt={data.title}
@@ -285,26 +284,21 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
           unoptimized
         />
         {/* Overlay gradient for readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-900/60 to-transparent"></div>
         
-        <div className="absolute inset-0 flex flex-col justify-end pb-16 lg:pb-20 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="px-6 sm:px-8 md:px-10">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 tracking-tight max-w-4xl leading-[1.1] drop-shadow-md">
-              {data.title}
-            </h1>
-            <p className="text-gray-200 text-base md:text-xl font-light max-w-full drop-shadow-sm leading-relaxed">
-              {data.subtitle}
-            </p>
-          </div>
+        <div className="absolute inset-0 flex flex-col justify-end pb-20 sm:pb-24 md:pb-28 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-[2.75rem] font-extrabold text-white tracking-tight max-w-4xl leading-[1.2] drop-shadow-md">
+            {data.title}
+          </h1>
         </div>
       </section>
 
       {/* 2. MAIN CONTENT AREA */}
-      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-10">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 relative z-10">
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
           
           {/* Left Column: Description & Guidelines */}
-          <div className="lg:w-2/3 bg-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm border border-gray-100 flex flex-col gap-8">
+          <div className="lg:w-2/3 bg-white rounded-[2.5rem] p-6 sm:p-10 md:p-12 shadow-sm border border-gray-100 flex flex-col gap-8">
             
             {/* Overview */}
             <div>
@@ -312,6 +306,11 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed font-normal">
                 {data.description}
               </p>
+              {data.targetUsia && (
+                <p className="text-xs sm:text-sm text-gray-500 font-medium mt-3">
+                  Rentang usia: <span className="text-gray-800 font-semibold">{data.targetUsia}</span>
+                </p>
+              )}
             </div>
 
             {/* Guidelines */}
@@ -347,14 +346,14 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
           <div className="lg:w-1/3 w-full sticky top-[120px]">
             <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-lg border border-gray-100 flex flex-col gap-6">
               
-              {/* Info Jumlah Soal */}
-              <div className="flex items-center gap-3.5 bg-[#f8f9fa] p-4 rounded-2xl border border-gray-100">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
-                  <FileQuestion className="w-5 h-5" />
+              {/* Info Spesifikasi Tes: Jumlah Soal */}
+              <div className="flex items-center gap-3 bg-[#f8f9fa] p-3.5 rounded-2xl border border-gray-100">
+                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
+                  <FileQuestion className="w-4 h-4" />
                 </div>
-                <div>
-                  <p className="text-[11px] text-gray-400 font-medium">Jumlah Soal</p>
-                  <p className="text-sm font-bold text-gray-900 leading-tight">{data.questions}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-400 font-medium">Jumlah Soal</p>
+                  <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight truncate">{data.questions}</p>
                 </div>
               </div>
 
@@ -411,10 +410,6 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                       </span>
                     </button>
                   </div>
-
-                  <p className="text-[11px] text-gray-400 text-center">
-                    Pembayaran aman via QRIS, Bank Transfer, dan E-Wallet resmi.
-                  </p>
                 </div>
               ) : (
                 /* Detail Plan Gratis */
@@ -476,7 +471,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
             </div>
 
             <p className="text-xs text-gray-600 mb-5 leading-relaxed">
-              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes berlaku selama 14 hari.
+              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes aktif tanpa batas waktu.
             </p>
 
             {/* Status alerts */}

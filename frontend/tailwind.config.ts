@@ -37,7 +37,7 @@ const config: Config = {
         secondary: "#6366F1",
       },
       fontFamily: {
-        poppins: ["var(--font-poppins)"],
+        poppins: ["var(--font-poppins)", "Poppins", "sans-serif"],
       },
     },
   },

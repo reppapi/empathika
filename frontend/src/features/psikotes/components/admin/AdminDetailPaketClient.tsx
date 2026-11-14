@@ -318,11 +318,11 @@ export default function AdminDetailPaketClient({ paketId }: Props) {
                 </dd>
               </div>
 
-              {/* Deskripsi */}
+              {/* Tentang Tes */}
               <div className="py-3.5 sm:grid sm:grid-cols-3 sm:gap-4">
-                <dt className="font-medium text-gray-400">Deskripsi</dt>
+                <dt className="font-medium text-gray-400">Tentang Tes</dt>
                 <dd className="mt-1 text-gray-700 leading-relaxed sm:col-span-2 sm:mt-0 whitespace-pre-line">
-                  {paket.deskripsi || "Keterangan deskripsi paket belum diisi."}
+                  {paket.tentang_tes || "Keterangan tentang tes belum diisi."}
                 </dd>
               </div>
 

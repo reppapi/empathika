@@ -579,7 +579,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             : (Array.isArray(rawTips) ? (rawTips as any) : []);
 
       return {
-        deskripsi: dbInterpretasi.deskripsi || dbPackage?.deskripsi || "Asesmen psikotes telah berhasil diselesaikan.",
+        deskripsi: dbInterpretasi.deskripsi || dbPackage?.tentang_tes || "Asesmen psikotes telah berhasil diselesaikan.",
         kekuatanUtama,
         blindspots,
         lingkunganOptimal,
@@ -609,7 +609,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     // Jika tes DASS-42 (menggunakan evaluasi klinis 3 dimensi)
     if (isDASS && dassEvaluation) {
       return {
-        deskripsi: dassEvaluation.introText || dbPackage?.deskripsi || "Asesmen DASS-42 telah selesai dianalisis.",
+        deskripsi: dassEvaluation.introText || dbPackage?.tentang_tes || "Asesmen DASS-42 telah selesai dianalisis.",
         judulKekuatan: "Potensi atau Kekuatan Utama",
         judulBlindspots: "Area yang Perlu Dikembangkan",
         judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
@@ -622,7 +622,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
     // Jika belum ada data interpretasi yang cocok di database
     return {
-      deskripsi: dbPackage?.deskripsi || "Hasil asesmen psikotes telah selesai dianalisis.",
+      deskripsi: dbPackage?.tentang_tes || "Hasil asesmen psikotes telah selesai dianalisis.",
       judulKekuatan: "Potensi atau Kekuatan Utama",
       judulBlindspots: "Area yang Perlu Dikembangkan",
       judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
@@ -644,7 +644,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         noDokumen,
         judulTes: displayTestName,
         tanggalAsesmen: peserta.tanggal,
-        masaBerlaku: "Masa Berlaku: 14 Hari (2 Minggu)",
+        masaBerlaku: "Masa Berlaku: Tanpa Batas Waktu",
         peserta: {
           nama: peserta.nama || "Peserta Asesmen Empathika",
           noHp: peserta.noHp || peserta.noTeleponOrangTua || null,
@@ -967,7 +967,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-200">
                   <Calendar className="w-3.5 h-3.5" />
-                  Masa Berlaku: 14 Hari (2 Minggu)
+                  Masa Berlaku: Tanpa Batas Waktu
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <ShieldCheck className="w-3.5 h-3.5" />

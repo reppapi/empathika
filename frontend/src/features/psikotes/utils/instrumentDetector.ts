@@ -51,14 +51,14 @@ export function getInstrumentCode(
 
   // 2. Prioritas Kedua: Akronim Spesifik pada Judul
   const j = (data?.judul || "").toUpperCase();
-  if (j.includes("(CATS)") || j.includes(" CATS") || j.includes("TRAUMA SCREEN")) return "CATS";
-  if (j.includes("(CDI)") || j.includes(" CDI") || j.includes("CHILDREN'S DEPRESSION")) return "CDI";
-  if (j.includes("(PBQ)") || j.includes(" PBQ") || j.includes("POLA KEYAKINAN KEPRIBADIAN")) return "PBQ";
+  if (j.includes("(CATS)") || j.includes(" CATS") || j.includes("TRAUMA SCREEN") || j.includes("PENGALAMAN TRAUMATIS") || j.includes("PASCATRAUMA")) return "CATS";
+  if (j.includes("(CDI)") || j.includes(" CDI") || j.includes("CHILDREN'S DEPRESSION") || j.includes("DEPRESI ANAK")) return "CDI";
+  if (j.includes("(PBQ)") || j.includes(" PBQ") || j.includes("POLA KEYAKINAN KEPRIBADIAN") || j.includes("KEYAKINAN DAN POLA KEPRIBADIAN")) return "PBQ";
   if (j.includes("(RCMAS)") || j.includes(" RCMAS") || (j.includes("KECEMASAN ANAK") && !j.includes("CATS"))) return "RCMAS";
-  if (j.includes("(IGDS") || j.includes("IGDS9") || j.includes("BERMAIN GAME") || j.includes("GAMING")) return "IGDS";
+  if (j.includes("(IGDS") || j.includes("IGDS9") || j.includes("BERMAIN GAME") || j.includes("KEBIASAAN BERMAIN GAME") || j.includes("GAMING")) return "IGDS";
   if (j.includes("DASS-42") || j.includes("DASS42") || (j.includes("DEPRESI") && j.includes("KECEMASAN") && j.includes("STRES"))) return "DASS";
-  if (j.includes("(PHQ-9)") || j.includes("PHQ-9") || (j.includes("SKRINING GEJALA DEPRESI AWAL") && !j.includes("CDI"))) return "PHQ";
-  if (j.includes("(GAD-7)") || j.includes("GAD-7") || j.includes("ANXIETY TEST") || (j.includes("TINGKAT KECEMASANMU") && !j.includes("RCMAS"))) return "GAD";
+  if (j.includes("(PHQ-9)") || j.includes("PHQ-9") || j === "TES DEPRESI" || (j.includes("SKRINING GEJALA DEPRESI AWAL") && !j.includes("CDI"))) return "PHQ";
+  if (j.includes("(GAD-7)") || j.includes("GAD-7") || j === "TES KECEMASAN" || j.includes("ANXIETY TEST") || (j.includes("TINGKAT KECEMASANMU") && !j.includes("RCMAS"))) return "GAD";
 
   // 3. Prioritas Ketiga: Fallback ID / Slug URL
   const slug = (fallbackIdOrSlug || "").toUpperCase();
@@ -107,6 +107,43 @@ export function isPHQ(data?: DetectablePackage | null, fallbackId?: string): boo
 
 export function isGAD(data?: DetectablePackage | null, fallbackId?: string): boolean {
   return getInstrumentCode(data, fallbackId) === "GAD";
+}
+
+/**
+ * Target Rentang Usia Baku Sesuai Materi Handout & Manual Resmi Alat Ukur
+ */
+export function getInstrumentTargetUsia(
+  data?: DetectablePackage | null,
+  fallbackId?: string
+): string {
+  const code = getInstrumentCode(data, fallbackId);
+  switch (code) {
+    case "CATS":
+      return "7–17 tahun";
+    case "CDI":
+      return "7–19 tahun";
+    case "RCMAS":
+      return "6–19 tahun";
+    case "DASS":
+      return "13 tahun ke atas";
+    case "IGDS":
+      return "Anak-anak hingga dewasa";
+    case "PHQ":
+      return "18 tahun ke atas";
+    case "GAD":
+      return "18 tahun ke atas";
+    case "PBQ":
+      return "Tidak dicantumkan dalam handout";
+    default: {
+      const backendUsia =
+        (data?.alat_ukur as any)?.targetUsia ||
+        (data?.alat_ukur as any)?.targetResponden;
+      if (backendUsia && typeof backendUsia === "string" && backendUsia.trim()) {
+        return backendUsia.replace(/[()]/g, "").trim();
+      }
+      return "Remaja dan dewasa";
+    }
+  }
 }
 
 /**

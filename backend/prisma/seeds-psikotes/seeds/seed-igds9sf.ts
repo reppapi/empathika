@@ -103,12 +103,13 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
 
   // 2. Produk Paket IGDS9-SF (Gratis)
   console.log('\n--- Menyemai Produk Paket IGDS9-SF (Gratis) ---')
-  const judulPaket = 'Tes Pola Bermain Game'
+  const judulPaket = 'Tes Kebiasaan Bermain Game'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
         { judul: judulPaket },
         { judul: { contains: 'IGDS9-SF', mode: 'insensitive' } },
+        { judul: { contains: 'Bermain Game', mode: 'insensitive' } },
         { id_alat_ukur: alatUkur.id },
       ],
     },
@@ -120,10 +121,8 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
     banner_url: '/images/psikotes/banner-gaming-disorder.jpg',
-    deskripsi:
-      'Kenali pola dan kebiasaan bermain game kamu selama 12 bulan terakhir. Tes ini membantu memberikan gambaran mengenai sejauh mana aktivitas bermain game memengaruhi kehidupan sehari-hari, termasuk aktivitas sosial, pendidikan, pekerjaan, dan hubungan dengan orang lain.',
     tentang_tes:
-      'Melalui tes ini, kamu dapat mengenali bagaimana kebiasaan bermain game memengaruhi kehidupan sehari-hari. Mulai dari seberapa sering kamu memikirkan game, kesulitan mengurangi waktu bermain, hingga apakah aktivitas bermain game mulai mengganggu hubungan sosial, pendidikan, pekerjaan, atau aktivitas lainnya. Hasilnya dapat membantumu lebih memahami pola bermain game dan menyadari dampaknya terhadap keseimbangan hidupmu.',
+      'Bermain game bisa menjadi hiburan yang menyenangkan. Namun, bagaimana jika aktivitas tersebut mulai sulit dikendalikan atau mengganggu kegiatan lainnya? Tes ini membantu mengenali pola bermain game selama 12 bulan terakhir, termasuk kesulitan mengontrol waktu bermain dan dampaknya terhadap kehidupan sehari-hari.',
     status: 'PUBLISHED',
   }
 

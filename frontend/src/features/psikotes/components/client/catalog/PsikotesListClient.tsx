@@ -103,10 +103,10 @@ export default function PsikotesListClient() {
                 })();
 
               const deskripsiText =
-                test.deskripsi ||
+                test.tentang_tes ||
                 (() => {
                   if (process.env.NODE_ENV === "development") {
-                    console.warn(`[DEV WARNING][PsikotesList] 'deskripsi' untuk paket '${test.id}' kosong di DB.`);
+                    console.warn(`[DEV WARNING][PsikotesList] 'tentang_tes' untuk paket '${test.id}' kosong di DB.`);
                   }
                   return "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.";
                 })();
@@ -117,7 +117,8 @@ export default function PsikotesListClient() {
                   className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
                 >
                   {/* Foto Bersih (Tanpa Tulisan Apapun) */}
-                  <div className="h-52 w-full overflow-hidden relative bg-gray-100">
+                  {/* Banner 16:9 Presisi Sesuai Ukuran Asli Gambar (1376x768) */}
+                  <div className="w-full aspect-[16/9] overflow-hidden relative bg-gray-100">
                     <Image
                       src={bannerImage}
                       alt={test.judul}

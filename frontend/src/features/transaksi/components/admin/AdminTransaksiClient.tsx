@@ -375,7 +375,7 @@ function normalizeTransaksi(raw: any) {
         : ""
       jadwalDisplay = tglSelesai ? `Tes Selesai (${tglSelesai})` : "Tes Selesai"
     } else {
-      jadwalDisplay = "Akses Mandiri • Berlaku 14 Hari"
+      jadwalDisplay = "Akses Mandiri • Tanpa Batas Waktu"
     }
   } else if (jenisLayanan === "event" && bookingEvent.event) {
     const ev = bookingEvent.event
@@ -539,12 +539,12 @@ export default function AdminTransaksiClient() {
   // Filter State
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("semua")
   const [selectedLayanan, setSelectedLayanan] = useState<JenisLayanan>("semua")
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<string>("")
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
   })
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string>("")
 
   // Sync parameter status dari URL (misal: saat diklik dari kartu dashboard /admin/transaksi?status=pending)
   useEffect(() => {
@@ -677,16 +677,36 @@ export default function AdminTransaksiClient() {
     const transaksiBerhasil = lunasList.length
     const menungguBayar = menungguList.length
 
-    let pendapatanLabel = "Total Pendapatan"
+    let pendapatanLabel = `Total Pendapatan Tahun ${new Date().getFullYear()}`
     if (selectedDate) pendapatanLabel = "Total Pendapatan Hari Ini"
     else if (selectedMonth) {
       const [y, m] = selectedMonth.split("-")
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
       pendapatanLabel = `Total Pendapatan ${monthNames[parseInt(m) - 1]} ${y}`
     }
 
     return { totalPendapatan, transaksiBerhasil, menungguBayar, pendapatanLabel }
   }, [allTransaksi, selectedDate, selectedMonth])
+
+  // Month label for select
+  const getMonthLabel = (ym: string) => {
+    const [y, m] = ym.split("-")
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+    return `${monthNames[parseInt(m) - 1]} ${y}`
+  }
+
+  // Generate month options: HANYA dari bulan saat ini mundur ke Januari (bulan masa depan tidak ditampilkan sebelum masuk)
+  const monthOptions = useMemo(() => {
+    const opts: string[] = []
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1 // 1 s.d. 12 (November = 11)
+
+    for (let m = currentMonth; m >= 1; m--) {
+      opts.push(`${currentYear}-${String(m).padStart(2, "0")}`)
+    }
+    return opts
+  }, [])
 
   // Refund handler
   const handleRefund = async (id: string, alasan: string) => {
@@ -721,24 +741,6 @@ export default function AdminTransaksiClient() {
     }
   }
 
-  // Month label for select
-  const getMonthLabel = (ym: string) => {
-    const [y, m] = ym.split("-")
-    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
-    return `${monthNames[parseInt(m) - 1]} ${y}`
-  }
-
-  // Generate month options: 12 months back from now
-  const monthOptions = useMemo(() => {
-    const opts: string[] = []
-    const now = new Date()
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      opts.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)
-    }
-    return opts
-  }, [])
-
   // ── Render ──
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
@@ -746,11 +748,13 @@ export default function AdminTransaksiClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-gray-200/90 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <div>
           <h3 className="text-sm sm:text-base font-bold text-gray-900">Pilih Periode Transaksi</h3>
-          <p className="text-xs text-gray-500">Pantau transaksi per bulan atau tentukan tanggal spesifik</p>
+          <p className="text-xs text-gray-500">
+            Transaksi tahun {new Date().getFullYear()} • Riwayat tahun sebelumnya otomatis terhapus
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Pilih Bulan */}
+          {/* Dropdown Pilih Bulan (Khusus Tahun Ini) */}
           <div className="relative">
             <select
               value={selectedMonth}
@@ -758,12 +762,12 @@ export default function AdminTransaksiClient() {
                 setSelectedMonth(e.target.value)
                 setSelectedDate("")
               }}
-              className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer appearance-none"
+              className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer appearance-none shadow-sm"
             >
+              <option value="">Semua Bulan ({new Date().getFullYear()})</option>
               {monthOptions.map((ym) => (
                 <option key={ym} value={ym}>{getMonthLabel(ym)}</option>
               ))}
-              <option value="">Semua Bulan</option>
             </select>
             <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
@@ -772,14 +776,14 @@ export default function AdminTransaksiClient() {
             </div>
           </div>
 
-          {/* Pilih Tanggal */}
+          {/* Pilih Tanggal Spesifik (Opsional) */}
           <div className="relative">
             <input
               ref={dateInputRef}
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-10 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+              className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-10 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none shadow-sm"
             />
             <button
               type="button"
@@ -787,8 +791,8 @@ export default function AdminTransaksiClient() {
                 try { dateInputRef.current?.showPicker?.() }
                 catch { dateInputRef.current?.focus() }
               }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#561269] transition-colors p-1"
-              title="Pilih tanggal"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#561269] transition-colors p-1 cursor-pointer"
+              title="Pilih tanggal spesifik"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -800,7 +804,7 @@ export default function AdminTransaksiClient() {
             <button
               type="button"
               onClick={() => setSelectedDate("")}
-              className="text-xs text-[#561269] hover:underline font-semibold"
+              className="text-xs text-[#561269] hover:underline font-semibold cursor-pointer"
             >
               Reset Tanggal
             </button>
@@ -1219,7 +1223,7 @@ export default function AdminTransaksiClient() {
                       </p>
                       {activeDetailItem.jenisLayanan === "psikotes" && (
                         <p className="text-gray-500">
-                          Masa Berlaku: <span className="font-semibold text-gray-800">14 Hari sejak pembelian</span>
+                          Masa Berlaku: <span className="font-semibold text-gray-800">Tanpa Batas Waktu</span>
                         </p>
                       )}
                     </div>

@@ -134,9 +134,6 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     type === "psikotes" ||
     Boolean(testId) ||
     kategori.toLowerCase().includes("psikotes") ||
-    judul.toLowerCase().includes("mbti") ||
-    judul.toLowerCase().includes("love language") ||
-    judul.toLowerCase().includes("kepribadian") ||
     orderId.startsWith("PSI-")
 
   useEffect(() => {
@@ -197,9 +194,14 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     if (testId) return `/psikotes/${testId}/mulai?${queryString}`
     const j = judul.toLowerCase()
     if (j.includes("dass") || j.includes("stres") || j.includes("emosional")) return `/psikotes/dass-42/mulai?${queryString}`
-    if (j.includes("love")) return `/psikotes/love-language/mulai?${queryString}`
-    if (j.includes("lanjutan") || j.includes("mbti-2")) return `/psikotes/mbti-2/mulai?${queryString}`
-    return `/psikotes/mbti/mulai?${queryString}`
+    if (j.includes("cemas") || j.includes("gad") || j.includes("anxiety")) return `/psikotes/gad-7/mulai?${queryString}`
+    if (j.includes("depresi") || j.includes("phq")) return `/psikotes/phq-9/mulai?${queryString}`
+    if (j.includes("game") || j.includes("igds")) return `/psikotes/igds9-sf/mulai?${queryString}`
+    if (j.includes("trauma") || j.includes("cats")) return `/psikotes/cats/mulai?${queryString}`
+    if (j.includes("anak") && j.includes("depresi")) return `/psikotes/cdi/mulai?${queryString}`
+    if (j.includes("anak") && j.includes("cemas")) return `/psikotes/rcmas/mulai?${queryString}`
+    if (j.includes("pola") || j.includes("pbq")) return `/psikotes/pbq/mulai?${queryString}`
+    return `/psikotes`
   }
 
   const [copiedTicket, setCopiedTicket] = useState(false)
@@ -539,7 +541,7 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">
-                    1x akses tes • Berlaku 14 hari (2 minggu)
+                    1x akses tes • Tanpa batas waktu
                   </p>
                 </div>
               )}
@@ -557,7 +559,7 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
               <div className="text-center mt-2">
                 <p className="text-[10px] text-gray-500 mb-2 font-medium">
                   {isPsikotes
-                    ? "Pembayaran paket psikotes berhasil! Tiket pengerjaan & akses hasil berlaku selama 14 hari. Silakan mulai tes sekarang atau simpan tiket untuk dikerjakan nanti."
+                    ? "Pembayaran paket psikotes berhasil! Tiket pengerjaan & akses hasil aktif tanpa batas waktu. Silakan mulai tes sekarang atau simpan tiket untuk dikerjakan nanti."
                     : type === "event" && linkWa
                     ? "Bergabunglah ke grup WhatsApp untuk info event terbaru dan pengumuman penting."
                     : "Hubungi kontak ini setelah anda selesai melakukan pembayaran!"}

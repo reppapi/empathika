@@ -53,25 +53,6 @@ export type JudulPsikotesItem = {
   paketList: PaketDetailItem[];
 };
 
-export type PaketData = {
-  id: string | number;
-  judulId?: string | number;
-  nama: string;
-  kategori: string;
-  deskripsi: string;
-  bannerUrl?: string;
-  waktu: string;
-  jenisAkses: JenisAkses;
-  harga: string;
-  numericHarga?: number;
-  status: StatusPaket;
-  jumlahSoal: number;
-  modeJudul?: "baru" | "ada";
-  soalList?: Soal[];
-  interpretasiList?: Interpretasi[];
-  updatedAt?: string;
-};
-
 export type AdminPsikotesPeserta = {
   id: string | number;
   nama: string;
@@ -85,6 +66,9 @@ export type AdminPsikotesPeserta = {
   usia?: number | null;
   jenisKelamin?: string | null;
   totalSkor?: number | null;
+  namaPemesan?: string | null;
+  noHpPemesan?: string | null;
+  isPembeliBerbeda?: boolean;
   hasil?: {
     id: string;
     grade: string;
@@ -109,16 +93,5 @@ export type AdminPsikotesPeserta = {
     pekerjaan?: string | null;
     status_pernikahan?: string | null;
   } | null;
-};
-
-export type AdminPsikotesPaketListItem = {
-  id: number;
-  nama: string;
-  image: string;
-  kategori: string;
-  harga: string;
-  jumlahSoal: number;
-  waktu: string;
-  status: string;
 };
 
