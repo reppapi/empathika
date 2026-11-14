@@ -103,9 +103,15 @@ export function Footer() {
   const isLayanan = pathname === "/layanan" || pathname?.endsWith("/layanan") || pathname?.includes("/layanan?");
 
   return (
-    <footer className={`bg-[#EFE9F3] text-gray-800 ${isLayanan ? "min-h-screen flex flex-col justify-between pt-24 pb-8" : "pt-16 pb-8"}`}>
-      <div className={`max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 w-full ${isLayanan ? "flex-1 flex flex-col justify-center" : ""}`}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-12">
+    <footer
+      className={`bg-[#EFE9F3] text-gray-800 ${
+        isLayanan
+          ? "lg:h-screen lg:snap-start lg:snap-always flex flex-col justify-center py-8 lg:py-12"
+          : "pt-16 pb-8"
+      }`}
+    >
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-8 lg:mb-12">
           
           {/* Brand & Description */}
           {/* Brand & Description */}

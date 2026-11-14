@@ -83,6 +83,14 @@ export default function LayananClient() {
     }
   }, [categoryQuery])
 
+  // Aktifkan scroll snap 2-panel khusus halaman layanan (Panel 1: Pilihan Layanan, Panel 2: Footer)
+  useEffect(() => {
+    document.documentElement.classList.add("snap-y", "snap-mandatory", "scroll-smooth")
+    return () => {
+      document.documentElement.classList.remove("snap-y", "snap-mandatory", "scroll-smooth")
+    }
+  }, [])
+
   const handleCategoryChange = (id: string) => {
     if (id === activeCategory) return
     setActiveCategory(id)
@@ -206,7 +214,7 @@ export default function LayananClient() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[96px] lg:pb-3 lg:h-screen lg:overflow-hidden font-poppins">
+    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[96px] lg:pb-3 lg:h-screen lg:snap-start lg:snap-always lg:overflow-hidden font-poppins">
 
       {/* Container utama */}
       <div className="relative flex h-full flex-col gap-8 lg:block">
