@@ -341,5 +341,29 @@ html[data-biro-theme="true"] th.bg-\[\#D3C4D8\],
   background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 22%, white) !important;
 }
 
+/* 14. Soft Purple Tints & Borders untuk Kartu & Komponen Biro */
+html[data-biro-theme="true"] .bg-purple-50,
+[data-biro-theme="true"] .bg-purple-50 {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 8%, white) !important;
+}
+
+html[data-biro-theme="true"] .bg-purple-100,
+[data-biro-theme="true"] .bg-purple-100 {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 15%, white) !important;
+}
+
+html[data-biro-theme="true"] .border-purple-100,
+[data-biro-theme="true"] .border-purple-100 {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 18%, transparent) !important;
+}
+
+html[data-biro-theme="true"] .border-purple-200,
+[data-biro-theme="true"] .border-purple-200,
+html[data-biro-theme="true"] .hover\:border-purple-200:hover,
+[data-biro-theme="true"] .hover\:border-purple-200:hover {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 30%, transparent) !important;
+}
+
+
 
 

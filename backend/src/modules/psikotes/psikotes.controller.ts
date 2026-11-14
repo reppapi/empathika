@@ -156,7 +156,8 @@ export class PsikotesController {
       if (!isAdmin && request.headers.authorization) {
         try {
           await request.jwtVerify()
-          isAdmin = (request.user as any)?.role === 'ADMIN'
+          const role = (request.user as any)?.role
+          isAdmin = role === 'ADMIN' || role === 'BIRO'
         } catch {
           isAdmin = false
         }

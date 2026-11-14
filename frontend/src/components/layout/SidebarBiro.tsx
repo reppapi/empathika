@@ -9,11 +9,12 @@ export interface NavItem {
   path: string
 }
 
-// Menu khusus Admin Biro di sidebar: Ringkasan Operasional, Jadwal dan Sesi, dan Transaksi
+// Menu khusus Admin Biro di sidebar: Ringkasan Operasional, Jadwal dan Sesi, Transaksi, dan Psikotes
 export const biroNavItems: NavItem[] = [
   { name: "Ringkasan Operasional", path: "/admin-biro" },
   { name: "Jadwal dan Sesi", path: "/admin-biro/jadwal" },
   { name: "Transaksi", path: "/admin-biro/transaksi" },
+  { name: "Psikotes", path: "/admin-biro/psikotes" },
 ]
 
 interface SidebarBiroProps {

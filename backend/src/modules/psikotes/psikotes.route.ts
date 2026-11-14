@@ -1,7 +1,7 @@
 /** Definisi routing HTTP Fastify untuk endpoint publik dan admin modul psikotes. */
 import type { FastifyInstance } from 'fastify'
 import { PsikotesController } from './psikotes.controller'
-import { adminGuard } from '../../middlewares/admin-guard'
+import { adminGuard, adminOrBiroGuard } from '../../middlewares/admin-guard'
 import { createRateLimiter } from '../../middlewares/rate-limit'
 import {
   createPsikotesSchema,
@@ -55,9 +55,9 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     handler: controller.getAll,
   })
 
-  // 1b. Admin: Ambil daftar peserta psikotes & statistik summary
+  // 1b. Admin & Biro: Ambil daftar peserta psikotes & statistik summary
   fastify.get('/peserta', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Psikotes'],
       summary: 'Mendapatkan daftar peserta psikotes dan summary statistik pengerjaan',
