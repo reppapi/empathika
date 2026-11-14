@@ -903,10 +903,10 @@ export default function AdminTransaksiClient() {
                   key={st.id}
                   type="button"
                   onClick={() => setSelectedStatus(st.id)}
-                  className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer shadow-sm active:scale-95 ${
+                  className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 ease-in-out shrink-0 cursor-pointer shadow-sm active:scale-95 ${
                     isActive
-                      ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 border border-[#CA8A04]/40 shadow-sm ring-2 ring-[#EAB308]/25"
-                      : "bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 border border-gray-200/90 shadow-2xs hover:border-gray-300"
+                      ? "bg-[#561269] text-white shadow-md shadow-[#561269]/20"
+                      : "bg-gray-100/90 hover:bg-gray-200/90 text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   {st.label}
@@ -950,30 +950,16 @@ export default function AdminTransaksiClient() {
                         setSelectedLayanan("semua")
                       }
                     }}
-                    className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer ${
-                      selectedStatus !== "semua"
-                        ? "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 border border-[#CA8A04]/30 shadow-sm"
-                        : "bg-white text-[#561269] hover:bg-white/90"
-                    }`}
+                    className="rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all duration-300 ease-in-out flex items-center justify-center bg-white text-[#561269] hover:bg-white/90 active:scale-95 cursor-pointer"
                     title={
                       selectedStatus !== "semua"
                         ? "Klik untuk reset filter status kembali ke Semua"
                         : undefined
                     }
                   >
-                    <span>{activeStatusLabel}</span>
-                    {selectedStatus !== "semua" && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedStatus("semua")
-                        }}
-                        className="text-[11px] text-gray-900/70 hover:text-red-600 font-bold ml-1 cursor-pointer"
-                        title="Kembalikan ke Semua"
-                      >
-                        ✕
-                      </span>
-                    )}
+                    <span className="transition-all duration-300 ease-in-out inline-block">
+                      {activeStatusLabel}
+                    </span>
                   </button>
                 </div>
 
@@ -1045,7 +1031,7 @@ export default function AdminTransaksiClient() {
                       <div
                         key={item.id}
                         onClick={() => setSelectedItem(item)}
-                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 ${isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
+                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-300 ease-in-out ${isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
                           }`}
                       >
                         {isSelected && (
