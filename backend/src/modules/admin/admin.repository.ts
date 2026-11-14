@@ -345,7 +345,7 @@ export class AdminRepository {
   /**
    * Mengambil agenda dan peringatan operasional mendatang langsung dari Database
    */
-  async findDashboardAgenda(limit: number = 6, biroId?: string) {
+  async findDashboardAgenda(_limit: number = 6, biroId?: string) {
     const today = new Date()
     today.setUTCHours(0, 0, 0, 0)
 

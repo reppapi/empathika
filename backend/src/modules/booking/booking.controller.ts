@@ -139,7 +139,7 @@ export class BookingController {
     reply: FastifyReply
   ) => {
     const user = (request as any).user
-    let query = { ...request.query }
+    const query = { ...request.query }
     if (user?.role === 'BIRO') {
       const account = await (this.fastify as any).prisma.account.findUnique({
         where: { id: user.id },

@@ -501,18 +501,14 @@ export class AdminService {
         title: isBiro ? 'Klien Aktif Biro' : 'Menunggu Review',
         value: isBiro ? `${rawMetrics.totalClients} Klien` : `${rawMetrics.totalClients} Tes`,
         rawValue: rawMetrics.totalClients,
-        change: isBiro
-          ? (rawMetrics.totalClients > 0 ? `${rawMetrics.totalClients} klien aktif` : 'Belum ada klien terdaftar')
-          : 'Perlu ditinjau psikolog',
+        change: clientChange,
         color: '#5D205E',
       },
       totalKlienAktif: {
         title: isBiro ? 'Klien Aktif Biro' : 'Menunggu Review',
         value: isBiro ? `${rawMetrics.totalClients} Klien` : `${rawMetrics.totalClients} Tes`,
         rawValue: rawMetrics.totalClients,
-        change: isBiro
-          ? (rawMetrics.totalClients > 0 ? `${rawMetrics.totalClients} klien aktif` : 'Belum ada klien terdaftar')
-          : 'Perlu ditinjau psikolog',
+        change: clientChange,
         color: '#5D205E',
       },
       sesiKonselingSelesai: {
