@@ -67,6 +67,7 @@ export function Navbar() {
           <div className="hidden lg:flex items-center justify-center gap-10 xl:gap-14">
             <Link 
               href={withBiro("/") as any}
+              prefetch={true}
               className="flex items-center gap-3 transition-transform hover:scale-105"
               aria-label="Home"
             >
@@ -98,6 +99,7 @@ export function Navbar() {
                   <Link
                     key={link.name}
                     href={link.path as any}
+                    prefetch={true}
                     className={`rounded-full px-5 py-2 text-[14px] font-normal lowercase tracking-wide transition-colors ${
                       active 
                         ? "bg-white/20 text-white font-medium shadow-inner" 
@@ -112,6 +114,7 @@ export function Navbar() {
 
             <Link 
               href={withBiro("/konseling") as any}
+              prefetch={true}
               className="flex h-14 shrink-0 items-center justify-center rounded-full px-6 text-[14px] font-normal lowercase tracking-wide text-white transition-transform hover:scale-105 shadow-md hover:opacity-90"
               style={{ backgroundColor: themeColor }}
             >
@@ -166,6 +169,7 @@ export function Navbar() {
           <div className="px-6">
             <Link
               href={withBiro("/") as any}
+              prefetch={true}
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center gap-4"
             >
@@ -191,6 +195,7 @@ export function Navbar() {
                 <Link
                   key={link.name}
                   href={link.path as any}
+                  prefetch={true}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${
                     active 
@@ -208,6 +213,7 @@ export function Navbar() {
           <div className="mt-8 px-6 pb-6">
             <Link
               href={withBiro("/konseling") as any}
+              prefetch={true}
               onClick={() => setIsMobileMenuOpen(false)}
               className="inline-block w-full text-center bg-white/15 hover:bg-white/25 text-white font-medium py-3 rounded-full text-[15px] transition-colors"
             >
