@@ -327,4 +327,19 @@ html[data-biro-theme="true"] .stat-card-icon-box:not([data-amber="true"]),
   background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 12%, transparent) !important;
 }
 
+/* 13. Header Tabel Sesi & Data (Warna Identitas Biro Versi Muda/Pastel) */
+html[data-biro-theme="true"] .biro-table-header,
+html[data-biro-theme="true"] .bg-\[\#D3C4D8\],
+html[data-biro-theme="true"] thead.bg-\[\#D3C4D8\],
+html[data-biro-theme="true"] tr.bg-\[\#D3C4D8\],
+html[data-biro-theme="true"] th.bg-\[\#D3C4D8\],
+[data-biro-theme="true"] .biro-table-header,
+[data-biro-theme="true"] .bg-\[\#D3C4D8\],
+[data-biro-theme="true"] thead.bg-\[\#D3C4D8\],
+[data-biro-theme="true"] tr.bg-\[\#D3C4D8\],
+[data-biro-theme="true"] th.bg-\[\#D3C4D8\] {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 22%, white) !important;
+}
+
+
 
