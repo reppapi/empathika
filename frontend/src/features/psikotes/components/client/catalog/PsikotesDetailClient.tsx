@@ -26,7 +26,6 @@ import {
   RefreshCw,
   X,
   CheckCircle2,
-  Users,
 } from "lucide-react";
 import PhoneInputField from "@/components/shared/PhoneInputField";
 
@@ -307,6 +306,11 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed font-normal">
                 {data.description}
               </p>
+              {data.targetUsia && (
+                <p className="text-xs sm:text-sm text-gray-500 font-medium mt-3">
+                  Rentang usia: <span className="text-gray-800 font-semibold">{data.targetUsia}</span>
+                </p>
+              )}
             </div>
 
             {/* Guidelines */}
@@ -342,28 +346,14 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
           <div className="lg:w-1/3 w-full sticky top-[120px]">
             <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-lg border border-gray-100 flex flex-col gap-6">
               
-              {/* Info Spesifikasi Tes: Jumlah Soal & Rentang Usia */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 bg-[#f8f9fa] p-3.5 rounded-2xl border border-gray-100">
-                  <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
-                    <FileQuestion className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-gray-400 font-medium">Jumlah Soal</p>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight truncate">{data.questions}</p>
-                  </div>
+              {/* Info Spesifikasi Tes: Jumlah Soal */}
+              <div className="flex items-center gap-3 bg-[#f8f9fa] p-3.5 rounded-2xl border border-gray-100">
+                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
+                  <FileQuestion className="w-4 h-4" />
                 </div>
-
-                <div className="flex items-center gap-3 bg-[#f8f9fa] p-3.5 rounded-2xl border border-gray-100">
-                  <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#561269] shadow-xs shrink-0">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-gray-400 font-medium">Rentang Usia</p>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight truncate" title={data.targetUsia}>
-                      {data.targetUsia}
-                    </p>
-                  </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-400 font-medium">Jumlah Soal</p>
+                  <p className="text-xs sm:text-sm font-bold text-gray-900 leading-tight truncate">{data.questions}</p>
                 </div>
               </div>
 

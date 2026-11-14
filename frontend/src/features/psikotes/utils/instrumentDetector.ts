@@ -119,29 +119,29 @@ export function getInstrumentTargetUsia(
   const code = getInstrumentCode(data, fallbackId);
   switch (code) {
     case "CATS":
-      return "7–17 Tahun (Anak & Remaja)";
+      return "7–17 tahun";
     case "CDI":
-      return "7–19 Tahun (Anak & Remaja)";
+      return "7–19 tahun";
     case "RCMAS":
-      return "6–19 Tahun (Anak & Remaja)";
+      return "6–19 tahun";
     case "DASS":
-      return "13 Tahun ke Atas (Remaja & Dewasa)";
+      return "13 tahun ke atas";
     case "IGDS":
-      return "11 Tahun ke Atas (Anak-anak hingga Dewasa)";
+      return "Anak-anak hingga dewasa";
     case "PHQ":
-      return "18 Tahun ke Atas (Dewasa)";
+      return "18 tahun ke atas";
     case "GAD":
-      return "18 Tahun ke Atas (Dewasa)";
+      return "18 tahun ke atas";
     case "PBQ":
-      return "18 Tahun ke Atas (Dewasa)";
+      return "Tidak dicantumkan dalam handout";
     default: {
       const backendUsia =
         (data?.alat_ukur as any)?.targetUsia ||
         (data?.alat_ukur as any)?.targetResponden;
       if (backendUsia && typeof backendUsia === "string" && backendUsia.trim()) {
-        return backendUsia.trim();
+        return backendUsia.replace(/[()]/g, "").trim();
       }
-      return "Remaja & Dewasa";
+      return "Remaja dan dewasa";
     }
   }
 }

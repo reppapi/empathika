@@ -85,6 +85,9 @@ export type AdminPsikotesPeserta = {
   usia?: number | null;
   jenisKelamin?: string | null;
   totalSkor?: number | null;
+  namaPemesan?: string | null;
+  noHpPemesan?: string | null;
+  isPembeliBerbeda?: boolean;
   hasil?: {
     id: string;
     grade: string;

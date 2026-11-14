@@ -53,11 +53,11 @@ export default function PsikotesSummaryCards({ summary }: PsikotesSummaryProps) 
         </div>
       </div>
 
-      {/* 3. Sedang Berjalan */}
+      {/* 3. Menunggu Pengerjaan */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-2xs flex items-center justify-between gap-3 hover:border-amber-200 transition-all">
         <div className="min-w-0">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block truncate">
-            Sedang Berjalan
+            Menunggu Tes
           </span>
           <span className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-amber-600 mt-0.5 block tracking-tight">
             {sedangBerjalan}

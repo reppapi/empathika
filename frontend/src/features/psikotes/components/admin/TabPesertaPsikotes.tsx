@@ -9,6 +9,7 @@ import {
 } from "@/components/shared/AdminDataTable";
 import { ActionButtonDetail } from "@/components/shared/TableActionButtons";
 import { Filter, MessageCircle, Download, Calendar } from "lucide-react";
+import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 import type { AdminPsikotesPeserta } from "../../types/adminPsikotes";
 
 export interface TabPesertaPsikotesProps {
@@ -169,18 +170,32 @@ export default function TabPesertaPsikotes({
     {
       key: "peserta",
       header: "Nama Peserta",
-      render: (peserta: AdminPsikotesPeserta) => (
-        <div className="flex flex-col">
-          <span className="font-extrabold text-gray-900 leading-tight">
-            {peserta.nama}
-          </span>
-          <div className="flex flex-wrap items-center gap-1 text-[11px] text-gray-500 font-medium mt-0.5">
-            {peserta.usia ? <span>{peserta.usia} tahun</span> : null}
-            {peserta.jenisKelamin ? <span>• {peserta.jenisKelamin}</span> : null}
-            {peserta.peserta?.status_pernikahan ? <span>• {peserta.peserta.status_pernikahan}</span> : null}
+      render: (peserta: AdminPsikotesPeserta) => {
+        const isSelesai = peserta.status === "Selesai";
+        return (
+          <div className="flex flex-col">
+            <span className="font-extrabold text-gray-900 leading-tight">
+              {peserta.nama}
+            </span>
+            {isSelesai ? (
+              <div className="flex flex-wrap items-center gap-1 text-[11px] text-gray-500 font-medium mt-0.5">
+                {peserta.usia ? <span>{peserta.usia} tahun</span> : null}
+                {peserta.jenisKelamin ? <span>• {peserta.jenisKelamin}</span> : null}
+                {peserta.peserta?.status_pernikahan ? <span>• {peserta.peserta.status_pernikahan}</span> : null}
+                {peserta.isPembeliBerbeda && peserta.namaPemesan ? (
+                  <span className="text-gray-400 font-normal">
+                    • Dipesan: {peserta.namaPemesan}
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-[11px] text-amber-700 font-medium mt-0.5">
+                <span>(Pemesan — Menunggu Peserta)</span>
+              </div>
+            )}
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "kontak",
@@ -194,11 +209,11 @@ export default function TabPesertaPsikotes({
             href={`https://wa.me/${peserta.noHp.replace(/\D/g, "")}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition font-medium text-xs hover:underline"
+            className="inline-flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition font-medium text-xs hover:underline font-mono"
             title="Hubungi via WhatsApp"
           >
             <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>{peserta.noHp}</span>
+            <span>{formatToIndonesianPhone(peserta.noHp)}</span>
           </a>
         );
       },
@@ -218,9 +233,9 @@ export default function TabPesertaPsikotes({
         return (
           <AdminStatusBadge
             variant={isSelesai ? "success" : "warning"}
-            className="w-28"
+            className="w-36"
           >
-            {peserta.status || (isSelesai ? "Selesai" : "Berjalan")}
+            {peserta.status || (isSelesai ? "Selesai" : "Menunggu Pengerjaan")}
           </AdminStatusBadge>
         );
       },

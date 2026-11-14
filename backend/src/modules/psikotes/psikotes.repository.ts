@@ -1,6 +1,6 @@
 /** Repository akses database Prisma untuk paket, soal, booking, peserta, tiket, dan hasil psikotes. */
 import type { PrismaClient, MetodePembayaran, StatusPembayaran } from '@prisma/client'
-import { generateOrderId, normalizePhoneNumber } from '../../utils'
+import { generateOrderId, normalizePhoneNumber, formatIndonesianPhone } from '../../utils'
 import type {
   CreatePsikotesInput,
   UpdatePsikotesInput,
@@ -1122,7 +1122,12 @@ export class PsikotesRepository {
         jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
         harga: b.paket.harga,
         nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
-        no_hp: (b as any).peserta_psikotes?.no_telepon || (b as any).peserta_psikotes?.no_telepon_orang_tua || b.client.no_telepon || '—',
+        no_hp: formatIndonesianPhone(
+          (b as any).peserta_psikotes?.no_telepon ||
+            (b as any).peserta_psikotes?.no_telepon_orang_tua ||
+            b.client.no_telepon ||
+            '—'
+        ),
         usia: (b as any).peserta_psikotes?.usia ?? b.client.usia,
         jenis_kelamin: (b as any).peserta_psikotes?.jenis_kelamin || b.client.jenis_kelamin,
         peserta: (b as any).peserta_psikotes
@@ -1134,7 +1139,14 @@ export class PsikotesRepository {
             }
           : null,
         tanggal: b.createdAt,
-        status: b.hasil_tes ? 'Selesai' : 'Berjalan',
+        status: b.hasil_tes ? 'Selesai' : 'Menunggu Pengerjaan',
+        nama_pemesan: b.client?.nama || null,
+        no_hp_pemesan: b.client?.no_telepon ? formatIndonesianPhone(b.client.no_telepon) : null,
+        is_pembeli_berbeda: Boolean(
+          (b as any).peserta_psikotes?.nama_lengkap &&
+          b.client?.nama &&
+          (b as any).peserta_psikotes.nama_lengkap.trim().toLowerCase() !== b.client.nama.trim().toLowerCase()
+        ),
         skor:
           b.hasil_tes?.interpretasi?.grade ||
           (b.hasil_tes
@@ -1247,6 +1259,7 @@ export class PsikotesRepository {
       // 2. Normalisasi data Klien (Peserta)
       const inputName = (input.klien?.nama || input.nama || '').trim()
       const rawPhone = (input.klien?.no_telepon || input.no_telepon || '').trim()
+      const formattedPhone = formatIndonesianPhone(rawPhone)
       const inputPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const inputEmail = (input.klien?.email || input.email || '').trim()
       const inputUsia = input.klien?.usia ?? null
@@ -1264,6 +1277,7 @@ export class PsikotesRepository {
           where: {
             OR: [
               { no_telepon: inputPhone },
+              { no_telepon: formattedPhone },
               { no_telepon: rawPhone },
               ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
             ],
@@ -1276,7 +1290,7 @@ export class PsikotesRepository {
         client = await tx.client.create({
           data: {
             nama: inputName,
-            no_telepon: inputPhone || null,
+            no_telepon: formattedPhone || inputPhone || null,
             usia: inputUsia,
             jenis_kelamin: inputGender,
             id_biro: idBiro,
@@ -1288,6 +1302,7 @@ export class PsikotesRepository {
             where: { id: client.id },
             data: {
               nama: inputName || client.nama,
+              no_telepon: formattedPhone || client.no_telepon,
               usia: inputUsia ?? client.usia,
               jenis_kelamin: inputGender ?? client.jenis_kelamin,
             },

@@ -34,7 +34,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
   kode: "PBQ",
   nama: "Personality Belief Questionnaire (PBQ)",
   kategori: "Pola Keyakinan & Kepribadian",
-  targetUsia: "18 tahun ke atas",
+  targetUsia: "Tidak dicantumkan dalam handout",
   periode: "Keyakinan saat ini",
   instruksi:
     "Bacalah setiap pernyataan di bawah ini dan pilih kolom sesuai dengan tingkat keyakinan Anda terhadap pernyataan tersebut:",
@@ -45,7 +45,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
   tahun: "1991 / 2001",
   tujuan:
     "Mengidentifikasi keyakinan inti (core beliefs) disfungsional yang berkaitan dengan sembilan gangguan kepribadian Axis II DSM.",
-  targetResponden: "Dewasa usia 18 tahun ke atas",
+  targetResponden: "Tidak dicantumkan dalam handout",
   referensi:
     "Beck, A. T., & Beck, J. S. (1991). The Personality Belief Questionnaire. Bala Cynwyd, PA: The Beck Institute for Cognitive Therapy and Research.",
   rentangSkorTotal: "Profil 9 Skala Kepribadian (Masing-masing 0 – 56)",
