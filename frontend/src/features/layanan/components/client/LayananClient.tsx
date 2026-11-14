@@ -206,33 +206,33 @@ export default function LayananClient() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-6 lg:pt-[96px] lg:pb-8 lg:h-screen lg:min-h-[580px] font-poppins">
+    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-8 lg:pt-[100px] lg:pb-12 lg:min-h-[calc(100vh-80px)] font-poppins">
 
       {/* Container utama */}
-      <div className="relative flex h-full flex-col gap-8 lg:block">
+      <div className="relative flex h-full flex-col gap-8 lg:block lg:min-h-[620px]">
 
         {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL & STABIL TANPA JUMPING) */}
-        <div className="flex shrink-0 flex-col gap-2.5 lg:w-1/3 lg:gap-3 xl:gap-3.5 lg:pb-4">
+        <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-4 xl:gap-5 lg:pb-6">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.id
             return (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className="group flex flex-col items-start text-left cursor-pointer h-[62px] lg:h-[68px] xl:h-[72px] justify-center shrink-0 transition-transform duration-200 py-1"
+                className="group flex flex-col items-start text-left cursor-pointer min-h-[64px] lg:min-h-[72px] justify-center shrink-0 transition-transform duration-200 py-1"
               >
                 <span
                   className={`font-bold transition-colors duration-200 leading-none ${
-                    isActive ? "text-[22px] lg:text-[24px] text-[#EAB308]" : "text-[18px] lg:text-[20px] text-[#EAB308]/40"
+                    isActive ? "text-[26px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
                   }`}
                 >
                   {cat.id}
                 </span>
                 <span
-                  className={`transition-colors duration-200 leading-tight mt-0.5 ${
+                  className={`transition-colors duration-200 leading-tight mt-1 ${
                     isActive
-                      ? "text-[26px] lg:text-[28px] xl:text-[30px] font-bold text-[#561269]"
-                      : "text-[22px] lg:text-[24px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
+                      ? "text-[30px] lg:text-[32px] font-bold text-[#561269]"
+                      : "text-[24px] lg:text-[26px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
                   }`}
                 >
                   {cat.title}
