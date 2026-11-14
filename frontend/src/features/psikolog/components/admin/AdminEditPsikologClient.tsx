@@ -148,178 +148,214 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         return
       }
 
-      const pick = (...vals: any[]) => {
-        for (const v of vals) {
-          if (v !== undefined && v !== null && String(v).trim() !== "") {
-            return v
-          }
+      if (backendData) {
+        const namaVal = backendData.nama_gelar || backendData.account?.nama || ""
+        const emailVal = backendData.account?.email || backendData.email || ""
+        const teleponVal = backendData.account?.no_telepon || backendData.no_telepon || ""
+        const spesialisasiVal =
+          backendData.spesialisasi?.nama ||
+          (typeof backendData.spesialisasi === "string" ? backendData.spesialisasi : "") ||
+          ""
+        const noStrVal = backendData.no_str || ""
+        const noSippVal = backendData.no_sipp || ""
+        const noSilpVal = backendData.no_silp || ""
+        const pendidikanVal = backendData.pendidikan || ""
+        const bioVal = backendData.bio || backendData.account?.bio || ""
+        const quoteVal = backendData.quote || ""
+        const instagramVal = backendData.instagram || ""
+        const fotoVal = backendData.foto || backendData.account?.foto || null
+
+        const katRaw = (backendData.kategori || "").toLowerCase()
+        const kategoriVal: KategoriTenaga = katRaw.includes("peer")
+          ? "peer-konselor"
+          : katRaw.includes("konselor")
+          ? "konselor"
+          : "psikolog"
+
+        const statusAksesVal: StatusAkses = backendData.status === "INACTIVE" ? "NONAKTIF" : "AKTIF"
+
+        let keahlianArr: string[] = []
+        if (Array.isArray(backendData.keahlian)) {
+          keahlianArr = backendData.keahlian
+        } else if (typeof backendData.keahlian === "string" && backendData.keahlian.trim()) {
+          keahlianArr = backendData.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
         }
-        return ""
+
+        const jumlahSesiVal =
+          typeof backendData.jumlah_sesi === "number" ? backendData.jumlah_sesi : 0
+
+        const tokenAktivasiVal =
+          backendData.tokenAktivasi ||
+          backendData.token_aktivasi ||
+          backendData.account?.token_aktivasi ||
+          ""
+
+        const tokenExpiredVal =
+          backendData.tokenExpiredAt ||
+          backendData.token_expired_at ||
+          backendData.account?.token_aktivasi_exp ||
+          ""
+
+        const passwordVal = localData?.password || "Psikolog123!"
+        const tanggalBergabungVal = localData?.tanggalBergabung || "Terdaftar di DB"
+
+        setNama(namaVal)
+        setEmail(emailVal)
+        setNoTelepon(teleponVal)
+        setPassword(passwordVal)
+        setKategori(kategoriVal)
+        setStatusAkses(statusAksesVal)
+        setSpesialisasi(spesialisasiVal)
+        setNoStr(noStrVal)
+        setNoSipp(noSippVal)
+        setNoSilp(noSilpVal)
+        setPendidikanText(pendidikanVal)
+        setBio(bioVal)
+        setQuote(quoteVal)
+        setInstagram(instagramVal)
+        setFoto(fotoVal)
+        setKeahlian(keahlianArr)
+        setJumlahSesi(jumlahSesiVal)
+        setTanggalBergabung(tanggalBergabungVal)
+
+        const accId =
+          backendData.account?.id ||
+          backendData.id_account ||
+          backendData.accountId ||
+          localData?.accountId ||
+          ""
+        if (accId) setRealAccountId(accId)
+
+        const isAktif = Boolean(
+          backendData.accountAktif ||
+          backendData.account?.accountAktif ||
+          backendData.account?.password ||
+          (backendData.account?.aktif && backendData.account?.password) ||
+          (statusAksesVal === "AKTIF" && passwordVal && passwordVal !== "Psikolog123!")
+        )
+        setAccountAktif(isAktif)
+        if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
+        if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
+
+        // Sinkronisasi data terbaru dari DB ke localStorage agar cache lokal selalu up-to-date
+        try {
+          const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
+          if (saved) {
+            const list: any[] = JSON.parse(saved)
+            const idx = list.findIndex(
+              (item) =>
+                item.id === cleanId ||
+                item.id === decodedId ||
+                (item.email && item.email.toLowerCase() === emailVal.toLowerCase())
+            )
+            const syncedItem = {
+              ...(idx !== -1 ? list[idx] : {}),
+              id: cleanId,
+              nama: namaVal,
+              email: emailVal,
+              noTelepon: teleponVal,
+              kategori: kategoriVal,
+              statusAkses: statusAksesVal,
+              spesialisasi: spesialisasiVal,
+              noStr: noStrVal || undefined,
+              noSipp: noSippVal || undefined,
+              noSilp: noSilpVal || undefined,
+              pendidikanText: pendidikanVal,
+              jumlahSesi: jumlahSesiVal,
+              bio: bioVal,
+              quote: quoteVal,
+              instagram: instagramVal,
+              foto: fotoVal,
+              keahlian: keahlianArr,
+              tanggalBergabung: tanggalBergabungVal,
+              tokenAktivasi: tokenAktivasiVal || undefined,
+              tokenExpiredAt: tokenExpiredVal || undefined,
+              accountId: accId || undefined,
+              accountAktif: isAktif,
+            }
+            if (idx !== -1) {
+              list[idx] = syncedItem
+            } else {
+              list.push(syncedItem)
+            }
+            localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(list))
+          }
+        } catch {}
+      } else {
+        // Fallback offline menggunakan localData jika backend offline
+        const pick = (...vals: any[]) => {
+          for (const v of vals) {
+            if (v !== undefined && v !== null && String(v).trim() !== "") {
+              return v
+            }
+          }
+          return ""
+        }
+
+        const namaVal = pick(localData?.nama, localData?.nama_gelar)
+        const emailVal = pick(localData?.email, localData?.account?.email)
+        const teleponVal = pick(localData?.noTelepon, localData?.account?.no_telepon)
+        const spesialisasiVal = pick(localData?.spesialisasi)
+        const noStrVal = pick(localData?.noStr, localData?.no_str)
+        const noSippVal = pick(localData?.noSipp, localData?.no_sipp)
+        const noSilpVal = pick(localData?.noSilp, localData?.no_silp)
+        const pendidikanVal = pick(localData?.pendidikanText, localData?.pendidikan)
+        const bioVal = pick(localData?.bio)
+        const quoteVal = pick(localData?.quote)
+        const instagramVal = pick(localData?.instagram)
+        const fotoVal = pick(localData?.foto)
+
+        const katRaw = pick(localData?.kategori).toLowerCase()
+        const kategoriVal: KategoriTenaga = katRaw.includes("peer")
+          ? "peer-konselor"
+          : katRaw.includes("konselor")
+          ? "konselor"
+          : "psikolog"
+
+        const statusRaw = pick(localData?.statusAkses, "AKTIF")
+        const statusAksesVal: StatusAkses = statusRaw === "NONAKTIF" ? "NONAKTIF" : "AKTIF"
+
+        let keahlianArr: string[] = []
+        const keahlianRaw = localData?.keahlian
+        if (Array.isArray(keahlianRaw)) {
+          keahlianArr = keahlianRaw
+        } else if (typeof keahlianRaw === "string" && keahlianRaw.trim()) {
+          keahlianArr = keahlianRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
+        }
+
+        const jumlahSesiVal = typeof localData?.jumlahSesi === "number" ? localData.jumlahSesi : 0
+        const tokenAktivasiVal = pick(localData?.tokenAktivasi)
+        const tokenExpiredVal = pick(localData?.tokenExpiredAt)
+        const passwordVal = pick(localData?.password, "Psikolog123!")
+        const tanggalBergabungVal = pick(localData?.tanggalBergabung, "Terdaftar di DB")
+
+        setNama(namaVal)
+        setEmail(emailVal)
+        setNoTelepon(teleponVal)
+        setPassword(passwordVal)
+        setKategori(kategoriVal)
+        setStatusAkses(statusAksesVal)
+        setSpesialisasi(spesialisasiVal)
+        setNoStr(noStrVal)
+        setNoSipp(noSippVal)
+        setNoSilp(noSilpVal)
+        setPendidikanText(pendidikanVal)
+        setBio(bioVal)
+        setQuote(quoteVal)
+        setInstagram(instagramVal)
+        setFoto(fotoVal || null)
+        setKeahlian(keahlianArr)
+        setJumlahSesi(jumlahSesiVal)
+        setTanggalBergabung(tanggalBergabungVal)
+        const accId = localData?.accountId || ""
+        if (accId) setRealAccountId(accId)
+        const isAktif = Boolean(
+          statusAksesVal === "AKTIF" && passwordVal && passwordVal !== "Psikolog123!"
+        )
+        setAccountAktif(isAktif)
+        if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
+        if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
       }
-
-      const namaVal = pick(
-        backendData?.nama_gelar,
-        backendData?.account?.nama,
-        localData?.nama,
-        localData?.nama_gelar
-      )
-
-      const emailVal = pick(
-        backendData?.account?.email,
-        backendData?.email,
-        localData?.email,
-        localData?.account?.email
-      )
-
-      const teleponVal = pick(
-        backendData?.account?.no_telepon,
-        backendData?.no_telepon,
-        localData?.noTelepon,
-        localData?.account?.no_telepon
-      )
-
-      const spesialisasiVal = pick(
-        backendData?.spesialisasi?.nama,
-        backendData?.spesialisasi,
-        localData?.spesialisasi
-      )
-
-      const noStrVal = pick(
-        backendData?.no_str,
-        backendData?.noStr,
-        localData?.noStr,
-        localData?.no_str
-      )
-
-      const noSippVal = pick(
-        backendData?.no_sipp,
-        backendData?.noSipp,
-        localData?.noSipp,
-        localData?.no_sipp
-      )
-
-      const noSilpVal = pick(
-        backendData?.no_silp,
-        backendData?.noSilp,
-        localData?.noSilp,
-        localData?.no_silp
-      )
-
-      const pendidikanVal = pick(
-        backendData?.pendidikan,
-        backendData?.pendidikanText,
-        localData?.pendidikanText,
-        localData?.pendidikan
-      )
-
-      const bioVal = pick(
-        backendData?.bio,
-        localData?.bio
-      )
-
-      const quoteVal = pick(
-        backendData?.quote,
-        localData?.quote
-      )
-
-      const instagramVal = pick(
-        backendData?.instagram,
-        localData?.instagram
-      )
-
-      const fotoVal = pick(
-        backendData?.foto,
-        backendData?.account?.foto,
-        localData?.foto
-      )
-
-      const katRaw = pick(
-        backendData?.kategori,
-        localData?.kategori
-      ).toLowerCase()
-
-      const kategoriVal: KategoriTenaga = katRaw.includes("peer")
-        ? "peer-konselor"
-        : katRaw.includes("konselor")
-        ? "konselor"
-        : "psikolog"
-
-      const statusRaw = pick(
-        localData?.statusAkses,
-        backendData?.status === "INACTIVE" ? "NONAKTIF" : "AKTIF",
-        "AKTIF"
-      )
-      const statusAksesVal: StatusAkses = statusRaw === "NONAKTIF" ? "NONAKTIF" : "AKTIF"
-
-      let keahlianArr: string[] = []
-      const keahlianRaw = backendData?.keahlian || localData?.keahlian
-      if (Array.isArray(keahlianRaw)) {
-        keahlianArr = keahlianRaw
-      } else if (typeof keahlianRaw === "string" && keahlianRaw.trim()) {
-        keahlianArr = keahlianRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
-      }
-
-      const jumlahSesiVal =
-        typeof backendData?.jumlah_sesi === "number"
-          ? backendData.jumlah_sesi
-          : typeof localData?.jumlahSesi === "number"
-          ? localData.jumlahSesi
-          : 0
-
-      const tokenAktivasiVal = pick(
-        backendData?.account?.token_aktivasi,
-        backendData?.token_aktivasi,
-        backendData?.tokenAktivasi,
-        localData?.tokenAktivasi
-      )
-
-      const tokenExpiredVal = pick(
-        backendData?.account?.token_aktivasi_exp,
-        backendData?.token_expired_at,
-        backendData?.tokenExpiredAt,
-        localData?.tokenExpiredAt
-      )
-
-      const passwordVal = pick(
-        localData?.password,
-        "Psikolog123!"
-      )
-
-      const tanggalBergabungVal = pick(
-        localData?.tanggalBergabung,
-        "Terdaftar di DB"
-      )
-
-      setNama(namaVal)
-      setEmail(emailVal)
-      setNoTelepon(teleponVal)
-      setPassword(passwordVal)
-      setKategori(kategoriVal)
-      setStatusAkses(statusAksesVal)
-      setSpesialisasi(spesialisasiVal)
-      setNoStr(noStrVal)
-      setNoSipp(noSippVal)
-      setNoSilp(noSilpVal)
-      setPendidikanText(pendidikanVal)
-      setBio(bioVal)
-      setQuote(quoteVal)
-      setInstagram(instagramVal)
-      setFoto(fotoVal || null)
-      setKeahlian(keahlianArr)
-      setJumlahSesi(jumlahSesiVal)
-      setTanggalBergabung(tanggalBergabungVal)
-      const accId = backendData?.account?.id || backendData?.id_account || backendData?.accountId || localData?.accountId || ""
-      if (accId) setRealAccountId(accId)
-      const isAktif = Boolean(
-        backendData?.accountAktif ||
-        backendData?.account?.accountAktif ||
-        backendData?.account?.password ||
-        (backendData?.account?.aktif && backendData?.account?.password) ||
-        (statusAksesVal === "AKTIF" && passwordVal && passwordVal !== "Psikolog123!")
-      )
-      setAccountAktif(isAktif)
-      if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
-      if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
 
       setLoading(false)
     }
@@ -421,7 +457,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
     const isPsikolog = kategori === "psikolog"
     const updatedTenaga: TenagaAhli = {
-      id: psikologId,
+      id: effectiveId || psikologId,
       nama: nama.trim(),
       email: email.trim(),
       password: password.trim(),
@@ -461,7 +497,12 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       // 2. Simpan juga ke cache lokal
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
-      const updatedList = list.map((item) => (item.id === psikologId ? updatedTenaga : item))
+      const targetId = effectiveId || psikologId
+      const updatedList = list.map((item) =>
+        item.id === targetId || (item.email && item.email.toLowerCase() === updatedTenaga.email.toLowerCase())
+          ? updatedTenaga
+          : item
+      )
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updatedList))
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("storage"))

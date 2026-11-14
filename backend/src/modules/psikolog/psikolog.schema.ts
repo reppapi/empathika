@@ -38,19 +38,25 @@ export const updatePsikologSchema = createPsikologSchema.partial()
 
 export const updatePsikologProfileSchema = z.object({
   nama: z.string().nullable().optional(),
+  nama_gelar: z.string().nullable().optional(),
   email: z.union([z.string().email(), z.literal("")]).nullable().optional(),
   password: z.string().nullable().optional(),
   no_telepon: z.string().nullable().optional(),
+  noTelepon: z.string().nullable().optional(),
   spesialisasi: z.string().nullable().optional(),
   no_str: z.string().nullable().optional(),
+  noStr: z.string().nullable().optional(),
   no_sipp: z.string().nullable().optional(),
+  noSipp: z.string().nullable().optional(),
   no_silp: z.string().nullable().optional(),
+  noSilp: z.string().nullable().optional(),
   foto: z.string().nullable().optional(),
   bio: z.string().nullable().optional(),
   quote: z.string().nullable().optional(),
   instagram: z.string().nullable().optional(),
   keahlian: z.union([z.string(), z.array(z.string())]).nullable().optional(),
   pendidikan: z.string().nullable().optional(),
+  pendidikanText: z.string().nullable().optional(),
   pengalaman_tahun: z.string().nullable().optional(),
   jenis_kelamin: z.string().nullable().optional(),
   video_intro_url: z.string().nullable().optional(),
@@ -59,7 +65,7 @@ export const updatePsikologProfileSchema = z.object({
   profil_lengkap: z.union([z.string(), z.array(z.string())]).nullable().optional(),
   tarif_per_jam: z.number().nullable().optional(),
   kategori: z.string().nullable().optional(),
-})
+}).passthrough()
 
 export const registerPsikologBaruSchema = z.object({
   id: z.string().nullable().optional(),

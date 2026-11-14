@@ -3,6 +3,7 @@ import { TransaksiService } from './transaksi.service'
 import type {
   CreateTransaksiInput,
   CreateCheckoutTransaksiInput,
+  AdminTransaksiQueryInput,
 } from './transaksi.schema'
 
 export class TransaksiController {
@@ -12,10 +13,17 @@ export class TransaksiController {
     this.service = new TransaksiService(fastify)
   }
 
-  getAll = async (request: FastifyRequest, reply: FastifyReply) => {
+  getAll = async (
+    request: FastifyRequest<{ Querystring: AdminTransaksiQueryInput }>,
+    reply: FastifyReply
+  ) => {
     try {
-      const data = await this.service.getAll()
-      reply.send({ success: true, data })
+      const result = await this.service.getAll(request.query)
+      reply.send({
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
+      })
     } catch (err: any) {
       reply.code(500).send({ error: 'Internal Server Error', message: err.message })
     }

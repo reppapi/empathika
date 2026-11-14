@@ -6,6 +6,7 @@ import {
   createTransaksiSchema,
   createCheckoutTransaksiSchema,
   refundTransaksiSchema,
+  adminTransaksiQuerySchema,
   webhookXenditSchema,
 } from './transaksi.schema'
 import { authGuard } from '../../middlewares/auth-guard'
@@ -18,7 +19,12 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
   // ── Admin routes ────────────────────────────────────────────────
   fastify.get('/admin', {
     preHandler: [adminGuard],
-    schema: { tags: ['Transaksi - Admin'], summary: 'Admin melihat semua riwayat transaksi', security: [{ bearerAuth: [] }] },
+    schema: {
+      tags: ['Transaksi - Admin'],
+      summary: 'Admin melihat semua riwayat transaksi dengan paginasi dan filter',
+      security: [{ bearerAuth: [] }],
+      querystring: adminTransaksiQuerySchema,
+    },
     handler: controller.getAll,
   })
 
