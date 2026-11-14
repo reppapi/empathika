@@ -249,7 +249,6 @@ export class BookingRepository {
         status: { in: ['PENDING', 'CONFIRMED'] },
         ...(parsedTanggal ? { jadwal: { tanggal: parsedTanggal } } : {}),
         ...(resolvedPsikologId ? { jadwal: { id_psikolog: resolvedPsikologId } } : {}),
-        ...(params.tipe_jadwal ? { jadwal: { tipe_jadwal: params.tipe_jadwal } } : {}),
       },
       select: {
         id_jadwal: true,
@@ -281,7 +280,6 @@ export class BookingRepository {
         status: { in: ['SUDAH_DIBOOKING', 'TIDAK_TERSEDIA'] as any },
         ...(parsedTanggal ? { tanggal: parsedTanggal } : {}),
         ...(resolvedPsikologId ? { id_psikolog: resolvedPsikologId } : {}),
-        ...(params.tipe_jadwal ? { tipe_jadwal: params.tipe_jadwal } : {}),
       },
       select: {
         id: true,
@@ -301,11 +299,16 @@ export class BookingRepository {
     // 3. Query slot yang berstatus TERSEDIA
     const where: Prisma.JadwalSlotWhereInput = {
       status: 'TERSEDIA',
-      tipe_jadwal: params.tipe_jadwal || 'KONSULTASI',
       OR: [
         { booking_konsultasi: null },
         { booking_konsultasi: { status: 'CANCELLED' } },
       ],
+    }
+
+    if (params.tipe_jadwal) {
+      where.tipe_jadwal = {
+        in: [params.tipe_jadwal, 'KEDUANYA', 'SEMUA', 'KONSULTASI', 'ASESMEN'],
+      }
     }
 
     if (parsedTanggal) {

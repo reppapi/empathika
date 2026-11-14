@@ -346,7 +346,12 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
               .filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
               .forEach((s: any) => {
               const slotType = (s.tipe_jadwal || "KONSULTASI").toUpperCase()
-              const matchType = slotType === effectiveTipeJadwal.toUpperCase()
+              const matchType =
+                slotType === effectiveTipeJadwal.toUpperCase() ||
+                slotType === "KEDUANYA" ||
+                slotType === "SEMUA" ||
+                slotType === "KONSULTASI" ||
+                slotType === "ASESMEN"
               const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
               const matchPsi =
                 effectiveTipeJadwal === "ASESMEN"
@@ -465,6 +470,36 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
           metode: effectiveMetode,
         })
       })
+
+      // 2b. Gabungkan slot dari LocalStorage jika ada (sinkronisasi instan antartab)
+      try {
+        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            parsed
+              .filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
+              .forEach((s: any) => {
+                const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
+                if (s.tanggal === dateKey && isTersedia) {
+                  const timeKey = (s.jam_mulai || "").trim().substring(0, 5)
+                  if (timeKey && !candidateSlotsMap.has(timeKey)) {
+                    candidateSlotsMap.set(timeKey, {
+                      id: s.id || `local_slot_${timeKey}`,
+                      id_psikolog: s.id_psikolog || "",
+                      tanggal: s.tanggal,
+                      jam_mulai: timeKey,
+                      jam_selesai: (s.jam_selesai || "").trim().substring(0, 5) || "10:00",
+                      metode: s.metode || "Keduanya",
+                      status: "TERSEDIA",
+                      tipe_jadwal: s.tipe_jadwal || effectiveTipeJadwal,
+                    } as any)
+                  }
+                }
+              })
+          }
+        }
+      } catch {}
 
       // 3. FILTER KETAT: Status TERSEDIA, Jam belum lewat hari ini, dan Metode Konseling
       const now = new Date()

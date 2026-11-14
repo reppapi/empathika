@@ -756,15 +756,13 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
       const jamSelesai = parts[1]?.substring(0, 5) || "10:00"
 
       try {
-        if (!isBiroContext) {
-          await adminService.createJadwalSlot({
-            tanggal: tanggalStr,
-            jam_mulai: jamMulai,
-            jam_selesai: jamSelesai,
-            tipe_jadwal: "ASESMEN",
-            metode: metode.toUpperCase(),
-          })
-        }
+        await adminService.createJadwalSlot({
+          tanggal: tanggalStr,
+          jam_mulai: jamMulai,
+          jam_selesai: jamSelesai,
+          tipe_jadwal: "KONSULTASI",
+          metode: metode.toUpperCase(),
+        })
         successCount++
       } catch (err: any) {
         console.warn(`Gagal membuka slot ${finalWaktu}:`, err?.response?.data?.message || err.message)
@@ -776,17 +774,16 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
         const exists = currentList.some(
           (s: any) =>
             s.tanggal === tanggalStr &&
-            (s.jam_mulai || "").substring(0, 5) === jamMulai &&
-            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN"
+            (s.jam_mulai || "").substring(0, 5) === jamMulai
         );
         if (!exists) {
           currentList.push({
-            id: "slot_asesmen_" + tanggalStr + "_" + jamMulai + "_" + Date.now(),
+            id: "slot_" + tanggalStr + "_" + jamMulai + "_" + Date.now(),
             tanggal: tanggalStr,
             jam_mulai: jamMulai,
             jam_selesai: jamSelesai,
             label_waktu: jamMulai + " - " + jamSelesai,
-            tipe_jadwal: "ASESMEN",
+            tipe_jadwal: "KONSULTASI",
             metode: metode.toUpperCase(),
             status: "TERSEDIA",
             nama_psikolog: "",

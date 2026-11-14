@@ -137,10 +137,10 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/jadwal-slots', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Admin - Jadwal'],
-      summary: 'Admin membukakan slot ketersediaan jadwal asesmen klinik',
+      summary: 'Admin membukakan slot ketersediaan jadwal klinik',
       security: [{ bearerAuth: [] }],
       body: createAdminJadwalSlotSchema,
     },
@@ -148,7 +148,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.delete('/jadwal-slots/:id', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Admin - Jadwal'],
       summary: 'Admin menghapus slot ketersediaan jadwal asesmen klinik yang belum dibooking',

@@ -196,7 +196,8 @@ export class BookingService {
       throw new Error('Jam selesai harus lebih akhir dari jam mulai')
     }
 
-    const isAsesmen = (input.tipe_jadwal || 'ASESMEN').toUpperCase() === 'ASESMEN'
+    const targetTipeJadwal = (input.tipe_jadwal || 'KONSULTASI').toUpperCase()
+    const isAsesmen = targetTipeJadwal === 'ASESMEN'
 
     let targetMetode = isAsesmen ? 'OFFLINE' : 'ONLINE'
     if (input.metode) {
@@ -232,20 +233,17 @@ export class BookingService {
         }
       }
 
-      // Jika asesmen, cegah duplikasi slot asesmen yang sama persis
-      if (isAsesmen) {
-        const existingAsesmen = await (this.repo as any).prisma.jadwalSlot.findFirst({
-          where: {
-            tanggal: parsedTanggal,
-            jam_mulai: parsedJamMulai,
-            jam_selesai: parsedJamSelesai,
-            tipe_jadwal: 'ASESMEN',
-            status: 'TERSEDIA',
-          },
-        })
-        if (existingAsesmen) {
-          throw new Error('Slot jam asesmen tersebut sudah dibuka pada tanggal yang sama')
-        }
+      // Cegah duplikasi slot jam yang sama persis
+      const existingSlot = await (this.repo as any).prisma.jadwalSlot.findFirst({
+        where: {
+          tanggal: parsedTanggal,
+          jam_mulai: parsedJamMulai,
+          jam_selesai: parsedJamSelesai,
+          status: 'TERSEDIA',
+        },
+      })
+      if (existingSlot) {
+        throw new Error('Slot jam tersebut sudah dibuka pada tanggal yang sama')
       }
 
       targetPsikologId = selectedPsiId || allPsikolog[0].id
@@ -267,7 +265,7 @@ export class BookingService {
       tanggal: parsedTanggal,
       jam_mulai: parsedJamMulai,
       jam_selesai: parsedJamSelesai,
-      tipe_jadwal: 'ASESMEN',
+      tipe_jadwal: targetTipeJadwal,
       metode: targetMetode,
     })
 

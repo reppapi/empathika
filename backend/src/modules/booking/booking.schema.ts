@@ -38,8 +38,8 @@ export const createAdminJadwalSlotSchema = z.object({
   tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   jam_mulai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_mulai harus HH:mm'),
   jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
-  tipe_jadwal: z.string().optional().default('ASESMEN'),
-  metode: z.string().optional().default('OFFLINE'),
+  tipe_jadwal: z.string().optional().default('KONSULTASI'),
+  metode: z.string().optional().default('ONLINE'),
 })
 
 export const createAdminSesiSchema = z.object({
