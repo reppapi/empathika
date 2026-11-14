@@ -494,6 +494,13 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
   // Muat data jadwal & sesi riil langsung dari Database PostgreSQL
   const fetchJadwalData = useCallback(async () => {
+    if (isBiroContext) {
+      // Data jadwal biro belum diatur, jangan ambil data jadwal dari Admin Utama
+      setTodaySessions([])
+      setBookedSessions([])
+      setIsLoading(false)
+      return
+    }
     setIsLoading(true)
     try {
       const res: any = await adminService.getJadwal({ date: datePickerValue })
