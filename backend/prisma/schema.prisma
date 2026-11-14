@@ -381,6 +381,7 @@ model Event {
 model EventDokumentasi {
   id        String   @id @default(uuid())
   judul     String
+  kategori  String   @default("KOLABORASI") // SEMINAR | WORKSHOP | KOLABORASI
   tanggal   DateTime @db.Date
   deskripsi String   @db.Text
   createdAt DateTime @default(now())

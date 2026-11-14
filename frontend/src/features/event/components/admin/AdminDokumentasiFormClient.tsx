@@ -24,6 +24,7 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
   const isEdit = Boolean(id)
 
   const [judul, setJudul] = useState("")
+  const [kategori, setKategori] = useState<"SEMINAR" | "WORKSHOP" | "KOLABORASI">("KOLABORASI")
   const [tanggal, setTanggal] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
   const [photos, setPhotos] = useState<PhotoItem[]>([])
@@ -47,6 +48,9 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
         if (res?.data) {
           const d = res.data
           setJudul(d.judul || "")
+          if (d.kategori && ["SEMINAR", "WORKSHOP", "KOLABORASI"].includes(d.kategori)) {
+            setKategori(d.kategori as any)
+          }
           // format tanggal YYYY-MM-DD
           const tglStr = d.tanggal ? d.tanggal.split("T")[0] : ""
           setTanggal(tglStr)
@@ -153,6 +157,7 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
 
       const payload = {
         judul: judul.trim(),
+        kategori,
         tanggal,
         deskripsi: deskripsi.trim(),
         foto: photos.map((p, idx) => ({
@@ -230,6 +235,22 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
             onChange={(e) => setJudul(e.target.value)}
             className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all placeholder:text-gray-400 font-medium"
           />
+        </div>
+
+        {/* Field Kategori Dokumentasi */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+            Kategori Galeri <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={kategori}
+            onChange={(e) => setKategori(e.target.value as any)}
+            className="w-full sm:w-72 px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all font-medium cursor-pointer bg-white"
+          >
+            <option value="WORKSHOP">Workshop</option>
+            <option value="SEMINAR">Seminar</option>
+            <option value="KOLABORASI">Kolaborasi</option>
+          </select>
         </div>
 
         {/* Field 2: Tanggal Pelaksanaan */}
