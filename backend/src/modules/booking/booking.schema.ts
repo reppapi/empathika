@@ -29,6 +29,8 @@ export const getAdminJadwalQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   layanan: z.string().optional(),
   status: z.string().optional(),
+  id_biro: z.string().optional(),
+  biroId: z.string().optional(),
 })
 
 export const createAdminJadwalSlotSchema = z.object({

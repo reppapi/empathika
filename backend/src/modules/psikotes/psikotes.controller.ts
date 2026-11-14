@@ -14,8 +14,10 @@ import type {
 
 export class PsikotesController {
   private service: PsikotesService
+  private fastify: FastifyInstance
 
   constructor(fastify: FastifyInstance) {
+    this.fastify = fastify
     this.service = new PsikotesService(fastify)
   }
 
@@ -95,7 +97,20 @@ export class PsikotesController {
     request: FastifyRequest<{ Querystring: PesertaQueryInput }>,
     reply: FastifyReply
   ) => {
-    const data = await this.service.getPeserta(request.query)
+    const user = (request as any).user
+    let id_biro = request.query?.id_biro
+    if (user?.role === 'BIRO') {
+      const account = await (this.fastify as any).prisma.account.findUnique({
+        where: { id: user.id },
+        select: { id_biro: true, owned_biro: { select: { id: true } } },
+      })
+      id_biro = account?.owned_biro?.[0]?.id || account?.id_biro || undefined
+    }
+
+    const data = await this.service.getPeserta({
+      ...request.query,
+      ...(id_biro ? { id_biro } : {}),
+    })
     return reply.code(200).send({
       success: true,
       message: 'Berhasil mengambil daftar peserta psikotes',

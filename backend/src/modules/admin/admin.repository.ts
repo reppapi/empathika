@@ -31,7 +31,7 @@ export class AdminRepository {
   /**
    * Mengambil seluruh sesi konsultasi/asesmen terkonfirmasi dalam rentang tanggal jadwal tertentu
    */
-  async getConfirmedSessionsBetween(startDate: Date, endDate: Date) {
+  async getConfirmedSessionsBetween(startDate: Date, endDate: Date, biroId?: string) {
     return this.prisma.bookingKonsultasi.findMany({
       where: {
         jadwal: {
@@ -40,13 +40,27 @@ export class AdminRepository {
             lte: endDate,
           },
         },
-        OR: [
-          { status: { in: ['CONFIRMED', 'COMPLETED'] } },
-          { transaksi: { status_pembayaran: 'PAID' } },
-        ],
         NOT: {
           status: 'CANCELLED',
         },
+        AND: [
+          {
+            OR: [
+              { status: { in: ['CONFIRMED', 'COMPLETED'] } },
+              { transaksi: { status_pembayaran: 'PAID' } },
+            ],
+          },
+          ...(biroId
+            ? [
+                {
+                  OR: [
+                    { client: { id_biro: biroId } },
+                    { jadwal: { psikolog: { account: { id_biro: biroId } } } },
+                  ],
+                },
+              ]
+            : []),
+        ],
       },
       include: {
         jadwal: true,
@@ -62,7 +76,8 @@ export class AdminRepository {
     monthEnd: Date,
     lastMonthStart: Date,
     lastMonthEnd: Date,
-    yesterdayEnd: Date
+    yesterdayEnd: Date,
+    biroId?: string
   ) {
     // 1. Pendapatan Bulan Ini (Transaksi Berstatus PAID & Memiliki Booking Layanan Riil)
     const validBookingFilter = {
@@ -73,10 +88,13 @@ export class AdminRepository {
       ],
     }
 
+    const biroFilter = biroId ? { client: { id_biro: biroId } } : {}
+
     const paidTransactionsThisMonth = await this.prisma.transaksi.findMany({
       where: {
         status_pembayaran: 'PAID',
         ...validBookingFilter,
+        ...biroFilter,
         AND: [
           {
             OR: [
@@ -96,6 +114,7 @@ export class AdminRepository {
       where: {
         status_pembayaran: 'PAID',
         ...validBookingFilter,
+        ...biroFilter,
         AND: [
           {
             OR: [
@@ -120,8 +139,9 @@ export class AdminRepository {
       0
     )
 
-    // 2. Total Klien Aktif (Opsi B: Hanya klien yang memiliki minimal 1 transaksi PAID atau booking aktif)
+    // 2. Total Klien Aktif (Hanya klien biro jika biroId tersedia)
     const activeClientWhere: Prisma.ClientWhereInput = {
+      ...(biroId ? { id_biro: biroId } : {}),
       OR: [
         { transaksi: { some: { status_pembayaran: 'PAID' } } },
         { booking_konsultasi: { some: { NOT: { status: 'CANCELLED' } } } },
@@ -146,26 +166,33 @@ export class AdminRepository {
       where: {
         status: 'COMPLETED',
         NOT: { status: 'CANCELLED' },
-        OR: [
-          { jadwal: { tanggal: { gte: monthStart, lte: monthEnd } } },
-          { updatedAt: { gte: monthStart, lte: monthEnd } },
+        ...(biroId
+          ? {
+              OR: [
+                { client: { id_biro: biroId } },
+                { jadwal: { psikolog: { account: { id_biro: biroId } } } },
+              ],
+            }
+          : {}),
+        AND: [
+          {
+            OR: [
+              { jadwal: { tanggal: { gte: monthStart, lte: monthEnd } } },
+              { updatedAt: { gte: monthStart, lte: monthEnd } },
+            ],
+          },
         ],
       },
     })
 
     // 4. Pendaftar Workshop & Event Aktif
-    const activeEventsCount = await this.prisma.event.count({
-      where: {
-        status: { in: ['UPCOMING', 'ONGOING'] },
-      },
-    })
-
     const bookingEvents = await this.prisma.bookingEvent.findMany({
       where: {
         event: {
           status: { in: ['UPCOMING', 'ONGOING'] },
         },
         NOT: { status: 'CANCELLED' },
+        ...(biroId ? { client: { id_biro: biroId } } : {}),
       },
       select: { jumlah_peserta: true },
     })
@@ -174,10 +201,19 @@ export class AdminRepository {
       0
     )
 
+    const activeEventsCount = biroId
+      ? (totalEventParticipants > 0 ? 1 : 0)
+      : await this.prisma.event.count({
+          where: {
+            status: { in: ['UPCOMING', 'ONGOING'] },
+          },
+        })
+
     // 5. Menunggu Pembayaran (hanya hitung transaksi aktif yang terhubung ke booking valid)
     const pendingPaymentCount = await this.prisma.transaksi.count({
       where: {
         status_pembayaran: 'PENDING',
+        ...(biroId ? { client: { id_biro: biroId } } : {}),
         OR: [
           { booking_konsultasi: { isNot: null } },
           { booking_psikotes: { isNot: null } },
@@ -201,7 +237,7 @@ export class AdminRepository {
   /**
    * Mengambil sesi konseling hari ini khusus widget dashboard (dibatasi limit teratas)
    */
-  async findDashboardTodaySessions(date: Date, limit: number = 5) {
+  async findDashboardTodaySessions(date: Date, limit: number = 5, biroId?: string) {
     const startOfDay = new Date(date)
     startOfDay.setUTCHours(0, 0, 0, 0)
     const endOfDay = new Date(date)
@@ -217,6 +253,14 @@ export class AdminRepository {
       NOT: {
         status: 'CANCELLED',
       },
+      ...(biroId
+        ? {
+            OR: [
+              { client: { id_biro: biroId } },
+              { jadwal: { psikolog: { account: { id_biro: biroId } } } },
+            ],
+          }
+        : {}),
     }
 
     const [totalCount, rawSessions] = await Promise.all([
@@ -258,8 +302,9 @@ export class AdminRepository {
   /**
    * Mengambil transaksi pembayaran terbaru khusus widget ringkasan operasional dashboard
    */
-  async findDashboardRecentTransactions(limit: number = 5) {
+  async findDashboardRecentTransactions(limit: number = 5, biroId?: string) {
     const where: Prisma.TransaksiWhereInput = {
+      ...(biroId ? { client: { id_biro: biroId } } : {}),
       OR: [
         { booking_konsultasi: { isNot: null } },
         { booking_psikotes: { isNot: null } },
@@ -300,24 +345,34 @@ export class AdminRepository {
   /**
    * Mengambil agenda dan peringatan operasional mendatang langsung dari Database
    */
-  async findDashboardAgenda(limit: number = 6) {
+  async findDashboardAgenda(limit: number = 6, biroId?: string) {
     const today = new Date()
     today.setUTCHours(0, 0, 0, 0)
 
     const [upcomingEvents, upcomingSessions, pendingPayments] = await Promise.all([
-      this.prisma.event.findMany({
-        where: {
-          status: { in: ['UPCOMING', 'ONGOING'] },
-        },
-        orderBy: [{ tanggal: 'asc' }, { jam_mulai: 'asc' }],
-        take: 3,
-      }),
+      biroId
+        ? Promise.resolve([])
+        : this.prisma.event.findMany({
+            where: {
+              status: { in: ['UPCOMING', 'ONGOING'] },
+            },
+            orderBy: [{ tanggal: 'asc' }, { jam_mulai: 'asc' }],
+            take: 3,
+          }),
       this.prisma.bookingKonsultasi.findMany({
         where: {
           NOT: { status: 'CANCELLED' },
           jadwal: {
             tanggal: { gte: today },
           },
+          ...(biroId
+            ? {
+                OR: [
+                  { client: { id_biro: biroId } },
+                  { jadwal: { psikolog: { account: { id_biro: biroId } } } },
+                ],
+              }
+            : {}),
         },
         include: {
           client: true,
@@ -334,6 +389,7 @@ export class AdminRepository {
       this.prisma.transaksi.findMany({
         where: {
           status_pembayaran: 'PENDING',
+          ...(biroId ? { client: { id_biro: biroId } } : {}),
           OR: [
             { booking_konsultasi: { isNot: null } },
             { booking_psikotes: { isNot: null } },

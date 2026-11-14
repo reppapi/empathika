@@ -22,6 +22,13 @@ export class TransaksiRepository {
       where.id_client = _params.clientId
     }
 
+    if (_params?.biroId) {
+      where.client = {
+        ...(where.client || {}),
+        id_biro: _params.biroId,
+      }
+    }
+
     if (_params?.status) {
       where.status_pembayaran = _params.status as any
     }

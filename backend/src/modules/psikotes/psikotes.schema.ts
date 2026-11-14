@@ -109,6 +109,7 @@ export const pesertaQuerySchema = z.object({
   search: z.string().optional(),
   jenis_akses: z.enum(['GRATIS', 'BERBAYAR', 'ALL']).optional(),
   id_paket: z.string().optional(),
+  id_biro: z.string().optional(),
   page: z.coerce.number().int().optional().default(1),
   limit: z.coerce.number().int().optional().default(50),
 })

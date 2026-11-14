@@ -9,6 +9,8 @@ import {
   updateAdminProfileSchema,
   resendActivationSchema,
   dashboardLimitQuerySchema,
+  dashboardChartQuerySchema,
+  dashboardMetricsQuerySchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -65,6 +67,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan data grafik reservasi sesi konsultasi & asesmen terkonfirmasi',
       security: [{ bearerAuth: [] }],
+      querystring: dashboardChartQuerySchema,
     },
     handler: controller.getDashboardChart,
   })
@@ -75,6 +78,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan 5 kartu ringkasan operasional admin (pendapatan, klien, sesi selesai, pendaftar workshop, pending bayar)',
       security: [{ bearerAuth: [] }],
+      querystring: dashboardMetricsQuerySchema,
     },
     handler: controller.getDashboardMetrics,
   })

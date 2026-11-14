@@ -38,7 +38,7 @@ export class BookingService {
     }
 
     // 1. Ambil Sesi Hari Ini
-    const rawTodaySessions = await this.repo.findTodaySessions(selectedDate)
+    const rawTodaySessions = await this.repo.findTodaySessions(selectedDate, query.id_biro || query.biroId)
 
     const todaySessions = rawTodaySessions
       .filter((s) => {
