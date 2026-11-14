@@ -53,6 +53,7 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
         <div className="shrink-0 px-5 pt-8 pb-2 sm:px-6">
           <Link
             href="/admin"
+            prefetch={true}
             onClick={onClose}
             className="flex items-center gap-3 transition-transform hover:scale-105"
           >
@@ -74,6 +75,7 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
                 <Link
                   key={item.name}
                   href={item.path as any}
+                  prefetch={true}
                   onClick={onClose}
                   className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${active
                       ? "w-full bg-white/25 text-white shadow-sm font-semibold"

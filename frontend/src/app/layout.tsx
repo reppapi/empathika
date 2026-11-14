@@ -4,6 +4,7 @@ import "./globals.css"
 import { QueryProvider } from "@/providers/QueryProvider"
 import { AuthProvider } from "@/providers/AuthProvider"
 import { TenantProvider } from "@/context/TenantContext"
+import { NavigationProgressBar } from "@/components/shared/NavigationProgressBar"
 
 const poppins = Poppins({ 
   subsets: ["latin"],
@@ -24,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <body className={`${poppins.className} ${poppins.variable} antialiased bg-gray-50`} suppressHydrationWarning>
+        <NavigationProgressBar />
         <QueryProvider>
           <AuthProvider>
             <TenantProvider>{children}</TenantProvider>

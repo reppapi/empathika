@@ -186,6 +186,7 @@ export function AdminNavbar({
                   ? "/admin-biro/profile"
                   : "/admin/profile") as any
               }
+              prefetch={true}
               onClick={() => setDropdownOpen(false)}
               className="block px-4 py-2 text-xs font-medium text-gray-700 hover:bg-purple-50 hover:text-[#561269]"
             >
