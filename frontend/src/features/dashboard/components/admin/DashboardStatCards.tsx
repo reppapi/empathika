@@ -34,8 +34,19 @@ export default function DashboardStatCards({ metrics }: DashboardStatCardsProps)
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
       {metrics.map((item, idx) => {
         const IconComp = item.icon
-        const primaryColor = item.color || "#5D205E"
-        const isAmber = item.color === "#D97706"
+        const isAmber = item.color === "#D97706" || item.title.includes("Menunggu Pembayaran")
+        const primaryColor = isAmber
+          ? "#D97706"
+          : isBiro
+          ? "var(--biro-theme-color, #561269)"
+          : (item.color || "#5D205E")
+
+        const iconBg = isAmber
+          ? "#FEF3C7"
+          : isBiro
+          ? "color-mix(in srgb, var(--biro-theme-color, #561269) 12%, transparent)"
+          : "#F9F5FA"
+
         const cardLink = getMetricLink(item.title)
 
         return (
@@ -46,7 +57,8 @@ export default function DashboardStatCards({ metrics }: DashboardStatCardsProps)
           >
             {/* Top Bar Accent Color */}
             <div
-              className="h-1.5 w-full absolute top-0 left-0 transition-all group-hover:h-2"
+              data-amber={isAmber ? "true" : undefined}
+              className="h-1.5 w-full absolute top-0 left-0 transition-all group-hover:h-2 stat-card-accent-bar"
               style={{ backgroundColor: primaryColor }}
             />
 
@@ -57,9 +69,10 @@ export default function DashboardStatCards({ metrics }: DashboardStatCardsProps)
                   {item.title}
                 </span>
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"
+                  data-amber={isAmber ? "true" : undefined}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform stat-card-icon-box"
                   style={{
-                    backgroundColor: isAmber ? "#FEF3C7" : "#F9F5FA",
+                    backgroundColor: iconBg,
                     color: primaryColor,
                   }}
                 >
@@ -83,7 +96,10 @@ export default function DashboardStatCards({ metrics }: DashboardStatCardsProps)
                 {item.change.startsWith("+") && <ArrowUp className="w-3 h-3 shrink-0" />}
                 <span>{item.change}</span>
               </p>
-              <span className="text-gray-300 group-hover:text-[#5D205E] transition-colors">
+              <span 
+                className="text-gray-300 transition-colors group-hover:opacity-100"
+                style={{ color: isAmber ? undefined : primaryColor }}
+              >
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </div>

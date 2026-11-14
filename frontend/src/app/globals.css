@@ -315,3 +315,16 @@ html[data-biro-theme="true"] .from-\[\#561269\],
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
 }
 
+/* 12. Dashboard Metric Summary Cards (Aksen Kotak & Ikon Metrik) */
+html[data-biro-theme="true"] .stat-card-accent-bar:not([data-amber="true"]),
+[data-biro-theme="true"] .stat-card-accent-bar:not([data-amber="true"]) {
+  background-color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] .stat-card-icon-box:not([data-amber="true"]),
+[data-biro-theme="true"] .stat-card-icon-box:not([data-amber="true"]) {
+  color: var(--biro-theme-color, #561269) !important;
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 12%, transparent) !important;
+}
+
+
