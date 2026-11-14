@@ -745,7 +745,7 @@ export default function HomeClient() {
                       {item.judul}
                     </h3>
                     <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
-                      {item.deskripsi || "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini."}
+                      {item.tentang_tes || "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini."}
                     </p>
 
                     <div className="mt-auto">

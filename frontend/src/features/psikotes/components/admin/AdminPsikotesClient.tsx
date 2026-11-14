@@ -17,6 +17,7 @@ import TabPaketPsikotes from "./TabPaketPsikotes";
 import ModalDetailPeserta from "./ModalDetailPeserta";
 import ModalDetailPaket from "./ModalDetailPaket";
 import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal";
+import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 
 export interface AdminPsikotesClientProps {
   isBiroContext?: boolean;
@@ -61,7 +62,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         const mapped: AdminPsikotesPeserta[] = rawItems.map((it: any) => ({
           id: it.id,
           nama: it.nama_peserta,
-          noHp: it.no_hp,
+          noHp: it.no_hp ? formatToIndonesianPhone(it.no_hp) : it.no_hp,
           paket: it.nama_paket,
           tanggal: new Date(it.tanggal).toLocaleDateString("id-ID", {
             day: "numeric",
@@ -69,12 +70,15 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
             year: "numeric",
           }),
           rawTanggal: it.tanggal,
-          status: it.status as "Selesai" | "Berjalan",
+          status: it.status as "Selesai" | "Menunggu Pengerjaan",
           skor: it.skor,
           jenisAkses: it.jenis_akses as "Gratis" | "Berbayar",
           usia: it.usia,
           jenisKelamin: it.jenis_kelamin,
           totalSkor: it.total_skor,
+          namaPemesan: it.nama_pemesan || null,
+          noHpPemesan: it.no_hp_pemesan ? formatToIndonesianPhone(it.no_hp_pemesan) : null,
+          isPembeliBerbeda: Boolean(it.is_pembeli_berbeda),
           hasil: it.hasil,
           peserta: it.peserta,
         }));

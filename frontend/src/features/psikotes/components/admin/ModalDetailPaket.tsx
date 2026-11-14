@@ -27,63 +27,63 @@ function getInstrumentMetadata(judul: string) {
     case "CATS":
       return {
         alatUkur: "CATS (Sachser et al., 2017)",
-        targetUsia: "Anak & Remaja (7–17 Th)",
-        tipeHasil: "4 Klaster PTSD & PTE (Cut-off ≥ 21)",
+        targetUsia: "7–17 tahun",
+        tipeHasil: "4 Klaster PTSD & PTE",
       };
     case "CDI":
       return {
         alatUkur: "CDI (Maria Kovacs, 1992)",
-        targetUsia: "Anak & Remaja (7–19 Th)",
-        tipeHasil: "5 Dimensi Klinis (Cut-off ≥ 19)",
+        targetUsia: "7–19 tahun",
+        tipeHasil: "5 Dimensi Klinis",
       };
     case "RCMAS":
       return {
         alatUkur: "RCMAS (Reynolds & Richmond, 1978)",
-        targetUsia: "Anak & Remaja (6–19 Th)",
-        tipeHasil: "Skor Otomatis (Cut-off ≥ 19 & Lie)",
+        targetUsia: "6–19 tahun",
+        tipeHasil: "Skor Otomatis & Skala Lie",
       };
     case "PHQ":
       return {
         alatUkur: "PHQ-9 (Kroenke & Spitzer, 2001)",
         targetUsia: "18 tahun ke atas",
-        tipeHasil: "Skor Otomatis (9 Kriteria DSM-5)",
+        tipeHasil: "Skor Otomatis",
       };
     case "GAD":
       return {
         alatUkur: "GAD-7 (Spitzer et al., 2006)",
         targetUsia: "18 tahun ke atas",
-        tipeHasil: "Skor Otomatis (Ambang Cut-off)",
+        tipeHasil: "Skor Otomatis",
       };
     case "DASS":
       return {
         alatUkur: "DASS-42 (Lovibond & Lovibond, 1995)",
-        targetUsia: "Remaja & Dewasa (≥ 15 Th)",
-        tipeHasil: "3 Subskala (Depresi, Cemas, Stres)",
+        targetUsia: "13 tahun ke atas",
+        tipeHasil: "3 Subskala: Depresi, Cemas, Stres",
       };
     case "IGDS":
       return {
         alatUkur: "IGDS9-SF (Pontes & Griffiths, 2015)",
-        targetUsia: "Gamer (≥ 11 Th)",
+        targetUsia: "Anak-anak hingga dewasa",
         tipeHasil: "9 Kriteria DSM-5 IGD",
       };
     case "PBQ":
       return {
         alatUkur: "PBQ (Beck, 126 Butir, 9 Skala)",
-        targetUsia: "Dewasa (≥ 18 Th)",
-        tipeHasil: "Profil Skor Mentah 9 Skala (0–56)",
+        targetUsia: "Tidak dicantumkan dalam handout",
+        tipeHasil: "Profil Skor Mentah 9 Skala",
       };
     default: {
       const j = (judul || "").toLowerCase();
       if (j.includes("mcmi")) {
         return {
           alatUkur: "MCMI-IV (Millon Clinical Multiaxial)",
-          targetUsia: "Dewasa (≥ 18 Th)",
-          tipeHasil: "Telaah Psikolog (SLA Maks. 3 Hari)",
+          targetUsia: "18 tahun ke atas",
+          tipeHasil: "Telaah Psikolog",
         };
       }
       return {
         alatUkur: "Instrumen Psikometri Baku",
-        targetUsia: "Remaja & Dewasa",
+        targetUsia: "Remaja dan dewasa",
         tipeHasil: "Penilaian Standar Empathika",
       };
     }

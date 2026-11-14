@@ -59,3 +59,32 @@ export function normalizePhoneNumber(phone?: string | null): string {
   return cleaned
 }
 
+/**
+ * Memformat nomor telepon Indonesia menjadi format tampilan rapi "+62 8xx-xxxx-xxxx"
+ */
+export function formatIndonesianPhone(phone?: string | null): string {
+  if (!phone || phone === '—') return '—'
+  let digits = phone.replace(/\D/g, '')
+  if (!digits) return phone
+
+  if (digits.startsWith('620')) {
+    digits = digits.slice(3)
+  } else if (digits.startsWith('62')) {
+    digits = digits.slice(2)
+  } else if (digits.startsWith('0')) {
+    digits = digits.slice(1)
+  }
+
+  if (!digits) return '+62 '
+
+  if (digits.length <= 3) {
+    return `+62 ${digits}`
+  } else if (digits.length <= 7) {
+    return `+62 ${digits.slice(0, 3)}-${digits.slice(3)}`
+  } else if (digits.length <= 11) {
+    return `+62 ${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+  } else {
+    return `+62 ${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 13)}`
+  }
+}
+

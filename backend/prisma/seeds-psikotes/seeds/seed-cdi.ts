@@ -368,12 +368,13 @@ export async function seedCDI(prisma: PrismaClient) {
 
   // 2. Produk Paket CDI (Gratis - Rp 0)
   console.log('\n--- Menyemai Produk Paket CDI (Gratis) ---')
-  const judulPaket = 'Tes Gejala Depresi Anak & Remaja (CDI)'
+  const judulPaket = 'Tes Depresi Anak dan Remaja'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
         { judul: judulPaket },
         { judul: { contains: 'CDI', mode: 'insensitive' } },
+        { judul: { contains: 'Depresi Anak', mode: 'insensitive' } },
         { id_alat_ukur: alatUkur.id },
       ],
     },
@@ -385,10 +386,8 @@ export async function seedCDI(prisma: PrismaClient) {
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
     banner_url: '/images/psikotes/banner-depresi.jpg',
-    deskripsi:
-      'Kenali gambaran tingkat depresi pada anak dan remaja usia 7–19 tahun secara gratis melalui evaluasi 5 dimensi: suasana hati negatif, masalah antarpribadi, ketidakefektifan, anhedonia (kehilangan minat), dan harga diri negatif.',
     tentang_tes:
-      "Children's Depression Inventory (CDI) dikembangkan oleh Maria Kovacs pada tahun 1992 untuk membantu orang tua, remaja, dan pendidik mendeteksi tanda-tanda awal gejala depresi pada anak dan remaja usia 7–19 tahun. Tes ini terdiri dari 27 butir yang mengukur lima dimensi penting dari depresi anak: suasana hati negatif, masalah hubungan antarpribadi, ketidakefektifan belajar, anhedonia (kehilangan rasa senang), dan harga diri negatif. Hasil skrining ini membantu mengidentifikasi apakah gejala masih dalam batas wajar atau membutuhkan perhatian dan konsultasi profesional.",
+      'Perasaan sedih, kehilangan semangat, atau merasa kurang percaya diri bisa menjadi pengalaman yang tidak mudah untuk diungkapkan. Tes ini membantu mengenali berbagai pengalaman emosional pada anak dan remaja, mulai dari suasana hati negatif, hubungan dengan orang lain, perasaan tidak mampu, kehilangan minat, hingga cara mereka memandang diri sendiri.',
     status: 'PUBLISHED',
   }
 

@@ -164,10 +164,8 @@ export async function seedDASS42(prisma: PrismaClient) {
     jenis_akses: JenisAksesPsikotes.BERBAYAR,
     harga: 49000,
     banner_url: '/images/psikotes/banner-dass42.jpg',
-    deskripsi:
-      'Kenali kondisi emosionalmu dan pahami bagaimana perasaanmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu bisa memperoleh gambaran mengenai tingkat depresi, kecemasan, dan stres yang mungkin kamu alami selama satu minggu terakhir.',
     tentang_tes:
-      'Tes ini mengajakmu mengenali berbagai kondisi emosional yang mungkin sedang kamu alami, mulai dari perubahan suasana hati, perasaan cemas, hingga ketegangan dalam menghadapi berbagai situasi. Dengan memahami kondisi tersebut, kamu dapat lebih mengenali apa yang sedang dirasakan dan menjadikannya sebagai langkah awal untuk lebih memperhatikan kesehatan mentalmu.',
+      'Setiap orang bisa mengalami tekanan emosional dengan cara yang berbeda. Tes ini membantu memberikan gambaran tentang tiga aspek, yaitu depresi, kecemasan, dan stres. Kamu dapat mengenali pengalaman seperti perasaan sedih, ketegangan, kekhawatiran, hingga kesulitan untuk merasa tenang dalam menghadapi berbagai situasi.',
     status: 'PUBLISHED',
   }
 

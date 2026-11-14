@@ -76,7 +76,6 @@ export default function TabPaketPsikotes({
             >
               {item.judul}
             </Link>
-            <span className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.deskripsi}</span>
           </div>
         </div>
       ),
@@ -89,42 +88,21 @@ export default function TabPaketPsikotes({
         const berbayar = item.paketList.find((p) => p.jenisAkses === "Berbayar");
 
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-xs">
             {gratis && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                  gratis.status === "Aktif"
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    : "bg-amber-50 text-amber-700 border border-amber-200"
-                }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    gratis.status === "Aktif" ? "bg-emerald-500" : "bg-amber-500"
-                  }`}
-                />
+              <span className="font-semibold text-gray-700">
                 Gratis
                 {gratis.status === "Draf" && (
-                  <span className="text-[10px] text-amber-600 font-medium">(Draf)</span>
+                  <span className="text-[10px] text-amber-600 font-medium ml-1">(Draf)</span>
                 )}
               </span>
             )}
+            {gratis && berbayar && <span className="text-gray-300">•</span>}
             {berbayar && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                  berbayar.status === "Aktif"
-                    ? "bg-purple-50 text-[#561269] border border-purple-200"
-                    : "bg-amber-50 text-amber-700 border border-amber-200"
-                }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    berbayar.status === "Aktif" ? "bg-[#561269]" : "bg-amber-500"
-                  }`}
-                />
+              <span className="font-semibold text-[#561269]">
                 Berbayar
                 {berbayar.status === "Draf" && (
-                  <span className="text-[10px] text-amber-600 font-medium">(Draf)</span>
+                  <span className="text-[10px] text-amber-600 font-medium ml-1">(Draf)</span>
                 )}
               </span>
             )}

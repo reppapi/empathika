@@ -315,7 +315,7 @@ export default function LayananClient() {
                             topSubtitle: "",
                             bottomTitle: p.judul,
                             bottomDescription:
-                              p.deskripsi ||
+                              p.tentang_tes ||
                               "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.",
                             bgColor: colors[idx % colors.length],
                             titleColor: textColors[idx % textColors.length],

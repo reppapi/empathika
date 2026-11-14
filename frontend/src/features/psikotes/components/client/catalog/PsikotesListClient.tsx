@@ -103,10 +103,10 @@ export default function PsikotesListClient() {
                 })();
 
               const deskripsiText =
-                test.deskripsi ||
+                test.tentang_tes ||
                 (() => {
                   if (process.env.NODE_ENV === "development") {
-                    console.warn(`[DEV WARNING][PsikotesList] 'deskripsi' untuk paket '${test.id}' kosong di DB.`);
+                    console.warn(`[DEV WARNING][PsikotesList] 'tentang_tes' untuk paket '${test.id}' kosong di DB.`);
                   }
                   return "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.";
                 })();

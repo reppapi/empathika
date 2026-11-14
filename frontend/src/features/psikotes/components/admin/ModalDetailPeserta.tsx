@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../../types/adminPsikotes";
 import { getPesertaReportDetail } from "../../utils/adminPsikotesMapper";
+import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 
 export interface ModalDetailPesertaProps {
   peserta: AdminPsikotesPeserta | null;
@@ -75,7 +76,7 @@ export default function ModalDetailPeserta({
                   </span>
                 ) : (
                   <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                    Sedang Berjalan
+                    Menunggu Pengerjaan
                   </span>
                 )}
               </div>
@@ -100,18 +101,23 @@ export default function ModalDetailPeserta({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-gray-50/80 border border-gray-100 text-xs">
             <div>
               <span className="text-gray-400 font-bold block uppercase tracking-wider text-[10px]">
-                Nama Klien
+                {isCompleted ? "Nama Peserta" : "Nama Pemesan"}
               </span>
               <span className="font-bold text-gray-900 text-sm mt-0.5 block truncate">
                 {peserta.nama}
               </span>
+              {!isCompleted && (
+                <span className="text-[10px] text-amber-600 font-medium block">
+                  (Menunggu Peserta)
+                </span>
+              )}
             </div>
             <div>
               <span className="text-gray-400 font-bold block uppercase tracking-wider text-[10px]">
-                Kontak WhatsApp
+                {isCompleted ? "Kontak WhatsApp" : "WhatsApp Pemesan"}
               </span>
-              <span className="font-semibold text-emerald-700 text-sm mt-0.5 block truncate">
-                {peserta.noHp}
+              <span className="font-semibold text-emerald-700 text-sm mt-0.5 block truncate font-mono">
+                {formatToIndonesianPhone(peserta.noHp)}
               </span>
             </div>
             <div>
@@ -131,6 +137,19 @@ export default function ModalDetailPeserta({
               </span>
             </div>
           </div>
+
+          {/* Info Pemesan Jika Berbeda dengan Peserta */}
+          {isCompleted && peserta.isPembeliBerbeda && peserta.namaPemesan && (
+            <div className="p-3.5 rounded-xl bg-purple-50/50 border border-purple-200/70 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#561269]">Tiket Dipesan Oleh:</span>
+                <span className="text-gray-900 font-semibold">{peserta.namaPemesan}</span>
+                {peserta.noHpPemesan && (
+                  <span className="text-gray-500 text-[11px] font-mono">({formatToIndonesianPhone(peserta.noHpPemesan)})</span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Data Tambahan Profil Peserta (Anak / Remaja / Dewasa) */}
           {peserta.peserta && (peserta.peserta.nama_orang_tua || peserta.peserta.pendidikan || peserta.peserta.pekerjaan || peserta.peserta.status_pernikahan || peserta.peserta.tempat_lahir || peserta.peserta.tanggal_lahir || peserta.peserta.kategori_peserta) && (
@@ -202,22 +221,22 @@ export default function ModalDetailPeserta({
             <div className="p-6 rounded-2xl bg-amber-50/60 border border-amber-200 text-center space-y-3">
               <Clock className="w-8 h-8 text-amber-600 mx-auto" />
               <div>
-                <h4 className="font-bold text-sm text-amber-900">Klien Belum Menyelesaikan Pengerjaan Tes</h4>
+                <h4 className="font-bold text-sm text-amber-900">Menunggu Pengerjaan Tes oleh Peserta</h4>
                 <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                  Peserta ini telah terdaftar pada paket <strong>{peserta.paket}</strong> namun belum menyelesaikan pengisian instrumen tes psikotes. Hasil skor dan laporan resmi PDF akan otomatis terbentuk setelah peserta menyelesaikan tes.
+                  Paket <strong>{peserta.paket}</strong> telah aktif dan dipesan oleh <strong>{peserta.namaPemesan || peserta.nama}</strong>. Hasil skor dan laporan resmi PDF akan otomatis terbentuk setelah peserta mengisi identitas dan menyelesaikan tes.
                 </p>
               </div>
               {peserta.noHp && peserta.noHp !== "—" && (
                 <div className="pt-2">
                   <a
                     href={`https://wa.me/${peserta.noHp.replace(/\D/g, "")}?text=${encodeURIComponent(
-                      `Halo ${peserta.nama}, akses asesmen psikotes Anda (${peserta.paket}) di Empathika telah aktif. Silakan masuk ke akun atau link tes untuk menyelesaikan pengisian instrumen asesmen.`
+                      `Halo ${peserta.namaPemesan || peserta.nama}, akses asesmen psikotes Anda (${peserta.paket}) di Empathika telah aktif. Silakan masuk ke link tes untuk mengisi identitas peserta dan menyelesaikan instrumen asesmen.`
                     )}`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold transition shadow-xs"
                   >
-                    <Phone className="w-3.5 h-3.5" /> Ingatkan Peserta via WhatsApp
+                    <Phone className="w-3.5 h-3.5" /> Ingatkan Pemesan via WhatsApp
                   </a>
                 </div>
               )}
