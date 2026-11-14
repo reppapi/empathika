@@ -214,7 +214,7 @@ export default function LayananClient() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[96px] lg:pb-3 lg:h-screen lg:snap-start lg:snap-always lg:overflow-hidden font-poppins">
+    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[96px] lg:pb-3 lg:h-screen shrink-0 lg:snap-start lg:snap-always lg:overflow-hidden font-poppins">
 
       {/* Container utama */}
       <div className="relative flex h-full flex-col gap-8 lg:block">
