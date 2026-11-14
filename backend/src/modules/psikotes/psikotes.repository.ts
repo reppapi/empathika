@@ -1292,7 +1292,7 @@ export class PsikotesRepository {
         client = await tx.client.create({
           data: {
             nama: inputName,
-            no_telepon: formattedPhone || inputPhone || null,
+            no_telepon: rawPhone || inputPhone || null,
             usia: inputUsia,
             jenis_kelamin: inputGender,
             id_biro: idBiro,
@@ -1304,7 +1304,7 @@ export class PsikotesRepository {
             where: { id: client.id },
             data: {
               nama: inputName || client.nama,
-              no_telepon: formattedPhone || client.no_telepon,
+              no_telepon: rawPhone || client.no_telepon,
               usia: inputUsia ?? client.usia,
               jenis_kelamin: inputGender ?? client.jenis_kelamin,
             },
