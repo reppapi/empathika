@@ -28,7 +28,18 @@ export default function AdminBiroDashboardClient() {
   const { user } = useAuthStore()
 
   const [activeTenant, setActiveTenant] = useState<BiroTenantData>(() => {
-    return getBiroTenantData(user?.id)
+    const defaultData = getBiroTenantData(user?.id)
+    const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
+    if (cachedColor) {
+      return {
+        ...defaultData,
+        color: cachedColor,
+        metrics: defaultData.metrics.map((m) =>
+          m.color === "#561269" || m.color === defaultData.color ? { ...m, color: cachedColor } : m
+        ),
+      }
+    }
+    return defaultData
   })
 
   useEffect(() => {
@@ -42,7 +53,11 @@ export default function AdminBiroDashboardClient() {
         (key) => key === targetId || BIRO_TENANT_DATA[key].biroSlug === targetSlug
       )
 
-      const biroCustomColor = biroInfo?.warna_tema || (foundMockKey ? BIRO_TENANT_DATA[foundMockKey].color : "#561269")
+      const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
+      const biroCustomColor =
+        biroInfo?.warna_tema ||
+        cachedColor ||
+        (foundMockKey ? BIRO_TENANT_DATA[foundMockKey].color : "#561269")
 
       if (foundMockKey) {
         const base = BIRO_TENANT_DATA[foundMockKey]
@@ -137,6 +152,11 @@ export default function AdminBiroDashboardClient() {
       .then((res) => {
         if (!isMounted || !res?.data) return
         const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
+        if (beBiro?.warna_tema && typeof window !== "undefined") {
+          localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+          document.documentElement.style.setProperty("--biro-theme-color", beBiro.warna_tema)
+          document.documentElement.setAttribute("data-biro-theme", "true")
+        }
         resolveTenant(beBiro)
       })
       .catch(() => {})

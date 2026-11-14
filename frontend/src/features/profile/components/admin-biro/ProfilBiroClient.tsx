@@ -12,7 +12,11 @@ import { biroAdminService } from "@/services/biro.service"
 
 export default function ProfilBiroClient() {
   const { user } = useAuthStore()
-  const [biro, setBiro] = useState<BiroKomunitas>(INITIAL_BIRO_LIST[0])
+  const [biro, setBiro] = useState<BiroKomunitas>(() => {
+    const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
+    const base = INITIAL_BIRO_LIST[0]
+    return cachedColor ? { ...base, warnaIdentitas: cachedColor } : base
+  })
 
   useEffect(() => {
     let isMounted = true
@@ -24,6 +28,17 @@ export default function ProfilBiroClient() {
         if (!isMounted || !res?.data) return
         const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
         if (beBiro) {
+          const customColor =
+            beBiro.warna_tema ||
+            (typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null) ||
+            "#561269"
+
+          if (beBiro.warna_tema && typeof window !== "undefined") {
+            localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+            document.documentElement.style.setProperty("--biro-theme-color", beBiro.warna_tema)
+            document.documentElement.setAttribute("data-biro-theme", "true")
+          }
+
           setBiro({
             id: beBiro.id || res.data.id,
             accountId: res.data.id,
@@ -31,7 +46,7 @@ export default function ProfilBiroClient() {
             slug: beBiro.slug || "",
             logo: beBiro.logoURI || undefined,
             deskripsi: beBiro.deskripsi || "Biro Mitra Empathika",
-            warnaIdentitas: beBiro.warna_tema || "#561269",
+            warnaIdentitas: customColor,
             emailAdmin: res.data.email,
             telepon: res.data.no_telepon || beBiro.no_telepon || "-",
             alamat: beBiro.alamat || "-",
@@ -51,10 +66,13 @@ export default function ProfilBiroClient() {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
       if (saved) {
         const list: BiroKomunitas[] = JSON.parse(saved)
+        const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
         const found =
           list.find((b) => b.id === user?.id || b.emailAdmin === user?.email || b.nama === user?.name) ||
           list[0]
-        if (found) setBiro(found)
+        if (found) {
+          setBiro(cachedColor ? { ...found, warnaIdentitas: found.warnaIdentitas || cachedColor } : found)
+        }
       }
     } catch { }
 

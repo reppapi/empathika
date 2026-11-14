@@ -125,6 +125,11 @@ export function SidebarBiro({
                 localStorage.removeItem("remember_me")
                 sessionStorage.removeItem("access_token")
                 localStorage.removeItem("empathika-auth")
+                localStorage.removeItem("biro_theme_color")
+                if (typeof document !== "undefined") {
+                  document.documentElement.removeAttribute("data-biro-theme")
+                  document.documentElement.style.removeProperty("--biro-theme-color")
+                }
                 window.location.href = "/login"
               }}
               className="inline-block w-full text-left font-normal text-white/80 transition-colors hover:text-white py-3 text-[15px]"
