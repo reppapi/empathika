@@ -1207,9 +1207,9 @@ export default function PsikologJadwalClient() {
                       }`}
                   >
                     {selectedTimes.length > 0
-                      ? `Buka ${selectedTimes.length} Jam Sesi Sekaligus (${selectedLayanan} • ${selectedMetode})`
+                      ? `Buka ${selectedTimes.length} Jam Sesi Sekaligus`
                       : isCustomValid
-                        ? `Buka Jam Kustom: ${customStart} - ${customEnd} (${selectedLayanan} • ${selectedMetode})`
+                        ? `Buka Jam Kustom: ${customStart} - ${customEnd}`
                         : isCustomTime
                           ? "Tentukan Jam Mulai & Selesai Dulu"
                           : "Pilih Jam Terlebih Dahulu"}
