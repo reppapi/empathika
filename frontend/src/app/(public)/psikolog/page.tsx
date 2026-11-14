@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { HeaderSection } from "@/features/psikolog/components/client/HeaderSection"
 import { PsikologFilter } from "@/features/psikolog/components/client/PsikologFilter"
 import { PsikologCard } from "@/features/psikolog/components/client/PsikologCard"
@@ -15,36 +16,29 @@ import { LOCAL_STORAGE_KEY_TENAGA } from "@/features/psikolog/data/initialData"
 import type { TenagaAhli } from "@/features/psikolog/types"
 
 export default function PsikologPage() {
-  const [dataPsikolog, setDataPsikolog] = useState<PsikologUI[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  const fetchPsychologists = () => {
-    psikologService
-      .getList()
-      .then((dbList: any[]) => {
-        const mappedFromDb = Array.isArray(dbList) ? dbList.map(mapDbPsikologToUI) : []
-        setDataPsikolog(mappedFromDb)
-      })
-      .catch((err) => {
-        console.error("Gagal mengambil data psikolog dari database:", err)
-        setDataPsikolog([])
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
-  }
+  const { data: rawPsikologList, isLoading, refetch } = useQuery({
+    queryKey: ["psikolog", "public-list"],
+    queryFn: async () => {
+      const dbList = await psikologService.getList()
+      return Array.isArray(dbList) ? dbList.map(mapDbPsikologToUI) : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const dataPsikolog = rawPsikologList || []
 
   useEffect(() => {
-    fetchPsychologists()
+    const handleSync = () => {
+      refetch()
+    }
 
-    window.addEventListener("storage", fetchPsychologists)
-    window.addEventListener("focus", fetchPsychologists)
+    window.addEventListener("storage", handleSync)
+    window.addEventListener("focus", handleSync)
 
     return () => {
-      window.removeEventListener("storage", fetchPsychologists)
-      window.removeEventListener("focus", fetchPsychologists)
+      window.removeEventListener("storage", handleSync)
+      window.removeEventListener("focus", handleSync)
     }
-  }, [])
+  }, [refetch])
 
   const {
     kategoriAktif,

@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import { CATEGORIES, WORKSHOP_SERVICES, SEMINAR_SERVICES } from "../../data/layananData"
 import { WORKSHOP_DETAILS_DATA } from "../../data/workshopData"
 import { getStoredLayanan, type AdminLayananItem } from "../../data/adminLayananData"
@@ -18,56 +19,43 @@ export default function LayananClient() {
   const searchParams = useSearchParams()
   const categoryQuery = searchParams.get("category")
   const [activeCategory, setActiveCategory] = useState(categoryQuery || "01") // Default ke Konsultasi
-  const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
-  const [liveLayanan, setLiveLayanan] = useState<LayananApiResponse[]>([])
-  const [loadingLayanan, setLoadingLayanan] = useState(true)
-  const [isLayananError, setIsLayananError] = useState(false)
-  const [loadingPsikotes, setLoadingPsikotes] = useState(true)
-  const [isPsikotesError, setIsPsikotesError] = useState(false)
   const [storedAdminLayanan, setStoredAdminLayanan] = useState<AdminLayananItem[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const fetchLayanan = async () => {
-    try {
-      setLoadingLayanan(true)
-      setIsLayananError(false)
+  const {
+    data: liveLayananData,
+    isLoading: loadingLayanan,
+    isError: isLayananError,
+    refetch: refetchLayanan,
+  } = useQuery({
+    queryKey: ["layanan", "all"],
+    queryFn: async () => {
       const res = await layananService.getAll()
-      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      setLiveLayanan(list)
-    } catch (err) {
-      console.warn("Gagal memuat layanan dari server database:", err)
-      setIsLayananError(true)
-    } finally {
-      setLoadingLayanan(false)
-    }
-  }
+      return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const liveLayanan = liveLayananData || []
 
-  const fetchPsikotes = async () => {
-    try {
-      setLoadingPsikotes(true)
-      setIsPsikotesError(false)
+  const {
+    data: psikotesData,
+    isLoading: loadingPsikotes,
+    isError: isPsikotesError,
+    refetch: refetchPsikotes,
+  } = useQuery({
+    queryKey: ["psikotes", "published"],
+    queryFn: async () => {
       const res = await psikotesService.getList({ status: "PUBLISHED" })
-      if (res?.data && res.data.length > 0) {
-        setPublishedPsikotes(res.data)
-      } else {
-        setPublishedPsikotes([])
-      }
-    } catch (err) {
-      console.error("Gagal mengambil data paket psikotes layanan:", err)
-      setPublishedPsikotes([])
-      setIsPsikotesError(true)
-    } finally {
-      setLoadingPsikotes(false)
-    }
-  }
+      return res?.data && res.data.length > 0 ? res.data : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const publishedPsikotes = psikotesData || []
 
   useEffect(() => {
-    fetchPsikotes()
-    fetchLayanan()
-
     const handleSync = () => {
-      fetchLayanan()
-      fetchPsikotes()
+      refetchLayanan()
+      refetchPsikotes()
     }
 
     window.addEventListener("storage", handleSync)
@@ -75,7 +63,7 @@ export default function LayananClient() {
     return () => {
       window.removeEventListener("storage", handleSync)
     }
-  }, [])
+  }, [refetchLayanan, refetchPsikotes])
 
   useEffect(() => {
     if (categoryQuery) {
@@ -275,7 +263,7 @@ export default function LayananClient() {
                           ? "Gagal memuat daftar paket psikotes. Silakan periksa koneksi Anda dan coba lagi."
                           : "Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi."
                       }
-                      onRetry={activeCategory === "02" ? fetchPsikotes : fetchLayanan}
+                      onRetry={activeCategory === "02" ? () => refetchPsikotes() : () => refetchLayanan()}
                       isRetrying={activeCategory === "02" ? loadingPsikotes : loadingLayanan}
                     />
                   )
