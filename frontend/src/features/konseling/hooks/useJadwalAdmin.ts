@@ -703,7 +703,14 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     )
   }, [currentWeekMonday, thisWeekMonday])
 
-  const canGoPrevWeek = weeksDiff > -4
+  // Batas riwayat mundur maksimal 3 bulan (~12 minggu) ke belakang
+  const canGoPrevWeek = weeksDiff > -12
+  const isCurrentWeek = weeksDiff === 0
+
+  const goToCurrentWeek = () => {
+    setCurrentWeekMonday(new Date(thisWeekMonday))
+    setDate(new Date(today))
+  }
 
   const weekRangeTitle = useMemo(() => {
     const start = new Date(currentWeekMonday)
@@ -983,6 +990,8 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     weekDays,
     currentWeekAllSessions,
     canGoPrevWeek,
+    isCurrentWeek,
+    goToCurrentWeek,
     goToPrevWeek,
     goToNextWeek,
     handleSelectWeeklySession,

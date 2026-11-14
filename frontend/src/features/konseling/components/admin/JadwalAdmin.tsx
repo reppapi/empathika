@@ -61,6 +61,8 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
     weekDays,
     currentWeekAllSessions,
     canGoPrevWeek,
+    isCurrentWeek,
+    goToCurrentWeek,
     goToPrevWeek,
     goToNextWeek,
     handleSelectWeeklySession,
@@ -255,6 +257,8 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
       {/* Jadwal Mingguan (Weekly Assessment Schedule Grid) */}
       <JadwalMingguanGrid
         canGoPrevWeek={canGoPrevWeek}
+        isCurrentWeek={isCurrentWeek}
+        goToCurrentWeek={goToCurrentWeek}
         goToPrevWeek={goToPrevWeek}
         goToNextWeek={goToNextWeek}
         weekRangeTitle={weekRangeTitle}

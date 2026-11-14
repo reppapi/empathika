@@ -13,6 +13,8 @@ interface WeekDayItem {
 
 interface JadwalMingguanGridProps {
   canGoPrevWeek: boolean
+  isCurrentWeek?: boolean
+  goToCurrentWeek?: () => void
   goToPrevWeek: () => void
   goToNextWeek: () => void
   weekRangeTitle: string
@@ -27,6 +29,8 @@ interface JadwalMingguanGridProps {
 
 export default function JadwalMingguanGrid({
   canGoPrevWeek,
+  isCurrentWeek = true,
+  goToCurrentWeek,
   goToPrevWeek,
   goToNextWeek,
   weekRangeTitle,
@@ -56,7 +60,7 @@ export default function JadwalMingguanGrid({
           onClick={goToPrevWeek}
           disabled={!canGoPrevWeek}
           aria-label="Minggu Sebelumnya"
-          title={canGoPrevWeek ? "Minggu Sebelumnya" : "Batas riwayat maksimal 4 minggu ke belakang"}
+          title={canGoPrevWeek ? "Minggu Sebelumnya" : "Batas riwayat maksimal 3 bulan ke belakang"}
           className={`p-1.5 rounded-full transition-colors border border-gray-200 ${canGoPrevWeek
             ? "hover:bg-gray-100 text-gray-600 cursor-pointer"
             : "opacity-30 text-gray-300 cursor-not-allowed bg-gray-50"
@@ -76,6 +80,15 @@ export default function JadwalMingguanGrid({
         >
           <ChevronRight className="w-4 h-4" />
         </button>
+        {!isCurrentWeek && goToCurrentWeek && (
+          <button
+            type="button"
+            onClick={goToCurrentWeek}
+            className="text-xs px-2.5 py-1 font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors ml-1 cursor-pointer"
+          >
+            Minggu Ini
+          </button>
+        )}
       </div>
 
       {/* Weekly Grid */}

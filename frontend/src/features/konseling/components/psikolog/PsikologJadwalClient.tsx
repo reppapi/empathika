@@ -641,7 +641,7 @@ export default function PsikologJadwalClient() {
     }
   }, [currentWeekMonday])
 
-  // Batas awal dan akhir minggu untuk bulan saat ini (terhitung dari tanggal 1 sampai akhir bulan)
+  // Batas awal navigasi mingguan: Senin pertama di bulan berjalan saat ini (tidak bisa mundur ke bulan lampau)
   const firstMondayOfMonth = useMemo(() => {
     const now = new Date()
     const d = getMonday(new Date(now.getFullYear(), now.getMonth(), 1))
@@ -649,14 +649,46 @@ export default function PsikologJadwalClient() {
     return d
   }, [])
 
-  const lastMondayOfMonth = useMemo(() => {
+  // Batas akhir navigasi mingguan:
+  // Secara default terkunci di akhir bulan berjalan saat ini.
+  // Namun jika psikolog sudah membuka slot/jadwal ATAU ada sesi booking klien di bulan-bulan mendatang,
+  // batas navigasi secara cerdas diperpanjang sampai ke minggu jadwal/booking terjauh tersebut.
+  const maxNavMonday = useMemo(() => {
     const now = new Date()
-    const d = getMonday(new Date(now.getFullYear(), now.getMonth() + 1, 0))
-    d.setHours(0, 0, 0, 0)
-    return d
-  }, [])
+    // Default: Senin terakhir dari bulan berjalan saat ini
+    const defaultEndMonday = getMonday(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+    defaultEndMonday.setHours(0, 0, 0, 0)
 
-  // Batasi navigasi mingguan: psikolog hanya bisa melihat jadwal terhitung dari tanggal 1 sampai akhir bulan
+    let furthest = defaultEndMonday
+
+    bookedSessions.forEach((s) => {
+      if (s.date && !s.isCancelled && s.status !== "Dibatalkan") {
+        const parts = s.date.split("-").map(Number)
+        if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+          const sessionDate = new Date(parts[0], parts[1] - 1, parts[2])
+          sessionDate.setHours(0, 0, 0, 0)
+          const sessionMonday = getMonday(sessionDate)
+          sessionMonday.setHours(0, 0, 0, 0)
+          if (sessionMonday.getTime() > furthest.getTime()) {
+            furthest = sessionMonday
+          }
+        }
+      }
+    })
+
+    // Jika psikolog sedang memilih tanggal di kalender yang lebih jauh ke depan
+    if (date) {
+      const selectedMonday = getMonday(date)
+      selectedMonday.setHours(0, 0, 0, 0)
+      if (selectedMonday.getTime() > furthest.getTime()) {
+        furthest = selectedMonday
+      }
+    }
+
+    return furthest
+  }, [bookedSessions, date])
+
+  // Batasi navigasi mingguan
   const canGoPrevWeek = useMemo(() => {
     const prevMonday = new Date(currentWeekMonday)
     prevMonday.setDate(prevMonday.getDate() - 7)
@@ -668,8 +700,29 @@ export default function PsikologJadwalClient() {
     const nextMonday = new Date(currentWeekMonday)
     nextMonday.setDate(nextMonday.getDate() + 7)
     nextMonday.setHours(0, 0, 0, 0)
-    return nextMonday <= lastMondayOfMonth
-  }, [currentWeekMonday, lastMondayOfMonth])
+    return nextMonday <= maxNavMonday
+  }, [currentWeekMonday, maxNavMonday])
+
+  const currentWeekMondayToday = useMemo(() => {
+    const d = getMonday(new Date())
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+
+  const isCurrentWeek = useMemo(() => {
+    const cur = new Date(currentWeekMonday)
+    cur.setHours(0, 0, 0, 0)
+    return cur.getTime() === currentWeekMondayToday.getTime()
+  }, [currentWeekMonday, currentWeekMondayToday])
+
+  const goToCurrentWeek = () => {
+    const now = new Date()
+    setCurrentWeekMonday(getMonday(now))
+    setDate(now)
+    setSelectedTimes([])
+    setIsCustomTime(false)
+    setBookingSuccessMsg(null)
+  }
 
   const goToPrevWeek = () => {
     if (!canGoPrevWeek) return
@@ -1252,7 +1305,11 @@ export default function PsikologJadwalClient() {
             onClick={goToNextWeek}
             disabled={!canGoNextWeek}
             aria-label="Minggu Berikutnya"
-            title={canGoNextWeek ? "Minggu Berikutnya" : "Batas akhir jadwal bulan berjalan"}
+            title={
+              canGoNextWeek
+                ? "Minggu Berikutnya"
+                : "Batas akhir jadwal (tidak ada jadwal aktif berikutnya di masa mendatang)"
+            }
             className={`p-1.5 rounded-full transition-colors border ${
               canGoNextWeek
                 ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
@@ -1261,6 +1318,15 @@ export default function PsikologJadwalClient() {
           >
             <ChevronRight className="w-4 h-4" />
           </button>
+          {!isCurrentWeek && (
+            <button
+              type="button"
+              onClick={goToCurrentWeek}
+              className="text-xs px-2.5 py-1 font-semibold text-[#561269] bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors ml-1 cursor-pointer"
+            >
+              Minggu Ini
+            </button>
+          )}
         </div>
 
         {/* Weekly Grid */}
