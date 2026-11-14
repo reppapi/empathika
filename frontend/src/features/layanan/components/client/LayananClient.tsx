@@ -219,17 +219,17 @@ export default function LayananClient() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className="group flex flex-col items-start text-left cursor-pointer h-[76px] lg:h-[84px] justify-center shrink-0 transition-transform duration-200"
+                className="group flex flex-col items-start text-left cursor-pointer h-[76px] lg:h-[84px] justify-center shrink-0 transition-all duration-300 ease-out"
               >
                 <span
-                  className={`font-bold transition-colors duration-200 leading-none ${
+                  className={`font-bold transition-all duration-300 ease-out leading-none ${
                     isActive ? "text-[26px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
                   }`}
                 >
                   {cat.id}
                 </span>
                 <span
-                  className={`transition-colors duration-200 leading-tight mt-1 ${
+                  className={`transition-all duration-300 ease-out leading-tight mt-1 ${
                     isActive
                       ? "text-[30px] lg:text-[32px] font-bold text-[#561269]"
                       : "text-[24px] lg:text-[26px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
@@ -262,7 +262,7 @@ export default function LayananClient() {
               ref={scrollRef}
               className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
             >
-              <div key={`content-${activeCategory}`} className="transition-opacity duration-200">
+              <div key={`content-${activeCategory}`} className="animate-fade-in">
                 {/* 1. Status Error Jika Koneksi Gagal (Konsultasi, Psikotes, Workshop, Seminar, Asesmen) */}
                 {(() => {
                   const isCurrentError = activeCategory === "02" ? isPsikotesError : isLayananError
