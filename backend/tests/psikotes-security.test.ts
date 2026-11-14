@@ -150,5 +150,48 @@ describe('Psikotes Security Controls', () => {
       ).toBe(false)
     })
   })
+
+  it('verifyTicket harus menolak pencocokan nomor parsial/berbeda dan hanya mengizinkan exact match nomor ternormalisasi', async () => {
+    const mockPrisma = {
+      bookingPsikotes: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'booking-ticket-1',
+          id_paket: 'paket-dass',
+          kode_akses: 'PSI-VALID-123',
+          paket: { id: 'paket-dass', judul: 'DASS-42', jenis_akses: 'BERBAYAR', harga: 49000, banner_url: null },
+          client: { id: 'c-1', nama: 'Budi', no_telepon: '+62 812-3456-7890' },
+          peserta_psikotes: { no_telepon: null, no_telepon_orang_tua: null },
+          transaksi: { id: 'tx-1', kode_transaksi: 'PSI-VALID-123', status_pembayaran: 'PAID' },
+          hasil_tes: null,
+        }),
+      },
+    } as any
+
+    const repo = new PsikotesRepository(mockPrisma)
+
+    // 1. Nomor sama persis beda format (081234567890 vs +62 812-3456-7890) -> BERHASIL
+    const ok = await repo.verifyTicket({
+      kode_akses: 'PSI-VALID-123',
+      no_telepon: '081234567890',
+    })
+    expect(ok.booking_id).toBe('booking-ticket-1')
+    expect(ok.access_token).toBeDefined()
+
+    // 2. Nomor berbeda provider yang hanya kebetulan berakhiran sama (0899-3456-7890) -> DITOLAK
+    await expect(
+      repo.verifyTicket({
+        kode_akses: 'PSI-VALID-123',
+        no_telepon: '089934567890',
+      })
+    ).rejects.toThrow(/Nomor WhatsApp tidak cocok/i)
+
+    // 3. Nomor acak / salah -> DITOLAK
+    await expect(
+      repo.verifyTicket({
+        kode_akses: 'PSI-VALID-123',
+        no_telepon: '081399998888',
+      })
+    ).rejects.toThrow(/Nomor WhatsApp tidak cocok/i)
+  })
 })
 

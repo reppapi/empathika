@@ -780,15 +780,18 @@ export class PsikotesRepository {
         })
       }
 
-      // Fallback tambahan: jika belum ketemu tapi ada nomor HP pembeli/peserta, cari booking berbayar terakhir yang belum ada hasil_tes
+      // Fallback tambahan: jika belum ketemu tapi ada nomor HP pembeli/peserta, cari booking berbayar terakhir untuk paket yang sama yang belum ada hasil_tes
       if ((!booking || booking.hasil_tes) && inputPhone) {
-        const digitsOnly = rawPhone.replace(/\D/g, '')
+        const normInput = normalizePhoneNumber(rawPhone) || inputPhone
+        const formattedInput = formatIndonesianPhone(rawPhone)
         booking = await tx.bookingPsikotes.findFirst({
           where: {
+            id_paket: targetBookingPaketId,
             OR: [
+              { client: { no_telepon: normInput } },
+              { client: { no_telepon: formattedInput } },
               { client: { no_telepon: inputPhone } },
               { client: { no_telepon: rawPhone } },
-              ...(digitsOnly.length >= 8 ? [{ client: { no_telepon: digitsOnly } }] : []),
             ],
             hasil_tes: null,
           },
@@ -1272,14 +1275,13 @@ export class PsikotesRepository {
 
       let client = null
       if (inputPhone) {
-        const digitsOnly = rawPhone.replace(/\D/g, '')
+        const normInputPhone = normalizePhoneNumber(rawPhone) || inputPhone
         client = await tx.client.findFirst({
           where: {
             OR: [
-              { no_telepon: inputPhone },
+              { no_telepon: normInputPhone },
               { no_telepon: formattedPhone },
               { no_telepon: rawPhone },
-              ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
             ],
             ...(idBiro ? { id_biro: idBiro } : {}),
           },
@@ -1638,22 +1640,43 @@ export class PsikotesRepository {
       )
     }
 
-    // Verifikasi kesesuaian nomor WhatsApp pembeli
-    const clientPhone = (booking.client?.no_telepon || '').trim()
-    const clientCleanPhone = normalizePhoneNumber(clientPhone) || clientPhone
-    const clientDigits = clientPhone.replace(/\D/g, '')
+    // Verifikasi validasi kepemilikan tiket:
+    // Nomor WhatsApp yang dimasukkan HARUS cocok secara penuh (exact match pada nomor ternormalisasi)
+    // dengan salah satu kontak yang sah pada booking ini:
+    // 1. Nomor telepon pembeli/pemesan (booking.client?.no_telepon)
+    // 2. Nomor telepon peserta tes (booking.peserta_psikotes?.no_telepon)
+    // 3. Nomor telepon orang tua/wali (booking.peserta_psikotes?.no_telepon_orang_tua)
+    //
+    // PENTING:
+    // - TIDAK BOLEH mengabaikan validasi jika nomor telepon kosong.
+    // - TIDAK BOLEH menggunakan substring atau pencocokan parsial 8 digit yang berisiko
+    //   mencocokkan nomor berbeda yang kebetulan memiliki akhiran angka yang sama.
+    const normInputPhone = normalizePhoneNumber(rawPhone)
+    if (!normInputPhone || normInputPhone.length < 10) {
+      throw Object.assign(
+        new Error('Nomor WhatsApp yang Anda masukkan tidak valid. Mohon masukkan nomor lengkap yang aktif.'),
+        { statusCode: 400 }
+      )
+    }
 
-    const isPhoneMatched =
-      !clientPhone ||
-      clientCleanPhone === cleanPhone ||
-      clientPhone === rawPhone ||
-      (digitsOnly.length >= 8 && clientDigits.includes(digitsOnly.slice(-8))) ||
-      (clientDigits.length >= 8 && digitsOnly.includes(clientDigits.slice(-8)))
+    const clientPhone = (booking.client?.no_telepon || '').trim()
+    const pesertaPhone = ((booking as any).peserta_psikotes?.no_telepon || '').trim()
+    const parentPhone = ((booking as any).peserta_psikotes?.no_telepon_orang_tua || '').trim()
+
+    const normClientPhone = normalizePhoneNumber(clientPhone)
+    const normPesertaPhone = normalizePhoneNumber(pesertaPhone)
+    const normParentPhone = normalizePhoneNumber(parentPhone)
+
+    const isPhoneMatched = Boolean(
+      (normClientPhone && normInputPhone === normClientPhone) ||
+      (normPesertaPhone && normInputPhone === normPesertaPhone) ||
+      (normParentPhone && normInputPhone === normParentPhone)
+    )
 
     if (!isPhoneMatched) {
       throw Object.assign(
-        new Error('Nomor WhatsApp tidak cocok dengan nomor pembeli yang terdaftar pada tiket ini. Mohon masukkan nomor kontak yang digunakan saat pemesanan.'),
-        { statusCode: 400 }
+        new Error('Nomor WhatsApp tidak cocok dengan nomor pemesan atau peserta yang terdaftar pada tiket ini. Mohon masukkan nomor kontak yang digunakan saat pemesanan.'),
+        { statusCode: 403 }
       )
     }
 

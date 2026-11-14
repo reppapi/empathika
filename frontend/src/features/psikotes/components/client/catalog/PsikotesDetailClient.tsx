@@ -274,7 +274,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">
       
       {/* 1. HERO BANNER */}
-      <section className="relative w-full h-[320px] sm:h-[360px] md:h-[400px] bg-[#1c352d] overflow-hidden">
+      <section className="relative w-full h-[380px] sm:h-[420px] lg:h-[450px] bg-[#1c352d] overflow-hidden">
         <Image 
           src={data.image} 
           alt={data.title}
@@ -294,11 +294,11 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
       </section>
 
       {/* 2. MAIN CONTENT AREA */}
-      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-10">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 relative z-10">
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
           
           {/* Left Column: Description & Guidelines */}
-          <div className="lg:w-2/3 bg-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm border border-gray-100 flex flex-col gap-8">
+          <div className="lg:w-2/3 bg-white rounded-[2.5rem] p-6 sm:p-10 md:p-12 shadow-sm border border-gray-100 flex flex-col gap-8">
             
             {/* Overview */}
             <div>
@@ -410,10 +410,6 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                       </span>
                     </button>
                   </div>
-
-                  <p className="text-[11px] text-gray-400 text-center">
-                    Pembayaran aman via QRIS, Bank Transfer, dan E-Wallet resmi.
-                  </p>
                 </div>
               ) : (
                 /* Detail Plan Gratis */

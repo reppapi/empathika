@@ -17,6 +17,7 @@ import TabPaketPsikotes from "./TabPaketPsikotes";
 import ModalDetailPeserta from "./ModalDetailPeserta";
 import ModalDetailPaket from "./ModalDetailPaket";
 import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal";
+import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 
 export default function AdminPsikotesClient() {
   const [activeTab, setActiveTab] = useState<"peserta" | "paket">("peserta");
@@ -57,7 +58,7 @@ export default function AdminPsikotesClient() {
         const mapped: AdminPsikotesPeserta[] = rawItems.map((it: any) => ({
           id: it.id,
           nama: it.nama_peserta,
-          noHp: it.no_hp,
+          noHp: it.no_hp ? formatToIndonesianPhone(it.no_hp) : it.no_hp,
           paket: it.nama_paket,
           tanggal: new Date(it.tanggal).toLocaleDateString("id-ID", {
             day: "numeric",
@@ -72,7 +73,7 @@ export default function AdminPsikotesClient() {
           jenisKelamin: it.jenis_kelamin,
           totalSkor: it.total_skor,
           namaPemesan: it.nama_pemesan || null,
-          noHpPemesan: it.no_hp_pemesan || null,
+          noHpPemesan: it.no_hp_pemesan ? formatToIndonesianPhone(it.no_hp_pemesan) : null,
           isPembeliBerbeda: Boolean(it.is_pembeli_berbeda),
           hasil: it.hasil,
           peserta: it.peserta,

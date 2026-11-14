@@ -200,20 +200,22 @@ export default function TabPesertaPsikotes({
     {
       key: "kontak",
       header: "Kontak WhatsApp",
+      headerClassName: "whitespace-nowrap",
+      className: "whitespace-nowrap",
       render: (peserta: AdminPsikotesPeserta) => {
         if (!peserta.noHp || peserta.noHp === "—") {
-          return <span className="text-gray-400 italic text-xs">—</span>;
+          return <span className="text-gray-400 italic text-xs whitespace-nowrap">—</span>;
         }
         return (
           <a
             href={`https://wa.me/${peserta.noHp.replace(/\D/g, "")}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition font-medium text-xs hover:underline font-mono"
+            className="inline-flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition font-medium text-xs hover:underline font-mono whitespace-nowrap"
             title="Hubungi via WhatsApp"
           >
             <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>{formatToIndonesianPhone(peserta.noHp)}</span>
+            <span className="whitespace-nowrap">{formatToIndonesianPhone(peserta.noHp)}</span>
           </a>
         );
       },

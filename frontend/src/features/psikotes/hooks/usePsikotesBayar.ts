@@ -51,13 +51,13 @@ export function usePsikotesBayar() {
   }, [searchParams])
 
   // Parameter Detail Layanan Psikotes
-  const testIdParam = searchParams.get("testId") || "mbti"
-  const judulParam = searchParams.get("judul") || "Tes Psikotes (Paket Lengkap)"
+  const testIdParam = searchParams.get("testId") || ""
+  const judulParam = searchParams.get("judul") || "Tes Psikotes"
   const subjudulParam =
     searchParams.get("subjudul") ||
     "Akses paket tes psikotes lengkap beserta laporan analisis profesional."
   const kategoriParam = searchParams.get("kategori") || "Psikotes"
-  const hargaParam = searchParams.get("harga") || "Rp 150.000"
+  const hargaParam = searchParams.get("harga") || "Rp 0"
   const bannerUrlParam =
     searchParams.get("bannerUrl") ||
     searchParams.get("banner_url") ||
