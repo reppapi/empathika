@@ -9,7 +9,7 @@ import type {
 } from './admin.schema'
 import bcrypt from 'bcrypt'
 import type { StatusBooking } from '@prisma/client'
-import { formatDateToString } from '../../utils/date-time'
+import { formatDateToString, formatTimeToString } from '../../utils/date-time'
 
 const mapsEmbedCache = new Map<string, string>()
 
@@ -126,7 +126,7 @@ export class AdminService {
   private bookingService: BookingService
 
   constructor(fastify: FastifyInstance) {
-    this.repo = new AdminRepository(fastify.prisma)
+    this.repo = new AdminRepository((fastify as any).prisma)
     this.bookingService = new BookingService(fastify)
   }
 
@@ -320,17 +320,13 @@ export class AdminService {
     const curDate = wibNow.getUTCDate()
     const curDay = wibNow.getUTCDay() // 0 = Minggu, 1 = Senin, ...
 
-    // Helper hitung tinggi bar proporsional (max 90%, min 12%)
+    // Helper hitung tinggi bar proporsional (max 90%, 0% jika tidak ada sesi)
     const computeBarHeights = (items: { label: string; value: number }[]) => {
       const maxValue = Math.max(...items.map((i) => i.value), 0)
       return items.map((item) => {
-        let heightPercent = 12
-        if (maxValue > 0) {
-          if (item.value === 0) {
-            heightPercent = 12
-          } else {
-            heightPercent = Math.max(18, Math.round((item.value / maxValue) * 90))
-          }
+        let heightPercent = 0
+        if (maxValue > 0 && item.value > 0) {
+          heightPercent = Math.max(15, Math.round((item.value / maxValue) * 90))
         }
         return {
           label: item.label,
@@ -434,6 +430,316 @@ export class AdminService {
       minggu: chartMinggu,
       bulan: chartBulan,
       bulan_lalu: chartBulanLalu,
+    }
+  }
+
+  /**
+   * Menghasilkan 5 metrik ringkasan operasional admin (real-time dari PostgreSQL)
+   */
+  async getDashboardMetrics() {
+    const now = new Date()
+    const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000)
+    const curYear = wibNow.getUTCFullYear()
+    const curMonth = wibNow.getUTCMonth() // 0-indexed
+    const curDate = wibNow.getUTCDate()
+
+    // 1. Rentang Bulan Ini (WIB UTC)
+    const monthStart = new Date(Date.UTC(curYear, curMonth, 1, 0, 0, 0, 0))
+    const monthEnd = new Date(Date.UTC(curYear, curMonth + 1, 0, 23, 59, 59, 999))
+
+    // 2. Rentang Bulan Lalu
+    const lastMonthYear = curMonth === 0 ? curYear - 1 : curYear
+    const lastMonth = curMonth === 0 ? 11 : curMonth - 1
+    const lastMonthStart = new Date(Date.UTC(lastMonthYear, lastMonth, 1, 0, 0, 0, 0))
+    const lastMonthEnd = new Date(Date.UTC(lastMonthYear, lastMonth + 1, 0, 23, 59, 59, 999))
+
+    // 3. Batas Kemarin (23:59:59)
+    const yesterdayEnd = new Date(Date.UTC(curYear, curMonth, curDate - 1, 23, 59, 59, 999))
+
+    const rawMetrics = await this.repo.getOperationalMetricsData(
+      monthStart,
+      monthEnd,
+      lastMonthStart,
+      lastMonthEnd,
+      yesterdayEnd
+    )
+
+    // Format Rupiah: Rp 18.750.000
+    const formatRp = (num: number) =>
+      `Rp ${Math.round(num).toLocaleString('id-ID')}`
+
+    // Hitung persentase pendapatan vs bulan lalu
+    let incomeChange = '+0% dari bulan lalu'
+    if (rawMetrics.totalIncomeLastMonth > 0) {
+      const diffPercent = Math.round(
+        ((rawMetrics.totalIncomeThisMonth - rawMetrics.totalIncomeLastMonth) /
+          rawMetrics.totalIncomeLastMonth) *
+          100
+      )
+      incomeChange = `${diffPercent >= 0 ? '+' : ''}${diffPercent}% dari bulan lalu`
+    } else if (rawMetrics.totalIncomeThisMonth > 0) {
+      incomeChange = '+100% dari bulan lalu'
+    }
+
+    // Hitung perubahan klien aktif vs kemarin
+    const clientDiff = rawMetrics.newClientsSinceYesterday
+    const clientChange =
+      clientDiff > 0
+        ? `+${clientDiff} dari kemarin`
+        : `Klien beraktivitas aktif`
+
+    return {
+      pendapatanBulanIni: {
+        title: 'Pendapatan Bulan Ini',
+        value: formatRp(rawMetrics.totalIncomeThisMonth),
+        rawValue: rawMetrics.totalIncomeThisMonth,
+        change: incomeChange,
+        color: '#5D205E',
+      },
+      menungguReview: {
+        title: 'Menunggu Review',
+        value: `${rawMetrics.totalClients} Tes`,
+        rawValue: rawMetrics.totalClients,
+        change: 'Perlu ditinjau psikolog',
+        color: '#5D205E',
+      },
+      totalKlienAktif: {
+        title: 'Menunggu Review',
+        value: `${rawMetrics.totalClients} Tes`,
+        rawValue: rawMetrics.totalClients,
+        change: 'Perlu ditinjau psikolog',
+        color: '#5D205E',
+      },
+      sesiKonselingSelesai: {
+        title: 'Sesi Konseling Selesai',
+        value: `${rawMetrics.completedSessionsThisMonth} Sesi`,
+        rawValue: rawMetrics.completedSessionsThisMonth,
+        change: 'Akumulasi bulan ini',
+        color: '#5D205E',
+      },
+      pendaftarEvent: {
+        title: 'Pendaftar Event',
+        value: `${rawMetrics.totalEventParticipants} Peserta`,
+        rawValue: rawMetrics.totalEventParticipants,
+        change: `Dari ${rawMetrics.activeEventsCount} event dibuka`,
+        color: '#5D205E',
+      },
+      pendaftarWorkshop: {
+        title: 'Pendaftar Event',
+        value: `${rawMetrics.totalEventParticipants} Peserta`,
+        rawValue: rawMetrics.totalEventParticipants,
+        change: `Dari ${rawMetrics.activeEventsCount} event dibuka`,
+        color: '#5D205E',
+      },
+      menungguPembayaran: {
+        title: 'Menunggu Pembayaran',
+        value: `${rawMetrics.pendingPaymentCount} Transaksi`,
+        rawValue: rawMetrics.pendingPaymentCount,
+        change: 'Perlu konfirmasi',
+        color: '#D97706',
+      },
+    }
+  }
+
+  /**
+   * Mengambil sesi konseling hari ini untuk widget dashboard (default limit: 5 sesi terdekat)
+   */
+  async getDashboardTodaySessions(limit: number = 5) {
+    const now = new Date()
+    const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000)
+    const curYear = wibNow.getUTCFullYear()
+    const curMonth = wibNow.getUTCMonth()
+    const curDate = wibNow.getUTCDate()
+    const todayDate = new Date(Date.UTC(curYear, curMonth, curDate, 0, 0, 0, 0))
+
+    const { totalCount, rawSessions } = await this.repo.findDashboardTodaySessions(todayDate, limit)
+
+    const currentMinutes = wibNow.getUTCHours() * 60 + wibNow.getUTCMinutes()
+
+    const sessions = rawSessions.map((s) => {
+      const jamMulaiStr = formatTimeToString(s.jadwal.jam_mulai)
+      const jamSelesaiStr = formatTimeToString(s.jadwal.jam_selesai)
+      const waktuRange = `${jamMulaiStr} - ${jamSelesaiStr} WIB`
+
+      // Tentukan status dinamis sesi
+      let dynamicStatus: string = 'Menunggu Jadwal'
+      if (s.status === 'COMPLETED') {
+        dynamicStatus = 'Selesai'
+      } else if (s.status === 'CANCELLED') {
+        dynamicStatus = 'Dibatalkan'
+      } else {
+        const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number)
+        const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number)
+        const startMinutes = (hMulai || 0) * 60 + (mMulai || 0)
+        const endMinutes = (hSelesai || 0) * 60 + (mSelesai || 0)
+
+        if (currentMinutes >= endMinutes) {
+          dynamicStatus = 'Selesai'
+        } else if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+          dynamicStatus = 'Sedang Berlangsung'
+        } else if (startMinutes - currentMinutes > 0 && startMinutes - currentMinutes <= 30) {
+          dynamicStatus = 'Segera Dimulai'
+        } else {
+          dynamicStatus = 'Menunggu Jadwal'
+        }
+      }
+
+      const isAsesmen =
+        s.jadwal.tipe_jadwal === 'ASESMEN' ||
+        (s.layanan?.nama || '').toLowerCase().includes('asesmen')
+
+      return {
+        id: s.id,
+        waktu: waktuRange,
+        klien: s.client.nama,
+        psikolog:
+          s.jadwal.psikolog?.nama_gelar ||
+          s.jadwal.psikolog?.account?.nama ||
+          (isAsesmen ? 'Asesor' : '-'),
+        layanan: s.layanan?.nama || '-',
+        metode: (s.metode || 'ONLINE').toUpperCase() === 'OFFLINE' ? 'Offline' : 'Online',
+        status: dynamicStatus,
+      }
+    })
+
+    return {
+      totalCount,
+      limit,
+      hasMore: totalCount > limit,
+      sessions,
+    }
+  }
+
+  /**
+   * Mengambil transaksi pembayaran terbaru untuk widget ringkasan operasional dashboard
+   */
+  async getDashboardRecentTransactions(limit: number = 5) {
+    const { totalCount, rawTransactions } = await this.repo.findDashboardRecentTransactions(limit)
+
+    const transactions = rawTransactions.map((trx) => {
+      const clientName = trx.client?.nama || '-'
+      let layananName = '-'
+      let kategori = '-'
+
+      if (trx.booking_konsultasi?.layanan?.nama) {
+        layananName = trx.booking_konsultasi.layanan.nama
+        kategori = 'Konseling'
+      } else if (trx.booking_psikotes?.paket?.judul) {
+        layananName = trx.booking_psikotes.paket.judul
+        kategori = 'Psikotes'
+      } else if (trx.booking_event?.event?.judul) {
+        layananName = trx.booking_event.event.judul
+        kategori = 'Event'
+      }
+
+      // Format metode pembayaran yang user-friendly
+      let metode = trx.channel_pembayaran || trx.metode_pembayaran || '-'
+      if (metode === 'TRANSFER_BANK') metode = 'Transfer Bank'
+      else if (metode === 'E_WALLET') metode = 'E-Wallet'
+
+      // Format status
+      let status: 'Lunas' | 'Menunggu Pembayaran' | 'Gagal' | 'Refunded' = 'Menunggu Pembayaran'
+      if (trx.status_pembayaran === 'PAID') status = 'Lunas'
+      else if (trx.status_pembayaran === 'REFUNDED') status = 'Refunded'
+      else if (trx.status_pembayaran === 'FAILED') status = 'Gagal'
+
+      const total = Number(trx.total ?? 0)
+      const totalFormatted = total === 0 ? 'Gratis' : `Rp ${total.toLocaleString('id-ID')}`
+
+      return {
+        id: trx.kode_transaksi || trx.id,
+        client: clientName,
+        layanan: layananName,
+        kategori,
+        total: totalFormatted,
+        metode,
+        status,
+        createdAt: trx.createdAt,
+      }
+    })
+
+    return {
+      totalCount,
+      limit,
+      hasMore: totalCount > limit,
+      transactions,
+    }
+  }
+
+  /**
+   * Mengambil agenda dan peringatan operasional mendatang murni dari Database
+   */
+  async getDashboardAgenda(limit: number = 6) {
+    const { upcomingEvents, upcomingSessions, pendingPayments } = await this.repo.findDashboardAgenda(limit)
+
+    const agendaList: Array<{
+      title: string
+      type: string
+      time: string
+      href: string
+      badgeColor: string
+      dotColor: string
+    }> = []
+
+    // 1. Pending Payments (Paling prioritas sebagai peringatan)
+    for (const trx of pendingPayments) {
+      const clientName = trx.client?.nama || '-'
+      const trxId = trx.kode_transaksi || trx.id
+      agendaList.push({
+        title: `Batas Pembayaran: ${clientName} (${trxId})`,
+        type: 'Peringatan',
+        time: 'Perlu Konfirmasi',
+        href: '/admin/transaksi?status=pending',
+        badgeColor: 'bg-red-50 text-red-700',
+        dotColor: 'bg-red-500',
+      })
+    }
+
+    // 2. Upcoming Sessions
+    for (const s of upcomingSessions) {
+      const jamMulaiStr = s.jadwal?.jam_mulai ? formatTimeToString(s.jadwal.jam_mulai) : ''
+      const tglStr = s.jadwal?.tanggal
+        ? new Date(s.jadwal.tanggal).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+          })
+        : '-'
+      const clientName = s.client?.nama || '-'
+      const layananName = s.layanan?.nama || '-'
+
+      agendaList.push({
+        title: `Konseling: ${clientName} (${layananName})`,
+        type: 'Konseling',
+        time: jamMulaiStr ? `${tglStr}, ${jamMulaiStr} WIB` : tglStr,
+        href: '/admin/jadwal',
+        badgeColor: 'bg-[#F3E8F5] text-[#5D205E]',
+        dotColor: 'bg-[#BFA3C5]',
+      })
+    }
+
+    // 3. Upcoming Events
+    for (const ev of upcomingEvents) {
+      const jamStr = ev.jam_mulai ? formatTimeToString(ev.jam_mulai) : ''
+      const tglStr = ev.tanggal
+        ? new Date(ev.tanggal).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+          })
+        : 'Mendatang'
+
+      agendaList.push({
+        title: ev.judul,
+        type: 'Event',
+        time: jamStr ? `${tglStr}, ${jamStr} WIB` : tglStr,
+        href: '/admin/event',
+        badgeColor: 'bg-[#5D205E] text-white',
+        dotColor: 'bg-[#5D205E]',
+      })
+    }
+
+    return {
+      total: agendaList.length,
+      agendaList: agendaList.slice(0, limit),
     }
   }
 }

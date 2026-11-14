@@ -8,6 +8,7 @@ import {
   updateBookingStatusSchema,
   updateAdminProfileSchema,
   resendActivationSchema,
+  dashboardLimitQuerySchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -59,21 +60,56 @@ export default async function adminRoutes(fastify: FastifyInstance) {
 
   // ── Modul Dashboard & Ringkasan Operasional Admin ────────────────
   fastify.get('/dashboard/chart', {
-    preHandler: [
-      async (req) => {
-        try {
-          await req.jwtVerify()
-        } catch {
-          // Tetap lanjut agar data grafik database dapat dimuat saat prototyping/dev
-        }
-      },
-    ],
+    preHandler: [adminGuard],
     schema: {
       tags: ['Admin - Dashboard'],
       summary: 'Mendapatkan data grafik reservasi sesi konsultasi & asesmen terkonfirmasi',
       security: [{ bearerAuth: [] }],
     },
     handler: controller.getDashboardChart,
+  })
+
+  fastify.get('/dashboard/metrics', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan 5 kartu ringkasan operasional admin (pendapatan, klien, sesi selesai, pendaftar workshop, pending bayar)',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getDashboardMetrics,
+  })
+
+  fastify.get('/dashboard/today-sessions', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar sesi konseling hari ini untuk widget dashboard (default top 5)',
+      security: [{ bearerAuth: [] }],
+      querystring: dashboardLimitQuerySchema,
+    },
+    handler: controller.getDashboardTodaySessions,
+  })
+
+  fastify.get('/dashboard/recent-transactions', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar transaksi pembayaran terbaru untuk widget dashboard (default top 5)',
+      security: [{ bearerAuth: [] }],
+      querystring: dashboardLimitQuerySchema,
+    },
+    handler: controller.getDashboardRecentTransactions,
+  })
+
+  fastify.get('/dashboard/agenda', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar agenda dan peringatan operasional mendatang langsung dari Database (default top 6)',
+      security: [{ bearerAuth: [] }],
+      querystring: dashboardLimitQuerySchema,
+    },
+    handler: controller.getDashboardAgenda,
   })
 
   // ── Modul Jadwal & Sesi Admin ────────────────────────────────────
