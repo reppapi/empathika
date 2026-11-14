@@ -40,7 +40,6 @@ describe('Psikotes Security Controls', () => {
         jenis_akses: jenisAkses,
         harga: jenisAkses === 'BERBAYAR' ? 49000 : 0,
         banner_url: null,
-        deskripsi: '',
         tentang_tes: '',
         alat_ukur: { id: 'au-1', kode: 'PBQ', nama: 'PBQ', kategori: 'Kepribadian' },
         interpretasi_psikotes: [],

@@ -174,12 +174,13 @@ export async function seedPBQ(prisma: PrismaClient) {
   console.log(`    ✓ AlatUkur: ${alatUkur.nama} (${alatUkur.kode})`)
 
   // 2. Produk Paket PBQ (Gratis — interpretasi belum disemai menunggu acuan resmi klien)
-  const judulPaket = 'Tes Pola Keyakinan Kepribadian (PBQ)'
+  const judulPaket = 'Tes Keyakinan dan Pola Kepribadian'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
         { judul: judulPaket },
         { judul: { contains: 'PBQ', mode: 'insensitive' } },
+        { judul: { contains: 'Pola Kepribadian', mode: 'insensitive' } },
         { id_alat_ukur: alatUkur.id },
       ],
     },
@@ -191,10 +192,8 @@ export async function seedPBQ(prisma: PrismaClient) {
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
     banner_url: null,
-    deskripsi:
-      'Kenali pola keyakinan dan cara berpikir yang memengaruhi relasi diri serta orang lain melalui 9 dimensi kepribadian berbasis Personality Belief Questionnaire (PBQ).',
     tentang_tes:
-      'Personality Belief Questionnaire (PBQ) dikembangkan oleh Aaron T. Beck dan rekan-rekannya untuk memetakan keyakinan inti seseorang pada sembilan pola kepribadian: Avoidant, Dependent, Passive-Aggressive, Obsessive-Compulsive, Antisocial, Narcissistic, Histrionic, Schizoid, dan Paranoid. Hasil skoring disajikan terpisah per skala (rentang 0–56) tanpa penjumlahan skor total.',
+      'Cara kita memandang diri sendiri, orang lain, dan lingkungan dapat memengaruhi bagaimana kita menjalani kehidupan. Tes ini mengeksplorasi berbagai keyakinan yang berkaitan dengan pola kepribadian, termasuk cara seseorang memahami dirinya, menjalin hubungan, dan menyikapi situasi di sekitarnya.',
     status: 'PUBLISHED',
   }
 

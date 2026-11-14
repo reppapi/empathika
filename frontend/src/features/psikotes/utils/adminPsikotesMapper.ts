@@ -25,7 +25,7 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
       judulId: item.id,
       namaJudul: cleanJudul,
       kategori: "Umum",
-      deskripsi: item.deskripsi || "",
+      deskripsi: item.tentang_tes || "",
       bannerUrl: item.banner_url || undefined,
       jenisAkses: item.jenis_akses === "GRATIS" ? "Gratis" : "Berbayar",
       harga: item.jenis_akses === "GRATIS" ? "Gratis" : `Rp ${Number(item.harga).toLocaleString("id-ID")}`,
@@ -102,7 +102,7 @@ export function mapApiResponseToJudul(items: PaketPsikotesApiResponse[]): JudulP
         id: item.id,
         judul: cleanJudul,
         kategori: "Umum",
-        deskripsi: item.deskripsi || "",
+        deskripsi: item.tentang_tes || "",
         image: item.banner_url || "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80&w=100&h=100",
         paketList: [paketDetail],
       });

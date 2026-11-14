@@ -33,7 +33,7 @@ export class PsikotesRepository {
     if (params?.search) {
       where.OR = [
         { judul: { contains: params.search, mode: 'insensitive' } },
-        { deskripsi: { contains: params.search, mode: 'insensitive' } },
+        { tentang_tes: { contains: params.search, mode: 'insensitive' } },
       ]
     }
 
@@ -162,7 +162,6 @@ export class PsikotesRepository {
     return this.prisma.paketPsikotes.create({
       data: {
         judul: data.judul,
-        deskripsi: data.deskripsi || null,
         tentang_tes: data.tentang_tes || null,
         banner_url: data.banner_url || null,
         jenis_akses: data.jenis_akses || 'GRATIS',
@@ -224,7 +223,6 @@ export class PsikotesRepository {
         where: { id },
         data: {
           ...(data.judul !== undefined ? { judul: data.judul } : {}),
-          ...(data.deskripsi !== undefined ? { deskripsi: data.deskripsi } : {}),
           ...(data.tentang_tes !== undefined ? { tentang_tes: data.tentang_tes } : {}),
           ...(data.banner_url !== undefined ? { banner_url: data.banner_url } : {}),
           ...(data.jenis_akses !== undefined ? { jenis_akses: data.jenis_akses } : {}),
@@ -1721,7 +1719,6 @@ export class PsikotesRepository {
             jenis_akses: true,
             harga: true,
             banner_url: true,
-            deskripsi: true,
             tentang_tes: true,
             alat_ukur: {
               select: {

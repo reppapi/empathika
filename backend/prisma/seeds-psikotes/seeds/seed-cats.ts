@@ -353,12 +353,13 @@ export async function seedCATS(prisma: PrismaClient) {
 
   // 2. Produk Paket CATS (Gratis - Rp 0)
   console.log('\n--- Menyemai Produk Paket CATS (Gratis) ---')
-  const judulPaket = 'Tes Skrining Gejala Stres Pascatrauma Anak & Remaja (CATS)'
+  const judulPaket = 'Tes Pengalaman Traumatis dan Gejala Pascatrauma'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
         { judul: judulPaket },
         { judul: { contains: 'CATS', mode: 'insensitive' } },
+        { judul: { contains: 'Traumatis', mode: 'insensitive' } },
         { id_alat_ukur: alatUkur.id },
       ],
     },
@@ -370,10 +371,8 @@ export async function seedCATS(prisma: PrismaClient) {
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
     banner_url: '/images/psikotes/banner-cats.jpg',
-    deskripsi:
-      'Skrining komprehensif gejala stres pascatrauma (PTSS/PTSD) pada anak dan remaja usia 7–17 tahun berdasarkan kriteria DSM-5, mengukur paparan peristiwa berpotensi traumatis, tingkat keparahan gejala, dan dampaknya terhadap fungsi psikososial.',
     tentang_tes:
-      'Peristiwa yang menegangkan atau menakutkan dapat memengaruhi perasaan, pikiran, dan perilaku anak dalam kehidupan sehari-hari. Instrumen Child and Adolescent Trauma Screen (CATS) membantu mengevaluasi paparan kejadian traumatis (Kriteria A), keparahan gejala stres pascatrauma (Kriteria B, C, D, dan E), serta dampaknya terhadap pergaulan, sekolah, dan fungsi psikososial anak. Asesmen ini memberikan panduan klinis awal bagi orang tua dan tenaga profesional untuk merencanakan pendampingan yang tepat.',
+      'Pengalaman yang menakutkan atau menyakitkan terkadang dapat meninggalkan dampak yang tidak mudah dilupakan. Tes ini membantu mengenali pengalaman yang berpotensi traumatis serta gejala pascatrauma yang mungkin dialami anak dan remaja. Tes ini juga melihat apakah pengalaman tersebut memengaruhi kehidupan sehari-hari, seperti aktivitas sekolah, hubungan dengan keluarga dan teman, serta hal-hal yang biasanya disukai.',
     status: 'PUBLISHED',
   }
 

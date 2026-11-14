@@ -27,7 +27,6 @@ export const interpretasiPsikotesSchema = z.object({
 
 export const createPsikotesSchema = z.object({
   judul: z.string().min(1, 'Judul psikotes wajib diisi'),
-  deskripsi: z.string().optional().nullable(),
   tentang_tes: z.string().optional().nullable(),
   banner_url: z.string().optional().nullable(),
   jenis_akses: z.enum(['GRATIS', 'BERBAYAR']).default('GRATIS'),

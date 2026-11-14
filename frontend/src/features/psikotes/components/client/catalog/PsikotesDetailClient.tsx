@@ -238,16 +238,9 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     return DEFAULT_BANNER;
   })();
 
-  const subtitleText = apiData.deskripsi || (() => {
+  const deskripsiText = apiData.tentang_tes || (() => {
     if (process.env.NODE_ENV === "development") {
-      console.warn(`[DEV WARNING][PsikotesDetail] 'deskripsi' untuk paket '${params.testId}' kosong di DB.`);
-    }
-    return "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.";
-  })();
-
-  const deskripsiText = apiData.tentang_tes || apiData.deskripsi || (() => {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`[DEV WARNING][PsikotesDetail] 'tentang_tes' dan 'deskripsi' untuk paket '${params.testId}' kosong di DB.`);
+      console.warn(`[DEV WARNING][PsikotesDetail] 'tentang_tes' untuk paket '${params.testId}' kosong di DB.`);
     }
     return "Asesmen ini dirancang untuk membantumu mengenali kondisi emosional dan psikologis diri secara lebih mendalam sebagai langkah awal merawat kesehatan mental.";
   })();
@@ -264,7 +257,6 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
 
   const data = {
     title: apiData.judul || "Paket Psikotes Empathika",
-    subtitle: subtitleText,
     image: bannerImage,
     description: deskripsiText,
     questions: `${apiData.soal_psikotes?.length || 0} Pertanyaan`,
@@ -283,7 +275,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">
       
       {/* 1. HERO BANNER */}
-      <section className="relative w-full h-[400px] lg:h-[500px] bg-[#1c352d]">
+      <section className="relative w-full h-[320px] sm:h-[360px] md:h-[400px] bg-[#1c352d] overflow-hidden">
         <Image 
           src={data.image} 
           alt={data.title}
@@ -293,17 +285,12 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
           unoptimized
         />
         {/* Overlay gradient for readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-900/60 to-transparent"></div>
         
-        <div className="absolute inset-0 flex flex-col justify-end pb-16 lg:pb-20 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="px-6 sm:px-8 md:px-10">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 tracking-tight max-w-4xl leading-[1.1] drop-shadow-md">
-              {data.title}
-            </h1>
-            <p className="text-gray-200 text-base md:text-xl font-light max-w-full drop-shadow-sm leading-relaxed">
-              {data.subtitle}
-            </p>
-          </div>
+        <div className="absolute inset-0 flex flex-col justify-end pb-20 sm:pb-24 md:pb-28 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-[2.75rem] font-extrabold text-white tracking-tight max-w-4xl leading-[1.2] drop-shadow-md">
+            {data.title}
+          </h1>
         </div>
       </section>
 

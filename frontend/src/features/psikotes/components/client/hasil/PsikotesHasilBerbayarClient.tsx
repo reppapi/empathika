@@ -579,7 +579,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             : (Array.isArray(rawTips) ? (rawTips as any) : []);
 
       return {
-        deskripsi: dbInterpretasi.deskripsi || dbPackage?.deskripsi || "Asesmen psikotes telah berhasil diselesaikan.",
+        deskripsi: dbInterpretasi.deskripsi || dbPackage?.tentang_tes || "Asesmen psikotes telah berhasil diselesaikan.",
         kekuatanUtama,
         blindspots,
         lingkunganOptimal,
@@ -609,7 +609,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     // Jika tes DASS-42 (menggunakan evaluasi klinis 3 dimensi)
     if (isDASS && dassEvaluation) {
       return {
-        deskripsi: dassEvaluation.introText || dbPackage?.deskripsi || "Asesmen DASS-42 telah selesai dianalisis.",
+        deskripsi: dassEvaluation.introText || dbPackage?.tentang_tes || "Asesmen DASS-42 telah selesai dianalisis.",
         judulKekuatan: "Potensi atau Kekuatan Utama",
         judulBlindspots: "Area yang Perlu Dikembangkan",
         judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",
@@ -622,7 +622,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
     // Jika belum ada data interpretasi yang cocok di database
     return {
-      deskripsi: dbPackage?.deskripsi || "Hasil asesmen psikotes telah selesai dianalisis.",
+      deskripsi: dbPackage?.tentang_tes || "Hasil asesmen psikotes telah selesai dianalisis.",
       judulKekuatan: "Potensi atau Kekuatan Utama",
       judulBlindspots: "Area yang Perlu Dikembangkan",
       judulLingkungan: "Kondisi atau Lingkungan yang Mendukung",

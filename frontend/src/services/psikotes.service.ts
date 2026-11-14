@@ -7,7 +7,6 @@ export interface PaketPsikotesApiResponse {
   jenis_akses: "GRATIS" | "BERBAYAR"
   harga: string | number
   banner_url?: string | null
-  deskripsi?: string | null
   tentang_tes?: string | null
   status: "PUBLISHED" | "DRAFT"
   createdAt: string

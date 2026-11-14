@@ -51,14 +51,14 @@ export function getInstrumentCode(
 
   // 2. Prioritas Kedua: Akronim Spesifik pada Judul
   const j = (data?.judul || "").toUpperCase();
-  if (j.includes("(CATS)") || j.includes(" CATS") || j.includes("TRAUMA SCREEN")) return "CATS";
-  if (j.includes("(CDI)") || j.includes(" CDI") || j.includes("CHILDREN'S DEPRESSION")) return "CDI";
-  if (j.includes("(PBQ)") || j.includes(" PBQ") || j.includes("POLA KEYAKINAN KEPRIBADIAN")) return "PBQ";
+  if (j.includes("(CATS)") || j.includes(" CATS") || j.includes("TRAUMA SCREEN") || j.includes("PENGALAMAN TRAUMATIS") || j.includes("PASCATRAUMA")) return "CATS";
+  if (j.includes("(CDI)") || j.includes(" CDI") || j.includes("CHILDREN'S DEPRESSION") || j.includes("DEPRESI ANAK")) return "CDI";
+  if (j.includes("(PBQ)") || j.includes(" PBQ") || j.includes("POLA KEYAKINAN KEPRIBADIAN") || j.includes("KEYAKINAN DAN POLA KEPRIBADIAN")) return "PBQ";
   if (j.includes("(RCMAS)") || j.includes(" RCMAS") || (j.includes("KECEMASAN ANAK") && !j.includes("CATS"))) return "RCMAS";
-  if (j.includes("(IGDS") || j.includes("IGDS9") || j.includes("BERMAIN GAME") || j.includes("GAMING")) return "IGDS";
+  if (j.includes("(IGDS") || j.includes("IGDS9") || j.includes("BERMAIN GAME") || j.includes("KEBIASAAN BERMAIN GAME") || j.includes("GAMING")) return "IGDS";
   if (j.includes("DASS-42") || j.includes("DASS42") || (j.includes("DEPRESI") && j.includes("KECEMASAN") && j.includes("STRES"))) return "DASS";
-  if (j.includes("(PHQ-9)") || j.includes("PHQ-9") || (j.includes("SKRINING GEJALA DEPRESI AWAL") && !j.includes("CDI"))) return "PHQ";
-  if (j.includes("(GAD-7)") || j.includes("GAD-7") || j.includes("ANXIETY TEST") || (j.includes("TINGKAT KECEMASANMU") && !j.includes("RCMAS"))) return "GAD";
+  if (j.includes("(PHQ-9)") || j.includes("PHQ-9") || j === "TES DEPRESI" || (j.includes("SKRINING GEJALA DEPRESI AWAL") && !j.includes("CDI"))) return "PHQ";
+  if (j.includes("(GAD-7)") || j.includes("GAD-7") || j === "TES KECEMASAN" || j.includes("ANXIETY TEST") || (j.includes("TINGKAT KECEMASANMU") && !j.includes("RCMAS"))) return "GAD";
 
   // 3. Prioritas Ketiga: Fallback ID / Slug URL
   const slug = (fallbackIdOrSlug || "").toUpperCase();
