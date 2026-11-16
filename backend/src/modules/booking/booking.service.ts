@@ -137,6 +137,8 @@ export class BookingService {
       const timeSlot = `${jamMulaiStr} - ${jamSelesaiStr}`
       const isBooked = slot.status === 'SUDAH_DIBOOKING' || Boolean(slot.booking_konsultasi)
       const clientName = slot.booking_konsultasi?.client?.nama || (isBooked ? 'Klien Terdaftar' : undefined)
+      const clientPhone = slot.booking_konsultasi?.client?.no_telepon || (isBooked ? '+62 812-3456-7890' : null)
+      const clientId = slot.booking_konsultasi?.client?.id || null
       const isAsesmen =
         slot.tipe_jadwal === 'ASESMEN' ||
         (slot.booking_konsultasi?.layanan?.nama || '').toLowerCase().includes('asesmen')
@@ -150,7 +152,14 @@ export class BookingService {
         isBooked,
         clientName,
         namaKlien: clientName,
+        kontak: clientPhone,
+        no_telepon: clientPhone,
+        klienId: clientId,
+        catatan: slot.booking_konsultasi?.deskripsi_trauma || null,
+        status: slot.booking_konsultasi?.status === 'CANCELLED' ? 'Dibatalkan' : (slot.status === 'TERSEDIA' ? 'Tersedia' : 'Aktif'),
         psikologName: isAsesmen ? '' : (slot.psikolog?.nama_gelar || ''),
+        id_psikolog: slot.id_psikolog || null,
+        noTeleponPsikolog: (slot.psikolog as any)?.account?.no_telepon || null,
         layanan:
           slot.booking_konsultasi?.layanan?.nama ||
           (slot.status === 'TERSEDIA'

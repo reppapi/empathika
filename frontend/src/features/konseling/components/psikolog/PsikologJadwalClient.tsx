@@ -56,8 +56,12 @@ interface BookedSession {
   layanan: string
   metode: MetodeKonsultasi
   namaKlien?: string
+  kontak?: string
+  klienId?: string
   id_psikolog?: string
   namaPsikolog?: string
+  noTeleponPsikolog?: string
+  catatan?: string
   isAvailableSlot?: boolean
   status?: string
   isCancelled?: boolean
@@ -334,14 +338,15 @@ export default function PsikologJadwalClient() {
         statusSession = "Selesai"
       }
 
+      const isClient = !s.isAvailableSlot && s.namaKlien && s.namaKlien !== "Tersedia"
       return {
         id: s.id,
         date: s.date,
         tanggal: s.date,
         waktu: s.waktu,
-        namaKlien: s.namaKlien && s.namaKlien !== "Tersedia" ? s.namaKlien : "Klien Terdaftar",
-        klienId: "010" + Math.floor(100 + Math.random() * 900),
-        kontak: (s as any).kontak || "+62 812-3456-7890",
+        namaKlien: (isClient && s.namaKlien) ? s.namaKlien : "Klien Terdaftar",
+        klienId: s.klienId || ("010" + Math.floor(100 + Math.random() * 900)),
+        kontak: s.kontak || (isClient ? "+62 812-3456-7890" : undefined),
         psikolog:
           s.namaPsikolog ||
           activePsikolog?.nama_gelar ||
@@ -352,6 +357,7 @@ export default function PsikologJadwalClient() {
         noTeleponPsikolog: (activePsikolog as any)?.no_telepon || "+62 821-7373-9213",
         layanan: s.layanan || "Konsultasi Psikologi",
         tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
+        catatan: s.catatan,
         status: statusSession,
         isPaid: true,
       }
@@ -495,6 +501,8 @@ export default function PsikologJadwalClient() {
           if ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") return
 
           const mapKey = `${s.date}_${s.waktu}`
+          const isAvailable = s.status === "TERSEDIA"
+          const clientPhone = s.booking?.no_telepon_klien || s.booking?.kontak || (!isAvailable && s.booking?.nama_klien ? "+62 812-3456-7890" : undefined)
           sessionMap.set(mapKey, {
             id: s.id,
             date: s.date,
@@ -504,9 +512,12 @@ export default function PsikologJadwalClient() {
               ? (s.booking.metode === "OFFLINE" ? "Offline" : "Online")
               : (s.metode === "OFFLINE" ? "Offline" : s.metode === "KEDUANYA" ? "Keduanya" : "Online")) as MetodeKonsultasi,
             namaKlien: s.booking?.nama_klien || "Tersedia",
+            kontak: clientPhone,
+            klienId: s.booking?.klien_id || (!isAvailable ? "010" + Math.floor(100 + Math.random() * 900) : undefined),
+            catatan: s.booking?.deskripsi_trauma,
             id_psikolog: res.psikolog?.id || resolvedPsikologId,
             namaPsikolog: res.psikolog?.nama_gelar || resolvedPsikologName,
-            isAvailableSlot: s.status === "TERSEDIA",
+            isAvailableSlot: isAvailable,
           })
         })
       }
@@ -538,6 +549,9 @@ export default function PsikologJadwalClient() {
                     layanan: t.layanan || "Konsultasi Psikologi",
                     metode: t.tipe?.includes("Offline") ? "Offline" : "Online",
                     namaKlien: t.namaKlien || "Klien Terdaftar",
+                    kontak: t.kontak || "+62 812-3456-7890",
+                    klienId: t.klienId || ("010" + Math.floor(100 + Math.random() * 900)),
+                    catatan: t.catatan,
                     id_psikolog: t.idPsikolog || resolvedPsikologId,
                     namaPsikolog: t.psikolog || resolvedPsikologName,
                     isAvailableSlot: false,
@@ -564,6 +578,7 @@ export default function PsikologJadwalClient() {
                 const mapKey = `${w.date}_${w.timeSlot}`
                 if (!sessionMap.has(mapKey)) {
                   const isAvailable = w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")
+                  const clientPhone = w.kontak || w.no_telepon || (!isAvailable ? "+62 812-3456-7890" : undefined)
                   sessionMap.set(mapKey, {
                     id: w.id,
                     date: w.date,
@@ -571,6 +586,9 @@ export default function PsikologJadwalClient() {
                     layanan: w.layanan || "Konsultasi Psikologi",
                     metode: w.metode === "Offline" ? "Offline" : w.metode === "Keduanya" ? "Keduanya" : "Online",
                     namaKlien: isAvailable ? "Tersedia" : (w.clientName || w.namaKlien || "Klien Terdaftar"),
+                    kontak: clientPhone,
+                    klienId: w.klienId || (!isAvailable ? "010" + Math.floor(100 + Math.random() * 900) : undefined),
+                    catatan: w.catatan,
                     id_psikolog: resolvedPsikologId,
                     namaPsikolog: w.psikologName || resolvedPsikologName,
                     isAvailableSlot: isAvailable,

@@ -255,16 +255,23 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
   }
 
   const handleSelectWeeklySession = (session: BookedAssessment) => {
+    const isClientBooked = !session.isAvailableSlot && session.namaKlien && session.namaKlien !== "Tersedia"
     const converted: ClientSessionToday = {
       id: session.id,
       date: session.date,
+      tanggal: session.date,
       waktu: session.waktu,
       namaKlien: session.namaKlien || "Klien Terdaftar",
-      klienId: "010" + Math.floor(100 + Math.random() * 900),
+      klienId: session.klienId || ("010" + Math.floor(100 + Math.random() * 900)),
+      kontak: session.kontak || (isClientBooked ? "+62 812-3456-7890" : undefined),
       psikolog: session.psikolog || "Tenaga Ahli",
+      idPsikolog: session.id_psikolog,
+      noTeleponPsikolog: session.noTeleponPsikolog,
       layanan: session.layanan,
       tipe: session.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
+      catatan: session.catatan,
       status: session.status === "Dibatalkan" ? "Dibatalkan" : "Menunggu Jadwal",
+      isPaid: true,
     }
     setSelectedDetailSession(converted)
   }
@@ -541,6 +548,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
             const isAsesmen =
               (w.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
               (w.layanan || "").toLowerCase().includes("asesmen")
+            const isAvailable = w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")
             return {
               id: w.id,
               date: w.date,
@@ -548,8 +556,13 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               layanan: w.layanan,
               metode: w.metode,
               namaKlien: w.clientName || (w.statusSlot === "TERSEDIA" ? "Tersedia" : undefined),
+              kontak: w.kontak || w.no_telepon || (!isAvailable ? "+62 812-3456-7890" : undefined),
+              klienId: w.klienId || (!isAvailable ? "010" + Math.floor(100 + Math.random() * 900) : undefined),
               psikolog: isAsesmen ? "" : w.psikologName,
-              status: w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif",
+              id_psikolog: w.id_psikolog,
+              noTeleponPsikolog: w.noTeleponPsikolog,
+              catatan: w.catatan,
+              status: w.status || (w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif"),
               isAvailableSlot: w.statusSlot === "TERSEDIA",
               tipe_jadwal: isAsesmen ? "ASESMEN" : "KONSULTASI",
               isBooked:

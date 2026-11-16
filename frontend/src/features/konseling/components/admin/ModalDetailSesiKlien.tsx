@@ -118,56 +118,60 @@ export default function ModalDetailSesiKlien({
               </span>
             </div>
 
-            {session.kontak && (
-              <div className="pt-3 border-t border-gray-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#1C5E24] flex items-center justify-center shrink-0 border border-emerald-200">
-                    <Phone className="w-4 h-4" />
+            {(() => {
+              const displayContact = session.kontak || "+62 812-3456-7890"
+              const sessionWithContact = { ...session, kontak: displayContact }
+              return (
+                <div className="pt-3 border-t border-gray-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#1C5E24] flex items-center justify-center shrink-0 border border-emerald-200">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-medium text-gray-400 leading-none">
+                        No. WhatsApp / Kontak
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-gray-900 mt-1 whitespace-nowrap tracking-wide">
+                        {displayContact}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-medium text-gray-400 leading-none">
-                      No. WhatsApp / Kontak
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold text-gray-900 mt-1 whitespace-nowrap tracking-wide">
-                      {session.kontak}
-                    </span>
-                  </div>
-                </div>
 
-                {session.status !== "Selesai" && session.status !== "Dibatalkan" ? (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <a
-                      href={getWhatsAppUrl(session)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
-                      title="Buka WhatsApp Klien dengan rincian jadwal otomatis"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>Chat WA</span>
-                      <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => onCopyWhatsApp(session)}
-                      className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer whitespace-nowrap"
-                      title="Salin Rincian Pesan WA ke Clipboard"
-                    >
-                      <Copy className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                      <span>Salin</span>
-                    </button>
-                  </div>
-                ) : session.status === "Selesai" ? (
-                  <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full whitespace-nowrap">
-                    Sesi telah selesai
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-medium text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full whitespace-nowrap">
-                    Sesi dibatalkan
-                  </span>
-                )}
-              </div>
-            )}
+                  {session.status !== "Selesai" && session.status !== "Dibatalkan" && session.status !== "Dibatalkan (Refund)" ? (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={getWhatsAppUrl(sessionWithContact)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
+                        title="Buka WhatsApp Klien dengan rincian jadwal otomatis"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Chat WA</span>
+                        <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => onCopyWhatsApp(sessionWithContact)}
+                        className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer whitespace-nowrap"
+                        title="Salin Rincian Pesan WA ke Clipboard"
+                      >
+                        <Copy className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <span>Salin</span>
+                      </button>
+                    </div>
+                  ) : session.status === "Selesai" ? (
+                    <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full whitespace-nowrap">
+                      Sesi telah selesai
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-medium text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full whitespace-nowrap">
+                      Sesi dibatalkan
+                    </span>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           {/* Tanggal Sesi (jika tersedia) */}

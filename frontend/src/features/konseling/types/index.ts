@@ -5,7 +5,12 @@ export interface BookedAssessment {
   layanan: string
   metode: "Online" | "Offline"
   namaKlien?: string
+  kontak?: string
+  klienId?: string
   psikolog?: string
+  id_psikolog?: string
+  noTeleponPsikolog?: string
+  catatan?: string
   status?: "Aktif" | "Dibatalkan" | "Selesai" | string
   isAvailableSlot?: boolean
   isBooked?: boolean
