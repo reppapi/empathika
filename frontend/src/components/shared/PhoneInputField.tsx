@@ -6,6 +6,7 @@ export interface PhoneInputFieldProps {
   value: string
   onChange: (value: string, rawDigits: string) => void
   label?: string | null
+  labelClassName?: string
   placeholder?: string
   required?: boolean
   disabled?: boolean
@@ -15,6 +16,7 @@ export interface PhoneInputFieldProps {
   name?: string
   className?: string
   inputClassName?: string
+  boxClassName?: string
   showDigitCount?: boolean
   minDigits?: number
   maxDigits?: number
@@ -80,6 +82,7 @@ export function PhoneInputField({
   value,
   onChange,
   label = "No WhatsApp",
+  labelClassName = "",
   placeholder = "+62 821-7373-9213",
   required = false,
   disabled = false,
@@ -89,6 +92,7 @@ export function PhoneInputField({
   name,
   className = "",
   inputClassName = "",
+  boxClassName = "",
   showDigitCount = false,
   minDigits = 10,
   maxDigits = 14,
@@ -218,18 +222,18 @@ export function PhoneInputField({
       {label !== null && label !== "" && (
         <label
           htmlFor={id}
-          className="block text-sm sm:text-base font-bold text-gray-900 mb-2 select-none"
+          className={`block text-xs sm:text-sm font-semibold sm:font-bold text-gray-700 mb-1.5 select-none ${labelClassName}`}
         >
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 
       <div
-        className={`group relative flex items-center w-full rounded-2xl border-2 transition-all duration-200 bg-white ${
+        className={`group relative flex items-center w-full rounded-xl border transition-all duration-200 bg-white ${
           error
             ? "border-red-500 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-400/20"
-            : "border-[#561269] hover:border-[#430d52] focus-within:border-[#561269] focus-within:ring-2 focus-within:ring-[#561269]/20"
-        } ${disabled ? "opacity-60 bg-gray-100 cursor-not-allowed border-gray-300" : ""}`}
+            : "border-[#561269] hover:border-[#430d52] focus-within:border-[#561269] focus-within:ring-2 focus-within:ring-[#561269]/15 shadow-2xs"
+        } ${disabled ? "opacity-60 bg-gray-100 cursor-not-allowed border-gray-300" : ""} ${boxClassName}`}
       >
         <input
           id={id}
@@ -245,12 +249,12 @@ export function PhoneInputField({
           onBlur={handleInputBlur}
           onFocus={onFocus}
           placeholder={placeholder}
-          className={`w-full px-4 sm:px-5 py-3 sm:py-3.5 text-base sm:text-lg font-semibold text-gray-900 bg-transparent outline-none border-none placeholder:text-gray-400 placeholder:font-normal tracking-wide ${inputClassName}`}
+          className={`w-full px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-800 bg-transparent outline-none border-none placeholder:text-gray-400 placeholder:font-normal tracking-wide ${inputClassName}`}
         />
 
         {showDigitCount && rawDigits && (
           <span
-            className={`mr-3 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold select-none shrink-0 transition-colors ${
+            className={`mr-2.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold select-none shrink-0 transition-colors ${
               isValidLength
                 ? "bg-emerald-50 text-emerald-700"
                 : rawDigits.length > maxDigits
@@ -278,7 +282,7 @@ export function PhoneInputField({
           <span>{error}</span>
         </p>
       ) : helperText ? (
-        <p className="text-[11px] text-gray-500 mt-1.5">{helperText}</p>
+        <p className="text-[11px] text-gray-500 mt-1">{helperText}</p>
       ) : null}
     </div>
   )
