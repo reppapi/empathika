@@ -896,26 +896,47 @@ export class BiroService {
 
     // Eksekusi transaksi database secara atomik
     const bookingResult = await this.prisma.$transaction(async (tx) => {
-      // 1. Temukan atau daftarkan klien dengan asosiasi id_biro (format nomor telepon standar tunggal 628...)
+      // 1. Temukan atau daftarkan klien dengan asosiasi id_biro (kombinasi nomor telepon DAN nama case-insensitive)
+      const inputName = (input.klien.nama || '').trim()
       const rawPhone = (input.klien.no_telepon || '').trim()
       const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
-      let client = await tx.client.findFirst({
-        where: {
-          OR: [
-            { no_telepon: standardizedPhone },
-            { no_telepon: rawPhone },
-            ...(digitsOnly.length >= 8 ? [{ no_telepon: digitsOnly }] : []),
-          ],
-        },
-      })
+      const phoneConditions: Prisma.ClientWhereInput[] = rawPhone ? [
+        { no_telepon: standardizedPhone },
+        { no_telepon: rawPhone },
+        ...(digitsOnly.length >= 8 ? [
+          { no_telepon: digitsOnly },
+          { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
+        ] : []),
+      ] : []
+
+      let client: any = null
+
+      if (inputName && phoneConditions.length > 0) {
+        client = await tx.client.findFirst({
+          where: {
+            AND: [
+              { OR: phoneConditions },
+              { nama: { equals: inputName, mode: 'insensitive' } },
+            ],
+          },
+        })
+      } else if (phoneConditions.length > 0) {
+        client = await tx.client.findFirst({
+          where: { OR: phoneConditions },
+        })
+      } else if (inputName) {
+        client = await tx.client.findFirst({
+          where: { nama: { equals: inputName, mode: 'insensitive' } },
+        })
+      }
 
       if (!client) {
         client = await tx.client.create({
           data: {
-            nama: input.klien.nama.trim(),
-            no_telepon: standardizedPhone,
+            nama: inputName || 'Klien',
+            no_telepon: standardizedPhone || null,
             usia: input.klien.usia,
             jenis_kelamin: input.klien.jenis_kelamin,
             id_biro: biro.id,
@@ -924,7 +945,9 @@ export class BiroService {
       } else {
         const updateData: any = {}
         if (!client.id_biro) updateData.id_biro = biro.id
-        if (client.no_telepon !== standardizedPhone) updateData.no_telepon = standardizedPhone
+        if (standardizedPhone && client.no_telepon !== standardizedPhone) updateData.no_telepon = standardizedPhone
+        if (input.klien.usia !== undefined && input.klien.usia !== null && input.klien.usia !== client.usia) updateData.usia = input.klien.usia
+        if (input.klien.jenis_kelamin && input.klien.jenis_kelamin !== client.jenis_kelamin) updateData.jenis_kelamin = input.klien.jenis_kelamin
         if (Object.keys(updateData).length > 0) {
           client = await tx.client.update({
             where: { id: client.id },

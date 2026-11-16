@@ -8,6 +8,7 @@ import type {
   GetJadwalTersediaQuery,
   CreateJadwalSlotInput,
   CreateClientBookingInput,
+  RescheduleBookingInput,
 } from './booking.schema'
 
 export class BookingController {
@@ -228,6 +229,22 @@ export class BookingController {
       reply.send(data)
     } catch (err: any) {
       reply.code(400).send({ message: err.message })
+    }
+  }
+
+  rescheduleBooking = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: RescheduleBookingInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.rescheduleBooking(request.params.id, request.body)
+      reply.send({
+        statusCode: 200,
+        message: 'Sesi konsultasi berhasil dijadwalkan ulang (reschedule)',
+        data,
+      })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 }

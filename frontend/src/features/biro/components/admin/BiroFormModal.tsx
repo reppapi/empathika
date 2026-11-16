@@ -389,7 +389,8 @@ export default function BiroFormModal({
             {/* No Telepon */}
             <div>
               <PhoneInputField
-                label="No. Telepon"
+                label="No WhatsApp"
+                labelClassName="uppercase tracking-wider font-bold mb-1.5 text-xs text-gray-700"
                 required
                 value={telepon}
                 onChange={(val) => {
@@ -397,8 +398,8 @@ export default function BiroFormModal({
                   if (errors.telepon) setErrors((prev) => ({ ...prev, telepon: "" }))
                 }}
                 error={errors.telepon}
-                placeholder="812-3456-7890"
-                theme="purple"
+                placeholder="+62 821-7373-9213"
+                inputClassName="rounded-2xl border-gray-200 bg-white focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/10 shadow-xs px-3.5 py-2.5 text-xs sm:text-sm"
               />
             </div>
           </div>

@@ -5,7 +5,7 @@ import PhoneInputField from "@/components/shared/PhoneInputField"
 import MetodePembayaranBox from "@/components/shared/checkout/MetodePembayaranBox"
 import Link from "next/link"
 import { useEventCheckout } from "../../hooks/useEventCheckout"
-import { Users, User, Sparkles } from "lucide-react"
+import { Users, User, Sparkles, CheckCircle2 } from "lucide-react"
 
 export default function EventCheckoutClient() {
   const {
@@ -21,6 +21,7 @@ export default function EventCheckoutClient() {
     pesertaTambahan,
     setPesertaTambahan,
     hargaNormalParam,
+    benefitList,
     metodePembayaran,
     selectedBank,
     setSelectedBank,
@@ -289,6 +290,25 @@ export default function EventCheckoutClient() {
                         )}
                       </div>
                     )}
+
+                    {/* Baris 3: List Benefit Event (Grid 2 Kolom dengan icon Ceklis Hijau) */}
+                    {benefitList && benefitList.length > 0 && (
+                      <div className="pt-3 mt-1 border-t border-gray-100">
+                        <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block mb-2">
+                          Benefit yang Didapatkan:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {benefitList.map((b, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span className="text-xs font-medium text-gray-700 leading-tight">
+                                {b}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -460,6 +480,7 @@ export default function EventCheckoutClient() {
                           label={`No WhatsApp Peserta ${idx + 2}`}
                           required
                           value={p.whatsapp}
+                          inputClassName="rounded-xl px-4 py-2.5 text-xs"
                           onChange={(formatted, cleanDigits) => {
                             setPesertaTambahan((prev) => {
                               const next = [...prev]
@@ -510,7 +531,6 @@ export default function EventCheckoutClient() {
                           }}
                           error={pErr?.whatsapp}
                           helperText="Otomatis diawali +62 (Indonesia). Nomor harus aktif untuk tiket & pengumuman."
-                          theme="purple"
                         />
                       </div>
                     </div>

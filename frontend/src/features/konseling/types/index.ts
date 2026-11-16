@@ -5,10 +5,17 @@ export interface BookedAssessment {
   layanan: string
   metode: "Online" | "Offline"
   namaKlien?: string
+  kontak?: string
+  klienId?: string
   psikolog?: string
-  status?: "Aktif" | "Dibatalkan" | "Selesai" | string
+  id_psikolog?: string
+  noTeleponPsikolog?: string
+  catatan?: string
+  status?: "Aktif" | "Dibatalkan" | "Reschedule" | "Selesai" | string
   isAvailableSlot?: boolean
   isBooked?: boolean
+  isRescheduled?: boolean
+  isCancelled?: boolean
   tipe_jadwal?: "ASESMEN" | "KONSULTASI" | string
 }
 
@@ -19,11 +26,14 @@ export type ClientSessionStatus =
   | "Sedang Berlangsung"
   | "Dibatalkan"
   | "Dibatalkan (Refund)"
+  | "Reschedule"
 
 export interface ClientSessionToday {
   id: string
   date?: string // format YYYY-MM-DD
   waktu: string
+  newDate?: string
+  newWaktu?: string
   namaKlien: string
   klienId: string
   kontak?: string

@@ -263,6 +263,7 @@ export class EventRepository {
         kuota_tiket_bundling: data.kuota_tiket_bundling !== undefined && data.kuota_tiket_bundling !== null ? data.kuota_tiket_bundling : 2,
         nama_bundling: data.nama_bundling ?? null,
         paket_bundling: data.paket_bundling !== undefined && data.paket_bundling !== null ? (data.paket_bundling as Prisma.InputJsonValue) : Prisma.JsonNull,
+        benefit: data.benefit ?? [],
         banner_url: data.banner_url ?? null,
         nama_pembicara: data.nama_pembicara,
         status: data.status ?? 'UPCOMING',
@@ -338,6 +339,9 @@ export class EventRepository {
     }
     if (data.paket_bundling !== undefined) {
       updateData.paket_bundling = data.paket_bundling !== null ? (data.paket_bundling as Prisma.InputJsonValue) : Prisma.JsonNull
+    }
+    if (data.benefit !== undefined) {
+      updateData.benefit = data.benefit
     }
     if (data.banner_url !== undefined) updateData.banner_url = data.banner_url
     if (data.nama_pembicara !== undefined) updateData.nama_pembicara = data.nama_pembicara

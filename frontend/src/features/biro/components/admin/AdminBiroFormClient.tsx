@@ -690,7 +690,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             {/* No Telepon */}
             <div data-has-error={Boolean(errors.telepon)}>
               <PhoneInputField
-                label="No. Telepon / Hotline"
+                label="No WhatsApp"
+                labelClassName="uppercase tracking-wider font-bold mb-2 text-xs"
                 required
                 value={telepon}
                 onChange={(val) => {
@@ -698,8 +699,8 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                   if (errors.telepon) setErrors((prev) => ({ ...prev, telepon: "" }))
                 }}
                 error={errors.telepon}
-                placeholder="812-3456-7890"
-                theme="purple"
+                placeholder="+62 821-7373-9213"
+                inputClassName="px-4 py-3 text-sm rounded-xl border-gray-200 bg-white focus:border-[#561269] focus:ring-1 focus:ring-[#561269] shadow-xs"
               />
             </div>
           </div>

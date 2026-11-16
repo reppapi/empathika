@@ -4,11 +4,25 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { PilihTanggalBox } from "@/components/shared/PilihTanggalBox"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 import { adminService } from "@/services/admin.service"
+import { bookingService } from "@/services/booking.service"
 import { useAuthStore } from "@/store/authStore"
 import {
   getCancelledSessions,
   isSessionCancelled,
+  recordCancelledSession,
+  canCancelSession,
+  recordRescheduledSession,
+  getRescheduledSessions,
+  isSessionRescheduled,
+  canRescheduleSession,
 } from "@/features/konseling/utils/cancellationSync"
+import ModalDetailSesiKlien from "@/features/konseling/components/admin/ModalDetailSesiKlien"
+import ModalRescheduleSesi from "@/features/konseling/components/admin/ModalRescheduleSesi"
+import { ClientSessionToday, ClientSessionStatus } from "@/features/konseling/types"
+import {
+  formatWhatsAppMessage,
+  formatWhatsAppPsikologReminder,
+} from "@/features/konseling/data/jadwalAdminData"
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,6 +36,7 @@ import {
   Trash2,
   Sparkles,
   ChevronDown,
+  AlertTriangle,
 } from "lucide-react"
 import { layananService } from "@/services/layanan.service"
 
@@ -46,11 +61,16 @@ interface BookedSession {
   layanan: string
   metode: MetodeKonsultasi
   namaKlien?: string
+  kontak?: string
+  klienId?: string
   id_psikolog?: string
   namaPsikolog?: string
+  noTeleponPsikolog?: string
+  catatan?: string
   isAvailableSlot?: boolean
   status?: string
   isCancelled?: boolean
+  isRescheduled?: boolean
 }
 
 const INITIAL_BOOKINGS: BookedSession[] = []
@@ -126,6 +146,50 @@ function isSessionPastOrCompleted(dateKey?: string, waktu?: string, status?: str
   return false
 }
 
+function cleanRoleOrTitle(name: string): string {
+  return (name || "")
+    .toLowerCase()
+    .replace(/\b(psikolog|konselor|peer|empathika|tenaga|ahli|admin|dr|dra|drs|m\.psi|s\.psi)\b/gi, "")
+    .replace(/[^a-z0-9]/g, "")
+    .trim()
+}
+
+export function matchPsikologSession(
+  target: {
+    id_psikolog?: string | null
+    idPsikolog?: string | null
+    namaPsikolog?: string | null
+    psikolog?: string | null
+    psikologName?: string | null
+    nama_psikolog?: string | null
+  },
+  currentId?: string | null,
+  currentName?: string | null,
+  currentAccountId?: string | null
+): boolean {
+  const targetId = target.id_psikolog || target.idPsikolog
+  const targetName = target.namaPsikolog || target.psikolog || target.psikologName || target.nama_psikolog
+
+  // 1. Jika ada ID di target dan di psikolog login, WAJIB cocok
+  if (targetId && targetId !== "0") {
+    if (currentId && currentId !== "0" && targetId === currentId) return true
+    if (currentAccountId && currentAccountId !== "0" && targetId === currentAccountId) return true
+  }
+
+  // 2. Jika nama cocok
+  if (currentName && targetName) {
+    const cleanCurrent = cleanRoleOrTitle(currentName)
+    const cleanTarget = cleanRoleOrTitle(targetName)
+    if (cleanCurrent.length >= 3 && cleanTarget.length >= 3) {
+      if (cleanCurrent === cleanTarget || cleanCurrent.includes(cleanTarget) || cleanTarget.includes(cleanCurrent)) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
 export default function PsikologJadwalClient() {
   const today = useMemo(() => {
     const d = new Date()
@@ -157,6 +221,26 @@ export default function PsikologJadwalClient() {
   // State profil psikolog aktif yang diambil dari Database / LocalStorage
   const [activePsikolog, setActivePsikolog] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any } | null>(resolveActivePsikolog)
 
+  const currentPsi = resolveActivePsikolog()
+  const resolvedPsikologId = (activePsikolog?.id && activePsikolog.id !== "0")
+    ? activePsikolog.id
+    : (currentPsi?.id && currentPsi.id !== "0")
+      ? currentPsi.id
+      : (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_id") || "0" : "0")
+  const resolvedPsikologName =
+    activePsikolog?.nama_gelar ||
+    activePsikolog?.account?.nama ||
+    currentPsi?.nama_gelar ||
+    (currentPsi as any)?.account?.nama ||
+    (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") || "" : "") ||
+    user?.name ||
+    ""
+  const resolvedAccountId =
+    (activePsikolog as any)?.id_account ||
+    (activePsikolog as any)?.account?.id ||
+    user?.id ||
+    (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_account_id") || "" : "")
+
   const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan Konsultasi")
   const [layananOptions, setLayananOptions] = useState<string[]>(DEFAULT_LAYANAN_KONSULTASI)
   const [selectedMetode, setSelectedMetode] = useState<MetodeKonsultasi>("Online")
@@ -180,6 +264,9 @@ export default function PsikologJadwalClient() {
     const dates: Date[] = []
     const dateSet = new Set<string>()
     bookedSessions.forEach((s) => {
+      if ((s as any).tipe_jadwal === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) return
+      if (!matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName, resolvedAccountId)) return
+
       if (s.date && s.date >= todayKey && !s.isCancelled && s.status !== "Dibatalkan") {
         dateSet.add(s.date)
       }
@@ -302,6 +389,217 @@ export default function PsikologJadwalClient() {
     setTimeout(() => setBookingSuccessMsg(null), 3000)
   }
 
+  // State detail sesi yang sedang dipilih untuk pop-up modal
+  const [selectedDetailSession, setSelectedDetailSession] = useState<ClientSessionToday | null>(null)
+  const [sessionToReschedule, setSessionToReschedule] = useState<ClientSessionToday | null>(null)
+
+  // Toast feedback aksi sesi (pembatalan, salin link/pesan, selesai)
+  const [actionToast, setActionToast] = useState<{ message: string; type: "success" | "danger" } | null>(null)
+
+  const triggerToast = (message: string, type: "success" | "danger" = "success") => {
+    setActionToast({ message, type })
+    setTimeout(() => setActionToast(null), 3500)
+  }
+
+  // Konversi BookedSession ke bentuk ClientSessionToday untuk ModalDetailSesiKlien
+  const convertSessionToDetail = useCallback(
+    (s: BookedSession): ClientSessionToday => {
+      const isPastOrDone = isSessionPastOrCompleted(s.date, s.waktu, s.status)
+      let statusSession: ClientSessionStatus = "Menunggu Jadwal"
+      if (s.isCancelled || s.status === "Dibatalkan" || s.status === "CANCELLED") {
+        statusSession = "Dibatalkan"
+      } else if (s.status === "Reschedule" || s.isRescheduled) {
+        statusSession = "Reschedule"
+      } else if (isPastOrDone || s.status === "Selesai" || s.status === "COMPLETED") {
+        statusSession = "Selesai"
+      }
+
+      const isClient = !s.isAvailableSlot && s.namaKlien && s.namaKlien !== "Tersedia"
+      return {
+        id: s.id,
+        date: s.date,
+        tanggal: s.date,
+        waktu: s.waktu,
+        namaKlien: (isClient && s.namaKlien) ? s.namaKlien : (s.namaKlien || ""),
+        klienId: s.klienId || "",
+        kontak: s.kontak || undefined,
+        psikolog:
+          s.namaPsikolog ||
+          activePsikolog?.nama_gelar ||
+          (activePsikolog as any)?.account?.nama ||
+          user?.name ||
+          "",
+        idPsikolog: s.id_psikolog || activePsikolog?.id,
+        noTeleponPsikolog: (activePsikolog as any)?.no_telepon || "",
+        layanan: s.layanan || "Konsultasi Psikologi",
+        tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
+        catatan: s.catatan,
+        status: statusSession,
+        isPaid: true,
+      }
+    },
+    [activePsikolog, user]
+  )
+
+  const handleSelectDetailSession = (s: BookedSession) => {
+    setSelectedDetailSession(convertSessionToDetail(s))
+  }
+
+  // Pembatalan otomatis sesi klien (maksimal H-3 jam)
+  const handleCancelClientBooking = async (sessionOrItem: BookedSession | ClientSessionToday) => {
+    const targetId = sessionOrItem.id
+    const targetDate = sessionOrItem.date || (sessionOrItem as any).tanggal || ""
+    const targetTime = sessionOrItem.waktu
+    const clientName = sessionOrItem.namaKlien || "Klien"
+    const psikologName =
+      (sessionOrItem as any).namaPsikolog ||
+      (sessionOrItem as any).psikolog ||
+      activePsikolog?.nama_gelar ||
+      "Psikolog"
+
+    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan maksimal H-1 hari (tidak bisa di hari H)
+    if (!canCancelSession(targetDate)) {
+      triggerToast(
+        "Pembatalan sesi hanya dapat dilakukan maksimal H-1 hari. Sesi pada hari H tidak dapat dibatalkan.",
+        "danger"
+      )
+      return
+    }
+
+    // 1. Optimistic UI update di grid
+    setBookedSessions((prev) =>
+      prev.map((s) => {
+        const isMatch =
+          (targetId && s.id === targetId) ||
+          (s.date === targetDate && s.waktu === targetTime)
+        if (isMatch) {
+          return { ...s, isCancelled: true, status: "Dibatalkan" }
+        }
+        return s
+      })
+    )
+
+    // 2. Simpan ke sistem sinkronisasi pembatalan (localStorage + CustomEvent)
+    recordCancelledSession({
+      id: targetId,
+      date: targetDate,
+      waktu: targetTime,
+      namaKlien: clientName,
+      psikolog: psikologName,
+    })
+
+    // 3. Batalkan di backend jika ID adalah UUID booking resmi
+    if (targetId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId)) {
+      try {
+        await bookingService.cancelBooking(targetId)
+      } catch (err: any) {
+        console.warn("Backend cancel notice:", err?.response?.data?.message || err.message)
+      }
+    }
+
+    // 4. Toast notifikasi
+    triggerToast(`Sesi ${clientName} (${targetTime}) berhasil dibatalkan.`, "danger")
+
+    // 5. Muat ulang jadwal agar data konsisten
+    loadScheduleForPsikolog()
+  }
+
+  const handleConfirmReschedule = async (
+    id: string,
+    newDate: string,
+    newWaktu: string,
+    alasan?: string
+  ) => {
+    const target = bookedSessions.find((s) => s.id === id)
+    const targetDate = target?.date || ""
+    const targetTime = target?.waktu || ""
+    const clientName = target?.namaKlien || "Klien"
+    const psikologName =
+      target?.namaPsikolog ||
+      activePsikolog?.nama_gelar ||
+      "Psikolog"
+
+    // Validasi aturan bisnis: Reschedule hanya bisa dilakukan maksimal H-3 jam sebelum sesi dimulai
+    if (!canRescheduleSession(targetDate, targetTime)) {
+      triggerToast(
+        "Reschedule tidak dapat dilakukan karena batas waktu maksimal reschedule (H-3 jam sebelum sesi dimulai) telah terlewati.",
+        "danger"
+      )
+      return
+    }
+
+    try {
+      // 1. Simpan perubahan reschedule ke database
+      await adminService.rescheduleBooking(id, {
+        newDate,
+        newWaktu,
+        alasan,
+      })
+
+      // 2. Catat reschedule untuk sinkronisasi tampilan
+      recordRescheduledSession({
+        id,
+        date: targetDate,
+        waktu: targetTime,
+        newDate,
+        newWaktu,
+        namaKlien: clientName,
+        psikolog: psikologName,
+        idPsikolog: target?.id_psikolog || resolvedPsikologId,
+        layanan: target?.layanan,
+        metode: target?.metode,
+        alasan,
+      })
+
+      triggerToast(
+        `Sesi ${clientName} berhasil dijadwalkan ulang (Reschedule) ke ${newDate} (${newWaktu}).`,
+        "success"
+      )
+      setSessionToReschedule(null)
+      if (selectedDetailSession && selectedDetailSession.id === id) {
+        setSelectedDetailSession(null)
+      }
+      // 3. Muat ulang jadwal langsung dari database agar slot lama kembali TERSEDIA dan berpindah ke slot baru
+      await loadScheduleForPsikolog()
+    } catch (err: any) {
+      console.error("Gagal reschedule booking ke database:", err)
+      const msg = err?.response?.data?.message || err?.message || "Gagal menjadwalkan ulang sesi."
+      triggerToast(msg, "danger")
+    }
+  }
+
+  const handleMarkCompleted = async (id: string, namaKlien: string) => {
+    if (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+      try {
+        await adminService.updateBookingStatus(id, "COMPLETED")
+      } catch (err: any) {
+        console.warn("Update status error:", err?.response?.data?.message || err.message)
+      }
+    }
+
+    setBookedSessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: "Selesai" } : s))
+    )
+    triggerToast(`Sesi ${namaKlien} berhasil ditandai Selesai!`, "success")
+    loadScheduleForPsikolog()
+  }
+
+  const handleCopyWhatsAppMessage = (session: ClientSessionToday) => {
+    const text = formatWhatsAppMessage(session)
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text)
+    }
+    triggerToast(`Pesan jadwal untuk ${session.namaKlien} berhasil disalin ke clipboard!`, "success")
+  }
+
+  const handleCopyWhatsAppPsikologMessage = (session: ClientSessionToday) => {
+    const text = formatWhatsAppPsikologReminder(session)
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text)
+    }
+    triggerToast(`Pesan pengingat jadwal untuk ${session.psikolog} berhasil disalin!`, "success")
+  }
+
   const isFetchingRef = useRef(false)
 
   // Sinkronkan jadwal dari Database PostgreSQL, Admin Overview, dan LocalStorage
@@ -343,6 +641,8 @@ export default function PsikologJadwalClient() {
           if ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") return
 
           const mapKey = `${s.date}_${s.waktu}`
+          const isAvailable = s.status === "TERSEDIA"
+          const clientPhone = s.booking?.no_telepon_klien || s.booking?.kontak || undefined
           sessionMap.set(mapKey, {
             id: s.id,
             date: s.date,
@@ -352,9 +652,12 @@ export default function PsikologJadwalClient() {
               ? (s.booking.metode === "OFFLINE" ? "Offline" : "Online")
               : (s.metode === "OFFLINE" ? "Offline" : s.metode === "KEDUANYA" ? "Keduanya" : "Online")) as MetodeKonsultasi,
             namaKlien: s.booking?.nama_klien || "Tersedia",
+            kontak: clientPhone,
+            klienId: s.booking?.klien_id || undefined,
+            catatan: s.booking?.deskripsi_trauma,
             id_psikolog: res.psikolog?.id || resolvedPsikologId,
             namaPsikolog: res.psikolog?.nama_gelar || resolvedPsikologName,
-            isAvailableSlot: s.status === "TERSEDIA",
+            isAvailableSlot: isAvailable,
           })
         })
       }
@@ -368,13 +671,12 @@ export default function PsikologJadwalClient() {
             adminRes.todaySessions.forEach((t: any) => {
               if ((t.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (t.layanan || "").toLowerCase().includes("asesmen")) return
 
-              const isMatch =
-                (resolvedPsikologId && t.idPsikolog && t.idPsikolog === resolvedPsikologId) ||
-                (Boolean(resolvedPsikologName) &&
-                  Boolean(t.psikolog) &&
-                  t.psikolog !== "Belum Ditentukan" &&
-                  (t.psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                    resolvedPsikologName.toLowerCase().includes(t.psikolog.toLowerCase())))
+              const isMatch = matchPsikologSession(
+                { idPsikolog: t.idPsikolog || t.id_psikolog, psikolog: t.psikolog },
+                resolvedPsikologId,
+                resolvedPsikologName,
+                resolvedAccountId
+              )
 
               if (isMatch && t.tanggal && t.waktuRange) {
                 const mapKey = `${t.tanggal}_${t.waktuRange}`
@@ -385,7 +687,10 @@ export default function PsikologJadwalClient() {
                     waktu: t.waktuRange,
                     layanan: t.layanan || "Konsultasi Psikologi",
                     metode: t.tipe?.includes("Offline") ? "Offline" : "Online",
-                    namaKlien: t.namaKlien || "Klien Terdaftar",
+                    namaKlien: t.namaKlien || "",
+                    kontak: t.kontak || "",
+                    klienId: t.klienId || "",
+                    catatan: t.catatan,
                     id_psikolog: t.idPsikolog || resolvedPsikologId,
                     namaPsikolog: t.psikolog || resolvedPsikologName,
                     isAvailableSlot: false,
@@ -401,24 +706,28 @@ export default function PsikologJadwalClient() {
             adminRes.weeklyGrid.forEach((w: any) => {
               if ((w.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (w.layanan || "").toLowerCase().includes("asesmen")) return
 
-              const isMatch =
-                Boolean(resolvedPsikologName) &&
-                Boolean(w.psikologName) &&
-                w.psikologName.trim() !== "" &&
-                (w.psikologName.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                  resolvedPsikologName.toLowerCase().includes(w.psikologName.toLowerCase()))
+              const isMatch = matchPsikologSession(
+                { id_psikolog: w.id_psikolog, psikologName: w.psikologName },
+                resolvedPsikologId,
+                resolvedPsikologName,
+                resolvedAccountId
+              )
 
               if (isMatch && w.date && w.timeSlot) {
                 const mapKey = `${w.date}_${w.timeSlot}`
                 if (!sessionMap.has(mapKey)) {
                   const isAvailable = w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")
+                  const clientPhone = w.kontak || w.no_telepon || undefined
                   sessionMap.set(mapKey, {
                     id: w.id,
                     date: w.date,
                     waktu: w.timeSlot,
                     layanan: w.layanan || "Konsultasi Psikologi",
                     metode: w.metode === "Offline" ? "Offline" : w.metode === "Keduanya" ? "Keduanya" : "Online",
-                    namaKlien: isAvailable ? "Tersedia" : (w.clientName || w.namaKlien || "Klien Terdaftar"),
+                    namaKlien: isAvailable ? "Tersedia" : (w.clientName || w.namaKlien || ""),
+                    kontak: clientPhone,
+                    klienId: w.klienId || undefined,
+                    catatan: w.catatan,
                     id_psikolog: resolvedPsikologId,
                     namaPsikolog: w.psikologName || resolvedPsikologName,
                     isAvailableSlot: isAvailable,
@@ -442,13 +751,12 @@ export default function PsikologJadwalClient() {
             parsed.forEach((s: any) => {
               if ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) return
 
-              const isMatch =
-                (resolvedPsikologId && s.id_psikolog && s.id_psikolog === resolvedPsikologId) ||
-                (Boolean(resolvedPsikologName) &&
-                  Boolean(s.nama_psikolog) &&
-                  s.nama_psikolog.trim() !== "" &&
-                  (s.nama_psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                    resolvedPsikologName.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
+              const isMatch = matchPsikologSession(
+                { id_psikolog: s.id_psikolog, nama_psikolog: s.nama_psikolog },
+                resolvedPsikologId,
+                resolvedPsikologName,
+                resolvedAccountId
+              )
 
               if (isMatch && s.tanggal && s.jam_mulai) {
                 const timeStr = s.label_waktu || `${s.jam_mulai.substring(0, 5)} - ${(s.jam_selesai || "10:00").substring(0, 5)}`
@@ -461,7 +769,7 @@ export default function PsikologJadwalClient() {
                     waktu: timeStr,
                     layanan: s.layanan || "Konseling Individu",
                     metode: s.metode === "Offline" ? "Offline" : s.metode === "Keduanya" ? "Keduanya" : "Online",
-                    namaKlien: isTersedia ? "Tersedia" : (s.namaKlien || "Klien Terdaftar"),
+                    namaKlien: isTersedia ? "Tersedia" : (s.namaKlien || ""),
                     id_psikolog: s.id_psikolog || resolvedPsikologId,
                     namaPsikolog: s.nama_psikolog || resolvedPsikologName,
                     isAvailableSlot: isTersedia,
@@ -486,6 +794,48 @@ export default function PsikologJadwalClient() {
         }
       } catch {}
 
+      // 5. Terapkan status reschedule admin / psikolog pada slot tanggal awal
+      try {
+        const rescheduledList = getRescheduledSessions()
+        if (rescheduledList.length > 0) {
+          rescheduledList.forEach((r) => {
+            if (!r.date || !r.waktu) return
+
+            // Pastikan jika ada psikolog terasosiasi, cocokkan dengan psikolog aktif
+            const isMatch = matchPsikologSession(
+              { id_psikolog: r.idPsikolog, psikologName: r.psikolog },
+              resolvedPsikologId,
+              resolvedPsikologName,
+              resolvedAccountId
+            )
+
+            if (!r.psikolog || isMatch) {
+              const oldKey = `${r.date}_${r.waktu}`
+              const existing = sessionMap.get(oldKey)
+
+              sessionMap.set(oldKey, {
+                id: r.id || existing?.id || `resched-${r.date}-${r.waktu}`,
+                date: r.date,
+                waktu: r.waktu,
+                layanan: r.layanan || existing?.layanan || "Konsultasi Psikologi",
+                metode: (r.metode === "Offline" ? "Offline" : r.metode === "Keduanya" ? "Keduanya" : (existing?.metode || "Online")) as MetodeKonsultasi,
+                namaKlien: r.namaKlien || existing?.namaKlien || "",
+                kontak: existing?.kontak || undefined,
+                klienId: existing?.klienId || undefined,
+                catatan: existing?.catatan,
+                id_psikolog: r.idPsikolog || resolvedPsikologId,
+                namaPsikolog: r.psikolog || resolvedPsikologName,
+                isAvailableSlot: false,
+                status: "Reschedule",
+                isRescheduled: true,
+              })
+            }
+          })
+        }
+      } catch (err) {
+        console.warn("Gagal menerapkan status reschedule:", err)
+      }
+
       const allSessions = Array.from(sessionMap.values())
       setBookedSessions(allSessions)
 
@@ -507,16 +857,37 @@ export default function PsikologJadwalClient() {
     loadScheduleForPsikolog()
   }, [loadScheduleForPsikolog, currentWeekMonday])
 
-  // Ambil daftar layanan kategori KONSULTASI murni dari database/API (tanpa data dummy/hardcode)
+  // Ambil daftar layanan kategori KONSULTASI murni dari database/API yang sesuai dengan profesi tenaga ahli
   useEffect(() => {
     let isMounted = true
+    const myRole = (activePsikolog?.kategori || "").toLowerCase()
+    const cleanRole = myRole.includes("peer") ? "peer" : myRole.includes("konselor") ? "konselor" : "psikolog"
+
     layananService
-      .getAll({ kategori: "KONSULTASI" })
+      .getAll({ kategori: "KONSULTASI", kategori_tenaga: cleanRole })
       .then((res: any) => {
         if (!isMounted) return
         const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
         const activeNames: string[] = raw
-          .filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
+          .filter((l: any) => {
+            if (l.aktif === false || l.status === "Nonaktif") return false
+            const profs: string[] = l.profesi_tersedia || []
+            if (profs.length > 0) {
+              return profs.includes(cleanRole)
+            }
+            const t = l.tarif_tenaga_ahli
+            if (cleanRole === "psikolog") {
+              return (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
+                     (!t && (Number(l.harga_weekday) > 0 || Number(l.harga_weekend) > 0))
+            }
+            if (cleanRole === "konselor") {
+              return t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)
+            }
+            if (cleanRole === "peer") {
+              return t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)
+            }
+            return true
+          })
           .map((l: any) => (l.nama?.trim() as string))
           .filter(Boolean)
 
@@ -532,7 +903,16 @@ export default function PsikologJadwalClient() {
                   item.status !== "Nonaktif" &&
                   item.layanan
                 ) {
-                  activeNames.push(item.layanan.trim())
+                  const t = item.tarif_tenaga_ahli
+                  let isMatch = true
+                  if (t && typeof t === "object") {
+                    if (cleanRole === "psikolog") isMatch = Boolean(t.psikolog && (t.psikolog.weekday || t.psikolog.weekend))
+                    else if (cleanRole === "konselor") isMatch = Boolean(t.konselor && (t.konselor.weekday || t.konselor.weekend))
+                    else if (cleanRole === "peer") isMatch = Boolean(t.peer && (t.peer.weekday || t.peer.weekend))
+                  }
+                  if (isMatch) {
+                    activeNames.push(item.layanan.trim())
+                  }
                 }
               })
             }
@@ -553,7 +933,7 @@ export default function PsikologJadwalClient() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [activePsikolog?.kategori])
 
   // Listener real-time: jika admin membatalkan sesi di halaman admin, otomatis jadwal psikolog ter-update
   useEffect(() => {
@@ -580,15 +960,31 @@ export default function PsikologJadwalClient() {
       )
     }
 
+    const handleAutoRefetch = () => {
+      loadScheduleForPsikolog()
+    }
+
     handleSyncCancelled()
     window.addEventListener("storage", handleSyncCancelled)
     window.addEventListener("storage", loadScheduleForPsikolog)
     window.addEventListener("empathika_session_cancelled", handleSyncCancelled as EventListener)
+    window.addEventListener("empathika_session_rescheduled", loadScheduleForPsikolog as EventListener)
+    window.addEventListener("empathika_booking_created", handleAutoRefetch as EventListener)
+    window.addEventListener("focus", handleAutoRefetch)
+    document.addEventListener("visibilitychange", handleAutoRefetch)
+
+    // Polling periodik berkala agar booking dari browser lain otomatis termutakhirkan
+    const pollInterval = setInterval(handleAutoRefetch, 12000)
 
     return () => {
       window.removeEventListener("storage", handleSyncCancelled)
       window.removeEventListener("storage", loadScheduleForPsikolog)
       window.removeEventListener("empathika_session_cancelled", handleSyncCancelled as EventListener)
+      window.removeEventListener("empathika_session_rescheduled", loadScheduleForPsikolog as EventListener)
+      window.removeEventListener("empathika_booking_created", handleAutoRefetch as EventListener)
+      window.removeEventListener("focus", handleAutoRefetch)
+      document.removeEventListener("visibilitychange", handleAutoRefetch)
+      clearInterval(pollInterval)
     }
   }, [])
 
@@ -605,12 +1001,12 @@ export default function PsikologJadwalClient() {
     }
   }
 
-  // 6 hari kerja dalam seminggu (Senin - Sabtu)
+  // 7 hari dalam seminggu (Senin - Minggu)
   const weekDays = useMemo(() => {
-    const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
+    const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
     const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agus", "Sep", "Okt", "Nov", "Des"]
 
-    return Array.from({ length: 6 }).map((_, i) => {
+    return Array.from({ length: 7 }).map((_, i) => {
       const d = new Date(currentWeekMonday)
       d.setDate(currentWeekMonday.getDate() + i)
       const dateKey = formatDateKey(d)
@@ -623,11 +1019,11 @@ export default function PsikologJadwalClient() {
     })
   }, [currentWeekMonday, date])
 
-  // Judul range minggu: "3 - 8 Agustus 2026"
+  // Judul range minggu: "3 - 9 Agustus 2026"
   const weekRangeLabel = useMemo(() => {
     const start = new Date(currentWeekMonday)
     const end = new Date(currentWeekMonday)
-    end.setDate(currentWeekMonday.getDate() + 5)
+    end.setDate(currentWeekMonday.getDate() + 6)
 
     const monthNames = [
       "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -641,7 +1037,7 @@ export default function PsikologJadwalClient() {
     }
   }, [currentWeekMonday])
 
-  // Batas awal dan akhir minggu untuk bulan saat ini (terhitung dari tanggal 1 sampai akhir bulan)
+  // Batas awal navigasi mingguan: Senin pertama di bulan berjalan saat ini (tidak bisa mundur ke bulan lampau)
   const firstMondayOfMonth = useMemo(() => {
     const now = new Date()
     const d = getMonday(new Date(now.getFullYear(), now.getMonth(), 1))
@@ -649,14 +1045,46 @@ export default function PsikologJadwalClient() {
     return d
   }, [])
 
-  const lastMondayOfMonth = useMemo(() => {
+  // Batas akhir navigasi mingguan:
+  // Secara default terkunci di akhir bulan berjalan saat ini.
+  // Namun jika psikolog sudah membuka slot/jadwal ATAU ada sesi booking klien di bulan-bulan mendatang,
+  // batas navigasi secara cerdas diperpanjang sampai ke minggu jadwal/booking terjauh tersebut.
+  const maxNavMonday = useMemo(() => {
     const now = new Date()
-    const d = getMonday(new Date(now.getFullYear(), now.getMonth() + 1, 0))
-    d.setHours(0, 0, 0, 0)
-    return d
-  }, [])
+    // Default: Senin terakhir dari bulan berjalan saat ini
+    const defaultEndMonday = getMonday(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+    defaultEndMonday.setHours(0, 0, 0, 0)
 
-  // Batasi navigasi mingguan: psikolog hanya bisa melihat jadwal terhitung dari tanggal 1 sampai akhir bulan
+    let furthest = defaultEndMonday
+
+    bookedSessions.forEach((s) => {
+      if (s.date && !s.isCancelled && s.status !== "Dibatalkan") {
+        const parts = s.date.split("-").map(Number)
+        if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+          const sessionDate = new Date(parts[0], parts[1] - 1, parts[2])
+          sessionDate.setHours(0, 0, 0, 0)
+          const sessionMonday = getMonday(sessionDate)
+          sessionMonday.setHours(0, 0, 0, 0)
+          if (sessionMonday.getTime() > furthest.getTime()) {
+            furthest = sessionMonday
+          }
+        }
+      }
+    })
+
+    // Jika psikolog sedang memilih tanggal di kalender yang lebih jauh ke depan
+    if (date) {
+      const selectedMonday = getMonday(date)
+      selectedMonday.setHours(0, 0, 0, 0)
+      if (selectedMonday.getTime() > furthest.getTime()) {
+        furthest = selectedMonday
+      }
+    }
+
+    return furthest
+  }, [bookedSessions, date])
+
+  // Batasi navigasi mingguan
   const canGoPrevWeek = useMemo(() => {
     const prevMonday = new Date(currentWeekMonday)
     prevMonday.setDate(prevMonday.getDate() - 7)
@@ -668,8 +1096,29 @@ export default function PsikologJadwalClient() {
     const nextMonday = new Date(currentWeekMonday)
     nextMonday.setDate(nextMonday.getDate() + 7)
     nextMonday.setHours(0, 0, 0, 0)
-    return nextMonday <= lastMondayOfMonth
-  }, [currentWeekMonday, lastMondayOfMonth])
+    return nextMonday <= maxNavMonday
+  }, [currentWeekMonday, maxNavMonday])
+
+  const currentWeekMondayToday = useMemo(() => {
+    const d = getMonday(new Date())
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+
+  const isCurrentWeek = useMemo(() => {
+    const cur = new Date(currentWeekMonday)
+    cur.setHours(0, 0, 0, 0)
+    return cur.getTime() === currentWeekMondayToday.getTime()
+  }, [currentWeekMonday, currentWeekMondayToday])
+
+  const goToCurrentWeek = () => {
+    const now = new Date()
+    setCurrentWeekMonday(getMonday(now))
+    setDate(now)
+    setSelectedTimes([])
+    setIsCustomTime(false)
+    setBookingSuccessMsg(null)
+  }
 
   const goToPrevWeek = () => {
     if (!canGoPrevWeek) return
@@ -722,6 +1171,7 @@ export default function PsikologJadwalClient() {
     const savedName = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") : null
     const currentPsi = resolveActivePsikolog()
     const psikologId = activePsikolog?.id || currentPsi.id || savedId || ""
+    const effectivePsikologId = psikologId && psikologId !== "0" ? psikologId : undefined
     const psikologNama = activePsikolog?.nama_gelar || activePsikolog?.account?.nama || currentPsi.nama_gelar || (currentPsi as any)?.account?.nama || savedName || user?.name || "Tenaga Ahli"
 
     const newSessions: BookedSession[] = []
@@ -732,12 +1182,12 @@ export default function PsikologJadwalClient() {
       const jamMulai = start?.trim() || "09:00"
       const jamSelesai = end?.trim() || "10:00"
 
-      let savedSlotId = "slot-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6)
+      let savedSlotId = ""
 
       // 1. Simpan ke Backend Database PostgreSQL
       try {
         const res: any = await psikologService.createJadwalSlot({
-          id_psikolog: psikologId,
+          id_psikolog: effectivePsikologId,
           tanggal: dateKey,
           jam_mulai: jamMulai,
           jam_selesai: jamSelesai,
@@ -747,9 +1197,14 @@ export default function PsikologJadwalClient() {
         })
         if (res && res.id) {
           savedSlotId = res.id
+        } else {
+          throw new Error("Gagal memperoleh ID slot dari server.")
         }
       } catch (err: any) {
-        console.warn("Notice save slot:", err?.response?.data?.message || err.message)
+        console.error("Gagal simpan slot ke database:", err)
+        const errMsg = err?.response?.data?.message || err?.message || "Gagal menyimpan jadwal ke database."
+        alert(`Gagal membuka slot jam ${jamMulai} - ${jamSelesai}: ${errMsg}`)
+        return
       }
 
       newSlotItems.push({
@@ -822,11 +1277,11 @@ export default function PsikologJadwalClient() {
 
   return (
     <div className="flex flex-col gap-6 font-poppins text-gray-800 pb-16">
-      {/* Card 1: Jadwal Sesi */}
+      {/* Card 1: Jadwal Sesi Asesmen */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Praktik</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Sesi Asesmen</h2>
             <p className="text-sm text-gray-500">
               Atur ketersediaan sesi konseling Anda. Pilih metode konsultasi, tentukan tanggal, lalu centang slot jam yang ingin dibuka untuk klien.
             </p>
@@ -980,9 +1435,20 @@ export default function PsikologJadwalClient() {
               <div className="flex flex-col gap-2.5 mb-3 max-h-[125px] overflow-y-auto pr-1.5 custom-scrollbar">
                 {timeSlots.map((time, idx) => {
                   const isChecked = selectedTimes.includes(time)
+                  const isCurrentPsikolog = (s: BookedSession) => {
+                    if ((s as any).tipe_jadwal === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) {
+                      return false
+                    }
+                    return matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName, resolvedAccountId)
+                  }
+
                   const openedSession = date
                     ? bookedSessions.find(
-                      (s) => s.date === formatDateKey(date) && s.waktu === time && s.isAvailableSlot
+                      (s) =>
+                        s.date === formatDateKey(date) &&
+                        s.waktu === time &&
+                        s.isAvailableSlot &&
+                        isCurrentPsikolog(s)
                     )
                     : undefined
                   const isAlreadyOpened = Boolean(openedSession)
@@ -993,7 +1459,8 @@ export default function PsikologJadwalClient() {
                       (s) =>
                         s.date === formatDateKey(date) &&
                         s.waktu === time &&
-                        (s.isCancelled || s.status === "Dibatalkan")
+                        (s.isCancelled || s.status === "Dibatalkan") &&
+                        isCurrentPsikolog(s)
                     )
                     : undefined
                   const isAlreadyCancelled = Boolean(cancelledSession)
@@ -1006,7 +1473,8 @@ export default function PsikologJadwalClient() {
                         !s.isAvailableSlot &&
                         s.namaKlien !== "Tersedia" &&
                         !s.isCancelled &&
-                        s.status !== "Dibatalkan"
+                        s.status !== "Dibatalkan" &&
+                        isCurrentPsikolog(s)
                     )
                     : undefined
                   const isAlreadyBooked = Boolean(bookedSession)
@@ -1252,7 +1720,11 @@ export default function PsikologJadwalClient() {
             onClick={goToNextWeek}
             disabled={!canGoNextWeek}
             aria-label="Minggu Berikutnya"
-            title={canGoNextWeek ? "Minggu Berikutnya" : "Batas akhir jadwal bulan berjalan"}
+            title={
+              canGoNextWeek
+                ? "Minggu Berikutnya"
+                : "Batas akhir jadwal (tidak ada jadwal aktif berikutnya di masa mendatang)"
+            }
             className={`p-1.5 rounded-full transition-colors border ${
               canGoNextWeek
                 ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
@@ -1261,13 +1733,22 @@ export default function PsikologJadwalClient() {
           >
             <ChevronRight className="w-4 h-4" />
           </button>
+          {!isCurrentWeek && (
+            <button
+              type="button"
+              onClick={goToCurrentWeek}
+              className="text-xs px-2.5 py-1 font-semibold text-[#561269] bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors ml-1 cursor-pointer"
+            >
+              Minggu Ini
+            </button>
+          )}
         </div>
 
         {/* Weekly Grid */}
         <div className="overflow-x-auto border border-gray-200 rounded-xl hide-scrollbar">
-          <div className="min-w-[720px]">
+          <div className="min-w-[980px] xl:min-w-full">
             {/* Header */}
-            <div className="grid grid-cols-6 border-b border-gray-200 bg-gray-50/70">
+            <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70">
               {weekDays.map((wd, i) => {
                 const isPastDay = wd.dateKey < formatDateKey(today)
                 return (
@@ -1304,10 +1785,16 @@ export default function PsikologJadwalClient() {
             </div>
 
             {/* Grid Body */}
-            <div className="grid grid-cols-6 min-h-[360px] divide-x divide-gray-200">
+            <div className="grid grid-cols-7 min-h-[360px] divide-x divide-gray-200">
               {weekDays.map((wd, i) => {
                 const sessions = bookedSessions
-                  .filter((s) => s.date === wd.dateKey)
+                  .filter(
+                    (s) =>
+                      s.date === wd.dateKey &&
+                      (s as any).tipe_jadwal !== "ASESMEN" &&
+                      !(s.layanan || "").toLowerCase().includes("asesmen") &&
+                      matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName, resolvedAccountId)
+                  )
                   .sort((a, b) => a.waktu.localeCompare(b.waktu))
 
                 const isTodayColumn = wd.dateKey === formatDateKey(today)
@@ -1315,7 +1802,7 @@ export default function PsikologJadwalClient() {
                 return (
                   <div
                     key={i}
-                    className={`p-2.5 flex flex-col gap-2.5 ${isTodayColumn
+                    className={`p-2 flex flex-col gap-2 ${isTodayColumn
                       ? "bg-purple-50/25 ring-1 ring-inset ring-[#561269]/20"
                       : wd.isSameAsSelected
                         ? "bg-purple-50/10"
@@ -1324,33 +1811,35 @@ export default function PsikologJadwalClient() {
                   >
                     {sessions.length > 0 ? (
                       sessions.map((item, idx) => {
-                        const isCancelled = item.isCancelled || item.status === "Dibatalkan"
-                        const isClientBooking = !item.isAvailableSlot && item.namaKlien && item.namaKlien !== "Tersedia"
+                        const isClientBooking = !item.isAvailableSlot && Boolean(item.namaKlien) && item.namaKlien !== "Tersedia"
+                        const isCancelled = isClientBooking && (item.isCancelled || item.status === "Dibatalkan")
+                        const isRescheduled = isClientBooking && (item.status === "Reschedule" || Boolean(item.isRescheduled))
 
                         // 1. Dibatalkan
                         if (isCancelled) {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all bg-rose-50/80 border border-rose-200/90 text-gray-600"
+                              onClick={() => handleSelectDetailSession(item)}
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-rose-50/80 border border-rose-200/90 text-gray-600 overflow-hidden"
                             >
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div className="flex items-center gap-1.5">
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <div className="flex items-center gap-1.5 min-w-0">
                                   <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                                  <span className="text-xs font-bold line-through text-rose-700">
+                                  <span className="text-[11px] sm:text-xs font-bold line-through text-rose-700 whitespace-nowrap">
                                     {item.waktu}
                                   </span>
                                 </div>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
                                   Dibatalkan
                                 </span>
                               </div>
                               <span className="text-xs font-semibold text-gray-800 line-clamp-1">
                                 {item.layanan}
                               </span>
-                              <div className="flex items-center justify-between text-[11px] text-gray-500">
+                              <div className="flex items-center justify-between gap-1 text-[11px] text-gray-500">
                                 <span className="truncate">{item.namaKlien || "Klien"}</span>
-                                <span className="font-semibold text-purple-800 bg-purple-50 px-1.5 py-0.5 rounded text-[10px]">
+                                <span className="font-semibold text-purple-800 bg-purple-50 px-1.5 py-0.5 rounded text-[9px] shrink-0">
                                   {item.metode}
                                 </span>
                               </div>
@@ -1358,7 +1847,39 @@ export default function PsikologJadwalClient() {
                           )
                         }
 
-                        // 2. Sesi Klien (Sudah Dibooking)
+                        // 2. Reschedule
+                        if (isRescheduled) {
+                          return (
+                            <div
+                              key={item.id || idx}
+                              onClick={() => handleSelectDetailSession(item)}
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-amber-50/85 border border-amber-300 text-gray-700 overflow-hidden"
+                            >
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                                  <span className="text-[11px] sm:text-xs font-bold text-amber-800 line-through whitespace-nowrap">
+                                    {item.waktu}
+                                  </span>
+                                </div>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                                  Reschedule
+                                </span>
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 line-through line-clamp-1">
+                                {item.layanan}
+                              </span>
+                              <div className="flex items-center justify-between gap-1 text-[11px] text-gray-600">
+                                <span className="truncate line-through">{item.namaKlien || "Klien"}</span>
+                                <span className="font-semibold text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded text-[9px] shrink-0">
+                                  {item.metode}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        // 3. Sesi Klien (Sudah Dibooking)
                         if (isClientBooking) {
                           const isCompleted = isSessionPastOrCompleted(wd.dateKey || item.date, item.waktu, item.status)
 
@@ -1366,25 +1887,26 @@ export default function PsikologJadwalClient() {
                             return (
                               <div
                                 key={item.id || idx}
-                                className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                                onClick={() => handleSelectDetailSession(item)}
+                                className="rounded-xl p-2.5 flex flex-col gap-1 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden"
                               >
-                                <div className="flex items-center justify-between gap-1.5">
-                                  <div className="flex items-center gap-1.5">
+                                <div className="flex items-center justify-between gap-1 flex-wrap">
+                                  <div className="flex items-center gap-1.5 min-w-0">
                                     <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
-                                    <span className="text-xs font-extrabold text-gray-600">
+                                    <span className="text-[11px] sm:text-xs font-extrabold text-gray-600 whitespace-nowrap">
                                       {item.waktu}
                                     </span>
                                   </div>
-                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 shrink-0">
                                     Selesai
                                   </span>
                                 </div>
-                                <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700">
+                                <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-clamp-2">
                                   {item.layanan}
                                 </p>
-                                <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-500">
+                                <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-500 gap-0.5">
                                   {item.namaKlien && (
-                                    <span>
+                                    <span className="truncate">
                                       Klien:{" "}
                                       <strong className="text-gray-700">
                                         {item.namaKlien}
@@ -1392,7 +1914,7 @@ export default function PsikologJadwalClient() {
                                     </span>
                                   )}
                                   {item.metode && (
-                                    <span className="text-[9px] text-gray-400 italic mt-0.5">
+                                    <span className="text-[9px] text-gray-400 italic">
                                       [{item.metode}]
                                     </span>
                                   )}
@@ -1404,18 +1926,42 @@ export default function PsikologJadwalClient() {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-3 flex flex-col gap-1.5 shadow-xs hover:shadow-md transition-all bg-[#E8F3ED] border border-[#b4d6be]"
+                              onClick={() => handleSelectDetailSession(item)}
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs hover:shadow-md transition-all bg-[#E8F3ED] border border-[#b4d6be] overflow-hidden cursor-pointer hover:scale-[1.01]"
                             >
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div className="flex items-center gap-1.5">
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <div className="flex items-center gap-1.5 min-w-0">
                                   <div className="w-2 h-2 rounded-full bg-[#185e26] shrink-0" />
-                                  <span className="text-xs font-bold text-[#185e26]">
+                                  <span className="text-[11px] sm:text-xs font-bold text-[#185e26] whitespace-nowrap">
                                     {item.waktu}
                                   </span>
                                 </div>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs">
-                                  {item.metode}
-                                </span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs shrink-0">
+                                    {item.metode}
+                                  </span>
+                                  {canCancelSession(wd.dateKey || item.date) ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        handleCancelClientBooking(item)
+                                      }}
+                                      title="Batalkan sesi klien ini (Maksimal H-1 Hari)"
+                                      className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  ) : (
+                                    <span
+                                      title="Sesi tidak dapat dibatalkan pada hari H (Batas pembatalan maksimal H-1 hari)"
+                                      className="text-gray-300 p-0.5 cursor-not-allowed shrink-0"
+                                    >
+                                      <X className="w-3.5 h-3.5 opacity-40" />
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <span className="text-xs font-bold text-gray-900 line-clamp-1">
                                 {item.layanan}
@@ -1437,41 +1983,48 @@ export default function PsikologJadwalClient() {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-3 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden w-full min-w-0"
                             >
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
-                                  <span className="text-xs font-bold text-gray-500 line-through">
-                                    {item.waktu}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
-                                    Lewat
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleRemoveSlot(item.waktu, wd.dateKey)
-                                    }}
-                                    title="Tutup / Hapus slot riwayat ini"
-                                    className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                              {/* Baris 1: Jam & Bulatan Abu-abu */}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
+                                <span className="text-[11px] sm:text-xs font-bold text-gray-500 line-through whitespace-nowrap">
+                                  {item.waktu}
+                                </span>
                               </div>
-                              <p className="text-xs font-semibold leading-tight text-gray-700">
+
+                              {/* Baris 2: Badge Lewat (kiri) & Tombol Hapus (kanan) */}
+                              <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                  Lewat
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleRemoveSlot(item.waktu, wd.dateKey)
+                                  }}
+                                  title="Tutup / Hapus slot riwayat ini"
+                                  className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Baris 3: Judul Slot */}
+                              <p className="text-xs font-semibold leading-tight text-gray-700 line-clamp-2">
                                 Slot Tersedia (Tidak Terpakai)
                               </p>
-                              <div className="flex items-center justify-between text-[10px] text-gray-400">
-                                <span className="font-medium text-gray-600 bg-gray-200/80 px-2 py-0.5 rounded-full">
-                                  {item.metode}
-                                </span>
-                                <span className="italic">
-                                  Tidak ada booking
+
+                              {/* Baris 4: Metode & Keterangan */}
+                              <div className="flex items-center justify-between gap-1 min-w-0 text-[10px] text-gray-500">
+                                {item.metode && (
+                                  <span className="font-medium text-gray-600 bg-gray-200/80 px-1.5 py-0.5 rounded text-[9px] shrink-0">
+                                    {item.metode}
+                                  </span>
+                                )}
+                                <span className="italic truncate text-[9px] text-gray-400 min-w-0">
+                                  Tidak terpakai
                                 </span>
                               </div>
                             </div>
@@ -1481,15 +2034,21 @@ export default function PsikologJadwalClient() {
                         return (
                           <div
                             key={item.id || idx}
-                            className="rounded-xl p-3 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8]"
+                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden w-full min-w-0"
                           >
-                            <div className="flex items-center justify-between gap-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full bg-[#561269] shrink-0" />
-                                <span className="text-xs font-bold text-[#561269]">
-                                  {item.waktu}
-                                </span>
-                              </div>
+                            {/* Baris 1: Jam & Bulatan Ungu */}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="w-2 h-2 rounded-full shrink-0 bg-[#561269]" />
+                              <span className="text-[11px] sm:text-xs font-bold text-[#561269] whitespace-nowrap">
+                                {item.waktu}
+                              </span>
+                            </div>
+
+                            {/* Baris 2: Badge Tersedia (kiri) & Tombol Hapus (kanan) */}
+                            <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
+                                Tersedia
+                              </span>
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -1497,20 +2056,26 @@ export default function PsikologJadwalClient() {
                                   handleRemoveSlot(item.waktu, wd.dateKey)
                                 }}
                                 title="Tutup / Hapus slot jam ini"
-                                className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors"
+                                className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                            <span className="text-xs font-semibold text-purple-950">
+
+                            {/* Baris 3: Judul Slot */}
+                            <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950 line-clamp-1">
                               Slot Tersedia
-                            </span>
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-medium text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded-full">
-                                {item.metode}
-                              </span>
-                              <span className="text-[10px] text-gray-400 italic">
-                                Belum ada klien
+                            </p>
+
+                            {/* Baris 4: Metode & Keterangan Tersedia */}
+                            <div className="flex items-center justify-between gap-1 min-w-0 text-[10px]">
+                              {item.metode && (
+                                <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
+                                  {item.metode}
+                                </span>
+                              )}
+                              <span className="italic text-purple-600/80 font-medium truncate text-[9px] min-w-0">
+                                Tersedia
                               </span>
                             </div>
                           </div>
@@ -1562,6 +2127,10 @@ export default function PsikologJadwalClient() {
             <span className="text-xs font-medium text-gray-700">Sudah Dibooking Klien</span>
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            <span className="text-xs font-medium text-amber-800">Sesi Reschedule</span>
+          </div>
+          <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-[#561269]" />
             <span className="text-xs font-medium text-gray-700">Slot Tersedia Dibuka</span>
           </div>
@@ -1579,6 +2148,45 @@ export default function PsikologJadwalClient() {
           </div>
         </div>
       </div>
+
+      {/* ── Modal Detail Sesi Klien (Pop-up Portal Psikolog) ── */}
+      <ModalDetailSesiKlien
+        session={selectedDetailSession}
+        onClose={() => setSelectedDetailSession(null)}
+        onCancelClick={(session) => {
+          handleCancelClientBooking(session)
+          setSelectedDetailSession(null)
+        }}
+        onRescheduleClick={(session) => {
+          setSelectedDetailSession(null)
+          setSessionToReschedule(session)
+        }}
+        onMarkCompleted={(id, namaKlien) => {
+          handleMarkCompleted(id, namaKlien)
+          setSelectedDetailSession(null)
+        }}
+        onCopyWhatsApp={handleCopyWhatsAppMessage}
+        isPsikologPortal={true}
+      />
+
+      {/* ── Modal Reschedule Sesi ── */}
+      <ModalRescheduleSesi
+        session={sessionToReschedule}
+        onClose={() => setSessionToReschedule(null)}
+        onConfirmReschedule={handleConfirmReschedule}
+      />
+
+      {/* ── Toast Notifikasi Aksi ── */}
+      {actionToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-gray-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-gray-700 animate-in slide-in-from-bottom-5">
+          {actionToast.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          )}
+          <span>{actionToast.message}</span>
+        </div>
+      )}
     </div>
   )
 }

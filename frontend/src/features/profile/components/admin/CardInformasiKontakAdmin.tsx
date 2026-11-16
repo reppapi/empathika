@@ -58,7 +58,7 @@ export function CardInformasiKontakAdmin({
 
         <div>
           <PhoneInputField
-            label="Nomor WhatsApp / Telepon"
+            label="No WhatsApp"
             name="noTelepon"
             value={form.noTelepon || ""}
             onChange={(val) => {
@@ -66,8 +66,8 @@ export function CardInformasiKontakAdmin({
                 target: { name: "noTelepon", value: val },
               } as any)
             }}
-            placeholder="812-3456-7890"
-            theme="purple"
+            placeholder="+62 821-7373-9213"
+            inputClassName="rounded-2xl border-gray-200 bg-white px-4 py-3 text-sm focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
           />
         </div>
 

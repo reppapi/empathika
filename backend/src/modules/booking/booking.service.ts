@@ -8,6 +8,7 @@ import type {
   GetJadwalPsikologMeQuery,
   CreateJadwalSlotInput,
   CreateClientBookingInput,
+  RescheduleBookingInput,
 } from './booking.schema'
 import type { StatusBooking } from '@prisma/client'
 import {
@@ -103,9 +104,9 @@ export class BookingService {
         noTelepon: s.client.no_telepon || '',
         waLink: waNumber ? `https://wa.me/${waNumber}` : null,
         layanan: s.layanan.nama,
-        psikolog: isAsesmen ? '' : (s.jadwal.psikolog?.nama_gelar || 'Belum Ditentukan'),
+        psikolog: isAsesmen ? '' : (s.jadwal.psikolog?.nama_gelar || (s.jadwal.psikolog as any)?.account?.nama || 'Belum Ditentukan'),
         idPsikolog: isAsesmen ? null : s.jadwal.psikolog?.id,
-        noTeleponPsikolog: isAsesmen ? null : ((s.jadwal.psikolog as any)?.account?.no_telepon || '081234567890'),
+        noTeleponPsikolog: isAsesmen ? null : ((s.jadwal.psikolog as any)?.account?.no_telepon || null),
         tipe_jadwal: s.jadwal?.tipe_jadwal || (isAsesmen ? 'ASESMEN' : 'KONSULTASI'),
         jamMulai: jamMulaiStr,
         jamSelesai: jamSelesaiStr,
@@ -136,7 +137,9 @@ export class BookingService {
       const jamSelesaiStr = formatTimeToString(slot.jam_selesai)
       const timeSlot = `${jamMulaiStr} - ${jamSelesaiStr}`
       const isBooked = slot.status === 'SUDAH_DIBOOKING' || Boolean(slot.booking_konsultasi)
-      const clientName = slot.booking_konsultasi?.client?.nama || (isBooked ? 'Klien Terdaftar' : undefined)
+      const clientName = slot.booking_konsultasi?.client?.nama || undefined
+      const clientPhone = slot.booking_konsultasi?.client?.no_telepon || null
+      const clientId = slot.booking_konsultasi?.client?.id || null
       const isAsesmen =
         slot.tipe_jadwal === 'ASESMEN' ||
         (slot.booking_konsultasi?.layanan?.nama || '').toLowerCase().includes('asesmen')
@@ -150,7 +153,14 @@ export class BookingService {
         isBooked,
         clientName,
         namaKlien: clientName,
-        psikologName: isAsesmen ? '' : (slot.psikolog?.nama_gelar || ''),
+        kontak: clientPhone,
+        no_telepon: clientPhone,
+        klienId: clientId,
+        catatan: slot.booking_konsultasi?.deskripsi_trauma || null,
+        status: slot.booking_konsultasi?.status === 'CANCELLED' ? 'Dibatalkan' : (slot.status === 'TERSEDIA' ? 'Tersedia' : 'Aktif'),
+        psikologName: isAsesmen ? '' : (slot.psikolog?.nama_gelar || (slot.psikolog as any)?.account?.nama || ''),
+        id_psikolog: slot.id_psikolog || null,
+        noTeleponPsikolog: (slot.psikolog as any)?.account?.no_telepon || null,
         layanan:
           slot.booking_konsultasi?.layanan?.nama ||
           (slot.status === 'TERSEDIA'
@@ -256,7 +266,46 @@ export class BookingService {
       )
 
       if (overlap) {
-        throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
+        const hasActiveBooking =
+          (overlap as any).booking_konsultasi &&
+          (overlap as any).booking_konsultasi.status !== 'CANCELLED'
+
+        if (hasActiveBooking) {
+          throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
+        }
+
+        const overlapStart = formatTimeToString(overlap.jam_mulai)
+        const overlapEnd = formatTimeToString(overlap.jam_selesai)
+        const inputStart = formatTimeToString(parsedJamMulai)
+        const inputEnd = formatTimeToString(parsedJamSelesai)
+
+        const isExactSameTime = overlapStart === inputStart && overlapEnd === inputEnd
+
+        if (!isExactSameTime) {
+          throw new Error(
+            `Slot jam ${inputStart} - ${inputEnd} bertabrakan dengan rentang jam slot lain yang sudah ada (${overlapStart} - ${overlapEnd})`
+          )
+        }
+
+        const updatedSlot = await (this.repo as any).prisma.jadwalSlot.update({
+          where: { id: overlap.id },
+          data: {
+            status: 'TERSEDIA',
+            metode: targetMetode,
+            tipe_jadwal: targetTipeJadwal,
+          },
+        })
+
+        return {
+          id: updatedSlot.id,
+          id_psikolog: updatedSlot.id_psikolog,
+          tanggal: formatDateToString(updatedSlot.tanggal),
+          jam_mulai: formatTimeToString(updatedSlot.jam_mulai),
+          jam_selesai: formatTimeToString(updatedSlot.jam_selesai),
+          metode: (updatedSlot as any).metode || targetMetode,
+          status: 'TERSEDIA',
+          tipe_jadwal: (updatedSlot as any).tipe_jadwal || 'ASESMEN',
+        }
       }
     }
 
@@ -315,8 +364,11 @@ export class BookingService {
       )
 
       if (overlap) {
+        const hasActiveBooking =
+          (overlap as any).booking_konsultasi &&
+          (overlap as any).booking_konsultasi.status !== 'CANCELLED'
         const isAlreadyBooked =
-          overlap.status === 'SUDAH_DIBOOKING' || Boolean((overlap as any).booking_konsultasi)
+          overlap.status === 'SUDAH_DIBOOKING' || hasActiveBooking
         if (isAlreadyBooked) {
           throw new Error('Slot jam tersebut sudah dibooking oleh sesi lain')
         }
@@ -428,7 +480,26 @@ export class BookingService {
     }
     const slots = await this.repo.findJadwalTersedia(resolvedQuery)
 
-    return slots.map((slot) => ({
+    const now = new Date()
+    const todayStr = formatDateToString(now)
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+    // Filter slot yang jamnya sudah terlewat jika tanggalnya adalah hari ini atau lampau
+    const upcomingSlots = slots.filter((slot) => {
+      const slotDateStr = formatDateToString(slot.tanggal)
+      if (slotDateStr < todayStr) return false
+      if (slotDateStr > todayStr) return true
+
+      const jamMulaiStr = formatTimeToString(slot.jam_mulai)
+      const parts = jamMulaiStr.split(':')
+      if (parts.length >= 2) {
+        const slotStartMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10)
+        return slotStartMinutes > currentMinutes
+      }
+      return true
+    })
+
+    return upcomingSlots.map((slot) => ({
       id: slot.id,
       id_psikolog: slot.id_psikolog,
       nama_psikolog: slot.psikolog.nama_gelar,
@@ -460,28 +531,24 @@ export class BookingService {
           where: { id: query.id },
           include: { booking_konsultasi: true },
         })
-        if (!slot) {
-          return {
-            available: false,
-            reason: 'Slot jadwal ini telah dihapus dari jadwal klinik atau sesi psikolog.',
+        if (slot) {
+          if (slot.status === 'TIDAK_TERSEDIA' || slot.status === 'CANCELLED') {
+            return {
+              available: false,
+              reason: 'Slot jadwal ini telah dibatalkan oleh pihak klinik atau psikolog.',
+            }
           }
-        }
-        if (slot.status === 'TIDAK_TERSEDIA' || slot.status === 'CANCELLED') {
-          return {
-            available: false,
-            reason: 'Slot jadwal ini telah dibatalkan oleh pihak klinik atau psikolog.',
+          if (
+            slot.status === 'SUDAH_DIBOOKING' ||
+            (slot.booking_konsultasi && slot.booking_konsultasi.status !== 'CANCELLED')
+          ) {
+            return {
+              available: false,
+              reason: 'Slot jadwal ini sudah dibooking oleh klien lain.',
+            }
           }
+          return { available: true, slot }
         }
-        if (
-          slot.status === 'SUDAH_DIBOOKING' ||
-          (slot.booking_konsultasi && slot.booking_konsultasi.status !== 'CANCELLED')
-        ) {
-          return {
-            available: false,
-            reason: 'Slot jadwal ini sudah dibooking oleh klien lain.',
-          }
-        }
-        return { available: true, slot }
       }
     }
 
@@ -490,19 +557,37 @@ export class BookingService {
       const parsedJamMulai = timeStringToDate(query.waktu)
       const isAsesmen = (query.tipe_jadwal || '').toUpperCase() === 'ASESMEN'
 
+      let resolvedPsikologId = query.id_psikolog
+      if (resolvedPsikologId) {
+        const isUuidPsi = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(resolvedPsikologId)
+        if (!isUuidPsi) {
+          const psi = await (this.repo as any).prisma.psikolog.findFirst({
+            where: {
+              OR: [
+                { nama_gelar: { contains: resolvedPsikologId, mode: 'insensitive' } },
+                { account: { nama: { contains: resolvedPsikologId, mode: 'insensitive' } } },
+              ],
+            },
+          })
+          if (psi) resolvedPsikologId = psi.id
+        }
+      }
+
       const slot = await (this.repo as any).prisma.jadwalSlot.findFirst({
         where: {
           tanggal: parsedTanggal,
           jam_mulai: parsedJamMulai,
+          ...(resolvedPsikologId ? { id_psikolog: resolvedPsikologId } : {}),
           ...(isAsesmen ? { tipe_jadwal: 'ASESMEN' } : {}),
         },
         include: { booking_konsultasi: true },
       })
 
+      // Slot wajib sudah dibuka dan terdaftar resmi di database oleh psikolog
       if (!slot) {
         return {
           available: false,
-          reason: 'Slot jadwal pada jam ini tidak ditemukan atau telah dihapus dari jadwal.',
+          reason: 'Slot jadwal ini belum dibuka atau tidak tersedia pada database psikolog.',
         }
       }
       if (slot.status === 'TIDAK_TERSEDIA' || slot.status === 'CANCELLED') {
@@ -527,16 +612,36 @@ export class BookingService {
   }
 
   async getJadwalSaya(accountId?: string, query?: GetJadwalPsikologMeQuery) {
-    let psikolog = accountId ? await this.repo.findPsikologByAccountId(accountId) : null
-    if (!psikolog && accountId) {
-      psikolog = await this.repo.findPsikologById(accountId)
-    }
-    if (!psikolog && query?.id_psikolog) {
-      psikolog = await this.repo.findPsikologById(query.id_psikolog)
+    let psikolog = null
+    const isAccountUuid = accountId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(accountId)
+    if (isAccountUuid) {
+      psikolog = await this.repo.findPsikologByAccountId(accountId)
       if (!psikolog) {
-        psikolog = await this.repo.findPsikologByAccountId(query.id_psikolog)
+        psikolog = await this.repo.findPsikologById(accountId)
       }
     }
+
+    if (!psikolog && query?.id_psikolog) {
+      const isQueryUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(query.id_psikolog)
+      if (isQueryUuid) {
+        psikolog = await this.repo.findPsikologById(query.id_psikolog)
+        if (!psikolog) {
+          psikolog = await this.repo.findPsikologByAccountId(query.id_psikolog)
+        }
+      } else if (query.id_psikolog !== '0') {
+        psikolog = await (this.repo as any).prisma.psikolog.findFirst({
+          where: {
+            OR: [
+              { nama_gelar: { contains: query.id_psikolog, mode: 'insensitive' } },
+              { account: { nama: { contains: query.id_psikolog, mode: 'insensitive' } } },
+              { account: { email: { contains: query.id_psikolog, mode: 'insensitive' } } },
+            ],
+          },
+          include: { spesialisasi: true },
+        })
+      }
+    }
+
     if (!psikolog) {
       const psikologWithSlots = await (this.repo as any).prisma.psikolog.findFirst({
         where: { jadwal_slot: { some: {} } },
@@ -557,6 +662,7 @@ export class BookingService {
     return {
       psikolog: {
         id: psikolog.id,
+        id_account: (psikolog as any).id_account,
         nama_gelar: psikolog.nama_gelar,
         kategori: psikolog.kategori,
       },
@@ -606,8 +712,12 @@ export class BookingService {
 
   async createPsikologJadwalSlot(input: CreateJadwalSlotInput, accountId?: string) {
     let psikologId = input.id_psikolog
+    const isInputUuid = Boolean(
+      psikologId &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(psikologId)
+    )
 
-    if (psikologId) {
+    if (psikologId && isInputUuid) {
       let existing = await this.repo.findPsikologById(psikologId)
       if (!existing) {
         existing = await this.repo.findPsikologByAccountId(psikologId)
@@ -617,14 +727,35 @@ export class BookingService {
       } else {
         psikologId = undefined
       }
-    }
-    if (!psikologId && accountId) {
-      let psikolog = await this.repo.findPsikologByAccountId(accountId)
-      if (!psikolog) {
-        psikolog = await this.repo.findPsikologById(accountId)
+    } else if (psikologId && psikologId !== '0') {
+      const psi = await (this.repo as any).prisma.psikolog.findFirst({
+        where: {
+          OR: [
+            { nama_gelar: { contains: psikologId, mode: 'insensitive' } },
+            { account: { nama: { contains: psikologId, mode: 'insensitive' } } },
+            { account: { email: { contains: psikologId, mode: 'insensitive' } } },
+          ],
+        },
+      })
+      if (psi) {
+        psikologId = psi.id
+      } else {
+        psikologId = undefined
       }
-      if (psikolog) {
-        psikologId = psikolog.id
+    } else {
+      psikologId = undefined
+    }
+
+    if (!psikologId && accountId) {
+      const isAccountUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(accountId)
+      if (isAccountUuid) {
+        let psikolog = await this.repo.findPsikologByAccountId(accountId)
+        if (!psikolog) {
+          psikolog = await this.repo.findPsikologById(accountId)
+        }
+        if (psikolog) {
+          psikologId = psikolog.id
+        }
       }
     }
 
@@ -654,10 +785,6 @@ export class BookingService {
       parsedJamSelesai
     )
 
-    if (overlap) {
-      throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
-    }
-
     let metodeSlot = 'ONLINE'
     if (input.metode) {
       const upper = input.metode.toUpperCase()
@@ -667,6 +794,52 @@ export class BookingService {
         metodeSlot = 'OFFLINE'
       } else {
         metodeSlot = 'ONLINE'
+      }
+    }
+
+    if (overlap) {
+      const hasActiveBooking =
+        (overlap as any).booking_konsultasi &&
+        (overlap as any).booking_konsultasi.status !== 'CANCELLED'
+
+      if (hasActiveBooking) {
+        throw new Error('Slot jam tersebut bentrok dengan jadwal konsultasi klien yang sudah ada')
+      }
+
+      const overlapStart = formatTimeToString(overlap.jam_mulai)
+      const overlapEnd = formatTimeToString(overlap.jam_selesai)
+      const inputStart = formatTimeToString(parsedJamMulai)
+      const inputEnd = formatTimeToString(parsedJamSelesai)
+
+      const isExactSameTime = overlapStart === inputStart && overlapEnd === inputEnd
+
+      if (!isExactSameTime) {
+        throw new Error(
+          `Slot jam ${inputStart} - ${inputEnd} bertabrakan dengan rentang jam slot lain yang sudah ada (${overlapStart} - ${overlapEnd})`
+        )
+      }
+
+      // Jika slot jamnya SAMA PERSIS dan tidak ada booking aktif (misal slot sebelumnya berstatus TERSEDIA,
+      // TIDAK_TERSEDIA, atau pernah dibooking tapi sesinya sudah DIBATALKAN):
+      // Aktifkan / perbarui slot yang ada agar kembali TERSEDIA untuk klien
+      const updatedSlot = await (this.repo as any).prisma.jadwalSlot.update({
+        where: { id: overlap.id },
+        data: {
+          status: 'TERSEDIA',
+          metode: metodeSlot,
+          tipe_jadwal: input.tipe_jadwal || 'KONSULTASI',
+        },
+      })
+
+      return {
+        id: updatedSlot.id,
+        id_psikolog: updatedSlot.id_psikolog,
+        tanggal: formatDateToString(updatedSlot.tanggal),
+        jam_mulai: formatTimeToString(updatedSlot.jam_mulai),
+        jam_selesai: formatTimeToString(updatedSlot.jam_selesai),
+        metode: (updatedSlot as any).metode || metodeSlot,
+        status: 'TERSEDIA',
+        tipe_jadwal: (updatedSlot as any).tipe_jadwal || 'KONSULTASI',
       }
     }
 
@@ -697,8 +870,11 @@ export class BookingService {
       throw new Error('Slot jadwal tidak ditemukan')
     }
 
-    if (slot.status !== 'TERSEDIA' || slot.booking_konsultasi) {
-      throw new Error('Slot jadwal yang sudah dibooking tidak dapat dihapus langsung. Batalkan booking sesi klien terlebih dahulu jika ingin membatalkan.')
+    const hasActiveBooking =
+      slot.booking_konsultasi && slot.booking_konsultasi.status !== 'CANCELLED'
+
+    if (slot.status === 'SUDAH_DIBOOKING' && hasActiveBooking) {
+      throw new Error('Slot jadwal yang sudah dibooking aktif tidak dapat dihapus langsung. Batalkan booking sesi klien terlebih dahulu jika ingin membatalkan.')
     }
 
     const normalizedRole = (role || '').toUpperCase()
@@ -715,6 +891,15 @@ export class BookingService {
       if (psi && slot.id_psikolog !== psi.id) {
         throw new Error('Anda tidak memiliki wewenang untuk menghapus slot jadwal milik psikolog lain')
       }
+    }
+
+    if (slot.booking_konsultasi && slot.booking_konsultasi.status === 'CANCELLED') {
+      // Karena id_jadwal memiliki foreign key restrict pada booking_konsultasi, ubah status menjadi TIDAK_TERSEDIA
+      await (this.repo as any).prisma.jadwalSlot.update({
+        where: { id },
+        data: { status: 'TIDAK_TERSEDIA' },
+      })
+      return { success: true, message: 'Slot jadwal berhasil ditutup' }
     }
 
     await this.repo.deleteJadwalSlot(id)
@@ -837,5 +1022,9 @@ export class BookingService {
       phone: user.no_telepon,
       email: user.email,
     })
+  }
+
+  async rescheduleBooking(idOrSlotId: string, input: RescheduleBookingInput) {
+    return this.repo.rescheduleBooking(idOrSlotId, input)
   }
 }

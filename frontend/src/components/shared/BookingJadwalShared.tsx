@@ -73,6 +73,7 @@ export function BookingJadwalShared({
     activePrice,
     buildBayarUrl,
     isSlotReady,
+    availableCategories,
   } = useJadwalClient({
     mode,
     tipeJadwal: mode === "asesmen" ? "ASESMEN" : "KONSULTASI",
@@ -303,86 +304,42 @@ export function BookingJadwalShared({
                 </div>
 
                 <div className="flex flex-col gap-2.5 max-h-[200px] overflow-y-auto pr-1.5 custom-scrollbar">
-                  {/* Option Psikolog */}
-                  <label
-                    className={`flex items-center gap-3.5 p-3 rounded-xl border cursor-pointer transition-all ${
-                      layanan.toLowerCase().includes("psikolog") || layanan.toLowerCase().includes("konsultasi")
-                        ? "border-[#C3A4CE] bg-[#FCFAFD]"
-                        : "border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-base shrink-0">
-                      P
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-extrabold text-[#561269] text-xs sm:text-[13px]">Psikolog Klinis</h4>
-                      <p className="text-[10px] text-gray-500 mt-0.5 leading-tight truncate">
-                        Konsultasi mendalam dengan psikolog klinis profesional berlisensi STR &amp; SIPP.
-                      </p>
-                    </div>
-                    <input
-                      type="radio"
-                      name="layanan"
-                      value="Psikolog"
-                      checked={layanan.toLowerCase().includes("psikolog") || layanan.toLowerCase().includes("konsultasi")}
-                      onChange={() => setLayanan("Psikolog")}
-                      className="w-4 h-4 text-[#561269] focus:ring-[#561269] shrink-0"
-                    />
-                  </label>
+                  {availableCategories.map((cat) => {
+                    const isSelected =
+                      (cat.key === "psikolog" && (layanan.toLowerCase().includes("psikolog") || layanan.toLowerCase().includes("konsultasi"))) ||
+                      (cat.key === "konselor" && (layanan.toLowerCase().includes("konselor") && !layanan.toLowerCase().includes("peer"))) ||
+                      (cat.key === "peer" && layanan.toLowerCase().includes("peer"))
 
-                  {/* Option Konselor */}
-                  <label
-                    className={`flex items-center gap-3.5 p-3 rounded-xl border cursor-pointer transition-all shrink-0 ${
-                      layanan.toLowerCase().includes("konselor") && !layanan.toLowerCase().includes("peer")
-                        ? "border-[#C3A4CE] bg-[#FCFAFD]"
-                        : "border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold text-base shrink-0">
-                      K
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-extrabold text-[#561269] text-xs sm:text-[13px]">Konselor</h4>
-                      <p className="text-[10px] text-gray-500 mt-0.5 leading-tight truncate">
-                        Konseling terarah bersama tenaga konselor berpengalaman.
-                      </p>
-                    </div>
-                    <input
-                      type="radio"
-                      name="layanan"
-                      value="Konselor"
-                      checked={layanan.toLowerCase().includes("konselor") && !layanan.toLowerCase().includes("peer")}
-                      onChange={() => setLayanan("Konselor")}
-                      className="w-4 h-4 text-[#561269] focus:ring-[#561269] shrink-0"
-                    />
-                  </label>
-
-                  {/* Option Peer Konselor */}
-                  <label
-                    className={`flex items-center gap-3.5 p-3 rounded-xl border cursor-pointer transition-all ${
-                      layanan.toLowerCase().includes("peer")
-                        ? "border-[#C3A4CE] bg-[#FCFAFD]"
-                        : "border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-base shrink-0">
-                      PK
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-extrabold text-[#561269] text-xs sm:text-[13px]">Peer Konselor</h4>
-                      <p className="text-[10px] text-gray-500 mt-0.5 leading-tight truncate">
-                        Pendampingan teman sebaya yang terlatih, nyaman, dan terbuka tanpa stigma.
-                      </p>
-                    </div>
-                    <input
-                      type="radio"
-                      name="layanan"
-                      value="Peer Konselor"
-                      checked={layanan.toLowerCase().includes("peer")}
-                      onChange={() => setLayanan("Peer Konselor")}
-                      className="w-4 h-4 text-[#561269] focus:ring-[#561269] shrink-0"
-                    />
-                  </label>
+                    return (
+                      <label
+                        key={cat.id}
+                        onClick={() => setLayanan(cat.id)}
+                        className={`flex items-center gap-3.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-[#C3A4CE] bg-[#FCFAFD]"
+                            : "border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className={`w-12 h-12 rounded-lg ${cat.badgeBg} flex items-center justify-center ${cat.badgeText} font-bold text-base shrink-0`}>
+                          {cat.badge}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-extrabold text-[#561269] text-xs sm:text-[13px]">{cat.label}</h4>
+                          <p className="text-[10px] text-gray-500 mt-0.5 leading-tight truncate">
+                            {cat.sub}
+                          </p>
+                        </div>
+                        <input
+                          type="radio"
+                          name="layanan"
+                          value={cat.id}
+                          checked={isSelected}
+                          onChange={() => setLayanan(cat.id)}
+                          className="w-4 h-4 text-[#561269] focus:ring-[#561269] shrink-0"
+                        />
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
             )}

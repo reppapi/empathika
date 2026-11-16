@@ -5,7 +5,7 @@
 export const EVENT_JENIS = {
   WORKSHOP: "Workshop",
   SEMINAR: "Seminar",
-  WEBINAR: "Webinar",
+  KOLABORASI: "Kolaborasi",
 } as const
 
 export type EventJenis = (typeof EVENT_JENIS)[keyof typeof EVENT_JENIS]
