@@ -747,8 +747,23 @@ export class PsikotesRepository {
             })
           }
         } else {
-          // Pendaftar berbayar mandiri tanpa booking awal
-          if (inputPhone) {
+          // Pendaftar berbayar mandiri tanpa booking awal (kombinasi nomor telepon DAN nama case-insensitive)
+          if (inputPhone && inputName) {
+            client = await tx.client.findFirst({
+              where: {
+                AND: [
+                  {
+                    OR: [
+                      { no_telepon: inputPhone },
+                      ...(rawPhone ? [{ no_telepon: rawPhone }] : []),
+                    ],
+                  },
+                  { nama: { equals: inputName, mode: 'insensitive' } },
+                ],
+                id_biro: input.id_biro || null,
+              },
+            })
+          } else if (inputPhone) {
             client = await tx.client.findFirst({
               where: {
                 OR: [
@@ -761,7 +776,7 @@ export class PsikotesRepository {
           } else if (inputName) {
             client = await tx.client.findFirst({
               where: {
-                nama: inputName,
+                nama: { equals: inputName, mode: 'insensitive' },
                 id_biro: input.id_biro || null,
               },
             })
@@ -1306,16 +1321,40 @@ export class PsikotesRepository {
         throw Object.assign(new Error('Nama lengkap peserta wajib diisi'), { statusCode: 400 })
       }
 
-      let client = null
-      if (inputPhone) {
-        const normInputPhone = normalizePhoneNumber(rawPhone) || inputPhone
+      let client: any = null
+      const normInputPhone = inputPhone ? (normalizePhoneNumber(rawPhone) || inputPhone) : null
+
+      if (normInputPhone && inputName) {
+        client = await tx.client.findFirst({
+          where: {
+            AND: [
+              {
+                OR: [
+                  { no_telepon: normInputPhone },
+                  ...(formattedPhone ? [{ no_telepon: formattedPhone }] : []),
+                  ...(rawPhone ? [{ no_telepon: rawPhone }] : []),
+                ],
+              },
+              { nama: { equals: inputName, mode: 'insensitive' } },
+            ],
+            ...(idBiro ? { id_biro: idBiro } : {}),
+          },
+        })
+      } else if (normInputPhone) {
         client = await tx.client.findFirst({
           where: {
             OR: [
               { no_telepon: normInputPhone },
-              { no_telepon: formattedPhone },
-              { no_telepon: rawPhone },
+              ...(formattedPhone ? [{ no_telepon: formattedPhone }] : []),
+              ...(rawPhone ? [{ no_telepon: rawPhone }] : []),
             ],
+            ...(idBiro ? { id_biro: idBiro } : {}),
+          },
+        })
+      } else if (inputName) {
+        client = await tx.client.findFirst({
+          where: {
+            nama: { equals: inputName, mode: 'insensitive' },
             ...(idBiro ? { id_biro: idBiro } : {}),
           },
         })
@@ -1325,7 +1364,7 @@ export class PsikotesRepository {
         client = await tx.client.create({
           data: {
             nama: inputName,
-            no_telepon: rawPhone || inputPhone || null,
+            no_telepon: normInputPhone || null,
             usia: inputUsia,
             jenis_kelamin: inputGender,
             id_biro: idBiro,
@@ -1336,8 +1375,7 @@ export class PsikotesRepository {
           .update({
             where: { id: client.id },
             data: {
-              nama: inputName || client.nama,
-              no_telepon: rawPhone || client.no_telepon,
+              ...(normInputPhone && client.no_telepon !== normInputPhone ? { no_telepon: normInputPhone } : {}),
               usia: inputUsia ?? client.usia,
               jenis_kelamin: inputGender ?? client.jenis_kelamin,
             },
@@ -1612,8 +1650,6 @@ export class PsikotesRepository {
     const rawKode = (input.kode_akses || '').trim()
     const cleanKode = rawKode.toUpperCase().replace(/\s+/g, '')
     const rawPhone = (input.no_telepon || '').trim()
-    const cleanPhone = normalizePhoneNumber(rawPhone) || rawPhone
-    const digitsOnly = rawPhone.replace(/\D/g, '')
 
     if (!rawKode || !rawPhone) {
       throw Object.assign(new Error('Kode akses dan nomor WhatsApp pembeli wajib diisi'), { statusCode: 400 })

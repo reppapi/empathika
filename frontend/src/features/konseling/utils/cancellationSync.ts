@@ -124,9 +124,61 @@ export function isSessionCancelled(
 }
 
 /**
+ * Aturan Bisnis Reschedule (Jadwal Ulang) Sesi:
+ * Reschedule HANYA BISA dilakukan maksimal H-3 jam sebelum jadwal sesi dimulai.
+ * Jika waktu saat ini sudah kurang dari 3 jam sebelum sesi (misal H-2 jam, H-1 jam, atau sesi sudah berjalan/lewat),
+ * sesi TIDAK DAPAT di-reschedule lagi ("gabisa reschedule").
+ */
+export function canRescheduleSession(dateStr?: string, waktuStr?: string): boolean {
+  if (!dateStr) return false
+
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  const todayKey = `${year}-${month}-${day}`
+
+  // 1. Jika tanggal jadwal sudah lampau -> tidak bisa reschedule
+  if (dateStr < todayKey) return false
+
+  // 2. Ambil jam mulai sesi
+  let jamMulai = "09:00"
+  if (waktuStr) {
+    const match = waktuStr.match(/(\d{2}:\d{2})/)
+    if (match) {
+      jamMulai = match[1]
+    }
+  }
+
+  const [hours, minutes] = jamMulai.split(":").map(Number)
+  const dateParts = dateStr.split("-").map(Number)
+  if (dateParts.length !== 3 || !dateParts[0] || !dateParts[1] || !dateParts[2]) {
+    return false
+  }
+
+  // Waktu mulai sesi sebagai Date object (WIB lokal)
+  const sessionStartTime = new Date(
+    dateParts[0],
+    dateParts[1] - 1,
+    dateParts[2],
+    hours || 0,
+    minutes || 0,
+    0,
+    0
+  )
+
+  // Selisih waktu dalam jam
+  const diffMs = sessionStartTime.getTime() - now.getTime()
+  const diffHours = diffMs / (1000 * 60 * 60)
+
+  // Maksimal reschedule adalah H-3 jam (minimal selisih 3 jam sebelum jadwal sesi dimulai)
+  return diffHours >= 3
+}
+
+/**
  * Aturan Bisnis Pembatalan Sesi:
- * Sesi HANYA BISA dibatalkan sebelum hari H (maksimal H-1, tanggal jadwal > hari ini).
- * Sesi pada hari H (hari ini) atau masa lalu TIDAK DAPAT dibatalkan lagi.
+ * Sesi hanya dapat dibatalkan maksimal H-1 hari sebelum tanggal jadwal sesi.
+ * Jika sudah hari H (hari ini) atau tanggal sudah lewat/lampau, sesi TIDAK DAPAT dibatalkan lagi.
  */
 export function canCancelSession(dateStr?: string): boolean {
   if (!dateStr) return false
@@ -136,6 +188,142 @@ export function canCancelSession(dateStr?: string): boolean {
   const day = String(now.getDate()).padStart(2, "0")
   const todayKey = `${year}-${month}-${day}`
 
-  // Format YYYY-MM-DD: bisa langsung dicocokkan string leksikografis
+  // Pembatalan hanya diperbolehkan jika tanggal sesi di masa depan (H-1 ke atas / hari esok atau selanjutnya)
   return dateStr > todayKey
+}
+
+export interface RescheduledSessionRecord {
+  id?: string
+  date?: string // Tanggal awal (jadwal sebelum di-reschedule)
+  waktu: string // Waktu/jam awal (jadwal sebelum di-reschedule)
+  newDate?: string // Tanggal baru (jadwal tujuan)
+  newWaktu?: string // Waktu/jam baru (jadwal tujuan)
+  namaKlien?: string
+  psikolog?: string
+  idPsikolog?: string
+  layanan?: string
+  metode?: string
+  alasan?: string
+  rescheduledAt: number
+}
+
+const RESCHEDULE_STORAGE_KEY = "empathika_rescheduled_sessions"
+
+export function getRescheduledSessions(): RescheduledSessionRecord[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = localStorage.getItem(RESCHEDULE_STORAGE_KEY)
+    if (!raw) return []
+    return JSON.parse(raw) as RescheduledSessionRecord[]
+  } catch {
+    return []
+  }
+}
+
+export function recordRescheduledSession(record: {
+  id?: string
+  date?: string
+  waktu: string
+  newDate?: string
+  newWaktu?: string
+  namaKlien?: string
+  psikolog?: string
+  idPsikolog?: string
+  layanan?: string
+  metode?: string
+  alasan?: string
+}): void {
+  if (typeof window === "undefined") return
+  try {
+    const current = getRescheduledSessions()
+    const newRecord: RescheduledSessionRecord = {
+      ...record,
+      rescheduledAt: Date.now(),
+    }
+
+    const filtered = current.filter((item) => {
+      if (record.id && item.id && record.id === item.id) return false
+      const sameTime = (record.waktu || "").trim() === (item.waktu || "").trim()
+      const sameDate = !record.date || !item.date || record.date === item.date
+      const sameClient =
+        record.namaKlien &&
+        item.namaKlien &&
+        record.namaKlien.trim().toLowerCase() === item.namaKlien.trim().toLowerCase()
+      return !(sameTime && sameDate && sameClient)
+    })
+
+    filtered.push(newRecord)
+    localStorage.setItem(RESCHEDULE_STORAGE_KEY, JSON.stringify(filtered))
+
+    window.dispatchEvent(new Event("storage"))
+    window.dispatchEvent(
+      new CustomEvent("empathika_session_rescheduled", {
+        detail: newRecord,
+      })
+    )
+  } catch (err) {
+    console.error("Gagal sinkronisasi reschedule sesi:", err)
+  }
+}
+
+/**
+ * Mencari data reschedule sesi pada TANGGAL & JAM AWAL (sebelum dipindahkan).
+ * Digunakan agar kartu pada tanggal awal tetap ditampilkan dengan badge 'Reschedule'
+ * dan teks tercoret (line-through).
+ */
+export function findOriginalRescheduledRecord(
+  session: {
+    id?: string
+    date?: string
+    waktu: string
+    namaKlien?: string
+  },
+  rescheduledList?: RescheduledSessionRecord[]
+): RescheduledSessionRecord | undefined {
+  const list = rescheduledList || getRescheduledSessions()
+  if (!list || list.length === 0) return undefined
+
+  const normSessionWaktu = (session.waktu || "").replace(/\s*WIB/gi, "").trim()
+
+  return list.find((r) => {
+    // 1. Tanggal HARUS tanggal awal (r.date), BUKAN r.newDate
+    if (session.date && r.date && session.date !== r.date) return false
+
+    // 2. Waktu HARUS waktu awal (r.waktu), BUKAN r.newWaktu
+    const normOldWaktu = (r.waktu || "").replace(/\s*WIB/gi, "").trim()
+    if (normSessionWaktu !== normOldWaktu) return false
+
+    // 3. Cocokkan ID jika keduanya ada
+    if (session.id && r.id && session.id === r.id) return true
+
+    // 4. Cocokkan nama klien jika ada
+    if (session.namaKlien && r.namaKlien) {
+      const sName = session.namaKlien.trim().toLowerCase()
+      const rName = r.namaKlien.trim().toLowerCase()
+      if (sName !== "tersedia" && (sName === rName || sName.includes(rName) || rName.includes(sName))) {
+        return true
+      }
+    }
+
+    // Jika slot tanggal awal dan waktu awal cocok
+    return Boolean(r.date && r.waktu)
+  })
+}
+
+/**
+ * Mengecek apakah suatu sesi merupakan slot asal (tanggal & jam awal) yang di-reschedule.
+ * Sesi pada tanggal baru TIDAK dianggap reschedule, melainkan sesi booking aktif biasa.
+ */
+export function isSessionRescheduled(
+  session: {
+    id?: string
+    date?: string
+    waktu: string
+    namaKlien?: string
+    isAvailableSlot?: boolean
+    statusSlot?: string
+  },
+  rescheduledList?: RescheduledSessionRecord[]
+): boolean {
+  return Boolean(findOriginalRescheduledRecord(session, rescheduledList))
 }

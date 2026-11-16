@@ -11,6 +11,7 @@ import {
   createAdminSesiSchema,
   createAdminJadwalSlotSchema,
   updateBookingStatusSchema,
+  rescheduleBookingSchema,
   getAdminJadwalQuerySchema,
 } from './booking.schema'
 
@@ -200,6 +201,17 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
       security: [{ bearerAuth: [] }],
     },
     handler: controller.cancelBooking,
+  })
+
+  fastify.post('/:id/reschedule', {
+    preHandler: [authGuard],
+    schema: {
+      tags: ['Booking & Jadwal'],
+      summary: 'Reschedule sesi booking konsultasi ke tanggal & jam baru',
+      security: [{ bearerAuth: [] }],
+      body: rescheduleBookingSchema,
+    },
+    handler: controller.rescheduleBooking,
   })
 
   fastify.post('/clean-expired', {

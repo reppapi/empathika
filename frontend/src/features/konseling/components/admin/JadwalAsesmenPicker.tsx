@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Sparkles, ChevronDown } from "lucide-react"
 import { PilihTanggalBox } from "@/components/shared/PilihTanggalBox"
 import { BookedAssessment } from "@/features/konseling/types"
 import {
@@ -16,7 +16,7 @@ interface JadwalAsesmenPickerProps {
   onSelectDate: (newDate: Date | undefined) => void
   bookedSessions?: BookedAssessment[]
   bookingSuccessMsg: string | null
-  onBooking: (times: string[], metode: "Online" | "Offline" | "Keduanya") => void | Promise<void>
+  onBooking: (times: string[], metode: "Online" | "Offline" | "Keduanya", layanan?: string) => void | Promise<void>
   timeSlots?: string[]
 }
 
@@ -32,6 +32,9 @@ export default function JadwalAsesmenPicker({
     today,
     metode,
     setMetode,
+    selectedLayanan,
+    setSelectedLayanan,
+    layananOptions,
     availableSlots,
     datesWithSlots,
     selectedTimes,
@@ -59,9 +62,9 @@ export default function JadwalAsesmenPicker({
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Sesi</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Sesi Asesmen</h2>
           <p className="text-sm text-gray-500">
-            Atur ketersediaan sesi asesmen dan konseling klinik. Pilih metode layanan, tentukan tanggal, lalu centang slot jam yang ingin dibuka untuk klien.
+            Atur ketersediaan sesi asesmen klinik. Pilih layanan asesmen, metode pelaksanaan, tentukan tanggal, lalu centang slot jam yang ingin dibuka untuk klien.
           </p>
         </div>
       </div>
@@ -108,6 +111,34 @@ export default function JadwalAsesmenPicker({
               >
                 {selectedTimes.length === availableSlots.length ? "Batal Pilih Semua" : "Pilih Semua"}
               </button>
+            </div>
+
+            {/* Pilihan Layanan Asesmen */}
+            <div className="mb-3 bg-purple-50/50 p-3 rounded-2xl border border-[#EDE0F2]">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#561269]" />
+                  Pilih Layanan Asesmen:
+                </span>
+                <span className="text-[11px] font-semibold text-[#561269] bg-white px-2 py-0.5 rounded-full border border-purple-200 line-clamp-1 max-w-[170px] text-right">
+                  {selectedLayanan}
+                </span>
+              </div>
+
+              <div className="relative">
+                <select
+                  value={selectedLayanan}
+                  onChange={(e) => setSelectedLayanan(e.target.value)}
+                  className="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] cursor-pointer shadow-2xs appearance-none pr-8 transition-colors hover:border-purple-300"
+                >
+                  {layananOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
 
             {/* Pilihan Metode Layanan Asesmen: Online, Offline, atau Keduanya */}
@@ -162,7 +193,7 @@ export default function JadwalAsesmenPicker({
               }`}
             >
               {selectedTimes.length > 0
-                ? `Buka ${selectedTimes.length} Jam Sesi (${metode}) Sekaligus`
+                ? `Buka ${selectedTimes.length} Jam Sesi Asesmen (${metode}) Sekaligus`
                 : isCustomTime && customStart && customEnd && customEnd > customStart
                   ? `Buka Jam Kustom: ${customStart} - ${customEnd} (${metode})`
                   : isCustomTime

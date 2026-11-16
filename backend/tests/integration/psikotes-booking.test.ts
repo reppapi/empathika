@@ -125,7 +125,7 @@ describe('Psikotes Booking API (POST /psikotes/booking)', () => {
     expect(dbBooking?.id_transaksi).toBe(createdTransaksiId)
     expect(dbBooking?.transaksi?.tipe_transaksi).toBe('PSIKOTES')
     expect(dbBooking?.transaksi?.status_pembayaran).toBe('PAID')
-    expect(dbBooking?.client.no_telepon).toBe('081298765432')
+    expect(dbBooking?.client.no_telepon).toBe('6281298765432')
 
     const dbTransaksi = await app.prisma.transaksi.findUnique({
       where: { id: createdTransaksiId },

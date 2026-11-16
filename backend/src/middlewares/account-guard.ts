@@ -70,8 +70,8 @@ export function createAccountGuard(allowedRoles: string[]) {
 // Jika nanti ada role baru (misal KLIEN), cukup tambahkan ke array ini:
 export const accountSecurityGuard = createAccountGuard(["PSIKOLOG", "BIRO", "ADMIN"])
 
-// 2. Guard khusus spesifik role PSIKOLOG (untuk rute jadwal/booking/profil internal psikolog)
-export const psikologOnlyGuard = createAccountGuard(["PSIKOLOG"])
+// 2. Guard khusus spesifik role PSIKOLOG (untuk rute jadwal/booking/profil internal psikolog, juga mengizinkan ADMIN)
+export const psikologOnlyGuard = createAccountGuard(["PSIKOLOG", "ADMIN"])
 
 // 3. Backward Compatibility: Alias agar rute lama tetap berjalan mulus tanpa breaking changes
 export const psikologGuard = psikologOnlyGuard

@@ -5,6 +5,7 @@ import type {
   CreateAdminJadwalSlotInput,
   CreateAdminSesiInput,
   UpdateBookingStatusInput,
+  RescheduleBookingInput,
   UpdateAdminProfileInput,
   ResendActivationInput,
 } from './admin.schema'
@@ -209,6 +210,22 @@ export class AdminController {
       const body = request.body as UpdateBookingStatusInput
       const data = await this.service.updateBookingStatus(request.params.id, body.status)
       reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  rescheduleBooking = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: RescheduleBookingInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.rescheduleBooking(request.params.id, request.body)
+      reply.send({
+        statusCode: 200,
+        message: 'Sesi booking berhasil dijadwalkan ulang (reschedule)',
+        data,
+      })
     } catch (err: any) {
       reply.code(400).send({ error: 'Bad Request', message: err.message })
     }

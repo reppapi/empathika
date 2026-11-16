@@ -18,6 +18,7 @@ import JadwalAsesmenPicker from "./JadwalAsesmenPicker"
 import JadwalMingguanGrid from "./JadwalMingguanGrid"
 import ModalDetailSesiKlien from "./ModalDetailSesiKlien"
 import ModalBatalSesi from "./ModalBatalSesi"
+import ModalRescheduleSesi from "./ModalRescheduleSesi"
 import ModalTambahSesi from "@/features/dashboard/components/admin/ModalTambahSesi"
 
 // Backward-compatible exports for external consumers (e.g. dashboardData, AdminDashboardClient)
@@ -61,6 +62,8 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
     weekDays,
     currentWeekAllSessions,
     canGoPrevWeek,
+    isCurrentWeek,
+    goToCurrentWeek,
     goToPrevWeek,
     goToNextWeek,
     handleSelectWeeklySession,
@@ -79,7 +82,10 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
     setSelectedDetailSession,
     sessionToCancel,
     setSessionToCancel,
+    sessionToReschedule,
+    setSessionToReschedule,
     handleCancelSession,
+    handleConfirmReschedule,
     handleMarkCompleted,
     handleCopyWhatsAppMessage,
     handleCopyWhatsAppPsikologMessage,
@@ -231,6 +237,7 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
         setActiveMenuId={setActiveMenuId}
         onSelectDetail={(session) => setSelectedDetailSession(session)}
         onSelectCancel={(session) => setSessionToCancel(session)}
+        onSelectReschedule={(session) => setSessionToReschedule(session)}
         onMarkCompleted={handleMarkCompleted}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
         onCopyWhatsAppPsikolog={handleCopyWhatsAppPsikologMessage}
@@ -255,6 +262,8 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
       {/* Jadwal Mingguan (Weekly Assessment Schedule Grid) */}
       <JadwalMingguanGrid
         canGoPrevWeek={canGoPrevWeek}
+        isCurrentWeek={isCurrentWeek}
+        goToCurrentWeek={goToCurrentWeek}
         goToPrevWeek={goToPrevWeek}
         goToNextWeek={goToNextWeek}
         weekRangeTitle={weekRangeTitle}
@@ -283,12 +292,23 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
           setSelectedDetailSession(null)
           setSessionToCancel(session)
         }}
+        onRescheduleClick={(session) => {
+          setSelectedDetailSession(null)
+          setSessionToReschedule(session)
+        }}
         onMarkCompleted={(id, namaKlien) => {
           handleMarkCompleted(id, namaKlien)
           setSelectedDetailSession(null)
         }}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
         onCopyWhatsAppPsikolog={handleCopyWhatsAppPsikologMessage}
+      />
+
+      {/* ── Modal Reschedule Sesi ── */}
+      <ModalRescheduleSesi
+        session={sessionToReschedule}
+        onClose={() => setSessionToReschedule(null)}
+        onConfirmReschedule={handleConfirmReschedule}
       />
 
       {/* ── Modal Konfirmasi Pembatalan ── */}

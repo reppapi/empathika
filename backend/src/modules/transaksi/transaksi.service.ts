@@ -69,8 +69,9 @@ export class TransaksiService {
    */
   async createUniversalCheckout(input: CreateCheckoutTransaksiInput, loggedInClientId?: string) {
     return this.prisma.$transaction(async (tx: any) => {
-      // 1. Dapatkan atau buat data Client (format nomor telepon standar tunggal 628...)
-      const rawPhone = input.no_telepon.trim()
+      // 1. Dapatkan atau buat data Client (kombinasi nomor telepon DAN nama case-insensitive)
+      const inputName = (input.nama || '').trim()
+      const rawPhone = (input.no_telepon || '').trim()
       const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
@@ -80,34 +81,61 @@ export class TransaksiService {
       }
 
       if (!client) {
-        client = await tx.client.findFirst({
-          where: {
-            OR: [
-              { no_telepon: standardizedPhone },
-              { no_telepon: rawPhone },
-              ...(digitsOnly.length >= 8 ? [
-                { no_telepon: digitsOnly },
-                { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
-              ] : []),
-            ],
-          },
-        })
+        const phoneConditions = rawPhone ? [
+          { no_telepon: standardizedPhone },
+          { no_telepon: rawPhone },
+          ...(digitsOnly.length >= 8 ? [
+            { no_telepon: digitsOnly },
+            { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
+          ] : []),
+        ] : []
+
+        if (inputName && phoneConditions.length > 0) {
+          client = await tx.client.findFirst({
+            where: {
+              AND: [
+                { OR: phoneConditions },
+                { nama: { equals: inputName, mode: 'insensitive' } },
+              ],
+            },
+          })
+        } else if (phoneConditions.length > 0) {
+          client = await tx.client.findFirst({
+            where: { OR: phoneConditions },
+          })
+        } else if (inputName) {
+          client = await tx.client.findFirst({
+            where: { nama: { equals: inputName, mode: 'insensitive' } },
+          })
+        }
       }
 
       if (!client) {
         client = await tx.client.create({
           data: {
-            nama: input.nama.trim(),
-            no_telepon: standardizedPhone,
+            nama: inputName || 'Klien',
+            no_telepon: standardizedPhone || null,
             usia: input.usia,
             jenis_kelamin: input.jenis_kelamin,
           },
         })
-      } else if (client.no_telepon !== standardizedPhone) {
-        await tx.client.update({
-          where: { id: client.id },
-          data: { no_telepon: standardizedPhone },
-        }).catch(() => {})
+      } else {
+        const updateData: any = {}
+        if (standardizedPhone && client.no_telepon !== standardizedPhone) {
+          updateData.no_telepon = standardizedPhone
+        }
+        if (input.usia !== undefined && input.usia !== null && input.usia !== client.usia) {
+          updateData.usia = input.usia
+        }
+        if (input.jenis_kelamin && input.jenis_kelamin !== client.jenis_kelamin) {
+          updateData.jenis_kelamin = input.jenis_kelamin
+        }
+        if (Object.keys(updateData).length > 0) {
+          await tx.client.update({
+            where: { id: client.id },
+            data: updateData,
+          }).catch(() => {})
+        }
       }
 
       let nominal = 0

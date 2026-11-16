@@ -480,6 +480,7 @@ export default function EventCheckoutClient() {
                           label={`No WhatsApp Peserta ${idx + 2}`}
                           required
                           value={p.whatsapp}
+                          inputClassName="rounded-xl px-4 py-2.5 text-xs"
                           onChange={(formatted, cleanDigits) => {
                             setPesertaTambahan((prev) => {
                               const next = [...prev]
@@ -530,7 +531,6 @@ export default function EventCheckoutClient() {
                           }}
                           error={pErr?.whatsapp}
                           helperText="Otomatis diawali +62 (Indonesia). Nomor harus aktif untuk tiket & pengumuman."
-                          theme="purple"
                         />
                       </div>
                     </div>
