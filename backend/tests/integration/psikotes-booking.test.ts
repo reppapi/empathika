@@ -20,7 +20,7 @@ describe('Psikotes Booking API (POST /psikotes/booking)', () => {
           judul: 'Tes Kepribadian MBTI Pro',
           jenis_akses: 'BERBAYAR',
           harga: 75000,
-          deskripsi: 'Paket tes kepribadian berbayar untuk testing integrasi',
+          tentang_tes: 'Paket tes kepribadian berbayar untuk testing integrasi',
           status: 'PUBLISHED',
         },
       })
@@ -125,7 +125,7 @@ describe('Psikotes Booking API (POST /psikotes/booking)', () => {
     expect(dbBooking?.id_transaksi).toBe(createdTransaksiId)
     expect(dbBooking?.transaksi?.tipe_transaksi).toBe('PSIKOTES')
     expect(dbBooking?.transaksi?.status_pembayaran).toBe('PAID')
-    expect(dbBooking?.client.no_telepon).toBe('081298765432')
+    expect(dbBooking?.client?.no_telepon).toBe('081298765432')
 
     const dbTransaksi = await app.prisma.transaksi.findUnique({
       where: { id: createdTransaksiId },
