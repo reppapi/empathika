@@ -93,7 +93,7 @@ export default function JadwalMingguanGrid({
 
       {/* Weekly Grid */}
       <div className="overflow-x-auto border border-gray-200 rounded-xl hide-scrollbar">
-        <div className="min-w-[840px]">
+        <div className="min-w-[980px] xl:min-w-full">
           {/* Header */}
           <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70">
             {weekDays.map((wd, i) => (
@@ -135,7 +135,7 @@ export default function JadwalMingguanGrid({
               return (
                 <div
                   key={i}
-                  className={`p-2.5 flex flex-col gap-2.5 ${isTodayColumn
+                  className={`p-2 flex flex-col gap-2 ${isTodayColumn
                     ? "bg-purple-50/25 ring-1 ring-inset ring-[#561269]/20"
                     : isPastDay
                       ? "bg-gray-50/40"
@@ -193,30 +193,30 @@ export default function JadwalMingguanGrid({
                           <div
                             key={item.id}
                             onClick={() => onSelectSession && onSelectSession(item)}
-                            className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-rose-50/80 border border-rose-200/90 text-gray-600 opacity-90"
+                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-rose-50/80 border border-rose-200/90 text-gray-600 opacity-90 overflow-hidden"
                           >
-                            <div className="flex items-center justify-between gap-1.5">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex items-center justify-between gap-1 flex-wrap">
+                              <div className="flex items-center gap-1.5 min-w-0">
                                 <span className="w-2 h-2 rounded-full shrink-0 bg-rose-500" />
-                                <span className="text-xs font-extrabold text-rose-700 line-through">
+                                <span className="text-[11px] sm:text-xs font-bold text-rose-700 line-through whitespace-nowrap">
                                   {item.waktu}
                                 </span>
                               </div>
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
                                 Dibatalkan
                               </span>
                             </div>
-                            <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-through">
+                            <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-through line-clamp-1">
                               {item.layanan}
                             </p>
-                            <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600">
+                            <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600 gap-0.5">
                               {item.namaKlien && (
-                                <span>
+                                <span className="truncate">
                                   Klien: <strong className="text-gray-700">{item.namaKlien}</strong>
                                 </span>
                               )}
-                              {showPsikolog && <span>Tenaga: {item.psikolog}</span>}
-                              <span className="text-[9px] text-gray-400 italic mt-0.5">
+                              {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
+                              <span className="text-[9px] text-gray-400 italic">
                                 [{item.metode}]
                               </span>
                             </div>
@@ -231,16 +231,16 @@ export default function JadwalMingguanGrid({
                           return (
                             <div
                               key={item.id}
-                              className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden"
                             >
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div className="flex items-center gap-1.5">
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <div className="flex items-center gap-1.5 min-w-0">
                                   <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
-                                  <span className="text-xs font-extrabold text-gray-500 line-through">
+                                  <span className="text-[11px] sm:text-xs font-bold text-gray-500 line-through whitespace-nowrap">
                                     {item.waktu}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 shrink-0">
                                   <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
                                     Lewat
                                   </span>
@@ -260,17 +260,19 @@ export default function JadwalMingguanGrid({
                                   )}
                                 </div>
                               </div>
-                              <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700">
+                              <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-clamp-2">
                                 {isAsesmen ? "Slot Asesmen (Lewat)" : "Slot Tersedia (Tidak Terpakai)"}
                               </p>
-                              <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-500">
-                                <span className="italic text-gray-400">Tidak ada booking</span>
-                                {showPsikolog && <span>Tenaga: {item.psikolog}</span>}
-                                {item.metode && (
-                                  <span className="text-[9px] text-gray-400 italic mt-0.5">
-                                    [{item.metode}]
-                                  </span>
-                                )}
+                              <div className="flex flex-col gap-0.5 text-[10px] text-gray-500">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {item.metode && (
+                                    <span className="font-medium text-gray-600 bg-gray-200/80 px-1.5 py-0.5 rounded text-[9px] shrink-0">
+                                      {item.metode}
+                                    </span>
+                                  )}
+                                  <span className="italic text-gray-400 truncate text-[10px]">Tidak ada booking</span>
+                                </div>
+                                {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
                               </div>
                             </div>
                           )
@@ -280,46 +282,48 @@ export default function JadwalMingguanGrid({
                         return (
                           <div
                             key={item.id}
-                            className="rounded-xl p-3 flex flex-col gap-1 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8]"
+                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden"
                           >
-                            <div className="flex items-center justify-between gap-1.5">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex items-center justify-between gap-1 flex-wrap">
+                              <div className="flex items-center gap-1.5 min-w-0">
                                 <span className="w-2 h-2 rounded-full shrink-0 bg-[#561269]" />
-                                <span className="text-xs font-extrabold text-[#561269]">
+                                <span className="text-[11px] sm:text-xs font-bold text-[#561269] whitespace-nowrap">
                                   {item.waktu}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
-                                    Tersedia
-                                  </span>
-                                  {onRemoveSlot && isAsesmen && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault()
-                                        e.stopPropagation()
-                                        onRemoveSlot(item.waktu, item.date)
-                                      }}
-                                      title="Hapus slot asesmen ini dari jadwal"
-                                      className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
+                                  Tersedia
+                                </span>
+                                {onRemoveSlot && isAsesmen && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      onRemoveSlot(item.waktu, item.date)
+                                    }}
+                                    title="Hapus slot asesmen ini dari jadwal"
+                                    className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950">
+                            <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950 line-clamp-1">
                               {isAsesmen ? "Slot Asesmen" : "Slot Tersedia"}
                             </p>
-                            <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600">
-                              <span className="italic text-gray-400">Belum ada klien</span>
-                              {showPsikolog && <span>Tenaga: {item.psikolog}</span>}
-                              {item.metode && (
-                                <span className="text-[9px] text-gray-400 italic mt-0.5">
-                                  [{item.metode}]
-                                </span>
-                              )}
+                            <div className="flex flex-col gap-0.5 text-[10px]">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {item.metode && (
+                                  <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
+                                    {item.metode}
+                                  </span>
+                                )}
+                                <span className="italic text-gray-400 truncate text-[10px]">Belum ada klien</span>
+                              </div>
+                              {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
                             </div>
                           </div>
                         )
@@ -330,19 +334,19 @@ export default function JadwalMingguanGrid({
                         <div
                           key={item.id}
                           onClick={() => onSelectSession && onSelectSession(item)}
-                          className={`rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] ${isSelesai
+                          className={`rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] overflow-hidden ${isSelesai
                               ? "bg-gray-100/85 border border-gray-200/90 text-gray-500"
                               : "bg-[#E8F3ED] border border-[#b4d6be]"
                             }`}
                         >
-                          <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1.5">
+                          <div className="flex items-center justify-between gap-1 flex-wrap">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <span
                                 className={`w-2 h-2 rounded-full shrink-0 ${isSelesai ? "bg-gray-400" : "bg-green-600"
                                   }`}
                               />
                               <span
-                                className={`text-xs font-extrabold ${isSelesai
+                                className={`text-[11px] sm:text-xs font-bold whitespace-nowrap ${isSelesai
                                     ? "text-gray-600"
                                     : "text-[#185e26]"
                                   }`}
@@ -351,33 +355,39 @@ export default function JadwalMingguanGrid({
                               </span>
                             </div>
                             {isSelesai ? (
-                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 shrink-0">
                                 Selesai
+                              </span>
+                            ) : item.metode ? (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs shrink-0">
+                                {item.metode}
                               </span>
                             ) : null}
                           </div>
                           <p
-                            className={`text-xs font-bold leading-tight mt-0.5 ${isSelesai ? "text-gray-700" : "text-gray-900"
+                            className={`text-xs font-bold leading-tight mt-0.5 line-clamp-1 ${isSelesai ? "text-gray-700" : "text-gray-900"
                               }`}
                           >
                             {item.layanan}
                           </p>
                           <div
-                            className={`text-[10px] flex flex-col mt-0.5 leading-tight ${isSelesai ? "text-gray-500" : "text-gray-600"
+                            className={`text-[10px] flex flex-col mt-0.5 leading-tight gap-0.5 ${isSelesai ? "text-gray-500" : "text-gray-600"
                               }`}
                           >
                             {item.namaKlien && (
-                              <span>
+                              <span className="truncate">
                                 Klien:{" "}
                                 <strong className={isSelesai ? "text-gray-700" : "text-gray-800"}>
                                   {item.namaKlien}
                                 </strong>
                               </span>
                             )}
-                            {showPsikolog && <span>Tenaga: {item.psikolog}</span>}
-                            <span className="text-[9px] text-gray-400 italic mt-0.5">
-                              [{item.metode}]
-                            </span>
+                            {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
+                            {isSelesai && item.metode && (
+                              <span className="text-[9px] text-gray-400 italic">
+                                [{item.metode}]
+                              </span>
+                            )}
                           </div>
                         </div>
                       )

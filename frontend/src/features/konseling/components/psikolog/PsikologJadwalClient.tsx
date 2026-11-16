@@ -1365,7 +1365,7 @@ export default function PsikologJadwalClient() {
 
         {/* Weekly Grid */}
         <div className="overflow-x-auto border border-gray-200 rounded-xl hide-scrollbar">
-          <div className="min-w-[840px]">
+          <div className="min-w-[980px] xl:min-w-full">
             {/* Header */}
             <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70">
               {weekDays.map((wd, i) => {
@@ -1415,7 +1415,7 @@ export default function PsikologJadwalClient() {
                 return (
                   <div
                     key={i}
-                    className={`p-2.5 flex flex-col gap-2.5 ${isTodayColumn
+                    className={`p-2 flex flex-col gap-2 ${isTodayColumn
                       ? "bg-purple-50/25 ring-1 ring-inset ring-[#561269]/20"
                       : wd.isSameAsSelected
                         ? "bg-purple-50/10"
@@ -1432,25 +1432,25 @@ export default function PsikologJadwalClient() {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all bg-rose-50/80 border border-rose-200/90 text-gray-600"
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all bg-rose-50/80 border border-rose-200/90 text-gray-600 overflow-hidden"
                             >
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div className="flex items-center gap-1.5">
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <div className="flex items-center gap-1.5 min-w-0">
                                   <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                                  <span className="text-xs font-bold line-through text-rose-700">
+                                  <span className="text-[11px] sm:text-xs font-bold line-through text-rose-700 whitespace-nowrap">
                                     {item.waktu}
                                   </span>
                                 </div>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
                                   Dibatalkan
                                 </span>
                               </div>
                               <span className="text-xs font-semibold text-gray-800 line-clamp-1">
                                 {item.layanan}
                               </span>
-                              <div className="flex items-center justify-between text-[11px] text-gray-500">
+                              <div className="flex items-center justify-between gap-1 text-[11px] text-gray-500">
                                 <span className="truncate">{item.namaKlien || "Klien"}</span>
-                                <span className="font-semibold text-purple-800 bg-purple-50 px-1.5 py-0.5 rounded text-[10px]">
+                                <span className="font-semibold text-purple-800 bg-purple-50 px-1.5 py-0.5 rounded text-[9px] shrink-0">
                                   {item.metode}
                                 </span>
                               </div>
@@ -1466,25 +1466,25 @@ export default function PsikologJadwalClient() {
                             return (
                               <div
                                 key={item.id || idx}
-                                className="rounded-xl p-3 flex flex-col gap-1 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                                className="rounded-xl p-2.5 flex flex-col gap-1 shadow-2xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden"
                               >
-                                <div className="flex items-center justify-between gap-1.5">
-                                  <div className="flex items-center gap-1.5">
+                                <div className="flex items-center justify-between gap-1 flex-wrap">
+                                  <div className="flex items-center gap-1.5 min-w-0">
                                     <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
-                                    <span className="text-xs font-extrabold text-gray-600">
+                                    <span className="text-[11px] sm:text-xs font-extrabold text-gray-600 whitespace-nowrap">
                                       {item.waktu}
                                     </span>
                                   </div>
-                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 shrink-0">
                                     Selesai
                                   </span>
                                 </div>
-                                <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700">
+                                <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-clamp-2">
                                   {item.layanan}
                                 </p>
-                                <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-500">
+                                <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-500 gap-0.5">
                                   {item.namaKlien && (
-                                    <span>
+                                    <span className="truncate">
                                       Klien:{" "}
                                       <strong className="text-gray-700">
                                         {item.namaKlien}
@@ -1492,7 +1492,7 @@ export default function PsikologJadwalClient() {
                                     </span>
                                   )}
                                   {item.metode && (
-                                    <span className="text-[9px] text-gray-400 italic mt-0.5">
+                                    <span className="text-[9px] text-gray-400 italic">
                                       [{item.metode}]
                                     </span>
                                   )}
@@ -1504,16 +1504,16 @@ export default function PsikologJadwalClient() {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-3 flex flex-col gap-1.5 shadow-xs hover:shadow-md transition-all bg-[#E8F3ED] border border-[#b4d6be]"
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs hover:shadow-md transition-all bg-[#E8F3ED] border border-[#b4d6be] overflow-hidden"
                             >
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div className="flex items-center gap-1.5">
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <div className="flex items-center gap-1.5 min-w-0">
                                   <div className="w-2 h-2 rounded-full bg-[#185e26] shrink-0" />
-                                  <span className="text-xs font-bold text-[#185e26]">
+                                  <span className="text-[11px] sm:text-xs font-bold text-[#185e26] whitespace-nowrap">
                                     {item.waktu}
                                   </span>
                                 </div>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs shrink-0">
                                   {item.metode}
                                 </span>
                               </div>
@@ -1537,16 +1537,16 @@ export default function PsikologJadwalClient() {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-3 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500"
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden"
                             >
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div className="flex items-center gap-1.5">
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <div className="flex items-center gap-1.5 min-w-0">
                                   <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
-                                  <span className="text-xs font-bold text-gray-500 line-through">
+                                  <span className="text-[11px] sm:text-xs font-bold text-gray-500 line-through whitespace-nowrap">
                                     {item.waktu}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 shrink-0">
                                   <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
                                     Lewat
                                   </span>
@@ -1563,16 +1563,18 @@ export default function PsikologJadwalClient() {
                                   </button>
                                 </div>
                               </div>
-                              <p className="text-xs font-semibold leading-tight text-gray-700">
+                              <p className="text-xs font-semibold leading-tight text-gray-700 line-clamp-2">
                                 Slot Tersedia (Tidak Terpakai)
                               </p>
-                              <div className="flex items-center justify-between text-[10px] text-gray-400">
-                                <span className="font-medium text-gray-600 bg-gray-200/80 px-2 py-0.5 rounded-full">
-                                  {item.metode}
-                                </span>
-                                <span className="italic">
-                                  Tidak ada booking
-                                </span>
+                              <div className="flex flex-col gap-0.5 text-[10px] text-gray-500">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-medium text-gray-600 bg-gray-200/80 px-1.5 py-0.5 rounded text-[9px] shrink-0">
+                                    {item.metode}
+                                  </span>
+                                  <span className="italic truncate text-[10px] text-gray-400">
+                                    Tidak ada booking
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           )
@@ -1581,12 +1583,12 @@ export default function PsikologJadwalClient() {
                         return (
                           <div
                             key={item.id || idx}
-                            className="rounded-xl p-3 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8]"
+                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden"
                           >
-                            <div className="flex items-center justify-between gap-1.5">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex items-center justify-between gap-1 flex-wrap">
+                              <div className="flex items-center gap-1.5 min-w-0">
                                 <div className="w-2 h-2 rounded-full bg-[#561269] shrink-0" />
-                                <span className="text-xs font-bold text-[#561269]">
+                                <span className="text-[11px] sm:text-xs font-bold text-[#561269] whitespace-nowrap">
                                   {item.waktu}
                                 </span>
                               </div>
@@ -1597,7 +1599,7 @@ export default function PsikologJadwalClient() {
                                   handleRemoveSlot(item.waktu, wd.dateKey)
                                 }}
                                 title="Tutup / Hapus slot jam ini"
-                                className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors"
+                                className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
@@ -1605,13 +1607,15 @@ export default function PsikologJadwalClient() {
                             <span className="text-xs font-semibold text-purple-950">
                               Slot Tersedia
                             </span>
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-medium text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded-full">
-                                {item.metode}
-                              </span>
-                              <span className="text-[10px] text-gray-400 italic">
-                                Belum ada klien
-                              </span>
+                            <div className="flex flex-col gap-0.5 text-[10px]">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
+                                  {item.metode}
+                                </span>
+                                <span className="text-[10px] text-gray-400 italic truncate">
+                                  Belum ada klien
+                                </span>
+                              </div>
                             </div>
                           </div>
                         )
