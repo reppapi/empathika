@@ -288,7 +288,8 @@ export function formatWhatsAppClientReschedule(
 ): string {
   const tglLama = session.date || session.tanggal || "hari ini"
   const tglBaru = newDate || session.date || session.tanggal || "Jadwal Baru"
-  const jamBaru = newWaktu || session.waktu || "Sesuai Konfirmasi"
+  const rawJamLama = (session.waktu || "").replace(/\s*WIB/i, "").trim()
+  const rawJamBaru = (newWaktu || session.waktu || "Sesuai Konfirmasi").replace(/\s*WIB/i, "").trim()
   return `Halo Kak ${session.namaKlien},
 
 Pemberitahuan dari Tim Administrasi Empathika bahwa sesi konseling Anda telah berhasil *DIJADWALKAN ULANG (RESCHEDULE)*:
@@ -299,8 +300,8 @@ Pemberitahuan dari Tim Administrasi Empathika bahwa sesi konseling Anda telah be
 • *Psikolog:* ${session.psikolog}
 • *Metode:* ${session.tipe || "Konsultasi"}
 
-⏱️ *Jadwal Sebelumnya:* ${tglLama} (${session.waktu} WIB)
-✨ *JADWAL BARU:* *${tglBaru}* jam *${jamBaru} WIB*
+⏱️ *Jadwal Sebelumnya:* ${tglLama} (${rawJamLama ? `${rawJamLama} WIB` : "-"})
+✨ *JADWAL BARU:* *${tglBaru}* jam *${rawJamBaru} WIB*
 
 Mohon dapat bersiap 10 menit sebelum sesi dimulai pada jadwal baru tersebut. Jika ada pertanyaan, silakan membalas pesan ini. Terima kasih! 🙏
 - Tim Admin Empathika`
@@ -322,7 +323,8 @@ export function formatWhatsAppPsikologReschedule(
 ): string {
   const tglLama = session.date || session.tanggal || "hari ini"
   const tglBaru = newDate || session.date || session.tanggal || "Jadwal Baru"
-  const jamBaru = newWaktu || session.waktu || "Sesuai Konfirmasi"
+  const rawJamLama = (session.waktu || "").replace(/\s*WIB/i, "").trim()
+  const rawJamBaru = (newWaktu || session.waktu || "Sesuai Konfirmasi").replace(/\s*WIB/i, "").trim()
   return `Halo ${session.psikolog},
 
 Pemberitahuan dari Tim Administrasi Empathika bahwa sesi konseling berikut telah *DIJADWALKAN ULANG (RESCHEDULE)*:
@@ -332,8 +334,8 @@ Pemberitahuan dari Tim Administrasi Empathika bahwa sesi konseling berikut telah
 • *Layanan:* ${session.layanan}
 • *Metode:* ${session.tipe || "Konsultasi"}
 
-⏱️ *Jadwal Sebelumnya:* ${tglLama} (${session.waktu} WIB)
-✨ *JADWAL BARU:* *${tglBaru}* jam *${jamBaru} WIB*
+⏱️ *Jadwal Sebelumnya:* ${tglLama} (${rawJamLama ? `${rawJamLama} WIB` : "-"})
+✨ *JADWAL BARU:* *${tglBaru}* jam *${rawJamBaru} WIB*
 
 Slot jadwal baru telah disesuaikan di sistem. Mohon dapat mencatat jadwal baru ini di kalender Anda. Terima kasih atas pengertian dan kerjasamanya! 🙏
 - Tim Admin Empathika`

@@ -772,13 +772,18 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
       const sessionDateKey = ts.date || (ts as any).tanggal || formatDateKey(today)
       combined.push({
-        id: `today_sync_${ts.id}`,
+        id: ts.id,
         date: sessionDateKey,
         waktu: ts.waktu,
         layanan: ts.layanan,
         metode: ts.tipe.toLowerCase().includes("online") ? "Online" : "Offline",
         namaKlien: ts.namaKlien,
+        kontak: ts.kontak,
+        klienId: ts.klienId,
         psikolog: ts.psikolog,
+        id_psikolog: ts.idPsikolog,
+        noTeleponPsikolog: ts.noTeleponPsikolog,
+        catatan: ts.catatan,
         status: ts.status,
         isBooked: true,
       })

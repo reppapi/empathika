@@ -103,7 +103,7 @@ export class BookingService {
         noTelepon: s.client.no_telepon || '',
         waLink: waNumber ? `https://wa.me/${waNumber}` : null,
         layanan: s.layanan.nama,
-        psikolog: isAsesmen ? '' : (s.jadwal.psikolog?.nama_gelar || 'Belum Ditentukan'),
+        psikolog: isAsesmen ? '' : (s.jadwal.psikolog?.nama_gelar || (s.jadwal.psikolog as any)?.account?.nama || 'Belum Ditentukan'),
         idPsikolog: isAsesmen ? null : s.jadwal.psikolog?.id,
         noTeleponPsikolog: isAsesmen ? null : ((s.jadwal.psikolog as any)?.account?.no_telepon || null),
         tipe_jadwal: s.jadwal?.tipe_jadwal || (isAsesmen ? 'ASESMEN' : 'KONSULTASI'),
@@ -157,7 +157,7 @@ export class BookingService {
         klienId: clientId,
         catatan: slot.booking_konsultasi?.deskripsi_trauma || null,
         status: slot.booking_konsultasi?.status === 'CANCELLED' ? 'Dibatalkan' : (slot.status === 'TERSEDIA' ? 'Tersedia' : 'Aktif'),
-        psikologName: isAsesmen ? '' : (slot.psikolog?.nama_gelar || ''),
+        psikologName: isAsesmen ? '' : (slot.psikolog?.nama_gelar || (slot.psikolog as any)?.account?.nama || ''),
         id_psikolog: slot.id_psikolog || null,
         noTeleponPsikolog: (slot.psikolog as any)?.account?.no_telepon || null,
         layanan:
