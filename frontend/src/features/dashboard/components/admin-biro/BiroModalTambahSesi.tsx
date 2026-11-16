@@ -158,11 +158,10 @@ export default function BiroModalTambahSesi({
 
               <div>
                 <PhoneInputField
-                  label="Nomor Kontak / WhatsApp"
+                  label="No WhatsApp"
                   value={formData.kontak}
                   onChange={(val) => setFormData((prev) => ({ ...prev, kontak: val }))}
-                  placeholder="812-3456-7890"
-                  theme="purple"
+                  placeholder="+62 821-7373-9213"
                 />
               </div>
             </div>

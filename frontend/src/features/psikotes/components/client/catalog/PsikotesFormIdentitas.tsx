@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import { AlertCircle, ShieldCheck, ArrowRight } from "lucide-react";
+import PhoneInputField from "@/components/shared/PhoneInputField";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 
 export interface IdentityData {
@@ -242,23 +243,12 @@ export default function PsikotesFormIdentitas({
 
             {/* 2. Nomor WhatsApp Peserta */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                {isUnderAge ? "Nomor WhatsApp Peserta (Opsional / Jika Ada)" : "Nomor WhatsApp Pribadi"} {!isUnderAge && <span className="text-red-500">*</span>}
-              </label>
-              <input
-                type="tel"
+              <PhoneInputField
+                label={isUnderAge ? "No WhatsApp Peserta (Opsional)" : "No WhatsApp Pribadi"}
                 required={!isUnderAge}
-                value={data.noTelepon}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (!raw.trim() || raw.trim() === "+" || raw.trim() === "+6" || raw.trim() === "+62" || raw.trim() === "+62 ") {
-                    onChange((prev) => ({ ...prev, noTelepon: "" }));
-                    return;
-                  }
-                  onChange((prev) => ({ ...prev, noTelepon: formatToIndonesianPhone(raw) }));
-                }}
-                placeholder="+62 812-3456-7890"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400 font-mono"
+                value={data.noTelepon || ""}
+                onChange={(formatted) => onChange((prev) => ({ ...prev, noTelepon: formatted }))}
+                placeholder="+62 821-7373-9213"
               />
             </div>
 
@@ -395,23 +385,12 @@ export default function PsikotesFormIdentitas({
 
                   {/* No. WhatsApp Orang Tua / Wali */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
-                      Nomor WhatsApp Orang Tua / Wali <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
+                    <PhoneInputField
+                      label="No WhatsApp Orang Tua / Wali"
                       required
                       value={data.noTeleponOrangTua || ""}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (!raw.trim() || raw.trim() === "+" || raw.trim() === "+6" || raw.trim() === "+62" || raw.trim() === "+62 ") {
-                          onChange((prev) => ({ ...prev, noTeleponOrangTua: "" }));
-                          return;
-                        }
-                        onChange((prev) => ({ ...prev, noTeleponOrangTua: formatToIndonesianPhone(raw) }));
-                      }}
-                      placeholder="+62 812-3456-7890"
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 placeholder:text-gray-400 font-mono"
+                      onChange={(formatted) => onChange((prev) => ({ ...prev, noTeleponOrangTua: formatted }))}
+                      placeholder="+62 821-7373-9213"
                     />
                   </div>
                 </div>

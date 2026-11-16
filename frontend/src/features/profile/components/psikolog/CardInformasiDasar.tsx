@@ -127,7 +127,7 @@ export function CardInformasiDasar({
 
         <div>
           <PhoneInputField
-            label="Nomor Telepon / WhatsApp"
+            label="No WhatsApp"
             required
             value={form.noTelepon}
             onChange={(val) => {
@@ -135,9 +135,8 @@ export function CardInformasiDasar({
                 target: { name: "noTelepon", value: val },
               } as any)
             }}
-            placeholder="812-3456-7890"
+            placeholder="+62 821-7373-9213"
             helperText="Nomor otomatis diawali +62 (10-14 digit angka)."
-            theme="purple"
           />
         </div>
 

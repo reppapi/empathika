@@ -507,13 +507,12 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
 
               <div>
                 <PhoneInputField
-                  label="Nomor WhatsApp Pembeli"
+                  label="No WhatsApp"
                   required
                   value={ticketWa}
                   onChange={(val) => setTicketWa(val)}
-                  placeholder="812-3456-7890"
+                  placeholder="+62 821-7373-9213"
                   helperText="Nomor kontak yang dimasukkan saat proses pembayaran."
-                  theme="purple"
                 />
               </div>
 

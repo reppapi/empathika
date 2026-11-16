@@ -164,14 +164,13 @@ export default function TabHeroKontak({
           </div>
           <div>
             <PhoneInputField
-              label="Nomor WhatsApp Official"
+              label="No WhatsApp Official"
               value={config.kontak.whatsapp}
               onChange={(val) =>
                 setConfig({ ...config, kontak: { ...config.kontak, whatsapp: val } })
               }
-              placeholder="812-3456-7890"
+              placeholder="+62 821-7373-9213"
               helperText="Nomor ini digunakan untuk kontak web serta link chat langsung calon mitra Program Affiliate."
-              theme="purple"
             />
           </div>
         </div>

@@ -510,7 +510,6 @@ export default function EventCheckoutClient() {
                           }}
                           error={pErr?.whatsapp}
                           helperText="Otomatis diawali +62 (Indonesia). Nomor harus aktif untuk tiket & pengumuman."
-                          theme="purple"
                         />
                       </div>
                     </div>

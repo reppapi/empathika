@@ -414,7 +414,7 @@ export default function AdminTambahPsikologClient() {
 
             <div>
               <PhoneInputField
-                label="Nomor Telepon / WhatsApp"
+                label="No WhatsApp"
                 required
                 value={noTelepon}
                 onChange={(val) => {
@@ -423,8 +423,8 @@ export default function AdminTambahPsikologClient() {
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
                 error={noTeleponError}
+                placeholder="+62 821-7373-9213"
                 helperText="Nomor otomatis diawali +62 (10-14 digit angka). Awalan 08 atau 62 otomatis disesuaikan."
-                theme="purple"
               />
             </div>
 

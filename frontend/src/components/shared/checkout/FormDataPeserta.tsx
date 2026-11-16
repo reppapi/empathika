@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 export function formatToIndonesianPhone(val: string): string {
   if (!val || val === "—") return val || ""
@@ -191,34 +192,37 @@ export default function FormDataPeserta({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-800 mb-2">
-              No WhatsApp <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="tel"
+            <PhoneInputField
+              label="No WhatsApp"
               required
-              placeholder="+62 812-3456-7890"
               value={whatsapp}
-              onChange={handleWhatsappChange}
+              onChange={(formatted, raw) => {
+                setWhatsapp(formatted)
+                if (setErrors) {
+                  if (raw.length > 0 && !raw.startsWith("8")) {
+                    setErrors((prev: any) => ({
+                      ...prev,
+                      whatsapp: "Nomor tidak valid. Nomor WhatsApp harus diawali angka 8 (contoh: +62 812-xxxx-xxxx).",
+                    }))
+                  } else if (raw.length > 13) {
+                    setErrors((prev: any) => ({
+                      ...prev,
+                      whatsapp: "Nomor WhatsApp terlalu panjang (maksimal 14 digit angka).",
+                    }))
+                  } else if (attemptedSubmit && raw.length < 9) {
+                    setErrors((prev: any) => ({
+                      ...prev,
+                      whatsapp: "Nomor WhatsApp terlalu pendek (minimal 10 digit, contoh: +62 812-3456-7890).",
+                    }))
+                  } else {
+                    setErrors((prev: any) => ({ ...prev, whatsapp: undefined }))
+                  }
+                }
+              }}
               onBlur={handleWhatsappBlur}
-              className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all placeholder-gray-400 font-mono ${
-                errors.whatsapp
-                  ? "border-red-500 bg-red-50/20 focus:ring-1 focus:ring-red-400 focus:border-red-500"
-                  : "border-gray-300 bg-white focus:ring-1 focus:ring-[#561269] focus:border-[#561269]"
-              }`}
+              error={errors.whatsapp}
+              helperText="Otomatis diawali +62 (Indonesia). Masukkan nomor WhatsApp aktif untuk tiket & jadwal sesi."
             />
-            {errors.whatsapp ? (
-              <p className="text-xs text-red-600 font-medium mt-1.5 flex items-center gap-1.5 animate-in fade-in duration-150">
-                <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                {errors.whatsapp}
-              </p>
-            ) : (
-              <p className="text-[11px] text-gray-500 mt-1.5">
-                Otomatis diawali +62 (Indonesia). Masukkan nomor WhatsApp aktif untuk tiket &amp; jadwal sesi.
-              </p>
-            )}
           </div>
         </div>
 

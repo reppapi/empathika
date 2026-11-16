@@ -5,7 +5,7 @@ import React, { useMemo, useState } from "react"
 export interface PhoneInputFieldProps {
   value: string
   onChange: (value: string, rawDigits: string) => void
-  label?: string
+  label?: string | null
   placeholder?: string
   required?: boolean
   disabled?: boolean
@@ -25,7 +25,7 @@ export interface PhoneInputFieldProps {
 
 /**
  * Format digit angka nomor Indonesia menjadi kelompok chunks yang rapi (3-4-4-2)
- * Contoh: 81245678901 -> 812-4567-8901
+ * Contoh: 82173739213 -> 821-7373-9213
  */
 export function formatIndoPhoneChunks(digits: string): string {
   if (!digits) return ""
@@ -33,17 +33,17 @@ export function formatIndoPhoneChunks(digits: string): string {
   if (digits.length > 0) chunks.push(digits.slice(0, 3))
   if (digits.length > 3) chunks.push(digits.slice(3, 7))
   if (digits.length > 7) chunks.push(digits.slice(7, 11))
-  if (digits.length > 11) chunks.push(digits.slice(11, 13))
+  if (digits.length > 11) chunks.push(digits.slice(11, 14))
   return chunks.join("-")
 }
 
 /**
- * Ekstrak digit angka nomor ponsel Indonesia murni (tanpa awalan 62 atau 0)
+ * Ekstrak digit angka nomor ponsel Indonesia murni (tanpa awalan 620, 62, atau 0)
  * Contoh:
- * - "0812-3456-7890" -> "81234567890"
- * - "+62 812-3456-7890" -> "81234567890"
- * - "6281234567890" -> "81234567890"
- * - "81234567890" -> "81234567890"
+ * - "0821-7373-9213" -> "82173739213"
+ * - "+62 821-7373-9213" -> "82173739213"
+ * - "6282173739213" -> "82173739213"
+ * - "82173739213" -> "82173739213"
  */
 export function extractIndoPhoneDigits(val: string): string {
   if (!val) return ""
@@ -59,17 +59,28 @@ export function extractIndoPhoneDigits(val: string): string {
 }
 
 /**
- * Komponen Input Nomor Telepon / WhatsApp Bersama (Shared Component)
- * - Tampilan visual terstandarisasi mirip PriceInputField pada tarif layanan admin:
- *   [Prefix +62 Badge] [Input Berformat Chunks 812-3456-7890] [Suffix Badge Digit Counter]
- * - Otomatis menangani awalan "08", "62", "+62", atau "8" sehingga pengguna bebas mengetik
- * - Nilai yang dikembalikan ke onChange: string berformat "+62 812-3456-7890" dan rawDigits "81234567890"
+ * Format nomor telepon Indonesia lengkap dengan awalan "+62 " dan pemisah chunk "-"
+ * Contoh: "82173739213" -> "+62 821-7373-9213"
+ */
+export function formatIndoPhoneWithPrefix(val: string): string {
+  if (!val || val === "—") return ""
+  const digits = extractIndoPhoneDigits(val)
+  if (!digits) return ""
+  return `+62 ${formatIndoPhoneChunks(digits)}`
+}
+
+/**
+ * Komponen Input Nomor WhatsApp / Telepon Bersama (Shared Component)
+ * - Desain terpadu kotak bergaris ungu Empathika (border-2 border-[#561269] rounded-2xl bg-white)
+ * - Label tebal "No WhatsApp *" dengan bintang merah
+ * - Otomatis menangani awalan "+62", "62", "08", atau "8" sehingga pengguna bebas mengetik
+ * - Nilai yang dikembalikan ke onChange: string berformat "+62 821-7373-9213" dan rawDigits "82173739213"
  */
 export function PhoneInputField({
   value,
   onChange,
-  label,
-  placeholder = "812-3456-7890",
+  label = "No WhatsApp",
+  placeholder = "+62 821-7373-9213",
   required = false,
   disabled = false,
   error = null,
@@ -78,36 +89,49 @@ export function PhoneInputField({
   name,
   className = "",
   inputClassName = "",
-  showDigitCount = true,
+  showDigitCount = false,
   minDigits = 10,
-  maxDigits = 13,
-  theme = "purple",
+  maxDigits = 14,
   onBlur,
   onFocus,
 }: PhoneInputFieldProps) {
-  // State sementara jika pengguna baru saja mengetikkan angka tunggal "0"
+  // State sementara jika pengguna baru mengetikkan angka tunggal "0"
   const [typedSingleZero, setTypedSingleZero] = useState(false)
 
-  // Ekstrak digit lokal murni (812...)
+  // Ekstrak digit lokal murni (821...)
   const rawDigits = useMemo(() => {
     return extractIndoPhoneDigits(value)
   }, [value])
 
-  // Tampilan berformat di dalam input (e.g. 812-4567-8901 atau sementara "0")
-  const displayFormatted = useMemo(() => {
+  // Tampilan berformat di dalam input (e.g. +62 821-7373-9213)
+  const displayValue = useMemo(() => {
     if (typedSingleZero && !rawDigits) {
-      return "0"
+      return "+62 "
     }
-    return formatIndoPhoneChunks(rawDigits)
-  }, [rawDigits, typedSingleZero])
+    if (!value) return ""
+    if (value.startsWith("+62 ")) {
+      return value
+    }
+    if (!rawDigits) return ""
+    return `+62 ${formatIndoPhoneChunks(rawDigits)}`
+  }, [value, rawDigits, typedSingleZero])
 
   const isValidLength = rawDigits.length >= minDigits && rawDigits.length <= maxDigits
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputVal = e.target.value
+
+    // Jika pengguna menghapus teks hingga kosong atau hanya tersisa awalan prefix
+    const trimmed = inputVal.trim()
+    if (!trimmed || trimmed === "+" || trimmed === "+6" || trimmed === "+62" || trimmed === "+62 ") {
+      setTypedSingleZero(false)
+      onChange("", "")
+      return
+    }
+
     const onlyDigits = inputVal.replace(/\D/g, "")
 
-    // Jika pengguna baru mengetikkan angka 0 pertama kali, beri feedback visual "0"
+    // Jika pengguna baru mengetikkan angka 0 pertama kali
     if (onlyDigits === "0") {
       setTypedSingleZero(true)
       onChange("", "")
@@ -116,7 +140,7 @@ export function PhoneInputField({
 
     setTypedSingleZero(false)
 
-    // Bersihkan awalan 620, 62, atau 0 karena sudah ada badge prefix +62
+    // Bersihkan awalan 620, 62, atau 0
     let cleaned = onlyDigits
     if (cleaned.startsWith("620")) {
       cleaned = cleaned.slice(3)
@@ -127,13 +151,18 @@ export function PhoneInputField({
     }
     cleaned = cleaned.slice(0, maxDigits)
 
+    if (!cleaned) {
+      onChange("", "")
+      return
+    }
+
     const formattedChunks = formatIndoPhoneChunks(cleaned)
-    const formattedWithPrefix = cleaned ? `+62 ${formattedChunks}` : ""
+    const formattedWithPrefix = `+62 ${formattedChunks}`
 
     onChange(formattedWithPrefix, cleaned)
   }
 
-  // Tangani backspace agar tidak tersangkut di tanda strip "-"
+  // Tangani backspace agar tidak tersangkut di tanda strip "-" atau spasi
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace") {
       const input = e.currentTarget
@@ -141,18 +170,36 @@ export function PhoneInputField({
       const end = input.selectionEnd
       if (start !== null && start === end && start > 0) {
         const val = input.value
-        if (val[start - 1] === "-") {
+        // Jika karakter sebelum kursor adalah tanda hubung '-' atau spasi ' '
+        if (val[start - 1] === "-" || val[start - 1] === " ") {
           e.preventDefault()
-          const before = val.slice(0, start - 2)
+          // Mundur melewati tanda pemisah untuk menghapus digit sebelumnya
+          let deleteIndex = start - 1
+          while (deleteIndex >= 0 && (val[deleteIndex] === "-" || val[deleteIndex] === " ")) {
+            deleteIndex--
+          }
+          if (deleteIndex < 4) {
+            // Sudah sampai atau melewati awalan "+62 "
+            setTypedSingleZero(false)
+            onChange("", "")
+            return
+          }
+          const before = val.slice(0, deleteIndex)
           const after = val.slice(start)
-          const newRaw = (before + after).replace(/\D/g, "")
-          let cleaned = newRaw
+          const onlyDigits = (before + after).replace(/\D/g, "")
+          let cleaned = onlyDigits
           if (cleaned.startsWith("620")) cleaned = cleaned.slice(3)
           else if (cleaned.startsWith("62")) cleaned = cleaned.slice(2)
           else if (cleaned.startsWith("0")) cleaned = cleaned.slice(1)
           cleaned = cleaned.slice(0, maxDigits)
+
+          if (!cleaned) {
+            setTypedSingleZero(false)
+            onChange("", "")
+            return
+          }
           const formattedChunks = formatIndoPhoneChunks(cleaned)
-          const formattedWithPrefix = cleaned ? `+62 ${formattedChunks}` : ""
+          const formattedWithPrefix = `+62 ${formattedChunks}`
           onChange(formattedWithPrefix, cleaned)
         }
       }
@@ -166,93 +213,53 @@ export function PhoneInputField({
     if (onBlur) onBlur()
   }
 
-  // Styling wrapper container (fokus ring & border)
-  const focusBorderClass = useMemo(() => {
-    if (error) {
-      return "border-red-400 bg-red-50/20 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-400/20"
-    }
-    if (theme === "yellow") {
-      return "border-gray-200 bg-white focus-within:border-[#E8C32A] focus-within:ring-2 focus-within:ring-[#E8C32A]/30"
-    }
-    return "border-gray-200 bg-white focus-within:border-[#561269] focus-within:ring-2 focus-within:ring-[#561269]/20"
-  }, [error, theme])
-
-  // Styling badge prefix +62 (mirip badge 'Rp' pada tarif layanan)
-  const prefixBadgeClass = useMemo(() => {
-    if (error) {
-      return "bg-red-50 border-r border-red-200 text-red-700"
-    }
-    if (theme === "yellow") {
-      return "bg-amber-50/80 border-r border-amber-200/80 text-amber-900"
-    }
-    return "bg-purple-50/80 border-r border-purple-200/80 text-[#561269]"
-  }, [error, theme])
-
-  // Styling badge suffix digit counter (mirip badge ',00' pada tarif layanan)
-  const suffixBadgeClass = useMemo(() => {
-    if (!rawDigits) {
-      return "bg-gray-50/80 border-l border-gray-200 text-gray-400 font-medium"
-    }
-    if (isValidLength) {
-      return "bg-emerald-50/80 border-l border-emerald-200/80 text-emerald-800 font-bold"
-    }
-    if (rawDigits.length > maxDigits) {
-      return "bg-rose-50/80 border-l border-rose-200/80 text-rose-800 font-bold"
-    }
-    return "bg-amber-50/80 border-l border-amber-200/80 text-amber-800 font-bold"
-  }, [rawDigits, isValidLength, maxDigits])
-
   return (
     <div className={`w-full font-poppins ${className}`}>
-      {label && (
+      {label !== null && label !== "" && (
         <label
           htmlFor={id}
-          className="block text-xs font-bold text-gray-700 mb-1.5"
+          className="block text-sm font-bold text-gray-900 mb-2 select-none"
         >
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 
       <div
-        className={`flex rounded-xl overflow-hidden border shadow-2xs transition-all ${focusBorderClass} ${
-          disabled ? "opacity-60 bg-gray-100 cursor-not-allowed" : ""
-        }`}
+        className={`group relative flex items-center w-full rounded-2xl border-2 transition-all duration-200 bg-white ${
+          error
+            ? "border-red-500 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-400/20"
+            : "border-[#561269] hover:border-[#430d52] focus-within:border-[#561269] focus-within:ring-2 focus-within:ring-[#561269]/20"
+        } ${disabled ? "opacity-60 bg-gray-100 cursor-not-allowed border-gray-300" : ""}`}
       >
-        {/* Prefix +62 Badge (Gaya Badge 'Rp' pada tarif layanan) */}
-        <span
-          className={`inline-flex items-center px-3.5 text-xs font-bold select-none shrink-0 tracking-wide ${prefixBadgeClass}`}
-        >
-          +62
-        </span>
-
-        {/* Input Text Berformat Chunks */}
         <input
           id={id}
           name={name}
           type="tel"
           inputMode="numeric"
+          autoComplete="tel"
           disabled={disabled}
           required={required}
-          value={displayFormatted}
+          value={displayValue}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onBlur={handleInputBlur}
           onFocus={onFocus}
           placeholder={placeholder}
-          className={`flex-1 block w-full px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-900 bg-transparent outline-none placeholder:text-gray-400 placeholder:font-normal ${inputClassName}`}
+          className={`w-full px-4.5 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-gray-900 bg-transparent outline-none border-none placeholder:text-gray-400 placeholder:font-normal tracking-wide ${inputClassName}`}
         />
 
-        {/* Suffix Badge Counter Digit (Gaya Badge ',00' pada tarif layanan) */}
-        {showDigitCount && (
+        {showDigitCount && rawDigits && (
           <span
-            className={`inline-flex items-center px-2.5 sm:px-3 text-[10px] sm:text-[11px] select-none shrink-0 transition-colors ${suffixBadgeClass}`}
+            className={`mr-3 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold select-none shrink-0 transition-colors ${
+              isValidLength
+                ? "bg-emerald-50 text-emerald-700"
+                : rawDigits.length > maxDigits
+                ? "bg-rose-50 text-rose-700"
+                : "bg-amber-50 text-amber-700"
+            }`}
           >
-            {!rawDigits
-              ? "10-13 digit"
-              : isValidLength
+            {isValidLength
               ? `✓ ${rawDigits.length} digit`
-              : rawDigits.length > maxDigits
-              ? `! ${rawDigits.length} digit`
               : `${rawDigits.length} digit`}
           </span>
         )}
@@ -271,7 +278,7 @@ export function PhoneInputField({
           <span>{error}</span>
         </p>
       ) : helperText ? (
-        <p className="text-[11px] text-gray-400 mt-1">{helperText}</p>
+        <p className="text-[11px] text-gray-500 mt-1.5">{helperText}</p>
       ) : null}
     </div>
   )

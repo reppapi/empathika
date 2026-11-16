@@ -555,11 +555,10 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
 
             <div>
               <PhoneInputField
-                label="No. WhatsApp / Kontak"
+                label="No WhatsApp"
                 value={formData.kontak}
                 onChange={(val) => setFormData((prev) => ({ ...prev, kontak: val }))}
-                placeholder="812-3456-7890"
-                theme="yellow"
+                placeholder="+62 821-7373-9213"
               />
             </div>
           </div>
