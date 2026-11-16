@@ -4,8 +4,8 @@ import { EVENT_LIMITS } from './event.constants'
 // ==========================================
 // ENUM SCHEMAS
 // ==========================================
-export const jenisEventEnum = z.enum(['WEBINAR', 'WORKSHOP', 'SEMINAR'], {
-  errorMap: () => ({ message: 'Jenis event harus salah satu dari: WEBINAR, WORKSHOP, SEMINAR' }),
+export const jenisEventEnum = z.enum(['WEBINAR', 'WORKSHOP', 'SEMINAR', 'KOLABORASI'], {
+  errorMap: () => ({ message: 'Jenis event harus salah satu dari: WORKSHOP, SEMINAR, KOLABORASI, WEBINAR' }),
 })
 
 export const tipeEventEnum = z.enum(['ONLINE', 'OFFLINE'], {

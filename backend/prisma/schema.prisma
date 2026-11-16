@@ -28,6 +28,7 @@ enum JenisEvent {
   WEBINAR
   WORKSHOP
   SEMINAR
+  KOLABORASI
 }
 
 enum TipeEvent {
