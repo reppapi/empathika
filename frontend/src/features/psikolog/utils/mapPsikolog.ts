@@ -1,5 +1,30 @@
 import { PsikologUI, KategoriProfesional, JadwalUI } from '@/types/psikolog';
 
+const formatScheduleCardLabel = (dateKey: string, start: string, end: string): string => {
+  const timeRange = `${start} - ${end}`;
+  if (!dateKey) return timeRange;
+
+  const parts = dateKey.split('-').map(Number);
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return timeRange;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(parts[0], parts[1] - 1, parts[2]);
+
+  const diffDays = Math.round((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+
+  if (diffDays === 0) {
+    return `Hari Ini, ${start}`;
+  }
+  if (diffDays === 1) {
+    return `Besok, ${start}`;
+  }
+
+  const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+  const dayName = dayNames[target.getDay()] || '';
+  return `${dayName}, ${start}`;
+};
+
 export function mapDbPsikologToUI(item: any): PsikologUI {
   const cat = (item.kategori || '').toLowerCase();
   let category: KategoriProfesional = 'psikolog';
@@ -71,15 +96,12 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
         const dKey = parseDateKey(s.tanggal);
         const jKey = parseJam(s.jam_mulai);
         if (dKey && jKey) bookedSlotKeys.add(`${dKey}_${jKey}`);
-        if (jKey) bookedSlotKeys.add(jKey);
       }
     });
   }
 
-  const hasDbSlots = rawSlots.length > 0;
-
-  // Hanya gunakan localStorage jika belum ada data slot riil dari database
-  if (!hasDbSlots && typeof window !== 'undefined') {
+  // Gabungkan juga data slot dari localStorage (jika ada yang baru dibuat)
+  if (typeof window !== 'undefined') {
     try {
       const rawCustom = localStorage.getItem('empathika_custom_jadwal_slots');
       if (rawCustom) {
@@ -105,7 +127,19 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
           }
           return false;
         });
-        rawSlots.push(...matchingCustom);
+
+        matchingCustom.forEach((ms: any) => {
+          const mDate = parseDateKey(ms.tanggal);
+          const mJam = parseJam(ms.jam_mulai);
+          const already = rawSlots.some((rs: any) => {
+            const rDate = parseDateKey(rs.tanggal);
+            const rJam = parseJam(rs.jam_mulai);
+            return rs.id === ms.id || (rDate && mDate && rDate === mDate && rJam && mJam && rJam === mJam);
+          });
+          if (!already) {
+            rawSlots.push(ms);
+          }
+        });
       }
     } catch {}
   }
@@ -142,9 +176,6 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
       if (slotDate && bookedSlotKeys.has(`${slotDate}_${jamMulai}`)) {
         return false;
       }
-      if (bookedSlotKeys.has(jamMulai)) {
-        return false;
-      }
 
       // 2. Jika ada tanggal spesifik:
       if (slotDate) {
@@ -171,9 +202,9 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
     for (const slot of validSlots) {
       const jamMulai = parseJam(slot.jam_mulai);
       const jamSelesai = parseJam(slot.jam_selesai);
-      const labelWaktu = slot.label_waktu || `${jamMulai} - ${jamSelesai}`;
       const slotDateKey = parseDateKey(slot.tanggal) || todayKey;
-      const uniqueKey = `${slotDateKey}_${labelWaktu}`;
+      const labelWaktu = formatScheduleCardLabel(slotDateKey, jamMulai, jamSelesai);
+      const uniqueKey = `${slotDateKey}_${jamMulai}_${jamSelesai}`;
 
       if (!seenTimes.has(uniqueKey)) {
         seenTimes.add(uniqueKey);

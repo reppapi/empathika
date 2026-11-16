@@ -13,20 +13,25 @@ const ACCOUNT_PUBLIC_SELECT = {
   token_aktivasi_exp: true,
 } satisfies Prisma.AccountSelect
 
-const JADWAL_SLOT_LIST_INCLUDE = {
+const getStartOfTodayWIB = () => {
+  const now = new Date()
+  const wibDate = new Date(now.getTime() + 7 * 60 * 60 * 1000)
+  const yyyy = wibDate.getUTCFullYear()
+  const mm = String(wibDate.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(wibDate.getUTCDate()).padStart(2, '0')
+  return new Date(`${yyyy}-${mm}-${dd}T00:00:00.000Z`)
+}
+
+const getJadwalSlotInclude = (takeCount: number = 20) => ({
   where: {
     status: 'TERSEDIA' as const,
     tipe_jadwal: 'KONSULTASI' as const,
+    tanggal: { gte: getStartOfTodayWIB() },
     NOT: { id: { startsWith: 'slot-' } },
   },
   orderBy: [{ tanggal: 'asc' as const }, { jam_mulai: 'asc' as const }],
-  take: 2,
-}
-
-const JADWAL_SLOT_DETAIL_INCLUDE = {
-  ...JADWAL_SLOT_LIST_INCLUDE,
-  take: 10,
-}
+  take: takeCount,
+})
 
 const BOOKING_COUNT_SELECT = {
   select: {
@@ -69,7 +74,7 @@ export class PsikologRepository {
       include: {
         spesialisasi: true,
         account: { select: ACCOUNT_PUBLIC_SELECT },
-        jadwal_slot: JADWAL_SLOT_LIST_INCLUDE,
+        jadwal_slot: getJadwalSlotInclude(10),
         _count: BOOKING_COUNT_SELECT,
       },
       orderBy: { nama_gelar: 'asc' },
@@ -81,7 +86,7 @@ export class PsikologRepository {
     const detailInclude: Prisma.PsikologInclude = {
       spesialisasi: true,
       account: { select: ACCOUNT_PUBLIC_SELECT },
-      jadwal_slot: JADWAL_SLOT_DETAIL_INCLUDE,
+      jadwal_slot: getJadwalSlotInclude(30),
       _count: BOOKING_COUNT_SELECT,
     }
 
