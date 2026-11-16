@@ -53,6 +53,17 @@ function renderNilaiIcon(iconName?: string) {
   }
 }
 
+const BACKUP_GALLERY_FALLBACKS = [
+  "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=600&q=80",
+]
+const BACKUP_TEAM_PHOTO =
+  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=80"
+
 function getSafeImageUrl(url?: string, fallback = ""): string {
   if (!url || typeof url !== "string") return fallback
   const trimmed = url.trim()
@@ -60,6 +71,24 @@ function getSafeImageUrl(url?: string, fallback = ""): string {
     return trimmed
   }
   return fallback
+}
+
+function handleImageFallback(
+  e: React.SyntheticEvent<HTMLImageElement, Event>,
+  primaryFallback: string,
+  backupFallback: string
+) {
+  const target = e.currentTarget
+  if (target.dataset.triedFallback === "backup") {
+    return
+  }
+  if (!target.dataset.triedFallback && primaryFallback && !primaryFallback.startsWith("http://localhost")) {
+    target.dataset.triedFallback = "primary"
+    target.src = primaryFallback
+  } else {
+    target.dataset.triedFallback = "backup"
+    target.src = backupFallback
+  }
 }
 
 export default function TentangKamiClient() {
@@ -120,9 +149,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[0], DEFAULT_TENTANG_KAMI.hero.gallery[0])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 1"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[0])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[0], BACKUP_GALLERY_FALLBACKS[0])}
                 />
               </div>
 
@@ -132,9 +159,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[2], DEFAULT_TENTANG_KAMI.hero.gallery[2])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 3"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[2])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[2], BACKUP_GALLERY_FALLBACKS[2])}
                 />
               </div>
 
@@ -144,9 +169,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[4], DEFAULT_TENTANG_KAMI.hero.gallery[4])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 5"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[4])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[4], BACKUP_GALLERY_FALLBACKS[4])}
                 />
               </div>
             </div>
@@ -159,9 +182,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[1], DEFAULT_TENTANG_KAMI.hero.gallery[1])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 2"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[1])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[1], BACKUP_GALLERY_FALLBACKS[1])}
                 />
               </div>
 
@@ -171,9 +192,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[3], DEFAULT_TENTANG_KAMI.hero.gallery[3])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 4"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[3])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[3], BACKUP_GALLERY_FALLBACKS[3])}
                 />
               </div>
 
@@ -183,9 +202,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[5], DEFAULT_TENTANG_KAMI.hero.gallery[5])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 6"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[5])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[5], BACKUP_GALLERY_FALLBACKS[5])}
                 />
               </div>
             </div>
@@ -203,9 +220,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[0], DEFAULT_TENTANG_KAMI.hero.gallery[0])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 1"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[0])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[0], BACKUP_GALLERY_FALLBACKS[0])}
                 />
               </div>
               <div className="h-[140px] md:h-[160px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
@@ -213,9 +228,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[1], DEFAULT_TENTANG_KAMI.hero.gallery[1])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 2"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[1])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[1], BACKUP_GALLERY_FALLBACKS[1])}
                 />
               </div>
             </div>
@@ -226,9 +239,7 @@ export default function TentangKamiClient() {
                 src={getSafeImageUrl(gallery[2], DEFAULT_TENTANG_KAMI.hero.gallery[2])}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 alt="Empathika Gallery 3"
-                onError={(e) => {
-                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[2])
-                }}
+                onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[2], BACKUP_GALLERY_FALLBACKS[2])}
               />
             </div>
 
@@ -238,9 +249,7 @@ export default function TentangKamiClient() {
                 src={getSafeImageUrl(gallery[3], DEFAULT_TENTANG_KAMI.hero.gallery[3])}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 alt="Empathika Gallery 4"
-                onError={(e) => {
-                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[3])
-                }}
+                onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[3], BACKUP_GALLERY_FALLBACKS[3])}
               />
             </div>
 
@@ -251,9 +260,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[4], DEFAULT_TENTANG_KAMI.hero.gallery[4])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 5"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[4])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[4], BACKUP_GALLERY_FALLBACKS[4])}
                 />
               </div>
               <div className="h-[100px] md:h-[120px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
@@ -261,9 +268,7 @@ export default function TentangKamiClient() {
                   src={getSafeImageUrl(gallery[5], DEFAULT_TENTANG_KAMI.hero.gallery[5])}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   alt="Empathika Gallery 6"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[5])
-                  }}
+                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[5], BACKUP_GALLERY_FALLBACKS[5])}
                 />
               </div>
             </div>
@@ -444,12 +449,13 @@ export default function TentangKamiClient() {
                      )}
                      alt="Empathika Team"
                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                     onError={(e) => {
-                       ;(e.target as HTMLElement).setAttribute(
-                         "src",
-                         DEFAULT_TENTANG_KAMI.kenapaHadir.fotoTim
+                     onError={(e) =>
+                       handleImageFallback(
+                         e,
+                         DEFAULT_TENTANG_KAMI.kenapaHadir.fotoTim,
+                         BACKUP_TEAM_PHOTO
                        )
-                     }}
+                     }
                    />
                    <div className="absolute inset-0 bg-gradient-to-tr from-white/30 via-white/5 to-transparent opacity-40 mix-blend-overlay"></div>
                  </div>

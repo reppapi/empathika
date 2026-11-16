@@ -445,6 +445,7 @@ export default function AdminTentangKamiClient() {
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (file) handleUploadGalleryImage(idx, file)
+                        e.target.value = ""
                       }}
                     />
 
@@ -734,6 +735,7 @@ export default function AdminTentangKamiClient() {
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) handleUploadTeamPhoto(file)
+                  e.target.value = ""
                 }}
               />
 
