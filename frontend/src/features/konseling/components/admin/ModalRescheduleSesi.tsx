@@ -19,6 +19,22 @@ export const getSlotTimeLabel = (slot: { label_waktu?: string; jam_mulai: string
   return `${slot.jam_mulai.substring(0, 5)} - ${slot.jam_selesai.substring(0, 5)} WIB`
 }
 
+const DEFAULT_ASESMEN_TIME_SLOTS = [
+  "08:00 - 09:00",
+  "09:00 - 10:00",
+  "10:00 - 11:00",
+  "11:00 - 12:00",
+  "13:00 - 14:00",
+  "14:00 - 15:00",
+  "14:30 - 15:30",
+  "15:00 - 16:00",
+  "15:30 - 16:30",
+  "16:00 - 17:00",
+  "16:30 - 17:30",
+  "19:00 - 20:00",
+  "20:00 - 21:00",
+]
+
 export default function ModalRescheduleSesi({
   session,
   onClose,
@@ -27,6 +43,22 @@ export default function ModalRescheduleSesi({
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   const tomorrowKey = tomorrow.toISOString().split("T")[0]
+
+  // Cek apakah sesi ini adalah sesi Asesmen (tanpa psikolog) atau Konseling (dengan psikolog)
+  const isAsesmenSession = useMemo(() => {
+    if (!session) return false
+    const tj = ((session as any).tipe_jadwal || "").toUpperCase()
+    if (tj === "ASESMEN") return true
+    const lay = (session.layanan || "").toLowerCase()
+    if (lay.includes("asesmen") || lay.includes("psikotes") || lay.includes("tes psikologi")) {
+      return true
+    }
+    // Jika tidak memiliki ID psikolog dan nama psikolog kosong / Tenaga Ahli
+    if (!session.idPsikolog && (!session.psikolog || session.psikolog === "Tenaga Ahli")) {
+      return true
+    }
+    return false
+  }, [session])
 
   const [newDate, setNewDate] = useState<string>(session?.date || session?.tanggal || tomorrowKey)
   const [newWaktu, setNewWaktu] = useState<string>(session?.waktu || "")
@@ -41,8 +73,9 @@ export default function ModalRescheduleSesi({
   const [allPsikologSlots, setAllPsikologSlots] = useState<JadwalSlotItem[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
 
-  // Muat data psikolog untuk resolusi nama & id psikolog yang akurat
+  // Muat data psikolog untuk resolusi nama & id psikolog jika sesi Konseling
   useEffect(() => {
+    if (isAsesmenSession) return
     let isMounted = true
     const loadPsikologs = async () => {
       setIsLoadingPsikolog(true)
@@ -61,11 +94,11 @@ export default function ModalRescheduleSesi({
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [isAsesmenSession])
 
-  // Resolusi profil psikolog yang menangani sesi ini
+  // Resolusi profil psikolog yang menangani sesi ini (hanya jika sesi Konseling)
   const resolvedPsikolog = useMemo(() => {
-    if (!session) return null
+    if (!session || isAsesmenSession) return null
 
     // 1. Berdasarkan idPsikolog jika tersedia
     if (session.idPsikolog) {
@@ -103,7 +136,7 @@ export default function ModalRescheduleSesi({
     }
 
     return null
-  }, [session, psikologList])
+  }, [session, isAsesmenSession, psikologList])
 
   const resolvedPsikologId = resolvedPsikolog?.id || session?.idPsikolog || ""
   const resolvedPsikologName =
@@ -117,15 +150,16 @@ export default function ModalRescheduleSesi({
     if (session) {
       const initDate = session.date || session.tanggal || tomorrowKey
       setNewDate(initDate)
-      setNewWaktu(session.waktu || "")
+      const cleanWaktu = (session.waktu || "").replace(/\s*WIB/i, "").trim()
+      setNewWaktu(cleanWaktu || DEFAULT_ASESMEN_TIME_SLOTS[0])
       setAlasan("")
       setErrorMsg(null)
     }
   }, [session, tomorrowKey])
 
-  // Ambil slot jadwal resmi yang dibuka oleh psikolog terpilih
+  // Ambil slot jadwal resmi yang dibuka oleh psikolog terpilih (HANYA untuk Konseling)
   useEffect(() => {
-    if (!session || !resolvedPsikologId || !newDate) return
+    if (!session || isAsesmenSession || !resolvedPsikologId || !newDate) return
 
     let isMounted = true
     const fetchSlots = async () => {
@@ -183,9 +217,9 @@ export default function ModalRescheduleSesi({
     return () => {
       isMounted = false
     }
-  }, [session, resolvedPsikologId, newDate])
+  }, [session, isAsesmenSession, resolvedPsikologId, newDate])
 
-  // Pemetaan opsi slot jam yang dibuka oleh psikolog
+  // Pemetaan opsi slot jam yang dibuka oleh psikolog (untuk Konseling)
   const timeSlotOptions = useMemo(() => {
     const map = new Map<string, { allowsOnline: boolean; allowsOffline: boolean }>()
 
@@ -222,6 +256,15 @@ export default function ModalRescheduleSesi({
     })
   }, [availableSlots])
 
+  // Opsi jam bebas untuk Asesmen (admin leluasa menentukan jadwal)
+  const asesmenTimeSlots = useMemo(() => {
+    const cleanCurrent = (session?.waktu || "").replace(/\s*WIB/i, "").trim()
+    if (cleanCurrent && !DEFAULT_ASESMEN_TIME_SLOTS.includes(cleanCurrent)) {
+      return [cleanCurrent, ...DEFAULT_ASESMEN_TIME_SLOTS]
+    }
+    return DEFAULT_ASESMEN_TIME_SLOTS
+  }, [session?.waktu])
+
   // Daftar tanggal yang memiliki slot dibuka oleh psikolog ini
   const datesWithSlots = useMemo(() => {
     const dates = allPsikologSlots
@@ -251,8 +294,14 @@ export default function ModalRescheduleSesi({
       setErrorMsg("Silakan pilih tanggal jadwal baru.")
       return
     }
-    if (!newWaktu || availableSlots.length === 0) {
+
+    if (!isAsesmenSession && (!newWaktu || availableSlots.length === 0)) {
       setErrorMsg("Tidak dapat menjadwalkan reschedule: Jam baru harus dipilih dari slot ketersediaan resmi yang dibuka oleh psikolog.")
+      return
+    }
+
+    if (isAsesmenSession && !newWaktu) {
+      setErrorMsg("Silakan pilih jam jadwal baru.")
       return
     }
 
@@ -268,7 +317,6 @@ export default function ModalRescheduleSesi({
     try {
       setIsSubmitting(true)
       setErrorMsg(null)
-      // Normalisasi nilai waktu yang disimpan
       const finalWaktu = newWaktu.replace(/\s*WIB/i, "").trim()
       await onConfirmReschedule(session.id, newDate, finalWaktu, alasan.trim())
       onClose()
@@ -296,10 +344,12 @@ export default function ModalRescheduleSesi({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight">
-                Reschedule Sesi Konseling
+                Reschedule Sesi {isAsesmenSession ? "Asesmen" : "Konseling"}
               </h3>
               <p className="text-xs text-gray-500">
-                Pindahkan jadwal sesi ke tanggal & jam baru sesuai slot psikolog
+                {isAsesmenSession
+                  ? "Atur jadwal ulang sesi asesmen ke tanggal & jam baru"
+                  : "Pindahkan jadwal sesi ke tanggal & jam baru sesuai slot psikolog"}
               </p>
             </div>
           </div>
@@ -321,6 +371,12 @@ export default function ModalRescheduleSesi({
             </span>
             <span className="font-bold text-gray-900">{session.namaKlien}</span>
           </div>
+
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-gray-500">Layanan:</span>
+            <span className="font-bold text-gray-800">{session.layanan || (isAsesmenSession ? "Asesmen Psikologi" : "Konsultasi")}</span>
+          </div>
+
           <div className="flex items-center justify-between">
             <span className="font-semibold text-gray-500 flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-gray-400" />
@@ -330,31 +386,53 @@ export default function ModalRescheduleSesi({
               {session.date || session.tanggal || "Hari Ini"} ({cleanSessionWaktu ? `${cleanSessionWaktu} WIB` : "-"})
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-gray-500">Tenaga Ahli:</span>
-            <span className="font-bold text-[#561269]">
-              {isLoadingPsikolog && !resolvedPsikologName ? "Memuat..." : resolvedPsikologName}
-            </span>
-          </div>
+
+          {/* Hanya tampilkan Tenaga Ahli jika Konseling */}
+          {!isAsesmenSession && (
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-gray-500">Tenaga Ahli:</span>
+              <span className="font-bold text-[#561269]">
+                {isLoadingPsikolog && !resolvedPsikologName ? "Memuat..." : resolvedPsikologName}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Form Reschedule */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Tanggal Baru */}
-          <div>
-            <DatePickerMiniCalendar
-              label="Tanggal Baru"
-              required
-              value={newDate}
-              onChange={(newVal) => setNewDate(newVal)}
-              datesWithSlots={datesWithSlots}
-              slotsCountByDate={slotsCountByDate}
-              colorTheme="amber"
-            />
-          </div>
+          {isAsesmenSession ? (
+            /* Desain Awal untuk Asesmen: Input Tanggal Bebas */
+            <div>
+              <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[#5D205E]" />
+                Tanggal Baru <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-gray-900 font-medium cursor-pointer"
+                required
+              />
+            </div>
+          ) : (
+            /* Desain Dinamis untuk Konseling: Kalender Mini dengan Penanda Slot Psikolog */
+            <div>
+              <DatePickerMiniCalendar
+                label="Tanggal Baru"
+                required
+                value={newDate}
+                onChange={(newVal) => setNewDate(newVal)}
+                datesWithSlots={datesWithSlots}
+                slotsCountByDate={slotsCountByDate}
+                colorTheme="amber"
+              />
+            </div>
+          )}
 
-          {/* Kotak Peringatan jika Slot Belum Dibuka oleh Psikolog pada Tanggal Tersebut */}
-          {availableSlots.length === 0 && !isLoadingSlots && (
+          {/* Kotak Peringatan jika Slot Belum Dibuka oleh Psikolog pada Tanggal Tersebut (HANYA Konseling) */}
+          {!isAsesmenSession && availableSlots.length === 0 && !isLoadingSlots && (
             <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs animate-fadeIn">
               <div className="flex items-center gap-2 font-bold mb-1 text-amber-800">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -388,37 +466,60 @@ export default function ModalRescheduleSesi({
             </div>
           )}
 
-          {/* Pilih Jam Baru (Dinamis dari Slot Psikolog) */}
-          <div>
-            <label className="block font-bold text-gray-700 mb-1.5 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
+          {/* Pilih Jam Baru */}
+          {isAsesmenSession ? (
+            /* Desain Awal untuk Asesmen: Dropdown Jam Lengkap Bebas Dipilih Admin */
+            <div>
+              <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[#5D205E]" />
                 Pilih Jam Baru <span className="text-rose-500">*</span>
-              </span>
-              {isLoadingSlots && (
-                <span className="text-[10px] text-gray-400 font-normal">Memeriksa slot dibuka psikolog...</span>
-              )}
-            </label>
-            <select
-              value={newWaktu}
-              onChange={(e) => setNewWaktu(e.target.value)}
-              disabled={isLoadingSlots || timeSlotOptions.length === 0}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-gray-900 font-medium cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              required
-            >
-              {isLoadingSlots ? (
-                <option value="">Memeriksa slot dibuka psikolog...</option>
-              ) : timeSlotOptions.length === 0 ? (
-                <option value="">Tidak ada slot dibuka oleh psikolog pada tanggal ini</option>
-              ) : (
-                timeSlotOptions.map((opt) => (
-                  <option key={opt.label} value={opt.label}>
-                    {opt.label} {opt.metodeLabel}
+              </label>
+              <select
+                value={newWaktu}
+                onChange={(e) => setNewWaktu(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs sm:text-sm font-medium cursor-pointer"
+                required
+              >
+                {asesmenTimeSlots.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot} WIB
                   </option>
-                ))
-              )}
-            </select>
-          </div>
+                ))}
+              </select>
+            </div>
+          ) : (
+            /* Desain Dinamis untuk Konseling: Jam Berdasarkan Slot Terbuka Psikolog */
+            <div>
+              <label className="block font-bold text-gray-700 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#5D205E]" />
+                  Pilih Jam Baru <span className="text-rose-500">*</span>
+                </span>
+                {isLoadingSlots && (
+                  <span className="text-[10px] text-gray-400 font-normal">Memeriksa slot dibuka psikolog...</span>
+                )}
+              </label>
+              <select
+                value={newWaktu}
+                onChange={(e) => setNewWaktu(e.target.value)}
+                disabled={isLoadingSlots || timeSlotOptions.length === 0}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-gray-900 font-medium cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                required
+              >
+                {isLoadingSlots ? (
+                  <option value="">Memeriksa slot dibuka psikolog...</option>
+                ) : timeSlotOptions.length === 0 ? (
+                  <option value="">Tidak ada slot dibuka oleh psikolog pada tanggal ini</option>
+                ) : (
+                  timeSlotOptions.map((opt) => (
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label} {opt.metodeLabel}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          )}
 
           {/* Alasan Reschedule */}
           <div>
@@ -460,7 +561,12 @@ export default function ModalRescheduleSesi({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isLoadingSlots || availableSlots.length === 0 || !newWaktu}
+              disabled={
+                isSubmitting ||
+                !newDate ||
+                !newWaktu ||
+                (!isAsesmenSession && (isLoadingSlots || availableSlots.length === 0))
+              }
               className="flex-1 py-2.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Menyimpan..." : "Simpan Reschedule"}

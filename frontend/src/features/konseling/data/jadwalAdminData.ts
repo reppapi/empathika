@@ -286,19 +286,22 @@ export function formatWhatsAppClientReschedule(
   newDate?: string,
   newWaktu?: string
 ): string {
+  const isAsesmen =
+    (session.layanan || "").toLowerCase().includes("asesmen") ||
+    (session.layanan || "").toLowerCase().includes("psikotes") ||
+    (session.layanan || "").toLowerCase().includes("tes psikologi")
   const tglLama = session.date || session.tanggal || "hari ini"
   const tglBaru = newDate || session.date || session.tanggal || "Jadwal Baru"
   const rawJamLama = (session.waktu || "").replace(/\s*WIB/i, "").trim()
   const rawJamBaru = (newWaktu || session.waktu || "Sesuai Konfirmasi").replace(/\s*WIB/i, "").trim()
   return `Halo Kak ${session.namaKlien},
 
-Pemberitahuan dari Tim Administrasi Empathika bahwa sesi konseling Anda telah berhasil *DIJADWALKAN ULANG (RESCHEDULE)*:
+Pemberitahuan dari Tim Administrasi Empathika bahwa sesi ${isAsesmen ? "asesmen" : "konseling"} Anda telah berhasil *DIJADWALKAN ULANG (RESCHEDULE)*:
 
-📋 *Detail Pembaruan Jadwal Konseling:*
+📋 *Detail Pembaruan Jadwal ${isAsesmen ? "Asesmen" : "Konseling"}:*
 • *Klien:* ${session.namaKlien} (ID: ${session.klienId || "-"})
 • *Layanan:* ${session.layanan}
-• *Psikolog:* ${session.psikolog}
-• *Metode:* ${session.tipe || "Konsultasi"}
+${!isAsesmen && session.psikolog ? `• *Psikolog:* ${session.psikolog}\n` : ""}• *Metode:* ${session.tipe || (isAsesmen ? "Asesmen" : "Konsultasi")}
 
 ⏱️ *Jadwal Sebelumnya:* ${tglLama} (${rawJamLama ? `${rawJamLama} WIB` : "-"})
 ✨ *JADWAL BARU:* *${tglBaru}* jam *${rawJamBaru} WIB*
