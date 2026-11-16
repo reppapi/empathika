@@ -58,14 +58,7 @@ export const RCMAS_INTERPRETASI = [
     grade: 'Kecemasan Normal',
     judul: 'Tingkat Kecemasan Masih dalam Batas Wajar',
     deskripsi:
-      'Kamu cenderung mampu menghadapi berbagai situasi sehari-hari tanpa menunjukkan kecemasan yang berlebihan. Rasa khawatir, gugup, atau takut mungkin sesekali muncul, terutama ketika menghadapi hal baru, tekanan, atau situasi yang tidak sesuai harapan. Namun, perasaan tersebut belum menunjukkan indikasi kecemasan yang signifikan. Dalam keseharian, penting untuk tetap mengenali perasaan yang muncul, memahami respons diri ketika menghadapi tekanan, serta mengembangkan cara yang positif dalam menghadapi berbagai tantangan. Dengan begitu, kamu dapat terus membangun rasa percaya diri dan menjaga keseimbangan emosional.',
-    tips: [
-      'Kenali perasaan yang muncul ketika menghadapi situasi yang membuatmu gugup atau khawatir. Memahami emosi merupakan langkah awal untuk mengelolanya.',
-      'Bangun rasa percaya diri dengan menghargai setiap usaha dan pencapaian kecil yang berhasil kamu lakukan.',
-      'Jangan ragu untuk mencoba hal baru secara bertahap. Berikan dirimu kesempatan untuk belajar dan beradaptasi dengan pengalaman yang berbeda.',
-      'Jaga keseimbangan antara aktivitas belajar, waktu istirahat, dan kegiatan yang kamu sukai agar kondisi emosional tetap terjaga.',
-      'Ceritakan pengalaman atau perasaanmu kepada orang yang kamu percaya ketika membutuhkan dukungan atau tempat untuk bercerita.',
-    ],
+      'Hasil yang kamu peroleh menunjukkan bahwa gejala kecemasan yang kamu alami cenderung berada pada tingkat yang rendah. Hal ini berarti kamu belum menunjukkan gejala kecemasan yang signifikan, meskipun dalam situasi tertentu kamu mungkin tetap merasa khawatir, gugup, atau gelisah.\n\nPerasaan tersebut bisa muncul dalam berbagai bentuk, seperti merasa tidak tenang, memikirkan sesuatu secara berlebihan, mengalami respons fisik tertentu, atau sesekali kesulitan berkonsentrasi. Hal ini merupakan pengalaman yang dapat terjadi dalam kehidupan sehari-hari.\n\nTetap kenali dan perhatikan perasaanmu. Jika suatu waktu rasa cemas mulai mengganggu aktivitas atau membuatmu tidak nyaman, jangan ragu untuk bercerita kepada orang yang kamu percaya maupun mencari dukungan dari tenaga profesional.',
   },
   {
     min_skor: 19,
@@ -73,15 +66,7 @@ export const RCMAS_INTERPRETASI = [
     grade: 'Kecemasan Signifikan Secara Klinis',
     judul: 'Kamu Perlu Memberikan Perhatian Lebih pada Kecemasan',
     deskripsi:
-      'Kamu mungkin lebih mudah mengalami rasa khawatir, gugup, atau takut ketika menghadapi berbagai situasi. Perasaan tersebut dapat muncul dalam bentuk respons fisik, seperti tubuh terasa tegang, sulit tidur, atau gelisah; kekhawatiran berlebih terhadap berbagai hal; maupun kesulitan dalam mempertahankan konsentrasi. Kondisi ini dapat membuat aktivitas sehari-hari terasa lebih menantang, terutama ketika menghadapi tekanan, perubahan, atau situasi yang belum familiar. Penting untuk tidak mengabaikan perasaan yang kamu alami. Cobalah untuk lebih memahami hal-hal yang memicu kecemasan dan memberikan ruang bagi diri sendiri untuk beristirahat serta mencari dukungan. Apabila kecemasan mulai mengganggu aktivitas atau keseharianmu, berbicara dengan psikolog dapat membantu kamu memahami kondisi tersebut dan menemukan cara penanganan yang sesuai.',
-    tips: [
-      'Cobalah mengenali situasi, pikiran, atau pengalaman yang sering membuatmu merasa cemas. Kamu bisa menuliskannya dalam jurnal agar lebih mudah memahami pola kecemasan yang muncul.',
-      'Ketika mulai merasa gelisah, luangkan waktu sejenak untuk menenangkan diri, misalnya dengan mengatur napas secara perlahan atau melakukan aktivitas yang membuatmu nyaman.',
-      'Hindari memendam semua kekhawatiran sendirian. Berbagi cerita dengan teman, keluarga, atau orang yang kamu percaya dapat membantu meringankan beban pikiran.',
-      'Berikan dirimu waktu untuk beristirahat dan jangan terlalu memaksakan diri dalam menghadapi tuntutan atau ekspektasi yang terasa berat.',
-      'Cobalah menghadapi situasi yang membuatmu khawatir secara bertahap. Tidak perlu memaksakan diri untuk menyelesaikan semuanya sekaligus.',
-      'Pertimbangkan untuk berkonsultasi dengan psikolog apabila rasa cemas terus berulang atau mulai mengganggu kegiatan belajar, hubungan sosial, maupun aktivitas sehari-hari.',
-    ],
+      'Hasil yang kamu peroleh menunjukkan adanya gejala kecemasan yang cukup signifikan dan perlu mendapatkan perhatian lebih lanjut. Kamu mungkin lebih sering mengalami perasaan khawatir, gugup, gelisah, atau kesulitan mengendalikan pikiran yang membuatmu merasa tidak tenang.\n\nKondisi ini juga dapat muncul melalui respons fisik, seperti tangan berkeringat atau sakit perut, kekhawatiran dan kepekaan yang berlebihan, serta kesulitan berkonsentrasi. Pengalaman tersebut mungkin memengaruhi kenyamanan, hubungan dengan orang lain, maupun aktivitasmu sehari-hari.\n\nKamu tidak perlu menghadapi semuanya sendirian. Cobalah untuk bercerita kepada orang yang kamu percaya dan pertimbangkan untuk berkonsultasi dengan psikolog agar kamu bisa memahami apa yang sedang dirasakan serta mendapatkan pendampingan yang sesuai dengan kebutuhanmu.',
   },
 ]
 
@@ -206,7 +191,6 @@ export async function seedRCMAS(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     } else {
@@ -218,7 +202,6 @@ export async function seedRCMAS(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     }
@@ -226,5 +209,18 @@ export async function seedRCMAS(prisma: PrismaClient) {
   console.log(`    ✓ Interpretasi Hasil RCMAS berhasil disemai (Cut-off >= 19 dari 28)`)
 
   return paket
+}
+
+if (process.argv[1]?.includes('seed-rcmas')) {
+  const p = new PrismaClient()
+  seedRCMAS(p)
+    .then(async () => {
+      await p.$disconnect()
+    })
+    .catch(async (e) => {
+      console.error('❌ Error saat menjalankan seed-rcmas:', e)
+      await p.$disconnect()
+      process.exit(1)
+    })
 }
 

@@ -12,6 +12,7 @@ import {
   dashboardLimitQuerySchema,
   dashboardChartQuerySchema,
   dashboardMetricsQuerySchema,
+  updateTentangKamiSchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -59,6 +60,39 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       body: updateAdminProfileSchema,
     },
     handler: controller.updateProfile,
+  })
+
+  // ── Modul Manajemen Konten Tentang Kami ─────────────────────────
+  // 1. Publik: Tamu/klien mengambil konten halaman Tentang Kami
+  fastify.get('/tentang-kami/public', {
+    schema: {
+      tags: ['Admin - Tentang Kami'],
+      summary: 'Mendapatkan data konten publik halaman Tentang Kami',
+    },
+    handler: controller.getTentangKamiPublic,
+  })
+
+  // 2. Terproteksi: Admin mengambil data konfigurasi Tentang Kami untuk dashboard
+  fastify.get('/tentang-kami', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Tentang Kami'],
+      summary: 'Mendapatkan konfigurasi konten Tentang Kami untuk formulir admin',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getTentangKami,
+  })
+
+  // 3. Terproteksi: Admin memperbarui data konfigurasi Tentang Kami
+  fastify.put('/tentang-kami', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Tentang Kami'],
+      summary: 'Memperbarui seluruh konten dan galeri halaman Tentang Kami',
+      security: [{ bearerAuth: [] }],
+      body: updateTentangKamiSchema,
+    },
+    handler: controller.updateTentangKami,
   })
 
   // ── Modul Dashboard & Ringkasan Operasional Admin & Biro ───────────

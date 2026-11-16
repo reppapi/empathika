@@ -1,6 +1,7 @@
 /** Kartu tampilan ringkasan hasil skor dan rincian interpretasi/saran untuk hasil tes gratis. */
 "use client";
 
+import { useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import type { DASSEvaluationResult } from "@/features/psikotes/utils/dassEvaluation";
 
@@ -39,17 +40,34 @@ export default function InterpretasiCard({
   const effectiveIntroText = dassEvaluation ? dassEvaluation.introText : interpretasiText;
   const effectiveTips = dassEvaluation?.tips && dassEvaluation.tips.length > 0 ? dassEvaluation.tips : tipsList;
 
+  const introParagraphs = useMemo(() => {
+    if (!effectiveIntroText) return [];
+    const doubleSplit = effectiveIntroText
+      .split(/\r?\n\s*\r?\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (doubleSplit.length > 1) return doubleSplit;
+
+    const singleSplit = effectiveIntroText
+      .split(/\r?\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    return singleSplit.length > 1 ? singleSplit : [effectiveIntroText.trim()];
+  }, [effectiveIntroText]);
+
   return (
     <div className="bg-[#e9f4f7] rounded-3xl p-6 sm:p-7 border border-[#d2ebf2] shadow-xs transition-all">
       {/* 1. Header Ringkasan Skor & Interpretasi */}
       <div className="w-full">
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
             {cleanHeadline}
           </h2>
-          <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-normal">
-            {effectiveIntroText}
-          </p>
+          <div className="space-y-3.5 text-sm sm:text-base text-gray-700 leading-relaxed font-normal">
+            {introParagraphs.map((para, pIdx) => (
+              <p key={pIdx}>{para}</p>
+            ))}
+          </div>
         </div>
       </div>
 

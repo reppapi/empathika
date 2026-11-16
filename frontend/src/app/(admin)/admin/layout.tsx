@@ -44,6 +44,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   } else if (pathname?.startsWith("/admin/layanan")) {
     pageTitle = "Manajemen Layanan"
     pageDescription = "Kelola informasi layanan, detail, harga, dan ketersediaan layanan Empathika."
+  } else if (pathname?.startsWith("/admin/tentang-kami")) {
+    pageTitle = "Manajemen Tentang Kami"
+    pageDescription = "Kelola narasi filosofi, galeri foto, nilai utama, dan alasan kehadiran Empathika."
   } else if (pathname?.startsWith("/admin/biro")) {
     pageTitle = "Pengaturan Biro & Komunitas"
     pageDescription = "Kelola profil tenant mitra, registrasi biro, dan status aktivasi website multi-tenant."

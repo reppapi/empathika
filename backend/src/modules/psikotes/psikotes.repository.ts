@@ -192,7 +192,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  tips: i.tips ?? null,
                 })),
               }
             : undefined,
@@ -334,7 +333,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  tips: i.tips ?? null,
                 },
               })
             }
@@ -357,7 +355,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  tips: i.tips ?? null,
                 },
               })
             } else {
@@ -369,7 +366,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  tips: i.tips ?? null,
                 },
               })
             }
@@ -636,7 +632,6 @@ export class PsikotesRepository {
           grade: dbMatched?.grade || calculationResult.grade || 'Hasil Tes',
           judul: dbMatched?.judul || calculationResult.kategori || 'Hasil Asesmen',
           deskripsi: dbMatched?.deskripsi || calculationResult.deskripsi || '',
-          tips: (dbMatched as any)?.tips || calculationResult.saran || null,
         }
       } else {
         const interpretasiList = paket.interpretasi_psikotes || []
@@ -1045,7 +1040,6 @@ export class PsikotesRepository {
           grade: matchedInterpretasi.grade,
           judul: matchedInterpretasi.judul,
           deskripsi: matchedInterpretasi.deskripsi,
-          tips: matchedInterpretasi.tips ?? null,
           tanggal_selesai: hasilTes.tanggal_selesai,
         },
       }
@@ -1226,7 +1220,6 @@ export class PsikotesRepository {
                 deskripsi:
                   b.hasil_tes.interpretasi?.deskripsi ||
                   (isNoTotal ? ds?.deskripsi || '—' : '—'),
-                tips: (b.hasil_tes.interpretasi as any)?.tips || [],
                 tanggal_selesai: b.hasil_tes.tanggal_selesai,
                 detail_skor: b.hasil_tes.detail_skor,
               }
@@ -1934,7 +1927,6 @@ export class PsikotesRepository {
         deskripsi:
           booking.hasil_tes.interpretasi?.deskripsi ||
           (detailSkor?.tanpaSkorTotal ? detailSkor?.deskripsi || null : null),
-        tips: (booking.hasil_tes.interpretasi as any)?.tips || null,
       },
     }
   }

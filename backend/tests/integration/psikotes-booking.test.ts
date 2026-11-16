@@ -20,7 +20,7 @@ describe('Psikotes Booking API (POST /psikotes/booking)', () => {
           judul: 'Tes Kepribadian MBTI Pro',
           jenis_akses: 'BERBAYAR',
           harga: 75000,
-          deskripsi: 'Paket tes kepribadian berbayar untuk testing integrasi',
+          tentang_tes: 'Paket tes kepribadian berbayar untuk testing integrasi',
           status: 'PUBLISHED',
         },
       })
