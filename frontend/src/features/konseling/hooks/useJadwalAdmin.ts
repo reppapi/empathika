@@ -288,64 +288,40 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
       return
     }
 
-    recordRescheduledSession({
-      id,
-      date: dateKey,
-      waktu,
-      newDate,
-      newWaktu,
-      namaKlien,
-      psikolog,
-    })
+    try {
+      // 1. Kirim permintaan reschedule ke database backend
+      await adminService.rescheduleBooking(id, {
+        newDate,
+        newWaktu,
+        alasan,
+      })
 
-    setTodaySessions((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? {
-              ...s,
-              status: "Reschedule",
-              date: newDate,
-              tanggal: newDate,
-              waktu: newWaktu,
-              isUpcomingNearest: false,
-            }
-          : s
-      )
-    )
+      // 2. Simpan catatan reschedule untuk penandaan visual status
+      recordRescheduledSession({
+        id,
+        date: dateKey,
+        waktu,
+        newDate,
+        newWaktu,
+        namaKlien,
+        psikolog,
+      })
 
-    setBookedSessions((prev) =>
-      prev.map((b) =>
-        b.id === id || (b.date === dateKey && b.waktu === waktu)
-          ? {
-              ...b,
-              status: "Reschedule",
-              isRescheduled: true,
-              date: newDate,
-              waktu: newWaktu,
-            }
-          : b
+      triggerToast(
+        `Sesi ${namaKlien} berhasil dijadwalkan ulang (Reschedule) ke ${newDate} (${newWaktu}).`,
+        "success"
       )
-    )
-
-    triggerToast(
-      `Sesi ${namaKlien} berhasil dijadwalkan ulang (Reschedule) ke ${newDate} (${newWaktu}).`,
-      "success"
-    )
-    setSessionToReschedule(null)
-    if (selectedDetailSession && selectedDetailSession.id === id) {
-      setSelectedDetailSession((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "Reschedule",
-              date: newDate,
-              tanggal: newDate,
-              waktu: newWaktu,
-            }
-          : null
-      )
+      setSessionToReschedule(null)
+      if (selectedDetailSession && selectedDetailSession.id === id) {
+        setSelectedDetailSession(null)
+      }
+      // 3. Muat ulang jadwal langsung dari database agar slot lama kembali TERSEDIA dan booking berpindah ke tanggal baru
+      await fetchJadwalData()
+    } catch (err: any) {
+      console.error("Gagal reschedule booking ke database:", err)
+      const msg = err?.response?.data?.message || err?.message || "Gagal menjadwalkan ulang sesi."
+      triggerToast(msg, "danger")
     }
-    fetchJadwalData()
   }
 
   const handleSelectWeeklySession = (session: BookedAssessment) => {
@@ -665,17 +641,19 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               (w.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
               (w.layanan || "").toLowerCase().includes("asesmen")
             const isAvailable = w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")
-            const isResched = isSessionRescheduled(
-              { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
+            const isResched = !isAvailable && isSessionRescheduled(
+              { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName, isAvailableSlot: isAvailable, statusSlot: w.statusSlot },
               rescheduledList
             )
-            const isCanc = isSessionCancelled(
+            const isCanc = !isAvailable && isSessionCancelled(
               { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
               cancelledList
             )
 
             let finalWeeklyStatus = w.status || (w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif")
-            if (isResched) {
+            if (isAvailable) {
+              finalWeeklyStatus = "Tersedia"
+            } else if (isResched) {
               finalWeeklyStatus = "Reschedule"
             } else if (isCanc) {
               finalWeeklyStatus = "Dibatalkan"

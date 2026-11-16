@@ -5,6 +5,7 @@ import type {
   GetAdminJadwalQuery,
   CreateAdminJadwalSlotInput,
   CreateAdminSesiInput,
+  RescheduleBookingInput,
   UpdateAdminProfileInput,
 } from './admin.schema'
 import bcrypt from 'bcrypt'
@@ -150,6 +151,10 @@ export class AdminService {
 
   async updateBookingStatus(id: string, status: StatusBooking) {
     return this.bookingService.updateBookingStatus(id, status)
+  }
+
+  async rescheduleBooking(id: string, payload: RescheduleBookingInput) {
+    return this.bookingService.rescheduleBooking(id, payload)
   }
 
   // ── Modul Profil Admin Utama ────────────────────────────────────

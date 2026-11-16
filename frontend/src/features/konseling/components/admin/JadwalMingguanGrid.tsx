@@ -144,8 +144,6 @@ export default function JadwalMingguanGrid({
                 >
                   {sessions.length > 0 ? (
                     sessions.map((item) => {
-                      const isCancelled = item.status === "Dibatalkan" || (item as any).isCancelled
-                      const isRescheduled = item.status === "Reschedule" || Boolean(item.isRescheduled)
                       const isUnbooked =
                         item.isAvailableSlot ||
                         item.status === "Tersedia" ||
@@ -154,6 +152,8 @@ export default function JadwalMingguanGrid({
                         item.layanan === "Slot Tersedia" ||
                         item.layanan === "Slot Asesmen" ||
                         item.layanan === "Asesmen Tersedia"
+                      const isCancelled = !isUnbooked && (item.status === "Dibatalkan" || (item as any).isCancelled)
+                      const isRescheduled = !isUnbooked && (item.status === "Reschedule" || Boolean(item.isRescheduled))
 
                       const isAsesmen =
                         (item.layanan && item.layanan.toLowerCase().includes("asesmen")) ||

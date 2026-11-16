@@ -461,51 +461,40 @@ export default function PsikologJadwalClient() {
       return
     }
 
-    recordRescheduledSession({
-      id,
-      date: targetDate,
-      waktu: targetTime,
-      newDate,
-      newWaktu,
-      namaKlien: clientName,
-      psikolog: psikologName,
-    })
-
-    setBookedSessions((prev) =>
-      prev.map((s) => {
-        const isMatch = (id && s.id === id) || (s.date === targetDate && s.waktu === targetTime)
-        if (isMatch) {
-          return {
-            ...s,
-            status: "Reschedule",
-            isRescheduled: true,
-            date: newDate,
-            waktu: newWaktu,
-          }
-        }
-        return s
+    try {
+      // 1. Simpan perubahan reschedule ke database
+      await adminService.rescheduleBooking(id, {
+        newDate,
+        newWaktu,
+        alasan,
       })
-    )
 
-    triggerToast(
-      `Sesi ${clientName} berhasil dijadwalkan ulang (Reschedule) ke ${newDate} (${newWaktu}).`,
-      "success"
-    )
-    setSessionToReschedule(null)
-    if (selectedDetailSession && selectedDetailSession.id === id) {
-      setSelectedDetailSession((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "Reschedule",
-              date: newDate,
-              tanggal: newDate,
-              waktu: newWaktu,
-            }
-          : null
+      // 2. Catat reschedule untuk sinkronisasi tampilan
+      recordRescheduledSession({
+        id,
+        date: targetDate,
+        waktu: targetTime,
+        newDate,
+        newWaktu,
+        namaKlien: clientName,
+        psikolog: psikologName,
+      })
+
+      triggerToast(
+        `Sesi ${clientName} berhasil dijadwalkan ulang (Reschedule) ke ${newDate} (${newWaktu}).`,
+        "success"
       )
+      setSessionToReschedule(null)
+      if (selectedDetailSession && selectedDetailSession.id === id) {
+        setSelectedDetailSession(null)
+      }
+      // 3. Muat ulang jadwal langsung dari database agar slot lama kembali TERSEDIA dan berpindah ke slot baru
+      await loadScheduleForPsikolog()
+    } catch (err: any) {
+      console.error("Gagal reschedule booking ke database:", err)
+      const msg = err?.response?.data?.message || err?.message || "Gagal menjadwalkan ulang sesi."
+      triggerToast(msg, "danger")
     }
-    loadScheduleForPsikolog()
   }
 
   const handleMarkCompleted = async (id: string, namaKlien: string) => {
@@ -1688,9 +1677,9 @@ export default function PsikologJadwalClient() {
                   >
                     {sessions.length > 0 ? (
                       sessions.map((item, idx) => {
-                        const isCancelled = item.isCancelled || item.status === "Dibatalkan"
-                        const isRescheduled = item.status === "Reschedule" || Boolean(item.isRescheduled)
-                        const isClientBooking = !item.isAvailableSlot && item.namaKlien && item.namaKlien !== "Tersedia"
+                        const isClientBooking = !item.isAvailableSlot && Boolean(item.namaKlien) && item.namaKlien !== "Tersedia"
+                        const isCancelled = isClientBooking && (item.isCancelled || item.status === "Dibatalkan")
+                        const isRescheduled = isClientBooking && (item.status === "Reschedule" || Boolean(item.isRescheduled))
 
                         // 1. Dibatalkan
                         if (isCancelled) {

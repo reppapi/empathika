@@ -259,24 +259,49 @@ export function recordRescheduledSession(record: {
 }
 
 export function isSessionRescheduled(
-  session: { id?: string; date?: string; waktu: string; namaKlien?: string },
+  session: {
+    id?: string
+    date?: string
+    waktu: string
+    namaKlien?: string
+    isAvailableSlot?: boolean
+    statusSlot?: string
+  },
   rescheduledList?: RescheduledSessionRecord[]
 ): boolean {
+  // Slot ketersediaan kosong / bebas harus selalu berstatus TERSEDIA, bukan reschedule
+  if (
+    session.isAvailableSlot ||
+    session.statusSlot === "TERSEDIA" ||
+    !session.namaKlien ||
+    session.namaKlien.trim().toLowerCase() === "tersedia"
+  ) {
+    return false
+  }
+
   const list = rescheduledList || getRescheduledSessions()
   if (!list || list.length === 0) return false
 
   return list.some((r) => {
-    if (session.id && r.id && session.id === r.id) return true
     const normSessionWaktu = (session.waktu || "").replace(" WIB", "").trim()
-    const normRWaktu = (r.waktu || "").replace(" WIB", "").trim()
-    if (normSessionWaktu !== normRWaktu) return false
-
-    const sameDate = !session.date || !r.date || session.date === r.date
+    const normNewWaktu = (r.newWaktu || r.waktu || "").replace(" WIB", "").trim()
     const sName = (session.namaKlien || "").trim().toLowerCase()
     const rName = (r.namaKlien || "").trim().toLowerCase()
     const sameClient =
       !sName || !rName || sName === rName || sName.includes(rName) || rName.includes(sName)
 
-    return sameDate && sameClient
+    // Cek kecocokan pada slot tanggal dan jam BARU (tujuan reschedule)
+    const targetDate = r.newDate || r.date
+    const sameDate = !session.date || !targetDate || session.date === targetDate
+    const sameTime = normSessionWaktu === normNewWaktu
+
+    if (sameDate && sameTime && sameClient) return true
+
+    // Cek kecocokan via ID booking pada tanggal baru
+    if (session.id && r.id && session.id === r.id && (!r.newDate || session.date === r.newDate)) {
+      return true
+    }
+
+    return false
   })
 }

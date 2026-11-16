@@ -1393,5 +1393,184 @@ export class BookingRepository {
       include: { spesialisasi: true },
     })
   }
+
+  // ── 7. Reschedule Booking Konsultasi ──
+  async rescheduleBooking(
+    idOrSlotId: string,
+    input: { newDate: string; newWaktu: string; alasan?: string }
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Cari booking berdasarkan ID booking atau ID slot jadwal
+      let booking = await tx.bookingKonsultasi.findFirst({
+        where: {
+          OR: [
+            { id: idOrSlotId },
+            { id_jadwal: idOrSlotId },
+          ],
+        },
+        include: {
+          client: true,
+          layanan: true,
+          jadwal: {
+            include: {
+              psikolog: {
+                include: {
+                  account: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      // Jika tidak ditemukan langsung, coba cari slotnya terlebih dahulu
+      if (!booking) {
+        const slot = await tx.jadwalSlot.findUnique({
+          where: { id: idOrSlotId },
+          include: {
+            booking_konsultasi: {
+              include: {
+                client: true,
+                layanan: true,
+                jadwal: {
+                  include: {
+                    psikolog: {
+                      include: {
+                        account: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        })
+        if (slot?.booking_konsultasi) {
+          booking = slot.booking_konsultasi as any
+        }
+      }
+
+      if (!booking) {
+        throw new Error('Data sesi konsultasi / booking tidak ditemukan untuk dijadwalkan ulang')
+      }
+
+      // 2. Lepas slot jadwal lama agar kembali TERSEDIA untuk klien lain
+      const oldSlotId = booking.id_jadwal
+      if (oldSlotId) {
+        await tx.jadwalSlot.update({
+          where: { id: oldSlotId },
+          data: { status: 'TERSEDIA' },
+        }).catch(() => {})
+      }
+
+      // 3. Parse tanggal baru dan jam baru
+      const parsedNewDate = parseDateString(input.newDate)
+      const cleanTime = (input.newWaktu || '').replace(/\s*WIB/gi, '').trim()
+      const timeParts = cleanTime.split('-').map((s) => s.trim())
+      const jamMulaiStr = timeParts[0] || '10:00'
+      let jamSelesaiStr = timeParts[1]
+      if (!jamSelesaiStr) {
+        const [h, m] = jamMulaiStr.split(':').map(Number)
+        jamSelesaiStr = `${String((h + 1) % 24).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`
+      }
+      const parsedJamMulai = timeStringToDate(jamMulaiStr)
+      const parsedJamSelesai = timeStringToDate(jamSelesaiStr)
+
+      const targetPsikologId = booking.jadwal?.id_psikolog || null
+      const tipeJadwal = booking.jadwal?.tipe_jadwal || 'KONSULTASI'
+      const metode = booking.metode || booking.jadwal?.metode || 'ONLINE'
+
+      // 4. Cari apakah sudah ada slot jadwal di tanggal dan jam baru tersebut
+      let targetSlot = await tx.jadwalSlot.findFirst({
+        where: {
+          tanggal: parsedNewDate,
+          jam_mulai: parsedJamMulai,
+          ...(targetPsikologId ? { id_psikolog: targetPsikologId } : {}),
+        },
+        include: {
+          booking_konsultasi: true,
+        },
+      })
+
+      let targetSlotId: string
+
+      if (targetSlot) {
+        // Cek jika slot sudah dibooking oleh booking lain yang masih aktif
+        if (
+          targetSlot.booking_konsultasi &&
+          targetSlot.booking_konsultasi.id !== booking.id &&
+          targetSlot.booking_konsultasi.status !== 'CANCELLED'
+        ) {
+          throw new Error('Slot jadwal pada tanggal dan jam tersebut sudah dibooking oleh klien lain.')
+        }
+
+        // Tandai slot sebagai SUDAH_DIBOOKING
+        const updatedTarget = await tx.jadwalSlot.update({
+          where: { id: targetSlot.id },
+          data: {
+            status: 'SUDAH_DIBOOKING',
+          },
+        })
+        targetSlotId = updatedTarget.id
+      } else {
+        // Jika belum ada slot (misal asesmen klinik atau slot baru), buat slot baru
+        let psiId = targetPsikologId
+        if (!psiId) {
+          const firstPsi = await tx.psikolog.findFirst({ select: { id: true } })
+          if (!firstPsi) throw new Error('Data psikolog tidak ditemukan di database.')
+          psiId = firstPsi.id
+        }
+
+        const createdTarget = await tx.jadwalSlot.create({
+          data: {
+            id_psikolog: psiId,
+            tipe_jadwal: tipeJadwal,
+            metode: metode.toUpperCase().includes('OFFLINE') ? 'OFFLINE' : 'ONLINE',
+            tanggal: parsedNewDate,
+            jam_mulai: parsedJamMulai,
+            jam_selesai: parsedJamSelesai,
+            status: 'SUDAH_DIBOOKING',
+          },
+        })
+        targetSlotId = createdTarget.id
+      }
+
+      // 5. Perbarui booking konsultasi agar menunjuk ke slot jadwal yang baru
+      const catatanReschedule = input.alasan?.trim()
+        ? `[Reschedule: ${input.alasan.trim()}]`
+        : `[Reschedule ke ${input.newDate} ${cleanTime} WIB]`
+
+      const updatedBooking = await tx.bookingKonsultasi.update({
+        where: { id: booking.id },
+        data: {
+          id_jadwal: targetSlotId,
+          deskripsi_trauma: booking.deskripsi_trauma
+            ? `${booking.deskripsi_trauma} | ${catatanReschedule}`
+            : catatanReschedule,
+        },
+        include: {
+          client: true,
+          layanan: true,
+          jadwal: {
+            include: {
+              psikolog: {
+                include: {
+                  account: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      return {
+        booking: updatedBooking,
+        oldSlotId,
+        newSlotId: targetSlotId,
+        newDate: input.newDate,
+        newWaktu: cleanTime,
+      }
+    })
+  }
 }
 

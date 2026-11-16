@@ -8,6 +8,7 @@ import type {
   GetJadwalPsikologMeQuery,
   CreateJadwalSlotInput,
   CreateClientBookingInput,
+  RescheduleBookingInput,
 } from './booking.schema'
 import type { StatusBooking } from '@prisma/client'
 import {
@@ -1020,5 +1021,9 @@ export class BookingService {
       phone: user.no_telepon,
       email: user.email,
     })
+  }
+
+  async rescheduleBooking(idOrSlotId: string, input: RescheduleBookingInput) {
+    return this.repo.rescheduleBooking(idOrSlotId, input)
   }
 }

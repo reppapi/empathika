@@ -50,6 +50,11 @@ export const adminService = {
   updateBookingStatus: (id: string, status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED") =>
     apiClient.patch(`/admin/booking/${id}/status`, { status }).then((r) => r.data),
 
+  rescheduleBooking: (
+    id: string,
+    payload: { newDate: string; newWaktu: string; alasan?: string }
+  ) => apiClient.post(`/booking/${id}/reschedule`, payload).then((r) => r.data),
+
   // Modul Profil Admin Utama
   getProfile: () => apiClient.get("/admin/profile").then((r) => r.data),
 

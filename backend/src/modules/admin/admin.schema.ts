@@ -5,10 +5,12 @@ export {
   createAdminJadwalSlotSchema,
   createAdminSesiSchema,
   updateBookingStatusSchema,
+  rescheduleBookingSchema,
   type GetAdminJadwalQuery,
   type CreateAdminJadwalSlotInput,
   type CreateAdminSesiInput,
   type UpdateBookingStatusInput,
+  type RescheduleBookingInput,
 } from '../booking/booking.schema'
 
 export const dashboardLimitQuerySchema = z.object({
