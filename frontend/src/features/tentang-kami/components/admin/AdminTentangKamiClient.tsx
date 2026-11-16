@@ -32,12 +32,12 @@ export default function AdminTentangKamiClient() {
 
   // Panduan rasio foto untuk masing-masing slot galeri hero
   const GALLERY_SLOT_RATIOS = [
-    "Rasio 4:3",
-    "Rasio 1:1",
-    "Rasio 3:4",
-    "Rasio 2:3",
-    "Rasio 1:1",
-    "Rasio 16:9",
+    "Rasio 4:3 (Landscape)",
+    "Rasio 1:1 (Kotak)",
+    "Rasio 3:4 (Portrait)",
+    "Rasio 3:4 (Portrait)",
+    "Rasio 1:1 (Kotak)",
+    "Rasio 16:9 (Landscape)",
   ]
 
   // Ambil data konten saat halaman pertama kali dimuat
@@ -692,7 +692,7 @@ export default function AdminTentangKamiClient() {
                   Foto Utama Tim (Frame 3D)
                 </label>
                 <span className="text-xs font-semibold text-gray-500">
-                  Rasio 4:3
+                  Rasio 4:3 (Landscape)
                 </span>
               </div>
 
