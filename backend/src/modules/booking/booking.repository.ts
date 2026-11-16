@@ -491,47 +491,64 @@ export class BookingRepository {
     }
   }) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Buat atau cari Klien berdasarkan nomor telepon (format standar tunggal 628...)
+      // 1. Buat atau cari Klien berdasarkan kombinasi nomor telepon DAN nama (case-insensitive)
+      // Satu nomor bisa dipakai beberapa klien berbeda (misal keluarga/anak), sehingga profil dicocokkan berdasarkan kombinasi nomor + nama.
+      const inputName = (data.klien.nama || '').trim()
       const rawPhone = (data.klien.no_telepon || '').trim()
       const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
-      let client = await tx.client.findFirst({
-        where: {
-          OR: [
-            { no_telepon: standardizedPhone },
-            { no_telepon: rawPhone },
-            ...(digitsOnly.length >= 8 ? [
-              { no_telepon: digitsOnly },
-              { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
-            ] : []),
-          ],
-        },
-      })
+      const phoneConditions: Prisma.ClientWhereInput[] = rawPhone ? [
+        { no_telepon: standardizedPhone },
+        { no_telepon: rawPhone },
+        ...(digitsOnly.length >= 8 ? [
+          { no_telepon: digitsOnly },
+          { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
+        ] : []),
+      ] : []
+
+      let client: any = null
+
+      if (inputName && phoneConditions.length > 0) {
+        client = await tx.client.findFirst({
+          where: {
+            AND: [
+              { OR: phoneConditions },
+              { nama: { equals: inputName, mode: 'insensitive' } },
+            ],
+          },
+        })
+      } else if (phoneConditions.length > 0) {
+        client = await tx.client.findFirst({
+          where: { OR: phoneConditions },
+        })
+      } else if (inputName) {
+        client = await tx.client.findFirst({
+          where: { nama: { equals: inputName, mode: 'insensitive' } },
+        })
+      }
 
       if (!client) {
         client = await tx.client.create({
           data: {
-            nama: data.klien.nama.trim(),
-            no_telepon: standardizedPhone,
+            nama: inputName || 'Klien',
+            no_telepon: standardizedPhone || null,
             usia: data.klien.usia,
             jenis_kelamin: data.klien.jenis_kelamin,
           },
         })
       } else {
         const updateData: Prisma.ClientUpdateInput = {}
-        if (client.no_telepon !== standardizedPhone) {
+        if (standardizedPhone && client.no_telepon !== standardizedPhone) {
           updateData.no_telepon = standardizedPhone
         }
-        if (data.klien.nama?.trim() && data.klien.nama.trim() !== client.nama) {
-          updateData.nama = data.klien.nama.trim()
-        }
-        if (data.klien.usia && data.klien.usia !== client.usia) {
+        if (data.klien.usia !== undefined && data.klien.usia !== null && data.klien.usia !== client.usia) {
           updateData.usia = data.klien.usia
         }
         if (data.klien.jenis_kelamin && data.klien.jenis_kelamin !== client.jenis_kelamin) {
           updateData.jenis_kelamin = data.klien.jenis_kelamin
         }
+        // Jangan timpa nama klien yang sudah ada
         if (Object.keys(updateData).length > 0) {
           client = await tx.client.update({
             where: { id: client.id },
@@ -773,10 +790,17 @@ export class BookingRepository {
              (clientStandardPhone.endsWith(inputStandardPhone.slice(-8)) ||
               inputStandardPhone.endsWith(clientStandardPhone.slice(-8))))
 
+          const isSameName = Boolean(
+            existingBooking.client?.nama &&
+            data.klien.nama &&
+            existingBooking.client.nama.trim().toUpperCase() === data.klien.nama.trim().toUpperCase()
+          )
+
+          // Hanya izinkan lanjut jika klien yang sama (status PENDING DAN nomor telepon sama DAN nama sama)
           const isSameClient =
             existingBooking.status === 'PENDING' &&
-            (isSamePhone ||
-             existingBooking.client?.nama?.trim().toUpperCase() === data.klien.nama.trim().toUpperCase())
+            isSamePhone &&
+            isSameName
 
           if (!isSameClient) {
             throw Object.assign(
@@ -853,47 +877,64 @@ export class BookingRepository {
           })
         }
 
-      // 3. Buat atau cari Klien berdasarkan nomor telepon (format standar tunggal 628...)
-      const rawPhone = data.klien.no_telepon.trim()
+      // 3. Buat atau cari Klien berdasarkan kombinasi nomor telepon DAN nama (case-insensitive)
+      // Satu nomor bisa dipakai beberapa klien berbeda (misal keluarga/anak), sehingga profil dicocokkan berdasarkan kombinasi nomor + nama.
+      const inputName = (data.klien.nama || '').trim()
+      const rawPhone = (data.klien.no_telepon || '').trim()
       const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
-      let client = await tx.client.findFirst({
-        where: {
-          OR: [
-            { no_telepon: standardizedPhone },
-            { no_telepon: rawPhone },
-            ...(digitsOnly.length >= 8 ? [
-              { no_telepon: digitsOnly },
-              { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
-            ] : []),
-          ],
-        },
-      })
+      const phoneConditions: Prisma.ClientWhereInput[] = rawPhone ? [
+        { no_telepon: standardizedPhone },
+        { no_telepon: rawPhone },
+        ...(digitsOnly.length >= 8 ? [
+          { no_telepon: digitsOnly },
+          { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
+        ] : []),
+      ] : []
+
+      let client: any = null
+
+      if (inputName && phoneConditions.length > 0) {
+        client = await tx.client.findFirst({
+          where: {
+            AND: [
+              { OR: phoneConditions },
+              { nama: { equals: inputName, mode: 'insensitive' } },
+            ],
+          },
+        })
+      } else if (phoneConditions.length > 0) {
+        client = await tx.client.findFirst({
+          where: { OR: phoneConditions },
+        })
+      } else if (inputName) {
+        client = await tx.client.findFirst({
+          where: { nama: { equals: inputName, mode: 'insensitive' } },
+        })
+      }
 
       if (!client) {
         client = await tx.client.create({
           data: {
-            nama: data.klien.nama.trim(),
-            no_telepon: standardizedPhone,
+            nama: inputName || 'Klien',
+            no_telepon: standardizedPhone || null,
             usia: data.klien.usia,
             jenis_kelamin: data.klien.jenis_kelamin,
           },
         })
       } else {
         const updateData: Prisma.ClientUpdateInput = {}
-        if (client.no_telepon !== standardizedPhone) {
+        if (standardizedPhone && client.no_telepon !== standardizedPhone) {
           updateData.no_telepon = standardizedPhone
         }
-        if (data.klien.nama?.trim() && data.klien.nama.trim() !== client.nama) {
-          updateData.nama = data.klien.nama.trim()
-        }
-        if (data.klien.usia && data.klien.usia !== client.usia) {
+        if (data.klien.usia !== undefined && data.klien.usia !== null && data.klien.usia !== client.usia) {
           updateData.usia = data.klien.usia
         }
         if (data.klien.jenis_kelamin && data.klien.jenis_kelamin !== client.jenis_kelamin) {
           updateData.jenis_kelamin = data.klien.jenis_kelamin
         }
+        // Jangan timpa nama klien yang sudah ada
         if (Object.keys(updateData).length > 0) {
           client = await tx.client.update({
             where: { id: client.id },
