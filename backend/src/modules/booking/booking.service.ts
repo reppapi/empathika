@@ -256,7 +256,41 @@ export class BookingService {
       )
 
       if (overlap) {
-        throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
+        const hasActiveBooking =
+          (overlap as any).booking_konsultasi &&
+          (overlap as any).booking_konsultasi.status !== 'CANCELLED'
+
+        if (hasActiveBooking) {
+          throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
+        }
+
+        const isExactSameTime =
+          overlap.jam_mulai.getTime() === parsedJamMulai.getTime() &&
+          overlap.jam_selesai.getTime() === parsedJamSelesai.getTime()
+
+        if (!isExactSameTime) {
+          throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
+        }
+
+        const updatedSlot = await (this.repo as any).prisma.jadwalSlot.update({
+          where: { id: overlap.id },
+          data: {
+            status: 'TERSEDIA',
+            metode: targetMetode,
+            tipe_jadwal: targetTipeJadwal,
+          },
+        })
+
+        return {
+          id: updatedSlot.id,
+          id_psikolog: updatedSlot.id_psikolog,
+          tanggal: formatDateToString(updatedSlot.tanggal),
+          jam_mulai: formatTimeToString(updatedSlot.jam_mulai),
+          jam_selesai: formatTimeToString(updatedSlot.jam_selesai),
+          metode: (updatedSlot as any).metode || targetMetode,
+          status: 'TERSEDIA',
+          tipe_jadwal: (updatedSlot as any).tipe_jadwal || 'ASESMEN',
+        }
       }
     }
 
@@ -711,10 +745,6 @@ export class BookingService {
       parsedJamSelesai
     )
 
-    if (overlap) {
-      throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
-    }
-
     let metodeSlot = 'ONLINE'
     if (input.metode) {
       const upper = input.metode.toUpperCase()
@@ -724,6 +754,47 @@ export class BookingService {
         metodeSlot = 'OFFLINE'
       } else {
         metodeSlot = 'ONLINE'
+      }
+    }
+
+    if (overlap) {
+      const hasActiveBooking =
+        (overlap as any).booking_konsultasi &&
+        (overlap as any).booking_konsultasi.status !== 'CANCELLED'
+
+      if (hasActiveBooking) {
+        throw new Error('Slot jam tersebut bentrok dengan jadwal konsultasi klien yang sudah ada')
+      }
+
+      const isExactSameTime =
+        overlap.jam_mulai.getTime() === parsedJamMulai.getTime() &&
+        overlap.jam_selesai.getTime() === parsedJamSelesai.getTime()
+
+      if (!isExactSameTime) {
+        throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
+      }
+
+      // Jika slot jamnya SAMA PERSIS dan tidak ada booking aktif (misal slot sebelumnya berstatus TERSEDIA,
+      // TIDAK_TERSEDIA, atau pernah dibooking tapi sesinya sudah DIBATALKAN):
+      // Aktifkan / perbarui slot yang ada agar kembali TERSEDIA untuk klien
+      const updatedSlot = await (this.repo as any).prisma.jadwalSlot.update({
+        where: { id: overlap.id },
+        data: {
+          status: 'TERSEDIA',
+          metode: metodeSlot,
+          tipe_jadwal: input.tipe_jadwal || 'KONSULTASI',
+        },
+      })
+
+      return {
+        id: updatedSlot.id,
+        id_psikolog: updatedSlot.id_psikolog,
+        tanggal: formatDateToString(updatedSlot.tanggal),
+        jam_mulai: formatTimeToString(updatedSlot.jam_mulai),
+        jam_selesai: formatTimeToString(updatedSlot.jam_selesai),
+        metode: (updatedSlot as any).metode || metodeSlot,
+        status: 'TERSEDIA',
+        tipe_jadwal: (updatedSlot as any).tipe_jadwal || 'KONSULTASI',
       }
     }
 
@@ -754,8 +825,11 @@ export class BookingService {
       throw new Error('Slot jadwal tidak ditemukan')
     }
 
-    if (slot.status !== 'TERSEDIA' || slot.booking_konsultasi) {
-      throw new Error('Slot jadwal yang sudah dibooking tidak dapat dihapus langsung. Batalkan booking sesi klien terlebih dahulu jika ingin membatalkan.')
+    const hasActiveBooking =
+      slot.booking_konsultasi && slot.booking_konsultasi.status !== 'CANCELLED'
+
+    if (slot.status === 'SUDAH_DIBOOKING' && hasActiveBooking) {
+      throw new Error('Slot jadwal yang sudah dibooking aktif tidak dapat dihapus langsung. Batalkan booking sesi klien terlebih dahulu jika ingin membatalkan.')
     }
 
     const normalizedRole = (role || '').toUpperCase()
@@ -772,6 +846,15 @@ export class BookingService {
       if (psi && slot.id_psikolog !== psi.id) {
         throw new Error('Anda tidak memiliki wewenang untuk menghapus slot jadwal milik psikolog lain')
       }
+    }
+
+    if (slot.booking_konsultasi && slot.booking_konsultasi.status === 'CANCELLED') {
+      // Karena id_jadwal memiliki foreign key restrict pada booking_konsultasi, ubah status menjadi TIDAK_TERSEDIA
+      await (this.repo as any).prisma.jadwalSlot.update({
+        where: { id },
+        data: { status: 'TIDAK_TERSEDIA' },
+      })
+      return { success: true, message: 'Slot jadwal berhasil ditutup' }
     }
 
     await this.repo.deleteJadwalSlot(id)

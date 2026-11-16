@@ -152,6 +152,9 @@ export class BookingRepository {
         jam_mulai: { lt: jam_selesai },
         jam_selesai: { gt: jam_mulai },
       },
+      include: {
+        booking_konsultasi: true,
+      },
     })
   }
 
