@@ -92,27 +92,20 @@ export function useBayarClient() {
 
     const qTime5 = qWaktu ? qWaktu.trim().substring(0, 5) : ""
 
-    // 1. Cek LocalStorage (apabila slot berasal dari custom admin/dummy)
+    // 1. Cek LocalStorage (apabila slot ditandai dibatalkan secara lokal)
     try {
       const raw = localStorage.getItem("empathika_custom_jadwal_slots")
       if (raw) {
         const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) {
-          if (
-            qSlotId &&
-            (qSlotId.startsWith("slot_asesmen_") ||
-              qSlotId.startsWith("ab_") ||
-              qSlotId.startsWith("slot-admin-"))
-          ) {
-            const found = parsed.find((s: any) => s.id === qSlotId)
-            if (!found) {
-              setIsSlotUnavailable(true)
-              setSlotUnavailableReason(
-                "Slot jadwal ini telah dihapus dari jadwal klinik atau dibatalkan oleh admin."
-              )
-              setIsCheckingSlot(false)
-              return
-            }
+        if (Array.isArray(parsed) && qSlotId) {
+          const found = parsed.find((s: any) => s.id === qSlotId)
+          if (found && (found.status === "Dibatalkan" || found.status === "TIDAK_TERSEDIA")) {
+            setIsSlotUnavailable(true)
+            setSlotUnavailableReason(
+              "Slot jadwal ini telah dibatalkan oleh pihak klinik atau admin."
+            )
+            setIsCheckingSlot(false)
+            return
           }
         }
       }
@@ -446,26 +439,6 @@ export function useBayarClient() {
         setIsSlotUnavailable(true)
         setSlotUnavailableReason(msg)
       }
-
-      try {
-        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed)) {
-            const qTime5 = qWaktu ? qWaktu.trim().substring(0, 5) : ""
-            const updated = parsed.filter((s: any) => {
-              if (qSlotId && s.id === qSlotId) return false
-              const sTime5 = (s.jam_mulai || "").trim().substring(0, 5)
-              const sDate = s.tanggal || ""
-              const isMatchDate = targetDate ? sDate === targetDate : true
-              if (isMatchDate && qTime5 && sTime5 === qTime5) return false
-              return true
-            })
-            localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(updated))
-            window.dispatchEvent(new Event("storage"))
-          }
-        }
-      } catch {}
 
       alert(msg)
     } finally {

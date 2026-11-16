@@ -637,22 +637,27 @@ export class BookingRepository {
       let slot: any = null
       let isNewlyCreated = false
       const isUuid = data.id_jadwal && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.id_jadwal)
-      if (isUuid || (data.id_jadwal && !data.id_jadwal.startsWith('mock-') && !data.id_jadwal.startsWith('slot_asesmen_'))) {
+      if (isUuid) {
         slot = await tx.jadwalSlot.findUnique({
           where: { id: data.id_jadwal },
           include: { psikolog: true, booking_konsultasi: true },
         })
-        if (!slot) {
-          throw Object.assign(
-            new Error('Slot jadwal ini telah dihapus atau dibatalkan oleh pihak klinik/psikolog. Silakan pilih jadwal sesi lainnya.'),
-            { statusCode: 409 }
-          )
-        }
       }
 
       if (slot && (slot.status === 'TIDAK_TERSEDIA' || slot.status === 'CANCELLED')) {
         throw Object.assign(
           new Error('Slot jadwal ini telah dibatalkan atau tidak tersedia lagi oleh pihak klinik/psikolog. Silakan pilih jadwal sesi lainnya.'),
+          { statusCode: 409 }
+        )
+      }
+
+      if (
+        slot &&
+        (slot.status === 'SUDAH_DIBOOKING' ||
+          (slot.booking_konsultasi && slot.booking_konsultasi.status !== 'CANCELLED'))
+      ) {
+        throw Object.assign(
+          new Error('Slot jadwal ini sudah dibooking oleh klien lain. Silakan pilih jadwal sesi lainnya.'),
           { statusCode: 409 }
         )
       }
