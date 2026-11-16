@@ -236,7 +236,7 @@ export default function DatePickerMiniCalendar({
 
         {/* Indikator status slot pada tanggal yang sedang aktif */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {value && (
+          {value && datesWithSlots && datesWithSlots.length > 0 && (
             isSelectedDateHasSlots ? (
               <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1 border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -378,20 +378,27 @@ export default function DatePickerMiniCalendar({
           {/* Footer Legend & Navigasi Cepat */}
           <div className="mt-3 pt-2.5 border-t border-gray-100 space-y-2 text-[11px]">
             {/* Legend Penanda */}
-            <div className="flex items-center justify-between text-gray-600 text-[10px]">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-md bg-amber-200 border border-amber-400 flex items-center justify-center">
-                  <span className="w-1 h-1 rounded-full bg-amber-600"></span>
-                </span>
-                <span className="font-semibold text-amber-900">
-                  Ada Slot Psikolog ({datesWithSlots.length} hari)
-                </span>
+            {datesWithSlots && datesWithSlots.length > 0 ? (
+              <div className="flex items-center justify-between text-gray-600 text-[10px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-md bg-amber-200 border border-amber-400 flex items-center justify-center">
+                    <span className="w-1 h-1 rounded-full bg-amber-600"></span>
+                  </span>
+                  <span className="font-semibold text-amber-900">
+                    Ada Slot Psikolog ({datesWithSlots.length} hari)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-gray-200"></span>
+                  <span className="text-gray-400">Tanpa Slot</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-gray-200"></span>
-                <span className="text-gray-400">Tanpa Slot</span>
+            ) : (
+              <div className="flex items-center justify-between text-gray-500 text-[10px]">
+                <span>Pilih tanggal yang diinginkan</span>
+                <span className="text-gray-400 italic">Bebas dipilih</span>
               </div>
-            </div>
+            )}
 
             {/* Tombol Pintasan */}
             <div className="flex items-center justify-between gap-1 pt-1">
