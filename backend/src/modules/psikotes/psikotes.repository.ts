@@ -1134,21 +1134,16 @@ export class PsikotesRepository {
       }),
     ])
 
-    // 2. Deduplikasi tampilan per peserta & paket:
-    // Urutan query adalah createdAt: 'desc'. Booking paling baru (pertama ditemui) mewakili status sesi terbaru klien.
-    // Jika klien baru saja membayar, booking terbarunya berstatus 'Berjalan' (hasil_tes masih null).
-    // Booking terbaru ini harus tampil di tabel, dan TIDAK BOLEH ditimpa/dibuang oleh hasil tes lama!
-    const seenClientPaket = new Set<string>()
+    // 2. Tampilkan setiap booking transaksi secara mandiri berdasarkan ID booking unik:
+    // Jika ada 2 orang atau lebih mendaftar dengan nomor telepon yang sama (misal keluarga/anak yang didaftarkan orang tua)
+    // atau 1 orang mendaftar beberapa kali dengan transaksi berbeda, seluruh data tetap tampil sebagai baris mandiri.
+    const seenBookingIds = new Set<string>()
     const filteredItems: typeof items = []
 
     for (const b of items) {
       if (!b.client || b.client.nama === 'Tamu Anonim') continue
-      const clientKey = (b.client.no_telepon || b.id_client).trim()
-      const paketKey = b.paket.judul.trim().toLowerCase()
-      const key = `${clientKey}_${paketKey}`
-
-      if (!seenClientPaket.has(key)) {
-        seenClientPaket.add(key)
+      if (!seenBookingIds.has(b.id)) {
+        seenBookingIds.add(b.id)
         filteredItems.push(b)
       }
     }
