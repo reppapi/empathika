@@ -146,6 +146,51 @@ function isSessionPastOrCompleted(dateKey?: string, waktu?: string, status?: str
   return false
 }
 
+function cleanRoleOrTitle(name: string): string {
+  return (name || "")
+    .toLowerCase()
+    .replace(/\b(psikolog|konselor|peer|empathika|tenaga|ahli|admin|dr|dra|drs|m\.psi|s\.psi)\b/gi, "")
+    .replace(/[^a-z0-9]/g, "")
+    .trim()
+}
+
+export function matchPsikologSession(
+  target: {
+    id_psikolog?: string | null
+    idPsikolog?: string | null
+    namaPsikolog?: string | null
+    psikolog?: string | null
+    psikologName?: string | null
+    nama_psikolog?: string | null
+  },
+  currentId?: string | null,
+  currentName?: string | null
+): boolean {
+  const targetId = target.id_psikolog || target.idPsikolog
+  const targetName = target.namaPsikolog || target.psikolog || target.psikologName || target.nama_psikolog
+
+  // 1. Jika ada ID di target dan di psikolog login, WAJIB cocok
+  if (currentId && currentId !== "0" && targetId && targetId !== "0") {
+    return targetId === currentId
+  }
+
+  // 2. Jika salah satu tidak ada ID atau "0", cocokkan nama spesifik (bukan title generik)
+  if (currentName && targetName) {
+    const cleanCurrent = cleanRoleOrTitle(currentName)
+    const cleanTarget = cleanRoleOrTitle(targetName)
+    if (cleanCurrent.length >= 3 && cleanTarget.length >= 3) {
+      return cleanCurrent.includes(cleanTarget) || cleanTarget.includes(cleanCurrent)
+    }
+  }
+
+  // 3. Jika currentId terdefinisi dan targetId berbeda, tidak cocok
+  if (currentId && currentId !== "0" && targetId && targetId !== currentId) {
+    return false
+  }
+
+  return false
+}
+
 export default function PsikologJadwalClient() {
   const today = useMemo(() => {
     const d = new Date()
@@ -177,6 +222,21 @@ export default function PsikologJadwalClient() {
   // State profil psikolog aktif yang diambil dari Database / LocalStorage
   const [activePsikolog, setActivePsikolog] = useState<{ id: string; nama_gelar: string; kategori?: string; account?: any } | null>(resolveActivePsikolog)
 
+  const currentPsi = resolveActivePsikolog()
+  const resolvedPsikologId = (activePsikolog?.id && activePsikolog.id !== "0")
+    ? activePsikolog.id
+    : (currentPsi?.id && currentPsi.id !== "0")
+      ? currentPsi.id
+      : (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_id") || "0" : "0")
+  const resolvedPsikologName =
+    activePsikolog?.nama_gelar ||
+    activePsikolog?.account?.nama ||
+    currentPsi?.nama_gelar ||
+    (currentPsi as any)?.account?.nama ||
+    (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") || "" : "") ||
+    user?.name ||
+    ""
+
   const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan Konsultasi")
   const [layananOptions, setLayananOptions] = useState<string[]>(DEFAULT_LAYANAN_KONSULTASI)
   const [selectedMetode, setSelectedMetode] = useState<MetodeKonsultasi>("Online")
@@ -200,6 +260,9 @@ export default function PsikologJadwalClient() {
     const dates: Date[] = []
     const dateSet = new Set<string>()
     bookedSessions.forEach((s) => {
+      if ((s as any).tipe_jadwal === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) return
+      if (!matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName)) return
+
       if (s.date && s.date >= todayKey && !s.isCancelled && s.status !== "Dibatalkan") {
         dateSet.add(s.date)
       }
@@ -600,13 +663,11 @@ export default function PsikologJadwalClient() {
             adminRes.todaySessions.forEach((t: any) => {
               if ((t.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (t.layanan || "").toLowerCase().includes("asesmen")) return
 
-              const isMatch =
-                (resolvedPsikologId && t.idPsikolog && t.idPsikolog === resolvedPsikologId) ||
-                (Boolean(resolvedPsikologName) &&
-                  Boolean(t.psikolog) &&
-                  t.psikolog !== "Belum Ditentukan" &&
-                  (t.psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                    resolvedPsikologName.toLowerCase().includes(t.psikolog.toLowerCase())))
+              const isMatch = matchPsikologSession(
+                { idPsikolog: t.idPsikolog || t.id_psikolog, psikolog: t.psikolog },
+                resolvedPsikologId,
+                resolvedPsikologName
+              )
 
               if (isMatch && t.tanggal && t.waktuRange) {
                 const mapKey = `${t.tanggal}_${t.waktuRange}`
@@ -636,12 +697,11 @@ export default function PsikologJadwalClient() {
             adminRes.weeklyGrid.forEach((w: any) => {
               if ((w.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (w.layanan || "").toLowerCase().includes("asesmen")) return
 
-              const isMatch =
-                Boolean(resolvedPsikologName) &&
-                Boolean(w.psikologName) &&
-                w.psikologName.trim() !== "" &&
-                (w.psikologName.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                  resolvedPsikologName.toLowerCase().includes(w.psikologName.toLowerCase()))
+              const isMatch = matchPsikologSession(
+                { id_psikolog: w.id_psikolog, psikologName: w.psikologName },
+                resolvedPsikologId,
+                resolvedPsikologName
+              )
 
               if (isMatch && w.date && w.timeSlot) {
                 const mapKey = `${w.date}_${w.timeSlot}`
@@ -681,13 +741,11 @@ export default function PsikologJadwalClient() {
             parsed.forEach((s: any) => {
               if ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) return
 
-              const isMatch =
-                (resolvedPsikologId && s.id_psikolog && s.id_psikolog === resolvedPsikologId) ||
-                (Boolean(resolvedPsikologName) &&
-                  Boolean(s.nama_psikolog) &&
-                  s.nama_psikolog.trim() !== "" &&
-                  (s.nama_psikolog.toLowerCase().includes(resolvedPsikologName.toLowerCase()) ||
-                    resolvedPsikologName.toLowerCase().includes(s.nama_psikolog.toLowerCase())))
+              const isMatch = matchPsikologSession(
+                { id_psikolog: s.id_psikolog, nama_psikolog: s.nama_psikolog },
+                resolvedPsikologId,
+                resolvedPsikologName
+              )
 
               if (isMatch && s.tanggal && s.jam_mulai) {
                 const timeStr = s.label_waktu || `${s.jam_mulai.substring(0, 5)} - ${(s.jam_selesai || "10:00").substring(0, 5)}`
@@ -1320,9 +1378,20 @@ export default function PsikologJadwalClient() {
               <div className="flex flex-col gap-2.5 mb-3 max-h-[125px] overflow-y-auto pr-1.5 custom-scrollbar">
                 {timeSlots.map((time, idx) => {
                   const isChecked = selectedTimes.includes(time)
+                  const isCurrentPsikolog = (s: BookedSession) => {
+                    if ((s as any).tipe_jadwal === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) {
+                      return false
+                    }
+                    return matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName)
+                  }
+
                   const openedSession = date
                     ? bookedSessions.find(
-                      (s) => s.date === formatDateKey(date) && s.waktu === time && s.isAvailableSlot
+                      (s) =>
+                        s.date === formatDateKey(date) &&
+                        s.waktu === time &&
+                        s.isAvailableSlot &&
+                        isCurrentPsikolog(s)
                     )
                     : undefined
                   const isAlreadyOpened = Boolean(openedSession)
@@ -1333,7 +1402,8 @@ export default function PsikologJadwalClient() {
                       (s) =>
                         s.date === formatDateKey(date) &&
                         s.waktu === time &&
-                        (s.isCancelled || s.status === "Dibatalkan")
+                        (s.isCancelled || s.status === "Dibatalkan") &&
+                        isCurrentPsikolog(s)
                     )
                     : undefined
                   const isAlreadyCancelled = Boolean(cancelledSession)
@@ -1346,7 +1416,8 @@ export default function PsikologJadwalClient() {
                         !s.isAvailableSlot &&
                         s.namaKlien !== "Tersedia" &&
                         !s.isCancelled &&
-                        s.status !== "Dibatalkan"
+                        s.status !== "Dibatalkan" &&
+                        isCurrentPsikolog(s)
                     )
                     : undefined
                   const isAlreadyBooked = Boolean(bookedSession)
@@ -1660,7 +1731,13 @@ export default function PsikologJadwalClient() {
             <div className="grid grid-cols-7 min-h-[360px] divide-x divide-gray-200">
               {weekDays.map((wd, i) => {
                 const sessions = bookedSessions
-                  .filter((s) => s.date === wd.dateKey)
+                  .filter(
+                    (s) =>
+                      s.date === wd.dateKey &&
+                      (s as any).tipe_jadwal !== "ASESMEN" &&
+                      !(s.layanan || "").toLowerCase().includes("asesmen") &&
+                      matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName)
+                  )
                   .sort((a, b) => a.waktu.localeCompare(b.waktu))
 
                 const isTodayColumn = wd.dateKey === formatDateKey(today)
