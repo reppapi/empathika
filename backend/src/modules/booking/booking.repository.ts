@@ -1399,6 +1399,9 @@ export class BookingRepository {
   }
 
   async findPsikologByAccountId(id_account: string) {
+    if (!id_account) return null
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id_account)
+    if (!isUuid) return null
     return this.prisma.psikolog.findUnique({
       where: { id_account },
       include: { spesialisasi: true },

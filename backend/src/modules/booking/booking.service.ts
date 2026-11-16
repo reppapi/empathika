@@ -539,16 +539,36 @@ export class BookingService {
   }
 
   async getJadwalSaya(accountId?: string, query?: GetJadwalPsikologMeQuery) {
-    let psikolog = accountId ? await this.repo.findPsikologByAccountId(accountId) : null
-    if (!psikolog && accountId) {
-      psikolog = await this.repo.findPsikologById(accountId)
-    }
-    if (!psikolog && query?.id_psikolog) {
-      psikolog = await this.repo.findPsikologById(query.id_psikolog)
+    let psikolog = null
+    const isAccountUuid = accountId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(accountId)
+    if (isAccountUuid) {
+      psikolog = await this.repo.findPsikologByAccountId(accountId)
       if (!psikolog) {
-        psikolog = await this.repo.findPsikologByAccountId(query.id_psikolog)
+        psikolog = await this.repo.findPsikologById(accountId)
       }
     }
+
+    if (!psikolog && query?.id_psikolog) {
+      const isQueryUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(query.id_psikolog)
+      if (isQueryUuid) {
+        psikolog = await this.repo.findPsikologById(query.id_psikolog)
+        if (!psikolog) {
+          psikolog = await this.repo.findPsikologByAccountId(query.id_psikolog)
+        }
+      } else if (query.id_psikolog !== '0') {
+        psikolog = await (this.repo as any).prisma.psikolog.findFirst({
+          where: {
+            OR: [
+              { nama_gelar: { contains: query.id_psikolog, mode: 'insensitive' } },
+              { account: { nama: { contains: query.id_psikolog, mode: 'insensitive' } } },
+              { account: { email: { contains: query.id_psikolog, mode: 'insensitive' } } },
+            ],
+          },
+          include: { spesialisasi: true },
+        })
+      }
+    }
+
     if (!psikolog) {
       const psikologWithSlots = await (this.repo as any).prisma.psikolog.findFirst({
         where: { jadwal_slot: { some: {} } },
@@ -618,8 +638,12 @@ export class BookingService {
 
   async createPsikologJadwalSlot(input: CreateJadwalSlotInput, accountId?: string) {
     let psikologId = input.id_psikolog
+    const isInputUuid = Boolean(
+      psikologId &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(psikologId)
+    )
 
-    if (psikologId) {
+    if (psikologId && isInputUuid) {
       let existing = await this.repo.findPsikologById(psikologId)
       if (!existing) {
         existing = await this.repo.findPsikologByAccountId(psikologId)
@@ -629,14 +653,35 @@ export class BookingService {
       } else {
         psikologId = undefined
       }
-    }
-    if (!psikologId && accountId) {
-      let psikolog = await this.repo.findPsikologByAccountId(accountId)
-      if (!psikolog) {
-        psikolog = await this.repo.findPsikologById(accountId)
+    } else if (psikologId && psikologId !== '0') {
+      const psi = await (this.repo as any).prisma.psikolog.findFirst({
+        where: {
+          OR: [
+            { nama_gelar: { contains: psikologId, mode: 'insensitive' } },
+            { account: { nama: { contains: psikologId, mode: 'insensitive' } } },
+            { account: { email: { contains: psikologId, mode: 'insensitive' } } },
+          ],
+        },
+      })
+      if (psi) {
+        psikologId = psi.id
+      } else {
+        psikologId = undefined
       }
-      if (psikolog) {
-        psikologId = psikolog.id
+    } else {
+      psikologId = undefined
+    }
+
+    if (!psikologId && accountId) {
+      const isAccountUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(accountId)
+      if (isAccountUuid) {
+        let psikolog = await this.repo.findPsikologByAccountId(accountId)
+        if (!psikolog) {
+          psikolog = await this.repo.findPsikologById(accountId)
+        }
+        if (psikolog) {
+          psikologId = psikolog.id
+        }
       }
     }
 

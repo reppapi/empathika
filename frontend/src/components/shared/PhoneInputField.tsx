@@ -218,7 +218,7 @@ export function PhoneInputField({
       {label !== null && label !== "" && (
         <label
           htmlFor={id}
-          className="block text-sm font-bold text-gray-900 mb-2 select-none"
+          className="block text-sm sm:text-base font-bold text-gray-900 mb-2 select-none"
         >
           {label} {required && <span className="text-red-500">*</span>}
         </label>
@@ -245,7 +245,7 @@ export function PhoneInputField({
           onBlur={handleInputBlur}
           onFocus={onFocus}
           placeholder={placeholder}
-          className={`w-full px-4.5 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-gray-900 bg-transparent outline-none border-none placeholder:text-gray-400 placeholder:font-normal tracking-wide ${inputClassName}`}
+          className={`w-full px-4 sm:px-5 py-3 sm:py-3.5 text-base sm:text-lg font-semibold text-gray-900 bg-transparent outline-none border-none placeholder:text-gray-400 placeholder:font-normal tracking-wide ${inputClassName}`}
         />
 
         {showDigitCount && rawDigits && (

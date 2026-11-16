@@ -805,6 +805,7 @@ export default function PsikologJadwalClient() {
     const savedName = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") : null
     const currentPsi = resolveActivePsikolog()
     const psikologId = activePsikolog?.id || currentPsi.id || savedId || ""
+    const effectivePsikologId = psikologId && psikologId !== "0" ? psikologId : undefined
     const psikologNama = activePsikolog?.nama_gelar || activePsikolog?.account?.nama || currentPsi.nama_gelar || (currentPsi as any)?.account?.nama || savedName || user?.name || "Tenaga Ahli"
 
     const newSessions: BookedSession[] = []
@@ -820,7 +821,7 @@ export default function PsikologJadwalClient() {
       // 1. Simpan ke Backend Database PostgreSQL
       try {
         const res: any = await psikologService.createJadwalSlot({
-          id_psikolog: psikologId,
+          id_psikolog: effectivePsikologId,
           tanggal: dateKey,
           jam_mulai: jamMulai,
           jam_selesai: jamSelesai,
@@ -832,7 +833,10 @@ export default function PsikologJadwalClient() {
           savedSlotId = res.id
         }
       } catch (err: any) {
-        console.warn("Notice save slot:", err?.response?.data?.message || err.message)
+        console.error("Gagal simpan slot ke database:", err)
+        const errMsg = err?.response?.data?.message || err?.message || "Gagal menyimpan jadwal ke database."
+        alert(`Gagal membuka slot jam ${jamMulai} - ${jamSelesai}: ${errMsg}`)
+        return
       }
 
       newSlotItems.push({

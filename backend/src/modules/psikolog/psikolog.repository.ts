@@ -113,7 +113,6 @@ export class PsikologRepository {
           { nama_gelar: { contains: cleanSearch, mode: 'insensitive' } },
           { account: { nama: { contains: cleanSearch, mode: 'insensitive' } } },
           { account: { email: { equals: cleanSearch, mode: 'insensitive' } } },
-          { id_account: id },
         ],
       },
       include: detailInclude,
@@ -121,6 +120,9 @@ export class PsikologRepository {
   }
 
   async findByAccountId(id_account: string) {
+    if (!id_account) return null
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id_account)
+    if (!isUuid) return null
     return this.prisma.psikolog.findUnique({
       where: { id_account },
       include: {
