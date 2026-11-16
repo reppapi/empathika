@@ -217,24 +217,47 @@ export function PhoneInputField({
     if (onBlur) onBlur()
   }
 
+  const hasCustomTextSize = inputClassName.includes("text-") || boxClassName.includes("text-")
+  const hasCustomPadding = inputClassName.includes("py-") || boxClassName.includes("py-")
+  const hasCustomRounded = inputClassName.includes("rounded-") || boxClassName.includes("rounded-")
+  const hasCustomBg = inputClassName.includes("bg-") || boxClassName.includes("bg-")
+  const hasCustomBorder = inputClassName.includes("border-") || boxClassName.includes("border-")
+  const hasCustomFocus =
+    inputClassName.includes("focus:") ||
+    boxClassName.includes("focus:") ||
+    inputClassName.includes("focus-within:") ||
+    boxClassName.includes("focus-within:")
+
+  const defaultRounded = hasCustomRounded ? "" : "rounded-xl"
+  const defaultTextSize = hasCustomTextSize ? "" : "text-xs sm:text-sm"
+  const defaultPadding = hasCustomPadding
+    ? ""
+    : showDigitCount && rawDigits
+    ? "pl-3.5 pr-20 py-2.5"
+    : "px-3.5 py-2.5"
+
+  const defaultBorderAndBg = error
+    ? "border-red-400 bg-red-50/20"
+    : `${hasCustomBorder ? "" : "border-gray-200 hover:border-gray-300"} ${hasCustomBg ? "" : "bg-white"}`
+
+  const defaultFocus = error
+    ? "focus:border-red-500 focus:ring-1 focus:ring-red-400"
+    : hasCustomFocus
+    ? ""
+    : "focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
+
   return (
-    <div className={`w-full font-poppins ${className}`}>
+    <div className={`w-full ${className}`}>
       {label !== null && label !== "" && (
         <label
           htmlFor={id}
-          className={`block text-xs font-semibold sm:font-bold text-gray-700 mb-1.5 sm:mb-2 select-none ${labelClassName}`}
+          className={`block text-xs font-semibold sm:font-bold text-gray-700 mb-1.5 select-none ${labelClassName}`}
         >
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 
-      <div
-        className={`group relative flex items-center w-full rounded-xl border bg-white transition-all duration-200 ${
-          error
-            ? "border-red-400 bg-red-50/20 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-400"
-            : "border-gray-200 hover:border-gray-300 focus-within:border-[#561269] focus-within:ring-1 focus-within:ring-[#561269] shadow-xs"
-        } ${disabled ? "opacity-60 bg-gray-100 cursor-not-allowed border-gray-200" : ""} ${boxClassName}`}
-      >
+      <div className="relative flex items-center w-full">
         <input
           id={id}
           name={name}
@@ -249,12 +272,14 @@ export function PhoneInputField({
           onBlur={handleInputBlur}
           onFocus={onFocus}
           placeholder={placeholder}
-          className={`w-full px-4 py-2.5 sm:py-3 text-sm text-gray-900 bg-transparent outline-none border-none placeholder:text-gray-400 placeholder:font-normal tracking-wide ${inputClassName}`}
+          className={`w-full border transition-all text-gray-900 placeholder:text-gray-400 placeholder:font-normal focus:outline-none shadow-2xs ${defaultRounded} ${defaultTextSize} ${defaultPadding} ${defaultBorderAndBg} ${defaultFocus} ${
+            disabled ? "opacity-60 bg-gray-100 cursor-not-allowed border-gray-200" : ""
+          } ${boxClassName} ${inputClassName}`}
         />
 
         {showDigitCount && rawDigits && (
           <span
-            className={`mr-3 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold select-none shrink-0 transition-colors ${
+            className={`absolute right-3 pointer-events-none inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold select-none shrink-0 transition-colors ${
               isValidLength
                 ? "bg-emerald-50 text-emerald-700"
                 : rawDigits.length > maxDigits

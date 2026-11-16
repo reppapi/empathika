@@ -221,6 +221,8 @@ export default function FormDataPeserta({
               }}
               onBlur={handleWhatsappBlur}
               error={errors.whatsapp}
+              placeholder="+62 821-7373-9213"
+              inputClassName="border-gray-300 rounded-xl px-4 py-3 text-sm"
               helperText="Otomatis diawali +62 (Indonesia). Masukkan nomor WhatsApp aktif untuk tiket & jadwal sesi."
             />
           </div>

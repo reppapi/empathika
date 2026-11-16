@@ -558,45 +558,6 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
                   (Boolean(w.clientName) && w.clientName !== "Tersedia")),
             }
           })
-          // Gabungkan slot dari empathika_custom_jadwal_slots ke weeklyGrid (hanya slot manual yang valid, abaikan seed dummy)
-          try {
-            const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-            if (raw) {
-              const parsed = JSON.parse(raw)
-              if (Array.isArray(parsed)) {
-                // Bersihkan seed_asesmen dummy jika masih tersimpan di browser
-                const validCustomList = parsed.filter((s: any) => !s.id?.startsWith("seed_asesmen_"))
-                if (validCustomList.length !== parsed.length) {
-                  localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(validCustomList))
-                }
-
-                validCustomList.forEach((s: any) => {
-                  if (s.tanggal && s.jam_mulai) {
-                    const timeStr = s.label_waktu || `${s.jam_mulai.substring(0, 5)} - ${(s.jam_selesai || "10:00").substring(0, 5)}`
-                    const exists = mappedWeekly.some(
-                      (w) => w.date === s.tanggal && w.waktu === timeStr
-                    )
-                    if (!exists) {
-                      const isTersedia = (s.status || "TERSEDIA").toUpperCase() === "TERSEDIA"
-                      mappedWeekly.push({
-                        id: s.id || `custom_${s.tanggal}_${timeStr}`,
-                        date: s.tanggal,
-                        waktu: timeStr,
-                        layanan: s.layanan || (((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") ? "Asesmen Klinis" : "Konseling Individu"),
-                        metode: s.metode === "Offline" ? "Offline" : "Online",
-                        namaKlien: isTersedia ? "Tersedia" : (s.namaKlien || "Klien Terdaftar"),
-                        psikolog: ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) ? "" : (s.nama_psikolog || "Tenaga Ahli"),
-                        isAvailableSlot: isTersedia,
-                        status: isTersedia ? "Tersedia" : "Aktif",
-                        isBooked: !isTersedia,
-                        tipe_jadwal: ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") ? "ASESMEN" : "KONSULTASI",
-                      })
-                    }
-                  }
-                })
-              }
-            }
-          } catch {}
 
           setBookedSessions(mappedWeekly)
         } else {

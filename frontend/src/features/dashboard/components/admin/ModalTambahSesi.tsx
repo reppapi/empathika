@@ -210,9 +210,6 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
       setIsLoadingPsikolog(true)
       try {
         const dbList = await psikologService.getList({ status: "ALL" })
-        const rawLocal = typeof window !== "undefined" ? localStorage.getItem("empathika_tenaga_ahli_data") : null
-        const localList = rawLocal ? JSON.parse(rawLocal) : []
-
         const map = new Map<string, PsikologOption>()
 
         if (Array.isArray(dbList) && dbList.length > 0) {
@@ -226,23 +223,6 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
               keahlian: p.keahlian || "",
               status: p.status,
             })
-          })
-        }
-
-        if (Array.isArray(localList)) {
-          localList.forEach((p: any) => {
-            if (['0', '1', '2', '3', '4'].includes(p.id) || p.email?.endsWith('@empathika.test')) return
-            const nama = p.nama_gelar || p.nama || p.account?.nama
-            if (nama && !Array.from(map.values()).some((item) => item.nama.toLowerCase() === nama.toLowerCase())) {
-              map.set(p.id || nama, {
-                id: p.id || nama,
-                nama,
-                kategori: p.kategori,
-                spesialisasi: p.spesialisasi || "",
-                keahlian: Array.isArray(p.keahlian) ? p.keahlian.join(", ") : p.keahlian || "",
-                status: p.statusAkses === "NONAKTIF" ? "INACTIVE" : "ACTIVE",
-              })
-            }
           })
         }
 
@@ -627,11 +607,16 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             </div>
 
             <div>
+              <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-[#5D205E]" />
+                No WhatsApp
+              </label>
               <PhoneInputField
-                label="No WhatsApp"
+                label={null}
                 value={formData.kontak}
                 onChange={(val) => setFormData((prev) => ({ ...prev, kontak: val }))}
                 placeholder="+62 821-7373-9213"
+                inputClassName="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium text-xs"
               />
             </div>
           </div>

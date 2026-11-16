@@ -424,6 +424,7 @@ export default function AdminTambahPsikologClient() {
                 onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
                 error={noTeleponError}
                 placeholder="+62 821-7373-9213"
+                inputClassName="rounded-2xl px-4 py-2.5 text-sm border-gray-200 focus:border-[#561269]"
                 helperText="Nomor otomatis diawali +62 (10-14 digit angka). Awalan 08 atau 62 otomatis disesuaikan."
               />
             </div>

@@ -512,6 +512,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                   value={ticketWa}
                   onChange={(val) => setTicketWa(val)}
                   placeholder="+62 821-7373-9213"
+                  inputClassName="px-4 py-3 rounded-xl border-gray-200 text-sm focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
                   helperText="Nomor kontak yang dimasukkan saat proses pembayaran."
                 />
               </div>

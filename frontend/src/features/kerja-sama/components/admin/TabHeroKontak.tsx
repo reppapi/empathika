@@ -165,11 +165,13 @@ export default function TabHeroKontak({
           <div>
             <PhoneInputField
               label="No WhatsApp Official"
+              labelClassName="font-semibold text-gray-700 mb-1.5 text-xs"
               value={config.kontak.whatsapp}
               onChange={(val) =>
                 setConfig({ ...config, kontak: { ...config.kontak, whatsapp: val } })
               }
               placeholder="+62 821-7373-9213"
+              inputClassName="px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border-gray-200 bg-white focus:border-[#561269] focus:ring-1 focus:ring-[#561269] shadow-2xs"
               helperText="Nomor ini digunakan untuk kontak web serta link chat langsung calon mitra Program Affiliate."
             />
           </div>

@@ -250,6 +250,7 @@ export default function PsikotesFormIdentitas({
                 value={data.noTelepon || ""}
                 onChange={(formatted) => onChange((prev) => ({ ...prev, noTelepon: formatted }))}
                 placeholder="+62 821-7373-9213"
+                inputClassName="px-4 py-2.5 rounded-xl border-gray-200 text-sm font-medium focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15"
               />
             </div>
 
@@ -393,6 +394,7 @@ export default function PsikotesFormIdentitas({
                       value={data.noTeleponOrangTua || ""}
                       onChange={(formatted) => onChange((prev) => ({ ...prev, noTeleponOrangTua: formatted }))}
                       placeholder="+62 821-7373-9213"
+                      inputClassName="px-4 py-2.5 rounded-xl border-gray-200 text-sm font-medium focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15"
                     />
                   </div>
                 </div>

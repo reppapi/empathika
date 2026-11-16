@@ -67,6 +67,7 @@ export function CardInformasiKontakAdmin({
               } as any)
             }}
             placeholder="+62 821-7373-9213"
+            inputClassName="rounded-2xl border-gray-200 bg-white px-4 py-3 text-sm focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
           />
         </div>
 

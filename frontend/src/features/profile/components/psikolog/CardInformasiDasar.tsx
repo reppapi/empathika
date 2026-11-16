@@ -136,6 +136,7 @@ export function CardInformasiDasar({
               } as any)
             }}
             placeholder="+62 821-7373-9213"
+            inputClassName="rounded-2xl border-gray-200 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none transition"
             helperText="Nomor otomatis diawali +62 (10-14 digit angka)."
           />
         </div>
