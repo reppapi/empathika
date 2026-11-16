@@ -274,9 +274,15 @@ export default function ModalDetailPeserta({
                     {detail.judul}
                   </p>
                 )}
-                <p className="text-xs text-gray-600 leading-relaxed max-w-xl mx-auto pt-1">
-                  {detail.deskripsi}
-                </p>
+                <div className="text-xs text-gray-600 leading-relaxed max-w-xl mx-auto pt-1 space-y-2">
+                  {(detail.deskripsi || "")
+                    .split(/\r?\n\s*\r?\n/)
+                    .map((p) => p.trim())
+                    .filter(Boolean)
+                    .map((para, idx) => (
+                      <p key={idx}>{para}</p>
+                    ))}
+                </div>
               </div>
 
               {/* Rincian Dimensi RCMAS & Lie Scale */}

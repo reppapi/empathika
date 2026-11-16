@@ -619,9 +619,15 @@ export default function AdminDetailPaketClient({ paketId }: Props) {
 
                           {/* Deskripsi */}
                           <td className="px-6 py-4 text-gray-700 leading-relaxed align-top">
-                            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                              {inter.deskripsi || "Tidak ada keterangan interpretasi."}
-                            </p>
+                            <div className="text-xs sm:text-sm text-gray-700 leading-relaxed space-y-2">
+                              {(inter.deskripsi || "Tidak ada keterangan interpretasi.")
+                                .split(/\r?\n\s*\r?\n/)
+                                .map((p) => p.trim())
+                                .filter(Boolean)
+                                .map((para, pIdx) => (
+                                  <p key={pIdx}>{para}</p>
+                                ))}
+                            </div>
                           </td>
                         </tr>
                       ))}

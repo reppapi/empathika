@@ -41,12 +41,7 @@ export const PHQ9_INTERPRETASI = [
     grade: 'Minimal',
     judul: 'Suasana Hatimu Tergolong Stabil & Positif',
     deskripsi:
-      'Berdasarkan hasil screening kesehatan mental, kondisi suasana hatimu saat ini berada dalam batas normal. Gejala depresi tidak terdeteksi secara signifikan.',
-    tips: [
-      'Pertahankan pola tidur yang cukup dan olahraga teratur.',
-      'Lakukan aktivitas yang memberikan kegembiraan dan kepuasan batin.',
-      'Jaga komunikasi aktif dengan keluarga dan support system terdekat.',
-    ],
+      'Hasil tes menunjukkan bahwa gejala depresi yang kamu alami tergolong minimal. Kamu mungkin sesekali merasa sedih atau kehilangan semangat, tetapi gejala tersebut tidak terlalu menonjol berdasarkan hasil tes ini.\n\nKamu cenderung masih dapat menikmati aktivitas, menjalankan tanggung jawab, dan berinteraksi dengan orang-orang di sekitarmu. Meski begitu, kondisi emosional tetap perlu diperhatikan.\n\nTetap jaga keseimbangan antara aktivitas dan waktu istirahat. Luangkan waktu untuk melakukan hal-hal yang kamu sukai serta mengenali perasaan dan kebutuhan diri sendiri.',
   },
   {
     min_skor: 5,
@@ -54,12 +49,7 @@ export const PHQ9_INTERPRETASI = [
     grade: 'Ringan',
     judul: 'Terdeteksi Gejala Depresi Ringan',
     deskripsi:
-      'Kamu mengalami beberapa gejala penurunan suasana hati ringan yang mungkin dipicu oleh tekanan hidup, kelelahan fisik, atau situasi tertentu.',
-    tips: [
-      'Luangkan waktu jeda berkualitas untuk memulihkan energi fisik dan mental.',
-      'Praktikkan teknik relaksasi, journaling emosi, atau aktivitas mindfulness ringan.',
-      'Ceritakan hal-hal yang mengganjal perasaan kepada orang terdekat yang kamu percayai.',
-    ],
+      'Hasil tes menunjukkan adanya gejala depresi ringan. Kamu mungkin mulai merasa sedih, kehilangan minat terhadap aktivitas yang biasanya disukai, atau kurang bersemangat dalam menjalani keseharian.\n\nKamu juga mungkin mengalami perubahan pola tidur atau nafsu makan, mudah lelah, kesulitan berkonsentrasi, atau merasa kurang percaya diri. Gejala ini dapat menimbulkan ketidaknyamanan meskipun belum tentu mengganggu seluruh aktivitas.\n\nCobalah untuk lebih memperhatikan perubahan yang kamu alami. Jika gejala terus dirasakan, kamu dapat mempertimbangkan konsultasi dengan psikolog serta melakukan pemantauan kondisi lebih lanjut.',
   },
   {
     min_skor: 10,
@@ -67,12 +57,7 @@ export const PHQ9_INTERPRETASI = [
     grade: 'Sedang',
     judul: 'Gejala Depresi Tingkat Sedang Terdeteksi',
     deskripsi:
-      'Gejala depresi berada pada tingkat sedang dan kemungkinan mengarah pada episode Major Depressive Disorder (MDD). Kondisi ini mulai mempengaruhi motivasi dan produktivitas harianmu.',
-    tips: [
-      'Sangat disarankan menjadwalkan sesi konseling dengan psikolog klinis profesional.',
-      'Bangun rutinitas harian sederhana dan hindari membuat keputusan besar yang membebani saat ini.',
-      'Hindari mengisolasi diri; terbukalah kepada orang-orang suportif di sekitarmu.',
-    ],
+      'Hasil tes menunjukkan bahwa gejala depresi yang kamu alami berada dalam kategori sedang. Kamu mungkin cukup sering merasa sedih, kehilangan minat terhadap hal-hal yang sebelumnya menyenangkan, atau kesulitan menemukan semangat dalam menjalani aktivitas.\n\nGejala tersebut dapat disertai perubahan pola tidur dan nafsu makan, mudah lelah, sulit berkonsentrasi, hingga munculnya perasaan gagal atau menyalahkan diri sendiri. Kondisi ini berpotensi memengaruhi aktivitas dan hubunganmu dengan orang lain.\n\nPenting untuk memberikan perhatian lebih terhadap kondisi yang sedang kamu alami. Kamu disarankan berkonsultasi dengan psikolog atau tenaga profesional untuk mendapatkan pemahaman dan penanganan yang sesuai, termasuk mempertimbangkan konseling atau intervensi lebih lanjut.',
   },
   {
     min_skor: 15,
@@ -80,12 +65,7 @@ export const PHQ9_INTERPRETASI = [
     grade: 'Agak Berat',
     judul: 'Kondisimu Memerlukan Perhatian & Intervensi Aktif',
     deskripsi:
-      'Tingkat depresi berada pada tahap agak berat. Kondisi ini telah menimbulkan gangguan signifikan terhadap energi, motivasi, pola tidur/makan, dan kestabilan pikiranmu.',
-    tips: [
-      'Sangat direkomendasikan untuk segera berkonsultasi dengan psikolog klinis atau psikiater.',
-      'Mintalah pendampingan dari keluarga atau orang terdekat untuk membantu aktivitas harian.',
-      'Fokus pada pemulihan diri dan kurangi beban tuntutan yang membebani pikiran.',
-    ],
+      'Hasil tes menunjukkan bahwa gejala depresi yang kamu alami berada dalam kategori agak berat. Kamu mungkin mengalami kesedihan yang lebih intens, kehilangan minat terhadap berbagai aktivitas, atau kesulitan menemukan motivasi dalam keseharian.\n\nKamu juga mungkin mengalami gangguan tidur, perubahan nafsu makan, kelelahan, kesulitan berkonsentrasi, serta perasaan tidak berharga. Gejala tersebut dapat memberikan dampak cukup besar terhadap aktivitas dan hubungan sosial.\n\nKamu disarankan untuk segera mendapatkan pendampingan dari tenaga profesional. Pemeriksaan lebih lanjut dapat membantu menentukan penanganan yang sesuai, termasuk psikoterapi dan/atau farmakoterapi berdasarkan pertimbangan profesional.',
   },
   {
     min_skor: 20,
@@ -93,12 +73,7 @@ export const PHQ9_INTERPRETASI = [
     grade: 'Berat',
     judul: 'Kondisi Kritis Memerlukan Dukungan Profesional Segera',
     deskripsi:
-      'Kondisi depresi berada pada tingkat berat yang signifikan. Gejala sangat membebani fisik dan mental, serta membutuhkan penanganan medis dan psikologis segera tanpa penundaan.',
-    tips: [
-      'Segera temui psikiater atau psikolog klinis di fasilitas layanan kesehatan terdekat.',
-      'Jangan menghadapi beban ini sendirian; pastikan kamu didampingi keluarga atau kerabat terdekat.',
-      'Hubungi layanan darurat kesehatan mental terdekat jika merasa kewalahan (Hotline Kemenkes 119 ext 8).',
-    ],
+      'Hasil tes menunjukkan bahwa gejala depresi yang kamu alami berada dalam kategori berat. Kamu mungkin merasakan kesedihan yang mendalam, kehilangan minat terhadap hampir seluruh aktivitas, atau kesulitan menemukan energi dan motivasi untuk menjalani keseharian.\n\nGejala lain yang mungkin muncul meliputi perubahan pola tidur dan nafsu makan, kelelahan, kesulitan berkonsentrasi, perasaan gagal, hingga pikiran negatif terhadap diri sendiri. Kondisi ini dapat sangat memengaruhi kehidupan pribadi maupun aktivitas sehari-hari.\n\nKamu sangat disarankan untuk segera berkonsultasi dengan psikiater atau tenaga profesional agar memperoleh pemeriksaan dan penanganan yang sesuai. Jika muncul pikiran untuk menyakiti diri atau mengakhiri hidup, segera cari bantuan langsung dari orang tepercaya dan layanan kesehatan terdekat.',
   },
 ]
 

@@ -11,7 +11,7 @@ import type {
 import bcrypt from 'bcrypt'
 import type { StatusBooking } from '@prisma/client'
 import { formatDateToString, formatTimeToString } from '../../utils/date-time'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'fs'
 import { join } from 'path'
 
 const DEFAULT_TENTANG_KAMI: UpdateTentangKamiInput = {
@@ -846,10 +846,13 @@ export class AdminService {
   updateTentangKami(input: UpdateTentangKamiInput): UpdateTentangKamiInput {
     const dataDir = join(process.cwd(), 'data')
     const filePath = join(dataDir, 'tentang-kami.json')
+    const tempPath = join(dataDir, `tentang-kami.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`)
     if (!existsSync(dataDir)) {
       mkdirSync(dataDir, { recursive: true })
     }
-    writeFileSync(filePath, JSON.stringify(input, null, 2), 'utf-8')
+    // Tulis ke file temporer dulu sebelum rename untuk menjamin atomisitas (anti-korupsi file)
+    writeFileSync(tempPath, JSON.stringify(input, null, 2), 'utf-8')
+    renameSync(tempPath, filePath)
     return input
   }
 }

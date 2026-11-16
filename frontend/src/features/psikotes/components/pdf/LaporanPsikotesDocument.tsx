@@ -739,9 +739,17 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
             <View style={styles.cardHeaderRow}>
               <Text style={styles.cardTitle}>Interpretasi Hasil</Text>
             </View>
-            <Text style={styles.bodyText}>
-              {sanitizePdfText(hasilUtama.deskripsi)}
-            </Text>
+            <View style={{ gap: 5 }}>
+              {(hasilUtama.deskripsi || "")
+                .split(/\r?\n\s*\r?\n/)
+                .map((p) => p.trim())
+                .filter(Boolean)
+                .map((para, pIdx) => (
+                  <Text key={pIdx} style={styles.bodyText}>
+                    {sanitizePdfText(para)}
+                  </Text>
+                ))}
+            </View>
           </View>
         ) : null}
 
