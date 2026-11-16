@@ -12,6 +12,7 @@ import {
   recordRescheduledSession,
   getRescheduledSessions,
   isSessionRescheduled,
+  findOriginalRescheduledRecord,
   canRescheduleSession,
 } from "@/features/konseling/utils/cancellationSync"
 
@@ -305,6 +306,10 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
         newWaktu,
         namaKlien,
         psikolog,
+        idPsikolog: targetToday?.idPsikolog || targetBooked?.id_psikolog,
+        layanan: targetToday?.layanan || targetBooked?.layanan,
+        metode: targetToday?.tipe?.includes("Offline") ? "Offline" : "Online",
+        alasan,
       })
 
       triggerToast(
@@ -326,6 +331,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
   const handleSelectWeeklySession = (session: BookedAssessment) => {
     const isClientBooked = !session.isAvailableSlot && session.namaKlien && session.namaKlien !== "Tersedia"
+    const isResched = session.status === "Reschedule" || session.isRescheduled
     const converted: ClientSessionToday = {
       id: session.id,
       date: session.date,
@@ -340,7 +346,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
       layanan: session.layanan,
       tipe: session.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
       catatan: session.catatan,
-      status: session.status === "Dibatalkan" ? "Dibatalkan" : "Menunggu Jadwal",
+      status: session.status === "Dibatalkan" ? "Dibatalkan" : isResched ? "Reschedule" : "Menunggu Jadwal",
       isPaid: true,
     }
     setSelectedDetailSession(converted)
@@ -630,6 +636,46 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               kodeTransaksi: s.kodeTransaksi,
             }
           })
+
+          // Pastikan jika tanggal hari ini / yang dipilih adalah tanggal awal sesi reschedule,
+          // sesi tersebut tetap muncul sebagai status Reschedule
+          rescheduledList.forEach((r) => {
+            if (r.date === datePickerValue && r.waktu) {
+              const exists = mappedToday.some(
+                (t) => (r.id && t.id === r.id) || t.waktu === r.waktu
+              )
+              if (!exists) {
+                mappedToday.push({
+                  id: r.id || `resched-${r.date}-${r.waktu}`,
+                  date: r.date,
+                  tanggal: r.date,
+                  waktu: r.waktu,
+                  namaKlien: r.namaKlien || "Klien Terdaftar",
+                  klienId: "010714",
+                  kontak: "+62 812-3456-7890",
+                  psikolog: r.psikolog || "",
+                  idPsikolog: r.idPsikolog,
+                  layanan: r.layanan || "Konsultasi Psikologi",
+                  tipe: r.metode?.includes("Offline") ? "Offline [Klinik]" : "Online [Zoom]",
+                  catatan: r.alasan ? `Reschedule: ${r.alasan}` : undefined,
+                  status: "Reschedule",
+                  isPaid: true,
+                })
+              } else {
+                const idx = mappedToday.findIndex(
+                  (t) => (r.id && t.id === r.id) || t.waktu === r.waktu
+                )
+                if (idx !== -1) {
+                  mappedToday[idx] = {
+                    ...mappedToday[idx],
+                    status: "Reschedule",
+                    namaKlien: r.namaKlien || mappedToday[idx].namaKlien,
+                  }
+                }
+              }
+            }
+          })
+
           setTodaySessions(applyTimeStatusToSessions(mappedToday, datePickerValue))
         } else {
           setTodaySessions([])
@@ -641,45 +687,81 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               (w.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
               (w.layanan || "").toLowerCase().includes("asesmen")
             const isAvailable = w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")
-            const isResched = !isAvailable && isSessionRescheduled(
-              { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName, isAvailableSlot: isAvailable, statusSlot: w.statusSlot },
+            
+            // Cek apakah slot ini merupakan tanggal & jam awal dari sesi yang di-reschedule
+            const reschedRecord = findOriginalRescheduledRecord(
+              { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
               rescheduledList
             )
-            const isCanc = !isAvailable && isSessionCancelled(
+            const isResched = Boolean(reschedRecord)
+            const isCanc = !isAvailable && !isResched && isSessionCancelled(
               { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
               cancelledList
             )
 
             let finalWeeklyStatus = w.status || (w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif")
-            if (isAvailable) {
-              finalWeeklyStatus = "Tersedia"
-            } else if (isResched) {
+            let clientName = w.clientName || (w.statusSlot === "TERSEDIA" ? "Tersedia" : undefined)
+            let layananName = w.layanan
+
+            if (isResched && reschedRecord) {
               finalWeeklyStatus = "Reschedule"
+              clientName = reschedRecord.namaKlien || clientName || "Klien Terdaftar"
+              if (reschedRecord.layanan) layananName = reschedRecord.layanan
             } else if (isCanc) {
               finalWeeklyStatus = "Dibatalkan"
+            } else if (isAvailable) {
+              finalWeeklyStatus = "Tersedia"
             }
 
             return {
               id: w.id,
               date: w.date,
               waktu: w.timeSlot,
-              layanan: w.layanan,
-              metode: w.metode,
-              namaKlien: w.clientName || (w.statusSlot === "TERSEDIA" ? "Tersedia" : undefined),
+              layanan: layananName,
+              metode: ((reschedRecord?.metode?.includes("Offline") ? "Offline" : reschedRecord?.metode?.includes("Online") ? "Online" : w.metode) || "Online") as "Online" | "Offline",
+              namaKlien: clientName,
               kontak: w.kontak || w.no_telepon || (!isAvailable ? "+62 812-3456-7890" : undefined),
               klienId: w.klienId || (!isAvailable ? "010" + Math.floor(100 + Math.random() * 900) : undefined),
-              psikolog: isAsesmen ? "" : w.psikologName,
-              id_psikolog: w.id_psikolog,
+              psikolog: isAsesmen ? "" : (reschedRecord?.psikolog || w.psikologName),
+              id_psikolog: reschedRecord?.idPsikolog || w.id_psikolog,
               noTeleponPsikolog: w.noTeleponPsikolog,
               catatan: w.catatan,
               status: finalWeeklyStatus,
-              isAvailableSlot: w.statusSlot === "TERSEDIA",
+              isAvailableSlot: isResched ? false : isAvailable,
               tipe_jadwal: isAsesmen ? "ASESMEN" : "KONSULTASI",
-              isBooked:
-                w.isBooked ??
-                (w.statusSlot === "SUDAH_DIBOOKING" ||
-                  (Boolean(w.clientName) && w.clientName !== "Tersedia")),
+              isBooked: isResched
+                ? false
+                : (w.isBooked ??
+                  (w.statusSlot === "SUDAH_DIBOOKING" ||
+                    (Boolean(w.clientName) && w.clientName !== "Tersedia"))),
               isRescheduled: isResched,
+            }
+          })
+
+          // Pastikan sesi reschedule pada tanggal awal muncul di weekly grid walaupun slotnya tidak ada di database
+          rescheduledList.forEach((r) => {
+            if (!r.date || !r.waktu) return
+            const exists = mappedWeekly.some(
+              (w) => w.date === r.date && (w.waktu === r.waktu || (r.id && w.id === r.id))
+            )
+            if (!exists) {
+              mappedWeekly.push({
+                id: r.id || `resched-${r.date}-${r.waktu}`,
+                date: r.date,
+                waktu: r.waktu,
+                layanan: r.layanan || "Konsultasi Psikologi",
+                metode: (r.metode?.includes("Offline") ? "Offline" : "Online") as "Online" | "Offline",
+                namaKlien: r.namaKlien || "Klien Terdaftar",
+                kontak: "+62 812-3456-7890",
+                klienId: "010714",
+                psikolog: r.psikolog || "",
+                id_psikolog: r.idPsikolog,
+                status: "Reschedule",
+                isAvailableSlot: false,
+                tipe_jadwal: (r.layanan || "").toLowerCase().includes("asesmen") ? "ASESMEN" : "KONSULTASI",
+                isBooked: false,
+                isRescheduled: true,
+              })
             }
           })
 

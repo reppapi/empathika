@@ -194,12 +194,16 @@ export function canCancelSession(dateStr?: string): boolean {
 
 export interface RescheduledSessionRecord {
   id?: string
-  date?: string
-  waktu: string
-  newDate?: string
-  newWaktu?: string
+  date?: string // Tanggal awal (jadwal sebelum di-reschedule)
+  waktu: string // Waktu/jam awal (jadwal sebelum di-reschedule)
+  newDate?: string // Tanggal baru (jadwal tujuan)
+  newWaktu?: string // Waktu/jam baru (jadwal tujuan)
   namaKlien?: string
   psikolog?: string
+  idPsikolog?: string
+  layanan?: string
+  metode?: string
+  alasan?: string
   rescheduledAt: number
 }
 
@@ -224,6 +228,10 @@ export function recordRescheduledSession(record: {
   newWaktu?: string
   namaKlien?: string
   psikolog?: string
+  idPsikolog?: string
+  layanan?: string
+  metode?: string
+  alasan?: string
 }): void {
   if (typeof window === "undefined") return
   try {
@@ -258,6 +266,54 @@ export function recordRescheduledSession(record: {
   }
 }
 
+/**
+ * Mencari data reschedule sesi pada TANGGAL & JAM AWAL (sebelum dipindahkan).
+ * Digunakan agar kartu pada tanggal awal tetap ditampilkan dengan badge 'Reschedule'
+ * dan teks tercoret (line-through).
+ */
+export function findOriginalRescheduledRecord(
+  session: {
+    id?: string
+    date?: string
+    waktu: string
+    namaKlien?: string
+  },
+  rescheduledList?: RescheduledSessionRecord[]
+): RescheduledSessionRecord | undefined {
+  const list = rescheduledList || getRescheduledSessions()
+  if (!list || list.length === 0) return undefined
+
+  const normSessionWaktu = (session.waktu || "").replace(/\s*WIB/gi, "").trim()
+
+  return list.find((r) => {
+    // 1. Tanggal HARUS tanggal awal (r.date), BUKAN r.newDate
+    if (session.date && r.date && session.date !== r.date) return false
+
+    // 2. Waktu HARUS waktu awal (r.waktu), BUKAN r.newWaktu
+    const normOldWaktu = (r.waktu || "").replace(/\s*WIB/gi, "").trim()
+    if (normSessionWaktu !== normOldWaktu) return false
+
+    // 3. Cocokkan ID jika keduanya ada
+    if (session.id && r.id && session.id === r.id) return true
+
+    // 4. Cocokkan nama klien jika ada
+    if (session.namaKlien && r.namaKlien) {
+      const sName = session.namaKlien.trim().toLowerCase()
+      const rName = r.namaKlien.trim().toLowerCase()
+      if (sName !== "tersedia" && (sName === rName || sName.includes(rName) || rName.includes(sName))) {
+        return true
+      }
+    }
+
+    // Jika slot tanggal awal dan waktu awal cocok
+    return Boolean(r.date && r.waktu)
+  })
+}
+
+/**
+ * Mengecek apakah suatu sesi merupakan slot asal (tanggal & jam awal) yang di-reschedule.
+ * Sesi pada tanggal baru TIDAK dianggap reschedule, melainkan sesi booking aktif biasa.
+ */
 export function isSessionRescheduled(
   session: {
     id?: string
@@ -269,39 +325,5 @@ export function isSessionRescheduled(
   },
   rescheduledList?: RescheduledSessionRecord[]
 ): boolean {
-  // Slot ketersediaan kosong / bebas harus selalu berstatus TERSEDIA, bukan reschedule
-  if (
-    session.isAvailableSlot ||
-    session.statusSlot === "TERSEDIA" ||
-    !session.namaKlien ||
-    session.namaKlien.trim().toLowerCase() === "tersedia"
-  ) {
-    return false
-  }
-
-  const list = rescheduledList || getRescheduledSessions()
-  if (!list || list.length === 0) return false
-
-  return list.some((r) => {
-    const normSessionWaktu = (session.waktu || "").replace(" WIB", "").trim()
-    const normNewWaktu = (r.newWaktu || r.waktu || "").replace(" WIB", "").trim()
-    const sName = (session.namaKlien || "").trim().toLowerCase()
-    const rName = (r.namaKlien || "").trim().toLowerCase()
-    const sameClient =
-      !sName || !rName || sName === rName || sName.includes(rName) || rName.includes(sName)
-
-    // Cek kecocokan pada slot tanggal dan jam BARU (tujuan reschedule)
-    const targetDate = r.newDate || r.date
-    const sameDate = !session.date || !targetDate || session.date === targetDate
-    const sameTime = normSessionWaktu === normNewWaktu
-
-    if (sameDate && sameTime && sameClient) return true
-
-    // Cek kecocokan via ID booking pada tanggal baru
-    if (session.id && r.id && session.id === r.id && (!r.newDate || session.date === r.newDate)) {
-      return true
-    }
-
-    return false
-  })
+  return Boolean(findOriginalRescheduledRecord(session, rescheduledList))
 }

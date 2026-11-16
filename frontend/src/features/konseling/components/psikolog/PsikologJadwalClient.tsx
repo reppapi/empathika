@@ -541,6 +541,10 @@ export default function PsikologJadwalClient() {
         newWaktu,
         namaKlien: clientName,
         psikolog: psikologName,
+        idPsikolog: target?.id_psikolog || resolvedPsikologId,
+        layanan: target?.layanan,
+        metode: target?.metode,
+        alasan,
       })
 
       triggerToast(
@@ -783,17 +787,46 @@ export default function PsikologJadwalClient() {
         }
       } catch {}
 
-      // 5. Terapkan status reschedule admin / psikolog
+      // 5. Terapkan status reschedule admin / psikolog pada slot tanggal awal
       try {
         const rescheduledList = getRescheduledSessions()
         if (rescheduledList.length > 0) {
-          sessionMap.forEach((item, key) => {
-            if (isSessionRescheduled(item, rescheduledList)) {
-              sessionMap.set(key, { ...item, status: "Reschedule", isRescheduled: true })
+          rescheduledList.forEach((r) => {
+            if (!r.date || !r.waktu) return
+
+            // Pastikan jika ada psikolog terasosiasi, cocokkan dengan psikolog aktif
+            const isMatch = matchPsikologSession(
+              { id_psikolog: r.idPsikolog, psikologName: r.psikolog },
+              resolvedPsikologId,
+              resolvedPsikologName
+            )
+
+            if (!r.psikolog || isMatch) {
+              const oldKey = `${r.date}_${r.waktu}`
+              const existing = sessionMap.get(oldKey)
+
+              sessionMap.set(oldKey, {
+                id: r.id || existing?.id || `resched-${r.date}-${r.waktu}`,
+                date: r.date,
+                waktu: r.waktu,
+                layanan: r.layanan || existing?.layanan || "Konsultasi Psikologi",
+                metode: (r.metode === "Offline" ? "Offline" : r.metode === "Keduanya" ? "Keduanya" : (existing?.metode || "Online")) as MetodeKonsultasi,
+                namaKlien: r.namaKlien || existing?.namaKlien || "Klien Terdaftar",
+                kontak: existing?.kontak || "+62 812-3456-7890",
+                klienId: existing?.klienId || "010714",
+                catatan: existing?.catatan,
+                id_psikolog: r.idPsikolog || resolvedPsikologId,
+                namaPsikolog: r.psikolog || resolvedPsikologName,
+                isAvailableSlot: false,
+                status: "Reschedule",
+                isRescheduled: true,
+              })
             }
           })
         }
-      } catch {}
+      } catch (err) {
+        console.warn("Gagal menerapkan status reschedule:", err)
+      }
 
       const allSessions = Array.from(sessionMap.values())
       setBookedSessions(allSessions)
@@ -1801,7 +1834,7 @@ export default function PsikologJadwalClient() {
                               <div className="flex items-center justify-between gap-1 flex-wrap">
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                                  <span className="text-[11px] sm:text-xs font-bold text-amber-800 whitespace-nowrap">
+                                  <span className="text-[11px] sm:text-xs font-bold text-amber-800 line-through whitespace-nowrap">
                                     {item.waktu}
                                   </span>
                                 </div>
@@ -1809,11 +1842,11 @@ export default function PsikologJadwalClient() {
                                   Reschedule
                                 </span>
                               </div>
-                              <span className="text-xs font-semibold text-gray-900 line-clamp-1">
+                              <span className="text-xs font-semibold text-gray-700 line-through line-clamp-1">
                                 {item.layanan}
                               </span>
                               <div className="flex items-center justify-between gap-1 text-[11px] text-gray-600">
-                                <span className="truncate">{item.namaKlien || "Klien"}</span>
+                                <span className="truncate line-through">{item.namaKlien || "Klien"}</span>
                                 <span className="font-semibold text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded text-[9px] shrink-0">
                                   {item.metode}
                                 </span>

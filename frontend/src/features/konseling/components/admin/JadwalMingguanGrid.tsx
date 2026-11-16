@@ -236,7 +236,7 @@ export default function JadwalMingguanGrid({
                             <div className="flex items-center justify-between gap-1 flex-wrap">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
-                                <span className="text-[11px] sm:text-xs font-bold text-amber-800 whitespace-nowrap">
+                                <span className="text-[11px] sm:text-xs font-bold text-amber-800 line-through whitespace-nowrap">
                                   {item.waktu}
                                 </span>
                               </div>
@@ -244,13 +244,13 @@ export default function JadwalMingguanGrid({
                                 Reschedule
                               </span>
                             </div>
-                            <p className="text-xs font-bold leading-tight mt-0.5 text-gray-900 line-clamp-1">
+                            <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-through line-clamp-1">
                               {item.layanan}
                             </p>
                             <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600 gap-0.5">
                               {item.namaKlien && (
                                 <span className="truncate">
-                                  Klien: <strong className="text-gray-800">{item.namaKlien}</strong>
+                                  Klien: <strong className="text-gray-700 line-through">{item.namaKlien}</strong>
                                 </span>
                               )}
                               {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
