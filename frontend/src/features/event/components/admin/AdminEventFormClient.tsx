@@ -119,7 +119,8 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
           let jenis: EventJenis = EVENT_JENIS.WORKSHOP
           if (item.jenis_event === "SEMINAR") jenis = EVENT_JENIS.SEMINAR
-          if (item.jenis_event === "WEBINAR") jenis = EVENT_JENIS.WEBINAR
+          if (item.jenis_event === "KOLABORASI") jenis = EVENT_JENIS.KOLABORASI
+          if (item.jenis_event === "WEBINAR") jenis = EVENT_JENIS.SEMINAR
 
           let status: EventStatus = EVENT_STATUS.DIPUBLIKASI
           if (item.status === "COMPLETED" || item.status === "CANCELLED") status = EVENT_STATUS.SELESAI
@@ -318,9 +319,9 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
     setSubmitting(true)
 
-    let jenisEvent: "WEBINAR" | "WORKSHOP" | "SEMINAR" = "WORKSHOP"
+    let jenisEvent: "WEBINAR" | "WORKSHOP" | "SEMINAR" | "KOLABORASI" = "WORKSHOP"
     if (form.jenis === EVENT_JENIS.SEMINAR) jenisEvent = "SEMINAR"
-    if (form.jenis === EVENT_JENIS.WEBINAR) jenisEvent = "WEBINAR"
+    if (form.jenis === EVENT_JENIS.KOLABORASI) jenisEvent = "KOLABORASI"
 
     let statusEvent: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT" = "UPCOMING"
     if (form.status === EVENT_STATUS.DRAFT) statusEvent = "DRAFT"
@@ -478,7 +479,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
 
       {/* Main Container Card */}
       <div className="rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* Upload Banner Section */}
           <EventBannerUpload
             bannerUrl={bannerUrl}
@@ -529,7 +530,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
               >
                 <option value={EVENT_JENIS.WORKSHOP}>Workshop</option>
                 <option value={EVENT_JENIS.SEMINAR}>Seminar</option>
-                <option value={EVENT_JENIS.WEBINAR}>Webinar</option>
+                <option value={EVENT_JENIS.KOLABORASI}>Kolaborasi</option>
               </select>
               <span className={helperClass}>Pilih kategori jenis event</span>
             </div>
