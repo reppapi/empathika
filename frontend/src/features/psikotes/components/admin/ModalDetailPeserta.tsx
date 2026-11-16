@@ -1,5 +1,6 @@
 /** Modal detail peserta psikotes untuk melihat biodata, skor, hasil evaluasi, dan unduh PDF. */
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   FileText,
@@ -31,13 +32,18 @@ export default function ModalDetailPeserta({
 }: ModalDetailPesertaProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setPdfError(null);
     setIsDownloading(false);
   }, [peserta?.id]);
 
-  if (!peserta) return null;
+  if (!peserta || !mounted) return null;
 
   const isCompleted = peserta.status === "Selesai" || Boolean(peserta.hasil);
   const detail = getPesertaReportDetail(peserta, judulList);
@@ -56,11 +62,17 @@ export default function ModalDetailPeserta({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col font-poppins">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm transition-all duration-300"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-3xl lg:max-w-4xl rounded-[28px] bg-white shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 font-poppins"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70 shrink-0">
+        <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#561269]/10 text-[#561269] rounded-xl flex items-center justify-center text-sm font-bold uppercase shrink-0">
               {peserta.nama.substring(0, 2)}
@@ -89,14 +101,15 @@ export default function ModalDetailPeserta({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200/50 rounded-full transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center transition active:scale-95 cursor-pointer"
+            aria-label="Tutup modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-130px)]">
+        <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6 bg-white">
           {/* Data Klien Ringkas */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-gray-50/80 border border-gray-100 text-xs">
             <div>
@@ -549,7 +562,7 @@ export default function ModalDetailPeserta({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/70 shrink-0">
+        <div className="px-6 sm:px-8 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/70 shrink-0">
           <span className="text-xs text-gray-500">
             Dokumen resmi asesmen psikotes Empathika
           </span>
@@ -562,6 +575,7 @@ export default function ModalDetailPeserta({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
