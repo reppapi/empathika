@@ -834,7 +834,11 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     setCurrentWeekMonday(next)
   }
 
-  const handleBooking = async (times: string[], metode: "Online" | "Offline" | "Keduanya" = "Online") => {
+  const handleBooking = async (
+    times: string[],
+    metode: "Online" | "Offline" | "Keduanya" = "Online",
+    layanan?: string
+  ) => {
     if (!date || times.length === 0) return
     const y = date.getFullYear()
     const m = String(date.getMonth() + 1).padStart(2, "0")
@@ -857,6 +861,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
           jam_selesai: jamSelesai,
           tipe_jadwal: "ASESMEN",
           metode: metode.toUpperCase(),
+          layanan: layanan || "Semua Layanan Asesmen",
         })
         successCount++
       } catch (err: any) {
@@ -882,7 +887,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
             metode: metode.toUpperCase(),
             status: "TERSEDIA",
             nama_psikolog: "",
-            layanan: "Asesmen",
+            layanan: layanan || "Semua Layanan Asesmen",
           });
           localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(currentList));
           window.dispatchEvent(new Event("storage"));
@@ -894,16 +899,17 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     setIsLoading(false)
 
     if (successCount > 0) {
+      const layananText = layanan && layanan !== "Semua Layanan Asesmen" ? ` (${layanan})` : ""
       triggerToast(
         successCount === 1
-          ? `Slot jadwal asesmen ${metode} (${times[0]}) berhasil dibuka di database!`
-          : `${successCount} slot jadwal asesmen ${metode} berhasil dibuka di database!`,
+          ? `Slot jadwal asesmen ${metode}${layananText} (${times[0]}) berhasil dibuka di database!`
+          : `${successCount} slot jadwal asesmen ${metode}${layananText} berhasil dibuka di database!`,
         "success"
       )
       setBookingSuccessMsg(
         successCount === 1
-          ? `Slot jam ${times[0]} (${metode}) berhasil dibuka!`
-          : `${successCount} slot jam (${metode}) berhasil dibuka sekaligus!`
+          ? `Slot jam ${times[0]} (${metode}${layananText}) berhasil dibuka!`
+          : `${successCount} slot jam (${metode}${layananText}) berhasil dibuka sekaligus!`
       )
       setTimeout(() => setBookingSuccessMsg(null), 4500)
     }

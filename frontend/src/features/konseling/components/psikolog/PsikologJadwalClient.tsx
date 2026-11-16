@@ -1162,11 +1162,11 @@ export default function PsikologJadwalClient() {
 
   return (
     <div className="flex flex-col gap-6 font-poppins text-gray-800 pb-16">
-      {/* Card 1: Jadwal Sesi */}
+      {/* Card 1: Jadwal Sesi Asesmen */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Praktik</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Sesi Asesmen</h2>
             <p className="text-sm text-gray-500">
               Atur ketersediaan sesi konseling Anda. Pilih metode konsultasi, tentukan tanggal, lalu centang slot jam yang ingin dibuka untuk klien.
             </p>

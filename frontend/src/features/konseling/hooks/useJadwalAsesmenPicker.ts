@@ -2,11 +2,20 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { BookedAssessment } from "@/features/konseling/types"
+import { layananService } from "@/services/layanan.service"
+
+export const DEFAULT_LAYANAN_ASESMEN = [
+  "Semua Layanan Asesmen",
+  "Asesmen Psikologi Klinis",
+  "Asesmen Minat Bakat",
+  "Asesmen Perkembangan Anak",
+  "Tes Potensi Akademik & Minat Bakat",
+]
 
 export interface UseJadwalAsesmenPickerProps {
   date: Date | undefined
   bookedSessions?: BookedAssessment[]
-  onBooking: (times: string[], metode: "Online" | "Offline" | "Keduanya") => void | Promise<void>
+  onBooking: (times: string[], metode: "Online" | "Offline" | "Keduanya", layanan?: string) => void | Promise<void>
   timeSlots?: string[]
 }
 
@@ -97,6 +106,57 @@ export function useJadwalAsesmenPicker({
   // Pilihan metode sesi: Online (Zoom), Offline (Klinik), atau Keduanya
   const [metode, setMetode] = useState<"Online" | "Offline" | "Keduanya">("Online")
 
+  // Pilihan Layanan Asesmen
+  const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan Asesmen")
+  const [layananOptions, setLayananOptions] = useState<string[]>(DEFAULT_LAYANAN_ASESMEN)
+
+  // Ambil daftar layanan kategori ASESMEN dari database / API
+  useEffect(() => {
+    let isMounted = true
+    layananService
+      .getAll({ kategori: "ASESMEN" })
+      .then((res: any) => {
+        if (!isMounted) return
+        const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        const activeNames: string[] = raw
+          .filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
+          .map((l: any) => (l.nama?.trim() as string))
+          .filter(Boolean)
+
+        try {
+          const rawLocal = localStorage.getItem("empathika_admin_layanan_list")
+          if (rawLocal) {
+            const parsed = JSON.parse(rawLocal)
+            if (Array.isArray(parsed)) {
+              parsed.forEach((item: any) => {
+                if (
+                  (item.kategoriId === "02" || (item.kategori || "").toUpperCase() === "ASESMEN") &&
+                  item.status !== "Nonaktif" &&
+                  item.layanan
+                ) {
+                  activeNames.push(item.layanan.trim())
+                }
+              })
+            }
+          }
+        } catch {}
+
+        const uniqueNames: string[] = Array.from(new Set<string>(activeNames))
+        if (uniqueNames.length > 0) {
+          setLayananOptions(["Semua Layanan Asesmen", ...uniqueNames])
+        } else {
+          setLayananOptions(DEFAULT_LAYANAN_ASESMEN)
+        }
+      })
+      .catch((err) => {
+        console.warn("Gagal memuat layanan asesmen:", err?.message)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   // Multi-select slot jam & jam kustom
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])
   const [isCustomTime, setIsCustomTime] = useState(false)
@@ -160,7 +220,7 @@ export function useJadwalAsesmenPicker({
       setDeletedCustomSlots((prev) => prev.filter((t) => t !== customFormatted))
     }
     if (timesToBook.length > 0) {
-      onBooking(timesToBook, metode)
+      onBooking(timesToBook, metode, selectedLayanan)
       setSelectedTimes([])
       setIsCustomTime(false)
       setCustomStart("")
@@ -179,6 +239,9 @@ export function useJadwalAsesmenPicker({
     today,
     metode,
     setMetode,
+    selectedLayanan,
+    setSelectedLayanan,
+    layananOptions,
     selectedTimes,
     setSelectedTimes,
     isCustomTime,
