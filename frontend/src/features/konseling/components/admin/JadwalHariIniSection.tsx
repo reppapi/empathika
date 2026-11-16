@@ -308,6 +308,18 @@ export default function JadwalHariIniSection({
                     <td className="py-4 px-6 min-w-[130px]">
                       <p className="font-extrabold text-gray-900 whitespace-nowrap">{item.namaKlien}</p>
                       <p className="text-xs text-gray-500 mt-0.5 whitespace-nowrap">ID: {item.klienId}</p>
+                      {item.kontak && (
+                        <a
+                          href={getWhatsAppUrl(item)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline mt-1 whitespace-nowrap transition cursor-pointer"
+                          title={`Hubungi ${item.namaKlien} via WhatsApp (${item.kontak})`}
+                        >
+                          <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0" />
+                          <span>{item.kontak}</span>
+                        </a>
+                      )}
                     </td>
                     <td className="py-4 px-6 font-medium text-gray-700 min-w-[160px]">
                       {(() => {
