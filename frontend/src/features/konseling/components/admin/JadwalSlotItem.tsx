@@ -6,41 +6,75 @@ import { formatDateKey } from "@/features/konseling/data/jadwalAdminData"
 
 interface JadwalSlotItemProps {
   time: string
-  date: Date | undefined
-  bookedSessions: BookedAssessment[]
+  date?: Date | undefined
+  bookedSessions?: BookedAssessment[]
   isChecked: boolean
   isCustom: boolean
   onToggle: () => void
   onDeleteCustom: () => void
 }
 
+const isAsesmen = (s: any) => {
+  if (!s) return false
+  const tipe = (s.tipe_jadwal || "").toUpperCase()
+  if (tipe === "ASESMEN") return true
+  if (tipe === "KONSULTASI") return false
+  const layanan = (s.layanan || "").toLowerCase()
+  if (
+    layanan.includes("konsultasi") ||
+    layanan.includes("konseling") ||
+    layanan.includes("individu") ||
+    layanan.includes("pasangan") ||
+    layanan.includes("keluarga")
+  ) {
+    return false
+  }
+  return layanan.includes("asesmen") || layanan.includes("psikotes")
+}
+
+const normalizeTime = (t?: string) => (t || "").replace("WIB", "").trim()
+
 export default function JadwalSlotItem({
   time,
   date,
-  bookedSessions,
+  bookedSessions = [],
   isChecked,
   isCustom,
   onToggle,
   onDeleteCustom,
 }: JadwalSlotItemProps) {
-  const openedSlot = date
+  const normTime = normalizeTime(time)
+
+  // Hanya periksa slot asesmen klinik yang sudah dibuka
+  const openedAsesmenSlot = date
     ? bookedSessions.find(
         (s: any) =>
+          isAsesmen(s) &&
           s.date === formatDateKey(date) &&
-          s.waktu === time &&
-          (s.isAvailableSlot || s.namaKlien === "Tersedia")
+          normalizeTime(s.waktu) === normTime &&
+          (s.isAvailableSlot || s.namaKlien === "Tersedia" || s.statusSlot === "TERSEDIA") &&
+          s.status !== "Dibatalkan" &&
+          !s.isCancelled
       )
     : undefined
-  const isAlreadyOpened = Boolean(openedSlot)
-  const isAlreadyBooked = date
-    ? bookedSessions.some(
+  const isAlreadyOpened = Boolean(openedAsesmenSlot)
+
+  // Hanya periksa booking asesmen klinik yang sudah ada kliennya
+  const bookedAsesmenSession = date
+    ? bookedSessions.find(
         (s: any) =>
+          isAsesmen(s) &&
           s.date === formatDateKey(date) &&
-          s.waktu === time &&
+          normalizeTime(s.waktu) === normTime &&
           !s.isAvailableSlot &&
-          s.namaKlien !== "Tersedia"
+          s.namaKlien &&
+          s.namaKlien !== "Tersedia" &&
+          s.statusSlot !== "TERSEDIA" &&
+          s.status !== "Dibatalkan" &&
+          !s.isCancelled
       )
-    : false
+    : undefined
+  const isAlreadyBooked = Boolean(bookedAsesmenSession)
 
   return (
     <div
@@ -72,7 +106,7 @@ export default function JadwalSlotItem({
       <div className="flex items-center gap-1.5">
         {isAlreadyOpened && !isChecked && (
           <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
-            Sudah Dibuka {openedSlot?.metode ? `(${openedSlot.metode})` : ""}
+            Sudah Dibuka {openedAsesmenSlot?.metode ? `(${openedAsesmenSlot.metode})` : ""}
           </span>
         )}
         {isAlreadyBooked && !isChecked && (
@@ -110,4 +144,5 @@ export default function JadwalSlotItem({
     </div>
   )
 }
+
 

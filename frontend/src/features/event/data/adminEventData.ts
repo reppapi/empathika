@@ -23,6 +23,7 @@ export interface AdminEventData {
   kuotaTiketBundling?: number
   namaBundling?: string
   paketBundling?: PaketBundlingItem[]
+  benefit?: string[]
   deskripsi?: string
   status: EventStatus
   bannerUrl?: string
@@ -33,7 +34,8 @@ export function mapApiToAdminEvent(apiItem: EventItemApi): AdminEventData {
   // Jenis
   let jenis: EventJenis = EVENT_JENIS.WORKSHOP
   if (apiItem.jenis_event === "SEMINAR") jenis = EVENT_JENIS.SEMINAR
-  if (apiItem.jenis_event === "WEBINAR") jenis = EVENT_JENIS.WEBINAR
+  if (apiItem.jenis_event === "KOLABORASI") jenis = EVENT_JENIS.KOLABORASI
+  if (apiItem.jenis_event === "WEBINAR") jenis = EVENT_JENIS.SEMINAR
 
   // Tipe
   const tipe: EventTipe = apiItem.tipe_event === "OFFLINE" ? EVENT_TIPE.OFFLINE : EVENT_TIPE.ONLINE
@@ -102,6 +104,7 @@ export function mapApiToAdminEvent(apiItem: EventItemApi): AdminEventData {
     kuotaTiketBundling: apiItem.kuota_tiket_bundling ?? 2,
     namaBundling: apiItem.nama_bundling || undefined,
     paketBundling: apiItem.paket_bundling || undefined,
+    benefit: apiItem.benefit ?? [],
     deskripsi: apiItem.deskripsi,
     status,
     bannerUrl: apiItem.banner_url || undefined,

@@ -65,6 +65,12 @@ export const updateBookingStatusSchema = z.object({
   status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']),
 })
 
+export const rescheduleBookingSchema = z.object({
+  newDate: z.string().min(1, 'Tanggal baru wajib diisi'),
+  newWaktu: z.string().min(1, 'Jam baru wajib diisi'),
+  alasan: z.string().optional(),
+})
+
 // ── 4. Booking Mandiri oleh Klien (Public) ──
 export const createClientBookingSchema = z.object({
   id_jadwal: z.string().optional(),
@@ -95,4 +101,5 @@ export type GetAdminJadwalQuery = z.infer<typeof getAdminJadwalQuerySchema>
 export type CreateAdminJadwalSlotInput = z.infer<typeof createAdminJadwalSlotSchema>
 export type CreateAdminSesiInput = z.infer<typeof createAdminSesiSchema>
 export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>
+export type RescheduleBookingInput = z.infer<typeof rescheduleBookingSchema>
 export type CreateClientBookingInput = z.infer<typeof createClientBookingSchema>

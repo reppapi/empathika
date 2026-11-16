@@ -407,8 +407,7 @@ export default function FormulirKerjaSamaClient({
                     required
                     value={nomorWhatsapp}
                     onChange={(val) => setNomorWhatsapp(val)}
-                    placeholder="812-3456-7890"
-                    theme="purple"
+                    placeholder="+62 821-7373-9213"
                     inputClassName="py-3 text-sm md:text-base"
                   />
                 </div>

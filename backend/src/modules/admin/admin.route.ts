@@ -6,6 +6,7 @@ import {
   createAdminJadwalSlotSchema,
   createAdminSesiSchema,
   updateBookingStatusSchema,
+  rescheduleBookingSchema,
   updateAdminProfileSchema,
   resendActivationSchema,
   dashboardLimitQuerySchema,
@@ -211,6 +212,17 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       body: updateBookingStatusSchema,
     },
     handler: controller.updateBookingStatus,
+  })
+
+  fastify.post('/booking/:id/reschedule', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Jadwal'],
+      summary: 'Admin menjadwalkan ulang (reschedule) sesi booking konsultasi',
+      security: [{ bearerAuth: [] }],
+      body: rescheduleBookingSchema,
+    },
+    handler: controller.rescheduleBooking,
   })
 
   // ── Kirim Ulang Tautan Aktivasi Tenaga Ahli / Biro ──────────────

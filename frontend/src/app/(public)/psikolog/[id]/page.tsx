@@ -11,6 +11,34 @@ interface PageProps {
   params: { id: string }
 }
 
+function formatScheduleLabel(dateKey: string, start: string, end: string, todayKey: string): string {
+  const timeRange = `${start} - ${end}`
+  if (!dateKey) return timeRange
+
+  const parts = dateKey.split("-").map(Number)
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return timeRange
+
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const target = new Date(parts[0], parts[1] - 1, parts[2])
+
+  const diffDays = Math.round((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+
+  if (diffDays === 0) {
+    return `Hari Ini • ${timeRange}`
+  }
+  if (diffDays === 1) {
+    return `Besok • ${timeRange}`
+  }
+
+  const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"]
+  const dayName = dayNames[target.getDay()] || ""
+  const monthName = monthNames[target.getMonth()] || ""
+
+  return `${dayName}, ${target.getDate()} ${monthName} • ${timeRange}`
+}
+
 function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBackendSlots?: any[]) {
   const rawSlots: any[] = []
   const bookedKeys = new Set<string>()
@@ -29,37 +57,8 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
         const j = (s.jam_mulai || "").toString().match(/(\d{2}:\d{2})/)?.[1]
         const d = (s.tanggal || "").toString().match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
         if (d && j) bookedKeys.add(`${d}_${j}`)
-        if (j) bookedKeys.add(j)
       }
     })
-  }
-
-  const hasDbSlots = rawSlots.length > 0
-
-  if (!hasDbSlots && typeof window !== "undefined") {
-    try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      if (raw) {
-        const parsed: any[] = JSON.parse(raw)
-        const matched = parsed.filter((s: any) => {
-          // Asesmen bukan untuk jadwal praktik psikolog
-          const isAsesmen =
-            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
-            (s.layanan || "").toLowerCase().includes("asesmen")
-          if (isAsesmen) return false
-
-          // Wajib secara spesifik cocok dengan ID psikolog atau nama psikolog (bukan string kosong!)
-          if (s.id_psikolog && s.id_psikolog === psikologId) return true
-          if (s.nama_psikolog && typeof s.nama_psikolog === "string" && s.nama_psikolog.trim().length > 0 && psikologNama) {
-            const sName = s.nama_psikolog.toLowerCase().trim()
-            const pName = psikologNama.toLowerCase().trim()
-            return sName === pName || sName.includes(pName) || pName.includes(sName)
-          }
-          return false
-        })
-        rawSlots.push(...matched)
-      }
-    } catch {}
   }
 
   const now = new Date()
@@ -114,7 +113,6 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     const startMinutes = parseMinutes(jamMulai)
 
     if (slotDate && bookedKeys.has(`${slotDate}_${jamMulai}`)) return false
-    if (bookedKeys.has(jamMulai)) return false
 
     if (slotDate) {
       if (slotDate < todayKey) return false
@@ -132,9 +130,9 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
   for (const s of validSlots) {
     const start = parseJam(s.jam_mulai)
     const end = parseJam(s.jam_selesai)
-    const waktu = s.label_waktu || `${start} - ${end}`
     const slotDateKey = parseDateKey(s.tanggal) || todayKey
-    const uniqueKey = `${slotDateKey}_${waktu}`
+    const waktu = formatScheduleLabel(slotDateKey, start, end, todayKey)
+    const uniqueKey = `${slotDateKey}_${start}_${end}`
 
     if (!seen.has(uniqueKey)) {
       seen.add(uniqueKey)

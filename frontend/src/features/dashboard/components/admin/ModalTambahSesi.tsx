@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { X, Calendar, Clock, User, UserCheck, Phone, Video, MapPin, FileText, CheckCircle2, AlertCircle } from "lucide-react"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
+import { layananService } from "@/services/layanan.service"
 import PhoneInputField from "@/components/shared/PhoneInputField"
+import DatePickerMiniCalendar from "@/components/shared/DatePickerMiniCalendar"
 
 export interface NewSessionData {
   id: string
@@ -44,6 +46,29 @@ export const getSlotTimeLabel = (slot: { label_waktu?: string; jam_mulai: string
     return slot.label_waktu.includes("WIB") ? slot.label_waktu : `${slot.label_waktu} WIB`
   }
   return `${slot.jam_mulai.substring(0, 5)} - ${slot.jam_selesai.substring(0, 5)} WIB`
+}
+
+export const isSlotPassed = (slot: { tanggal?: string; jam_mulai?: string; label_waktu?: string }): boolean => {
+  if (!slot.tanggal) return false
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
+  if (slot.tanggal < todayKey) return true
+  if (slot.tanggal > todayKey) return false
+
+  // Jika tanggal adalah hari ini: cek jam_mulai apakah sudah lewat dari jam sekarang
+  let timeStr = slot.jam_mulai || ""
+  if (!timeStr && slot.label_waktu) {
+    timeStr = slot.label_waktu.split("-")[0].trim()
+  }
+  timeStr = timeStr.replace(/\s*WIB/i, "").trim()
+  const parts = timeStr.split(":")
+  if (parts.length >= 2) {
+    const slotStartMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10)
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    return slotStartMinutes <= currentMinutes
+  }
+  return false
 }
 
 export interface UniqueTimeSlotOption {
@@ -161,6 +186,24 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
   const [availableSlots, setAvailableSlots] = useState<JadwalSlotItem[]>([])
   const [allPsikologSlots, setAllPsikologSlots] = useState<JadwalSlotItem[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+  const [consultationServices, setConsultationServices] = useState<any[]>([])
+
+  // Ambil layanan konsultasi murni dari database/API
+  useEffect(() => {
+    let isMounted = true
+    layananService
+      .getAll({ kategori: "KONSULTASI" })
+      .then((res: any) => {
+        if (!isMounted) return
+        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        setConsultationServices(list.filter((l: any) => l.aktif !== false && l.status !== "Nonaktif"))
+      })
+      .catch(() => {})
+
+    return () => {
+      isMounted = false
+    }
+  }, [isOpen])
 
   const formatPsikologLabel = (p: { nama: string; kategori?: string; status?: string }) => {
     let label = p.nama
@@ -191,9 +234,6 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
       setIsLoadingPsikolog(true)
       try {
         const dbList = await psikologService.getList({ status: "ALL" })
-        const rawLocal = typeof window !== "undefined" ? localStorage.getItem("empathika_tenaga_ahli_data") : null
-        const localList = rawLocal ? JSON.parse(rawLocal) : []
-
         const map = new Map<string, PsikologOption>()
 
         if (Array.isArray(dbList) && dbList.length > 0) {
@@ -207,23 +247,6 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
               keahlian: p.keahlian || "",
               status: p.status,
             })
-          })
-        }
-
-        if (Array.isArray(localList)) {
-          localList.forEach((p: any) => {
-            if (['0', '1', '2', '3', '4'].includes(p.id) || p.email?.endsWith('@empathika.test')) return
-            const nama = p.nama_gelar || p.nama || p.account?.nama
-            if (nama && !Array.from(map.values()).some((item) => item.nama.toLowerCase() === nama.toLowerCase())) {
-              map.set(p.id || nama, {
-                id: p.id || nama,
-                nama,
-                kategori: p.kategori,
-                spesialisasi: p.spesialisasi || "",
-                keahlian: Array.isArray(p.keahlian) ? p.keahlian.join(", ") : p.keahlian || "",
-                status: p.statusAkses === "NONAKTIF" ? "INACTIVE" : "ACTIVE",
-              })
-            }
           })
         }
 
@@ -279,7 +302,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
   }, [psikologList])
 
   // Sinkronkan pilihan saat kategori profesi diganti
-  const handleSelectKategori = (kat: KategoriTenagaOption) => {
+  const handleSelectKategori = React.useCallback((kat: KategoriTenagaOption) => {
     setSelectedKategori(kat)
     const filtered = psikologList.filter((p) => normalizeKategori(p.kategori) === kat)
     if (filtered.length > 0) {
@@ -295,7 +318,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
         psikolog: "",
       }))
     }
-  }
+  }, [psikologList])
 
   // Tenaga Ahli yang sedang dipilih saat ini
   const currentPsikolog = useMemo(() => {
@@ -306,10 +329,64 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     )
   }, [filteredPsikologList, psikologList, formData.idPsikolog])
 
-  // Jenis Layanan dinamis sesuai kategori & keahlian psikolog
+  // Kategori profesi yang benar-benar memiliki input harga aktif pada layanan konsultasi
+  const availableCategoriesWithPricing = useMemo(() => {
+    if (consultationServices.length === 0) return ["psikolog", "konselor", "peer-konselor"]
+    const cats = new Set<string>()
+    consultationServices.forEach((s: any) => {
+      const profs: string[] = s.profesi_tersedia || []
+      profs.forEach((p) => cats.add(p === "peer" ? "peer-konselor" : p))
+      const t = s.tarif_tenaga_ahli
+      if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) cats.add("psikolog")
+      if (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)) cats.add("konselor")
+      if (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)) cats.add("peer-konselor")
+      if (!t && (Number(s.harga_weekday) > 0 || Number(s.harga_weekend) > 0)) cats.add("psikolog")
+    })
+    return Array.from(cats)
+  }, [consultationServices])
+
+  // Sinkronkan selectedKategori jika kategori saat ini tidak memiliki tarif yang diatur
+  useEffect(() => {
+    if (
+      availableCategoriesWithPricing.length > 0 &&
+      !availableCategoriesWithPricing.includes(selectedKategori)
+    ) {
+      handleSelectKategori(availableCategoriesWithPricing[0] as KategoriTenagaOption)
+    }
+  }, [availableCategoriesWithPricing, selectedKategori])
+
+  // Jenis Layanan dinamis: hanya tampilkan layanan yang memiliki tarif untuk kategori tenaga ahli yang dipilih
   const layananOptions = useMemo(() => {
+    const cleanKat = selectedKategori === "peer-konselor" ? "peer" : selectedKategori === "konselor" ? "konselor" : "psikolog"
+
+    if (consultationServices.length > 0) {
+      const matching = consultationServices.filter((s: any) => {
+        const profs: string[] = s.profesi_tersedia || []
+        if (profs.length > 0) {
+          return profs.includes(cleanKat)
+        }
+        const t = s.tarif_tenaga_ahli
+        if (cleanKat === "psikolog") {
+          return (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
+                 (!t && (Number(s.harga_weekday) > 0 || Number(s.harga_weekend) > 0))
+        }
+        if (cleanKat === "konselor") {
+          return t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)
+        }
+        if (cleanKat === "peer") {
+          return t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)
+        }
+        return false
+      })
+
+      const names = matching.map((s: any) => s.nama?.trim()).filter(Boolean)
+      if (names.length > 0) {
+        return Array.from(new Set<string>(names))
+      }
+    }
+
     return getLayananOptionsForPsikolog(currentPsikolog)
-  }, [currentPsikolog])
+  }, [consultationServices, selectedKategori, currentPsikolog])
 
   // Sinkronkan pilihan layanan jika belum ada atau tidak valid
   useEffect(() => {
@@ -340,9 +417,16 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
 
         if (!isMounted) return
 
-        const activeDateSlots = Array.isArray(slotsForDate) ? slotsForDate : []
+        const rawDateSlots = Array.isArray(slotsForDate) ? slotsForDate : []
+        const rawAllSlots = Array.isArray(allSlots) ? allSlots : []
+
+        // FILTER JAM YANG SUDAH LEWAT:
+        // Jika hari ini dan jam mulainya sudah lewat, atau tanggal lampau, jangan tampilkan!
+        const activeDateSlots = rawDateSlots.filter((s) => !isSlotPassed(s))
+        const activeAllSlots = rawAllSlots.filter((s) => !isSlotPassed(s))
+
         setAvailableSlots(activeDateSlots)
-        setAllPsikologSlots(Array.isArray(allSlots) ? allSlots : [])
+        setAllPsikologSlots(activeAllSlots)
 
         // Jika slot tersedia untuk tanggal tersebut, pilih slot pertama atau pertahankan slot terpilih
         if (activeDateSlots.length > 0) {
@@ -458,6 +542,17 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     return Array.from(new Set(dates)).sort()
   }, [allPsikologSlots])
 
+  // Jumlah slot ketersediaan per tanggal
+  const slotsCountByDate = useMemo(() => {
+    const map: Record<string, number> = {}
+    allPsikologSlots.forEach((s) => {
+      if (s.tanggal) {
+        map[s.tanggal] = (map[s.tanggal] || 0) + 1
+      }
+    })
+    return map
+  }, [allPsikologSlots])
+
   if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -554,12 +649,16 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             </div>
 
             <div>
+              <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-[#5D205E]" />
+                No WhatsApp
+              </label>
               <PhoneInputField
-                label="No. WhatsApp / Kontak"
+                label={null}
                 value={formData.kontak}
                 onChange={(val) => setFormData((prev) => ({ ...prev, kontak: val }))}
-                placeholder="812-3456-7890"
-                theme="yellow"
+                placeholder="+62 821-7373-9213"
+                inputClassName="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium text-xs"
               />
             </div>
           </div>
@@ -576,9 +675,15 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
                 onChange={(e) => handleSelectKategori(e.target.value as KategoriTenagaOption)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
               >
-                <option value="psikolog">Psikolog ({categoryCounts.psikolog})</option>
-                <option value="konselor">Konselor ({categoryCounts.konselor})</option>
-                <option value="peer-konselor">Peer Konselor ({categoryCounts["peer-konselor"]})</option>
+                <option value="psikolog" disabled={!availableCategoriesWithPricing.includes("psikolog")}>
+                  Psikolog ({categoryCounts.psikolog}){!availableCategoriesWithPricing.includes("psikolog") ? " - Tarif Belum Diatur" : ""}
+                </option>
+                <option value="konselor" disabled={!availableCategoriesWithPricing.includes("konselor")}>
+                  Konselor ({categoryCounts.konselor}){!availableCategoriesWithPricing.includes("konselor") ? " - Tarif Belum Diatur" : ""}
+                </option>
+                <option value="peer-konselor" disabled={!availableCategoriesWithPricing.includes("peer-konselor")}>
+                  Peer Konselor ({categoryCounts["peer-konselor"]}){!availableCategoriesWithPricing.includes("peer-konselor") ? " - Tarif Belum Diatur" : ""}
+                </option>
               </select>
             </div>
 
@@ -640,16 +745,15 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
           {/* Tanggal & Waktu (Wajib Slot Terbuka dari Psikolog) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#5D205E]" />
-                Tanggal Konsultasi <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
+              <DatePickerMiniCalendar
+                label="Tanggal Konsultasi"
                 required
                 value={formData.tanggal}
-                onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
+                onChange={(newVal) => setFormData((prev) => ({ ...prev, tanggal: newVal }))}
+                datesWithSlots={datesWithSlots}
+                slotsCountByDate={slotsCountByDate}
+                minDate={todayStr}
+                colorTheme="purple"
               />
             </div>
 
@@ -691,7 +795,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
                 {isLoadingSlots ? (
                   <option value="">Memeriksa slot dibuka psikolog...</option>
                 ) : timeSlotOptions.length === 0 ? (
-                  <option value="">Tidak ada slot dibuka oleh psikolog pada tanggal ini</option>
+                  <option value="">Tidak ada slot dibuka oleh psikolog pada tanggal ini (atau jam slot telah terlewat)</option>
                 ) : (
                   timeSlotOptions.map((opt) => (
                     <option key={opt.label} value={opt.label}>
@@ -708,11 +812,11 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
               <div className="flex items-center gap-2 font-bold mb-1 text-amber-800">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Slot Belum Dibuka Oleh Psikolog</span>
+                <span>Slot Belum Tersedia</span>
               </div>
               <p className="text-[11px] text-amber-800 leading-relaxed">
                 {currentPsikolog?.nama || "Psikolog ini"} belum membuka jadwal slot ketersediaan pada tanggal{" "}
-                <strong>{formData.tanggal}</strong>. Admin tidak dapat membuka jam sendiri jika psikolog belum membukanya.
+                <strong>{formData.tanggal}</strong> (atau seluruh slot pada tanggal ini telah terlewat jamnya). Jadwal sesi harus menyesuaikan slot resmi yang dibuka oleh psikolog tersebut.
               </p>
               {datesWithSlots.length > 0 ? (
                 <div className="mt-2 text-[11px]">

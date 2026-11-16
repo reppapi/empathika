@@ -15,19 +15,30 @@ export interface LayananApiResponse {
   } | null
   banner_url?: string | null
   aktif: boolean
+  profesi_tersedia?: string[]
+  kategori_tenaga_tersedia?: string[]
   createdAt?: string
   updatedAt?: string
 }
 
 export type LayananApiItem = LayananApiResponse
 
+export interface LayananQueryParams {
+  kategori?: string
+  aktif?: boolean | string
+  search?: string
+  kategori_tenaga?: string
+  kategoriTenaga?: string
+  profesi?: string
+}
+
 export const layananService = {
-  getAll: (params?: { kategori?: string; aktif?: boolean | string; search?: string }) =>
+  getAll: (params?: LayananQueryParams) =>
     apiClient
       .get<{ success: boolean; data: LayananApiResponse[] }>("/layanan", { params })
       .then((r) => r.data),
 
-  getList: (params?: { kategori?: string; aktif?: boolean | string; search?: string }) =>
+  getList: (params?: LayananQueryParams) =>
     apiClient
       .get<{ success: boolean; data: LayananApiResponse[] }>("/layanan", { params })
       .then((r) => r.data),
