@@ -639,10 +639,10 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
   // ── 6. Weekly Grid & Navigation Logic ──
   const weekDays = useMemo(() => {
-    const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
+    const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
     const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agus", "Sep", "Okt", "Nov", "Des"]
 
-    return Array.from({ length: 6 }).map((_, i) => {
+    return Array.from({ length: 7 }).map((_, i) => {
       const d = new Date(currentWeekMonday)
       d.setDate(currentWeekMonday.getDate() + i)
       const dateKey = formatDateKey(d)
@@ -715,7 +715,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
   const weekRangeTitle = useMemo(() => {
     const start = new Date(currentWeekMonday)
     const end = new Date(currentWeekMonday)
-    end.setDate(currentWeekMonday.getDate() + 5)
+    end.setDate(currentWeekMonday.getDate() + 6)
 
     const monthNames = [
       "Januari", "Februari", "Maret", "April", "Mei", "Juni",

@@ -93,9 +93,9 @@ export default function JadwalMingguanGrid({
 
       {/* Weekly Grid */}
       <div className="overflow-x-auto border border-gray-200 rounded-xl hide-scrollbar">
-        <div className="min-w-[720px]">
+        <div className="min-w-[840px]">
           {/* Header */}
-          <div className="grid grid-cols-6 border-b border-gray-200 bg-gray-50/70">
+          <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70">
             {weekDays.map((wd, i) => (
               <div
                 key={i}
@@ -119,7 +119,7 @@ export default function JadwalMingguanGrid({
           </div>
 
           {/* Grid Body */}
-          <div className="grid grid-cols-6 min-h-[360px] divide-x divide-gray-200">
+          <div className="grid grid-cols-7 min-h-[360px] divide-x divide-gray-200">
             {weekDays.map((wd, i) => {
               const sessions = currentWeekAllSessions
                 .filter(

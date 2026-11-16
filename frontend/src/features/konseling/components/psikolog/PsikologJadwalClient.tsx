@@ -605,12 +605,12 @@ export default function PsikologJadwalClient() {
     }
   }
 
-  // 6 hari kerja dalam seminggu (Senin - Sabtu)
+  // 7 hari dalam seminggu (Senin - Minggu)
   const weekDays = useMemo(() => {
-    const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
+    const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
     const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agus", "Sep", "Okt", "Nov", "Des"]
 
-    return Array.from({ length: 6 }).map((_, i) => {
+    return Array.from({ length: 7 }).map((_, i) => {
       const d = new Date(currentWeekMonday)
       d.setDate(currentWeekMonday.getDate() + i)
       const dateKey = formatDateKey(d)
@@ -623,11 +623,11 @@ export default function PsikologJadwalClient() {
     })
   }, [currentWeekMonday, date])
 
-  // Judul range minggu: "3 - 8 Agustus 2026"
+  // Judul range minggu: "3 - 9 Agustus 2026"
   const weekRangeLabel = useMemo(() => {
     const start = new Date(currentWeekMonday)
     const end = new Date(currentWeekMonday)
-    end.setDate(currentWeekMonday.getDate() + 5)
+    end.setDate(currentWeekMonday.getDate() + 6)
 
     const monthNames = [
       "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -1331,9 +1331,9 @@ export default function PsikologJadwalClient() {
 
         {/* Weekly Grid */}
         <div className="overflow-x-auto border border-gray-200 rounded-xl hide-scrollbar">
-          <div className="min-w-[720px]">
+          <div className="min-w-[840px]">
             {/* Header */}
-            <div className="grid grid-cols-6 border-b border-gray-200 bg-gray-50/70">
+            <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70">
               {weekDays.map((wd, i) => {
                 const isPastDay = wd.dateKey < formatDateKey(today)
                 return (
@@ -1370,7 +1370,7 @@ export default function PsikologJadwalClient() {
             </div>
 
             {/* Grid Body */}
-            <div className="grid grid-cols-6 min-h-[360px] divide-x divide-gray-200">
+            <div className="grid grid-cols-7 min-h-[360px] divide-x divide-gray-200">
               {weekDays.map((wd, i) => {
                 const sessions = bookedSessions
                   .filter((s) => s.date === wd.dateKey)
