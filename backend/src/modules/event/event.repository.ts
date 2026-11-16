@@ -16,9 +16,9 @@ export class EventRepository {
 
   /**
    * Otomatis sinkronisasi status event & buat entri EventDokumentasi:
-   * - Jika tanggal & jam selesai event sudah lewat → update status ke COMPLETED
-   * - Jika belum ada entri EventDokumentasi untuk event tersebut → buat otomatis
-   *   (dengan judul, tanggal, deskripsi, dan banner_url sebagai foto pertama)
+   * 1. Jika tanggal & jam selesai event yang masih UPCOMING/ONGOING sudah lewat → update status ke COMPLETED.
+   * 2. Pastikan SEMUA event yang berstatus COMPLETED memiliki entri di EventDokumentasi
+   *    (baik yang baru saja lewat maupun yang ditandai COMPLETED secara manual oleh admin).
    */
   async autoUpdatePassedEvents() {
     try {
@@ -61,50 +61,61 @@ export class EventRepository {
 
       if (passedEvents.length > 0) {
         const passedIds = passedEvents.map((ev) => ev.id)
-
-        // 1. Update status event ke COMPLETED (status tetap tampil "Selesai" di admin)
+        // Update status event ke COMPLETED
         await this.prisma.event.updateMany({
           where: { id: { in: passedIds } },
           data: { status: 'COMPLETED' },
         })
+      }
 
-        // 2. Untuk setiap event yang baru selesai, buat entri EventDokumentasi
-        //    jika belum ada (dicek berdasarkan kesamaan judul + tanggal)
-        for (const ev of passedEvents) {
-          const existing = await this.prisma.eventDokumentasi.findFirst({
-            where: {
+      // Ambil seluruh event yang COMPLETED untuk memastikan ada entri di EventDokumentasi
+      const allCompletedEvents = await this.prisma.event.findMany({
+        where: {
+          status: 'COMPLETED',
+        },
+        select: {
+          id: true,
+          judul: true,
+          jenis_event: true,
+          tanggal: true,
+          deskripsi: true,
+          banner_url: true,
+        },
+      })
+
+      for (const ev of allCompletedEvents) {
+        const existing = await this.prisma.eventDokumentasi.findFirst({
+          where: {
+            judul: ev.judul,
+            tanggal: ev.tanggal,
+          },
+        })
+
+        if (!existing) {
+          const kategoriDokumentasi =
+            ev.jenis_event === 'SEMINAR'
+              ? 'SEMINAR'
+              : ev.jenis_event === 'WORKSHOP'
+              ? 'WORKSHOP'
+              : 'KOLABORASI'
+
+          const created = await this.prisma.eventDokumentasi.create({
+            data: {
               judul: ev.judul,
+              kategori: kategoriDokumentasi,
               tanggal: ev.tanggal,
+              deskripsi: ev.deskripsi || '',
             },
           })
 
-          if (!existing) {
-            const kategoriDokumentasi =
-              ev.jenis_event === 'SEMINAR'
-                ? 'SEMINAR'
-                : ev.jenis_event === 'WORKSHOP'
-                ? 'WORKSHOP'
-                : 'KOLABORASI'
-
-            const created = await this.prisma.eventDokumentasi.create({
+          if (ev.banner_url) {
+            await this.prisma.eventDokumentasiFoto.create({
               data: {
-                judul: ev.judul,
-                kategori: kategoriDokumentasi,
-                tanggal: ev.tanggal,
-                deskripsi: ev.deskripsi || '',
+                id_event_dokumentasi: created.id,
+                foto_url: ev.banner_url,
+                urutan: 0,
               },
             })
-
-            // Tambahkan banner_url sebagai foto pertama jika ada
-            if (ev.banner_url) {
-              await this.prisma.eventDokumentasiFoto.create({
-                data: {
-                  id_event_dokumentasi: created.id,
-                  foto_url: ev.banner_url,
-                  urutan: 0,
-                },
-              })
-            }
           }
         }
       }
@@ -380,5 +391,91 @@ export class EventRepository {
       },
     })
     return agg._sum.jumlah_peserta || 0
+  }
+
+  /**
+   * Ambil booking peserta yang sudah LUNAS untuk suatu event.
+   * Filter: booking.status = CONFIRMED (selalu sinkron dengan transaksi.status_pembayaran = PAID)
+   * Diurutkan berdasarkan tanggal booking terbaru.
+   */
+  async findBookingsByEventId(eventId: string) {
+    const bookings = await this.prisma.bookingEvent.findMany({
+      where: {
+        id_event: eventId,
+        // Hanya ambil yang sudah dikonfirmasi lunas
+        OR: [
+          { status: 'CONFIRMED' },
+          { transaksi: { status_pembayaran: 'PAID' } },
+        ],
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            nama: true,
+            no_telepon: true,
+          },
+        },
+        transaksi: {
+          select: {
+            id: true,
+            kode_transaksi: true,
+            total: true,
+            status_pembayaran: true,
+            metode_pembayaran: true,
+            tanggal_bayar: true,
+            data_pembayaran: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return bookings.map((b) => {
+      let namaPemesan = b.client.nama
+      let noTeleponPemesan = b.client.no_telepon
+
+      if (b.transaksi?.data_pembayaran) {
+        try {
+          const parsed = JSON.parse(b.transaksi.data_pembayaran)
+          if (parsed.nama_pemesan || parsed.nama) {
+            namaPemesan = parsed.nama_pemesan || parsed.nama
+          }
+          if (parsed.no_telepon_pemesan || parsed.no_telepon || parsed.phone) {
+            noTeleponPemesan = parsed.no_telepon_pemesan || parsed.no_telepon || parsed.phone
+          }
+        } catch {
+          // Abaikan json parse error jika bukan json valid
+        }
+      }
+
+      const rawPhone = noTeleponPemesan || ''
+      const cleanPhone = rawPhone.replace(/\D/g, '')
+      const waNumber = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone
+
+      return {
+        id: b.id,
+        kode_tiket: b.kode_tiket,
+        jumlah_peserta: b.jumlah_peserta,
+        status: b.status,
+        createdAt: b.createdAt,
+        client: {
+          id: b.client.id,
+          nama: namaPemesan,
+          no_telepon: noTeleponPemesan,
+          wa_link: waNumber ? `https://wa.me/${waNumber}` : null,
+        },
+        transaksi: b.transaksi
+          ? {
+              id: b.transaksi.id,
+              kode_transaksi: b.transaksi.kode_transaksi,
+              total: b.transaksi.total.toString(),
+              status_pembayaran: b.transaksi.status_pembayaran,
+              metode_pembayaran: b.transaksi.metode_pembayaran,
+              tanggal_bayar: b.transaksi.tanggal_bayar,
+            }
+          : null,
+      }
+    })
   }
 }

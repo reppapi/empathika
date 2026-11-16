@@ -139,4 +139,13 @@ export class EventService {
       throw error
     }
   }
+
+  async getEventBookings(id: string) {
+    // Pastikan event ada dulu
+    const existing = await this.repo.findById(id)
+    if (!existing) {
+      throw Object.assign(new Error('Event tidak ditemukan'), { statusCode: 404 })
+    }
+    return this.repo.findBookingsByEventId(id)
+  }
 }

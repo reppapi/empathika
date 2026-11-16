@@ -74,4 +74,16 @@ export class EventController {
       data: null,
     })
   }
+
+  getEventBookings = async (
+    request: FastifyRequest<{ Params: EventIdParamInput }>,
+    reply: FastifyReply
+  ) => {
+    const data = await this.service.getEventBookings(request.params.id)
+    return reply.code(200).send({
+      success: true,
+      message: 'Berhasil mengambil daftar peserta event',
+      data,
+    })
+  }
 }

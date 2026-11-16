@@ -508,7 +508,7 @@ export function EventListClient() {
               })
 
             return (
-              <div className="space-y-12 max-w-3xl mx-auto">
+              <div className="space-y-16 max-w-5xl mx-auto">
                 {/* Header Judul Kategori Sesuai DetailKerjaSama (Clean + Gradient + Underline) */}
                 <div className="flex flex-col items-center justify-center mb-2 mt-2 text-center">
                   <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
