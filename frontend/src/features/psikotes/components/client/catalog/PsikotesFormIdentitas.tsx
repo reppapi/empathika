@@ -245,6 +245,7 @@ export default function PsikotesFormIdentitas({
             <div>
               <PhoneInputField
                 label={isUnderAge ? "No WhatsApp Peserta (Opsional)" : "No WhatsApp Pribadi"}
+                labelClassName="uppercase tracking-wider font-bold mb-1.5 text-xs"
                 required={!isUnderAge}
                 value={data.noTelepon || ""}
                 onChange={(formatted) => onChange((prev) => ({ ...prev, noTelepon: formatted }))}
@@ -387,6 +388,7 @@ export default function PsikotesFormIdentitas({
                   <div>
                     <PhoneInputField
                       label="No WhatsApp Orang Tua / Wali"
+                      labelClassName="uppercase tracking-wider font-bold mb-1.5 text-xs"
                       required
                       value={data.noTeleponOrangTua || ""}
                       onChange={(formatted) => onChange((prev) => ({ ...prev, noTeleponOrangTua: formatted }))}

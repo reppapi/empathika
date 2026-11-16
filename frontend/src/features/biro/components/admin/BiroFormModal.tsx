@@ -390,6 +390,7 @@ export default function BiroFormModal({
             <div>
               <PhoneInputField
                 label="No WhatsApp"
+                labelClassName="uppercase tracking-wider font-bold mb-1.5 text-xs"
                 required
                 value={telepon}
                 onChange={(val) => {

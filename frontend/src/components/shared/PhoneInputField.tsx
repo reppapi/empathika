@@ -222,18 +222,18 @@ export function PhoneInputField({
       {label !== null && label !== "" && (
         <label
           htmlFor={id}
-          className={`block text-xs sm:text-sm font-semibold sm:font-bold text-gray-700 mb-1.5 select-none ${labelClassName}`}
+          className={`block text-xs font-semibold sm:font-bold text-gray-700 mb-1.5 sm:mb-2 select-none ${labelClassName}`}
         >
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 
       <div
-        className={`group relative flex items-center w-full rounded-xl border transition-all duration-200 bg-white ${
+        className={`group relative flex items-center w-full rounded-xl border bg-white transition-all duration-200 ${
           error
-            ? "border-red-500 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-400/20"
-            : "border-[#561269] hover:border-[#430d52] focus-within:border-[#561269] focus-within:ring-2 focus-within:ring-[#561269]/15 shadow-2xs"
-        } ${disabled ? "opacity-60 bg-gray-100 cursor-not-allowed border-gray-300" : ""} ${boxClassName}`}
+            ? "border-red-400 bg-red-50/20 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-400"
+            : "border-gray-200 hover:border-gray-300 focus-within:border-[#561269] focus-within:ring-1 focus-within:ring-[#561269] shadow-xs"
+        } ${disabled ? "opacity-60 bg-gray-100 cursor-not-allowed border-gray-200" : ""} ${boxClassName}`}
       >
         <input
           id={id}
@@ -249,12 +249,12 @@ export function PhoneInputField({
           onBlur={handleInputBlur}
           onFocus={onFocus}
           placeholder={placeholder}
-          className={`w-full px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-800 bg-transparent outline-none border-none placeholder:text-gray-400 placeholder:font-normal tracking-wide ${inputClassName}`}
+          className={`w-full px-4 py-2.5 sm:py-3 text-sm text-gray-900 bg-transparent outline-none border-none placeholder:text-gray-400 placeholder:font-normal tracking-wide ${inputClassName}`}
         />
 
         {showDigitCount && rawDigits && (
           <span
-            className={`mr-2.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold select-none shrink-0 transition-colors ${
+            className={`mr-3 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold select-none shrink-0 transition-colors ${
               isValidLength
                 ? "bg-emerald-50 text-emerald-700"
                 : rawDigits.length > maxDigits

@@ -691,6 +691,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             <div data-has-error={Boolean(errors.telepon)}>
               <PhoneInputField
                 label="No WhatsApp"
+                labelClassName="uppercase tracking-wider font-bold mb-2 text-xs"
                 required
                 value={telepon}
                 onChange={(val) => {
