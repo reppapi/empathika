@@ -2004,7 +2004,7 @@ export default function PsikologJadwalClient() {
         </div>
       </div>
 
-      {/* ── Modal Detail Sesi Klien (Pop-up yang sama seperti Admin) ── */}
+      {/* ── Modal Detail Sesi Klien (Pop-up Portal Psikolog) ── */}
       <ModalDetailSesiKlien
         session={selectedDetailSession}
         onClose={() => setSelectedDetailSession(null)}
@@ -2021,7 +2021,7 @@ export default function PsikologJadwalClient() {
           setSelectedDetailSession(null)
         }}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
-        onCopyWhatsAppPsikolog={handleCopyWhatsAppPsikologMessage}
+        isPsikologPortal={true}
       />
 
       {/* ── Modal Reschedule Sesi ── */}

@@ -37,6 +37,7 @@ interface ModalDetailSesiKlienProps {
   onCopyWhatsApp: (session: ClientSessionToday) => void
   onCopyWhatsAppPsikolog?: (session: ClientSessionToday) => void
   isReadOnly?: boolean
+  isPsikologPortal?: boolean
 }
 
 export default function ModalDetailSesiKlien({
@@ -48,6 +49,7 @@ export default function ModalDetailSesiKlien({
   onCopyWhatsApp,
   onCopyWhatsAppPsikolog,
   isReadOnly = false,
+  isPsikologPortal = false,
 }: ModalDetailSesiKlienProps) {
   const [showInvoice, setShowInvoice] = useState(false)
 
@@ -228,7 +230,7 @@ export default function ModalDetailSesiKlien({
                         {isAsesmen ? <span className="text-gray-400 font-semibold text-sm">-</span> : session.psikolog}
                       </p>
                     </div>
-                    {!isAsesmen && !isCompleted && !isCancelled && !isRescheduled && (
+                    {!isPsikologPortal && !isAsesmen && !isCompleted && !isCancelled && !isRescheduled && (
                       <div className="mt-2 pt-1.5 border-t border-purple-200/50 flex items-center gap-1.5 flex-wrap">
                         <a
                           href={getWhatsAppPsikologUrl(session)}
@@ -253,7 +255,7 @@ export default function ModalDetailSesiKlien({
                         )}
                       </div>
                     )}
-                    {!isAsesmen && isRescheduled && (
+                    {!isPsikologPortal && !isAsesmen && isRescheduled && (
                       <div className="mt-2 pt-1.5 border-t border-amber-200/50 flex items-center gap-1.5 flex-wrap">
                         <a
                           href={getWhatsAppPsikologRescheduleUrl(session)}
@@ -268,7 +270,7 @@ export default function ModalDetailSesiKlien({
                         </a>
                       </div>
                     )}
-                    {!isAsesmen && isCancelled && (
+                    {!isPsikologPortal && !isAsesmen && isCancelled && (
                       <div className="mt-2 pt-1.5 border-t border-rose-200/50 flex items-center gap-1.5 flex-wrap">
                         <a
                           href={getWhatsAppPsikologCancelUrl(session)}
@@ -419,8 +421,8 @@ export default function ModalDetailSesiKlien({
 
         {/* Footer Modal */}
         <div className="flex items-center justify-end gap-2.5 pt-5 mt-5 border-t border-gray-100 flex-wrap">
-          {/* Tombol Kirim Info Batal ke Tenaga Ahli (Psikolog) jika status dibatalkan */}
-          {isCancelled && (
+          {/* Tombol Kirim Info Batal ke Tenaga Ahli (Psikolog) jika status dibatalkan (Hanya untuk Admin Portal) */}
+          {isCancelled && !isPsikologPortal && (
             <a
               href={getWhatsAppPsikologCancelUrl(session)}
               target="_blank"
@@ -434,8 +436,8 @@ export default function ModalDetailSesiKlien({
             </a>
           )}
 
-          {/* Tombol Kirim Info Reschedule ke Tenaga Ahli jika status Reschedule */}
-          {isRescheduled && (
+          {/* Tombol Kirim Info Reschedule ke Tenaga Ahli jika status Reschedule (Hanya untuk Admin Portal) */}
+          {isRescheduled && !isPsikologPortal && (
             <a
               href={getWhatsAppPsikologRescheduleUrl(session)}
               target="_blank"
