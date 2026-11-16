@@ -48,6 +48,29 @@ export const getSlotTimeLabel = (slot: { label_waktu?: string; jam_mulai: string
   return `${slot.jam_mulai.substring(0, 5)} - ${slot.jam_selesai.substring(0, 5)} WIB`
 }
 
+export const isSlotPassed = (slot: { tanggal?: string; jam_mulai?: string; label_waktu?: string }): boolean => {
+  if (!slot.tanggal) return false
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
+  if (slot.tanggal < todayKey) return true
+  if (slot.tanggal > todayKey) return false
+
+  // Jika tanggal adalah hari ini: cek jam_mulai apakah sudah lewat dari jam sekarang
+  let timeStr = slot.jam_mulai || ""
+  if (!timeStr && slot.label_waktu) {
+    timeStr = slot.label_waktu.split("-")[0].trim()
+  }
+  timeStr = timeStr.replace(/\s*WIB/i, "").trim()
+  const parts = timeStr.split(":")
+  if (parts.length >= 2) {
+    const slotStartMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10)
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    return slotStartMinutes <= currentMinutes
+  }
+  return false
+}
+
 export interface UniqueTimeSlotOption {
   label: string
   allowsOnline: boolean
@@ -394,9 +417,16 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
 
         if (!isMounted) return
 
-        const activeDateSlots = Array.isArray(slotsForDate) ? slotsForDate : []
+        const rawDateSlots = Array.isArray(slotsForDate) ? slotsForDate : []
+        const rawAllSlots = Array.isArray(allSlots) ? allSlots : []
+
+        // FILTER JAM YANG SUDAH LEWAT:
+        // Jika hari ini dan jam mulainya sudah lewat, atau tanggal lampau, jangan tampilkan!
+        const activeDateSlots = rawDateSlots.filter((s) => !isSlotPassed(s))
+        const activeAllSlots = rawAllSlots.filter((s) => !isSlotPassed(s))
+
         setAvailableSlots(activeDateSlots)
-        setAllPsikologSlots(Array.isArray(allSlots) ? allSlots : [])
+        setAllPsikologSlots(activeAllSlots)
 
         // Jika slot tersedia untuk tanggal tersebut, pilih slot pertama atau pertahankan slot terpilih
         if (activeDateSlots.length > 0) {
@@ -722,6 +752,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
                 onChange={(newVal) => setFormData((prev) => ({ ...prev, tanggal: newVal }))}
                 datesWithSlots={datesWithSlots}
                 slotsCountByDate={slotsCountByDate}
+                minDate={todayStr}
                 colorTheme="purple"
               />
             </div>
@@ -764,7 +795,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
                 {isLoadingSlots ? (
                   <option value="">Memeriksa slot dibuka psikolog...</option>
                 ) : timeSlotOptions.length === 0 ? (
-                  <option value="">Tidak ada slot dibuka oleh psikolog pada tanggal ini</option>
+                  <option value="">Tidak ada slot dibuka oleh psikolog pada tanggal ini (atau jam slot telah terlewat)</option>
                 ) : (
                   timeSlotOptions.map((opt) => (
                     <option key={opt.label} value={opt.label}>
@@ -781,11 +812,11 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
             <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
               <div className="flex items-center gap-2 font-bold mb-1 text-amber-800">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Slot Belum Dibuka Oleh Psikolog</span>
+                <span>Slot Belum Tersedia</span>
               </div>
               <p className="text-[11px] text-amber-800 leading-relaxed">
                 {currentPsikolog?.nama || "Psikolog ini"} belum membuka jadwal slot ketersediaan pada tanggal{" "}
-                <strong>{formData.tanggal}</strong>. Admin tidak dapat membuka jam sendiri jika psikolog belum membukanya.
+                <strong>{formData.tanggal}</strong> (atau seluruh slot pada tanggal ini telah terlewat jamnya). Jadwal sesi harus menyesuaikan slot resmi yang dibuka oleh psikolog tersebut.
               </p>
               {datesWithSlots.length > 0 ? (
                 <div className="mt-2 text-[11px]">

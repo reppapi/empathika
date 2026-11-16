@@ -343,16 +343,19 @@ export default function DatePickerMiniCalendar({
                 <button
                   key={dateKey}
                   type="button"
-                  onClick={() => handleSelectDay(day)}
+                  disabled={isPast}
+                  onClick={() => !isPast && handleSelectDay(day)}
                   title={
-                    hasSlot
+                    isPast
+                      ? `📅 ${dateKey}: Tanggal telah terlewat`
+                      : hasSlot
                       ? slotCount > 0
                         ? `📅 ${dateKey}: ${slotCount} slot dibuka psikolog`
                         : `📅 ${dateKey}: Ada slot dibuka psikolog`
                       : `📅 ${dateKey}: Belum ada slot`
                   }
-                  className={`relative h-8 sm:h-9 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer text-xs select-none ${dayClasses} ${
-                    isPast ? "opacity-40" : ""
+                  className={`relative h-8 sm:h-9 rounded-xl flex flex-col items-center justify-center transition-all select-none ${dayClasses} ${
+                    isPast ? "opacity-30 cursor-not-allowed hover:bg-transparent" : "cursor-pointer"
                   }`}
                 >
                   <span className="leading-none">{day}</span>

@@ -19,6 +19,29 @@ export const getSlotTimeLabel = (slot: { label_waktu?: string; jam_mulai: string
   return `${slot.jam_mulai.substring(0, 5)} - ${slot.jam_selesai.substring(0, 5)} WIB`
 }
 
+export const isSlotPassed = (slot: { tanggal?: string; jam_mulai?: string; label_waktu?: string }): boolean => {
+  if (!slot.tanggal) return false
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+
+  if (slot.tanggal < todayKey) return true
+  if (slot.tanggal > todayKey) return false
+
+  // Jika hari ini: ambil jam mulai dan bandingkan dengan jam sekarang
+  let timeStr = slot.jam_mulai || ""
+  if (!timeStr && slot.label_waktu) {
+    timeStr = slot.label_waktu.split("-")[0].trim()
+  }
+  timeStr = timeStr.replace(/\s*WIB/i, "").trim()
+  const parts = timeStr.split(":")
+  if (parts.length >= 2) {
+    const slotStartMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10)
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    return slotStartMinutes <= currentMinutes
+  }
+  return false
+}
+
 const DEFAULT_ASESMEN_TIME_SLOTS = [
   "08:00 - 09:00",
   "09:00 - 10:00",
@@ -40,6 +63,8 @@ export default function ModalRescheduleSesi({
   onClose,
   onConfirmReschedule,
 }: ModalRescheduleSesiProps) {
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   const tomorrowKey = tomorrow.toISOString().split("T")[0]
@@ -179,9 +204,16 @@ export default function ModalRescheduleSesi({
 
         if (!isMounted) return
 
-        const activeDateSlots = Array.isArray(slotsForDate) ? slotsForDate : []
+        const rawDateSlots = Array.isArray(slotsForDate) ? slotsForDate : []
+        const rawAllSlots = Array.isArray(allSlots) ? allSlots : []
+
+        // FILTER JAM YANG SUDAH LEWAT:
+        // Jika hari ini dan jam mulainya sudah lewat, atau tanggal lampau, jangan tampilkan!
+        const activeDateSlots = rawDateSlots.filter((s) => !isSlotPassed(s))
+        const activeAllSlots = rawAllSlots.filter((s) => !isSlotPassed(s))
+
         setAvailableSlots(activeDateSlots)
-        setAllPsikologSlots(Array.isArray(allSlots) ? allSlots : [])
+        setAllPsikologSlots(activeAllSlots)
 
         if (activeDateSlots.length > 0) {
           // Cari apakah jam yang sedang dipilih ada dalam slot tanggal baru
@@ -258,12 +290,28 @@ export default function ModalRescheduleSesi({
 
   // Opsi jam bebas untuk Asesmen (admin leluasa menentukan jadwal)
   const asesmenTimeSlots = useMemo(() => {
+    const now = new Date()
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+    const isToday = newDate === todayKey
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
     const cleanCurrent = (session?.waktu || "").replace(/\s*WIB/i, "").trim()
-    if (cleanCurrent && !DEFAULT_ASESMEN_TIME_SLOTS.includes(cleanCurrent)) {
-      return [cleanCurrent, ...DEFAULT_ASESMEN_TIME_SLOTS]
-    }
-    return DEFAULT_ASESMEN_TIME_SLOTS
-  }, [session?.waktu])
+    const baseList = cleanCurrent && !DEFAULT_ASESMEN_TIME_SLOTS.includes(cleanCurrent)
+      ? [cleanCurrent, ...DEFAULT_ASESMEN_TIME_SLOTS]
+      : DEFAULT_ASESMEN_TIME_SLOTS
+
+    if (!isToday) return baseList
+
+    // Jika hari ini: filter jam yang sudah lewat
+    return baseList.filter((timeStr) => {
+      const startParts = timeStr.split("-")[0].trim().split(":")
+      if (startParts.length >= 2) {
+        const slotStartMinutes = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10)
+        return slotStartMinutes > currentMinutes
+      }
+      return true
+    })
+  }, [session?.waktu, newDate])
 
   // Daftar tanggal yang memiliki slot dibuka oleh psikolog ini
   const datesWithSlots = useMemo(() => {
@@ -410,6 +458,7 @@ export default function ModalRescheduleSesi({
               </label>
               <input
                 type="date"
+                min={todayStr}
                 value={newDate}
                 onChange={(e) => setNewDate(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-gray-900 font-medium cursor-pointer"
@@ -426,6 +475,7 @@ export default function ModalRescheduleSesi({
                 onChange={(newVal) => setNewDate(newVal)}
                 datesWithSlots={datesWithSlots}
                 slotsCountByDate={slotsCountByDate}
+                minDate={todayStr}
                 colorTheme="amber"
               />
             </div>

@@ -479,7 +479,26 @@ export class BookingService {
     }
     const slots = await this.repo.findJadwalTersedia(resolvedQuery)
 
-    return slots.map((slot) => ({
+    const now = new Date()
+    const todayStr = formatDateToString(now)
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+    // Filter slot yang jamnya sudah terlewat jika tanggalnya adalah hari ini atau lampau
+    const upcomingSlots = slots.filter((slot) => {
+      const slotDateStr = formatDateToString(slot.tanggal)
+      if (slotDateStr < todayStr) return false
+      if (slotDateStr > todayStr) return true
+
+      const jamMulaiStr = formatTimeToString(slot.jam_mulai)
+      const parts = jamMulaiStr.split(':')
+      if (parts.length >= 2) {
+        const slotStartMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10)
+        return slotStartMinutes > currentMinutes
+      }
+      return true
+    })
+
+    return upcomingSlots.map((slot) => ({
       id: slot.id,
       id_psikolog: slot.id_psikolog,
       nama_psikolog: slot.psikolog.nama_gelar,
