@@ -385,7 +385,7 @@ export async function seedCDI(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-depresi.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Perasaan sedih, kehilangan semangat, atau merasa kurang percaya diri bisa menjadi pengalaman yang tidak mudah untuk diungkapkan. Tes ini membantu mengenali berbagai pengalaman emosional pada anak dan remaja, mulai dari suasana hati negatif, hubungan dengan orang lain, perasaan tidak mampu, kehilangan minat, hingga cara mereka memandang diri sendiri.',
     status: 'PUBLISHED',

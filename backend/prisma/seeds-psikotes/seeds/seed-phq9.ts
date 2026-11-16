@@ -139,7 +139,7 @@ export async function seedPHQ9(prisma: PrismaClient) {
     id_alat_ukur: alatUkurPHQ9.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-depresi.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Ada kalanya suasana hati berubah dan hal-hal yang biasanya menyenangkan terasa berbeda. Melalui tes ini, kamu diajak melihat lebih jauh pengalaman yang berkaitan dengan suasana hati, minat, pola tidur, nafsu makan, energi, konsentrasi, serta pikiran yang mungkin muncul dalam dua minggu terakhir.',
     status: 'PUBLISHED',

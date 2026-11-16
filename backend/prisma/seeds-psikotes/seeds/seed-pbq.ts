@@ -191,7 +191,7 @@ export async function seedPBQ(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: null,
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Cara kita memandang diri sendiri, orang lain, dan lingkungan dapat memengaruhi bagaimana kita menjalani kehidupan. Tes ini mengeksplorasi berbagai keyakinan yang berkaitan dengan pola kepribadian, termasuk cara seseorang memahami dirinya, menjalin hubungan, dan menyikapi situasi di sekitarnya.',
     status: 'PUBLISHED',

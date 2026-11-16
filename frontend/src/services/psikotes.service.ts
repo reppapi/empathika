@@ -76,7 +76,7 @@ export interface PaketPsikotesApiResponse {
 }
 
 export interface SubmitPsikotesPayload {
-  jawaban: Array<{ id_soal: string; id_pilihan: string }> | Record<string, string>
+  jawaban: Array<{ id_soal: string; id_pilihan: string; teks_jawaban?: string | null }> | Record<string, string>
   id_booking?: string
   bookingId?: string
   orderId?: string
@@ -106,6 +106,7 @@ export interface SubmitPsikotesPayload {
   peristiwaLainnya?: string | null
   peristiwa_paling_mengganggu?: string | null
   peristiwaPalingMengganggu?: string | null
+  choci_isian?: Record<string | number, string> | null
 }
 
 export interface SubmitPsikotesResult {

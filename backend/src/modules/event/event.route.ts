@@ -197,4 +197,19 @@ export default async function eventRoutes(fastify: FastifyInstance) {
     },
     handler: controller.remove,
   })
+
+  // ─────────────────────────────────────────────────────────────────
+  // 6. ADMIN ONLY: Daftar peserta/booking suatu event
+  // GET /api/v1/event/:id/bookings
+  // ─────────────────────────────────────────────────────────────────
+  fastify.get('/:id/bookings', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Event'],
+      summary: 'Mendapatkan daftar peserta yang mendaftar event (Admin Only)',
+      security: [{ bearerAuth: [] }],
+      params: eventIdParamSchema,
+    },
+    handler: controller.getEventBookings,
+  })
 }

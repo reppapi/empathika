@@ -111,7 +111,7 @@ export async function seedGAD7(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-kecemasan.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Pernah merasa gelisah, terus-menerus khawatir, atau sulit menenangkan pikiran? Tes ini mengajak kamu mengenali pengalaman kecemasan yang mungkin muncul dalam dua minggu terakhir, mulai dari rasa gugup, sulit mengendalikan kekhawatiran, hingga perasaan takut bahwa sesuatu yang buruk akan terjadi.',
     status: 'PUBLISHED',

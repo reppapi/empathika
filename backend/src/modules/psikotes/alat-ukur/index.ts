@@ -23,6 +23,9 @@ import { calculateCDI } from "./cdi/scoring";
 import { CATS_CONFIG } from "./cats/config";
 import { calculateCATS } from "./cats/scoring";
 
+import { CHOCI_CONFIG } from "./choci-r/config";
+import { calculateCHOCI } from "./choci-r/scoring";
+
 export interface AlatUkurModule {
   config: {
     kode: string;
@@ -74,6 +77,14 @@ const registry: Record<string, AlatUkurModule> = {
   "CATS": {
     config: CATS_CONFIG,
     calculate: calculateCATS,
+  },
+  "CHOCI-R": {
+    config: CHOCI_CONFIG,
+    calculate: calculateCHOCI,
+  },
+  "CHOCI": {
+    config: CHOCI_CONFIG,
+    calculate: calculateCHOCI,
   },
 };
 

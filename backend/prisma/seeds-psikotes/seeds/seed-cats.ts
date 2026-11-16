@@ -370,7 +370,7 @@ export async function seedCATS(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-cats.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Pengalaman yang menakutkan atau menyakitkan terkadang dapat meninggalkan dampak yang tidak mudah dilupakan. Tes ini membantu mengenali pengalaman yang berpotensi traumatis serta gejala pascatrauma yang mungkin dialami anak dan remaja. Tes ini juga melihat apakah pengalaman tersebut memengaruhi kehidupan sehari-hari, seperti aktivitas sekolah, hubungan dengan keluarga dan teman, serta hal-hal yang biasanya disukai.',
     status: 'PUBLISHED',

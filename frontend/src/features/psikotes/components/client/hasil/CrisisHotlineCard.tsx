@@ -1,7 +1,6 @@
 /** Kartu bantuan darurat dan hotline krisis saat terdeteksi indikasi melukai diri. */
 "use client";
 
-import Link from "next/link";
 import { PhoneCall } from "lucide-react";
 
 export default function CrisisHotlineCard() {
@@ -17,7 +16,7 @@ export default function CrisisHotlineCard() {
         </p>
       </div>
 
-      {/* Sub-Card 1: Hotline Krisis (Atas) */}
+      {/* Hotline Krisis Darurat */}
       <div className="bg-white rounded-2xl p-5 border border-[#fecdd3] shadow-2xs space-y-3">
         <h4 className="text-sm sm:text-base font-bold text-gray-900">
           Layanan Bantuan & Hotline Krisis Darurat:
@@ -33,25 +32,6 @@ export default function CrisisHotlineCard() {
           <span>Hotline Kemenkes: 119 (ext. 8)</span>
         </a>
       </div>
-
-      {/* Sub-Card 2: Konsultasi Psikolog (Bawah) */}
-      <div className="bg-white rounded-2xl p-5 border border-[#fecdd3] shadow-2xs space-y-3">
-        <h4 className="text-sm sm:text-base font-bold text-gray-900">
-          Konsultasi dengan Psikolog
-        </h4>
-        <p className="text-xs text-gray-600 leading-relaxed">
-          Jika kamu merasa membutuhkan ruang aman dan pendampingan profesional untuk kondisimu saat ini, psikolog profesional Empathika siap menemanimu.
-        </p>
-        <Link href="/konseling" className="w-full block">
-          <button
-            type="button"
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs sm:text-sm transition shadow-xs active:scale-98 cursor-pointer"
-          >
-            <span>Konsultasi dengan Psikolog</span>
-          </button>
-        </Link>
-      </div>
     </div>
   );
 }
-
