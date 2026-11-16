@@ -74,7 +74,7 @@ export class PsikologRepository {
       include: {
         spesialisasi: true,
         account: { select: ACCOUNT_PUBLIC_SELECT },
-        jadwal_slot: getJadwalSlotInclude(10),
+        jadwal_slot: getJadwalSlotInclude(30),
         _count: BOOKING_COUNT_SELECT,
       },
       orderBy: { nama_gelar: 'asc' },
