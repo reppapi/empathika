@@ -22,16 +22,35 @@ const getStartOfTodayWIB = () => {
   return new Date(`${yyyy}-${mm}-${dd}T00:00:00.000Z`)
 }
 
-const getJadwalSlotInclude = (takeCount: number = 20) => ({
-  where: {
-    status: 'TERSEDIA' as const,
-    tipe_jadwal: 'KONSULTASI' as const,
-    tanggal: { gte: getStartOfTodayWIB() },
-    NOT: { id: { startsWith: 'slot-' } },
-  },
-  orderBy: [{ tanggal: 'asc' as const }, { jam_mulai: 'asc' as const }],
-  take: takeCount,
-})
+const getJadwalSlotInclude = (takeCount: number = 30) => {
+  const today = getStartOfTodayWIB()
+  const now = new Date()
+  const wibOffset = 7 * 60 * 60 * 1000
+  const wibDate = new Date(now.getTime() + wibOffset)
+  const currentHours = wibDate.getUTCHours()
+  const currentMinutes = wibDate.getUTCMinutes()
+  const currentTimeToday = new Date(
+    `1970-01-01T${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}:00.000Z`
+  )
+
+  return {
+    where: {
+      status: 'TERSEDIA' as const,
+      tipe_jadwal: 'KONSULTASI' as const,
+      booking_konsultasi: null,
+      NOT: { id: { startsWith: 'slot-' } },
+      OR: [
+        { tanggal: { gt: today } },
+        {
+          tanggal: today,
+          jam_mulai: { gte: currentTimeToday },
+        },
+      ],
+    },
+    orderBy: [{ tanggal: 'asc' as const }, { jam_mulai: 'asc' as const }],
+    take: takeCount,
+  }
+}
 
 const BOOKING_COUNT_SELECT = {
   select: {
