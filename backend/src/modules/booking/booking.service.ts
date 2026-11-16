@@ -137,8 +137,8 @@ export class BookingService {
       const jamSelesaiStr = formatTimeToString(slot.jam_selesai)
       const timeSlot = `${jamMulaiStr} - ${jamSelesaiStr}`
       const isBooked = slot.status === 'SUDAH_DIBOOKING' || Boolean(slot.booking_konsultasi)
-      const clientName = slot.booking_konsultasi?.client?.nama || (isBooked ? 'Klien Terdaftar' : undefined)
-      const clientPhone = slot.booking_konsultasi?.client?.no_telepon || (isBooked ? '+62 812-3456-7890' : null)
+      const clientName = slot.booking_konsultasi?.client?.nama || undefined
+      const clientPhone = slot.booking_konsultasi?.client?.no_telepon || null
       const clientId = slot.booking_konsultasi?.client?.id || null
       const isAsesmen =
         slot.tipe_jadwal === 'ASESMEN' ||

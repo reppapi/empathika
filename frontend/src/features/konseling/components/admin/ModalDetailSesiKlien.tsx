@@ -127,7 +127,7 @@ export default function ModalDetailSesiKlien({
             </div>
 
             {(() => {
-              const displayContact = session.kontak || "+62 812-3456-7890"
+              const displayContact = session.kontak || "-"
               const sessionWithContact = { ...session, kontak: displayContact }
               return (
                 <div className="pt-3 border-t border-gray-200/70 space-y-2.5">
