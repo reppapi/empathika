@@ -365,6 +365,7 @@ model Event {
   kuota_tiket_bundling Int?    @default(2)
   nama_bundling  String?
   paket_bundling Json?
+  benefit        String[]    @default([])
   status         StatusEvent @default(UPCOMING)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt

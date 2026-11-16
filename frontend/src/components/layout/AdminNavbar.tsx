@@ -79,7 +79,7 @@ export function AdminNavbar({
   title,
   description,
   adminName = "Admin Empathika",
-  subtitle = "texttext",
+  subtitle = "Admin Utama",
   onToggleSidebar,
 }: AdminNavbarProps) {
   const pathname = usePathname()

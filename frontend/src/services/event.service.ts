@@ -26,6 +26,7 @@ export interface EventItemApi {
   kuota_tiket_bundling?: number | null
   nama_bundling?: string | null
   paket_bundling?: PaketBundlingItem[] | null
+  benefit?: string[]
   banner_url: string | null
   nama_pembicara: string
   status: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -53,6 +54,7 @@ export interface CreateEventDto {
   kuota_tiket_bundling?: number | null
   nama_bundling?: string | null
   paket_bundling?: PaketBundlingItem[] | null
+  benefit?: string[]
   banner_url?: string | null
   nama_pembicara: string
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -76,6 +78,7 @@ export interface UpdateEventDto {
   kuota_tiket_bundling?: number | null
   nama_bundling?: string | null
   paket_bundling?: PaketBundlingItem[] | null
+  benefit?: string[]
   banner_url?: string | null
   nama_pembicara?: string
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"

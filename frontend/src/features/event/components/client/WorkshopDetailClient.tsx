@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { CheckCircle2 } from "lucide-react"
 import { AdminEventData } from "@/features/event/data/adminEventData"
 
 interface Props {
@@ -24,6 +25,7 @@ export default function WorkshopDetailClient({ id: _id, event }: Props) {
     hargaCoretNum > hargaNum && hargaCoretNum > 0
       ? Math.round(((hargaCoretNum - hargaNum) / hargaCoretNum) * 100)
       : 0
+  const benefits = (event?.benefit ?? []).filter((b) => b.trim() !== "")
 
   return (
     <div className="min-h-screen bg-white font-poppins text-gray-800 overflow-x-hidden">
@@ -108,6 +110,27 @@ export default function WorkshopDetailClient({ id: _id, event }: Props) {
           </div>
         </div>
       </section>
+
+      {/* Benefit Section jika ada */}
+      {benefits.length > 0 && (
+        <section className="w-full bg-[#FAF5FC] py-12 border-y border-purple-100">
+          <div className="w-full max-w-[1200px] mx-auto px-6">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-[#561269] mb-6 text-center md:text-left">
+              Benefit yang Didapatkan
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {benefits.map((benefitItem, idx) => (
+                <div key={idx} className="flex items-start gap-3 bg-white p-4 rounded-xl shadow-xs border border-purple-100/60">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="text-sm md:text-base font-medium text-gray-800 leading-snug">
+                    {benefitItem}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 2. Second Section (Text on Right, Purple Overlay) */}
       <section className="w-full">
