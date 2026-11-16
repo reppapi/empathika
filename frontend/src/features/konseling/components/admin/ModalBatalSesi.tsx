@@ -35,7 +35,7 @@ export default function ModalBatalSesi({
           Apakah Anda yakin ingin membatalkan sesi untuk{" "}
           <strong className="text-gray-800">{session.namaKlien}</strong>{" "}
           {session.date ? `pada tanggal ${session.date} (${session.waktu})` : `(${session.waktu})`}?
-          Tindakan ini akan membatalkan jadwal konseling (maksimal H-3 jam sebelum sesi) dan mengubah statusnya di seluruh sistem.
+          Tindakan ini akan membatalkan jadwal konseling (kebijakan pembatalan maksimal H-1 hari sebelum sesi) dan mengubah statusnya di seluruh sistem.
         </p>
         <div className="flex gap-2.5">
           <button

@@ -177,8 +177,8 @@ export function canRescheduleSession(dateStr?: string, waktuStr?: string): boole
 
 /**
  * Aturan Bisnis Pembatalan Sesi:
- * Sesi dapat dibatalkan oleh Admin jika sesi belum selesai dan tanggal jadwalnya hari ini atau ke depan.
- * Jika sesi dibatalkan sebelum hari H (maksimal H-1), klien berhak mengajukan refund.
+ * Sesi hanya dapat dibatalkan maksimal H-1 hari sebelum tanggal jadwal sesi.
+ * Jika sudah hari H (hari ini) atau tanggal sudah lewat/lampau, sesi TIDAK DAPAT dibatalkan lagi.
  */
 export function canCancelSession(dateStr?: string): boolean {
   if (!dateStr) return false
@@ -188,8 +188,8 @@ export function canCancelSession(dateStr?: string): boolean {
   const day = String(now.getDate()).padStart(2, "0")
   const todayKey = `${year}-${month}-${day}`
 
-  // Jika tanggal sudah lewat kemarin, tidak bisa dibatalkan lagi
-  return dateStr >= todayKey
+  // Pembatalan hanya diperbolehkan jika tanggal sesi di masa depan (H-1 ke atas / hari esok atau selanjutnya)
+  return dateStr > todayKey
 }
 
 export interface RescheduledSessionRecord {

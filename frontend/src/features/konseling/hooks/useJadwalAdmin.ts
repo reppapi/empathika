@@ -164,10 +164,10 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     const waktu = targetToday?.waktu || targetBooked?.waktu || targetCombined?.waktu || ""
     const psikolog = targetToday?.psikolog || targetBooked?.psikolog || targetCombined?.psikolog || ""
 
-    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan jika jadwal belum lewat kemarin
+    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan maksimal H-1 hari (tidak bisa di hari H)
     if (!canCancelSession(dateKey)) {
       triggerToast(
-        "Pembatalan tidak dapat dilakukan untuk jadwal yang sudah lampau.",
+        "Pembatalan sesi hanya dapat dilakukan maksimal H-1 hari. Sesi pada hari H tidak dapat dibatalkan.",
         "danger"
       )
       return

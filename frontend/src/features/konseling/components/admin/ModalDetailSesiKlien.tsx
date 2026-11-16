@@ -494,16 +494,24 @@ export default function ModalDetailSesiKlien({
                 </button>
               )}
 
-              {/* Tombol Batalkan Sesi */}
-              {isCancellable && (
-                <button
-                  type="button"
-                  onClick={() => onCancelClick(session)}
-                  className="px-4 py-2 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition cursor-pointer"
-                >
-                  Batalkan Sesi
-                </button>
-              )}
+              {/* Tombol Batalkan Sesi: HANYA aktif jika maksimal H-1 hari (Hari H dinonaktifkan) */}
+              <button
+                type="button"
+                onClick={() => onCancelClick(session)}
+                disabled={!isCancellable}
+                className={`px-4 py-2 rounded-full border text-xs font-bold transition ${
+                  isCancellable
+                    ? "border-red-200 text-red-600 hover:bg-red-50 cursor-pointer shadow-2xs active:scale-95"
+                    : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
+                }`}
+                title={
+                  isCancellable
+                    ? "Batalkan sesi konsultasi klien ini (Maksimal H-1 Hari)"
+                    : "Sesi tidak dapat dibatalkan karena sudah masuk hari H (Batas pembatalan maksimal H-1 hari)"
+                }
+              >
+                {isCancellable ? "Batalkan Sesi" : "Batalkan (Hari H)"}
+              </button>
 
               {/* Tombol Tandai Selesai */}
               <button

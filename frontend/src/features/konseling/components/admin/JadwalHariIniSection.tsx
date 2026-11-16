@@ -611,18 +611,28 @@ export default function JadwalHariIniSection({
                                     )
                                   })()}
 
-                                  {/* Batalkan Sesi Button */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      onSelectCancel(item)
-                                      setActiveMenuId(null)
-                                    }}
-                                    className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-gray-100"
-                                  >
-                                    <XCircle className="w-4 h-4 text-red-500 shrink-0" />
-                                    <span>Batalkan Sesi</span>
-                                  </button>
+                                  {/* Batalkan Sesi Button (Hanya jika belum Hari H / H-1) */}
+                                  {canCancelSession(item.tanggal || item.date) ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        onSelectCancel(item)
+                                        setActiveMenuId(null)
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-gray-100"
+                                    >
+                                      <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                      <span>Batalkan Sesi</span>
+                                    </button>
+                                  ) : (
+                                    <div
+                                      className="w-full text-left px-4 py-2 text-xs font-medium text-gray-400 bg-gray-50/50 flex items-center gap-2.5 cursor-not-allowed border-t border-gray-100"
+                                      title="Sesi pada hari H tidak dapat dibatalkan (Batas maksimal H-1 hari)"
+                                    >
+                                      <XCircle className="w-4 h-4 text-gray-300 shrink-0" />
+                                      <span>Batalkan (Hari H)</span>
+                                    </div>
+                                  )}
                                 </>
                               )}
 
