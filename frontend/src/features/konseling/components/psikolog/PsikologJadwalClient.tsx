@@ -4,11 +4,19 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { PilihTanggalBox } from "@/components/shared/PilihTanggalBox"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 import { adminService } from "@/services/admin.service"
+import { bookingService } from "@/services/booking.service"
 import { useAuthStore } from "@/store/authStore"
 import {
   getCancelledSessions,
   isSessionCancelled,
+  recordCancelledSession,
 } from "@/features/konseling/utils/cancellationSync"
+import ModalDetailSesiKlien from "@/features/konseling/components/admin/ModalDetailSesiKlien"
+import { ClientSessionToday, ClientSessionStatus } from "@/features/konseling/types"
+import {
+  formatWhatsAppMessage,
+  formatWhatsAppPsikologReminder,
+} from "@/features/konseling/data/jadwalAdminData"
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,6 +30,7 @@ import {
   Trash2,
   Sparkles,
   ChevronDown,
+  AlertTriangle,
 } from "lucide-react"
 import { layananService } from "@/services/layanan.service"
 
@@ -300,6 +309,139 @@ export default function PsikologJadwalClient() {
 
     setBookingSuccessMsg(`Jam kustom (${timeToRemove}) berhasil dihapus dari pilihan.`)
     setTimeout(() => setBookingSuccessMsg(null), 3000)
+  }
+
+  // State detail sesi yang sedang dipilih untuk pop-up modal
+  const [selectedDetailSession, setSelectedDetailSession] = useState<ClientSessionToday | null>(null)
+
+  // Toast feedback aksi sesi (pembatalan, salin link/pesan, selesai)
+  const [actionToast, setActionToast] = useState<{ message: string; type: "success" | "danger" } | null>(null)
+
+  const triggerToast = (message: string, type: "success" | "danger" = "success") => {
+    setActionToast({ message, type })
+    setTimeout(() => setActionToast(null), 3500)
+  }
+
+  // Konversi BookedSession ke bentuk ClientSessionToday untuk ModalDetailSesiKlien
+  const convertSessionToDetail = useCallback(
+    (s: BookedSession): ClientSessionToday => {
+      const isPastOrDone = isSessionPastOrCompleted(s.date, s.waktu, s.status)
+      let statusSession: ClientSessionStatus = "Menunggu Jadwal"
+      if (s.isCancelled || s.status === "Dibatalkan" || s.status === "CANCELLED") {
+        statusSession = "Dibatalkan"
+      } else if (isPastOrDone || s.status === "Selesai" || s.status === "COMPLETED") {
+        statusSession = "Selesai"
+      }
+
+      return {
+        id: s.id,
+        date: s.date,
+        tanggal: s.date,
+        waktu: s.waktu,
+        namaKlien: s.namaKlien && s.namaKlien !== "Tersedia" ? s.namaKlien : "Klien Terdaftar",
+        klienId: "010" + Math.floor(100 + Math.random() * 900),
+        kontak: (s as any).kontak || "+62 812-3456-7890",
+        psikolog:
+          s.namaPsikolog ||
+          activePsikolog?.nama_gelar ||
+          (activePsikolog as any)?.account?.nama ||
+          user?.name ||
+          "Psikolog Empathika",
+        idPsikolog: s.id_psikolog || activePsikolog?.id,
+        noTeleponPsikolog: (activePsikolog as any)?.no_telepon || "+62 821-7373-9213",
+        layanan: s.layanan || "Konsultasi Psikologi",
+        tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
+        status: statusSession,
+        isPaid: true,
+      }
+    },
+    [activePsikolog, user]
+  )
+
+  const handleSelectDetailSession = (s: BookedSession) => {
+    setSelectedDetailSession(convertSessionToDetail(s))
+  }
+
+  // Pembatalan otomatis sesi klien
+  const handleCancelClientBooking = async (sessionOrItem: BookedSession | ClientSessionToday) => {
+    const targetId = sessionOrItem.id
+    const targetDate = sessionOrItem.date || (sessionOrItem as any).tanggal || ""
+    const targetTime = sessionOrItem.waktu
+    const clientName = sessionOrItem.namaKlien || "Klien"
+    const psikologName =
+      (sessionOrItem as any).namaPsikolog ||
+      (sessionOrItem as any).psikolog ||
+      activePsikolog?.nama_gelar ||
+      "Psikolog"
+
+    // 1. Optimistic UI update di grid
+    setBookedSessions((prev) =>
+      prev.map((s) => {
+        const isMatch =
+          (targetId && s.id === targetId) ||
+          (s.date === targetDate && s.waktu === targetTime)
+        if (isMatch) {
+          return { ...s, isCancelled: true, status: "Dibatalkan" }
+        }
+        return s
+      })
+    )
+
+    // 2. Simpan ke sistem sinkronisasi pembatalan (localStorage + CustomEvent)
+    recordCancelledSession({
+      id: targetId,
+      date: targetDate,
+      waktu: targetTime,
+      namaKlien: clientName,
+      psikolog: psikologName,
+    })
+
+    // 3. Batalkan di backend jika ID adalah UUID booking resmi
+    if (targetId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId)) {
+      try {
+        await bookingService.cancelBooking(targetId)
+      } catch (err: any) {
+        console.warn("Backend cancel notice:", err?.response?.data?.message || err.message)
+      }
+    }
+
+    // 4. Toast notifikasi
+    triggerToast(`Sesi ${clientName} (${targetTime}) berhasil dibatalkan.`, "danger")
+
+    // 5. Muat ulang jadwal agar data konsisten
+    loadScheduleForPsikolog()
+  }
+
+  const handleMarkCompleted = async (id: string, namaKlien: string) => {
+    if (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+      try {
+        await adminService.updateBookingStatus(id, "COMPLETED")
+      } catch (err: any) {
+        console.warn("Update status error:", err?.response?.data?.message || err.message)
+      }
+    }
+
+    setBookedSessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: "Selesai" } : s))
+    )
+    triggerToast(`Sesi ${namaKlien} berhasil ditandai Selesai!`, "success")
+    loadScheduleForPsikolog()
+  }
+
+  const handleCopyWhatsAppMessage = (session: ClientSessionToday) => {
+    const text = formatWhatsAppMessage(session)
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text)
+    }
+    triggerToast(`Pesan jadwal untuk ${session.namaKlien} berhasil disalin ke clipboard!`, "success")
+  }
+
+  const handleCopyWhatsAppPsikologMessage = (session: ClientSessionToday) => {
+    const text = formatWhatsAppPsikologReminder(session)
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text)
+    }
+    triggerToast(`Pesan pengingat jadwal untuk ${session.psikolog} berhasil disalin!`, "success")
   }
 
   const isFetchingRef = useRef(false)
@@ -1432,7 +1574,8 @@ export default function PsikologJadwalClient() {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all bg-rose-50/80 border border-rose-200/90 text-gray-600 overflow-hidden"
+                              onClick={() => handleSelectDetailSession(item)}
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-rose-50/80 border border-rose-200/90 text-gray-600 overflow-hidden"
                             >
                               <div className="flex items-center justify-between gap-1 flex-wrap">
                                 <div className="flex items-center gap-1.5 min-w-0">
@@ -1466,7 +1609,8 @@ export default function PsikologJadwalClient() {
                             return (
                               <div
                                 key={item.id || idx}
-                                className="rounded-xl p-2.5 flex flex-col gap-1 shadow-2xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden"
+                                onClick={() => handleSelectDetailSession(item)}
+                                className="rounded-xl p-2.5 flex flex-col gap-1 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden"
                               >
                                 <div className="flex items-center justify-between gap-1 flex-wrap">
                                   <div className="flex items-center gap-1.5 min-w-0">
@@ -1504,7 +1648,8 @@ export default function PsikologJadwalClient() {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs hover:shadow-md transition-all bg-[#E8F3ED] border border-[#b4d6be] overflow-hidden"
+                              onClick={() => handleSelectDetailSession(item)}
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs hover:shadow-md transition-all bg-[#E8F3ED] border border-[#b4d6be] overflow-hidden cursor-pointer hover:scale-[1.01]"
                             >
                               <div className="flex items-center justify-between gap-1 flex-wrap">
                                 <div className="flex items-center gap-1.5 min-w-0">
@@ -1513,9 +1658,23 @@ export default function PsikologJadwalClient() {
                                     {item.waktu}
                                   </span>
                                 </div>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs shrink-0">
-                                  {item.metode}
-                                </span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs shrink-0">
+                                    {item.metode}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      handleCancelClientBooking(item)
+                                    }}
+                                    title="Batalkan sesi klien ini"
+                                    className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                               <span className="text-xs font-bold text-gray-900 line-clamp-1">
                                 {item.layanan}
@@ -1683,6 +1842,34 @@ export default function PsikologJadwalClient() {
           </div>
         </div>
       </div>
+
+      {/* ── Modal Detail Sesi Klien (Pop-up yang sama seperti Admin) ── */}
+      <ModalDetailSesiKlien
+        session={selectedDetailSession}
+        onClose={() => setSelectedDetailSession(null)}
+        onCancelClick={(session) => {
+          handleCancelClientBooking(session)
+          setSelectedDetailSession(null)
+        }}
+        onMarkCompleted={(id, namaKlien) => {
+          handleMarkCompleted(id, namaKlien)
+          setSelectedDetailSession(null)
+        }}
+        onCopyWhatsApp={handleCopyWhatsAppMessage}
+        onCopyWhatsAppPsikolog={handleCopyWhatsAppPsikologMessage}
+      />
+
+      {/* ── Toast Notifikasi Aksi ── */}
+      {actionToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-gray-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-gray-700 animate-in slide-in-from-bottom-5">
+          {actionToast.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          )}
+          <span>{actionToast.message}</span>
+        </div>
+      )}
     </div>
   )
 }
