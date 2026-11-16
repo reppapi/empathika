@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from "react"
-import { Calendar, Plus, CheckCircle2 } from "lucide-react"
+import React, { useState, useEffect, useCallback } from "react"
+import { Calendar, Plus, CheckCircle2, Wallet, Users, Sparkles, Clock, FileText } from "lucide-react"
 
 import ModalTambahSesi, { NewSessionData } from "./ModalTambahSesi"
 import DashboardStatCards from "./DashboardStatCards"
@@ -10,45 +10,172 @@ import DashboardAgenda from "./DashboardAgenda"
 import DashboardTodaySessions from "./DashboardTodaySessions"
 import DashboardRecentTransactions from "./DashboardRecentTransactions"
 
-import { TodaySessionItem, RecentTransactionItem } from "../../types"
-import {
-  INITIAL_DASHBOARD_METRICS,
-  INITIAL_AGENDA_LIST,
-} from "../../data/dashboardData"
+import { TodaySessionItem, RecentTransactionItem, MetricItem, AgendaItem } from "../../types"
 import { adminService } from "@/services/admin.service"
 
 export default function AdminDashboardClient() {
-  // 1. Ambil sesi konseling hari ini langsung dari Database PostgreSQL via adminService
-  const [sessions, setSessions] = useState<TodaySessionItem[]>([])
+  // 1. Ambil 5 kartu metrik ringkasan operasional real-time dari database
+  const [metrics, setMetrics] = useState<MetricItem[]>([])
+  const [metricsLoading, setMetricsLoading] = useState(true)
+  const [metricsError, setMetricsError] = useState<string | null>(null)
 
-  // 2. State transaksi pembayaran terbaru (dari API)
+  // 2. Ambil sesi konseling hari ini langsung dari Database PostgreSQL via adminService
+  const [sessions, setSessions] = useState<TodaySessionItem[]>([])
+  const [totalTodayCount, setTotalTodayCount] = useState<number>(0)
+  const [sessionsLoading, setSessionsLoading] = useState(true)
+  const [sessionsError, setSessionsError] = useState<string | null>(null)
+
+  // 3. State transaksi pembayaran terbaru (dari API)
   const [transactions, setTransactions] = useState<RecentTransactionItem[]>([])
+  const [totalTransactionsCount, setTotalTransactionsCount] = useState<number>(0)
+  const [transactionsLoading, setTransactionsLoading] = useState(true)
+  const [transactionsError, setTransactionsError] = useState<string | null>(null)
+
+  // 4. Agenda & Peringatan langsung dari Database PostgreSQL
+  const [agendaList, setAgendaList] = useState<AgendaItem[]>([])
+  const [agendaLoading, setAgendaLoading] = useState(true)
+  const [agendaError, setAgendaError] = useState<string | null>(null)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
-  // Muat sesi konseling hari ini murni dari Database
-  useEffect(() => {
+  // Muat 5 kartu metrik ringkasan operasional murni dari Database
+  const fetchMetrics = useCallback(() => {
+    setMetricsLoading(true)
+    setMetricsError(null)
     adminService
-      .getJadwal()
+      .getDashboardMetrics()
       .then((res: any) => {
-        if (res && Array.isArray(res.todaySessions)) {
-          setSessions(
-            res.todaySessions.map((item: any) => ({
-              waktu: (item.waktuRange || item.waktu || "").includes("WIB")
-                ? item.waktuRange || item.waktu
-                : `${item.waktuRange || item.waktu || ""} WIB`,
-              klien: item.namaKlien,
-              psikolog: item.psikolog,
-              layanan: item.layanan,
-              metode: item.metode,
-              status: item.status,
-            }))
-          )
+        if (res && res.pendapatanBulanIni) {
+          setMetrics([
+            {
+              title: res.pendapatanBulanIni.title,
+              value: res.pendapatanBulanIni.value,
+              change: res.pendapatanBulanIni.change,
+              icon: Wallet,
+              color: res.pendapatanBulanIni.color || "#5D205E",
+            },
+            {
+              title: res.menungguReview?.title || res.totalKlienAktif?.title || "Menunggu Review",
+              value: res.menungguReview?.value || (res.totalKlienAktif?.value ? `${String(res.totalKlienAktif.value).replace(/[^0-9]/g, '') || 0} Tes` : "0 Tes"),
+              change: res.menungguReview?.change || "Perlu ditinjau psikolog",
+              icon: FileText,
+              color: res.menungguReview?.color || res.totalKlienAktif?.color || "#5D205E",
+            },
+            {
+              title: res.sesiKonselingSelesai.title,
+              value: res.sesiKonselingSelesai.value,
+              change: res.sesiKonselingSelesai.change,
+              icon: CheckCircle2,
+              color: res.sesiKonselingSelesai.color || "#5D205E",
+            },
+            {
+              title: res.pendaftarEvent?.title || res.pendaftarWorkshop?.title || "Pendaftar Event",
+              value: res.pendaftarEvent?.value || res.pendaftarWorkshop?.value || "0 Peserta",
+              change: res.pendaftarEvent?.change || res.pendaftarWorkshop?.change || "Event dibuka",
+              icon: Sparkles,
+              color: res.pendaftarEvent?.color || res.pendaftarWorkshop?.color || "#5D205E",
+            },
+            {
+              title: res.menungguPembayaran.title,
+              value: res.menungguPembayaran.value,
+              change: res.menungguPembayaran.change,
+              icon: Clock,
+              color: res.menungguPembayaran.color || "#D97706",
+            },
+          ])
+        } else {
+          setMetricsError("Format data metrik ringkasan operasional tidak valid.")
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        setMetricsError(err?.response?.data?.message || err?.message || "Gagal memuat ringkasan operasional dari database.")
+      })
+      .finally(() => {
+        setMetricsLoading(false)
+      })
   }, [])
+
+  useEffect(() => {
+    fetchMetrics()
+  }, [fetchMetrics])
+
+  // Muat sesi konseling hari ini murni dari Database (top 5 sesi terdekat)
+  const fetchSessions = useCallback(() => {
+    setSessionsLoading(true)
+    setSessionsError(null)
+    adminService
+      .getDashboardTodaySessions({ limit: 5 })
+      .then((res: any) => {
+        if (res && Array.isArray(res.sessions)) {
+          setSessions(res.sessions)
+          setTotalTodayCount(res.totalCount || res.sessions.length)
+        } else {
+          setSessionsError("Format data sesi konseling tidak valid.")
+        }
+      })
+      .catch((err) => {
+        setSessionsError(err?.response?.data?.message || err?.message || "Gagal memuat jadwal sesi hari ini dari database.")
+      })
+      .finally(() => {
+        setSessionsLoading(false)
+      })
+  }, [])
+
+  useEffect(() => {
+    fetchSessions()
+  }, [fetchSessions])
+
+  // Muat transaksi pembayaran terbaru murni dari Database PostgreSQL
+  const fetchTransactions = useCallback(() => {
+    setTransactionsLoading(true)
+    setTransactionsError(null)
+    adminService
+      .getDashboardRecentTransactions({ limit: 5 })
+      .then((res: any) => {
+        if (res && Array.isArray(res.transactions)) {
+          setTransactions(res.transactions)
+          setTotalTransactionsCount(res.totalCount || res.transactions.length)
+        } else {
+          setTransactionsError("Format data transaksi tidak valid.")
+        }
+      })
+      .catch((err) => {
+        setTransactionsError(err?.response?.data?.message || err?.message || "Gagal memuat transaksi terbaru dari database.")
+      })
+      .finally(() => {
+        setTransactionsLoading(false)
+      })
+  }, [])
+
+  useEffect(() => {
+    fetchTransactions()
+  }, [fetchTransactions])
+
+  // Muat agenda operasional mendatang murni dari Database PostgreSQL
+  const fetchAgenda = useCallback(() => {
+    setAgendaLoading(true)
+    setAgendaError(null)
+    adminService
+      .getDashboardAgenda({ limit: 6 })
+      .then((res: any) => {
+        if (res && Array.isArray(res.agendaList)) {
+          setAgendaList(res.agendaList)
+        } else {
+          setAgendaError("Format data agenda tidak valid.")
+        }
+      })
+      .catch((err) => {
+        setAgendaError(err?.response?.data?.message || err?.message || "Gagal memuat agenda operasional dari database.")
+      })
+      .finally(() => {
+        setAgendaLoading(false)
+      })
+  }, [])
+
+  useEffect(() => {
+    fetchAgenda()
+  }, [fetchAgenda])
 
   const currentDate = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
@@ -58,38 +185,14 @@ export default function AdminDashboardClient() {
   }).format(new Date())
 
   const handleSessionSuccess = async (newSession: NewSessionData) => {
-    // 1. Tambahkan ke Sesi Konseling Hari Ini (Optimistic UI)
-    const item: TodaySessionItem = {
-      waktu: newSession.waktu,
-      klien: newSession.namaKlien,
-      psikolog: newSession.psikolog,
-      layanan: newSession.layanan,
-      metode: newSession.metode,
-      status: newSession.status,
-    }
-    setSessions((prev) => [item, ...prev])
-
-    // 2. Tambahkan placeholder transaksi baru ke list
-    const isAsesmen = newSession.layanan?.toLowerCase().includes("asesmen")
-    const newTrx = {
-      id: "trx_" + Date.now(),
-      client: newSession.namaKlien,
-      layanan: newSession.layanan,
-      metode: "-",
-      kategori: isAsesmen ? "Asesmen" : "Konseling",
-      total: "Menunggu",
-      status: "Menunggu Pembayaran" as const,
-    }
-    setTransactions((prev) => [newTrx, ...prev])
-
     setNotification(`Sesi konseling baru untuk "${newSession.namaKlien}" berhasil dijadwalkan!`)
     setTimeout(() => setNotification(null), 4000)
 
     try {
       const cleanWaktu = newSession.waktu.replace(" WIB", "").trim()
       const parts = cleanWaktu.split("-").map((p) => p.trim())
-      const jamMulai = parts[0]?.substring(0, 5) || "13:00"
-      const jamSelesai = parts[1]?.substring(0, 5) || "14:00"
+      const jamMulai = parts[0]?.substring(0, 5) || "09:00"
+      const jamSelesai = parts[1]?.substring(0, 5) || "10:00"
 
       await adminService.createSesiBaru({
         id_psikolog: newSession.idPsikolog || newSession.psikolog,
@@ -101,26 +204,17 @@ export default function AdminDashboardClient() {
         deskripsi_trauma: newSession.catatan,
         klien: {
           nama: newSession.namaKlien.trim(),
-          no_telepon: newSession.kontak.trim() || "081234567890",
+          no_telepon: newSession.kontak.trim(),
         },
       })
 
-      // Muat ulang jadwal terbaru dari database
-      const res: any = await adminService.getJadwal()
-      if (res && Array.isArray(res.todaySessions)) {
-        setSessions(
-          res.todaySessions.map((item: any) => ({
-            waktu: (item.waktuRange || item.waktu || "").includes("WIB")
-              ? item.waktuRange || item.waktu
-              : `${item.waktuRange || item.waktu || ""} WIB`,
-            klien: item.namaKlien,
-            psikolog: item.psikolog,
-            layanan: item.layanan,
-            metode: item.metode,
-            status: item.status,
-          }))
-        )
-      }
+      // Muat ulang seluruh metrik, jadwal, transaksi, dan agenda murni dari database PostgreSQL
+      await Promise.all([
+        fetchSessions(),
+        fetchMetrics(),
+        fetchAgenda(),
+        fetchTransactions(),
+      ])
     } catch (err: any) {
       console.warn("Gagal simpan sesi dari dashboard:", err?.response?.data?.message || err?.message)
     }
@@ -165,18 +259,40 @@ export default function AdminDashboardClient() {
       </div>
 
       {/* 2. Grid Kartu Metrik (5 Kolom Seimbang & Rapi) */}
-      <DashboardStatCards metrics={INITIAL_DASHBOARD_METRICS} />
+      <DashboardStatCards
+        metrics={metrics}
+        isLoading={metricsLoading}
+        error={metricsError}
+        onRetry={fetchMetrics}
+      />
 
       {/* 3. Baris Grafik & Agenda */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <DashboardChart />
-        <DashboardAgenda agendaList={INITIAL_AGENDA_LIST} />
+        <DashboardAgenda
+          agendaList={agendaList}
+          isLoading={agendaLoading}
+          error={agendaError}
+          onRetry={fetchAgenda}
+        />
       </div>
 
       {/* 4. Bagian Bawah: Jadwal Konseling Hari Ini & Transaksi Pembayaran Hari Ini */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardTodaySessions sessions={sessions} />
-        <DashboardRecentTransactions transactions={transactions} />
+        <DashboardTodaySessions
+          sessions={sessions}
+          totalCount={totalTodayCount}
+          isLoading={sessionsLoading}
+          error={sessionsError}
+          onRetry={fetchSessions}
+        />
+        <DashboardRecentTransactions
+          transactions={transactions}
+          totalCount={totalTransactionsCount}
+          isLoading={transactionsLoading}
+          error={transactionsError}
+          onRetry={fetchTransactions}
+        />
       </div>
 
       {/* Modal Tambah Sesi */}

@@ -1,16 +1,26 @@
 import React from "react"
 import Link from "next/link"
-import { ArrowRight, Video, MapPin } from "lucide-react"
+import { ArrowRight, Video, MapPin, AlertCircle, RefreshCw } from "lucide-react"
 import { TodaySessionItem } from "../../types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 
 interface DashboardTodaySessionsProps {
   sessions: TodaySessionItem[]
+  totalCount?: number
+  isLoading?: boolean
+  error?: string | null
+  onRetry?: () => void
 }
 
-export default function DashboardTodaySessions({ sessions }: DashboardTodaySessionsProps) {
+export default function DashboardTodaySessions({
+  sessions,
+  totalCount = 0,
+  isLoading = false,
+  error = null,
+  onRetry,
+}: DashboardTodaySessionsProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col min-h-[380px]">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="font-bold text-gray-900 text-base">Sesi Konseling Hari Ini</h3>
@@ -20,14 +30,45 @@ export default function DashboardTodaySessions({ sessions }: DashboardTodaySessi
           href={"/admin/jadwal" as any}
           className="text-xs font-bold text-[#5D205E] hover:underline flex items-center gap-1"
         >
-          Kelola
+          {totalCount > 0 ? `Kelola (${totalCount})` : "Kelola"}
           <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
 
       <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
-        {sessions.length === 0 ? (
-          <div className="py-8 text-center text-xs text-gray-400">
+        {isLoading ? (
+          <div className="flex flex-col gap-3 animate-pulse">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-3.5 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gray-200" />
+                  <div className="flex flex-col gap-2">
+                    <div className="w-28 h-3.5 bg-gray-200 rounded" />
+                    <div className="w-40 h-3 bg-gray-200 rounded" />
+                  </div>
+                </div>
+                <div className="w-24 h-6 bg-gray-200 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center p-6 text-center text-red-600 gap-2 border border-red-100 rounded-xl bg-red-50/50 my-auto">
+            <AlertCircle className="w-6 h-6 text-red-500" />
+            <p className="text-xs font-bold uppercase tracking-wider text-red-700">Gagal Memuat Sesi Hari Ini</p>
+            <p className="text-xs text-gray-600">{error}</p>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#5D205E] hover:bg-[#481849] text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer mt-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Coba Lagi</span>
+              </button>
+            )}
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="py-12 text-center text-xs text-gray-400">
             Belum ada jadwal sesi konseling untuk hari ini.
           </div>
         ) : (
@@ -71,6 +112,19 @@ export default function DashboardTodaySessions({ sessions }: DashboardTodaySessi
           ))
         )}
       </div>
+
+      {totalCount > sessions.length && (
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+          <span>Menampilkan {sessions.length} dari {totalCount} sesi hari ini</span>
+          <Link
+            href={"/admin/jadwal" as any}
+            className="font-semibold text-[#5D205E] hover:underline flex items-center gap-1"
+          >
+            Lihat Semua ({totalCount})
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

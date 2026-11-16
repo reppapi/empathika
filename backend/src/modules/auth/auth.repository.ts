@@ -4,8 +4,15 @@ export class AuthRepository {
   constructor(private prisma: PrismaClient) {}
 
   async findByEmail(email: string) {
-    return this.prisma.account.findUnique({
-      where: { email },
+    const cleanEmail = email.trim().toLowerCase()
+    return this.prisma.account.findFirst({
+      where: {
+        OR: [
+          { email: { equals: cleanEmail, mode: "insensitive" } },
+          { email: cleanEmail },
+          { email },
+        ],
+      },
     })
   }
 

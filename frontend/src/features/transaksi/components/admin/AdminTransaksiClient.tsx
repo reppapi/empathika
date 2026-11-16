@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { transaksiService } from "@/services/transaksi.service"
 import { invoiceService } from "@/services/invoice.service"
 import { formatOrderId } from "@/lib/utils"
-import { AlertCircle, RotateCcw, X, DollarSign } from "lucide-react"
+import { AlertCircle, RotateCcw, X, DollarSign, Clock, CheckCircle2, ChevronDown } from "lucide-react"
 
 type JenisLayanan = "semua" | "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
+type StatusFilter = "semua" | "Menunggu Pembayaran" | "Lunas" | "Refunded" | "Gagal"
 
 const LAYANAN_OPTIONS: { id: JenisLayanan; label: string }[] = [
   { id: "semua", label: "Semua Layanan" },
@@ -363,8 +365,8 @@ function normalizeTransaksi(raw: any) {
     const jamStr = jamMulai && jamSelesai ? `, ${jamMulai} - ${jamSelesai} WIB` : jamMulai ? `, ${jamMulai} WIB` : ""
     jadwalDisplay = `${tglStr}${jamStr}`
   } else if (jenisLayanan === "psikotes") {
-    if (bookingPsikotes.hasil_tes) {
-      const tglSelesai = bookingPsikotes.hasil_tes.tanggal_selesai
+    if (bookingPsikotes.hasil_tes || bookingPsikotes.status_pengerjaan === "SELESAI") {
+      const tglSelesai = bookingPsikotes.hasil_tes?.tanggal_selesai
         ? new Date(bookingPsikotes.hasil_tes.tanggal_selesai).toLocaleDateString("id-ID", {
           day: "numeric",
           month: "short",
@@ -373,7 +375,7 @@ function normalizeTransaksi(raw: any) {
         : ""
       jadwalDisplay = tglSelesai ? `Tes Selesai (${tglSelesai})` : "Tes Selesai"
     } else {
-      jadwalDisplay = "Akses Mandiri (Online Fleksibel)"
+      jadwalDisplay = "Akses Mandiri • Tanpa Batas Waktu"
     }
   } else if (jenisLayanan === "event" && bookingEvent.event) {
     const ev = bookingEvent.event
@@ -444,29 +446,32 @@ function normalizeTransaksi(raw: any) {
   }
 
   const clientName =
+    parsedDataPembayaran?.nama_pemesan ||
+    parsedDataPembayaran?.nama ||
     client.nama ||
     bookingPsikotes.client?.nama ||
     bookingEvent.client?.nama ||
-    parsedDataPembayaran?.nama ||
     client.name ||
     "–"
 
   const clientEmail =
+    parsedDataPembayaran?.email_pemesan ||
+    parsedDataPembayaran?.email ||
     client.email ||
     bookingPsikotes.client?.email ||
     bookingEvent.client?.email ||
-    parsedDataPembayaran?.email ||
     raw.email ||
     "–"
 
   const clientPhone =
+    parsedDataPembayaran?.no_telepon_pemesan ||
+    parsedDataPembayaran?.no_telepon ||
+    parsedDataPembayaran?.phone ||
     client.no_telepon ||
     bookingPsikotes.client?.no_telepon ||
     bookingEvent.client?.no_telepon ||
     client.no_hp ||
     client.phone ||
-    parsedDataPembayaran?.no_telepon ||
-    parsedDataPembayaran?.phone ||
     "–"
 
   return {
@@ -496,6 +501,8 @@ function normalizeTransaksi(raw: any) {
     metodePembayaran: metodePembayaranFormatted,
     waktuPembayaran,
     tanggalTransaksi,
+    // Status Refundable: Hanya Konseling dan Asesmen Offline yang bisa di-refund
+    canRefund: (jenisLayanan === "konseling" || jenisLayanan === "asesment") && status === "Lunas" && !raw.status_pembayaran?.includes("REFUNDED"),
     // Informasi Refund
     isRefunded: raw.status_pembayaran === "REFUNDED",
     refundAt: raw.refund_at
@@ -518,20 +525,44 @@ export default function AdminTransaksiClient() {
   const dateInputRef = useRef<HTMLInputElement>(null)
   const filterBtnRef = useRef<HTMLButtonElement>(null)
   const [filterDropdownPos, setFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
+  const statusFilterBtnRef = useRef<HTMLButtonElement>(null)
+  const [statusFilterDropdownPos, setStatusFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false)
 
   // Data state
   const [allTransaksi, setAllTransaksi] = useState<ReturnType<typeof normalizeTransaksi>[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
+  const searchParams = useSearchParams()
+
   // Filter State
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("semua")
   const [selectedLayanan, setSelectedLayanan] = useState<JenisLayanan>("semua")
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<string>("")
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
   })
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string>("")
+
+  // Sync parameter status dari URL (misal: saat diklik dari kartu dashboard /admin/transaksi?status=pending)
+  useEffect(() => {
+    const statusParam = searchParams.get("status")
+    if (statusParam) {
+      const lower = statusParam.toLowerCase()
+      if (lower === "pending" || lower === "menunggu") {
+        setSelectedStatus("Menunggu Pembayaran")
+        setSelectedMonth("") // Reset batasan bulan agar pending dari bulan manapun dapat langsung terpantau
+      } else if (lower === "paid" || lower === "lunas" || lower === "success") {
+        setSelectedStatus("Lunas")
+      } else if (lower === "refunded") {
+        setSelectedStatus("Refunded")
+      } else if (lower === "failed" || lower === "gagal") {
+        setSelectedStatus("Gagal")
+      }
+    }
+  }, [searchParams])
 
   // Detail & Refund state
   const [selectedItem, setSelectedItem] = useState<ReturnType<typeof normalizeTransaksi> | null>(null)
@@ -571,6 +602,7 @@ export default function AdminTransaksiClient() {
   // Filter & Sort
   const filteredTransaksi = useMemo(() => {
     const list = allTransaksi.filter((item) => {
+      if (selectedStatus !== "semua" && item.status !== selectedStatus) return false
       if (selectedLayanan !== "semua" && item.jenisLayanan !== selectedLayanan) return false
       if (selectedDate) {
         if (item.tanggalTransaksi !== selectedDate) return false
@@ -580,7 +612,7 @@ export default function AdminTransaksiClient() {
       return true
     })
     return list.sort((a, b) => b.tanggalTransaksi.localeCompare(a.tanggalTransaksi))
-  }, [allTransaksi, selectedLayanan, selectedDate, selectedMonth])
+  }, [allTransaksi, selectedStatus, selectedLayanan, selectedDate, selectedMonth])
 
   // Active detail item
   const activeDetailItem = useMemo(() => {
@@ -588,6 +620,15 @@ export default function AdminTransaksiClient() {
     const found = filteredTransaksi.find((t) => t.id === selectedItem?.id)
     return found || filteredTransaksi[0]
   }, [filteredTransaksi, selectedItem])
+
+  // Label filter status aktif untuk tombol header daftar transaksi
+  const activeStatusLabel = useMemo(() => {
+    if (selectedStatus === "Menunggu Pembayaran") return "Menunggu"
+    if (selectedStatus === "Lunas") return "Lunas"
+    if (selectedStatus === "Refunded") return "Refunded"
+    if (selectedStatus === "Gagal") return "Gagal"
+    return "Semua"
+  }, [selectedStatus])
 
   // Measure Detail Transaksi height so Daftar Transaksi can match it on desktop
   const detailCardRef = useRef<HTMLDivElement>(null)
@@ -636,16 +677,36 @@ export default function AdminTransaksiClient() {
     const transaksiBerhasil = lunasList.length
     const menungguBayar = menungguList.length
 
-    let pendapatanLabel = "Total Pendapatan"
+    let pendapatanLabel = `Total Pendapatan Tahun ${new Date().getFullYear()}`
     if (selectedDate) pendapatanLabel = "Total Pendapatan Hari Ini"
     else if (selectedMonth) {
       const [y, m] = selectedMonth.split("-")
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
       pendapatanLabel = `Total Pendapatan ${monthNames[parseInt(m) - 1]} ${y}`
     }
 
     return { totalPendapatan, transaksiBerhasil, menungguBayar, pendapatanLabel }
   }, [allTransaksi, selectedDate, selectedMonth])
+
+  // Month label for select
+  const getMonthLabel = (ym: string) => {
+    const [y, m] = ym.split("-")
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+    return `${monthNames[parseInt(m) - 1]} ${y}`
+  }
+
+  // Generate month options: HANYA dari bulan saat ini mundur ke Januari (bulan masa depan tidak ditampilkan sebelum masuk)
+  const monthOptions = useMemo(() => {
+    const opts: string[] = []
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1 // 1 s.d. 12 (November = 11)
+
+    for (let m = currentMonth; m >= 1; m--) {
+      opts.push(`${currentYear}-${String(m).padStart(2, "0")}`)
+    }
+    return opts
+  }, [])
 
   // Refund handler
   const handleRefund = async (id: string, alasan: string) => {
@@ -680,24 +741,6 @@ export default function AdminTransaksiClient() {
     }
   }
 
-  // Month label for select
-  const getMonthLabel = (ym: string) => {
-    const [y, m] = ym.split("-")
-    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
-    return `${monthNames[parseInt(m) - 1]} ${y}`
-  }
-
-  // Generate month options: 12 months back from now
-  const monthOptions = useMemo(() => {
-    const opts: string[] = []
-    const now = new Date()
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      opts.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)
-    }
-    return opts
-  }, [])
-
   // ── Render ──
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
@@ -705,11 +748,13 @@ export default function AdminTransaksiClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-gray-200/90 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <div>
           <h3 className="text-sm sm:text-base font-bold text-gray-900">Pilih Periode Transaksi</h3>
-          <p className="text-xs text-gray-500">Pantau transaksi per bulan atau tentukan tanggal spesifik</p>
+          <p className="text-xs text-gray-500">
+            Transaksi tahun {new Date().getFullYear()} • Riwayat tahun sebelumnya otomatis terhapus
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Pilih Bulan */}
+          {/* Dropdown Pilih Bulan (Khusus Tahun Ini) */}
           <div className="relative">
             <select
               value={selectedMonth}
@@ -717,12 +762,12 @@ export default function AdminTransaksiClient() {
                 setSelectedMonth(e.target.value)
                 setSelectedDate("")
               }}
-              className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer appearance-none"
+              className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer appearance-none shadow-sm"
             >
+              <option value="">Semua Bulan ({new Date().getFullYear()})</option>
               {monthOptions.map((ym) => (
                 <option key={ym} value={ym}>{getMonthLabel(ym)}</option>
               ))}
-              <option value="">Semua Bulan</option>
             </select>
             <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
@@ -731,14 +776,14 @@ export default function AdminTransaksiClient() {
             </div>
           </div>
 
-          {/* Pilih Tanggal */}
+          {/* Pilih Tanggal Spesifik (Opsional) */}
           <div className="relative">
             <input
               ref={dateInputRef}
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-10 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+              className="rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-10 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none shadow-sm"
             />
             <button
               type="button"
@@ -746,8 +791,8 @@ export default function AdminTransaksiClient() {
                 try { dateInputRef.current?.showPicker?.() }
                 catch { dateInputRef.current?.focus() }
               }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#561269] transition-colors p-1"
-              title="Pilih tanggal"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#561269] transition-colors p-1 cursor-pointer"
+              title="Pilih tanggal spesifik"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -759,7 +804,7 @@ export default function AdminTransaksiClient() {
             <button
               type="button"
               onClick={() => setSelectedDate("")}
-              className="text-xs text-[#561269] hover:underline font-semibold"
+              className="text-xs text-[#561269] hover:underline font-semibold cursor-pointer"
             >
               Reset Tanggal
             </button>
@@ -767,31 +812,177 @@ export default function AdminTransaksiClient() {
         </div>
       </div>
 
-      {/* ── Summary Cards ── */}
+      {/* ── Summary Cards (Interaktif untuk filter status instan) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="rounded-3xl border border-gray-200/90 bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between">
-          <p className="text-xs sm:text-sm font-semibold text-gray-500">{summaryMetrics.pendapatanLabel}</p>
+        <button
+          type="button"
+          onClick={() => setSelectedStatus("semua")}
+          className={`text-left rounded-3xl border bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all cursor-pointer ${
+            selectedStatus === "semua"
+              ? "border-[#561269] ring-2 ring-[#561269]/20 shadow-md"
+              : "border-gray-200/90 hover:border-gray-300 hover:shadow-sm"
+          }`}
+          title="Tampilkan semua transaksi"
+        >
+          <div className="flex items-center justify-between w-full">
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">{summaryMetrics.pendapatanLabel}</p>
+            {selectedStatus === "semua" && (
+              <span className="text-[10px] font-bold bg-purple-100 text-[#561269] px-2 py-0.5 rounded-full">
+                Semua
+              </span>
+            )}
+          </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#561269] mt-2">
             Rp. {summaryMetrics.totalPendapatan.toLocaleString("id-ID")}
           </p>
-        </div>
-        <div className="rounded-3xl border border-gray-200/90 bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between">
-          <p className="text-xs sm:text-sm font-semibold text-gray-500">Transaksi Berhasil</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSelectedStatus(selectedStatus === "Lunas" ? "semua" : "Lunas")}
+          className={`text-left rounded-3xl border bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all cursor-pointer ${
+            selectedStatus === "Lunas"
+              ? "border-emerald-600 ring-2 ring-emerald-600/20 bg-emerald-50/10 shadow-md"
+              : "border-gray-200/90 hover:border-gray-300 hover:shadow-sm"
+          }`}
+          title="Klik untuk filter transaksi lunas"
+        >
+          <div className="flex items-center justify-between w-full">
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">Transaksi Berhasil</p>
+            {selectedStatus === "Lunas" ? (
+              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                Difilter
+              </span>
+            ) : (
+              <span className="text-[10px] text-gray-400 font-medium">Klik filter</span>
+            )}
+          </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 mt-2">
             {summaryMetrics.transaksiBerhasil}
           </p>
-        </div>
-        <div className="rounded-3xl border border-gray-200/90 bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between">
-          <p className="text-xs sm:text-sm font-semibold text-gray-500">Menunggu Pembayaran</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSelectedStatus(selectedStatus === "Menunggu Pembayaran" ? "semua" : "Menunggu Pembayaran")}
+          className={`text-left rounded-3xl border bg-white p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all cursor-pointer ${
+            selectedStatus === "Menunggu Pembayaran"
+              ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/20 shadow-md"
+              : "border-gray-200/90 hover:border-gray-300 hover:shadow-sm"
+          }`}
+          title="Klik untuk filter transaksi yang menunggu pembayaran"
+        >
+          <div className="flex items-center justify-between w-full">
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">Menunggu Pembayaran</p>
+            {selectedStatus === "Menunggu Pembayaran" ? (
+              <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                Difilter
+              </span>
+            ) : (
+              <span className="text-[10px] text-gray-400 font-medium">Klik filter</span>
+            )}
+          </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#E5A800] mt-2">
             {summaryMetrics.menungguBayar}
           </p>
-        </div>
+        </button>
       </div>
 
       {/* ── Daftar Transaksi ── */}
       <div className="flex flex-col gap-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
+
+          {/* Filter Status: Dropdown opsi pilihan dalam satu kotak rapi */}
+          <div className="relative">
+            <button
+              type="button"
+              ref={statusFilterBtnRef}
+              onClick={() => {
+                if (!isStatusFilterOpen && statusFilterBtnRef.current) {
+                  const rect = statusFilterBtnRef.current.getBoundingClientRect()
+                  const rightOffset = Math.max(16, window.innerWidth - rect.right)
+                  setStatusFilterDropdownPos({ top: rect.bottom + 8, right: rightOffset })
+                }
+                setIsStatusFilterOpen(!isStatusFilterOpen)
+              }}
+              className="flex items-center gap-2 rounded-full border border-gray-200/90 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 ease-in-out cursor-pointer active:scale-95"
+            >
+              <span className="text-gray-400 font-medium text-xs">Status:</span>
+              <span className="text-[#561269] font-bold transition-all duration-300 ease-in-out">
+                {activeStatusLabel}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                  isStatusFilterOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {isStatusFilterOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsStatusFilterOpen(false)}
+                />
+                <div
+                  className="fixed z-[9999] w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold"
+                  style={
+                    statusFilterDropdownPos
+                      ? { top: statusFilterDropdownPos.top, right: statusFilterDropdownPos.right }
+                      : {}
+                  }
+                >
+                  <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400">
+                    Pilih Status
+                  </p>
+                  {(
+                    [
+                      { id: "semua", label: "Semua Status" },
+                      { id: "Menunggu Pembayaran", label: "Menunggu Pembayaran" },
+                      { id: "Lunas", label: "Lunas" },
+                      { id: "Refunded", label: "Refunded" },
+                      { id: "Gagal", label: "Gagal" },
+                    ] as const
+                  ).map((st) => {
+                    const isSelected = selectedStatus === st.id
+                    return (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatus(st.id)
+                          setIsStatusFilterOpen(false)
+                        }}
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-50 text-[#561269] font-bold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className={isSelected ? "font-bold text-[#561269]" : "font-semibold text-gray-800"}>
+                          {st.label}
+                        </span>
+                        {isSelected && (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2.5}
+                            stroke="currentColor"
+                            className="h-3.5 w-3.5 text-[#561269]"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                          </svg>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
@@ -821,13 +1012,22 @@ export default function AdminTransaksiClient() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedLayanan("semua")}
-                    className={`rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all ${selectedLayanan === "semua"
-                        ? "bg-white text-[#561269]"
-                        : "bg-white/70 text-gray-700 hover:bg-white"
-                      }`}
+                    onClick={() => {
+                      if (selectedStatus !== "semua" || selectedLayanan !== "semua") {
+                        setSelectedStatus("semua")
+                        setSelectedLayanan("semua")
+                      }
+                    }}
+                    className="rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all duration-300 ease-in-out flex items-center justify-center bg-white text-[#561269] hover:bg-white/90 active:scale-95 cursor-pointer"
+                    title={
+                      selectedStatus !== "semua"
+                        ? "Klik untuk reset filter status kembali ke Semua"
+                        : undefined
+                    }
                   >
-                    Semua
+                    <span className="transition-all duration-300 ease-in-out inline-block">
+                      {activeStatusLabel}
+                    </span>
                   </button>
                 </div>
 
@@ -899,7 +1099,7 @@ export default function AdminTransaksiClient() {
                       <div
                         key={item.id}
                         onClick={() => setSelectedItem(item)}
-                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-200 ${isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
+                        className={`relative p-4 sm:p-5 sm:pr-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cursor-pointer transition-all duration-300 ease-in-out ${isSelected ? "bg-[#F7F0FA]" : "hover:bg-gray-50/90"
                           }`}
                       >
                         {isSelected && (
@@ -992,7 +1192,9 @@ export default function AdminTransaksiClient() {
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-gray-900">{activeDetailItem.clientName}</span>
-                        <span className="text-xs text-gray-500">{activeDetailItem.clientEmail}</span>
+                        {activeDetailItem.clientEmail && activeDetailItem.clientEmail !== "–" && (
+                          <span className="text-xs text-gray-500">{activeDetailItem.clientEmail}</span>
+                        )}
                         <span className="text-xs text-gray-500">{activeDetailItem.clientPhone}</span>
                       </div>
                     </div>
@@ -1019,6 +1221,11 @@ export default function AdminTransaksiClient() {
                         {activeDetailItem.jenisLayanan === "psikotes" ? "Akses/Status: " : "Jadwal: "}
                         {activeDetailItem.jadwal}
                       </p>
+                      {activeDetailItem.jenisLayanan === "psikotes" && (
+                        <p className="text-gray-500">
+                          Masa Berlaku: <span className="font-semibold text-gray-800">Tanpa Batas Waktu</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -1079,6 +1286,19 @@ export default function AdminTransaksiClient() {
                     </div>
                   )}
 
+                  {/* ── KETERANGAN STATUS MENUNGGU PEMBAYARAN ── */}
+                  {activeDetailItem.status === "Menunggu Pembayaran" && (
+                    <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-xs text-amber-800 flex flex-col gap-1.5">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                        <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Menunggu Pembayaran dari Klien</span>
+                      </div>
+                      <p className="text-[11px] text-amber-700/90 leading-relaxed">
+                        Transaksi ini tercatat dalam sistem dan sedang menunggu konfirmasi pembayaran. Admin dapat mengirim pesan invoice atau instruksi pembayaran via WhatsApp ke klien.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Action buttons */}
                   <div className="flex flex-col gap-2.5 mt-1">
                     {/* Invoice WA */}
@@ -1093,8 +1313,8 @@ export default function AdminTransaksiClient() {
                       Kirim Invoice ke WA
                     </button>
 
-                    {/* Refund button - only for PAID transactions */}
-                    {activeDetailItem.status === "Lunas" && (
+                    {/* Refund button - only for PAID transactions on refundable services (Konseling & Asesmen Offline) */}
+                    {activeDetailItem.canRefund && (
                       <button
                         type="button"
                         onClick={() => setTransaksiToRefund(activeDetailItem._raw)}

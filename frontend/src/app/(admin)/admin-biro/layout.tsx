@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import SidebarBiro from "@/components/layout/SidebarBiro"
 import AdminNavbar from "@/components/layout/AdminNavbar"
+import { useAuthStore } from "@/store/authStore"
+import { biroAdminService } from "@/services/biro.service"
 
 import dynamic from "next/dynamic"
 
@@ -15,11 +17,70 @@ const AuthGuard = dynamic(
 export default function AdminBiroLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const { user } = useAuthStore()
+  const [biroName, setBiroName] = useState<string>(user?.name || "Biro Mitra")
+  const [biroColor, setBiroColor] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("biro_theme_color")
+      if (cached) return cached
+    }
+    return "#561269"
+  })
+  const [biroLogo, setBiroLogo] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+    if (user?.name) {
+      setBiroName(user.name)
+    }
+    biroAdminService
+      .getMyAccount()
+      .then((res) => {
+        if (!isMounted || !res?.data) return
+        const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
+        if (beBiro?.nama_biro) {
+          setBiroName(beBiro.nama_biro)
+        } else if (res.data.nama) {
+          setBiroName(res.data.nama)
+        }
+        if (beBiro?.warna_tema) {
+          setBiroColor(beBiro.warna_tema)
+          if (typeof window !== "undefined") {
+            localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+          }
+        }
+        if (beBiro?.logoURI) {
+          setBiroLogo(beBiro.logoURI)
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+
+  // Terapkan tema warna biro ke seluruh halaman portal admin biro
+  useEffect(() => {
+    if (typeof document !== "undefined" && biroColor) {
+      document.documentElement.style.setProperty("--biro-theme-color", biroColor)
+      document.documentElement.setAttribute("data-biro-theme", "true")
+    }
+    return () => {
+      // Hapus hanya jika pengguna bernavigasi KELUAR dari portal admin biro
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin-biro")) {
+        document.documentElement.style.removeProperty("--biro-theme-color")
+        document.documentElement.removeAttribute("data-biro-theme")
+      }
+    }
+  }, [biroColor])
 
   // Menentukan judul navbar berdasarkan URL
-  let pageTitle = "Riwayat Transaksi & Pembayaran"
+  let pageTitle = "Ringkasan Operasional"
   if (pathname === "/admin-biro") pageTitle = "Ringkasan Operasional"
+  else if (pathname?.startsWith("/admin-biro/jadwal")) pageTitle = "Jadwal dan Sesi"
   else if (pathname?.startsWith("/admin-biro/transaksi")) pageTitle = "Riwayat Transaksi & Pembayaran"
+  else if (pathname?.startsWith("/admin-biro/psikotes")) pageTitle = "Data Klien Psikotes"
   else if (pathname?.startsWith("/admin-biro/pengaturan-akun")) pageTitle = "Pengaturan Akun Biro"
   else if (pathname?.startsWith("/admin-biro/profile")) pageTitle = "Pengaturan Profil Biro"
 
@@ -30,7 +91,9 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
         <SidebarBiro
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
-          biroName="Biro Cendekia Muda"
+          biroName={biroName}
+          biroColor={biroColor}
+          biroLogo={biroLogo}
         />
 
         {/* 2. Area Konten Kanan */}

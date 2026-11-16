@@ -88,8 +88,11 @@ export function FormProgramMitraSection({
                 }
               />
             </label>
-            <p className="text-[11px] text-gray-400 mt-1">
-              Format PNG, JPG, WebP (otomatis dikompresi & dioptimalkan untuk web).
+            <p className="text-xs text-gray-600 font-medium mt-1.5">
+              Rekomendasi ukuran: <span className="font-bold text-[#561269]">800 × 600 piksel (4:3) atau 1200 × 675 piksel (16:9)</span>
+            </p>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              Format PNG, JPG, WebP • Otomatis dikompresi &amp; disesuaikan untuk halaman kemitraan
             </p>
           </div>
         </div>

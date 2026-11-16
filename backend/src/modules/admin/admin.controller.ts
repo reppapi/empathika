@@ -5,6 +5,7 @@ import type {
   CreateAdminJadwalSlotInput,
   CreateAdminSesiInput,
   UpdateBookingStatusInput,
+  RescheduleBookingInput,
   UpdateAdminProfileInput,
   ResendActivationInput,
 } from './admin.schema'
@@ -25,12 +26,139 @@ export class AdminController {
     this.service = new AdminService(fastify)
   }
 
-  getJadwal = async (
-    request: FastifyRequest<{ Querystring: GetAdminJadwalQuery }>,
+  private async getBiroIdForUser(userId?: string): Promise<string | undefined> {
+    if (!userId) return undefined
+    try {
+      const account = await (this.fastify as any).prisma.account.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          id_biro: true,
+          biro: { select: { id: true } },
+          owned_biro: { select: { id: true } },
+        },
+      })
+      if (!account) {
+        const directBiro = await (this.fastify as any).prisma.biro.findUnique({
+          where: { id: userId },
+          select: { id: true },
+        })
+        return directBiro?.id
+      }
+      if (account.owned_biro && account.owned_biro.length > 0) {
+        return account.owned_biro[0].id
+      }
+      if (account.id_biro) {
+        return account.id_biro
+      }
+      if (account.biro?.id) {
+        return account.biro.id
+      }
+      const biroFound = await (this.fastify as any).prisma.biro.findFirst({
+        where: {
+          OR: [
+            { id_account: userId },
+            { id: userId },
+          ],
+        },
+        select: { id: true },
+      })
+      return biroFound?.id
+    } catch {
+      return undefined
+    }
+  }
+
+  private async resolveBiroId(request: FastifyRequest): Promise<string | undefined> {
+    const user = (request as any).user
+    let biroId: string | undefined = (request.query as any)?.biroId || (request.headers['x-biro-id'] as string)
+    if (user?.role === 'BIRO') {
+      const userBiroId = await this.getBiroIdForUser(user.id)
+      if (userBiroId) {
+        biroId = userBiroId
+      }
+    }
+    return biroId
+  }
+
+  getDashboardChart = async (
+    request: FastifyRequest<{ Querystring: { period?: string; biroId?: string } }>,
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.getJadwalOverview(request.query)
+      const biroId = await this.resolveBiroId(request)
+      const data = await this.service.getDashboardChartData(request.query?.period, biroId)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  getDashboardMetrics = async (
+    request: FastifyRequest<{ Querystring: { biroId?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const biroId = await this.resolveBiroId(request)
+      const data = await this.service.getDashboardMetrics(biroId)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  getDashboardTodaySessions = async (
+    request: FastifyRequest<{ Querystring: { limit?: string; biroId?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const biroId = await this.resolveBiroId(request)
+      const limit = request.query?.limit ? parseInt(request.query.limit, 10) : 5
+      const data = await this.service.getDashboardTodaySessions(isNaN(limit) ? 5 : limit, biroId)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  getDashboardRecentTransactions = async (
+    request: FastifyRequest<{ Querystring: { limit?: string; biroId?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const biroId = await this.resolveBiroId(request)
+      const limit = request.query?.limit ? parseInt(request.query.limit, 10) : 5
+      const data = await this.service.getDashboardRecentTransactions(isNaN(limit) ? 5 : limit, biroId)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  getDashboardAgenda = async (
+    request: FastifyRequest<{ Querystring: { limit?: string; biroId?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const biroId = await this.resolveBiroId(request)
+      const limit = request.query?.limit ? parseInt(request.query.limit, 10) : 6
+      const data = await this.service.getDashboardAgenda(isNaN(limit) ? 6 : limit, biroId)
+      reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  getJadwal = async (
+    request: FastifyRequest<{ Querystring: GetAdminJadwalQuery & { biroId?: string; id_biro?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const biroId = await this.resolveBiroId(request)
+      const data = await this.service.getJadwalOverview({
+        ...request.query,
+        ...(biroId ? { id_biro: biroId } : {}),
+      })
       reply.send(data)
     } catch (err: any) {
       reply.code(400).send({ error: 'Bad Request', message: err.message })
@@ -82,6 +210,22 @@ export class AdminController {
       const body = request.body as UpdateBookingStatusInput
       const data = await this.service.updateBookingStatus(request.params.id, body.status)
       reply.send(data)
+    } catch (err: any) {
+      reply.code(400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
+
+  rescheduleBooking = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: RescheduleBookingInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.rescheduleBooking(request.params.id, request.body)
+      reply.send({
+        statusCode: 200,
+        message: 'Sesi booking berhasil dijadwalkan ulang (reschedule)',
+        data,
+      })
     } catch (err: any) {
       reply.code(400).send({ error: 'Bad Request', message: err.message })
     }

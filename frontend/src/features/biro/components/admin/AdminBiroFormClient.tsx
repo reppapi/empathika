@@ -10,6 +10,7 @@ import { processAndUploadImage } from "@/lib/imageCompressor"
 import { getBiroWebsiteUrl } from "@/lib/utils"
 import GenerateActivationLinkButton from "@/features/psikolog/components/admin/GenerateActivationLinkButton"
 import ActivationWarningModal from "@/components/common/ActivationWarningModal"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 import {
   formatExpiryDisplay,
   formatRemainingTime,
@@ -342,7 +343,16 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
     }
 
     setErrors(errs)
-    return Object.keys(errs).length === 0
+    if (Object.keys(errs).length > 0) {
+      setTimeout(() => {
+        const firstErrorEl = document.querySelector("[data-has-error='true']")
+        if (firstErrorEl) {
+          firstErrorEl.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
+      }, 50)
+      return false
+    }
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -388,6 +398,16 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           aktivasiToken: aktivasiToken || undefined,
           tokenExpiredAt: tokenExpiredAt || undefined,
         }
+
+        // Sinkronisasi update ke localStorage agar fallback tidak memakai warna lama
+        try {
+          const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
+          if (saved) {
+            const list: BiroKomunitas[] = JSON.parse(saved)
+            const updatedList = list.map((b) => (b.id === targetAccountId || b.accountId === targetAccountId ? resultBiro : b))
+            localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(updatedList))
+          }
+        } catch {}
 
         setSubmittedBiro(resultBiro)
         setIsSuccessModalOpen(true)
@@ -443,6 +463,12 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
       const errorMsg =
         err?.response?.data?.message || err?.message || "Terjadi kesalahan saat menyimpan data biro."
       setErrors((prev) => ({ ...prev, submit: errorMsg }))
+      setTimeout(() => {
+        const submitErrorEl = document.getElementById("submit-error-banner")
+        if (submitErrorEl) {
+          submitErrorEl.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
+      }, 50)
     } finally {
       setIsSubmitting(false)
     }
@@ -517,7 +543,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Alert Error Submit */}
           {errors.submit && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 flex items-start gap-3 text-red-700 shadow-xs animate-fadeIn">
+            <div id="submit-error-banner" className="rounded-2xl border border-red-200 bg-red-50 p-4 flex items-start gap-3 text-red-700 shadow-xs animate-fadeIn">
               <svg className="w-5 h-5 shrink-0 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
@@ -570,11 +596,11 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-gray-600 font-medium">
-                  Rekomendasi ukuran: <strong className="text-[#561269]">500 × 500 px (1:1)</strong>
+                <p className="text-xs text-gray-600 font-medium">
+                  Rekomendasi ukuran: <span className="font-bold text-[#561269]">500 × 500 piksel (Persegi / Rasio 1:1, logo di tengah)</span>
                 </p>
                 <p className="text-[11px] text-gray-400">
-                  Format JPG, PNG, WEBP, atau SVG • Bebas ukuran berapa pun, otomatis dikompresi
+                  Format JPG, PNG, WEBP, atau SVG • Otomatis disesuaikan untuk navbar dan profil biro
                 </p>
                 {errors.logo && (
                   <p className="text-xs text-red-500 font-semibold">{errors.logo}</p>
@@ -594,7 +620,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           {/* Grid: Nama Biro & Slug/URL Subdomain */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
             {/* Nama Biro */}
-            <div>
+            <div data-has-error={Boolean(errors.nama)}>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
                 Nama Biro atau Komunitas <span className="text-red-500">*</span>
               </label>
@@ -613,7 +639,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             </div>
 
             {/* Slug / Subdomain URL */}
-            <div>
+            <div data-has-error={Boolean(errors.slug)}>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
                 Slug / Subdomain URL <span className="text-red-500">*</span>
               </label>
@@ -638,7 +664,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           {/* Grid: Email Admin & No Telepon */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
             {/* Email Admin */}
-            <div>
+            <div data-has-error={Boolean(errors.emailAdmin)}>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
                 Email Admin Biro <span className="text-red-500">*</span>
               </label>
@@ -662,27 +688,20 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             </div>
 
             {/* No Telepon */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                No. Telepon / Hotline <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+            <div data-has-error={Boolean(errors.telepon)}>
+              <PhoneInputField
+                label="No WhatsApp"
+                labelClassName="uppercase tracking-wider font-bold mb-2 text-xs"
+                required
                 value={telepon}
-                onChange={(e) => {
-                  setTelepon(e.target.value)
+                onChange={(val) => {
+                  setTelepon(val)
                   if (errors.telepon) setErrors((prev) => ({ ...prev, telepon: "" }))
                 }}
-                placeholder="+62 812-3456-7890"
-                className={`w-full rounded-xl border px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none transition shadow-xs ${
-                  errors.telepon
-                    ? "border-red-400 bg-red-50/30 focus:border-red-500"
-                    : "border-gray-200 bg-white focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
-                }`}
+                error={errors.telepon}
+                placeholder="+62 821-7373-9213"
+                inputClassName="px-4 py-3 text-sm rounded-xl border-gray-200 bg-white focus:border-[#561269] focus:ring-1 focus:ring-[#561269] shadow-xs"
               />
-              {errors.telepon && (
-                <p className="text-xs text-red-500 mt-1 font-medium">{errors.telepon}</p>
-              )}
             </div>
           </div>
 
@@ -808,7 +827,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           </div>
 
           {/* Kode Warna Identitas */}
-          <div>
+          <div data-has-error={Boolean(errors.warnaIdentitas)}>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
               Kode Warna Identitas <span className="text-red-500">*</span>
             </label>
@@ -848,7 +867,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           </div>
 
           {/* Alamat Kantor / Komunitas */}
-          <div>
+          <div data-has-error={Boolean(errors.alamat)}>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
               Alamat Kantor / Komunitas <span className="text-red-500">*</span>
             </label>
@@ -870,7 +889,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
           </div>
 
           {/* Deskripsi Profil */}
-          <div>
+          <div data-has-error={Boolean(errors.deskripsi)}>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
               Deskripsi Profil Biro <span className="text-red-500">*</span>
             </label>

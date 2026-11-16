@@ -17,9 +17,9 @@ export default fp(async (fastify) => {
         return cb(null, true)
       }
 
-      // 2. Izinkan localhost dan seluruh subdomain localhost dengan sembarang port
-      // Contoh: http://localhost:3000, http://ugm.localhost:3000, http://abc.localhost:3000
-      const localhostRegex = /^https?:\/\/([a-z0-9-]+\.)*localhost(:[0-9]+)?$/i
+      // 2. Izinkan localhost, 127.0.0.1, dan seluruh subdomain localhost dengan sembarang port
+      // Contoh: http://localhost:3000, http://127.0.0.1:3000, http://ugm.localhost:3000
+      const localhostRegex = /^https?:\/\/(([a-z0-9-]+\.)*localhost|127\.0\.0\.1)(:[0-9]+)?$/i
       if (localhostRegex.test(origin)) {
         return cb(null, true)
       }

@@ -1,3 +1,4 @@
+/** Halaman status menunggu konfirmasi pembayaran psikotes. */
 import PsikotesPendingClient from "@/features/psikotes/components/client/PsikotesPendingClient"
 
 export const metadata = {

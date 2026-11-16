@@ -10,6 +10,7 @@ import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import AdminEventDetailModal from "./AdminEventDetailModal"
 import AdminDokumentasiEventClient from "./AdminDokumentasiEventClient"
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
 
 export type EventItem = AdminEventData
 
@@ -73,21 +74,28 @@ export default function AdminEventClient() {
     }
   }, [fetchEvents, activeSection])
 
-  // Delete event via API Backend
-  const handleDeleteEvent = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    const target = events.find((ev) => ev.id === id)
-    if (!target) return
+  const [eventToDelete, setEventToDelete] = useState<AdminEventData | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus event "${target.judul}"?`)
-    if (confirmDelete) {
-      try {
-        await eventService.delete(id)
-        setEvents((prev) => prev.filter((ev) => ev.id !== id))
-      } catch (err: any) {
-        const msg = err.response?.data?.message || "Gagal menghapus event."
-        alert(msg)
-      }
+  // Buka modal konfirmasi hapus event
+  const handleOpenDeleteEvent = (target: AdminEventData, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEventToDelete(target)
+  }
+
+  // Konfirmasi Hapus event via API Backend
+  const handleConfirmDeleteEvent = async () => {
+    if (!eventToDelete) return
+    setIsDeleting(true)
+    try {
+      await eventService.delete(eventToDelete.id)
+      setEvents((prev) => prev.filter((ev) => ev.id !== eventToDelete.id))
+      setEventToDelete(null)
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Gagal menghapus event."
+      alert(msg)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -104,7 +112,9 @@ export default function AdminEventClient() {
   const filteredEvents = events.filter((event) => {
     if (activeTab === "seminar" && event.jenis !== "Seminar") return false
     if (activeTab === "workshop" && event.jenis !== "Workshop") return false
+    // Tab "selesai" = event yang sudah diarsipkan (status Selesai)
     if (activeTab === "selesai" && event.status !== "Selesai") return false
+    // Tab "semua" = semua event (termasuk arsip) — tidak perlu filter
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
@@ -139,7 +149,7 @@ export default function AdminEventClient() {
           onClick={() => handleSectionChange("baru")}
           className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             activeSection === "baru"
-              ? "bg-[#561269] text-white shadow-sm"
+              ? "bg-[#EAB308] text-gray-950 shadow-sm"
               : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
           }`}
         >
@@ -151,7 +161,7 @@ export default function AdminEventClient() {
           onClick={() => handleSectionChange("selesai")}
           className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             activeSection === "selesai"
-              ? "bg-[#561269] text-white shadow-sm"
+              ? "bg-[#EAB308] text-gray-950 shadow-sm"
               : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
           }`}
         >
@@ -408,6 +418,7 @@ export default function AdminEventClient() {
                         {/* Tiket Terjual */}
                         <td className="py-4 px-4 text-center text-xs font-bold text-gray-800">
                           {item.tiketTerjual}
+                          <span className="font-normal text-gray-400"> / {item.totalTiket}</span>
                         </td>
 
                         {/* Status */}
@@ -427,7 +438,7 @@ export default function AdminEventClient() {
                               title="Edit Event"
                             />
                             <ActionButtonDelete
-                              onClick={(e) => handleDeleteEvent(item.id, e)}
+                              onClick={(e) => handleOpenDeleteEvent(item, e)}
                               title="Hapus Event"
                             />
                           </div>
@@ -454,6 +465,16 @@ export default function AdminEventClient() {
         onStatusChange={() => {
           fetchEvents()
         }}
+      />
+
+      {/* Modal Konfirmasi Hapus Event */}
+      <AdminDeleteModal
+        isOpen={Boolean(eventToDelete)}
+        onClose={() => !isDeleting && setEventToDelete(null)}
+        onConfirm={handleConfirmDeleteEvent}
+        itemType="event"
+        itemName={eventToDelete?.judul}
+        isLoading={isDeleting}
       />
     </div>
   )

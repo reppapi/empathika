@@ -1,5 +1,7 @@
+/** Controller handler request/response HTTP untuk katalog, booking, tiket, submit tes, dan admin psikotes. */
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import { PsikotesService } from './psikotes.service'
+import { hasAllowedDummyToken } from '../../middlewares/dev-bypass'
 import type {
   CreatePsikotesInput,
   UpdatePsikotesInput,
@@ -7,12 +9,15 @@ import type {
   SubmitPsikotesInput,
   PesertaQueryInput,
   CreateBookingPsikotesInput,
+  VerifyTicketInput,
 } from './psikotes.schema'
 
 export class PsikotesController {
   private service: PsikotesService
+  private fastify: FastifyInstance
 
   constructor(fastify: FastifyInstance) {
+    this.fastify = fastify
     this.service = new PsikotesService(fastify)
   }
 
@@ -92,7 +97,20 @@ export class PsikotesController {
     request: FastifyRequest<{ Querystring: PesertaQueryInput }>,
     reply: FastifyReply
   ) => {
-    const data = await this.service.getPeserta(request.query)
+    const user = (request as any).user
+    let id_biro = request.query?.id_biro
+    if (user?.role === 'BIRO') {
+      const account = await (this.fastify as any).prisma.account.findUnique({
+        where: { id: user.id },
+        select: { id_biro: true, owned_biro: { select: { id: true } } },
+      })
+      id_biro = account?.owned_biro?.[0]?.id || account?.id_biro || undefined
+    }
+
+    const data = await this.service.getPeserta({
+      ...request.query,
+      ...(id_biro ? { id_biro } : {}),
+    })
     return reply.code(200).send({
       success: true,
       message: 'Berhasil mengambil daftar peserta psikotes',
@@ -116,6 +134,64 @@ export class PsikotesController {
       return reply.code(statusCode).send({
         success: false,
         message: err.message || 'Gagal memproses booking paket psikotes',
+      })
+    }
+  }
+
+  verifyTicket = async (
+    request: FastifyRequest<{ Body: VerifyTicketInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.verifyTicket(request.body)
+      return reply.code(200).send({
+        success: true,
+        message: 'Kode akses berhasil diverifikasi',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal memverifikasi kode tiket',
+      })
+    }
+  }
+
+  getHasilByBooking = async (
+    request: FastifyRequest<{ Params: { bookingId: string }; Querystring: { token?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const headerToken = request.headers['x-hasil-token']
+      const accessToken =
+        request.query?.token || (typeof headerToken === 'string' ? headerToken : undefined)
+
+      let isAdmin = hasAllowedDummyToken(request)
+      if (!isAdmin && request.headers.authorization) {
+        try {
+          await request.jwtVerify()
+          const role = (request.user as any)?.role
+          isAdmin = role === 'ADMIN' || role === 'BIRO'
+        } catch {
+          isAdmin = false
+        }
+      }
+
+      const data = await this.service.getHasilByBooking(request.params.bookingId, {
+        accessToken,
+        isAdmin,
+      })
+      return reply.code(200).send({
+        success: true,
+        message: 'Berhasil mengambil data laporan hasil asesmen resmi',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 404
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Data hasil tes tidak ditemukan',
       })
     }
   }

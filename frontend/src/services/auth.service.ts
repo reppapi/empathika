@@ -19,7 +19,7 @@ export const authService = {
 
   setPassword: (payload: { token: string; password: string }) =>
     apiClient
-      .post<{ success: boolean; message: string; user: any }>("/auth/set-password", payload)
+      .post<{ success: boolean; message: string; accessToken?: string; user?: any }>("/auth/set-password", payload)
       .then((r) => r.data),
 
   checkActivation: (token: string) =>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { removeAuthCookie } from "@/lib/cookie"
 
@@ -173,9 +174,9 @@ export function AdminNavbar({
               <p className="text-xs font-bold text-gray-900">{adminName}</p>
               <p className="text-[10px] text-gray-400">{subtitle}</p>
             </div>
-            <a
+            <Link
               href={
-                pathname?.startsWith("/psikolog-web") ||
+                (pathname?.startsWith("/psikolog-web") ||
                 pathname?.startsWith("/admin/psikolog-web") ||
                 pathname === "/beranda" ||
                 pathname?.startsWith("/jadwal") ||
@@ -183,13 +184,14 @@ export function AdminNavbar({
                   ? "/psikolog-web/profile"
                   : pathname?.startsWith("/admin-biro")
                   ? "/admin-biro/profile"
-                  : "/admin/profile"
+                  : "/admin/profile") as any
               }
+              prefetch={true}
               onClick={() => setDropdownOpen(false)}
               className="block px-4 py-2 text-xs font-medium text-gray-700 hover:bg-purple-50 hover:text-[#561269]"
             >
               Pengaturan Profil
-            </a>
+            </Link>
             <button
               type="button"
               onClick={() => {
@@ -199,6 +201,11 @@ export function AdminNavbar({
                 localStorage.removeItem("empathika-auth")
                 localStorage.removeItem("active_psikolog_id")
                 localStorage.removeItem("active_psikolog_name")
+                localStorage.removeItem("biro_theme_color")
+                if (typeof document !== "undefined") {
+                  document.documentElement.removeAttribute("data-biro-theme")
+                  document.documentElement.style.removeProperty("--biro-theme-color")
+                }
                 removeAuthCookie("access_token")
                 removeAuthCookie("remember_me")
                 window.location.href = "/login"

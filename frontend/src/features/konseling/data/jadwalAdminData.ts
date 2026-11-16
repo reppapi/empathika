@@ -1,5 +1,4 @@
 import { BookedAssessment, ClientSessionToday, WeeklyTemplateItem } from "@/features/konseling/types"
-import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 
 export const TIME_SLOTS = [
   "09:00 - 10:00",
@@ -191,7 +190,7 @@ export function getWhatsAppPsikologUrl(session: {
   if (!phone && typeof window !== "undefined") {
     try {
       const saved = localStorage.getItem("empathika_tenaga_ahli_data")
-      const list = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
+      const list = saved ? JSON.parse(saved) : []
       const found = list.find(
         (p: any) =>
           p.nama?.toLowerCase().includes(session.psikolog.toLowerCase()) ||
@@ -203,21 +202,208 @@ export function getWhatsAppPsikologUrl(session: {
     } catch { }
   }
 
-  if (!phone) {
-    const foundInit = INITIAL_TENAGA_AHLI.find(
-      (p) =>
-        p.nama.toLowerCase().includes(session.psikolog.toLowerCase()) ||
-        session.psikolog.toLowerCase().includes(p.nama.toLowerCase())
-    )
-    if (foundInit && foundInit.noTelepon) {
-      phone = foundInit.noTelepon
-    }
+  const clean = (phone || "").replace(/\D/g, "")
+  if (!clean) return "#"
+  const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
+  const message = formatWhatsAppPsikologReminder(session)
+  return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+}
+
+export function formatWhatsAppPsikologCancellation(session: {
+  namaKlien: string
+  klienId?: string
+  layanan: string
+  psikolog: string
+  waktu: string
+  date?: string
+  tanggal?: string
+  tipe?: string
+}): string {
+  const tgl = session.date || session.tanggal || "hari ini"
+  return `Halo ${session.psikolog},
+
+Pemberitahuan resmi dari Tim Administrasi Empathika bahwa sesi konseling berikut telah *DIBATALKAN*:
+
+📋 *Detail Sesi yang Dibatalkan:*
+• *Klien:* ${session.namaKlien} (ID: ${session.klienId || "-"})
+• *Layanan:* ${session.layanan}
+• *Tanggal:* ${tgl}
+• *Waktu Sesi:* ${session.waktu} WIB
+• *Metode:* ${session.tipe || "Konsultasi"}
+• *Status:* Dibatalkan
+
+Slot jam tersebut telah dinonaktifkan di sistem. Anda tidak perlu bersiap untuk sesi ini. Terima kasih atas pengertian dan kerjasamanya! 🙏
+- Tim Admin Empathika`
+}
+
+export function getWhatsAppPsikologCancelUrl(session: {
+  noTeleponPsikolog?: string
+  kontak?: string
+  namaKlien: string
+  klienId?: string
+  layanan: string
+  psikolog: string
+  waktu: string
+  date?: string
+  tanggal?: string
+  tipe?: string
+}): string {
+  let phone = session.noTeleponPsikolog
+
+  if (!phone && typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+      const list = saved ? JSON.parse(saved) : []
+      const found = list.find(
+        (p: any) =>
+          p.nama?.toLowerCase().includes(session.psikolog.toLowerCase()) ||
+          session.psikolog.toLowerCase().includes(p.nama?.toLowerCase())
+      )
+      if (found && found.noTelepon) {
+        phone = found.noTelepon
+      }
+    } catch { }
   }
 
   const clean = (phone || "").replace(/\D/g, "")
   if (!clean) return "#"
   const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
-  const message = formatWhatsAppPsikologReminder(session)
+  const message = formatWhatsAppPsikologCancellation(session)
+  return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+}
+
+export function formatWhatsAppClientReschedule(
+  session: {
+    namaKlien: string
+    klienId?: string
+    layanan: string
+    psikolog: string
+    waktu: string
+    date?: string
+    tanggal?: string
+    tipe?: string
+  },
+  newDate?: string,
+  newWaktu?: string
+): string {
+  const isAsesmen =
+    (session.layanan || "").toLowerCase().includes("asesmen") ||
+    (session.layanan || "").toLowerCase().includes("psikotes") ||
+    (session.layanan || "").toLowerCase().includes("tes psikologi")
+  const tglLama = session.date || session.tanggal || "hari ini"
+  const tglBaru = newDate || session.date || session.tanggal || "Jadwal Baru"
+  const rawJamLama = (session.waktu || "").replace(/\s*WIB/i, "").trim()
+  const rawJamBaru = (newWaktu || session.waktu || "Sesuai Konfirmasi").replace(/\s*WIB/i, "").trim()
+  return `Halo Kak ${session.namaKlien},
+
+Pemberitahuan dari Tim Administrasi Empathika bahwa sesi ${isAsesmen ? "asesmen" : "konseling"} Anda telah berhasil *DIJADWALKAN ULANG (RESCHEDULE)*:
+
+📋 *Detail Pembaruan Jadwal ${isAsesmen ? "Asesmen" : "Konseling"}:*
+• *Klien:* ${session.namaKlien} (ID: ${session.klienId || "-"})
+• *Layanan:* ${session.layanan}
+${!isAsesmen && session.psikolog ? `• *Psikolog:* ${session.psikolog}\n` : ""}• *Metode:* ${session.tipe || (isAsesmen ? "Asesmen" : "Konsultasi")}
+
+⏱️ *Jadwal Sebelumnya:* ${tglLama} (${rawJamLama ? `${rawJamLama} WIB` : "-"})
+✨ *JADWAL BARU:* *${tglBaru}* jam *${rawJamBaru} WIB*
+
+Mohon dapat bersiap 10 menit sebelum sesi dimulai pada jadwal baru tersebut. Jika ada pertanyaan, silakan membalas pesan ini. Terima kasih! 🙏
+- Tim Admin Empathika`
+}
+
+export function formatWhatsAppPsikologReschedule(
+  session: {
+    namaKlien: string
+    klienId?: string
+    layanan: string
+    psikolog: string
+    waktu: string
+    date?: string
+    tanggal?: string
+    tipe?: string
+  },
+  newDate?: string,
+  newWaktu?: string
+): string {
+  const tglLama = session.date || session.tanggal || "hari ini"
+  const tglBaru = newDate || session.date || session.tanggal || "Jadwal Baru"
+  const rawJamLama = (session.waktu || "").replace(/\s*WIB/i, "").trim()
+  const rawJamBaru = (newWaktu || session.waktu || "Sesuai Konfirmasi").replace(/\s*WIB/i, "").trim()
+  return `Halo ${session.psikolog},
+
+Pemberitahuan dari Tim Administrasi Empathika bahwa sesi konseling berikut telah *DIJADWALKAN ULANG (RESCHEDULE)*:
+
+📋 *Detail Reschedule Sesi:*
+• *Klien:* ${session.namaKlien} (ID: ${session.klienId || "-"})
+• *Layanan:* ${session.layanan}
+• *Metode:* ${session.tipe || "Konsultasi"}
+
+⏱️ *Jadwal Sebelumnya:* ${tglLama} (${rawJamLama ? `${rawJamLama} WIB` : "-"})
+✨ *JADWAL BARU:* *${tglBaru}* jam *${rawJamBaru} WIB*
+
+Slot jadwal baru telah disesuaikan di sistem. Mohon dapat mencatat jadwal baru ini di kalender Anda. Terima kasih atas pengertian dan kerjasamanya! 🙏
+- Tim Admin Empathika`
+}
+
+export function getWhatsAppClientRescheduleUrl(
+  session: {
+    kontak?: string
+    namaKlien: string
+    klienId?: string
+    layanan: string
+    psikolog: string
+    waktu: string
+    date?: string
+    tanggal?: string
+    tipe?: string
+  },
+  newDate?: string,
+  newWaktu?: string
+): string {
+  const phone = session.kontak
+  const clean = (phone || "").replace(/\D/g, "")
+  if (!clean) return "#"
+  const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
+  const message = formatWhatsAppClientReschedule(session, newDate, newWaktu)
+  return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+}
+
+export function getWhatsAppPsikologRescheduleUrl(
+  session: {
+    noTeleponPsikolog?: string
+    kontak?: string
+    namaKlien: string
+    klienId?: string
+    layanan: string
+    psikolog: string
+    waktu: string
+    date?: string
+    tanggal?: string
+    tipe?: string
+  },
+  newDate?: string,
+  newWaktu?: string
+): string {
+  let phone = session.noTeleponPsikolog
+
+  if (!phone && typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+      const list = saved ? JSON.parse(saved) : []
+      const found = list.find(
+        (p: any) =>
+          p.nama?.toLowerCase().includes(session.psikolog.toLowerCase()) ||
+          session.psikolog.toLowerCase().includes(p.nama?.toLowerCase())
+      )
+      if (found && found.noTelepon) {
+        phone = found.noTelepon
+      }
+    } catch { }
+  }
+
+  const clean = (phone || "").replace(/\D/g, "")
+  if (!clean) return "#"
+  const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
+  const message = formatWhatsAppPsikologReschedule(session, newDate, newWaktu)
   return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
 }
 

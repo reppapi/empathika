@@ -24,6 +24,7 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
   const isEdit = Boolean(id)
 
   const [judul, setJudul] = useState("")
+  const [kategori, setKategori] = useState<"SEMINAR" | "WORKSHOP" | "KOLABORASI">("KOLABORASI")
   const [tanggal, setTanggal] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
   const [photos, setPhotos] = useState<PhotoItem[]>([])
@@ -47,6 +48,9 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
         if (res?.data) {
           const d = res.data
           setJudul(d.judul || "")
+          if (d.kategori && ["SEMINAR", "WORKSHOP", "KOLABORASI"].includes(d.kategori)) {
+            setKategori(d.kategori as any)
+          }
           // format tanggal YYYY-MM-DD
           const tglStr = d.tanggal ? d.tanggal.split("T")[0] : ""
           setTanggal(tglStr)
@@ -153,6 +157,7 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
 
       const payload = {
         judul: judul.trim(),
+        kategori,
         tanggal,
         deskripsi: deskripsi.trim(),
         foto: photos.map((p, idx) => ({
@@ -232,6 +237,22 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
           />
         </div>
 
+        {/* Field Kategori Dokumentasi */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+            Kategori Galeri <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={kategori}
+            onChange={(e) => setKategori(e.target.value as any)}
+            className="w-full sm:w-72 px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all font-medium cursor-pointer bg-white"
+          >
+            <option value="WORKSHOP">Workshop</option>
+            <option value="SEMINAR">Seminar</option>
+            <option value="KOLABORASI">Kolaborasi</option>
+          </select>
+        </div>
+
         {/* Field 2: Tanggal Pelaksanaan */}
         <div>
           <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
@@ -274,7 +295,7 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
             value={deskripsi}
             onChange={(e) => setDeskripsi(e.target.value)}
             placeholder="Tuliskan rangkuman kegiatan, pembicara, antusiasme peserta, atau dampak dari acara yang telah diselenggarakan..."
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all placeholder:text-gray-400 font-medium resize-y"
+            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all placeholder:text-gray-400 font-medium resize-y whitespace-pre-wrap"
           />
         </div>
 
@@ -293,7 +314,11 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
             </span>
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            Pilih foto-foto momen terbaik kegiatan (maksimal 10 foto, format JPG, PNG, atau WEBP). Foto pertama akan menjadi sampul utama (thumbnail).
+            Pilih foto-foto momen terbaik kegiatan (maksimal 10 foto). Foto pertama otomatis menjadi sampul utama (thumbnail).
+            <br />
+            <span className="font-semibold text-gray-700">Rekomendasi ukuran: </span>
+            <span className="font-bold text-[#561269]">800 × 600 piksel (Rasio 4:3)</span> atau{" "}
+            <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span> agar foto pas dan tidak terpotong saat ditampilkan di galeri.
           </p>
 
           <input
@@ -365,6 +390,9 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
                       <ImagePlus className="w-5 h-5" />
                     </div>
                     <span className="text-xs font-bold text-center">Tambah Foto</span>
+                    <span className="text-[10px] font-semibold text-[#561269] text-center">
+                      4:3 / 16:9
+                    </span>
                     <span className="text-[10px] text-gray-400 text-center">
                       Maksimal {10 - photos.length} lagi
                     </span>

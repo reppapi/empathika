@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { bookingService } from "@/services/booking.service"
+import { layananService } from "@/services/layanan.service"
+import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
 
 export const BANK_LIST = [
   { id: "bca", name: "BCA", va: "1234567890123" },
@@ -90,27 +92,20 @@ export function useBayarClient() {
 
     const qTime5 = qWaktu ? qWaktu.trim().substring(0, 5) : ""
 
-    // 1. Cek LocalStorage (apabila slot berasal dari custom admin/dummy)
+    // 1. Cek LocalStorage (apabila slot ditandai dibatalkan secara lokal)
     try {
       const raw = localStorage.getItem("empathika_custom_jadwal_slots")
       if (raw) {
         const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) {
-          if (
-            qSlotId &&
-            (qSlotId.startsWith("slot_asesmen_") ||
-              qSlotId.startsWith("ab_") ||
-              qSlotId.startsWith("slot-admin-"))
-          ) {
-            const found = parsed.find((s: any) => s.id === qSlotId)
-            if (!found) {
-              setIsSlotUnavailable(true)
-              setSlotUnavailableReason(
-                "Slot jadwal ini telah dihapus dari jadwal klinik atau dibatalkan oleh admin."
-              )
-              setIsCheckingSlot(false)
-              return
-            }
+        if (Array.isArray(parsed) && qSlotId) {
+          const found = parsed.find((s: any) => s.id === qSlotId)
+          if (found && (found.status === "Dibatalkan" || found.status === "TIDAK_TERSEDIA")) {
+            setIsSlotUnavailable(true)
+            setSlotUnavailableReason(
+              "Slot jadwal ini telah dibatalkan oleh pihak klinik atau admin."
+            )
+            setIsCheckingSlot(false)
+            return
           }
         }
       }
@@ -156,6 +151,86 @@ export function useBayarClient() {
       }
     }
   }, [checkSlotStatus])
+
+  // Perhitungan tarif dinamis (menyesuaikan hari kerja vs akhir pekan & kualifikasi tenaga ahli)
+  const [hargaNominal, setHargaNominal] = useState("Rp 350.000")
+  const [isLayananNonaktif, setIsLayananNonaktif] = useState(false)
+
+  useEffect(() => {
+    let isWeekend = false
+    let targetDateStr = qFullDate
+    if (!targetDateStr && qTanggal && qTahun) {
+      const parts = qTanggal.split("/")
+      if (parts.length === 2) {
+        targetDateStr = `${qTahun}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
+      }
+    }
+    if (targetDateStr) {
+      const d = new Date(targetDateStr)
+      if (!isNaN(d.getTime())) {
+        const day = d.getDay()
+        isWeekend = day === 0 || day === 6
+      }
+    }
+
+    const psiLower = (qPsikologName || "").toLowerCase()
+    const roleKey: "psikolog" | "konselor" | "peer" = psiLower.includes("peer")
+      ? "peer"
+      : psiLower.includes("konselor")
+      ? "konselor"
+      : "psikolog"
+
+    const formatRp = (num: number | string) => {
+      const n = typeof num === "string" ? parseInt(num.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10) : num
+      return `Rp ${n.toLocaleString("id-ID")}`
+    }
+
+    const checkService = () => {
+      layananService
+        .getAll({ kategori: "KONSULTASI" })
+        .then((res: any) => {
+          const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+          const item =
+            list.find((l: any) => {
+              if (qLayanan) return l.nama.toLowerCase().includes(qLayanan.toLowerCase()) || qLayanan.toLowerCase().includes(l.nama.toLowerCase())
+              return true
+            }) || list[0]
+
+          const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
+          const localItem = stored.find((l) => {
+            if (qLayanan) return l.layanan.toLowerCase().includes(qLayanan.toLowerCase()) || qLayanan.toLowerCase().includes(l.layanan.toLowerCase())
+            return true
+          })
+
+          const isNonaktif =
+            (item && (item.aktif === false || item.status === "Nonaktif")) ||
+            (localItem && localItem.status === "Nonaktif")
+          setIsLayananNonaktif(Boolean(isNonaktif))
+
+          if (item?.tarif_tenaga_ahli?.[roleKey]) {
+            const rate = isWeekend
+              ? item.tarif_tenaga_ahli[roleKey].weekend
+              : item.tarif_tenaga_ahli[roleKey].weekday
+            setHargaNominal(formatRp(rate))
+          } else if (item) {
+            const rate = isWeekend ? item.harga_weekend : item.harga_weekday
+            setHargaNominal(formatRp(rate))
+          }
+        })
+        .catch((err) => {
+          console.warn("Gagal sinkronisasi tarif dinamis pembayaran:", err)
+        })
+    }
+
+    checkService()
+    window.addEventListener("focus", checkService)
+    window.addEventListener("storage", checkService)
+
+    return () => {
+      window.removeEventListener("focus", checkService)
+      window.removeEventListener("storage", checkService)
+    }
+  }, [qFullDate, qTanggal, qTahun, qPsikologName, qLayanan])
 
   useEffect(() => {
     const qNama = searchParams.get("nama")
@@ -258,6 +333,11 @@ export function useBayarClient() {
       return
     }
 
+    if (isLayananNonaktif) {
+      alert("Layanan konsultasi ini sedang dinonaktifkan oleh administrator dan tidak dapat diproses.")
+      return
+    }
+
     setIsSubmitting(true)
 
     let targetDate = qFullDate
@@ -291,6 +371,10 @@ export function useBayarClient() {
 
       const finalOrderId = res?.kode_pesanan || ("W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"))
       const bookingId = res?.id
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("empathika_booking_created", { detail: res }))
+      }
 
       const cleanBottomTime = isAsesmenLayanan && qBottomTime.includes("•")
         ? qBottomTime.split("•")[0].trim()
@@ -360,26 +444,6 @@ export function useBayarClient() {
         setSlotUnavailableReason(msg)
       }
 
-      try {
-        const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed)) {
-            const qTime5 = qWaktu ? qWaktu.trim().substring(0, 5) : ""
-            const updated = parsed.filter((s: any) => {
-              if (qSlotId && s.id === qSlotId) return false
-              const sTime5 = (s.jam_mulai || "").trim().substring(0, 5)
-              const sDate = s.tanggal || ""
-              const isMatchDate = targetDate ? sDate === targetDate : true
-              if (isMatchDate && qTime5 && sTime5 === qTime5) return false
-              return true
-            })
-            localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(updated))
-            window.dispatchEvent(new Event("storage"))
-          }
-        }
-      } catch {}
-
       alert(msg)
     } finally {
       setIsSubmitting(false)
@@ -418,6 +482,8 @@ export function useBayarClient() {
     qLayanan,
     qHarga,
     qHari,
+    hargaNominal,
+    isLayananNonaktif,
     handleSelectPayment,
     handleSubmit,
   }

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import SidebarPsikolog from "@/components/layout/SidebarPsikolog"
 import AdminNavbar from "@/components/layout/AdminNavbar"
-import { LOCAL_STORAGE_KEY_TENAGA, INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
+import { LOCAL_STORAGE_KEY_TENAGA } from "@/features/psikolog/data/initialData"
 import { TenagaAhli } from "@/features/psikolog/types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { psikologService } from "@/services/psikolog.service"
@@ -29,7 +29,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   const syncPsikologData = () => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-      const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
+      const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
       const savedName = localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name")
       const savedId = localStorage.getItem("active_psikolog_id") || sessionStorage.getItem("active_psikolog_id")
       const isInvalidSaved = !savedName || savedName.toLowerCase().includes("admin")

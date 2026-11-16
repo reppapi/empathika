@@ -113,7 +113,7 @@ export default function ClientDokumentasiDetailModal({
             {item.judul}
           </h3>
           {item.deskripsi && (
-            <p className="text-white/85 text-xs sm:text-sm mt-1 leading-relaxed line-clamp-2 drop-shadow-sm font-normal">
+            <p className="text-white/85 text-xs sm:text-sm mt-1 leading-relaxed drop-shadow-sm font-normal whitespace-pre-wrap">
               {item.deskripsi}
             </p>
           )}

@@ -1,5 +1,12 @@
 import { z } from "zod"
 
+// ── Schema untuk Admin: Parameter Account ID ──────────────────────────────────
+export const biroAccountIdParamsSchema = z.object({
+  accountId: z.string().min(1, "Account ID wajib diisi"),
+})
+
+export type BiroAccountIdParams = z.infer<typeof biroAccountIdParamsSchema>
+
 // ── Schema untuk Admin: Membuat akun Biro baru ────────────────────────────────
 export const createBiroSchema = z.object({
   nama: z.string().min(3, "Nama biro minimal 3 karakter"),

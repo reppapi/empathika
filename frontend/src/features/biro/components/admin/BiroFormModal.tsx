@@ -5,6 +5,7 @@ import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import { getBiroWebsiteUrl } from "@/lib/utils"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 
 interface BiroFormModalProps {
   isOpen: boolean
@@ -292,11 +293,11 @@ export default function BiroFormModal({
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-gray-600 font-medium">
-                  Rekomendasi ukuran: <strong className="text-[#561269]">500 × 500 px (1:1)</strong>
+                <p className="text-xs text-gray-600 font-medium">
+                  Rekomendasi ukuran: <span className="font-bold text-[#561269]">500 × 500 piksel (Persegi / Rasio 1:1, logo di tengah)</span>
                 </p>
                 <p className="text-[11px] text-gray-400">
-                  Format JPG, PNG, WEBP, atau SVG • Bebas ukuran berapa pun, otomatis dikompresi
+                  Format JPG, PNG, WEBP, atau SVG • Otomatis disesuaikan untuk navbar dan profil biro
                 </p>
                 {errors.logo && (
                   <p className="text-xs text-red-500 font-semibold">{errors.logo}</p>
@@ -387,26 +388,19 @@ export default function BiroFormModal({
 
             {/* No Telepon */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                No. Telepon <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+              <PhoneInputField
+                label="No WhatsApp"
+                labelClassName="uppercase tracking-wider font-bold mb-1.5 text-xs text-gray-700"
+                required
                 value={telepon}
-                onChange={(e) => {
-                  setTelepon(e.target.value)
+                onChange={(val) => {
+                  setTelepon(val)
                   if (errors.telepon) setErrors((prev) => ({ ...prev, telepon: "" }))
                 }}
-                placeholder="+62 812-3456-7890"
-                className={`w-full rounded-2xl border px-3.5 py-2.5 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none transition shadow-xs ${
-                  errors.telepon
-                    ? "border-red-400 bg-red-50/30 focus:border-red-500"
-                    : "border-gray-200 bg-white focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/10"
-                }`}
+                error={errors.telepon}
+                placeholder="+62 821-7373-9213"
+                inputClassName="rounded-2xl border-gray-200 bg-white focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/10 shadow-xs px-3.5 py-2.5 text-xs sm:text-sm"
               />
-              {errors.telepon && (
-                <p className="text-xs text-red-500 mt-1 font-medium">{errors.telepon}</p>
-              )}
             </div>
           </div>
 

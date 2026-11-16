@@ -10,107 +10,73 @@ export interface AdminLayananItem {
   status: "Aktif" | "Nonaktif"
   deskripsi: string
   bannerUrl?: string
+  foto_kegiatan?: string[]
+  manfaat?: string[]
+  tarif_tenaga_ahli?: {
+    psikolog?: { weekday: number | string; weekend: number | string }
+    konselor?: { weekday: number | string; weekend: number | string }
+    peer?: { weekday: number | string; weekend: number | string }
+    manfaat?: string[]
+    foto_kegiatan?: string[]
+  } | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
-  // ── Konsultasi (01) ──
   {
-    id: 1,
-    layanan: "Psikolog",
-    kategoriId: "01",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan konsultasi psikologi intensif bersama psikolog berlisensi untuk berbagai penanganan klinis, depresi, kecemasan, dan permasalahan kesehatan mental.",
-    bannerUrl: "",
-  },
-  {
-    id: 2,
-    layanan: "Peer Konselor",
-    kategoriId: "01",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan pendampingan santai bersama teman sebaya (peer counselor) yang terlatih untuk mendengarkan keluh kesah Anda tanpa penghakiman.",
-    bannerUrl: "",
-  },
-  {
-    id: 3,
-    layanan: "Hipnoterapi",
-    kategoriId: "01",
-    metode: "Offline",
-    weekday: "Rp 400.000",
-    weekend: "Rp 500.000",
-    status: "Aktif",
-    deskripsi:
-      "Terapi mendalam yang menyasar alam bawah sadar untuk membantu mengatasi trauma, kecemasan, fobia, hingga kebiasaan buruk yang sulit dihilangkan.",
-    bannerUrl: "",
-  },
-  {
-    id: 4,
-    layanan: "Home Visit",
-    kategoriId: "01",
-    metode: "Offline",
-    weekday: "Rp 500.000",
-    weekend: "Rp 600.000",
-    status: "Aktif",
-    deskripsi:
-      "Layanan spesial di mana psikolog kami akan langsung mengunjungi lokasi Anda demi kenyamanan, terutama bagi klien yang kesulitan mobilitas.",
-    bannerUrl: "",
-  },
-  // ── Workshop (03) ──
-  {
-    id: 5,
-    layanan: "Workshop Regulasi Emosi & Pelatihan Konselor Sebaya",
+    id: "ws-seft-01",
+    layanan: "Workshop SEFT",
     kategoriId: "03",
     metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
+    weekday: "Kemitraan",
+    weekend: "Kemitraan",
     status: "Aktif",
     deskripsi:
-      "Pelatihan pembekalan intensif bagi siswa/mahasiswa/komunitas untuk mengelola stres dan menjadi pendengar aktif yang empatik.",
-    bannerUrl: "",
+      "Workshop SEFT (Spiritual Emotional Freedom Technique) adalah program pengembangan diri dan terapi emosi yang membantu peserta mengelola emosi, meredakan stres, serta melepaskan beban batin secara mendalam melalui teknik yang mengintegrasikan psikologi energi, relaksasi emosi, dan pendekatan spiritualitas yang menenangkan.\n\nWorkshop ini dirancang secara praktis, aplikatif, dan interaktif. Peserta tidak hanya memahami konsep teoretis dan mengalami proses pelepasan emosi secara langsung, tetapi juga dilatih langkah demi langkah teknik SEFT agar dapat mempraktikkannya secara mandiri di rumah maupun lingkungan kerja. Seluruh sesi dipandu langsung oleh fasilitator berpengalaman dengan pendekatan yang empatik, aman, privat, serta menjunjung tinggi kode etik profesional.",
+    bannerUrl:
+      "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80",
+    foto_kegiatan: [
+      "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    ],
   },
-  // ── Asesmen (05) ──
   {
-    id: 6,
-    layanan: "Asesmen Minat Bakat",
-    kategoriId: "05",
+    id: "ws-peer-02",
+    layanan: "Pelatihan & Workshop Konselor Sebaya",
+    kategoriId: "03",
     metode: "Online/Offline",
-    weekday: "Rp 400.000",
-    weekend: "Rp 500.000",
+    weekday: "Kemitraan",
+    weekend: "Kemitraan",
     status: "Aktif",
     deskripsi:
-      "Rangkaian asesmen komprehensif untuk memetakan potensi akademik, bakat karier, dan profil kecenderungan minat individu secara terstandar.",
-    bannerUrl: "https://images.unsplash.com/photo-1573497620053-ea5300f94f21?auto=format&fit=crop&w=1200&q=80",
+      "Program pelatihan pembekalan komprehensif bagi siswa, mahasiswa, pendidik, dan komunitas untuk mengasah kepekaan sosial, keterampilan komunikasi suportif, serta kemampuan menjadi pendengar aktif dan konselor sebaya (peer helper) yang empatik tanpa menghakimi.\n\nPelatihan ini mengombinasikan pemahaman teori dasar konseling, studi kasus riil, role-play komunikasi, dan simulasi pendampingan teman sebaya. Peserta dibimbing langsung oleh psikolog profesional agar memiliki kesiapan mental, empati yang terarah, dan rasa tanggung jawab dalam mendampingi rekan di lingkungannya.",
+    bannerUrl:
+      "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80",
+    foto_kegiatan: [
+      "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1531545514256-b1400bc00f31?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    ],
   },
   {
-    id: 7,
-    layanan: "Asesmen Kesiapan Sekolah",
-    kategoriId: "05",
-    metode: "Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, dan emosional dalam memasuki jenjang sekolah.",
-    bannerUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: 8,
-    layanan: "Asesmen Klinis",
-    kategoriId: "05",
+    id: "sm-empathika-01",
+    layanan: "Seminar Empathika",
+    kategoriId: "04",
     metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
+    weekday: "Kemitraan",
+    weekend: "Kemitraan",
     status: "Aktif",
     deskripsi:
-      "Evaluasi psikologis mendalam untuk mengidentifikasi kondisi klinis, regulasi emosi, kecemasan, dan kesehatan mental secara menyeluruh.",
-    bannerUrl: "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?auto=format&fit=crop&w=1200&q=80",
+      "Empathika menyelenggarakan program seminar sebagai ruang edukatif dan reflektif untuk meningkatkan pemahaman psikologis serta kesadaran diri dalam menghadapi berbagai dinamika kehidupan, baik personal, keluarga, maupun profesional.\n\nProgram dirancang secara interaktif dan aplikatif dengan materi yang mudah dipahami, memadukan psikoedukasi dengan sesi reflektif dan healing (SEFT) agar peserta dapat mengenali serta melepaskan beban emosional secara lebih mendalam.",
+    bannerUrl:
+      "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80",
+    foto_kegiatan: [
+      "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    ],
   },
 ]
 
@@ -123,6 +89,16 @@ export function getStoredLayanan(): AdminLayananItem[] {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const hasWs = parsed.some((p: any) => p.kategoriId === "03" || p.kategori === "WORKSHOP")
+        const hasSm = parsed.some((p: any) => p.kategoriId === "04" || p.kategori === "SEMINAR")
+        if (!hasWs || !hasSm) {
+          const defaultsToAdd = INITIAL_ADMIN_LAYANAN.filter(
+            (init) => (!hasWs && init.kategoriId === "03") || (!hasSm && init.kategoriId === "04")
+          )
+          const merged = [...parsed, ...defaultsToAdd]
+          saveStoredLayanan(merged)
+          return merged
+        }
         return parsed
       }
     }
@@ -131,6 +107,9 @@ export function getStoredLayanan(): AdminLayananItem[] {
   }
   return INITIAL_ADMIN_LAYANAN
 }
+
+// Alias helper
+export const getLayananList = getStoredLayanan
 
 export function saveStoredLayanan(items: AdminLayananItem[]): void {
   if (typeof window === "undefined") return

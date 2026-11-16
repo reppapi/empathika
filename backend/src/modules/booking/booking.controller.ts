@@ -8,12 +8,15 @@ import type {
   GetJadwalTersediaQuery,
   CreateJadwalSlotInput,
   CreateClientBookingInput,
+  RescheduleBookingInput,
 } from './booking.schema'
 
 export class BookingController {
   private service: BookingService
+  private fastify: any
 
   constructor(fastify: any) {
+    this.fastify = fastify
     this.service = new BookingService(fastify)
   }
 
@@ -136,7 +139,19 @@ export class BookingController {
     request: FastifyRequest<{ Querystring: GetAdminJadwalQuery }>,
     reply: FastifyReply
   ) => {
-    const data = await this.service.getJadwalOverview(request.query)
+    const user = (request as any).user
+    const query = { ...request.query }
+    if (user?.role === 'BIRO') {
+      const account = await (this.fastify as any).prisma.account.findUnique({
+        where: { id: user.id },
+        select: { id_biro: true, owned_biro: { select: { id: true } } },
+      })
+      const userBiroId = account?.owned_biro?.[0]?.id || account?.id_biro
+      if (userBiroId) {
+        query.id_biro = userBiroId
+      }
+    }
+    const data = await this.service.getJadwalOverview(query)
     reply.send(data)
   }
 
@@ -214,6 +229,22 @@ export class BookingController {
       reply.send(data)
     } catch (err: any) {
       reply.code(400).send({ message: err.message })
+    }
+  }
+
+  rescheduleBooking = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: RescheduleBookingInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.rescheduleBooking(request.params.id, request.body)
+      reply.send({
+        statusCode: 200,
+        message: 'Sesi konsultasi berhasil dijadwalkan ulang (reschedule)',
+        data,
+      })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 }

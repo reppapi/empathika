@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
-import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import ActivationWarningModal from "@/components/common/ActivationWarningModal"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 import {
   formatExpiryDisplay,
   formatRemainingTime,
@@ -207,7 +208,9 @@ export default function AdminTambahPsikologClient() {
         noSipp: true,
         noSilp: true,
       })
-      setFormErrorAlert("Format data belum sesuai. Silakan periksa kolom yang bertanda merah di bawah.")
+      const errorList = Object.values(formErrors).filter(Boolean)
+      const detailMsg = errorList.length > 0 ? errorList.join(" • ") : "Format data belum sesuai."
+      setFormErrorAlert(detailMsg)
       window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }
@@ -273,7 +276,7 @@ export default function AdminTambahPsikologClient() {
     try {
       // 2. Simpan juga ke cache lokal
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-      const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
+      const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
       const updated = [newTenaga, ...list]
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updated))
       if (typeof window !== "undefined") {
@@ -360,8 +363,8 @@ export default function AdminTambahPsikologClient() {
                 <p className="text-xs font-medium text-gray-700">
                   Unggah pas foto formal atau foto profil profesional tenaga ahli.
                 </p>
-                <p className="text-[11px] text-gray-600 font-medium">
-                  Rekomendasi pas foto: <span className="font-bold text-[#561269]">600 × 600 px (rasio 1:1 / 4:3, wajah di tengah)</span>
+                <p className="text-xs text-gray-600 font-medium">
+                  Rekomendasi ukuran: <span className="font-bold text-[#561269]">600 × 600 piksel (Persegi / Rasio 1:1, wajah di tengah)</span>
                 </p>
                 <p className="text-[11px] text-gray-400">
                   Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi untuk kartu & profil klien
@@ -410,36 +413,20 @@ export default function AdminTambahPsikologClient() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Nomor Telepon / WhatsApp <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+              <PhoneInputField
+                label="No WhatsApp"
                 required
                 value={noTelepon}
-                onChange={(e) => {
-                  setNoTelepon(e.target.value)
+                onChange={(val) => {
+                  setNoTelepon(val)
                   if (formErrorAlert) setFormErrorAlert(null)
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
-                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
-                  noTeleponError
-                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
-                    : "border-gray-200 focus:border-[#561269]"
-                }`}
+                error={noTeleponError}
+                placeholder="+62 821-7373-9213"
+                inputClassName="rounded-2xl px-4 py-2.5 text-sm border-gray-200 focus:border-[#561269]"
+                helperText="Nomor otomatis diawali +62 (10-14 digit angka). Awalan 08 atau 62 otomatis disesuaikan."
               />
-              {noTeleponError ? (
-                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
-                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{noTeleponError}</span>
-                </p>
-              ) : (
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Wajib diawali dengan 08 (10-14 digit angka).
-                </p>
-              )}
             </div>
 
             <div>
@@ -477,7 +464,7 @@ export default function AdminTambahPsikologClient() {
                 rows={5}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog... Tekan Enter untuk membuat paragraf baru."
+                placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog..."
                 className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 focus:border-[#561269] focus:outline-none resize-y min-h-[120px] whitespace-pre-wrap leading-relaxed"
               />
             </div>
@@ -535,6 +522,7 @@ export default function AdminTambahPsikologClient() {
                   if (formErrorAlert) setFormErrorAlert(null)
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+                placeholder="contoh: psikolog@empathika.id"
                 className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
                   emailError
                     ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
@@ -550,7 +538,7 @@ export default function AdminTambahPsikologClient() {
                 </p>
               ) : (
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Wajib menggunakan email akun Gmail (harus mengandung @gmail.com).
+                  Gunakan alamat email aktif tenaga ahli untuk pengiriman kredensial login.
                 </p>
               )}
             </div>

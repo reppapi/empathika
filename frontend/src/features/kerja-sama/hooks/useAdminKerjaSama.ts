@@ -284,16 +284,16 @@ export function useAdminKerjaSama() {
     router.push(`/admin/kerja-sama/edit/${item.id}` as any)
   }
 
-  const handleDeleteItem = (id: string, name: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus program "${name}"?`)) {
-      const updated = items.filter((it) => it.id !== id)
-      setItems(updated)
-      saveKerjaSamaItems(updated)
+  const handleDeleteItem = async (id: string, name?: string) => {
+    const updated = items.filter((it) => it.id !== id)
+    setItems(updated)
+    saveKerjaSamaItems(updated)
 
-      // Sinkronkan ke Backend API
-      kerjaSamaService.deleteProgram(id).catch(() => {})
-      showToast("Program kerja sama telah dihapus!")
-    }
+    // Sinkronkan ke Backend API
+    try {
+      await kerjaSamaService.deleteProgram(id)
+    } catch {}
+    showToast(`Program kerja sama "${name || "terpilih"}" telah dihapus!`)
   }
 
   // ── Handlers Config Web ──
@@ -331,15 +331,13 @@ export function useAdminKerjaSama() {
 
   const handleDeleteQuestion = (qId: string) => {
     if (!currentFormConfig) return
-    if (confirm("Hapus pertanyaan ini dari formulir?")) {
-      const updatedQuestions = currentFormConfig.pertanyaanKhusus.filter((q) => q.id !== qId)
-      const updated = formConfigs.map((f, idx) =>
-        idx === selectedFormIndex ? { ...f, pertanyaanKhusus: updatedQuestions } : f
-      )
-      setFormConfigs(updated)
-      saveFormulirConfigs(updated)
-      showToast("Pertanyaan berhasil dihapus!")
-    }
+    const updatedQuestions = currentFormConfig.pertanyaanKhusus.filter((q) => q.id !== qId)
+    const updated = formConfigs.map((f, idx) =>
+      idx === selectedFormIndex ? { ...f, pertanyaanKhusus: updatedQuestions } : f
+    )
+    setFormConfigs(updated)
+    saveFormulirConfigs(updated)
+    showToast("Pertanyaan berhasil dihapus!")
   }
 
   const handleAddNewQuestion = (e: React.FormEvent) => {
@@ -388,19 +386,19 @@ export function useAdminKerjaSama() {
     showToast(`Status pengajuan berhasil diubah menjadi ${newStatus}!`)
   }
 
-  const handleDeleteLead = (id: string) => {
-    if (confirm("Hapus data pengajuan ini?")) {
-      const updated = leads.filter((l) => l.id !== id)
-      setLeads(updated)
-      savePengajuanKerjaSama(updated)
+  const handleDeleteLead = async (id: string) => {
+    const updated = leads.filter((l) => l.id !== id)
+    setLeads(updated)
+    savePengajuanKerjaSama(updated)
 
-      // Sinkronkan ke Backend API (DELETE /kerja-sama/pengajuan/:id)
-      kerjaSamaService.deletePengajuan(id).catch((err) => {
-        console.warn("Backend delete pengajuan error:", err)
-      })
-
-      showToast("Pengajuan berhasil dihapus.")
+    // Sinkronkan ke Backend API (DELETE /kerja-sama/pengajuan/:id)
+    try {
+      await kerjaSamaService.deletePengajuan(id)
+    } catch (err) {
+      console.warn("Backend delete pengajuan error:", err)
     }
+
+    showToast("Pengajuan berhasil dihapus.")
   }
 
   const filteredLeads = leads.filter((l) => {

@@ -22,6 +22,7 @@ export const createJadwalSlotSchema = z.object({
   jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
   tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).default('KONSULTASI'),
   metode: z.string().optional().default('ONLINE'),
+  layanan: z.string().optional(),
 })
 
 // ── 3. Jadwal & Sesi Konsultasi di Admin ──
@@ -29,6 +30,8 @@ export const getAdminJadwalQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   layanan: z.string().optional(),
   status: z.string().optional(),
+  id_biro: z.string().optional(),
+  biroId: z.string().optional(),
 })
 
 export const createAdminJadwalSlotSchema = z.object({
@@ -38,6 +41,7 @@ export const createAdminJadwalSlotSchema = z.object({
   jam_selesai: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Format jam_selesai harus HH:mm'),
   tipe_jadwal: z.string().optional().default('ASESMEN'),
   metode: z.string().optional().default('OFFLINE'),
+  layanan: z.string().optional(),
 })
 
 export const createAdminSesiSchema = z.object({
@@ -59,6 +63,12 @@ export const createAdminSesiSchema = z.object({
 
 export const updateBookingStatusSchema = z.object({
   status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']),
+})
+
+export const rescheduleBookingSchema = z.object({
+  newDate: z.string().min(1, 'Tanggal baru wajib diisi'),
+  newWaktu: z.string().min(1, 'Jam baru wajib diisi'),
+  alasan: z.string().optional(),
 })
 
 // ── 4. Booking Mandiri oleh Klien (Public) ──
@@ -91,4 +101,5 @@ export type GetAdminJadwalQuery = z.infer<typeof getAdminJadwalQuerySchema>
 export type CreateAdminJadwalSlotInput = z.infer<typeof createAdminJadwalSlotSchema>
 export type CreateAdminSesiInput = z.infer<typeof createAdminSesiSchema>
 export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>
+export type RescheduleBookingInput = z.infer<typeof rescheduleBookingSchema>
 export type CreateClientBookingInput = z.infer<typeof createClientBookingSchema>

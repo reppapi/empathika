@@ -122,12 +122,13 @@ export async function seedPHQ9(prisma: PrismaClient) {
 
   // 2. Produk Paket PHQ-9 (Gratis)
   console.log('\n--- Menyemai Produk Paket PHQ-9 (Gratis) ---')
-  const judulPaketPHQ9 = 'Tes Depresi | Skrining Gejala Depresi Awal'
+  const judulPaketPHQ9 = 'Tes Depresi'
   let paketPHQ9 = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
         { judul: judulPaketPHQ9 },
-        { judul: 'Tes Skrining Tingkat Depresi (PHQ-9)' },
+        { judul: { contains: 'PHQ-9', mode: 'insensitive' } },
+        { judul: 'Tes Depresi | Skrining Gejala Depresi Awal' },
         { id_alat_ukur: alatUkurPHQ9.id },
       ],
     },
@@ -139,10 +140,8 @@ export async function seedPHQ9(prisma: PrismaClient) {
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
     banner_url: '/images/psikotes/banner-depresi.jpg',
-    deskripsi:
-      'Kenali kondisi suasana hati dan pahami gejala depresi yang mungkin kamu alami berdasarkan apa yang kamu rasakan selama dua minggu terakhir. Tes ini dapat membantumu memperoleh gambaran awal mengenai kondisi emosional dan kesehatan mentalmu.',
     tentang_tes:
-      'Melalui tes ini, kamu dapat mengenali beberapa gejala yang berkaitan dengan depresi, seperti perubahan suasana hati, kehilangan minat dalam beraktivitas, gangguan tidur, hingga perasaan tidak berharga. Hasilnya dapat menjadi langkah awal untuk lebih memahami kondisi emosional diri dan menentukan dukungan yang mungkin kamu butuhkan.',
+      'Ada kalanya suasana hati berubah dan hal-hal yang biasanya menyenangkan terasa berbeda. Melalui tes ini, kamu diajak melihat lebih jauh pengalaman yang berkaitan dengan suasana hati, minat, pola tidur, nafsu makan, energi, konsentrasi, serta pikiran yang mungkin muncul dalam dua minggu terakhir.',
     status: 'PUBLISHED',
   }
 

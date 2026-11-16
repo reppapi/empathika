@@ -1,3 +1,4 @@
+/** Service API client untuk katalog, booking/tiket, submit tes, dan admin psikotes. */
 import apiClient from "@/lib/axios"
 
 export interface PaketPsikotesApiResponse {
@@ -6,7 +7,6 @@ export interface PaketPsikotesApiResponse {
   jenis_akses: "GRATIS" | "BERBAYAR"
   harga: string | number
   banner_url?: string | null
-  deskripsi?: string | null
   tentang_tes?: string | null
   status: "PUBLISHED" | "DRAFT"
   createdAt: string
@@ -16,6 +16,31 @@ export interface PaketPsikotesApiResponse {
     kode: string
     nama: string
     kategori: string
+    deskripsi?: string | null
+    instruksi?: string
+    instruksiSingkat?: string
+    targetUsia?: string
+    periode?: string
+    pengembang?: string | null
+    tahun?: string | null
+    tujuan?: string | null
+    targetResponden?: string | null
+    referensi?: string | null
+    rentangSkorTotal?: string | null
+    cutoff?: string | null
+    dimensiList?: Array<{
+      nama: string
+      deskripsi: string
+      nomorSoal: number[]
+      jumlahSoal: number
+      skorMin: number
+      skorMax: number
+    }> | null
+    aturanSkoring?: Array<{
+      kelompok: string
+      nomorSoal: number[]
+      pembobotan: string
+    }> | null
   } | null
   soal_psikotes?: Array<{
     id: string
@@ -40,6 +65,11 @@ export interface PaketPsikotesApiResponse {
     deskripsi: string
     tips?: any
   }>
+  statistik?: {
+    total_peserta: number
+    tes_selesai: number
+    tes_sedang_berlangsung: number
+  }
   _count?: {
     booking_psikotes: number
   }
@@ -47,9 +77,22 @@ export interface PaketPsikotesApiResponse {
 
 export interface SubmitPsikotesPayload {
   jawaban: Array<{ id_soal: string; id_pilihan: string }> | Record<string, string>
+  id_booking?: string
+  bookingId?: string
+  orderId?: string
+  kode_akses?: string
   nama?: string
   no_telepon?: string
   email?: string
+  peserta?: {
+    nama_lengkap?: string
+    jenis_kelamin?: string
+    status_pernikahan?: string | null
+    usia?: number | null
+    pekerjaan?: string | null
+    pendidikan?: string | null
+    [key: string]: any
+  }
   klien?: {
     nama?: string
     no_telepon?: string
@@ -58,10 +101,16 @@ export interface SubmitPsikotesPayload {
     jenis_kelamin?: string
   }
   id_biro?: string
+  dampak_aktivitas?: number | null
+  peristiwa_lainnya?: string | null
+  peristiwaLainnya?: string | null
+  peristiwa_paling_mengganggu?: string | null
+  peristiwaPalingMengganggu?: string | null
 }
 
 export interface SubmitPsikotesResult {
   id_booking: string
+  access_token?: string
   id_paket: string
   judul_paket: string
   client: {
@@ -105,9 +154,6 @@ export const psikotesService = {
 
   submitJawaban: (testId: string, payload: SubmitPsikotesPayload) =>
     apiClient.post<{ success: boolean; message: string; data: SubmitPsikotesResult }>(`/psikotes/${testId}/submit`, payload).then((r) => r.data),
-
-  getHasil: (testId: string) =>
-    apiClient.get(`/psikotes/${testId}/hasil`).then((r) => r.data),
 
   getPeserta: (params?: { search?: string; jenis_akses?: string; id_paket?: string; page?: number; limit?: number }) =>
     apiClient
@@ -172,6 +218,78 @@ export const psikotesService = {
           client: any
         }
       }>("/psikotes/booking", payload)
+      .then((r) => r.data),
+
+  verifyTicket: (payload: { kode_akses: string; no_telepon: string }) =>
+    apiClient
+      .post<{
+        success: boolean
+        message: string
+        data: {
+          booking_id: string
+          access_token?: string
+          kode_akses: string
+          status_pengerjaan: "BELUM_MULAI" | "SELESAI"
+          test_id: string
+          judul_paket: string
+          nama_pembeli: string
+          peserta?: {
+            nama_lengkap: string
+            usia?: number | null
+            jenis_kelamin?: string | null
+          } | null
+          hasil_tes?: {
+            id: string
+            total_skor: number
+            tanggal_selesai: string
+          } | null
+          redirect_url: string
+        }
+      }>("/psikotes/verify-ticket", payload)
+      .then((r) => r.data),
+
+  getHasilByBooking: (bookingId: string, accessToken?: string | null) =>
+    apiClient
+      .get<{
+        success: boolean
+        message: string
+        data: {
+          id_booking: string
+          id_paket: string
+          kode_akses: string | null
+          status_pengerjaan: string
+          paket: PaketPsikotesApiResponse
+          client: {
+            id: string
+            nama: string
+            no_telepon?: string | null
+            usia?: number | null
+            jenis_kelamin?: string | null
+          }
+          peserta: {
+            nama_lengkap: string
+            no_telepon?: string | null
+            usia?: number | null
+            jenis_kelamin?: string | null
+            tempat_lahir?: string | null
+            tanggal_lahir?: string | null
+            pendidikan?: string | null
+            pekerjaan?: string | null
+          }
+          hasil: {
+            id: string
+            total_skor: number
+            detail_skor: any
+            tanggal_selesai: string
+            grade?: string | null
+            judul?: string | null
+            deskripsi?: string | null
+            tips?: any
+          }
+        }
+      }>(`/psikotes/booking/${bookingId}/hasil`, {
+        params: accessToken ? { token: accessToken } : undefined,
+      })
       .then((r) => r.data),
 }
 

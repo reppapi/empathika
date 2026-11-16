@@ -51,6 +51,8 @@ export default function ProfilePsikologClient({ role = "psikolog" }: ProfileClie
     handleRemoveSkill,
     handleSave,
     stripOuterQuotes,
+    touched,
+    setTouched,
   } = useProfilePsikologForm({ role })
 
   return (
@@ -97,7 +99,12 @@ export default function ProfilePsikologClient({ role = "psikolog" }: ProfileClie
         />
 
         {/* Kartu Legalitas Praktik (Adaptif: Peer Konselor, Konselor, Psikolog) */}
-        <CardLegalitasPraktik form={form} onChange={handleInputChange} />
+        <CardLegalitasPraktik
+          form={form}
+          onChange={handleInputChange}
+          touched={touched}
+          setTouched={setTouched}
+        />
 
         {/* Kartu Topik & Keahlian Konseling */}
         <CardTopikKeahlian
@@ -186,7 +193,7 @@ export default function ProfilePsikologClient({ role = "psikolog" }: ProfileClie
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           <FormGantiEmail initialEmail={form.email} />
           <FormGantiPassword />
         </div>

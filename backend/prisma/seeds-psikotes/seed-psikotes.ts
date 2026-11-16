@@ -2,6 +2,11 @@ import { PrismaClient } from '@prisma/client'
 import { seedGAD7, GAD7_SOAL, GAD7_OPSI, GAD7_INTERPRETASI } from './seeds/seed-gad7'
 import { seedPHQ9, PHQ9_SOAL, PHQ9_OPSI, PHQ9_INTERPRETASI } from './seeds/seed-phq9'
 import { seedDASS42, DASS42_SOAL, DASS42_OPSI, DASS42_INTERPRETASI } from './seeds/seed-dass42'
+import { seedIGDS9SF, IGDS9SF_SOAL, IGDS9SF_OPSI, IGDS9SF_INTERPRETASI } from './seeds/seed-igds9sf'
+import { seedRCMAS, RCMAS_SOAL, RCMAS_OPSI, RCMAS_INTERPRETASI } from './seeds/seed-rcmas'
+import { seedPBQ, PBQ_SOAL, PBQ_OPSI } from './seeds/seed-pbq'
+import { seedCDI, CDI_SOAL, CDI_INTERPRETASI } from './seeds/seed-cdi'
+import { seedCATS, CATS_SOAL, CATS_OPSI_YA_TIDAK, CATS_OPSI_GEJALA, CATS_INTERPRETASI } from './seeds/seed-cats'
 
 const prisma = new PrismaClient()
 
@@ -19,6 +24,25 @@ export {
   DASS42_SOAL,
   DASS42_OPSI,
   DASS42_INTERPRETASI,
+  seedIGDS9SF,
+  IGDS9SF_SOAL,
+  IGDS9SF_OPSI,
+  IGDS9SF_INTERPRETASI,
+  seedRCMAS,
+  RCMAS_SOAL,
+  RCMAS_OPSI,
+  RCMAS_INTERPRETASI,
+  seedPBQ,
+  PBQ_SOAL,
+  PBQ_OPSI,
+  seedCDI,
+  CDI_SOAL,
+  CDI_INTERPRETASI,
+  seedCATS,
+  CATS_SOAL,
+  CATS_OPSI_YA_TIDAK,
+  CATS_OPSI_GEJALA,
+  CATS_INTERPRETASI,
 }
 
 // ============================================================================
@@ -69,6 +93,11 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   const paketGAD7 = await seedGAD7(p)
   const paketPHQ9 = await seedPHQ9(p)
   const paketDASS42 = await seedDASS42(p)
+  const paketIGDS9SF = await seedIGDS9SF(p)
+  const paketRCMAS = await seedRCMAS(p)
+  const paketPBQ = await seedPBQ(p)
+  const paketCDI = await seedCDI(p)
+  const paketCATS = await seedCATS(p)
 
   console.log('\n========================================================')
   console.log('🎉 SELURUH SEEDER PSIKOTES BERHASIL DIJALANKAN!')
@@ -76,7 +105,12 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   console.log('Paket Aktif di Database:')
   console.log(`1. "${paketGAD7.judul}" -> GRATIS (Rp 0) [Alat: GAD-7]`)
   console.log(`2. "${paketPHQ9.judul}" -> GRATIS (Rp 0) [Alat: PHQ-9]`)
-  console.log(`3. "${paketDASS42.judul}" -> GRATIS (Rp 0) [Alat: DASS-42]`)
+  console.log(`3. "${paketDASS42.judul}" -> BERBAYAR (Rp ${Number(paketDASS42.harga).toLocaleString('id-ID')}) [Alat: DASS-42]`)
+  console.log(`4. "Tes Kecanduan Game (IGDS9-SF)" -> GRATIS (Rp 0) [Alat: IGDS9-SF]`)
+  console.log(`5. "${paketRCMAS.judul}" -> GRATIS (Rp 0) [Alat: RCMAS]`)
+  console.log(`6. "${paketPBQ.judul}" -> GRATIS (Rp 0) [Alat: PBQ]`)
+  console.log(`7. "Tes Gejala Depresi Anak & Remaja (CDI)" -> GRATIS (Rp 0) [Alat: CDI]`)
+  console.log(`8. "${paketCATS.judul}" -> GRATIS (Rp 0) [Alat: CATS]`)
   console.log('========================================================\n')
 }
 

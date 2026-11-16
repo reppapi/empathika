@@ -1,3 +1,4 @@
+/** Halaman checkout pendaftaran dan pembayaran paket psikotes berbayar. */
 import { Suspense } from "react"
 import PsikotesCheckoutClient from "@/features/psikotes/components/client/PsikotesCheckoutClient"
 

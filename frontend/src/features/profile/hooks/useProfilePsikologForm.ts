@@ -7,6 +7,11 @@ import { psikologService } from "@/services/psikolog.service"
 import { uploadService } from "@/services/upload.service"
 import apiClient from "@/lib/axios"
 import { useAuthStore } from "@/store/authStore"
+import {
+  validateNoStr,
+  validateNoSipp,
+  validateNoSilp,
+} from "@/features/psikolog/utils/tenagaAhliValidation"
 
 export const EMPTY_TENAGA_DATA: AdminProfileData = {
   nama: "",
@@ -70,6 +75,7 @@ export function useProfilePsikologForm({ role = "psikolog" }: UseProfilePsikolog
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
 
   // 4. State Modal Preview POV Klien
   const [previewModalOpen, setPreviewModalOpen] = useState(false)
@@ -156,9 +162,7 @@ export function useProfilePsikologForm({ role = "psikolog" }: UseProfilePsikolog
           const found =
             (savedId ? list.find((d: any) => d.id === savedId || d.accountId === savedId) : null) ||
             (authEmail ? list.find((d: any) => d.email?.toLowerCase() === authEmail.toLowerCase()) : null) ||
-            (savedName ? list.find((d: any) => d.nama?.toLowerCase().includes(savedName.toLowerCase())) : null) ||
-            list.find((d: any) => d.id === "1" || d.email === "putriqoida@empathika.com") ||
-            list[0]
+            (savedName ? list.find((d: any) => d.nama?.toLowerCase().includes(savedName.toLowerCase())) : null)
 
           if (found) {
             const isKonselorProfesi =
@@ -327,6 +331,28 @@ export function useProfilePsikologForm({ role = "psikolog" }: UseProfilePsikolog
   // ── Simpan Perubahan (Persistensi API & LocalStorage) ──────────────────────
   const handleSave = async (e: FormEvent) => {
     e.preventDefault()
+
+    // Validasi Legalitas Praktik jika Kategori adalah Psikolog
+    if (form.kategoriProfesi === "psikolog" || !form.kategoriProfesi) {
+      const strErr = validateNoStr(form.noStr || "", "psikolog")
+      const sippErr = validateNoSipp(form.noSipp, "psikolog", form.noSilp)
+      const silpErr = validateNoSilp(form.noSilp, "psikolog", form.noSipp)
+
+      if (strErr || sippErr || silpErr) {
+        setTouched((prev) => ({
+          ...prev,
+          noStr: true,
+          noSipp: true,
+          noSilp: true,
+        }))
+        const firstErr = strErr || sippErr || silpErr
+        setToastMessage(firstErr || "Harap periksa kembali format nomor STR, SIPP, atau SILP.")
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 4000)
+        return
+      }
+    }
+
     setIsSaving(true)
 
     try {
@@ -378,7 +404,10 @@ export function useProfilePsikologForm({ role = "psikolog" }: UseProfilePsikolog
       // 4. Update data ke backend resmi
       try {
         await psikologService.updateMyProfile({
+          nama: updatedForm.nama,
           nama_gelar: updatedForm.nama,
+          no_telepon: updatedForm.noTelepon,
+          kategori: updatedForm.kategoriProfesi,
           bio: updatedForm.bio,
           foto: finalFotoUrl || undefined,
           spesialisasi: updatedForm.spesialisasi,
@@ -502,6 +531,8 @@ export function useProfilePsikologForm({ role = "psikolog" }: UseProfilePsikolog
     handleRemoveSkill,
     handleSave,
     stripOuterQuotes,
+    touched,
+    setTouched,
   }
 }
 

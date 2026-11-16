@@ -182,8 +182,11 @@ export default function ModalProgramForm({
                       }
                     />
                   </label>
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    PNG, JPG, WebP (maks. 5MB, otomatis dioptimalkan). Ambil langsung dari file laptop/HP.
+                  <p className="text-[11px] text-gray-600 font-medium mt-1">
+                    Rekomendasi ukuran: <span className="font-bold text-[#561269]">800 × 600 px (4:3) atau 1200 × 675 px (16:9)</span>
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Format PNG, JPG, WebP (maks. 5MB, otomatis dioptimalkan).
                   </p>
                 </div>
               </div>
@@ -250,8 +253,11 @@ export default function ModalProgramForm({
                       }
                     />
                   </label>
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    PNG, JPG, WebP (maks. 5MB, otomatis dioptimalkan). Ambil langsung dari file laptop/HP.
+                  <p className="text-[11px] text-gray-600 font-medium mt-1">
+                    Rekomendasi ukuran: <span className="font-bold text-[#561269]">800 × 600 px (4:3) atau 1200 × 675 px (16:9)</span>
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Format PNG, JPG, WebP (maks. 5MB, otomatis dioptimalkan).
                   </p>
                 </div>
               </div>

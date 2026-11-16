@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { LayananService } from './layanan.service'
-import type { CreateLayananInput, UpdateLayananInput } from './layanan.schema'
+import { createLayananSchema, updateLayananSchema } from './layanan.schema'
 
 export class LayananController {
   private service: LayananService
@@ -39,12 +39,13 @@ export class LayananController {
     }
   }
 
-  create = async (request: FastifyRequest<{ Body: CreateLayananInput }>, reply: FastifyReply) => {
+  create = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const data = await this.service.create(request.body)
+      const validated = createLayananSchema.parse(request.body)
+      const data = await this.service.create(validated)
       reply.code(201).send({
         success: true,
-        message: 'Layanan berhasil ditambahkan',
+        message: 'Layanan berhasil dibuat',
         data,
       })
     } catch (err: any) {
@@ -55,9 +56,10 @@ export class LayananController {
     }
   }
 
-  update = async (request: FastifyRequest<{ Params: { id: string }; Body: UpdateLayananInput }>, reply: FastifyReply) => {
+  update = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
-      const data = await this.service.update(request.params.id, request.body)
+      const validated = updateLayananSchema.parse(request.body)
+      const data = await this.service.update(request.params.id, validated)
       reply.send({
         success: true,
         message: 'Layanan berhasil diperbarui',

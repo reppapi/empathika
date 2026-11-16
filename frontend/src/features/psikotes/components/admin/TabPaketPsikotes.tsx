@@ -1,6 +1,10 @@
-import React from "react";
+/** Tab tabel daftar instrumen dan paket tes psikotes beserta filter, pencarian, dan hapus paket. */
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AdminDataTable,
+  AdminTableContainer,
   AdminSearchInput,
   AdminStatusBadge,
   ColumnDef,
@@ -9,6 +13,7 @@ import {
   ActionButtonDetail,
   ActionButtonDelete,
 } from "@/components/shared/TableActionButtons";
+import { Filter } from "lucide-react";
 import type { JudulPsikotesItem } from "../../types/adminPsikotes";
 
 export interface TabPaketPsikotesProps {
@@ -32,7 +37,20 @@ export default function TabPaketPsikotes({
   errorMessage = null,
   onRetry,
 }: TabPaketPsikotesProps) {
+  const router = useRouter();
+  const [selectedJenisAkses, setSelectedJenisAkses] = useState<"ALL" | "GRATIS" | "BERBAYAR">("ALL");
+
   const filteredJudul = judulList.filter((item) => {
+    // Filter Jenis Akses (Semua, Gratis, Berbayar)
+    if (selectedJenisAkses === "GRATIS") {
+      const hasGratis = item.paketList.some((p) => p.jenisAkses === "Gratis");
+      if (!hasGratis) return false;
+    } else if (selectedJenisAkses === "BERBAYAR") {
+      const hasBerbayar = item.paketList.some((p) => p.jenisAkses === "Berbayar");
+      if (!hasBerbayar) return false;
+    }
+
+    // Filter Kata Kunci Pencarian
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -52,13 +70,12 @@ export default function TabPaketPsikotes({
             <img src={item.image} alt={item.judul} className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col">
-            <span
-              onClick={() => onSelectJudul(item)}
+            <Link
+              href={`/admin/psikotes/${item.paketList[0]?.id || item.id}`}
               className="font-extrabold text-gray-900 leading-tight hover:text-[#561269] transition-colors cursor-pointer"
             >
               {item.judul}
-            </span>
-            <span className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.deskripsi}</span>
+            </Link>
           </div>
         </div>
       ),
@@ -71,42 +88,21 @@ export default function TabPaketPsikotes({
         const berbayar = item.paketList.find((p) => p.jenisAkses === "Berbayar");
 
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-xs">
             {gratis && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                  gratis.status === "Aktif"
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    : "bg-amber-50 text-amber-700 border border-amber-200"
-                }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    gratis.status === "Aktif" ? "bg-emerald-500" : "bg-amber-500"
-                  }`}
-                />
+              <span className="font-semibold text-gray-700">
                 Gratis
                 {gratis.status === "Draf" && (
-                  <span className="text-[10px] text-amber-600 font-medium">(Draf)</span>
+                  <span className="text-[10px] text-amber-600 font-medium ml-1">(Draf)</span>
                 )}
               </span>
             )}
+            {gratis && berbayar && <span className="text-gray-300">•</span>}
             {berbayar && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                  berbayar.status === "Aktif"
-                    ? "bg-purple-50 text-[#561269] border border-purple-200"
-                    : "bg-amber-50 text-amber-700 border border-amber-200"
-                }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    berbayar.status === "Aktif" ? "bg-[#561269]" : "bg-amber-500"
-                  }`}
-                />
+              <span className="font-semibold text-[#561269]">
                 Berbayar
                 {berbayar.status === "Draf" && (
-                  <span className="text-[10px] text-amber-600 font-medium">(Draf)</span>
+                  <span className="text-[10px] text-amber-600 font-medium ml-1">(Draf)</span>
                 )}
               </span>
             )}
@@ -165,11 +161,15 @@ export default function TabPaketPsikotes({
       header: "Aksi",
       align: "center",
       render: (item: JudulPsikotesItem) => {
+        const targetId = item.paketList[0]?.id || item.id;
         return (
-          <div className="flex items-center justify-center gap-2">
+          <div
+            className="flex items-center justify-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             <ActionButtonDetail
-              onClick={() => onSelectJudul(item)}
-              title="Lihat Detail & Kelola Status"
+              href={`/admin/psikotes/${targetId}`}
+              title="Buka Halaman Detail Paket"
             />
             <ActionButtonDelete
               onClick={() => onDeleteJudul(item)}
@@ -182,21 +182,36 @@ export default function TabPaketPsikotes({
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900">
-            Daftar Paket Psikotes
-          </h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Seluruh instrumen asesmen yang tersedia di sistem Empathika.
-          </p>
+    <AdminTableContainer>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        {/* Dropdown Filter Akses Paket (Persis gaya filter di Peserta) */}
+        <div className="relative w-full sm:w-64">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+            <Filter className="w-3.5 h-3.5 text-gray-400" />
+          </div>
+          <select
+            value={selectedJenisAkses}
+            onChange={(e) => setSelectedJenisAkses(e.target.value as "ALL" | "GRATIS" | "BERBAYAR")}
+            className="w-full appearance-none pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition shadow-2xs cursor-pointer truncate"
+          >
+            <option value="ALL">Semua Akses Paket</option>
+            <option value="GRATIS">Paket Gratis</option>
+            <option value="BERBAYAR">Paket Berbayar</option>
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
-        <div className="w-full sm:w-72">
+
+        {/* Kolom Pencarian */}
+        <div className="w-full sm:w-64">
           <AdminSearchInput
             placeholder="Cari judul psikotes..."
             value={searchQuery}
             onChange={onSearchChange}
+            className="!w-full lg:!w-full"
           />
         </div>
       </div>
@@ -208,7 +223,7 @@ export default function TabPaketPsikotes({
             <button
               type="button"
               onClick={onRetry}
-              className="px-4 py-2 rounded-xl bg-[#561269] text-white text-xs font-bold hover:bg-[#763E8B] transition shadow-xs cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
             >
               Coba Muat Ulang
             </button>
@@ -219,11 +234,15 @@ export default function TabPaketPsikotes({
           columns={columns}
           data={filteredJudul}
           keyExtractor={(item) => String(item.id)}
+          onRowClick={(item) => {
+            const targetId = item.paketList[0]?.id || item.id;
+            router.push(`/admin/psikotes/${targetId}`);
+          }}
           isLoading={isLoading}
           loadingMessage="Memuat daftar paket psikotes..."
           emptyMessage="Tidak ada paket psikotes yang ditemukan. Pastikan seeder database telah dijalankan."
         />
       )}
-    </div>
+    </AdminTableContainer>
   );
 }

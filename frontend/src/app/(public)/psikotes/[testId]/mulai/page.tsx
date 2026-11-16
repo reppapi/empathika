@@ -1,3 +1,4 @@
+/** Halaman pengerjaan soal psikotes dan pengisian identitas peserta. */
 import { Suspense } from "react"
 import PsikotesMulaiClient from "@/features/psikotes/components/client/catalog/PsikotesMulaiClient"
 

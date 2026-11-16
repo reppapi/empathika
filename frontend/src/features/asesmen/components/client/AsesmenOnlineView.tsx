@@ -272,10 +272,6 @@ export function AsesmenOnlineView({
                   <span>Lanjut ke Pembayaran</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-
-                <p className="text-[11px] text-gray-400 text-center">
-                  Pembayaran aman via QRIS, Bank Transfer, dan E-Wallet resmi.
-                </p>
               </div>
             ) : (
               <div className="flex flex-col gap-5 p-5 rounded-2xl bg-emerald-50/40 border border-emerald-100">
@@ -309,7 +305,7 @@ export function AsesmenOnlineView({
                 </div>
 
                 <Link
-                  href={withBiro(`/psikotes/mbti/mulai?paket=${encodeURIComponent(selectedAsesmen.title)}`) as any}
+                  href={withBiro(`/psikotes`) as any}
                   className="w-full flex items-center justify-center gap-2 py-3.5 sm:py-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
                 >
                   <span>Mulai Asesmen Sekarang</span>

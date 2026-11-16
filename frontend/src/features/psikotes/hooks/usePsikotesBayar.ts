@@ -1,3 +1,4 @@
+/** Hook logika form checkout psikotes berbayar (validasi peserta, metode pembayaran, dan submit booking). */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -50,13 +51,26 @@ export function usePsikotesBayar() {
   }, [searchParams])
 
   // Parameter Detail Layanan Psikotes
-  const testIdParam = searchParams.get("testId") || "mbti"
-  const judulParam = searchParams.get("judul") || "Tes Psikotes (Paket Lengkap)"
+  const testIdParam = searchParams.get("testId") || ""
+  const judulParam = searchParams.get("judul") || "Tes Psikotes"
   const subjudulParam =
     searchParams.get("subjudul") ||
     "Akses paket tes psikotes lengkap beserta laporan analisis profesional."
   const kategoriParam = searchParams.get("kategori") || "Psikotes"
-  const hargaParam = searchParams.get("harga") || "Rp 150.000"
+  const hargaParam = searchParams.get("harga") || "Rp 0"
+  const bannerUrlParam =
+    searchParams.get("bannerUrl") ||
+    searchParams.get("banner_url") ||
+    searchParams.get("image") ||
+    (() => {
+      const t = testIdParam.toLowerCase();
+      if (t.includes("dass")) return "/images/psikotes/banner-dass42.jpg";
+      if (t.includes("phq") || t.includes("depresi") || t.includes("cdi")) return "/images/psikotes/banner-depresi.jpg";
+      if (t.includes("gad") || t.includes("cemas")) return "/images/psikotes/banner-kecemasan.jpg";
+      if (t.includes("rcmas") || (t.includes("anak") && !t.includes("depresi"))) return "/images/psikotes/banner-rcmas.jpg";
+      if (t.includes("igds") || t.includes("game")) return "/images/psikotes/banner-game.jpg";
+      return "";
+    })();
 
   const handleSelectPayment = (id: string) => {
     if (metodePembayaran === id) {
@@ -79,7 +93,7 @@ export function usePsikotesBayar() {
     }
   }
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault?.()
     if (isSubmitting) return
     setAttemptedSubmit(true)
@@ -154,6 +168,7 @@ export function usePsikotesBayar() {
       harga: hargaParam,
       metode: metodePembayaran!,
       testId: testIdParam,
+      ...(bannerUrlParam && { bannerUrl: bannerUrlParam }),
       ...(selectedBank && { bank: selectedBank }),
       ...(selectedEwallet && { ewallet: selectedEwallet }),
     })
@@ -172,20 +187,29 @@ export function usePsikotesBayar() {
       )
     } catch {}
 
+    setIsSubmitting(true)
+
     // Daftarkan booking psikotes ke backend API
-    psikotesService
-      .createBooking({
+    try {
+      const res = await psikotesService.createBooking({
         id_paket: testIdParam,
         testId: testIdParam,
+        kode_transaksi: orderId,
         metode_pembayaran: metodePembayaran!,
         channel_pembayaran: selectedBank || selectedEwallet || "QRIS",
         status_pembayaran: "PAID",
         nama: nama.trim(),
         no_telepon: whatsapp.trim(),
       })
-      .catch((err) => {
-        console.warn("Sinkronisasi booking psikotes ke backend:", err)
-      })
+      const createdBookingId = (res?.data as any)?.id_booking || res?.data?.booking?.id
+      if (createdBookingId) {
+        params.set("bookingId", createdBookingId)
+      }
+    } catch (err) {
+      console.warn("Sinkronisasi booking psikotes ke backend:", err)
+    } finally {
+      setIsSubmitting(false)
+    }
 
     router.push(`/psikotes/pending?${params.toString()}`)
   }
@@ -213,6 +237,7 @@ export function usePsikotesBayar() {
     subjudulParam,
     kategoriParam,
     hargaParam,
+    bannerUrlParam,
     handleSelectPayment,
     handleSubmit,
   }

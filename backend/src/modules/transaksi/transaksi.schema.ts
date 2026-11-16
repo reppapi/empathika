@@ -17,6 +17,12 @@ export const createCheckoutTransaksiSchema = z.object({
   catatan: z.string().optional(), // Deskripsi keluhan untuk konseling
   metode_pembayaran: z.enum(['TRANSFER_BANK', 'E_WALLET', 'QRIS']).optional(),
   channel_pembayaran: z.string().optional(), // BCA, BNI, GOPAY, DANA, dll
+  kuota_bundling: z.number().int().min(1).optional(), // Jumlah tiket dalam paket bundling (default 1 untuk satuan)
+  nama_bundling: z.string().optional(),
+  nama_peserta_tambahan: z.array(z.object({
+    nama: z.string(),
+    whatsapp: z.string().optional().or(z.literal('')),
+  })).optional(),
   success_redirect_url: z.string().url().optional(),
   failure_redirect_url: z.string().url().optional(),
 })
@@ -32,6 +38,17 @@ export const updateTransaksiSchema = z.object({
 
 export const refundTransaksiSchema = z.object({
   alasan: z.string().min(3, 'Alasan refund wajib diisi (minimal 3 karakter)'),
+})
+
+// ── Admin Query Transaksi Schema (Pagination & Filter) ──────────────────────
+export const adminTransaksiQuerySchema = z.object({
+  page: z.coerce.number().int().min(1, 'Halaman minimal 1').optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100, 'Maksimal 100 data per halaman').optional().default(20),
+  search: z.string().trim().optional(),
+  status: z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).optional(),
+  clientId: z.string().optional(),
+  biroId: z.string().optional(),
+  all: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
 })
 
 // ── Webhook Xendit Callback ──────────────────────────────────────────────────
@@ -51,4 +68,6 @@ export type CreateCheckoutTransaksiInput = z.infer<typeof createCheckoutTransaks
 export type CreateTransaksiInput = z.infer<typeof createTransaksiSchema>
 export type UpdateTransaksiInput = z.infer<typeof updateTransaksiSchema>
 export type RefundTransaksiInput = z.infer<typeof refundTransaksiSchema>
+export type AdminTransaksiQueryInput = z.input<typeof adminTransaksiQuerySchema>
+export type AdminTransaksiQueryOutput = z.infer<typeof adminTransaksiQuerySchema>
 export type WebhookXenditInput = z.infer<typeof webhookXenditSchema>

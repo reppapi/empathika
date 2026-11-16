@@ -174,21 +174,53 @@ export class InvoiceService {
     return this.terbitkanInvoice(transaksiId)
   }
 
+  // ── Helper bangun data invoice terstruktur berdasarkan jenis transaksi ───
+  private async buildInvoiceData(transaksiId: string, invoice: any): Promise<InvoiceData> {
+    const trx = await this.fastify.prisma.transaksi.findUnique({
+      where: { id: transaksiId },
+      include: {
+        booking_psikotes: {
+          include: {
+            paket: true,
+            peserta_psikotes: true,
+          },
+        },
+        booking_konsultasi: true,
+        booking_event: true,
+      },
+    })
+
+    const isPsikotes = trx?.tipe_transaksi === 'PSIKOTES' || Boolean(trx?.booking_psikotes)
+    const isEvent = trx?.tipe_transaksi === 'EVENT' || Boolean(trx?.booking_event)
+
+    const kodeAkses = trx?.booking_psikotes?.kode_akses || trx?.kode_transaksi || null
+    const idPaket = trx?.booking_psikotes?.id_paket || null
+    const namaPeserta = trx?.booking_psikotes?.peserta_psikotes?.nama_lengkap || null
+
+    return {
+      nomor: invoice.nomor,
+      tanggal_terbit: invoice.tanggal_terbit,
+      tanggal_bayar: invoice.tanggal_bayar,
+      nama_client: invoice.nama_client,
+      judul_layanan: invoice.judul_layanan,
+      nama_psikolog: invoice.nama_psikolog,
+      tanggal_sesi: invoice.tanggal_sesi,
+      jenis_sesi: invoice.jenis_sesi,
+      harga: invoice.harga,
+      metode_bayar: invoice.metode_bayar,
+      no_wa_client: invoice.no_wa_client,
+      tipe_transaksi: isPsikotes ? 'PSIKOTES' : isEvent ? 'EVENT' : 'KONSULTASI',
+      kode_akses: kodeAkses,
+      id_paket: idPaket,
+      nama_peserta: namaPeserta,
+      masa_berlaku_hari: 14,
+    }
+  }
+
   // ── Ambil teks pesan WA invoice ──────────────────────────────────
   async getInvoiceText(transaksiId: string): Promise<string> {
     const invoice = await this.getOrCreateInvoice(transaksiId)
-    const data: InvoiceData = {
-      nomor: invoice!.nomor,
-      tanggal_terbit: invoice!.tanggal_terbit,
-      tanggal_bayar: invoice!.tanggal_bayar,
-      nama_client: invoice!.nama_client,
-      judul_layanan: invoice!.judul_layanan,
-      nama_psikolog: invoice!.nama_psikolog,
-      tanggal_sesi: invoice!.tanggal_sesi,
-      jenis_sesi: invoice!.jenis_sesi,
-      harga: invoice!.harga,
-      metode_bayar: invoice!.metode_bayar,
-    }
+    const data = await this.buildInvoiceData(transaksiId, invoice)
     return buildInvoiceWhatsAppText(data)
   }
 
@@ -219,19 +251,8 @@ export class InvoiceService {
       throw err
     }
 
-    const text = buildInvoiceWhatsAppText({
-      nomor: invoice!.nomor,
-      tanggal_terbit: invoice!.tanggal_terbit,
-      tanggal_bayar: invoice!.tanggal_bayar,
-      nama_client: invoice!.nama_client,
-      judul_layanan: invoice!.judul_layanan,
-      nama_psikolog: invoice!.nama_psikolog,
-      tanggal_sesi: invoice!.tanggal_sesi,
-      jenis_sesi: invoice!.jenis_sesi,
-      harga: invoice!.harga,
-      metode_bayar: invoice!.metode_bayar,
-    })
-
+    const data = await this.buildInvoiceData(transaksiId, invoice)
+    const text = buildInvoiceWhatsAppText(data)
     const url = buildWhatsAppUrl(waValidation.normalized!, text)
 
     return {

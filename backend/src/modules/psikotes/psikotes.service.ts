@@ -1,3 +1,4 @@
+/** Service layer bisnis modul psikotes yang menghubungkan controller ke repository. */
 import type { FastifyInstance } from 'fastify'
 import { PsikotesRepository } from './psikotes.repository'
 import type {
@@ -7,6 +8,7 @@ import type {
   SubmitPsikotesInput,
   PesertaQueryInput,
   CreateBookingPsikotesInput,
+  VerifyTicketInput,
 } from './psikotes.schema'
 
 export class PsikotesService {
@@ -46,6 +48,17 @@ export class PsikotesService {
 
   async createBooking(input: CreateBookingPsikotesInput) {
     return this.repo.createBooking(input)
+  }
+
+  async verifyTicket(input: VerifyTicketInput) {
+    return this.repo.verifyTicket(input)
+  }
+
+  async getHasilByBooking(
+    bookingId: string,
+    options?: { accessToken?: string; isAdmin?: boolean }
+  ) {
+    return this.repo.getHasilByBookingId(bookingId, options)
   }
 
   async getPeserta(params?: PesertaQueryInput) {

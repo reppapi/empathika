@@ -1,3 +1,4 @@
+/** Komponen halaman checkout untuk mendaftar dan memilih metode pembayaran paket psikotes. */
 "use client"
 
 import FormDataPeserta from "@/components/shared/checkout/FormDataPeserta"
@@ -28,6 +29,7 @@ export default function PsikotesCheckoutClient() {
     subjudulParam,
     kategoriParam,
     hargaParam,
+    bannerUrlParam,
     handleSelectPayment,
     handleSubmit,
   } = usePsikotesBayar()
@@ -103,6 +105,7 @@ export default function PsikotesCheckoutClient() {
           judul={judulParam}
           subjudul={subjudulParam}
           kategori={kategoriParam}
+          bannerUrl={bannerUrlParam}
         />
 
         {/* ── Box 2: Data Peserta (Shared Component - Tanpa Email) ── */}

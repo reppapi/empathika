@@ -1,20 +1,56 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getKerjaSamaItems, getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_ITEMS, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
+import { getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
 import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
 import { kerjaSamaService } from '@/services/kerja-sama.service';
 import { adminService } from '@/services/admin.service';
 import { getColorTheme } from '../../utils/colorThemes';
 
 export default function KerjaSamaClient() {
-  const [items, setItems] = useState<KerjaSamaItem[]>(INITIAL_KERJASAMA_ITEMS);
+  const [items, setItems] = useState<KerjaSamaItem[]>([]);
   const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  const loadPrograms = () => {
+    setIsLoading(true);
+    setIsError(false);
+    kerjaSamaService
+      .getProgramList()
+      .then((res: any) => {
+        if (res?.data && Array.isArray(res.data)) {
+          const mapped: KerjaSamaItem[] = res.data.map((p: any) => ({
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            shortName: p.short_name,
+            description: p.deskripsi,
+            pelatihanTitle: p.pelatihan_title || "",
+            pelatihanDeskripsi: p.pelatihan_deskripsi || "",
+            pelatihanImage: p.pelatihan_image || "",
+            mitraTitle: p.mitra_title || "",
+            mitraDeskripsi: p.mitra_deskripsi || "",
+            mitraImage: p.mitra_image || "",
+            color: p.warna_tema || "from-purple-500 to-indigo-600",
+            status: p.status === "NONAKTIF" ? "NONAKTIF" : "AKTIF",
+            urutan: p.urutan || 1,
+          }));
+          setItems(mapped);
+        }
+      })
+      .catch((err) => {
+        console.error("Gagal mengambil data program kerja sama dari backend:", err);
+        setIsError(true);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
 
   useEffect(() => {
     setIsMounted(true);
-    setItems(getKerjaSamaItems());
     setConfig(getKerjaSamaConfig());
 
     const refreshConfig = () => {
@@ -52,31 +88,8 @@ export default function KerjaSamaClient() {
     window.addEventListener("storage", refreshConfig);
     window.addEventListener("focus", refreshConfig);
 
-    // Ambil data program kerja sama dari backend API resmi
-    kerjaSamaService
-      .getProgramList()
-      .then((res: any) => {
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped: KerjaSamaItem[] = res.data.map((p: any) => ({
-            id: p.id,
-            slug: p.slug,
-            title: p.title,
-            shortName: p.short_name,
-            description: p.deskripsi,
-            pelatihanTitle: p.pelatihan_title || "",
-            pelatihanDeskripsi: p.pelatihan_deskripsi || "",
-            pelatihanImage: p.pelatihan_image || "",
-            mitraTitle: p.mitra_title || "",
-            mitraDeskripsi: p.mitra_deskripsi || "",
-            mitraImage: p.mitra_image || "",
-            color: p.warna_tema || "from-purple-500 to-indigo-600",
-            status: p.status === "NONAKTIF" ? "NONAKTIF" : "AKTIF",
-            urutan: p.urutan || 1,
-          }));
-          setItems(mapped);
-        }
-      })
-      .catch(() => {});
+    // Ambil program kerja sama murni dari backend database
+    loadPrograms();
 
     return () => {
       window.removeEventListener("empathika_admin_profile_updated", refreshConfig);
@@ -111,10 +124,8 @@ export default function KerjaSamaClient() {
     },
   };
 
-  // Hanya filter status aktif setelah mounted di client agar SSR & client initial render selalu identik
-  const activeItems: KerjaSamaItem[] = isMounted
-    ? items.filter((it) => it.status === "AKTIF")
-    : INITIAL_KERJASAMA_ITEMS;
+  // Hanya filter status aktif
+  const activeItems: KerjaSamaItem[] = items.filter((it: KerjaSamaItem) => it.status === "AKTIF");
 
   const currentConfig: KerjaSamaPageConfig = isMounted ? config : INITIAL_KERJASAMA_CONFIG;
 
@@ -201,41 +212,72 @@ export default function KerjaSamaClient() {
             <p className="text-sm font-bold text-[#561269] tracking-wider uppercase">-- Pilih Jenis Kolaborasi Di Bawah Ini --</p>
           </div>
           
-          {/* NEW DESIGN CARD OPTIONS */}
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12">
-            {activeItems.map((item) => {
-              const iconData = ICON_MAP[item.slug] || defaultIcon;
-              const colorTheme = getColorTheme(item.color);
-              const theme = {
-                topBar: colorTheme.value,
-                iconHover: colorTheme.hoverClass,
-              };
-              return (
-                <Link
-                  key={item.id}
-                  href={`/kerja-sama/${item.slug}` as any}
-                  className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 overflow-hidden flex flex-col items-center text-center cursor-pointer"
-                >
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${theme.topBar} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
-                  
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-gray-50 ${theme.iconHover} transition-all duration-300 shadow-inner`}>
-                    <svg className="w-7 h-7 text-gray-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d={iconData.icon}></path>
-                      {iconData.icon2 && <path strokeLinecap="round" strokeLinejoin="round" d={iconData.icon2}></path>}
-                    </svg>
-                  </div>
-                  
-                  <h3 className="text-lg font-bold text-gray-800 group-hover:text-[#561269] transition-colors">
-                    {item.shortName || item.title.replace('Empathika untuk ', '')}
-                  </h3>
-                  <div className="mt-4 flex items-center gap-1 text-sm font-medium text-[#561269] opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
-                    Lihat Detail
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          {/* Error State */}
+          {isError && (
+            <div className="w-full my-6 p-8 text-center bg-amber-50 border border-amber-200 rounded-3xl max-w-xl mx-auto shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3 text-xl">
+                ⚠️
+              </div>
+              <h3 className="text-base font-bold text-amber-900 mb-1">
+                Gagal memuat daftar program kerja sama
+              </h3>
+              <p className="text-xs text-amber-700 mb-4">
+                Silakan periksa koneksi Anda dan coba lagi.
+              </p>
+              <button
+                type="button"
+                onClick={loadPrograms}
+                className="px-6 py-2 bg-[#561269] hover:bg-[#430e52] text-white text-xs sm:text-sm font-bold rounded-full transition shadow-xs active:scale-95 cursor-pointer"
+              >
+                Muat Ulang
+              </button>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && !isError && (
+            <div className="py-16 text-center text-gray-400 font-medium text-sm animate-pulse">
+              Memuat data program kerja sama...
+            </div>
+          )}
+
+          {/* CARD OPTIONS (Hanya jika sukses dan tidak error) */}
+          {!isLoading && !isError && (
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12">
+              {activeItems.map((item) => {
+                const iconData = ICON_MAP[item.slug] || defaultIcon;
+                const colorTheme = getColorTheme(item.color);
+                const theme = {
+                  topBar: colorTheme.value,
+                  iconHover: colorTheme.hoverClass,
+                };
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/kerja-sama/${item.slug}` as any}
+                    className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 overflow-hidden flex flex-col items-center text-center cursor-pointer"
+                  >
+                    <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${theme.topBar} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                    
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-gray-50 ${theme.iconHover} transition-all duration-300 shadow-inner`}>
+                      <svg className="w-7 h-7 text-gray-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={iconData.icon}></path>
+                        {iconData.icon2 && <path strokeLinecap="round" strokeLinejoin="round" d={iconData.icon2}></path>}
+                      </svg>
+                    </div>
+                    
+                    <h3 className="text-lg font-bold text-gray-800 group-hover:text-[#561269] transition-colors">
+                      {item.shortName || item.title.replace('Empathika untuk ', '')}
+                    </h3>
+                    <div className="mt-4 flex items-center gap-1 text-sm font-medium text-[#561269] opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
+                      Lihat Detail
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {/* ORIGINAL DESIGN BOTTOM SECTION (without white card box, just text) */}
           <div className="w-full mt-4 text-left max-w-3xl mx-auto z-10">

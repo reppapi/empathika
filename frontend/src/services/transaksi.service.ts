@@ -12,8 +12,29 @@ export interface CreateCheckoutInput {
   catatan?: string
   metode_pembayaran?: "TRANSFER_BANK" | "E_WALLET" | "QRIS"
   channel_pembayaran?: string
+  kuota_bundling?: number
+  nama_bundling?: string
+  nama_peserta_tambahan?: { nama: string; whatsapp?: string }[]
   success_redirect_url?: string
   failure_redirect_url?: string
+}
+
+export interface AdminTransaksiQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  status?: string
+  clientId?: string
+  all?: boolean
+}
+
+export interface PaginationMeta {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
 }
 
 export const transaksiService = {
@@ -23,8 +44,14 @@ export const transaksiService = {
   getById: (id: string) =>
     apiClient.get(`/transaksi/${id}`).then((r) => r.data),
 
-  getAllAdmin: () =>
-    apiClient.get<{ success: boolean; data: any[] }>("/transaksi/admin").then((r) => r.data),
+  getAllAdmin: (params?: AdminTransaksiQueryParams) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: any[]
+        pagination?: PaginationMeta
+      }>("/transaksi/admin", { params })
+      .then((r) => r.data),
 
   checkout: (data: CreateCheckoutInput) =>
     apiClient.post<{
@@ -37,6 +64,9 @@ export const transaksiService = {
         invoiceId: string
       }
     }>("/transaksi/checkout", data).then((r) => r.data),
+
+  confirmPaymentSimulation: (transaksiId: string) =>
+    apiClient.post<{ success: boolean; message: string; data?: any }>(`/transaksi/${transaksiId}/confirm-simulation`).then((r) => r.data),
 
   processRefund: (transaksiId: string, payload: { alasan: string }) =>
     apiClient.post(`/transaksi/${transaksiId}/refund`, payload).then((r) => r.data),

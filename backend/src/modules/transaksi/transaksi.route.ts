@@ -6,19 +6,25 @@ import {
   createTransaksiSchema,
   createCheckoutTransaksiSchema,
   refundTransaksiSchema,
+  adminTransaksiQuerySchema,
   webhookXenditSchema,
 } from './transaksi.schema'
 import { authGuard } from '../../middlewares/auth-guard'
-import { adminGuard } from '../../middlewares/admin-guard'
+import { adminGuard, adminOrBiroGuard } from '../../middlewares/admin-guard'
 
 export default async function transaksiRoutes(fastify: FastifyInstance) {
   const controller = new TransaksiController(fastify)
   const webhookCtrl = new WebhookController(fastify)
 
-  // ── Admin routes ────────────────────────────────────────────────
+  // ── Admin & Biro routes ──────────────────────────────────────────
   fastify.get('/admin', {
-    preHandler: [adminGuard],
-    schema: { tags: ['Transaksi - Admin'], summary: 'Admin melihat semua riwayat transaksi', security: [{ bearerAuth: [] }] },
+    preHandler: [adminOrBiroGuard],
+    schema: {
+      tags: ['Transaksi - Admin'],
+      summary: 'Admin melihat semua riwayat transaksi dengan paginasi dan filter',
+      security: [{ bearerAuth: [] }],
+      querystring: adminTransaksiQuerySchema,
+    },
     handler: controller.getAll,
   })
 
@@ -60,6 +66,23 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
     preHandler: [authGuard],
     schema: { body: createTransaksiSchema, tags: ['Transaksi'], security: [{ bearerAuth: [] }] },
     handler: controller.createPayment,
+  })
+
+  // ── Simulasi Konfirmasi Pembayaran (Frontend Mock / Testing) ───
+  fastify.post('/:id/confirm-simulation', {
+    schema: {
+      tags: ['Transaksi'],
+      summary: 'Konfirmasi pembayaran simulasi untuk development / testing tanpa webhook Xendit',
+      params: z.object({ id: z.string() }),
+      response: {
+        200: z.object({
+          success: z.boolean(),
+          message: z.string(),
+          data: z.any().optional(),
+        }),
+      },
+    },
+    handler: controller.confirmSimulation,
   })
 
   // ── Webhook Xendit Callback ─────────────────────────────────────

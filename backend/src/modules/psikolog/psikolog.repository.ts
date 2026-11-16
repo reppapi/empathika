@@ -1,5 +1,67 @@
 import type { PrismaClient, Prisma } from '@prisma/client'
 
+/** Select akun yang dibutuhkan FE — tidak termasuk field sensitif password */
+const ACCOUNT_PUBLIC_SELECT = {
+  id: true,
+  nama: true,
+  email: true,
+  no_telepon: true,
+  foto: true,
+  role: true,
+  aktif: true,
+  token_aktivasi: true,
+  token_aktivasi_exp: true,
+} satisfies Prisma.AccountSelect
+
+const getStartOfTodayWIB = () => {
+  const now = new Date()
+  const wibDate = new Date(now.getTime() + 7 * 60 * 60 * 1000)
+  const yyyy = wibDate.getUTCFullYear()
+  const mm = String(wibDate.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(wibDate.getUTCDate()).padStart(2, '0')
+  return new Date(`${yyyy}-${mm}-${dd}T00:00:00.000Z`)
+}
+
+const getJadwalSlotInclude = (takeCount: number = 30) => {
+  const today = getStartOfTodayWIB()
+  const now = new Date()
+  const wibOffset = 7 * 60 * 60 * 1000
+  const wibDate = new Date(now.getTime() + wibOffset)
+  const currentHours = wibDate.getUTCHours()
+  const currentMinutes = wibDate.getUTCMinutes()
+  const currentTimeToday = new Date(
+    `1970-01-01T${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}:00.000Z`
+  )
+
+  return {
+    where: {
+      status: 'TERSEDIA' as const,
+      tipe_jadwal: 'KONSULTASI' as const,
+      booking_konsultasi: null,
+      NOT: { id: { startsWith: 'slot-' } },
+      OR: [
+        { tanggal: { gt: today } },
+        {
+          tanggal: today,
+          jam_mulai: { gte: currentTimeToday },
+        },
+      ],
+    },
+    orderBy: [{ tanggal: 'asc' as const }, { jam_mulai: 'asc' as const }],
+    take: takeCount,
+  }
+}
+
+const BOOKING_COUNT_SELECT = {
+  select: {
+    jadwal_slot: {
+      where: { booking_konsultasi: { isNot: null } },
+    },
+  },
+}
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 export class PsikologRepository {
   constructor(private prisma: PrismaClient) {}
 
@@ -9,7 +71,7 @@ export class PsikologRepository {
     if (params?.status) {
       const s = params.status.toUpperCase()
       if (s === 'ACTIVE' || s === 'INACTIVE') {
-        where.status = s as any
+        where.status = s as Prisma.EnumStatusPsikologFilter
       }
     } else {
       where.status = 'ACTIVE'
@@ -30,101 +92,26 @@ export class PsikologRepository {
       where,
       include: {
         spesialisasi: true,
-        account: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
-            no_telepon: true,
-            foto: true,
-            role: true,
-            aktif: true,
-            password: true,
-            token_aktivasi: true,
-            token_aktivasi_exp: true,
-          },
-        },
-        jadwal_slot: {
-          where: {
-            status: 'TERSEDIA',
-            tipe_jadwal: 'KONSULTASI',
-            NOT: {
-              id: { startsWith: 'slot-' },
-            },
-          },
-          orderBy: [
-            { tanggal: 'asc' },
-            { jam_mulai: 'asc' },
-          ],
-          take: 2,
-        },
-        _count: {
-          select: {
-            jadwal_slot: {
-              where: {
-                booking_konsultasi: { isNot: null },
-              },
-            },
-          },
-        },
+        account: { select: ACCOUNT_PUBLIC_SELECT },
+        jadwal_slot: getJadwalSlotInclude(30),
+        _count: BOOKING_COUNT_SELECT,
       },
-      orderBy: {
-        nama_gelar: 'asc',
-      },
+      orderBy: { nama_gelar: 'asc' },
     })
   }
 
   async findById(id: string) {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    const isUuid = UUID_REGEX.test(id)
     const detailInclude: Prisma.PsikologInclude = {
       spesialisasi: true,
-      account: {
-        select: {
-          id: true,
-          nama: true,
-          email: true,
-          no_telepon: true,
-          foto: true,
-          role: true,
-          aktif: true,
-          password: true,
-          token_aktivasi: true,
-          token_aktivasi_exp: true,
-        },
-      },
-      jadwal_slot: {
-        where: {
-          status: 'TERSEDIA',
-          tipe_jadwal: 'KONSULTASI',
-          NOT: {
-            id: { startsWith: 'slot-' },
-          },
-        },
-        orderBy: [
-          { tanggal: 'asc' },
-          { jam_mulai: 'asc' },
-        ],
-        take: 10,
-      },
-      _count: {
-        select: {
-          jadwal_slot: {
-            where: {
-              booking_konsultasi: { isNot: null },
-            },
-          },
-        },
-      },
+      account: { select: ACCOUNT_PUBLIC_SELECT },
+      jadwal_slot: getJadwalSlotInclude(30),
+      _count: BOOKING_COUNT_SELECT,
     }
 
     if (isUuid) {
       const found = await this.prisma.psikolog.findFirst({
-        where: {
-          OR: [
-            { id },
-            { id_account: id },
-          ],
-        },
+        where: { OR: [{ id }, { id_account: id }] },
         include: detailInclude,
       })
       if (found) return found
@@ -145,7 +132,6 @@ export class PsikologRepository {
           { nama_gelar: { contains: cleanSearch, mode: 'insensitive' } },
           { account: { nama: { contains: cleanSearch, mode: 'insensitive' } } },
           { account: { email: { equals: cleanSearch, mode: 'insensitive' } } },
-          { id_account: id },
         ],
       },
       include: detailInclude,
@@ -153,6 +139,9 @@ export class PsikologRepository {
   }
 
   async findByAccountId(id_account: string) {
+    if (!id_account) return null
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id_account)
+    if (!isUuid) return null
     return this.prisma.psikolog.findUnique({
       where: { id_account },
       include: {

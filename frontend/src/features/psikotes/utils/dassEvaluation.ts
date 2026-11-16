@@ -1,3 +1,4 @@
+/** Utility kalkulasi evaluasi klinis 3 dimensi DASS-42 (Depresi, Kecemasan, Stres) dan rekomendasi saran. */
 export interface DASSSubscaleItem {
   name: string;
   score: number;

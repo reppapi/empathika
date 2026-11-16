@@ -19,6 +19,14 @@ export interface TenantInfo {
  */
 export function getSubdomainSlug(): string | null {
   if (typeof window === "undefined") return null
+
+  // Support query param ?biro=slug atau ?tenant=slug untuk kemudahan pengujian lokal
+  if (window.location.search) {
+    const params = new URLSearchParams(window.location.search)
+    const paramBiro = params.get("biro") || params.get("tenant")
+    if (paramBiro) return paramBiro.toLowerCase().trim()
+  }
+
   const hostname = window.location.hostname.toLowerCase()
 
   // 1. *.localhost

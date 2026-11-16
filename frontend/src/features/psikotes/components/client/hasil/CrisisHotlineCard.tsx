@@ -1,3 +1,4 @@
+/** Kartu bantuan darurat dan hotline krisis saat terdeteksi indikasi melukai diri. */
 "use client";
 
 import Link from "next/link";

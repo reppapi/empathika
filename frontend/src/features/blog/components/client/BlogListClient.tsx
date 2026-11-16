@@ -1,14 +1,14 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Search, ChevronLeft, ChevronRight, X, ArrowRight } from 'lucide-react';
 import { blogService } from '@/services/blog.service';
 import { BackendBlogItem } from '@/features/blog/types';
+import { BLOG_CONSTANTS } from '@/features/blog/constants/blogConstants';
+import { formatBlogDate, createExcerpt } from '@/features/blog/utils/blogUtils';
 import styles from './BlogList.module.css';
-
-const POSTS_PER_PAGE = 4;
 
 export default function BlogListClient() {
   const [page, setPage] = useState(1);
@@ -25,7 +25,7 @@ export default function BlogListClient() {
     blogService
       .getList({
         page,
-        limit: POSTS_PER_PAGE,
+        limit: BLOG_CONSTANTS.PUBLIC_POSTS_PER_PAGE,
         search: searchQuery.trim() || undefined,
       })
       .then((res) => {
@@ -101,9 +101,9 @@ export default function BlogListClient() {
             <button
               className={styles.searchBtn}
               onClick={() => setSearchOpen(true)}
-              aria-label="Buka pencarian"
+              aria-label="Cari artikel"
             >
-              <Search size={20} />
+              <Search size={18} />
             </button>
           )}
         </div>
@@ -116,18 +116,8 @@ export default function BlogListClient() {
         ) : blogs.length > 0 ? (
           <div className={styles.cardList}>
             {blogs.map((post) => {
-              const formattedDate = new Date(post.tanggal_terbit).toLocaleDateString(
-                'id-ID',
-                {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                }
-              );
-              const excerpt =
-                post.isi.length > 150
-                  ? `${post.isi.substring(0, 150)}...`
-                  : post.isi;
+              const formattedDate = formatBlogDate(post.tanggal_terbit);
+              const excerpt = createExcerpt(post.isi);
 
               return (
                 <Link
@@ -138,10 +128,12 @@ export default function BlogListClient() {
                   <div className={styles.blogCard}>
                     {post.banner_url && (
                       <div className={styles.blogCardImg}>
-                        <img
+                        <Image
                           src={post.banner_url}
                           alt={post.judul}
-                          className={styles.cardImg}
+                          fill
+                          className="object-cover"
+                          unoptimized
                         />
                       </div>
                     )}
@@ -170,11 +162,10 @@ export default function BlogListClient() {
           </div>
         ) : (
           <div className={styles.emptyState}>
-            <div style={{ fontSize: 48 }}></div>
-            <p>
+            <p className="text-sm font-medium text-gray-500">
               {searchQuery
-                ? `Tidak ada artikel yang cocok dengan pencarian "${searchQuery}"`
-                : 'Belum ada artikel blog yang diterbitkan.'}
+                ? `Tidak ada artikel yang cocok dengan "${searchQuery}".`
+                : 'Belum ada artikel.'}
             </p>
           </div>
         )}
@@ -185,7 +176,10 @@ export default function BlogListClient() {
             <button
               className={styles.pgBtn}
               disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
+              onClick={() => {
+                setPage((p) => Math.max(1, p - 1));
+                window.scrollTo({ top: 300, behavior: 'smooth' });
+              }}
               aria-label="Halaman sebelumnya"
             >
               <ChevronLeft size={16} />
@@ -195,7 +189,10 @@ export default function BlogListClient() {
               <button
                 key={i + 1}
                 className={`${styles.pgBtn}${page === i + 1 ? ` ${styles.active}` : ''}`}
-                onClick={() => setPage(i + 1)}
+                onClick={() => {
+                  setPage(i + 1);
+                  window.scrollTo({ top: 300, behavior: 'smooth' });
+                }}
               >
                 {i + 1}
               </button>
@@ -204,7 +201,10 @@ export default function BlogListClient() {
             <button
               className={styles.pgBtn}
               disabled={page === totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => {
+                setPage((p) => Math.min(totalPages, p + 1));
+                window.scrollTo({ top: 300, behavior: 'smooth' });
+              }}
               aria-label="Halaman selanjutnya"
             >
               <ChevronRight size={16} />

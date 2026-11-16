@@ -23,7 +23,7 @@ export class LayananRepository {
 
     return this.prisma.layanan.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
       include: {
         _count: {
           select: { booking_konsultasi: true },
@@ -67,6 +67,12 @@ export class LayananRepository {
   async delete(id: string) {
     return this.prisma.layanan.delete({
       where: { id },
+    })
+  }
+
+  async countByKategori(kategori: KategoriLayanan) {
+    return this.prisma.layanan.count({
+      where: { kategori },
     })
   }
 }

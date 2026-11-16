@@ -1,4 +1,5 @@
-import React from "react";
+/** Modal detail peserta psikotes untuk melihat biodata, skor, hasil evaluasi, dan unduh PDF. */
+import React, { useState, useEffect } from "react";
 import {
   X,
   FileText,
@@ -9,15 +10,17 @@ import {
   Compass,
   HeartHandshake,
   Clock,
+  Loader2,
 } from "lucide-react";
 import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../../types/adminPsikotes";
 import { getPesertaReportDetail } from "../../utils/adminPsikotesMapper";
+import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 
 export interface ModalDetailPesertaProps {
   peserta: AdminPsikotesPeserta | null;
   judulList?: JudulPsikotesItem[];
   onClose: () => void;
-  onDownloadPdf: (peserta: AdminPsikotesPeserta) => void;
+  onDownloadPdf: (peserta: AdminPsikotesPeserta) => Promise<void> | void;
 }
 
 export default function ModalDetailPeserta({
@@ -26,10 +29,32 @@ export default function ModalDetailPeserta({
   onClose,
   onDownloadPdf,
 }: ModalDetailPesertaProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPdfError(null);
+    setIsDownloading(false);
+  }, [peserta?.id]);
+
   if (!peserta) return null;
 
   const isCompleted = peserta.status === "Selesai" || Boolean(peserta.hasil);
   const detail = getPesertaReportDetail(peserta, judulList);
+
+  const handleDownloadClick = async () => {
+    if (isDownloading) return;
+    setPdfError(null);
+    setIsDownloading(true);
+    try {
+      await onDownloadPdf(peserta);
+    } catch (err) {
+      console.error("[Admin PDF Download Error]", err);
+      setPdfError("Gagal membuat file PDF laporan. Silakan coba lagi.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
@@ -51,7 +76,7 @@ export default function ModalDetailPeserta({
                   </span>
                 ) : (
                   <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                    Sedang Berjalan
+                    Menunggu Pengerjaan
                   </span>
                 )}
               </div>
@@ -76,18 +101,23 @@ export default function ModalDetailPeserta({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-gray-50/80 border border-gray-100 text-xs">
             <div>
               <span className="text-gray-400 font-bold block uppercase tracking-wider text-[10px]">
-                Nama Klien
+                {isCompleted ? "Nama Peserta" : "Nama Pemesan"}
               </span>
               <span className="font-bold text-gray-900 text-sm mt-0.5 block truncate">
                 {peserta.nama}
               </span>
+              {!isCompleted && (
+                <span className="text-[10px] text-amber-600 font-medium block">
+                  (Menunggu Peserta)
+                </span>
+              )}
             </div>
             <div>
               <span className="text-gray-400 font-bold block uppercase tracking-wider text-[10px]">
-                Kontak WhatsApp
+                {isCompleted ? "Kontak WhatsApp" : "WhatsApp Pemesan"}
               </span>
-              <span className="font-semibold text-emerald-700 text-sm mt-0.5 block truncate">
-                {peserta.noHp}
+              <span className="font-semibold text-emerald-700 text-sm mt-0.5 block truncate font-mono">
+                {formatToIndonesianPhone(peserta.noHp)}
               </span>
             </div>
             <div>
@@ -108,20 +138,58 @@ export default function ModalDetailPeserta({
             </div>
           </div>
 
+          {/* Info Pemesan Jika Berbeda dengan Peserta */}
+          {isCompleted && peserta.isPembeliBerbeda && peserta.namaPemesan && (
+            <div className="p-3.5 rounded-xl bg-purple-50/50 border border-purple-200/70 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#561269]">Tiket Dipesan Oleh:</span>
+                <span className="text-gray-900 font-semibold">{peserta.namaPemesan}</span>
+                {peserta.noHpPemesan && (
+                  <span className="text-gray-500 text-[11px] font-mono">({formatToIndonesianPhone(peserta.noHpPemesan)})</span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Data Tambahan Profil Peserta (Anak / Remaja / Dewasa) */}
-          {peserta.peserta && (peserta.peserta.nama_orang_tua || peserta.peserta.pendidikan || peserta.peserta.pekerjaan || peserta.peserta.kategori_peserta) && (
+          {peserta.peserta && (peserta.peserta.nama_orang_tua || peserta.peserta.pendidikan || peserta.peserta.pekerjaan || peserta.peserta.status_pernikahan || peserta.peserta.tempat_lahir || peserta.peserta.tanggal_lahir || peserta.peserta.kategori_peserta) && (
             <div className="p-4 rounded-2xl bg-purple-50/40 border border-purple-100/60 text-xs space-y-2">
               <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider block">
                 Profil Peserta Tes {peserta.peserta.kategori_peserta ? `(${peserta.peserta.kategori_peserta})` : ""}
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {(peserta.peserta.tempat_lahir || peserta.peserta.tanggal_lahir) && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">Tempat, Tgl Lahir</span>
+                    <span className="font-semibold text-gray-800">
+                      {[
+                        peserta.peserta.tempat_lahir,
+                        peserta.peserta.tanggal_lahir
+                          ? new Date(peserta.peserta.tanggal_lahir).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || "—"}
+                    </span>
+                  </div>
+                )}
+                {((peserta.peserta as any).no_telepon || (!peserta.peserta.nama_orang_tua && peserta.peserta.no_telepon_orang_tua)) && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">No. WhatsApp Peserta</span>
+                    <span className="font-semibold text-emerald-700">{(peserta.peserta as any).no_telepon || peserta.peserta.no_telepon_orang_tua}</span>
+                  </div>
+                )}
                 {peserta.peserta.nama_orang_tua && (
                   <div>
                     <span className="text-gray-400 block text-[10px]">Nama Orang Tua / Wali</span>
                     <span className="font-semibold text-gray-800">{peserta.peserta.nama_orang_tua}</span>
                   </div>
                 )}
-                {peserta.peserta.no_telepon_orang_tua && (
+                {peserta.peserta.nama_orang_tua && peserta.peserta.no_telepon_orang_tua && (
                   <div>
                     <span className="text-gray-400 block text-[10px]">No. HP Orang Tua</span>
                     <span className="font-semibold text-gray-800">{peserta.peserta.no_telepon_orang_tua}</span>
@@ -153,22 +221,22 @@ export default function ModalDetailPeserta({
             <div className="p-6 rounded-2xl bg-amber-50/60 border border-amber-200 text-center space-y-3">
               <Clock className="w-8 h-8 text-amber-600 mx-auto" />
               <div>
-                <h4 className="font-bold text-sm text-amber-900">Klien Belum Menyelesaikan Pengerjaan Tes</h4>
+                <h4 className="font-bold text-sm text-amber-900">Menunggu Pengerjaan Tes oleh Peserta</h4>
                 <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                  Peserta ini telah terdaftar pada paket <strong>{peserta.paket}</strong> namun belum menyelesaikan pengisian instrumen tes psikotes. Hasil skor dan laporan resmi PDF akan otomatis terbentuk setelah peserta menyelesaikan tes.
+                  Paket <strong>{peserta.paket}</strong> telah aktif dan dipesan oleh <strong>{peserta.namaPemesan || peserta.nama}</strong>. Hasil skor dan laporan resmi PDF akan otomatis terbentuk setelah peserta mengisi identitas dan menyelesaikan tes.
                 </p>
               </div>
               {peserta.noHp && peserta.noHp !== "—" && (
                 <div className="pt-2">
                   <a
                     href={`https://wa.me/${peserta.noHp.replace(/\D/g, "")}?text=${encodeURIComponent(
-                      `Halo ${peserta.nama}, akses asesmen psikotes Anda (${peserta.paket}) di Empathika telah aktif. Silakan masuk ke akun atau link tes untuk menyelesaikan pengisian instrumen asesmen.`
+                      `Halo ${peserta.namaPemesan || peserta.nama}, akses asesmen psikotes Anda (${peserta.paket}) di Empathika telah aktif. Silakan masuk ke link tes untuk mengisi identitas peserta dan menyelesaikan instrumen asesmen.`
                     )}`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold transition shadow-xs"
                   >
-                    <Phone className="w-3.5 h-3.5" /> Ingatkan Peserta via WhatsApp
+                    <Phone className="w-3.5 h-3.5" /> Ingatkan Pemesan via WhatsApp
                   </a>
                 </div>
               )}
@@ -180,7 +248,7 @@ export default function ModalDetailPeserta({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Hasil Analisis Resmi
                 </span>
-                {peserta.totalSkor !== null && peserta.totalSkor !== undefined && (
+                {peserta.totalSkor !== null && peserta.totalSkor !== undefined && !peserta.hasil?.detail_skor?.tanpaSkorTotal && (
                   <div className="text-xs font-extrabold text-[#561269] bg-purple-50 inline-block px-3 py-1 rounded-full border border-purple-100">
                     Total Skor: {peserta.totalSkor}
                   </div>
@@ -197,6 +265,143 @@ export default function ModalDetailPeserta({
                   {detail.deskripsi}
                 </p>
               </div>
+
+              {/* Rincian Dimensi RCMAS & Lie Scale */}
+              {peserta.hasil?.detail_skor?.subscales?.physiological && peserta.hasil?.detail_skor?.lieScale && (
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                  <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider block">
+                    Rincian Dimensi Kecemasan &amp; Validitas (RCMAS)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Faktor Fisiologis</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.physiological?.skor ?? 0} / 10
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Faktor Kekhawatiran</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.worry?.skor ?? 0} / 11
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Faktor Konsentrasi</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.concentration?.skor ?? 0} / 7
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Indikator Validitas / Lie Scale */}
+                  <div className="p-3 rounded-xl bg-white border border-purple-200/80 flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-purple-950">Indikator Validitas (Lie Scale):</span>
+                        <span className="font-extrabold text-[#561269] bg-purple-100 px-2 py-0.5 rounded-md text-[11px]">
+                          {peserta.hasil.detail_skor.lieScale.skor} / 9
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 leading-relaxed">
+                        Skala keinginan sosial (social desirability). Skor mentah disimpan apa adanya untuk referensi profesional psikolog.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Rincian 9 Skala PBQ (Tanpa Skor Total & Tanpa Interpretasi Kategorikal) */}
+              {peserta.hasil?.detail_skor?.tanpaSkorTotal && Array.isArray(peserta.hasil?.detail_skor?.subscalesList) && (
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider">
+                      Profil Skor Mentah 9 Skala PBQ
+                    </span>
+                    <span className="text-[10px] font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">
+                      Rentang 0–56 per skala (tanpa skor total gabungan)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {peserta.hasil.detail_skor.subscalesList.map((sub: any) => (
+                      <div key={sub.key} className="p-2.5 rounded-xl bg-white border border-purple-100 space-y-0.5">
+                        <span className="text-[11px] font-bold text-gray-800 block truncate">
+                          {sub.nama}
+                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-gray-500">
+                            Butir {sub.rentangButir}
+                          </span>
+                          <span className="text-xs font-extrabold text-[#561269]">
+                            {sub.skor ?? 0} / {sub.max_skor ?? 56}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-gray-600 leading-relaxed">
+                    Catatan: Skor ditampilkan sebagai skor mentah per skala kepribadian. Interpretasi klinis dan Z-score normatif belum ditampilkan karena menunggu acuan resmi.
+                  </p>
+                </div>
+              )}
+
+              {/* Rincian 5 Dimensi Depresi Anak & Remaja (CDI) */}
+              {peserta.hasil?.detail_skor?.subscales?.negativeMood && peserta.hasil?.detail_skor?.subscales?.anhedonia && (
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wider">
+                      Rincian 5 Dimensi Depresi Anak &amp; Remaja (CDI)
+                    </span>
+                    <span className="text-[10px] font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">
+                      Cut-off Klinis ≥ 19 (Maks. 54)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Suasana Hati Negatif</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.negativeMood?.skor ?? 0} / 12
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Masalah Antar Pribadi</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.interpersonalProblem?.skor ?? 0} / 8
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Ketidakefektifan</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.ineffectiveness?.skor ?? 0} / 8
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Anhedonia / Kesedihan</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.anhedonia?.skor ?? 0} / 16
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-purple-100">
+                      <span className="text-[10px] text-gray-500 block">Harga Diri Negatif</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {peserta.hasil.detail_skor.subscales.negativeSelfEsteem?.skor ?? 0} / 10
+                      </span>
+                    </div>
+                  </div>
+
+                  {peserta.hasil?.detail_skor?.ideMelukaiDiri && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200/80 flex items-start gap-2.5">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5 text-xs text-rose-950">
+                        <span className="font-bold">Indikasi Ide Melukai Diri (Butir 9 &gt; 0):</span>
+                        <p className="text-[11px] leading-relaxed">
+                          Peserta mengindikasikan adanya pikiran tentang mengakhiri hidup / menyakiti diri sendiri. Diperlukan perhatian khusus dan tindak lanjut segera.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Potensi & Area Pengembangan */}
               {(detail.kekuatanUtama.length > 0 || detail.blindspots.length > 0) && (
@@ -279,27 +484,46 @@ export default function ModalDetailPeserta({
               )}
 
               {/* Download PDF Laporan Klien */}
-              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white text-[#561269] flex items-center justify-center font-bold shadow-xs shrink-0">
-                    <FileText className="w-5 h-5" />
+              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white text-[#561269] flex items-center justify-center font-bold shadow-xs shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-gray-900">Laporan Resmi Hasil Psikotes (PDF)</h4>
+                      <p className="text-[11px] text-gray-500">
+                        Dokumen evaluasi komprehensif terverifikasi siap unduh dan cetak 1:1 persis website klien.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-xs text-gray-900">Laporan Resmi Hasil Psikotes (PDF)</h4>
-                    <p className="text-[11px] text-gray-500">
-                      Dokumen evaluasi komprehensif terverifikasi siap unduh dan cetak 1:1 persis website klien.
-                    </p>
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadClick}
+                    disabled={isDownloading}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Menyiapkan PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Download Laporan (PDF)
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => onDownloadPdf(peserta)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#561269] hover:bg-[#763E8B] text-white text-xs font-bold shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer shrink-0"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Laporan (PDF)
-                </button>
+                {pdfError && (
+                  <p className="text-[11px] font-medium text-red-600 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    {pdfError}
+                  </p>
+                )}
               </div>
 
               {/* Quick WhatsApp Action */}

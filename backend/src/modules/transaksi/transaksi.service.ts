@@ -3,6 +3,7 @@ import { TransaksiRepository } from './transaksi.repository'
 import type {
   CreateTransaksiInput,
   CreateCheckoutTransaksiInput,
+  AdminTransaksiQueryInput,
 } from './transaksi.schema'
 import { paymentService } from './payment/payment.service'
 import { env } from '../../config/env'
@@ -17,7 +18,7 @@ export class TransaksiService {
     this.prisma = fastify.prisma
   }
 
-  async getAll(params?: { clientId?: string }) {
+  async getAll(params?: AdminTransaksiQueryInput & { clientId?: string }) {
     return this.repo.findAll(params)
   }
 
@@ -68,45 +69,73 @@ export class TransaksiService {
    */
   async createUniversalCheckout(input: CreateCheckoutTransaksiInput, loggedInClientId?: string) {
     return this.prisma.$transaction(async (tx: any) => {
-      // 1. Dapatkan atau buat data Client (format nomor telepon standar tunggal 628...)
-      const rawPhone = input.no_telepon.trim()
+      // 1. Dapatkan atau buat data Client (kombinasi nomor telepon DAN nama case-insensitive)
+      const inputName = (input.nama || '').trim()
+      const rawPhone = (input.no_telepon || '').trim()
       const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
       const digitsOnly = rawPhone.replace(/\D/g, '')
 
-      let client = null
+      let client: any = null
       if (loggedInClientId) {
         client = await tx.client.findUnique({ where: { id: loggedInClientId } })
       }
 
       if (!client) {
-        client = await tx.client.findFirst({
-          where: {
-            OR: [
-              { no_telepon: standardizedPhone },
-              { no_telepon: rawPhone },
-              ...(digitsOnly.length >= 8 ? [
-                { no_telepon: digitsOnly },
-                { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
-              ] : []),
-            ],
-          },
-        })
+        const phoneConditions = rawPhone ? [
+          { no_telepon: standardizedPhone },
+          { no_telepon: rawPhone },
+          ...(digitsOnly.length >= 8 ? [
+            { no_telepon: digitsOnly },
+            { no_telepon: '0' + (standardizedPhone.startsWith('62') ? standardizedPhone.slice(2) : digitsOnly) },
+          ] : []),
+        ] : []
+
+        if (inputName && phoneConditions.length > 0) {
+          client = await tx.client.findFirst({
+            where: {
+              AND: [
+                { OR: phoneConditions },
+                { nama: { equals: inputName, mode: 'insensitive' } },
+              ],
+            },
+          })
+        } else if (phoneConditions.length > 0) {
+          client = await tx.client.findFirst({
+            where: { OR: phoneConditions },
+          })
+        } else if (inputName) {
+          client = await tx.client.findFirst({
+            where: { nama: { equals: inputName, mode: 'insensitive' } },
+          })
+        }
       }
 
       if (!client) {
         client = await tx.client.create({
           data: {
-            nama: input.nama.trim(),
-            no_telepon: standardizedPhone,
+            nama: inputName || 'Klien',
+            no_telepon: standardizedPhone || null,
             usia: input.usia,
             jenis_kelamin: input.jenis_kelamin,
           },
         })
-      } else if (client.no_telepon !== standardizedPhone) {
-        await tx.client.update({
-          where: { id: client.id },
-          data: { no_telepon: standardizedPhone },
-        }).catch(() => {})
+      } else {
+        const updateData: any = {}
+        if (standardizedPhone && client.no_telepon !== standardizedPhone) {
+          updateData.no_telepon = standardizedPhone
+        }
+        if (input.usia !== undefined && input.usia !== null && input.usia !== client.usia) {
+          updateData.usia = input.usia
+        }
+        if (input.jenis_kelamin && input.jenis_kelamin !== client.jenis_kelamin) {
+          updateData.jenis_kelamin = input.jenis_kelamin
+        }
+        if (Object.keys(updateData).length > 0) {
+          await tx.client.update({
+            where: { id: client.id },
+            data: updateData,
+          }).catch(() => {})
+        }
       }
 
       let nominal = 0
@@ -183,6 +212,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,
@@ -202,19 +234,60 @@ export class TransaksiService {
       if (input.tipe === 'EVENT') {
         const event = await tx.event.findUnique({
           where: { id: input.id_item },
-          include: { _count: { select: { booking_event: true } } },
         })
 
         if (!event) {
           throw Object.assign(new Error('Event tidak ditemukan'), { statusCode: 404 })
         }
 
-        const bookedCount = event._count.booking_event
-        if (bookedCount >= event.kuota) {
-          throw Object.assign(new Error('Kuota pendaftaran event ini sudah penuh'), { statusCode: 409 })
+        // Validasi status event: pendaftaran tidak bisa dilakukan jika event telah selesai, dibatalkan, atau masih draft
+        if (event.status === 'COMPLETED') {
+          throw Object.assign(new Error('Pendaftaran event ini telah selesai dan ditutup'), { statusCode: 409 })
+        }
+        if (event.status === 'CANCELLED') {
+          throw Object.assign(new Error('Event ini telah dibatalkan'), { statusCode: 409 })
+        }
+        if (event.status === 'DRAFT') {
+          throw Object.assign(new Error('Pendaftaran event ini sedang dinonaktifkan'), { statusCode: 409 })
         }
 
-        nominal = Number(event.harga)
+        const jumlahPesertaPendaftaran = input.kuota_bundling && input.kuota_bundling > 0 ? input.kuota_bundling : 1
+
+        // Hitung total peserta yang sudah terdaftar (status PENDING atau CONFIRMED)
+        const bookedAgg = await tx.bookingEvent.aggregate({
+          where: {
+            id_event: event.id,
+            status: { in: ['PENDING', 'CONFIRMED'] },
+          },
+          _sum: {
+            jumlah_peserta: true,
+          },
+        })
+        const bookedPesertaCount = bookedAgg._sum.jumlah_peserta || 0
+
+        if (bookedPesertaCount + jumlahPesertaPendaftaran > event.kuota) {
+          throw Object.assign(new Error('Kuota pendaftaran event ini tidak mencukupi untuk jumlah tiket yang dipilih'), { statusCode: 409 })
+        }
+
+        // Tentukan harga: jika bundling, cari harga paket bundling yang sesuai
+        if (jumlahPesertaPendaftaran > 1) {
+          let bundlePriceFound: number | null = null
+          if (Array.isArray(event.paket_bundling)) {
+            const matchedPkg = (event.paket_bundling as any[]).find(
+              (p) => p.kuota_tiket === jumlahPesertaPendaftaran
+            )
+            if (matchedPkg && matchedPkg.harga_paket) {
+              bundlePriceFound = Number(matchedPkg.harga_paket)
+            }
+          }
+          if (bundlePriceFound === null && event.harga_bundling) {
+            bundlePriceFound = Number(event.harga_bundling)
+          }
+          nominal = bundlePriceFound !== null ? bundlePriceFound : Number(event.harga) * jumlahPesertaPendaftaran
+        } else {
+          nominal = Number(event.harga)
+        }
+
         kodePesanan = generateOrderId('EVT')
         deskripsiTagihan = `Pendaftaran Event: ${event.judul} - ${kodePesanan}`
 
@@ -238,6 +311,8 @@ export class TransaksiService {
             id_client: client.id,
             id_transaksi: transaksi.id,
             kode_tiket: kodePesanan,
+            jumlah_peserta: jumlahPesertaPendaftaran,
+            nama_peserta_tambahan: input.nama_peserta_tambahan ? (input.nama_peserta_tambahan as any) : undefined,
             status: 'PENDING',
           },
         })
@@ -260,6 +335,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,
@@ -326,6 +404,8 @@ export class TransaksiService {
             id_paket: paket.id,
             id_client: client.id,
             id_transaksi: transaksi.id,
+            kode_akses: kodePesanan,
+            status_pengerjaan: 'BELUM_MULAI',
           },
         })
 
@@ -339,7 +419,7 @@ export class TransaksiService {
             email: input.email || undefined,
             mobile_number: input.no_telepon,
           },
-          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/psikotes/success?orderId=${kodePesanan}&testId=${paket.id}&status=success`,
+          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/psikotes/success?orderId=${kodePesanan}&bookingId=${bookingPsikotes.id}&testId=${paket.id}&status=success`,
           failureRedirectUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/psikotes/checkout?orderId=${kodePesanan}&testId=${paket.id}&status=failed`,
         })
 
@@ -347,6 +427,9 @@ export class TransaksiService {
           where: { id: transaksi.id },
           data: {
             data_pembayaran: JSON.stringify({
+              nama_pemesan: input.nama ? input.nama.trim() : undefined,
+              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+              email_pemesan: input.email ? input.email.trim() : undefined,
               xendit_invoice_id: invoice.id,
               xendit_invoice_url: invoice.invoice_url,
               expiry_date: invoice.expiry_date,
@@ -494,6 +577,70 @@ export class TransaksiService {
           },
         })
       }
+    })
+  }
+
+  /**
+   * Simulasi konfirmasi pembayaran (development/testing frontend)
+   */
+  async confirmSimulation(identifier: string) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const transaksi = await tx.transaksi.findFirst({
+        where: {
+          OR: [
+            { id: identifier },
+            { kode_transaksi: identifier },
+            { booking_konsultasi: { id: identifier } },
+            { booking_konsultasi: { kode_pesanan: identifier } },
+            { booking_event: { id: identifier } },
+            { booking_event: { kode_tiket: identifier } },
+            { booking_psikotes: { id: identifier } },
+          ],
+        },
+        include: {
+          booking_konsultasi: true,
+          booking_event: true,
+          booking_psikotes: true,
+        },
+      })
+
+      if (!transaksi) {
+        throw Object.assign(new Error('Transaksi tidak ditemukan'), { statusCode: 404 })
+      }
+
+      if (transaksi.status_pembayaran === 'PAID') {
+        return { message: 'Transaksi sudah dibayar sebelumnya', transaksi }
+      }
+
+      const updatedTrx = await tx.transaksi.update({
+        where: { id: transaksi.id },
+        data: {
+          status_pembayaran: 'PAID',
+          tanggal_bayar: new Date(),
+        },
+      })
+
+      if (transaksi.booking_konsultasi) {
+        await tx.bookingKonsultasi.update({
+          where: { id: transaksi.booking_konsultasi.id },
+          data: { status: 'CONFIRMED' },
+        })
+        if (transaksi.booking_konsultasi.id_jadwal) {
+          await tx.jadwalSlot.update({
+            where: { id: transaksi.booking_konsultasi.id_jadwal },
+            data: { status: 'SUDAH_DIBOOKING' },
+          }).catch(() => {})
+        }
+      }
+
+      if (transaksi.booking_event) {
+        await tx.bookingEvent.update({
+          where: { id: transaksi.booking_event.id },
+          data: { status: 'CONFIRMED' },
+        })
+      }
+
+      return { transaksi: updatedTrx }
     })
   }
 }

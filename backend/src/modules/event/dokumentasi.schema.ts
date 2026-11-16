@@ -11,6 +11,7 @@ export const dokumentasiIdParamSchema = z.object({
 
 export const dokumentasiQuerySchema = z.object({
   search: z.string().trim().optional(),
+  kategori: z.enum(['SEMINAR', 'WORKSHOP', 'KOLABORASI']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 })
@@ -37,6 +38,9 @@ export const createDokumentasiSchema = z.object({
     .trim()
     .min(3, 'Judul minimal 3 karakter')
     .max(255, 'Judul maksimal 255 karakter'),
+  kategori: z
+    .enum(['SEMINAR', 'WORKSHOP', 'KOLABORASI'])
+    .default('KOLABORASI'),
   tanggal: z
     .string({ required_error: 'Tanggal pelaksanaan wajib diisi' })
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
@@ -56,6 +60,9 @@ export const updateDokumentasiSchema = z.object({
     .trim()
     .min(3, 'Judul minimal 3 karakter')
     .max(255, 'Judul maksimal 255 karakter')
+    .optional(),
+  kategori: z
+    .enum(['SEMINAR', 'WORKSHOP', 'KOLABORASI'])
     .optional(),
   tanggal: z
     .string()
@@ -86,6 +93,7 @@ export const dokumentasiFotoResponseSchema = z.object({
 export const dokumentasiItemResponseSchema = z.object({
   id: z.string().uuid(),
   judul: z.string(),
+  kategori: z.string().optional(),
   tanggal: z.date(),
   deskripsi: z.string(),
   createdAt: z.date(),

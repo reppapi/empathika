@@ -1,3 +1,4 @@
+/** Kartu tampilan ringkasan hasil skor dan rincian interpretasi/saran untuk hasil tes gratis. */
 "use client";
 
 import { ChevronDown } from "lucide-react";

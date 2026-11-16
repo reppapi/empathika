@@ -1,3 +1,4 @@
+/** Definisi tipe TypeScript untuk manajemen paket tes, interpretasi, dan peserta psikotes di admin. */
 export type SoalOption = { text: string; bobot: string };
 
 export type Soal = { id: string | number; tipe: string; teks: string; pilihan: SoalOption[] };
@@ -52,37 +53,22 @@ export type JudulPsikotesItem = {
   paketList: PaketDetailItem[];
 };
 
-export type PaketData = {
-  id: string | number;
-  judulId?: string | number;
-  nama: string;
-  kategori: string;
-  deskripsi: string;
-  bannerUrl?: string;
-  waktu: string;
-  jenisAkses: JenisAkses;
-  harga: string;
-  numericHarga?: number;
-  status: StatusPaket;
-  jumlahSoal: number;
-  modeJudul?: "baru" | "ada";
-  soalList?: Soal[];
-  interpretasiList?: Interpretasi[];
-  updatedAt?: string;
-};
-
 export type AdminPsikotesPeserta = {
   id: string | number;
   nama: string;
   noHp: string;
   paket: string;
   tanggal: string;
+  rawTanggal?: string;
   status: string;
   skor: string;
   jenisAkses: string;
   usia?: number | null;
   jenisKelamin?: string | null;
   totalSkor?: number | null;
+  namaPemesan?: string | null;
+  noHpPemesan?: string | null;
+  isPembeliBerbeda?: boolean;
   hasil?: {
     id: string;
     grade: string;
@@ -91,6 +77,7 @@ export type AdminPsikotesPeserta = {
     makna?: string;
     tips?: any;
     tanggal_selesai?: string;
+    detail_skor?: any;
   } | null;
   peserta?: {
     id?: string;
@@ -106,16 +93,5 @@ export type AdminPsikotesPeserta = {
     pekerjaan?: string | null;
     status_pernikahan?: string | null;
   } | null;
-};
-
-export type AdminPsikotesPaketListItem = {
-  id: number;
-  nama: string;
-  image: string;
-  kategori: string;
-  harga: string;
-  jumlahSoal: number;
-  waktu: string;
-  status: string;
 };
 

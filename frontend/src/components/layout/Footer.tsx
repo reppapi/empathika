@@ -10,6 +10,7 @@ import { useTenantContext } from "@/context/TenantContext";
 export function Footer() {
   const pathname = usePathname();
   const { isBiro, biroProfile, withBiro } = useTenantContext();
+  const themeColor = isBiro && biroProfile?.warna_tema ? biroProfile.warna_tema : "#561269";
 
   const handleNavClick = (path: string) => {
     if (isBiro && path.includes("#")) {
@@ -100,26 +101,33 @@ export function Footer() {
   const ytUrl = getValidUrl(contact.youtube);
 
   return (
-    <footer className="bg-[#EFE9F3] pt-16 pb-8 text-gray-800">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-12">
+    <footer className="bg-[#EFE9F3] text-gray-800 pt-16 pb-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-8 lg:mb-12">
           
           {/* Brand & Description */}
           {/* Brand & Description */}
           <div className="lg:col-span-2 space-y-4 md:pr-8">
             <Link 
               href={withBiro("/") as any}
+              prefetch={true}
               className="inline-flex items-center gap-3"
             >
               {/* Logo (Circle) */}
-              <div className="h-14 w-14 shrink-0 rounded-full bg-[#561269] flex items-center justify-center text-white font-extrabold text-xl overflow-hidden">
+              <div 
+                className="h-14 w-14 shrink-0 rounded-full flex items-center justify-center text-white font-extrabold text-xl overflow-hidden shadow-sm"
+                style={{ backgroundColor: themeColor }}
+              >
                 {biroProfile?.logoURI ? (
                   <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
                   (biroProfile?.nama_biro?.[0] || "E").toUpperCase()
                 )}
               </div>
-              <span className="text-[22px] font-extrabold tracking-widest text-[#561269] uppercase truncate">
+              <span 
+                className="text-[22px] font-extrabold tracking-widest uppercase truncate"
+                style={{ color: themeColor }}
+              >
                 {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "EMPATHIKA"}
               </span>
             </Link>
@@ -138,6 +146,7 @@ export function Footer() {
               <li>
                 <Link 
                   href={withBiro("/tentang-kami") as any}
+                  prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >
                   Tentang Kami
@@ -146,6 +155,7 @@ export function Footer() {
               <li>
                 <Link 
                   href={withBiro("/psikolog") as any}
+                  prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >
                   Psikolog
@@ -154,6 +164,7 @@ export function Footer() {
               <li>
                 <Link 
                   href={withBiro("/blog") as any}
+                  prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >
                   Blog
@@ -162,6 +173,7 @@ export function Footer() {
               <li>
                 <Link 
                   href={withBiro("/kerja-sama") as any}
+                  prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >
                   Mitra Kerjasama
@@ -177,6 +189,7 @@ export function Footer() {
               <li>
                 <Link 
                   href={withBiro("/konseling") as any}
+                  prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >
                   Konsultasi
@@ -185,6 +198,7 @@ export function Footer() {
               <li>
                 <Link 
                   href={withBiro("/layanan") as any}
+                  prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >
                   Asesmen
@@ -193,6 +207,7 @@ export function Footer() {
               <li>
                 <Link 
                   href={withBiro("/psikotes") as any}
+                  prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >
                   Psikotes
@@ -201,6 +216,7 @@ export function Footer() {
               <li>
                 <Link 
                   href={withBiro("/event") as any}
+                  prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >
                   Event
@@ -255,12 +271,14 @@ export function Footer() {
           <div className="flex items-center gap-6">
             <Link 
               href={withBiro("/privacy-policy") as any}
+              prefetch={true}
               className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors"
             >
               Privacy Policy
             </Link>
             <Link 
               href={withBiro("/terms-conditions") as any}
+              prefetch={true}
               className="text-sm font-medium text-gray-500 hover:text-[#561269] transition-colors"
             >
               Terms & Conditions

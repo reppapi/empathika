@@ -94,12 +94,13 @@ export async function seedGAD7(prisma: PrismaClient) {
 
   // 2. Produk Paket GAD-7 (Gratis)
   console.log('\n--- Menyemai Produk Paket GAD-7 (Gratis) ---')
-  const judulPaket = 'Tes Kecemasan: Anxiety Test | Skrining Tingkat Kecemasanmu'
+  const judulPaket = 'Tes Kecemasan'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
         { judul: judulPaket },
-        { judul: 'Tes Skrining Tingkat Kecemasan (GAD-7)' },
+        { judul: { contains: 'GAD-7', mode: 'insensitive' } },
+        { judul: 'Tes Kecemasan: Anxiety Test | Skrining Tingkat Kecemasanmu' },
         { id_alat_ukur: alatUkur.id },
       ],
     },
@@ -111,10 +112,8 @@ export async function seedGAD7(prisma: PrismaClient) {
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
     banner_url: '/images/psikotes/banner-kecemasan.jpg',
-    deskripsi:
-      'Kenali kondisi kecemasanmu dan pahami bagaimana perasaan serta pikiranmu dalam menjalani aktivitas sehari-hari. Melalui tes ini, kamu dapat memperoleh gambaran mengenai tingkat kecemasan yang kamu alami berdasarkan kondisi selama dua minggu terakhir.',
     tentang_tes:
-      'Melalui tes ini, kamu bisa mengenali gejala kecemasan yang mungkin sedang dialami, seperti perasaan gelisah, kesulitan mengendalikan kekhawatiran, hingga ketegangan dalam menjalani aktivitas sehari-hari. Hasilnya dapat membantumu memahami kondisi emosional diri dan menjadi langkah awal untuk lebih memperhatikan kesehatan mental.',
+      'Pernah merasa gelisah, terus-menerus khawatir, atau sulit menenangkan pikiran? Tes ini mengajak kamu mengenali pengalaman kecemasan yang mungkin muncul dalam dua minggu terakhir, mulai dari rasa gugup, sulit mengendalikan kekhawatiran, hingga perasaan takut bahwa sesuatu yang buruk akan terjadi.',
     status: 'PUBLISHED',
   }
 

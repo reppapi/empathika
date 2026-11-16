@@ -1,27 +1,96 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { LOCAL_STORAGE_KEY_BIRO, INITIAL_BIRO_LIST } from "@/features/biro/data/initialData"
+import { LOCAL_STORAGE_KEY_BIRO } from "@/features/biro/data/initialData"
 import { BiroKomunitas } from "@/features/biro/types"
 import { Building2, Mail, Phone, MapPin, Globe, Palette, ShieldCheck } from "lucide-react"
 import { getBiroWebsiteUrl } from "@/lib/utils"
 import { FormGantiEmail } from "@/features/profile/components/psikolog/FormGantiEmail"
 import { FormGantiPassword } from "@/features/profile/components/psikolog/FormGantiPassword"
+import { useAuthStore } from "@/store/authStore"
+import { biroAdminService } from "@/services/biro.service"
 
 export default function ProfilBiroClient() {
-  const [biro, setBiro] = useState<BiroKomunitas>(INITIAL_BIRO_LIST[0])
+  const { user } = useAuthStore()
+  const [biro, setBiro] = useState<BiroKomunitas>(() => {
+    const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
+    return {
+      id: user?.id || "biro",
+      accountId: user?.id || "biro",
+      nama: user?.name || "Biro Mitra",
+      slug: "",
+      warnaIdentitas: cachedColor || "#561269",
+      emailAdmin: user?.email || "",
+      telepon: "-",
+      alamat: "-",
+      deskripsi: "Biro Mitra Empathika",
+      statusAktivasi: "Aktif",
+      accountAktif: true,
+      tanggalDibuat: new Date().toISOString().split("T")[0],
+      dashboardUrl: "/admin-biro",
+    }
+  })
 
   useEffect(() => {
+    let isMounted = true
+
+    // 1. Coba dari backend terlebih dahulu
+    biroAdminService
+      .getMyAccount()
+      .then((res) => {
+        if (!isMounted || !res?.data) return
+        const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
+        if (beBiro) {
+          const customColor =
+            beBiro.warna_tema ||
+            (typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null) ||
+            "#561269"
+
+          if (beBiro.warna_tema && typeof window !== "undefined") {
+            localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+            document.documentElement.style.setProperty("--biro-theme-color", beBiro.warna_tema)
+            document.documentElement.setAttribute("data-biro-theme", "true")
+          }
+
+          setBiro({
+            id: beBiro.id || res.data.id,
+            accountId: res.data.id,
+            nama: beBiro.nama_biro || res.data.nama,
+            slug: beBiro.slug || "",
+            logo: beBiro.logoURI || undefined,
+            deskripsi: beBiro.deskripsi || "Biro Mitra Empathika",
+            warnaIdentitas: customColor,
+            emailAdmin: res.data.email,
+            telepon: res.data.no_telepon || beBiro.no_telepon || "-",
+            alamat: beBiro.alamat || "-",
+            statusAktivasi: res.data.aktif ? "Aktif" : "Menunggu Aktivasi",
+            accountAktif: res.data.aktif,
+            tanggalDibuat: res.data.createdAt ? res.data.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+            websiteUrl: beBiro.slug ? getBiroWebsiteUrl(beBiro.slug) : undefined,
+            dashboardUrl: "/admin-biro",
+          })
+          return
+        }
+      })
+      .catch(() => {})
+
+    // 2. Fallback jika offline/local list yang cocok dengan akun ini
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
       if (saved) {
         const list: BiroKomunitas[] = JSON.parse(saved)
-        // Default akun biro cendekia muda (id biro-01)
-        const found = list.find((b) => b.id === "biro-01") || list[0]
-        if (found) setBiro(found)
+        const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
+        const found = list.find((b) => b.id === user?.id || b.emailAdmin === user?.email || b.nama === user?.name)
+        if (found) {
+          setBiro(cachedColor ? { ...found, warnaIdentitas: found.warnaIdentitas || cachedColor } : found)
+        }
       }
     } catch { }
-  }, [])
+
+    return () => {
+      isMounted = false
+    }
+  }, [user])
 
   return (
     <div className="flex flex-col gap-8 font-poppins pb-16 w-full max-w-6xl">
@@ -168,7 +237,7 @@ export default function ProfilBiroClient() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           <FormGantiEmail initialEmail={biro.emailAdmin} />
           <FormGantiPassword />
         </div>

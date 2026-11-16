@@ -1,13 +1,17 @@
 import type { FastifyInstance } from 'fastify'
 import { AdminController } from './admin.controller'
-import { adminGuard } from '../../middlewares/admin-guard'
+import { adminGuard, adminOrBiroGuard } from '../../middlewares/admin-guard'
 import {
   getAdminJadwalQuerySchema,
   createAdminJadwalSlotSchema,
   createAdminSesiSchema,
   updateBookingStatusSchema,
+  rescheduleBookingSchema,
   updateAdminProfileSchema,
   resendActivationSchema,
+  dashboardLimitQuerySchema,
+  dashboardChartQuerySchema,
+  dashboardMetricsQuerySchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -57,6 +61,62 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.updateProfile,
   })
 
+  // ── Modul Dashboard & Ringkasan Operasional Admin & Biro ───────────
+  fastify.get('/dashboard/chart', {
+    preHandler: [adminOrBiroGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan data grafik reservasi sesi konsultasi & asesmen terkonfirmasi',
+      security: [{ bearerAuth: [] }],
+      querystring: dashboardChartQuerySchema,
+    },
+    handler: controller.getDashboardChart,
+  })
+
+  fastify.get('/dashboard/metrics', {
+    preHandler: [adminOrBiroGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan 5 kartu ringkasan operasional admin (pendapatan, klien, sesi selesai, pendaftar workshop, pending bayar)',
+      security: [{ bearerAuth: [] }],
+      querystring: dashboardMetricsQuerySchema,
+    },
+    handler: controller.getDashboardMetrics,
+  })
+
+  fastify.get('/dashboard/today-sessions', {
+    preHandler: [adminOrBiroGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar sesi konseling hari ini untuk widget dashboard (default top 5)',
+      security: [{ bearerAuth: [] }],
+      querystring: dashboardLimitQuerySchema,
+    },
+    handler: controller.getDashboardTodaySessions,
+  })
+
+  fastify.get('/dashboard/recent-transactions', {
+    preHandler: [adminOrBiroGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar transaksi pembayaran terbaru untuk widget dashboard (default top 5)',
+      security: [{ bearerAuth: [] }],
+      querystring: dashboardLimitQuerySchema,
+    },
+    handler: controller.getDashboardRecentTransactions,
+  })
+
+  fastify.get('/dashboard/agenda', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Dashboard'],
+      summary: 'Mendapatkan daftar agenda dan peringatan operasional mendatang langsung dari Database (default top 6)',
+      security: [{ bearerAuth: [] }],
+      querystring: dashboardLimitQuerySchema,
+    },
+    handler: controller.getDashboardAgenda,
+  })
+
   // ── Modul Jadwal & Sesi Admin ────────────────────────────────────
   fastify.get('/jadwal', {
     preHandler: [
@@ -78,10 +138,10 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/jadwal-slots', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Admin - Jadwal'],
-      summary: 'Admin membukakan slot ketersediaan jadwal asesmen klinik',
+      summary: 'Admin membukakan slot ketersediaan jadwal klinik',
       security: [{ bearerAuth: [] }],
       body: createAdminJadwalSlotSchema,
     },
@@ -89,7 +149,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.delete('/jadwal-slots/:id', {
-    preHandler: [adminGuard],
+    preHandler: [adminOrBiroGuard],
     schema: {
       tags: ['Admin - Jadwal'],
       summary: 'Admin menghapus slot ketersediaan jadwal asesmen klinik yang belum dibooking',
@@ -118,6 +178,17 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       body: updateBookingStatusSchema,
     },
     handler: controller.updateBookingStatus,
+  })
+
+  fastify.post('/booking/:id/reschedule', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Jadwal'],
+      summary: 'Admin menjadwalkan ulang (reschedule) sesi booking konsultasi',
+      security: [{ bearerAuth: [] }],
+      body: rescheduleBookingSchema,
+    },
+    handler: controller.rescheduleBooking,
   })
 
   // ── Kirim Ulang Tautan Aktivasi Tenaga Ahli / Biro ──────────────

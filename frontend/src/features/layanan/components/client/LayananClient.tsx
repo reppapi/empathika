@@ -5,63 +5,71 @@ import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { CATEGORIES, SERVICES_DATA } from "../../data/layananData"
+import { useQuery } from "@tanstack/react-query"
+import { CATEGORIES, WORKSHOP_SERVICES, SEMINAR_SERVICES } from "../../data/layananData"
+import { WORKSHOP_DETAILS_DATA } from "../../data/workshopData"
 import { getStoredLayanan, type AdminLayananItem } from "../../data/adminLayananData"
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
+import { layananService, type LayananApiResponse } from "@/services/layanan.service"
 import { useTenantContext } from "@/context/TenantContext"
+import ClientErrorState from "@/components/shared/ClientErrorState"
 
 export default function LayananClient() {
   const { withBiro } = useTenantContext()
   const searchParams = useSearchParams()
   const categoryQuery = searchParams.get("category")
   const [activeCategory, setActiveCategory] = useState(categoryQuery || "01") // Default ke Konsultasi
-  const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
-  const [loadingPsikotes, setLoadingPsikotes] = useState(true)
   const [storedAdminLayanan, setStoredAdminLayanan] = useState<AdminLayananItem[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Muat data dari dashboard Admin Layanan (tersinkronisasi jika foto diubah)
-  useEffect(() => {
-    const loadStored = () => {
-      try {
-        setStoredAdminLayanan(getStoredLayanan())
-      } catch (e) {
-        console.error("Gagal membaca admin layanan:", e)
-      }
-    }
-    loadStored()
+  const {
+    data: liveLayananData,
+    isLoading: loadingLayanan,
+    isError: isLayananError,
+    refetch: refetchLayanan,
+  } = useQuery({
+    queryKey: ["layanan", "all"],
+    queryFn: async () => {
+      const res = await layananService.getAll()
+      return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const liveLayanan = liveLayananData || []
 
-    if (typeof window !== "undefined") {
-      window.addEventListener("storage", loadStored)
-      return () => window.removeEventListener("storage", loadStored)
-    }
-  }, [])
-
-  useEffect(() => {
-    const fetchPsikotes = async () => {
-      try {
-        setLoadingPsikotes(true)
-        const res = await psikotesService.getList({ status: "PUBLISHED" })
-        if (res?.data && res.data.length > 0) {
-          setPublishedPsikotes(res.data)
-        } else {
-          setPublishedPsikotes([])
-        }
-      } catch (err) {
-        console.error("Gagal mengambil data paket psikotes layanan:", err)
-        setPublishedPsikotes([])
-      } finally {
-        setLoadingPsikotes(false)
-      }
-    }
-    fetchPsikotes()
-  }, [])
+  const {
+    data: psikotesData,
+    isLoading: loadingPsikotes,
+    isError: isPsikotesError,
+    refetch: refetchPsikotes,
+  } = useQuery({
+    queryKey: ["psikotes", "published"],
+    queryFn: async () => {
+      const res = await psikotesService.getList({ status: "PUBLISHED" })
+      return res?.data && res.data.length > 0 ? res.data : []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+  const publishedPsikotes = psikotesData || []
 
   useEffect(() => {
-    if (categoryQuery && categoryQuery !== activeCategory) {
+    const handleSync = () => {
+      refetchLayanan()
+      refetchPsikotes()
+    }
+
+    window.addEventListener("storage", handleSync)
+
+    return () => {
+      window.removeEventListener("storage", handleSync)
+    }
+  }, [refetchLayanan, refetchPsikotes])
+
+  useEffect(() => {
+    if (categoryQuery) {
       setActiveCategory(categoryQuery)
     }
-  }, [categoryQuery, activeCategory])
+  }, [categoryQuery])
 
   const handleCategoryChange = (id: string) => {
     if (id === activeCategory) return
@@ -78,11 +86,15 @@ export default function LayananClient() {
     if (storedAdminLayanan && storedAdminLayanan.length > 0) {
       const titleLower = (service.bottomTitle || service.topTitle || "").toLowerCase().trim()
       const match = storedAdminLayanan.find((item) => {
+        if (item.status === "Nonaktif") return false
         const name = item.layanan.toLowerCase().trim()
         return name === titleLower || titleLower.includes(name) || name.includes(titleLower)
       })
       if (match?.bannerUrl && match.bannerUrl.trim().length > 0) {
         return match.bannerUrl.trim()
+      }
+      if (match?.foto_kegiatan && Array.isArray(match.foto_kegiatan) && match.foto_kegiatan[0]) {
+        return match.foto_kegiatan[0].trim()
       }
     }
     return service.bannerUrl || null
@@ -91,9 +103,31 @@ export default function LayananClient() {
   const renderServiceCard = (service: any, idx: number) => {
     const banner = resolveBanner(service)
 
+    const baseHref = service.href || (
+      activeCategory === "01"
+        ? "/booking"
+        : activeCategory === "02"
+        ? "/psikotes"
+        : activeCategory === "03"
+        ? "/layanan/workshop/seft"
+        : activeCategory === "04"
+        ? "/layanan/seminar"
+        : `/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
+    )
+
+    const rawDestination =
+      activeCategory === "05" && banner && !baseHref.includes("&banner=")
+        ? `${baseHref}${baseHref.includes("?") ? "&" : "?"}banner=${encodeURIComponent(banner)}`
+        : baseHref
+
+    const destinationHref = withBiro(rawDestination)
+
     return (
       <div key={idx} className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full">
-        <div className={`h-36 sm:h-44 w-full ${service.bgColor || "bg-[#561269]"} overflow-hidden relative shrink-0`}>
+        <Link
+          href={destinationHref as any}
+          className={`h-36 sm:h-44 w-full ${service.bgColor || "bg-[#561269]"} overflow-hidden relative shrink-0 block cursor-pointer`}
+        >
           {/* Tampilkan foto jika dimasukkan dari admin / banner */}
           {banner ? (
             <div className="absolute inset-0 z-0">
@@ -104,8 +138,6 @@ export default function LayananClient() {
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                 unoptimized
               />
-              {/* Overlay gelap agar teks judul & subjudul di atasnya selalu kontras dan terbaca */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25" />
             </div>
           ) : (
             <>
@@ -125,54 +157,36 @@ export default function LayananClient() {
                   <svg className="w-16 h-16 text-pink-300 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
                 </div>
               )}
+
+              <div className="absolute inset-0 flex items-start p-6 z-10">
+                <div className="text-left w-full">
+                  <h3 className={`${service.titleColor || "text-white"} font-extrabold text-[22px] sm:text-[28px] leading-[1.1] mb-2 drop-shadow-md uppercase`}>
+                    {service.topTitle}
+                  </h3>
+                  {service.topSubtitle && (
+                    <p className={`${service.titleColor || "text-gray-200"} text-xs sm:text-sm font-medium drop-shadow-sm opacity-90`}>
+                      {service.topSubtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
             </>
           )}
-
-          <div className="absolute inset-0 flex items-start p-6 z-10">
-            <div className="text-left w-full">
-              <h3 className={`${banner ? "text-white" : service.titleColor} font-extrabold text-[22px] sm:text-[28px] leading-[1.1] mb-2 drop-shadow-md uppercase`}>
-                {service.topTitle}
-              </h3>
-              {service.topSubtitle && (
-                <p className={`${banner ? "text-gray-200" : service.titleColor} text-xs sm:text-sm font-medium drop-shadow-sm opacity-90`}>
-                  {service.topSubtitle}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        </Link>
 
         <div className="p-5 sm:p-6 flex flex-col flex-1">
-          <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">{service.bottomTitle}</h3>
-          <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6">{service.bottomDescription}</p>
+          <Link href={destinationHref as any} className="block group-hover:text-[#561269] transition-colors">
+            <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">{service.bottomTitle}</h3>
+          </Link>
+          <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">{service.bottomDescription}</p>
 
           <div className="mt-auto pt-2">
-            {(() => {
-              const baseHref = service.href || (
-                activeCategory === "01"
-                  ? "/booking"
-                  : activeCategory === "02"
-                  ? "/psikotes"
-                  : activeCategory === "03" || activeCategory === "04"
-                  ? "/event"
-                  : `/asesmen?paket=${encodeURIComponent(service.bottomTitle)}`
-              )
-
-              const rawDestination =
-                activeCategory === "05" && banner && !baseHref.includes("&banner=")
-                  ? `${baseHref}${baseHref.includes("?") ? "&" : "?"}banner=${encodeURIComponent(banner)}`
-                  : baseHref
-
-              const destinationHref = withBiro(rawDestination)
-              return (
-                <Link
-                  href={destinationHref as any}
-                  className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
-                >
-                  {service.btnText}
-                </Link>
-              )
-            })()}
+            <Link
+              href={destinationHref as any}
+              className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
+            >
+              {service.btnText}
+            </Link>
           </div>
         </div>
       </div>
@@ -180,32 +194,34 @@ export default function LayananClient() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[104px] lg:pb-8 lg:h-screen lg:overflow-hidden font-poppins">
+    <div className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-4 lg:pt-[96px] lg:pb-3 lg:h-screen lg:overflow-hidden font-poppins">
 
       {/* Container utama */}
       <div className="relative flex h-full flex-col gap-8 lg:block">
 
-        {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL) */}
-        <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5 lg:pb-2">
+        {/* Kolom Kiri: Daftar Kategori (TIDAK BISA SCROLL & STABIL TANPA JUMPING) */}
+        <div className="flex shrink-0 flex-col gap-3 lg:w-1/3 lg:gap-5">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.id
             return (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className="group flex flex-col items-start text-left transition-all cursor-pointer"
+                className="group flex flex-col items-start text-left cursor-pointer h-[76px] lg:h-[84px] justify-center shrink-0 transition-all duration-300 ease-out"
               >
                 <span
-                  className={`font-bold transition-all duration-300 ease-out ${isActive ? "text-[28px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
-                    }`}
+                  className={`font-bold transition-all duration-300 ease-out leading-none ${
+                    isActive ? "text-[26px] text-[#EAB308]" : "text-[22px] text-[#EAB308]/40"
+                  }`}
                 >
                   {cat.id}
                 </span>
                 <span
-                  className={`transition-all duration-300 ease-out ${isActive
-                    ? "text-[34px] font-bold text-[#561269]"
-                    : "text-[24px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
-                    }`}
+                  className={`transition-all duration-300 ease-out leading-tight mt-1 ${
+                    isActive
+                      ? "text-[30px] lg:text-[32px] font-bold text-[#561269]"
+                      : "text-[24px] lg:text-[26px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
+                  }`}
                 >
                   {cat.title}
                 </span>
@@ -219,8 +235,8 @@ export default function LayananClient() {
           {/* Card Utama */}
           <div className="flex h-full flex-col rounded-2xl border border-gray-300 bg-white shadow-[0px_4px_16px_rgba(0,0,0,0.1)] p-6 sm:p-8">
 
-            {/* Header Card Utama - Halus & Bebas Freeze */}
-            <div key={`header-${activeCategory}`} className="mb-6 shrink-0 animate-fade-in">
+            {/* Header Card Utama - Stabil tanpa re-mount jump */}
+            <div className="mb-6 shrink-0">
               <h2 className="text-2xl font-bold text-[#561269] sm:text-3xl">
                 {CATEGORIES.find(c => c.id === activeCategory)?.title}
               </h2>
@@ -232,89 +248,169 @@ export default function LayananClient() {
             {/* Area Konten Scrollable */}
             <div
               ref={scrollRef}
-              className="flex-1 overflow-y-auto pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
+              className="flex-1 overflow-y-auto overscroll-contain pl-4 -ml-4 pt-4 -mt-4 pr-4 -mr-2 pb-6 custom-scrollbar"
             >
               <div key={`content-${activeCategory}`} className="animate-fade-in">
-                {/* Grid Layanan Kecil */}
+                {/* 1. Status Error Jika Koneksi Gagal (Konsultasi, Psikotes, Workshop, Seminar, Asesmen) */}
                 {(() => {
-                  if (activeCategory === "02") {
-                    if (loadingPsikotes) {
-                      return (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3">
-                          <Loader2 className="w-8 h-8 text-[#561269] animate-spin" />
-                          <p className="text-sm text-gray-500 font-medium">Memuat paket psikotes...</p>
-                        </div>
-                      )
+                  const isCurrentError = activeCategory === "02" ? isPsikotesError : isLayananError
+                  if (!isCurrentError) return null
+
+                  return (
+                    <ClientErrorState
+                      message={
+                        activeCategory === "02"
+                          ? "Gagal memuat daftar paket psikotes. Silakan periksa koneksi Anda dan coba lagi."
+                          : "Gagal memuat daftar layanan. Silakan periksa koneksi Anda dan coba lagi."
+                      }
+                      onRetry={activeCategory === "02" ? () => refetchPsikotes() : () => refetchLayanan()}
+                      isRetrying={activeCategory === "02" ? loadingPsikotes : loadingLayanan}
+                    />
+                  )
+                })()}
+
+                {/* 2. Loading State (Konsultasi, Psikotes, Workshop, Seminar, Asesmen) */}
+                {(() => {
+                  const isCurrentError = activeCategory === "02" ? isPsikotesError : isLayananError
+                  const isCurrentLoading = activeCategory === "02" ? loadingPsikotes : loadingLayanan
+                  if (isCurrentError || !isCurrentLoading) return null
+
+                  return (
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                      <Loader2 className="w-8 h-8 text-[#561269] animate-spin" />
+                      <p className="text-sm text-gray-500 font-medium">
+                        {activeCategory === "02" ? "Memuat paket psikotes..." : "Memuat data layanan..."}
+                      </p>
+                    </div>
+                  )
+                })()}
+
+                {/* 3. Grid Layanan (Hanya tampil jika tidak error dan tidak loading) */}
+                {(() => {
+                  const isCurrentError = activeCategory === "02" ? isPsikotesError : isLayananError
+                  const isCurrentLoading = activeCategory === "02" ? loadingPsikotes : loadingLayanan
+                  if (isCurrentError || isCurrentLoading) return null
+
+                  const currentServices = (() => {
+                    if (activeCategory === "02") {
+                      if (publishedPsikotes.length > 0) {
+                        return publishedPsikotes.map((p, idx) => {
+                          const colors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
+                          const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
+                          const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
+                          return {
+                            topTitle: p.judul.toUpperCase(),
+                            topSubtitle: "",
+                            bottomTitle: p.judul,
+                            bottomDescription:
+                              p.tentang_tes ||
+                              "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini.",
+                            bgColor: colors[idx % colors.length],
+                            titleColor: textColors[idx % textColors.length],
+                            btnText: "Ikuti Tes",
+                            shape: shapes[idx % shapes.length],
+                            href: withBiro ? withBiro(`/psikotes/${p.id}`) : `/psikotes/${p.id}`,
+                            bannerUrl: p.banner_url,
+                          }
+                        })
+                      }
+                      return []
                     }
 
-                    if (publishedPsikotes.length > 0) {
-                      return (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                          {publishedPsikotes.map((p) => {
-                            const bannerImage =
-                              p.banner_url ||
-                              "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800";
-                            const targetHref = withBiro ? withBiro(`/psikotes/${p.id}`) : `/psikotes/${p.id}`;
+                    // Ambil layanan murni dari database sesuai kategori aktif
+                    const catEnum =
+                      activeCategory === "01"
+                        ? "KONSULTASI"
+                        : activeCategory === "03"
+                        ? "WORKSHOP"
+                        : activeCategory === "04"
+                        ? "SEMINAR"
+                        : "ASESMEN"
 
-                            return (
-                              <div
-                                key={p.id}
-                                className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full"
-                              >
-                                {/* Foto Bersih / Banner Kartun */}
-                                <div className="h-44 sm:h-52 w-full overflow-hidden relative bg-gray-100 shrink-0">
-                                  <Image
-                                    src={bannerImage}
-                                    alt={p.judul}
-                                    fill
-                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                    unoptimized
-                                  />
-                                </div>
-
-                                {/* Konten Card */}
-                                <div className="p-5 sm:p-6 flex flex-col flex-1">
-                                  <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
-                                    {p.judul}
-                                  </h3>
-                                  <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
-                                    {p.deskripsi || "Asesmen psikologi terstruktur untuk mengenali diri."}
-                                  </p>
-
-                                  <div className="mt-auto pt-2">
-                                    <Link
-                                      href={targetHref}
-                                      className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
-                                    >
-                                      Ikuti Tes
-                                    </Link>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="flex flex-col items-center justify-center p-8 text-center rounded-2xl bg-white border border-gray-100 shadow-sm min-h-[220px]">
-                        <div className="w-12 h-12 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center mb-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <p className="font-bold text-gray-800 text-base mb-1">
-                          Belum Ada Paket Psikotes
-                        </p>
-                        <p className="text-sm text-gray-500 max-w-md">
-                          Saat ini belum ada paket psikotes yang tersedia atau instrumen sedang dalam pembaruan. Silakan periksa kembali nanti.
-                        </p>
-                      </div>
+                    // Cek semua item dari kategori ini yang terdaftar di database
+                    const allCatItems = liveLayanan.filter(
+                      (l) => (l.kategori || "").toUpperCase() === catEnum
                     )
-                  }
 
-                  const currentServices = SERVICES_DATA[activeCategory] || []
+                    // Hanya ambil layanan yang aktif (l.aktif !== false dan status !== "Nonaktif")
+                    const dbMatches = allCatItems.filter((l) => {
+                      return l.aktif !== false && (l as any).status !== "Nonaktif"
+                    })
+
+                    if (dbMatches.length > 0) {
+                      const colors = ["bg-[#561269]", "bg-[#f48520]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
+                      const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
+                      const shapes = ["circles", "circles-dark", "heart", "circles", "circles-dark"]
+
+                      return dbMatches.map((item, idx) => {
+                        let itemHref: string | undefined = undefined
+                        let btnText = "Pilih Layanan"
+
+                        if (activeCategory === "01") {
+                          itemHref = withBiro(`/booking?layanan=${encodeURIComponent(item.nama)}`)
+                          btnText = "Booking Konsultasi"
+                        } else if (activeCategory === "03") {
+                          const namaLower = item.nama.toLowerCase()
+                          if (namaLower.includes("seft")) {
+                            itemHref = withBiro("/layanan/workshop/seft")
+                          } else if (namaLower.includes("peer") || namaLower.includes("sebaya") || namaLower.includes("konselor")) {
+                            itemHref = withBiro("/layanan/workshop/peer-helper")
+                          } else {
+                            const foundSlug = Object.keys(WORKSHOP_DETAILS_DATA).find((s) => namaLower.includes(s))
+                            itemHref = withBiro(foundSlug ? `/layanan/workshop/${foundSlug}` : `/layanan/workshop/${encodeURIComponent(item.id)}`)
+                          }
+                          btnText = "Lihat Workshop"
+                        } else if (activeCategory === "04") {
+                          itemHref = withBiro("/layanan/seminar")
+                          btnText = "Lihat Seminar"
+                        } else if (activeCategory === "05") {
+                          btnText = "Pilih Asesmen"
+                        }
+
+                        let bannerUrl = item.banner_url
+                        const rawFotos = (item as any).foto_kegiatan || (item?.tarif_tenaga_ahli as any)?.foto_kegiatan
+                        if (!bannerUrl && Array.isArray(rawFotos) && rawFotos[0]) {
+                          bannerUrl = rawFotos[0]
+                        }
+
+                        return {
+                          topTitle: item.nama.toUpperCase(),
+                          topSubtitle: item.metode || "Online/Offline",
+                          bottomTitle: item.nama,
+                          bottomDescription: item.deskripsi || "Layanan profesional Empathika.",
+                          bgColor: colors[idx % colors.length],
+                          titleColor: textColors[idx % textColors.length],
+                          btnText,
+                          shape: shapes[idx % shapes.length],
+                          href: itemHref,
+                          bannerUrl,
+                        }
+                      })
+                    }
+
+                    // Jika di database sudah ada item kategori ini tapi SEMUANYA dinonaktifkan oleh admin,
+                    // jangan tampilkan fallback statis agar tetap tersembunyi sesuai setelan admin!
+                    if (allCatItems.length > 0) {
+                      return []
+                    }
+
+                    // Fallback HANYA jika di database benar-benar belum ada data awal untuk Workshop atau Seminar
+                    if (activeCategory === "03" && WORKSHOP_SERVICES.length > 0) {
+                      return WORKSHOP_SERVICES.map((ws) => ({
+                        ...ws,
+                        href: withBiro(ws.href),
+                      }))
+                    }
+                    if (activeCategory === "04" && SEMINAR_SERVICES.length > 0) {
+                      return SEMINAR_SERVICES.map((ss) => ({
+                        ...ss,
+                        href: withBiro(ss.href),
+                      }))
+                    }
+
+                    return []
+                  })()
+
                   if (currentServices.length > 0) {
                     return (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
@@ -327,7 +423,7 @@ export default function LayananClient() {
 
                   return (
                     <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm border border-gray-100">
-                      Konten untuk {CATEGORIES.find(c => c.id === activeCategory)?.title} belum tersedia.
+                      Belum ada layanan yang tersedia untuk kategori {CATEGORIES.find(c => c.id === activeCategory)?.title}.
                     </div>
                   )
                 })()}

@@ -136,8 +136,14 @@ export default function ModalInvoice({
   const statusInfo = labelStatusKirim(invoice?.status_kirim)
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn">
-      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs font-poppins animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* ── Header ── */}
         <div className="flex items-center justify-between border-b border-gray-100 p-6 pb-4 sticky top-0 bg-white z-10 rounded-t-3xl">
           <div className="flex items-center gap-3">

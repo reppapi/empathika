@@ -2,45 +2,28 @@
 
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { blogService } from "@/services/blog.service"
-import { uploadService } from "@/services/upload.service"
+import { BlogBannerUpload } from "./form/BlogBannerUpload"
+import { BLOG_FORM_STYLES } from "./form/blogFormStyles"
+import { useBlogFormImage } from "../../hooks/useBlogFormImage"
 
 export default function AdminTambahBlogClient() {
   const router = useRouter()
   const dateInputRef = useRef<HTMLInputElement>(null)
 
-  // Form states
   const todayStr = new Date().toISOString().split("T")[0]
   const [title, setTitle] = useState("")
   const [date, setDate] = useState(todayStr)
   const [content, setContent] = useState("")
-
-  // Image states
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("")
-  const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isDragOver, setIsDragOver] = useState(false)
 
-  const handleImageSelect = async (file: File) => {
-    if (file) {
-      if (file.size > 30 * 1024 * 1024) {
-        alert("Ukuran file gambar maksimal 30MB.")
-        return
-      }
-      try {
-        const { compressImage, IMAGE_PRESETS } = await import("@/lib/imageCompressor")
-        const compressed = await compressImage(file, IMAGE_PRESETS.blog)
-        setImageFile(compressed.file)
-        setImagePreviewUrl(compressed.dataUrl)
-      } catch {
-        setImageFile(file)
-        const localUrl = URL.createObjectURL(file)
-        setImagePreviewUrl(localUrl)
-      }
-    }
-  }
+  const {
+    imageFile,
+    imagePreviewUrl,
+    isUploading,
+    handleSelectFile,
+    uploadIfSelected,
+  } = useBlogFormImage()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,22 +31,11 @@ export default function AdminTambahBlogClient() {
     setIsSubmitting(true)
 
     try {
-      let finalBannerUrl: string | null = null
+      const finalBannerUrl = await uploadIfSelected()
 
-      // Step 1: Upload gambar ke server kalau ada
-      if (imageFile) {
-        setIsUploading(true)
-        try {
-          finalBannerUrl = await uploadService.uploadImage(imageFile)
-        } finally {
-          setIsUploading(false)
-        }
-      }
-
-      // Step 2: Simpan blog ke database
       await blogService.create({
-        judul: title,
-        isi: content,
+        judul: title.trim(),
+        isi: content.trim(),
         banner_url: finalBannerUrl,
         ...(date ? { tanggal_terbit: new Date(date).toISOString() } : {}),
       })
@@ -75,12 +47,6 @@ export default function AdminTambahBlogClient() {
       setIsSubmitting(false)
     }
   }
-
-  const inputClass =
-    "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-
-  const labelClass = "block text-xs font-bold text-gray-700 mb-1.5"
-  const helperClass = "block text-[11px] text-gray-400 mt-1 font-normal"
 
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16 max-w-5xl mx-auto">
@@ -94,11 +60,10 @@ export default function AdminTambahBlogClient() {
       {/* ── Container Form ── */}
       <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* ── Baris 1 (2 Kolom): Judul Blog & Tanggal Publikasi ── */}
+          {/* Baris 1: Judul Blog & Tanggal Publikasi */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-            {/* Kiri: Judul Blog */}
             <div>
-              <label htmlFor="title" className={labelClass}>
+              <label htmlFor="title" className={BLOG_FORM_STYLES.label}>
                 Judul Blog <span className="text-red-500">*</span>
               </label>
               <input
@@ -107,14 +72,13 @@ export default function AdminTambahBlogClient() {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className={inputClass}
+                className={BLOG_FORM_STYLES.input}
               />
-              <span className={helperClass}>Masukan judul artikel blog</span>
+              <span className={BLOG_FORM_STYLES.helper}>Masukan judul artikel blog</span>
             </div>
 
-            {/* Kanan: Tanggal Publikasi */}
             <div>
-              <label htmlFor="date" className={labelClass}>
+              <label htmlFor="date" className={BLOG_FORM_STYLES.label}>
                 Tanggal Publikasi
               </label>
               <div className="relative">
@@ -124,7 +88,7 @@ export default function AdminTambahBlogClient() {
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className={`${inputClass} pr-11 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none`}
+                  className={`${BLOG_FORM_STYLES.input} pr-11 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none`}
                 />
                 <button
                   type="button"
@@ -154,137 +118,36 @@ export default function AdminTambahBlogClient() {
                   </svg>
                 </button>
               </div>
-              <span className={helperClass}>Masukan tanggal publikasi blog baru</span>
+              <span className={BLOG_FORM_STYLES.helper}>Masukan tanggal publikasi blog baru</span>
             </div>
           </div>
 
-          {/* ── Baris 2: Isi Blog ── */}
+          {/* Baris 2: Isi Blog */}
           <div>
-            <label htmlFor="content" className={labelClass}>
-              Isi Blog
+            <label htmlFor="content" className={BLOG_FORM_STYLES.label}>
+              Isi Blog <span className="text-red-500">*</span>
             </label>
             <textarea
               id="content"
               rows={8}
+              required
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className={`${inputClass} resize-y leading-relaxed font-normal`}
+              className={`${BLOG_FORM_STYLES.input} resize-y leading-relaxed font-normal`}
             />
-            <span className={helperClass}>Tuliskan konten lengkap artikel blog</span>
+            <span className={BLOG_FORM_STYLES.helper}>Tuliskan konten lengkap artikel blog</span>
           </div>
 
-          {/* ── Baris 3: Foto/Poster ── */}
-          <div>
-            <label className={labelClass}>
-              Foto/Poster terkait blog
-            </label>
-            <div
-              onDragOver={(e) => {
-                e.preventDefault()
-                setIsDragOver(true)
-              }}
-              onDragLeave={() => setIsDragOver(false)}
-              onDrop={(e) => {
-                e.preventDefault()
-                setIsDragOver(false)
-                if (e.dataTransfer.files?.[0]) {
-                  handleImageSelect(e.dataTransfer.files[0])
-                }
-              }}
-              className={`relative flex flex-col items-center justify-center w-full min-h-[220px] rounded-2xl border-2 border-dashed transition-all cursor-pointer p-4 overflow-hidden ${
-                isDragOver
-                  ? "border-[#561269] bg-purple-50/60"
-                  : "border-gray-300 bg-gray-50/60 hover:bg-purple-50/30 hover:border-[#561269]"
-              }`}
-            >
-              <input
-                id="file-upload-tambah"
-                type="file"
-                accept="image/png, image/jpeg, image/jpg, image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files?.[0]) {
-                    handleImageSelect(e.target.files[0])
-                  }
-                }}
-              />
+          {/* Baris 3: Foto/Poster Banner */}
+          <BlogBannerUpload
+            id="banner-upload-tambah"
+            previewUrl={imagePreviewUrl}
+            fileName={imageFile?.name}
+            fileSize={imageFile?.size}
+            onFileSelect={handleSelectFile}
+          />
 
-              {imagePreviewUrl ? (
-                <div className="flex flex-col items-center gap-3 w-full">
-                  <div className="relative w-full max-w-sm h-48 rounded-xl overflow-hidden shadow-sm">
-                    <Image
-                      src={imagePreviewUrl}
-                      alt="Preview banner"
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                    <div className="absolute top-2 left-2 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium pointer-events-none">
-                      📐 1200 × 675 px (16:9)
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-gray-400">
-                    {imageFile?.name} ({imageFile ? Math.round(imageFile.size / 1024) : 0} KB)
-                  </p>
-                  <label
-                    htmlFor="file-upload-tambah"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#561269] hover:underline cursor-pointer"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      className="h-3.5 w-3.5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                      />
-                    </svg>
-                    Ganti Foto / Upload Ulang
-                  </label>
-                </div>
-              ) : (
-                <label
-                  htmlFor="file-upload-tambah"
-                  className="flex flex-col items-center gap-2 text-center cursor-pointer"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 text-[#561269]">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.6}
-                      stroke="currentColor"
-                      className="h-6 w-6"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-semibold text-gray-700">
-                      Upload gambar poster / banner
-                    </span>
-                    <span className="block text-xs font-medium text-gray-600 mt-1">
-                      Rekomendasi ukuran: <strong className="text-[#561269]">1200 × 675 px (rasio 16:9)</strong>
-                    </span>
-                    <span className="block text-[11px] text-gray-400 mt-0.5">
-                      Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi
-                    </span>
-                  </div>
-                </label>
-              )}
-            </div>
-          </div>
-
-          {/* ── Form Actions ── */}
+          {/* Form Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"

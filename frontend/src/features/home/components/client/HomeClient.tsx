@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 
-import { DATA_PSIKOLOG_DUMMY } from '@/features/psikolog/dummy'
 import { PsikologCard } from '@/features/psikolog/components/client/PsikologCard'
 import { HERO_SLIDES } from '../../data/homeData'
 import { useHomeSlider } from '../../hooks/useHomeSlider'
@@ -27,7 +26,7 @@ export default function HomeClient() {
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [publishedPsikotes, setPublishedPsikotes] = useState<PaketPsikotesApiResponse[]>([])
   const [loadingPsikotes, setLoadingPsikotes] = useState(true)
-  const [psychologists, setPsychologists] = useState<PsikologUI[]>(DATA_PSIKOLOG_DUMMY)
+  const [psychologists, setPsychologists] = useState<PsikologUI[]>([])
   const [loadingPsychologists, setLoadingPsychologists] = useState(true)
   const [adminProfile, setAdminProfile] = useState<{
     alamat: string
@@ -150,44 +149,13 @@ export default function HomeClient() {
           }
         }
 
-        // 2. Default: Ambil data psikolog platform Empathika
+        // 2. Default: Ambil data psikolog platform Empathika murni dari database
         const dbList = await psikologService.getList()
         const mappedFromDb = Array.isArray(dbList) ? dbList.map(mapDbPsikologToUI) : []
-        let combined = mappedFromDb
-
-        try {
-          const local = localStorage.getItem("empathika_tenaga_ahli_data")
-          if (local) {
-            const parsed = JSON.parse(local)
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const dbIds = new Set(mappedFromDb.map((m) => m.id))
-              const dbEmails = new Set(mappedFromDb.map((m) => m.email?.toLowerCase()).filter(Boolean))
-              const localOnly = parsed
-                .filter((loc: any) => !dbIds.has(loc.id) && (!loc.email || !dbEmails.has(loc.email.toLowerCase())) && loc.statusAkses !== "NONAKTIF" && loc.status !== "INACTIVE")
-                .map(mapDbPsikologToUI)
-              combined = [...mappedFromDb, ...localOnly]
-            }
-          }
-        } catch {}
-
-        if (combined.length > 0) {
-          setPsychologists(combined)
-        } else {
-          setPsychologists(DATA_PSIKOLOG_DUMMY)
-        }
+        setPsychologists(mappedFromDb)
       } catch (err) {
         console.error('Gagal memuat psikolog home:', err)
-        try {
-          const local = localStorage.getItem("empathika_tenaga_ahli_data")
-          if (local) {
-            const parsed = JSON.parse(local)
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setPsychologists(parsed.filter((loc: any) => loc.statusAkses !== "NONAKTIF" && loc.status !== "INACTIVE").map(mapDbPsikologToUI))
-              return
-            }
-          }
-        } catch {}
-        setPsychologists(DATA_PSIKOLOG_DUMMY)
+        setPsychologists([])
       } finally {
         setLoadingPsychologists(false)
       }
@@ -311,34 +279,41 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* OVERLAPPING STATS SECTION */}
       {/* ======================================= */}
-      <div className="relative z-40 max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 lg:-mt-12">
+      <div className="relative z-40 max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 lg:-mt-12">
         <div className="bg-gradient-to-b from-[#e5e7eb] to-[#f3f4f6] rounded-[2rem] shadow-xl py-6 lg:py-8 px-6 md:px-10 flex flex-col md:flex-row justify-between items-center gap-4 lg:gap-6 text-center">
           
-          <div className="flex-1 w-full flex flex-col items-center">
-            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2">0+</h3>
-            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[200px]">
-              Cerita telah dipercayakan kepada kami
+          <div className="flex-1 w-full flex flex-col items-center justify-start self-stretch">
+            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2 leading-none flex items-center justify-center min-h-[32px] lg:min-h-[42px]">
+              1.000+
+            </h3>
+            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[220px]">
+              Sesi konseling & asesmen terlaksana
             </p>
           </div>
+
+          {/* Garis pemisah samar */}
+          <div className="hidden md:block w-px h-12 bg-gray-300/80 shrink-0 self-center" />
+          <div className="md:hidden w-28 h-px bg-gray-300/70 my-1" />
           
-          <div className="flex-1 w-full flex flex-col items-center">
-            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2">0+</h3>
-            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[200px]">
-              Praktisi profesional berlisensi dan berpengalaman
+          <div className="flex-1 w-full flex flex-col items-center justify-start self-stretch">
+            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2 leading-none flex items-center justify-center min-h-[32px] lg:min-h-[42px]">
+              {psychologists.length > 0 ? `${psychologists.length}+` : "10+"}
+            </h3>
+            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[220px]">
+              Psikolog & konselor berlisensi
             </p>
           </div>
+
+          {/* Garis pemisah samar */}
+          <div className="hidden md:block w-px h-12 bg-gray-300/80 shrink-0 self-center" />
+          <div className="md:hidden w-28 h-px bg-gray-300/70 my-1" />
           
-          <div className="flex-1 w-full flex flex-col items-center">
-            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2">0%</h3>
-            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[200px]">
-              #PejuangKesehatanMental merasa puas
-            </p>
-          </div>
-          
-          <div className="flex-1 w-full flex flex-col items-center">
-            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2">0%</h3>
-            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[200px]">
-              #PejuangKesehatanMental rutin kembali
+          <div className="flex-1 w-full flex flex-col items-center justify-start self-stretch">
+            <h3 className="text-2xl lg:text-4xl font-bold text-[#d97706] mb-1.5 lg:mb-2 leading-none flex items-center justify-center min-h-[32px] lg:min-h-[42px]">
+              100%
+            </h3>
+            <p className="text-gray-600 text-[12px] md:text-[13px] font-medium px-2 leading-snug max-w-[220px]">
+              Kerahasiaan & privasi data terjamin
             </p>
           </div>
 
@@ -407,6 +382,14 @@ export default function HomeClient() {
                   : 0
 
               const isOnline = ev.tipe_event !== "OFFLINE"
+              const hasBundling = Boolean(ev.harga_bundling && Number(ev.harga_bundling) > 0)
+              const hargaBundlingNum = hasBundling ? Number(ev.harga_bundling) : 0
+              const kuotaBundling = ev.kuota_tiket_bundling || 2
+              const namaBundling = ev.nama_bundling || `Paket ${kuotaBundling} Tiket`
+
+              const bundlingParams = hasBundling
+                ? `&hargaBundling=${encodeURIComponent(String(hargaBundlingNum))}&kuotaBundling=${encodeURIComponent(String(kuotaBundling))}&namaBundling=${encodeURIComponent(namaBundling)}`
+                : ""
 
               return (
                 <div
@@ -421,17 +404,18 @@ export default function HomeClient() {
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-700"
                     />
-                    <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
-                      <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-extrabold text-[#561269] shadow-sm uppercase tracking-wider">
+                    <div className="absolute top-3 left-3 flex flex-col gap-0.5 items-start">
+                      <span className="text-[11px] font-bold text-white drop-shadow uppercase tracking-wider">
                         {ev.jenis_event}
-                      </div>
-                      <div
-                        className={`backdrop-blur-sm px-3 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm tracking-wide ${
-                          isOnline ? "bg-blue-600/90 text-white" : "bg-emerald-600/90 text-white"
-                        }`}
-                      >
+                      </span>
+                      <span className={`text-[10px] font-semibold drop-shadow ${isOnline ? "text-blue-200" : "text-emerald-200"}`}>
                         {isOnline ? "Online" : "Offline"}
-                      </div>
+                      </span>
+                      {hasBundling && (
+                        <span className="text-[10px] font-semibold text-amber-200 drop-shadow">
+                          Tersedia {namaBundling}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="p-5 md:p-6 flex flex-col flex-1">
@@ -467,7 +451,16 @@ export default function HomeClient() {
                     <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Harga Tiket</p>
-                        {hargaCoretTeks && hargaCoretNum > hargaNum ? (
+                        {hasBundling ? (
+                          <div>
+                            <p className="text-base sm:text-lg font-black text-[#561269] leading-tight">
+                              Mulai dari {hargaTeks}
+                            </p>
+                            <div className="inline-flex items-center gap-1.5 mt-1 bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                              <span>Tersedia {namaBundling} (Rp {hargaBundlingNum.toLocaleString("id-ID")})</span>
+                            </div>
+                          </div>
+                        ) : hargaCoretTeks && hargaCoretNum > hargaNum ? (
                           <div className="flex flex-col">
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs text-gray-400 line-through font-medium">
@@ -489,8 +482,8 @@ export default function HomeClient() {
                       </div>
                       <Link
                         href={biroPrefix
-                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}`
-                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}`}
+                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}`
+                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}`}
                         className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
                       >
                         Daftar
@@ -711,8 +704,8 @@ export default function HomeClient() {
       {/* ======================================= */}
       {/* PSIKOTES SECTION */}
       {/* ======================================= */}
-      <section id="psikotes" className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 scroll-mt-28">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+      <section id="psikotes" className="w-full max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 scroll-mt-28">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 lg:mb-12 gap-4 sm:gap-6">
           <h2 className="text-2xl md:text-3xl font-semibold text-[#561269] tracking-tight">
             Kenali Dirimu dengan Psikotes <span className="font-bold">Empathika</span>
           </h2>
@@ -728,7 +721,7 @@ export default function HomeClient() {
             <p className="text-sm text-gray-500 font-medium">Memuat daftar psikotes...</p>
           </div>
         ) : publishedPsikotes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
             {publishedPsikotes.map((item, idx) => {
               const bgColors = ["bg-[#f48520]", "bg-[#561269]", "bg-[#1c352d]", "bg-[#f0d164]", "bg-[#e31e3d]"]
               const textColors = ["text-white", "text-white", "text-white", "text-gray-900", "text-white"]
@@ -740,8 +733,8 @@ export default function HomeClient() {
                   key={item.id}
                   className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col"
                 >
-                  {/* Foto Bersih (Tanpa Tulisan Apapun) */}
-                  <div className="h-52 w-full overflow-hidden relative bg-gray-100">
+                  {/* Banner 16:9 Presisi Sesuai Ukuran Asli Gambar (1376x768) */}
+                  <div className="w-full aspect-[16/9] overflow-hidden relative bg-gray-100">
                     <Image
                       src={
                         item.banner_url ||
@@ -754,18 +747,18 @@ export default function HomeClient() {
                     />
                   </div>
 
-                  <div className="p-6 flex flex-col flex-1">
-                    <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight line-clamp-2">
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-2 leading-snug line-clamp-2">
                       {item.judul}
                     </h3>
-                    <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">
-                      {item.deskripsi || "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini."}
+                    <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-5 line-clamp-2">
+                      {item.tentang_tes || "Kenali kondisi dirimu dan pahami bagaimana perasaan serta pikiranmu melalui asesmen psikologi terstandar ini."}
                     </p>
 
                     <div className="mt-auto">
                       <Link
                         href={biroPrefix ? `${biroPrefix}/psikotes/${item.id}` : `/psikotes/${item.id}`}
-                        className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
+                        className="w-full flex items-center justify-center py-2.5 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
                       >
                         Ikuti Tes
                       </Link>

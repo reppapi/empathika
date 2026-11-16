@@ -123,22 +123,34 @@ export class AccountSettingsService {
     const frontendBaseUrl = (env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "")
     const verificationUrl = `${frontendBaseUrl}/verifikasi-email?token=${rawToken}`
 
-    // Kirim email (asinkron agar tidak memblokir response)
-    Promise.all([
-      accountMailService.sendEmailChangeVerification({
+    // Kirim email verifikasi ke email baru terlebih dahulu (wajib berhasil)
+    try {
+      await accountMailService.sendEmailChangeVerification({
         toNewEmail: targetEmail,
         nama: account.nama,
         verificationUrl,
         expiresInMinutes,
-      }),
+      })
+
+      // Kirim email peringatan ke email lama secara terpisah (jangan gagalkan proses jika email lama gagal)
       accountMailService.sendEmailChangeAlertToOldEmail({
         toOldEmail: account.email,
         nama: account.nama,
         newEmailMasked: this.maskEmail(targetEmail),
-      }),
-    ]).catch((err) => {
+      }).catch((alertErr) => {
+        console.warn("[Mailer] Peringatan ke email lama tidak terkirim (non-fatal):", alertErr?.message || alertErr)
+      })
+    } catch (err: any) {
       console.error("[Mailer] Gagal mengirim email ganti email:", err)
-    })
+      // Rollback request pending agar user tidak terkunci jika mail server gagal kirim
+      await this.prisma.emailChangeRequest.deleteMany({
+        where: { accountId, tokenHash },
+      })
+      throw Object.assign(
+        new Error("Gagal mengirim email verifikasi ke alamat baru. Pastikan konfigurasi email aktif atau coba sesaat lagi."),
+        { statusCode: 500 }
+      )
+    }
 
     console.info(`[AUDIT] Permintaan ganti email diajukan untuk accountId=${accountId} dari IP=${context.ip}`)
 

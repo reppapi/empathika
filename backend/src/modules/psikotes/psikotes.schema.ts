@@ -1,3 +1,4 @@
+/** Skema validasi Zod untuk input query, body, paket, submit jawaban, booking, dan tiket psikotes. */
 import { z } from 'zod'
 
 export const pilihanJawabanSchema = z.object({
@@ -26,7 +27,6 @@ export const interpretasiPsikotesSchema = z.object({
 
 export const createPsikotesSchema = z.object({
   judul: z.string().min(1, 'Judul psikotes wajib diisi'),
-  deskripsi: z.string().optional().nullable(),
   tentang_tes: z.string().optional().nullable(),
   banner_url: z.string().optional().nullable(),
   jenis_akses: z.enum(['GRATIS', 'BERBAYAR']).default('GRATIS'),
@@ -56,6 +56,7 @@ export const submitJawabanItemSchema = z.object({
 
 export const pesertaPsikotesInputSchema = z.object({
   nama_lengkap: z.string().optional(),
+  no_telepon: z.string().optional().nullable(),
   jenis_kelamin: z.string().optional(),
   tempat_lahir: z.string().optional().nullable(),
   tanggal_lahir: z.string().or(z.date()).optional().nullable(),
@@ -66,6 +67,7 @@ export const pesertaPsikotesInputSchema = z.object({
   pendidikan: z.string().optional().nullable(),
   pekerjaan: z.string().optional().nullable(),
   status_pernikahan: z.string().optional().nullable(),
+  persetujuan_wali: z.boolean().optional().nullable(),
 })
 
 export const submitPsikotesSchema = z.object({
@@ -80,6 +82,8 @@ export const submitPsikotesSchema = z.object({
   email: z.string().optional(),
   id_booking: z.string().optional(),
   bookingId: z.string().optional(),
+  orderId: z.string().optional(),
+  kode_akses: z.string().optional(),
   peserta: pesertaPsikotesInputSchema.optional(),
   klien: z
     .object({
@@ -91,6 +95,11 @@ export const submitPsikotesSchema = z.object({
     })
     .optional(),
   id_biro: z.string().optional(),
+  dampak_aktivitas: z.number().int().min(0).max(3).optional().nullable(),
+  peristiwa_lainnya: z.string().optional().nullable(),
+  peristiwaLainnya: z.string().optional().nullable(),
+  peristiwa_paling_mengganggu: z.string().optional().nullable(),
+  peristiwaPalingMengganggu: z.string().optional().nullable(),
 })
 
 export type SubmitPsikotesInput = z.infer<typeof submitPsikotesSchema>
@@ -99,6 +108,7 @@ export const pesertaQuerySchema = z.object({
   search: z.string().optional(),
   jenis_akses: z.enum(['GRATIS', 'BERBAYAR', 'ALL']).optional(),
   id_paket: z.string().optional(),
+  id_biro: z.string().optional(),
   page: z.coerce.number().int().optional().default(1),
   limit: z.coerce.number().int().optional().default(50),
 })
@@ -143,4 +153,12 @@ export const createBookingPsikotesSchema = z
   )
 
 export type CreateBookingPsikotesInput = z.infer<typeof createBookingPsikotesSchema>
+
+// ── 8. Verifikasi Tiket Akses Psikotes ──
+export const verifyTicketSchema = z.object({
+  kode_akses: z.string().min(3, 'Kode akses atau nomor transaksi wajib diisi'),
+  no_telepon: z.string().min(6, 'Nomor WhatsApp pembeli wajib diisi'),
+})
+
+export type VerifyTicketInput = z.infer<typeof verifyTicketSchema>
 

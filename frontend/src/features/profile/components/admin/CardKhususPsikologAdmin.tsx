@@ -300,7 +300,7 @@ export function CardKhususPsikologAdmin({
                 key={idx}
                 className="group relative rounded-2xl bg-gray-50 border border-gray-100 p-3.5 text-xs text-gray-700 leading-relaxed pr-10"
               >
-                <p>{paragraf}</p>
+                <p className="whitespace-pre-wrap">{paragraf}</p>
                 <button
                   type="button"
                   onClick={() => onRemoveParagraph(idx)}

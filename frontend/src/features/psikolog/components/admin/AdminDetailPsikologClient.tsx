@@ -15,7 +15,6 @@ import {
   Check,
   AlertTriangle,
 } from "lucide-react"
-import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import type { TenagaAhli } from "@/features/psikolog/types"
 import ActivationWarningModal from "@/components/common/ActivationWarningModal"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
@@ -77,16 +76,16 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
           noTelepon: dbData.account?.no_telepon || "",
           kategori,
           statusAkses: dbData.status === "INACTIVE" ? "NONAKTIF" : "AKTIF",
-          spesialisasi: dbData.spesialisasi?.nama || "Psikologi Klinis",
+          spesialisasi: dbData.spesialisasi?.nama || (typeof dbData.spesialisasi === "string" ? dbData.spesialisasi : "") || "Psikologi Klinis",
           noStr: dbData.no_str || undefined,
           noSipp: dbData.no_sipp || undefined,
           noSilp: dbData.no_silp || undefined,
           pendidikanText: dbData.pendidikan || "",
           jumlahSesi: typeof dbData.jumlah_sesi === "number" ? dbData.jumlah_sesi : 0,
-          bio: dbData.bio || "",
+          bio: dbData.bio || dbData.account?.bio || "",
           quote: dbData.quote || "",
           instagram: dbData.instagram || "",
-          foto: dbData.foto || null,
+          foto: dbData.foto || dbData.account?.foto || null,
           keahlian: Array.isArray(dbData.keahlian)
             ? dbData.keahlian
             : typeof dbData.keahlian === "string"
@@ -111,11 +110,17 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
       console.warn("Gagal mengambil data dari BE, mencoba fallback lokal:", err)
     }
 
-    const found = INITIAL_TENAGA_AHLI.find((p) => p.id === id)
-    if (found) {
-      setForm(found)
-      if (found.tokenAktivasi) setActivationToken(found.tokenAktivasi)
-      if (found.tokenExpiredAt) setTokenExpiredAt(found.tokenExpiredAt)
+    const saved = typeof window !== "undefined" ? localStorage.getItem("empathika_tenaga_ahli_data") : null
+    if (saved) {
+      try {
+        const localList: TenagaAhli[] = JSON.parse(saved)
+        const found = localList.find((p) => p.id === id)
+        if (found) {
+          setForm(found)
+          if (found.tokenAktivasi) setActivationToken(found.tokenAktivasi)
+          if (found.tokenExpiredAt) setTokenExpiredAt(found.tokenExpiredAt)
+        }
+      } catch {}
     }
     setLoading(false)
   }

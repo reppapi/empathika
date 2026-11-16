@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, StatusAkses, KategoriTenaga } from "../../types"
-import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import {
   ActionButtonDetail,
@@ -22,6 +22,7 @@ import {
   ColumnDef,
 } from "@/components/shared/AdminDataTable"
 import PsikologDetailModal from "./PsikologDetailModal"
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
 
 export default function AdminPsikologClient() {
   const router = useRouter()
@@ -30,6 +31,7 @@ export default function AdminPsikologClient() {
   const [searchQuery, setSearchQuery] = useState("")
 
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<TenagaAhli | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [selectedDetailPsikolog, setSelectedDetailPsikolog] = useState<TenagaAhli | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
@@ -37,7 +39,7 @@ export default function AdminPsikologClient() {
   const refreshPsikologList = async () => {
     try {
       const dbList = await psikologService.getList({ status: "ALL" })
-      if (dbList && dbList.length > 0) {
+      if (Array.isArray(dbList)) {
         const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
         const localList: TenagaAhli[] = saved ? JSON.parse(saved) : []
 
@@ -57,7 +59,7 @@ export default function AdminPsikologClient() {
           const statusAkses: StatusAkses =
             p.status === "INACTIVE"
               ? "NONAKTIF"
-              : matchedLocal?.statusAkses || "AKTIF"
+              : "AKTIF"
 
           const accountId = p.account?.id || p.id_account || p.accountId || undefined
           const accountAktif = Boolean(
@@ -69,44 +71,39 @@ export default function AdminPsikologClient() {
 
           return {
             id: p.id,
-            nama: p.nama_gelar || p.account?.nama || matchedLocal?.nama || "Psikolog Empathika",
+            nama: p.nama_gelar || p.account?.nama || "Psikolog Empathika",
             email:
               p.account?.email ||
-              matchedLocal?.email ||
               `${(p.nama_gelar || "psikolog").toLowerCase().replace(/[^a-z0-9]/g, "")}@empathika.com`,
-            noTelepon: p.account?.no_telepon || matchedLocal?.noTelepon || "081234567890",
+            noTelepon: p.account?.no_telepon || "",
             kategori,
             statusAkses,
-            spesialisasi: p.spesialisasi?.nama || matchedLocal?.spesialisasi || "Psikologi Klinis",
-            noStr: p.no_str || matchedLocal?.noStr || undefined,
-            noSipp: p.no_sipp || matchedLocal?.noSipp || undefined,
-            noSilp: p.no_silp || matchedLocal?.noSilp || undefined,
-            pendidikanText: p.pendidikan || matchedLocal?.pendidikanText || "Universitas Indonesia",
-            jumlahSesi: typeof p.jumlah_sesi === "number" ? p.jumlah_sesi : (matchedLocal?.jumlahSesi ?? 0),
-            bio: p.bio || matchedLocal?.bio || "",
-            quote: p.quote || matchedLocal?.quote || "",
-            instagram: p.instagram || matchedLocal?.instagram || "",
-            foto: p.foto || matchedLocal?.foto || null,
+            spesialisasi: p.spesialisasi?.nama || (typeof p.spesialisasi === "string" ? p.spesialisasi : "") || "Psikologi Klinis",
+            noStr: p.no_str || undefined,
+            noSipp: p.no_sipp || undefined,
+            noSilp: p.no_silp || undefined,
+            pendidikanText: p.pendidikan || "",
+            jumlahSesi: typeof p.jumlah_sesi === "number" ? p.jumlah_sesi : 0,
+            bio: p.bio || p.account?.bio || "",
+            quote: p.quote || "",
+            instagram: p.instagram || "",
+            foto: p.foto || p.account?.foto || null,
             keahlian: Array.isArray(p.keahlian)
               ? p.keahlian
-              : typeof p.keahlian === "string"
-              ? p.keahlian.split(",").map((s: string) => s.trim())
-              : matchedLocal?.keahlian || ["Konseling"],
+              : typeof p.keahlian === "string" && p.keahlian.trim()
+              ? p.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
+              : [],
             tanggalBergabung: matchedLocal?.tanggalBergabung || "Terdaftar di DB",
             accountId,
             accountAktif,
-            tokenAktivasi: p.tokenAktivasi || p.token_aktivasi || p.account?.token_aktivasi || matchedLocal?.tokenAktivasi || undefined,
-            tokenExpiredAt: p.tokenExpiredAt || p.token_expired_at || p.account?.token_aktivasi_exp || matchedLocal?.tokenExpiredAt || undefined,
+            tokenAktivasi: p.tokenAktivasi || p.token_aktivasi || p.account?.token_aktivasi || undefined,
+            tokenExpiredAt: p.tokenExpiredAt || p.token_expired_at || p.account?.token_aktivasi_exp || undefined,
           }
         })
 
-        const dbIds = new Set(mapped.map((m) => m.id))
-        const localOnly = localList.filter((loc) => !dbIds.has(loc.id))
-        const combined = [...localOnly, ...mapped]
-
-        setDataList(combined)
-        localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(combined))
-        return combined
+        setDataList(mapped)
+        localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(mapped))
+        return mapped
       }
     } catch {
       // Offline fallback
@@ -116,8 +113,11 @@ export default function AdminPsikologClient() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        setDataList(parsed)
-        return parsed
+        const cleaned = Array.isArray(parsed)
+          ? parsed.filter((p: any) => !['0', '1', '2', '3', '4'].includes(p.id) && !p.email?.endsWith('@empathika.test'))
+          : []
+        setDataList(cleaned)
+        return cleaned
       } catch {
         setDataList([])
       }
@@ -168,14 +168,15 @@ export default function AdminPsikologClient() {
   // Hapus Data
   const handleDeleteItem = async () => {
     if (!deleteConfirmItem) return
+    setIsDeleting(true)
     const idToDelete = deleteConfirmItem.id
     const targetName = deleteConfirmItem.nama
-    setDeleteConfirmItem(null)
 
     try {
       await psikologService.deletePsikolog(idToDelete)
       const updated = dataList.filter((d) => d.id !== idToDelete)
       persistData(updated, `Data ${targetName} telah berhasil dihapus.`)
+      setDeleteConfirmItem(null)
     } catch (err: any) {
       const errMsg =
         err?.response?.data?.message ||
@@ -183,6 +184,8 @@ export default function AdminPsikologClient() {
         `Gagal menghapus ${targetName} karena sudah memiliki data booking konsultasi dari klien.`
       setNotification(errMsg)
       setTimeout(() => setNotification(null), 5000)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -399,34 +402,14 @@ export default function AdminPsikologClient() {
       </AdminTableContainer>
 
       {/* Modal Konfirmasi Hapus */}
-      {deleteConfirmItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl space-y-4">
-            <h4 className="text-base font-bold text-gray-900">
-              Hapus Data Tenaga Ahli?
-            </h4>
-            <p className="text-xs text-gray-600">
-              Apakah Anda yakin ingin menghapus <strong>{deleteConfirmItem.nama}</strong>?
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmItem(null)}
-                className="rounded-full border border-gray-300 px-5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteItem}
-                className="rounded-full bg-red-600 px-5 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-sm transition-all active:scale-95 cursor-pointer"
-              >
-                Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminDeleteModal
+        isOpen={Boolean(deleteConfirmItem)}
+        onClose={() => !isDeleting && setDeleteConfirmItem(null)}
+        onConfirm={handleDeleteItem}
+        itemType="tenaga ahli"
+        itemName={deleteConfirmItem?.nama}
+        isLoading={isDeleting}
+      />
       {/* Modal Detail Tenaga Ahli */}
       <PsikologDetailModal
         isOpen={isDetailOpen}

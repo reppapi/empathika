@@ -8,6 +8,7 @@ import TabKelolaFormulir from "./TabKelolaFormulir"
 import TabPengajuanLeads from "./TabPengajuanLeads"
 import ModalLeadDetail from "./ModalLeadDetail"
 import AdminSummaryCard from "@/components/shared/AdminSummaryCard"
+import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
 
 export default function AdminKerjaSamaClient() {
   const {
@@ -51,6 +52,43 @@ export default function AdminKerjaSamaClient() {
     activeCount,
     waitingLeads,
   } = useAdminKerjaSama()
+
+  // State Modal Konfirmasi Hapus
+  const [programToDelete, setProgramToDelete] = React.useState<{ id: string; name: string } | null>(null)
+  const [isDeletingProgram, setIsDeletingProgram] = React.useState(false)
+
+  const [leadIdToDelete, setLeadIdToDelete] = React.useState<string | null>(null)
+  const [isDeletingLead, setIsDeletingLead] = React.useState(false)
+
+  const [questionIdToDelete, setQuestionIdToDelete] = React.useState<string | null>(null)
+
+  const handleConfirmDeleteProgram = async () => {
+    if (!programToDelete) return
+    setIsDeletingProgram(true)
+    try {
+      await handleDeleteItem(programToDelete.id, programToDelete.name)
+      setProgramToDelete(null)
+    } finally {
+      setIsDeletingProgram(false)
+    }
+  }
+
+  const handleConfirmDeleteLead = async () => {
+    if (!leadIdToDelete) return
+    setIsDeletingLead(true)
+    try {
+      await handleDeleteLead(leadIdToDelete)
+      setLeadIdToDelete(null)
+    } finally {
+      setIsDeletingLead(false)
+    }
+  }
+
+  const handleConfirmDeleteQuestion = () => {
+    if (!questionIdToDelete) return
+    handleDeleteQuestion(questionIdToDelete)
+    setQuestionIdToDelete(null)
+  }
 
   return (
     <div className="flex flex-col gap-8 font-poppins pb-16">
@@ -184,7 +222,7 @@ export default function AdminKerjaSamaClient() {
           onOpenAddModal={handleOpenAddModal}
           onOpenEditModal={handleOpenEditModal}
           onToggleStatus={handleToggleStatus}
-          onDeleteItem={handleDeleteItem}
+          onDeleteItem={(id, name) => setProgramToDelete({ id, name })}
         />
       )}
 
@@ -216,7 +254,7 @@ export default function AdminKerjaSamaClient() {
           newQuestionOptions={newQuestionOptions}
           setNewQuestionOptions={setNewQuestionOptions}
           handleAddNewQuestion={handleAddNewQuestion}
-          handleDeleteQuestion={handleDeleteQuestion}
+          handleDeleteQuestion={(qId) => setQuestionIdToDelete(qId)}
         />
       )}
 
@@ -228,7 +266,7 @@ export default function AdminKerjaSamaClient() {
           setLeadFilter={setLeadFilter}
           onSelectLead={setSelectedLead}
           onUpdateLeadStatus={handleUpdateLeadStatus}
-          onDeleteLead={handleDeleteLead}
+          onDeleteLead={(id) => setLeadIdToDelete(id)}
         />
       )}
 
@@ -238,6 +276,39 @@ export default function AdminKerjaSamaClient() {
         onClose={() => setSelectedLead(null)}
         onUpdateStatus={handleUpdateLeadStatus}
         onShowToast={showToast}
+      />
+
+      {/* Modal Konfirmasi Hapus Program Kerja Sama */}
+      <AdminDeleteModal
+        isOpen={Boolean(programToDelete)}
+        onClose={() => !isDeletingProgram && setProgramToDelete(null)}
+        onConfirm={handleConfirmDeleteProgram}
+        itemType="program kerja sama"
+        itemName={programToDelete?.name}
+        isLoading={isDeletingProgram}
+      />
+
+      {/* Modal Konfirmasi Hapus Pengajuan Kerja Sama */}
+      <AdminDeleteModal
+        isOpen={Boolean(leadIdToDelete)}
+        onClose={() => !isDeletingLead && setLeadIdToDelete(null)}
+        onConfirm={handleConfirmDeleteLead}
+        itemType="data pengajuan kerja sama"
+        itemName={
+          leads.find((l) => l.id === leadIdToDelete)?.namaInstansi ||
+          leads.find((l) => l.id === leadIdToDelete)?.namaPIC ||
+          undefined
+        }
+        isLoading={isDeletingLead}
+      />
+
+      {/* Modal Konfirmasi Hapus Pertanyaan Formulir */}
+      <AdminDeleteModal
+        isOpen={Boolean(questionIdToDelete)}
+        onClose={() => setQuestionIdToDelete(null)}
+        onConfirm={handleConfirmDeleteQuestion}
+        title="Hapus Pertanyaan?"
+        description="Apakah Anda yakin ingin menghapus pertanyaan ini dari formulir kerja sama?"
       />
     </div>
   )

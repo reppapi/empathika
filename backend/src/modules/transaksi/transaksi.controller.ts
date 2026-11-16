@@ -3,19 +3,42 @@ import { TransaksiService } from './transaksi.service'
 import type {
   CreateTransaksiInput,
   CreateCheckoutTransaksiInput,
+  AdminTransaksiQueryInput,
 } from './transaksi.schema'
 
 export class TransaksiController {
   private service: TransaksiService
+  private fastify: any
 
   constructor(fastify: any) {
+    this.fastify = fastify
     this.service = new TransaksiService(fastify)
   }
 
-  getAll = async (request: FastifyRequest, reply: FastifyReply) => {
+  getAll = async (
+    request: FastifyRequest<{ Querystring: AdminTransaksiQueryInput }>,
+    reply: FastifyReply
+  ) => {
     try {
-      const data = await this.service.getAll()
-      reply.send({ success: true, data })
+      const user = (request as any).user
+      let biroId = request.query?.biroId
+      if (user?.role === 'BIRO') {
+        const account = await (this.fastify as any).prisma.account.findUnique({
+          where: { id: user.id },
+          select: { id_biro: true, owned_biro: { select: { id: true } } },
+        })
+        biroId = account?.owned_biro?.[0]?.id || account?.id_biro || undefined
+      }
+
+      const result = await this.service.getAll({
+        ...request.query,
+        ...(biroId ? { biroId } : {}),
+      })
+      reply.send({
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
+      })
     } catch (err: any) {
       reply.code(500).send({ error: 'Internal Server Error', message: err.message })
     }
@@ -81,6 +104,25 @@ export class TransaksiController {
         error: err.name || 'Bad Request',
         message: err.message || 'Gagal memproses transaksi checkout',
         details: err.details,
+      })
+    }
+  }
+
+  confirmSimulation = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const result = await this.service.confirmSimulation(request.params.id)
+      reply.send({
+        success: true,
+        message: 'Pembayaran simulasi berhasil diverifikasi dan status transaksi diperbarui',
+        data: result,
+      })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({
+        error: err.name || 'Bad Request',
+        message: err.message || 'Gagal memverifikasi simulasi pembayaran',
       })
     }
   }

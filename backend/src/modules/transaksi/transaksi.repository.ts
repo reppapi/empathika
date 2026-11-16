@@ -1,44 +1,126 @@
 import type { PrismaClient } from '@prisma/client'
+import type { AdminTransaksiQueryInput } from './transaksi.schema'
 
 export class TransaksiRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async findAll(_params?: { clientId?: string; status?: string }) {
+  /**
+   * Otomatis membersihkan transaksi yang bukan tahun berjalan (sudah lewat tahunnya):
+   * Jika sekarang tahun 2026, semua transaksi sebelum 1 Januari 2026 00:00:00 otomatis dihapus.
+   */
+  async purgeExpiredTransactions() {
+    try {
+      const currentYear = new Date().getFullYear()
+      const startOfCurrentYear = new Date(currentYear, 0, 1)
+
+      const oldTransactions = await this.prisma.transaksi.findMany({
+        where: {
+          createdAt: { lt: startOfCurrentYear },
+        },
+        select: { id: true },
+      })
+
+      if (!oldTransactions.length) return
+
+      const oldIds = oldTransactions.map((t) => t.id)
+
+      // 1. Hapus invoice terkait (karena onDelete: Restrict)
+      await this.prisma.invoice.deleteMany({
+        where: { id_transaksi: { in: oldIds } },
+      })
+
+      // 2. Hapus booking_event terkait (karena onDelete: Restrict)
+      await this.prisma.bookingEvent.deleteMany({
+        where: { id_transaksi: { in: oldIds } },
+      })
+
+      // 3. Putus relasi booking_konsultasi & booking_psikotes jika ada
+      await this.prisma.bookingKonsultasi.updateMany({
+        where: { id_transaksi: { in: oldIds } },
+        data: { id_transaksi: null },
+      })
+
+      await this.prisma.bookingPsikotes.updateMany({
+        where: { id_transaksi: { in: oldIds } },
+        data: { id_transaksi: null },
+      })
+
+      // 4. Hapus data transaksi
+      await this.prisma.transaksi.deleteMany({
+        where: { id: { in: oldIds } },
+      })
+    } catch (err) {
+      console.warn('Gagal membersihkan transaksi tahun sebelumnya:', err)
+    }
+  }
+
+  async findAll(_params?: AdminTransaksiQueryInput & { clientId?: string }) {
+    // Jalankan pembersihan otomatis untuk transaksi yang sudah lewat tahun
+    await this.purgeExpiredTransactions()
+
+    const page = _params?.page ?? 1
+    const limit = _params?.limit ?? 20
+    const isAll = _params?.all === true
+    const skip = (page - 1) * limit
+
+    const currentYear = new Date().getFullYear()
+    const startOfCurrentYear = new Date(currentYear, 0, 1)
+
     const where: any = {
       OR: [
         { booking_konsultasi: { isNot: null } },
         { booking_psikotes: { isNot: null } },
         { booking_event: { isNot: null } },
       ],
+      // Hanya ambil transaksi tahun berjalan (jika sekarang 2026, hanya 2026 yang tampil)
+      createdAt: { gte: startOfCurrentYear },
     }
 
     if (_params?.clientId) {
       where.id_client = _params.clientId
     }
 
+    if (_params?.biroId) {
+      where.client = {
+        ...(where.client || {}),
+        id_biro: _params.biroId,
+      }
+    }
+
     if (_params?.status) {
       where.status_pembayaran = _params.status as any
     }
 
-    return this.prisma.transaksi.findMany({
-      where,
-      include: {
-        client: true,
-        booking_konsultasi: {
-          include: {
-            layanan: true,
-            jadwal: {
-              include: {
-                psikolog: {
-                  include: {
-                    account: {
-                      select: {
-                        id: true,
-                        nama: true,
-                        email: true,
-                        no_telepon: true,
-                        foto: true,
-                      },
+    if (_params?.search?.trim()) {
+      const term = _params.search.trim()
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { kode_transaksi: { contains: term, mode: 'insensitive' } },
+            { client: { nama: { contains: term, mode: 'insensitive' } } },
+            { client: { email: { contains: term, mode: 'insensitive' } } },
+          ],
+        },
+      ]
+    }
+
+    const include = {
+      client: true,
+      booking_konsultasi: {
+        include: {
+          layanan: true,
+          jadwal: {
+            include: {
+              psikolog: {
+                include: {
+                  account: {
+                    select: {
+                      id: true,
+                      nama: true,
+                      email: true,
+                      no_telepon: true,
+                      foto: true,
                     },
                   },
                 },
@@ -46,27 +128,74 @@ export class TransaksiRepository {
             },
           },
         },
-        booking_psikotes: {
-          include: {
-            paket: true,
-            client: true,
-            hasil_tes: {
-              include: {
-                interpretasi: true,
-              },
+      },
+      booking_psikotes: {
+        include: {
+          paket: true,
+          client: true,
+          hasil_tes: {
+            include: {
+              interpretasi: true,
             },
           },
         },
-        booking_event: {
-          include: {
-            event: true,
-            client: true,
-          },
-        },
-        invoice: true,
       },
-      orderBy: { createdAt: 'desc' },
-    })
+      booking_event: {
+        include: {
+          event: true,
+          client: true,
+        },
+      },
+      invoice: true,
+    }
+
+    if (isAll) {
+      const [data, total] = await Promise.all([
+        this.prisma.transaksi.findMany({
+          where,
+          include,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.transaksi.count({ where }),
+      ])
+
+      return {
+        data,
+        pagination: {
+          total,
+          page: 1,
+          limit: total,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.transaksi.findMany({
+        where,
+        include,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.transaksi.count({ where }),
+    ])
+
+    const totalPages = Math.ceil(total / limit) || 1
+
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    }
   }
 
   async findById(id: string) {
@@ -193,7 +322,19 @@ export class TransaksiRepository {
         throw Object.assign(new Error('Hanya transaksi dengan status lunas (PAID) yang dapat direfund'), { statusCode: 422 })
       }
 
+      // Validasi: Hanya Konsultasi & Asesmen Offline (BookingKonsultasi) yang dapat direfund
+      // Event, Psikotes Online, dan Webinar bersifat final dan tidak dapat direfund
+      if (transaksi.tipe_transaksi === 'EVENT' || transaksi.booking_event) {
+        throw Object.assign(new Error('Pendaftaran Event / Workshop bersifat final dan tidak dapat di-refund'), { statusCode: 422 })
+      }
+      if (transaksi.tipe_transaksi === 'PSIKOTES' || transaksi.booking_psikotes) {
+        throw Object.assign(new Error('Pembelian Paket Tes Psikotes Online bersifat final dan tidak dapat di-refund'), { statusCode: 422 })
+      }
+
       const booking = transaksi.booking_konsultasi
+      if (!booking) {
+        throw Object.assign(new Error('Refund hanya berlaku untuk layanan Konsultasi dan Asesmen Offline'), { statusCode: 422 })
+      }
 
       // Validasi H-1 untuk konsultasi
       if (booking?.jadwal) {
@@ -282,14 +423,6 @@ export class TransaksiRepository {
             data: { status: 'TERSEDIA' },
           }).catch(() => {})
         }
-      }
-
-      // 3. Jika Event: batalkan booking_event
-      if (transaksi.booking_event) {
-        await tx.bookingEvent.update({
-          where: { id: transaksi.booking_event.id },
-          data: { status: 'CANCELLED' },
-        }).catch(() => {})
       }
 
       return {

@@ -1,3 +1,4 @@
+/** Halaman konfirmasi pembayaran berhasil beserta kode akses psikotes. */
 import PsikotesSuccessClient from "@/features/psikotes/components/client/PsikotesSuccessClient"
 
 export const metadata = {

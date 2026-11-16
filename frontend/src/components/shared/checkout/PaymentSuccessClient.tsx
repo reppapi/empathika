@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import Script from "next/script"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { adminService } from "@/services/admin.service"
 import { formatOrderId } from "@/lib/utils"
-import { Video, MessageCircle, ExternalLink } from "lucide-react"
+import { Video, MessageCircle, ExternalLink, KeyRound, Copy, Check } from "lucide-react"
+import { clearPsikotesDetailOrigin } from "@/features/psikotes/utils/navigationHistory"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
 export type PaymentType = "konseling" | "event" | "psikotes"
@@ -69,6 +70,7 @@ function Stepper() {
 
 // ─── Inner Content (akses useSearchParams di sini) ───────────────────────────
 function PaymentSuccessContent({ type }: { type: PaymentType }) {
+  const router = useRouter()
   const cfg = CONFIGS[type]
   const searchParams = useSearchParams()
 
@@ -83,8 +85,14 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     (rawJudul && rawJudul.toLowerCase().includes("asesmen")) ||
     (searchParams.get("kategori") && searchParams.get("kategori")!.toLowerCase().includes("asesmen"))
   )
-  const judul = rawJudul ?? (isAsesmen ? "Layanan Asesmen Offline" : (type === "konseling" ? "Layanan Konsultasi" : "Event Empathika"))
-  const subjudul = searchParams.get("subjudul") ?? (isAsesmen ? "Sesi Asesmen Klinis di Klinik Empathika" : (type === "konseling" ? "Psikolog Profesional Empathika" : ""))
+  const judul =
+    rawJudul === "Tes Psikotes Empathika"
+      ? "Paket Psikotes"
+      : (rawJudul ?? (isAsesmen ? "Layanan Asesmen Offline" : (type === "konseling" ? "Layanan Konsultasi" : type === "psikotes" ? "Paket Psikotes" : "Event Empathika")))
+  const subjudul =
+    searchParams.get("subjudul") === "Tes Psikotes Empathika"
+      ? ""
+      : (searchParams.get("subjudul") ?? (isAsesmen ? "Sesi Asesmen Klinis di Klinik Empathika" : (type === "konseling" ? "Psikolog Profesional Empathika" : "")))
   const bottomDate = searchParams.get("bottomDate") ?? `${tanggal} ${tahun}`
   const bottomTime = searchParams.get("bottomTime") ?? `${waktu} WIB`
   const metode = searchParams.get("metode") ?? "qris"
@@ -96,15 +104,36 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const linkWa = searchParams.get("linkWa")
   const isOnlineEvent = type === "event" && tipe !== "Offline"
 
+  const namaBundling = searchParams.get("namaBundling")
+  const rawPesertaTambahan = searchParams.get("dataPesertaTambahan")
+  let pesertaTambahanList: { nama: string; whatsapp?: string }[] = []
+  if (rawPesertaTambahan) {
+    try {
+      pesertaTambahanList = JSON.parse(rawPesertaTambahan)
+    } catch {
+      pesertaTambahanList = []
+    }
+  }
+
   const testId = searchParams.get("testId")
+  const backTarget = testId ? `/psikotes/${testId}` : cfg.backHref
+
+  // Tangani gestur back-swipe browser / mobile agar tidak terjebak di alur pending / checkout
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      router.replace(backTarget as any);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [backTarget, router]);
 
   const isPsikotes =
     type === "psikotes" ||
     Boolean(testId) ||
     kategori.toLowerCase().includes("psikotes") ||
-    judul.toLowerCase().includes("mbti") ||
-    judul.toLowerCase().includes("love language") ||
-    judul.toLowerCase().includes("kepribadian") ||
     orderId.startsWith("PSI-")
 
   useEffect(() => {
@@ -121,6 +150,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
 
         const finalWa = searchParams.get("whatsapp") || existingWa;
         const finalEmail = searchParams.get("email") || existingEmail;
+        const finalBookingId = searchParams.get("bookingId") || undefined;
 
         localStorage.setItem(
           "empathika_peserta_psikotes",
@@ -130,6 +160,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
             whatsapp: finalWa,
             email: finalEmail,
             orderId,
+            ...(finalBookingId && { bookingId: finalBookingId }),
           })
         )
       } catch {}
@@ -150,20 +181,61 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
 
     const q = new URLSearchParams()
     q.set("paket", "berbayar")
-    if (nama && nama !== "PESERTA") q.set("nama", nama)
+    // Nama peserta tidak di-prefill dengan nama pembeli agar peserta dapat mengisi identitas sendiri
     const wa = searchParams.get("whatsapp") || savedWa
     if (wa) q.set("whatsapp", wa)
     const em = searchParams.get("email") || savedEmail
     if (em) q.set("email", em)
+    const bookingId = searchParams.get("bookingId")
+    if (bookingId) q.set("bookingId", bookingId)
     if (orderId) q.set("orderId", orderId)
 
     const queryString = q.toString()
     if (testId) return `/psikotes/${testId}/mulai?${queryString}`
     const j = judul.toLowerCase()
-    if (j.includes("love")) return `/psikotes/love-language/mulai?${queryString}`
-    if (j.includes("lanjutan") || j.includes("mbti-2")) return `/psikotes/mbti-2/mulai?${queryString}`
-    return `/psikotes/mbti/mulai?${queryString}`
+    if (j.includes("dass") || j.includes("stres") || j.includes("emosional")) return `/psikotes/dass-42/mulai?${queryString}`
+    if (j.includes("cemas") || j.includes("gad") || j.includes("anxiety")) return `/psikotes/gad-7/mulai?${queryString}`
+    if (j.includes("depresi") || j.includes("phq")) return `/psikotes/phq-9/mulai?${queryString}`
+    if (j.includes("game") || j.includes("igds")) return `/psikotes/igds9-sf/mulai?${queryString}`
+    if (j.includes("trauma") || j.includes("cats")) return `/psikotes/cats/mulai?${queryString}`
+    if (j.includes("anak") && j.includes("depresi")) return `/psikotes/cdi/mulai?${queryString}`
+    if (j.includes("anak") && j.includes("cemas")) return `/psikotes/rcmas/mulai?${queryString}`
+    if (j.includes("pola") || j.includes("pbq")) return `/psikotes/pbq/mulai?${queryString}`
+    return `/psikotes`
   }
+
+  const [copiedTicket, setCopiedTicket] = useState(false)
+  const [copiedMeet, setCopiedMeet] = useState(false)
+
+  const handleCopyTicket = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(orderId)
+      setCopiedTicket(true)
+      setTimeout(() => setCopiedTicket(false), 2000)
+    }
+  }
+
+  const handleCopyMeet = () => {
+    if (linkMeet && typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(linkMeet)
+      setCopiedMeet(true)
+      setTimeout(() => setCopiedMeet(false), 2000)
+    }
+  }
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://empathika.id"
+  const psikotesAccessUrl = testId ? `${baseUrl}/psikotes/${testId}?kode=${orderId}` : `${baseUrl}/psikotes?kode=${orderId}`
+  const shareWhatsAppText = `Halo! Ini adalah kode akses untuk tes psikotes di Empathika:
+*Paket:* ${judul}
+*Kode Akses:* ${orderId}
+*Pemesan:* ${nama}
+
+*Link Pengerjaan:*
+${psikotesAccessUrl}
+
+Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjakan tes. Selesaikan tes dalam satu sesi agar jawaban tersimpan dengan baik.`
+
+  const shareWhatsAppUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareWhatsAppText)}`
 
   const [adminPhone, setAdminPhone] = useState<string>("+62 878-7878-5498")
 
@@ -317,15 +389,10 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
             >
               {/* Header Tiket */}
               <div className="border-b border-dashed border-[#C3A4CE] pb-5 mb-5">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <h3 className="text-xl font-extrabold text-[#2F2F2F]">{judul}</h3>
-                  {isPsikotes && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-[#561269] shrink-0">
-                      Psikotes
-                    </span>
-                  )}
-                </div>
-                {subjudul && <p className="text-xs text-gray-500 mt-1">{subjudul}</p>}
+                <h3 className="text-xl font-extrabold text-[#2F2F2F] leading-snug">{judul}</h3>
+                {subjudul && !subjudul.toLowerCase().includes("tes psikotes empathika") && (
+                  <p className="text-xs text-gray-500 mt-1">{subjudul}</p>
+                )}
               </div>
 
               {/* Tanggal & Waktu — ukuran font diperkecil agar tidak mendominasi tiket */}
@@ -350,9 +417,31 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
               <div className="grid grid-cols-2 gap-4 pb-4 border-b border-dashed border-[#C3A4CE]">
                 <div>
                   <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">
-                    NAMA PEMESAN
+                    {pesertaTambahanList.length > 0 ? "DAFTAR PESERTA" : (type === "event" ? "PESERTA" : "NAMA PEMESAN")}
                   </div>
-                  <div className="text-sm font-extrabold text-[#2F2F2F]">{nama}</div>
+                  {type === "event" && pesertaTambahanList.length > 0 ? (
+                    <div className="flex flex-col gap-1.5 mt-0.5">
+                      <div className="text-xs font-semibold text-[#2F2F2F]">
+                        <span className="font-extrabold text-[#561269]">Peserta 1:</span> {nama}{" "}
+                        <span className="text-[10px] text-gray-500 font-normal">(Pemesan Utama)</span>
+                      </div>
+                      {pesertaTambahanList.map((p, idx) => (
+                        <div key={idx} className="text-xs font-semibold text-[#2F2F2F]">
+                          <span className="font-extrabold text-[#561269]">Peserta {idx + 2}:</span> {p.nama}{" "}
+                          <span className="text-[10px] text-gray-500 font-normal">(Rekan)</span>
+                        </div>
+                      ))}
+                      {namaBundling && (
+                        <div className="mt-1">
+                          <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded bg-purple-100 text-[#561269]">
+                            {namaBundling}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm font-extrabold text-[#2F2F2F]">{nama}</div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-[9px] font-bold text-gray-500 mb-1 uppercase tracking-wider">
@@ -377,25 +466,83 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
                 </span>
               </div>
 
-              {/* Akses Event: hanya Google Meet (di dalam tiket).
-                  Tombol Gabung Grup WhatsApp dipindahkan ke luar tiket (Action Buttons). */}
+              {/* Akses Event: Google Meet link & copy box */}
               {type === "event" && isOnlineEvent && linkMeet && (
-                <div className="pt-3.5 mt-3 border-t border-dashed border-[#DCD0E1] flex flex-col gap-2">
-                  <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
-                    Akses Event Anda
-                  </div>
-                  <a
-                    href={linkMeet}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-between shadow-sm transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Video className="w-4 h-4 shrink-0" />
-                      <span>Gabung Google Meet</span>
+                <div className="pt-3.5 mt-3 border-t border-dashed border-[#DCD0E1]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Video className="w-3.5 h-3.5 text-blue-600" />
+                      <span>LINK PERTEMUAN (GOOGLE MEET)</span>
                     </div>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
+                    <button
+                      type="button"
+                      onClick={handleCopyMeet}
+                      className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedMeet ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-600">Tersalin!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200/60 flex items-center justify-between gap-2">
+                    <a
+                      href={linkMeet}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-xs text-blue-700 hover:underline truncate flex-1 flex items-center gap-1.5"
+                    >
+                      <span className="truncate">{linkMeet}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0 text-blue-500" />
+                    </a>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">
+                    Klik link untuk membuka langsung, atau salin untuk disimpan.
+                  </p>
+                </div>
+              )}
+
+              {/* Kode Akses Tiket Psikotes */}
+              {isPsikotes && (
+                <div className="pt-3.5 mt-3 border-t border-dashed border-[#DCD0E1]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-[#561269]" />
+                      <span>KODE AKSES TIKET</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyTicket}
+                      className="text-[11px] font-bold text-[#561269] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedTicket ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-600">Tersalin!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Kode</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200/60 flex items-center justify-between">
+                    <span className="font-mono font-black text-sm sm:text-base text-[#561269] tracking-wider">
+                      {orderId}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">
+                    1x akses tes • Tanpa batas waktu
+                  </p>
                 </div>
               )}
             </div>
@@ -412,21 +559,24 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
               <div className="text-center mt-2">
                 <p className="text-[10px] text-gray-500 mb-2 font-medium">
                   {isPsikotes
-                    ? "Pembayaran paket psikotes berhasil! Silakan klik tombol di bawah untuk langsung mulai tes."
+                    ? "Pembayaran paket psikotes berhasil! Tiket pengerjaan & akses hasil aktif tanpa batas waktu. Silakan mulai tes sekarang atau simpan tiket untuk dikerjakan nanti."
                     : type === "event" && linkWa
                     ? "Bergabunglah ke grup WhatsApp untuk info event terbaru dan pengumuman penting."
                     : "Hubungi kontak ini setelah anda selesai melakukan pembayaran!"}
                 </p>
                 {isPsikotes ? (
-                  <Link
-                    href={getTestStartUrl() as any}
-                    className="w-full py-3 rounded-lg bg-[#EAB308] hover:bg-[#FACC15] text-black font-extrabold text-xs sm:text-sm flex justify-center items-center gap-2 transition-colors shadow-sm"
-                  >
-                    <span>Mulai Tes</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                    </svg>
-                  </Link>
+                  <div className="flex flex-col gap-2.5">
+                    <Link
+                      href={getTestStartUrl() as any}
+                      onClick={() => clearPsikotesDetailOrigin()}
+                      className="w-full py-3.5 rounded-xl bg-[#EAB308] hover:bg-[#FACC15] text-black font-extrabold text-xs sm:text-sm flex justify-center items-center gap-2 transition-colors shadow-sm"
+                    >
+                      <span>Mulai Tes Sekarang</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      </svg>
+                    </Link>
+                  </div>
                 ) : type === "event" && linkWa ? (
                   /* Tombol Gabung Grup WhatsApp — hanya muncul jika event memiliki link WA */
                   <a
@@ -466,7 +616,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
           <div className="text-sm sm:text-[17px] font-bold text-black">{bottomTime}</div>
         </div>
         <Link
-          href={cfg.backHref as any}
+          href={backTarget as any}
           className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
         >
           {cfg.backLabel}

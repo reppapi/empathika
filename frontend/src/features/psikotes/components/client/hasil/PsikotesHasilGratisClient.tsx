@@ -1,3 +1,4 @@
+/** Halaman hasil skrining psikotes gratis (ringkasan kategori, evaluasi DASS, saran, dan hotline krisis). */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,6 +13,14 @@ import {
 } from "lucide-react";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
+import {
+  isCATS as checkCATS,
+  isCDI as checkCDI,
+  isDASS as checkDASS,
+  isPBQ as checkPBQ,
+  isPHQ as checkPHQ,
+  isRCMAS as checkRCMAS,
+} from "@/features/psikotes/utils/instrumentDetector";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 import InterpretasiCard from "./InterpretasiCard";
 import CrisisHotlineCard from "./CrisisHotlineCard";
@@ -133,24 +142,15 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const router = useRouter();
   const searchParams = useSearchParams();
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
+  const [bookingDetailSkor, setBookingDetailSkor] = useState<any | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
   const [isTipsExpanded, setIsTipsExpanded] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Pastikan gesture back / popstate di laptop selalu kembali ke detail psikotes, bukan ke soal
-  useEffect(() => {
-    const handlePopState = () => {
-      router.replace(`/psikotes/${params.testId}`);
-    };
+  const paramBookingId = searchParams.get("bookingId") || searchParams.get("orderId");
+  const paramToken = searchParams.get("token");
 
-    window.history.pushState(null, "", window.location.href);
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [params.testId, router]);
-
-  // Fetch package data from backend to get interpretasi_psikotes
+  // Fetch package data from backend to get interpretasi_psikotes (serta detail_skor jika tersedia)
   const fetchPackage = async () => {
     setIsLoadingDb(true);
     setErrorMessage(null);
@@ -160,6 +160,19 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         setDbPackage(res.data);
       } else {
         setErrorMessage("Data paket psikotes tidak ditemukan.");
+      }
+
+      if (paramBookingId) {
+        try {
+          const bRes = await psikotesService.getHasilByBooking(paramBookingId, paramToken);
+          const rawDs = bRes?.data?.hasil?.detail_skor;
+          if (rawDs) {
+            const parsedDs = typeof rawDs === "string" ? JSON.parse(rawDs) : rawDs;
+            setBookingDetailSkor(parsedDs);
+          }
+        } catch {
+          // Non-fatal: hasil booking opsional untuk instrumen gratis
+        }
       }
     } catch (err: any) {
       console.error("Gagal mengambil data interpretasi:", err);
@@ -171,30 +184,102 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
 
   useEffect(() => {
     fetchPackage();
-  }, [params.testId]);
+  }, [params.testId, paramBookingId]);
 
   // Match score from URL params to the interpretasi from database
   const rawSkor = searchParams.get("skor");
   const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
 
-  // Protokol darurat / Crisis Hotline HANYA untuk PHQ-9 (Butir 9 ide bunuh diri)
-  const isPHQ9 = Boolean(
-    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
-    dbPackage?.judul?.toUpperCase().includes("PHQ") ||
-    params.testId.toLowerCase().includes("phq")
-  );
-  const isHarmDetected = isPHQ9 && searchParams.get("harm") === "1";
+  // Protokol darurat / Crisis Hotline untuk PHQ-9 & CDI (Butir 9 ide bunuh diri)
+  const isPHQ9 = checkPHQ(dbPackage, params.testId);
+  const isCDI = checkCDI(dbPackage, params.testId);
+  const isCATS = checkCATS(dbPackage, params.testId);
+  const isRCMAS = checkRCMAS(dbPackage, params.testId);
+  const isPBQ = checkPBQ(dbPackage, params.testId);
+  const isDASS = checkDASS(dbPackage, params.testId);
+
+  const isHarmDetected =
+    (isPHQ9 || isCDI) && (Boolean(bookingDetailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
 
   // Dimensi DASS-42 (Depresi, Kecemasan, Stres)
   const rawDep = searchParams.get("dep");
   const rawAnx = searchParams.get("anx");
   const rawStr = searchParams.get("str");
 
-  const isDASS = Boolean(
-    dbPackage?.alat_ukur?.kode?.toUpperCase().includes("DASS") ||
-    dbPackage?.judul?.toUpperCase().includes("DASS") ||
-    params.testId.toLowerCase().includes("dass")
-  );
+  // Subskala kecemasan RCMAS (tanpa lieScale di sisi peserta, tanpa cutoff buatan)
+  const rcmasSubscales = isRCMAS
+    ? (() => {
+        const sub = bookingDetailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const phys = readSubScore(sub?.physiological, "phys");
+        const worry = readSubScore(sub?.worry, "worry");
+        const conc = readSubScore(sub?.concentration, "conc");
+        if (phys === null && worry === null && conc === null) return null;
+        return [
+          { key: "physiological", label: "Physiological Anxiety", score: Number(phys ?? 0), max: 10 },
+          { key: "worry", label: "Worry / Oversensitivity", score: Number(worry ?? 0), max: 11 },
+          { key: "concentration", label: "Concentration Anxiety", score: Number(conc ?? 0), max: 7 },
+        ];
+      })()
+    : null;
+
+  // Subskala lima dimensi depresi CDI (anak & remaja 7–19 tahun)
+  const cdiSubscales = isCDI
+    ? (() => {
+        const sub = bookingDetailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const nm = readSubScore(sub?.negativeMood, "cdi_nm");
+        const ip = readSubScore(sub?.interpersonalProblem, "cdi_ip");
+        const ineff = readSubScore(sub?.ineffectiveness, "cdi_ineff");
+        const anh = readSubScore(sub?.anhedonia, "cdi_anh");
+        const nse = readSubScore(sub?.negativeSelfEsteem, "cdi_nse");
+        if (nm === null && ip === null && ineff === null && anh === null && nse === null) return null;
+        return [
+          { key: "negativeMood", label: "Suasana Hati Negatif (Negative Mood)", score: Number(nm ?? 0), max: 12 },
+          { key: "interpersonalProblem", label: "Masalah Antar Pribadi (Interpersonal Problems)", score: Number(ip ?? 0), max: 8 },
+          { key: "ineffectiveness", label: "Ketidakefektifan (Ineffectiveness)", score: Number(ineff ?? 0), max: 8 },
+          { key: "anhedonia", label: "Anhedonia / Kesedihan (Anhedonia)", score: Number(anh ?? 0), max: 16 },
+          { key: "negativeSelfEsteem", label: "Harga Diri Negatif (Negative Self-Esteem)", score: Number(nse ?? 0), max: 10 },
+        ];
+      })()
+    : null;
+
+  // Subskala 4 klaster gejala PTSD CATS (Intrusi, Penghindaran, Kognisi/Mood, Hyperarousal)
+  const catsSubscales = isCATS
+    ? (() => {
+        const sub = bookingDetailSkor?.subscales;
+        const readSubScore = (entry: any, paramKey: string): number | null => {
+          if (typeof entry === "number") return entry;
+          if (entry && typeof entry.skor === "number") return entry.skor;
+          const q = searchParams.get(paramKey);
+          return q !== null && q !== "" && !isNaN(Number(q)) ? Number(q) : null;
+        };
+        const intr = readSubScore(sub?.intrusion, "cats_b");
+        const avoid = readSubScore(sub?.avoidance, "cats_c");
+        const cog = readSubScore(sub?.cognitionMood, "cats_d");
+        const arsl = readSubScore(sub?.arousal, "cats_e");
+        if (intr === null && avoid === null && cog === null && arsl === null) return null;
+        return [
+          { key: "intrusion", label: "Kriteria B: Intrusi / Gangguan (Intrusion)", score: Number(intr ?? 0), max: 15 },
+          { key: "avoidance", label: "Kriteria C: Penghindaran (Avoidance)", score: Number(avoid ?? 0), max: 6 },
+          { key: "cognitionMood", label: "Kriteria D: Kognisi & Suasana Hati Negatif", score: Number(cog ?? 0), max: 21 },
+          { key: "arousal", label: "Kriteria E: Hyperarousal & Reaktivitas", score: Number(arsl ?? 0), max: 18 },
+        ];
+      })()
+    : null;
+
+  const catsPTE = isCATS ? bookingDetailSkor?.pte : null;
+  const catsFungsi = isCATS ? bookingDetailSkor?.fungsiPsikososial : null;
 
   const dassEvaluation = isDASS
     ? evaluateDASS(
@@ -204,6 +289,12 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         rawStr !== null && rawStr !== "" ? parseInt(rawStr, 10) : null
       )
     : null;
+
+  const isProfileOnlyWithoutTotal = Boolean(
+    bookingDetailSkor?.tanpaSkorTotal &&
+    Array.isArray(bookingDetailSkor?.subscalesList) &&
+    bookingDetailSkor.subscalesList.length > 0
+  );
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
@@ -265,8 +356,8 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
 
   // DATA KRITIS: Kategori Interpretasi & Skoring
   // Jika skor tidak valid atau kategori interpretasi belum dikonfigurasi di database,
-  // DILARANG keras memakai fallback text palsu.
-  if (!dbInterpretasi) {
+  // DILARANG keras memakai fallback text palsu. (Kecuali instrumen profil skala tanpa interpretasi seperti PBQ.)
+  if ((!dbInterpretasi && !isProfileOnlyWithoutTotal) || (isPBQ && !isProfileOnlyWithoutTotal)) {
     return (
       <div className="min-h-screen bg-[#fbfbfb] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
@@ -277,10 +368,12 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
             {dbPackage?.judul || "Hasil Asesmen"}
           </h2>
           <p className="text-sm font-semibold text-gray-800 mb-2">
-            Interpretasi Skor Tidak Tersedia
+            {isPBQ ? "Profil 9 Skala PBQ Tidak Tersedia" : "Interpretasi Skor Tidak Tersedia"}
           </p>
           <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-            Demi menjaga akurasi etis dan klinis psikotes, hasil tidak dapat disimpulkan karena kategori skor untuk hasil asesmen ini belum dikonfigurasi pada database.
+            {isPBQ
+              ? "Data sesi pengerjaan PBQ tidak ditemukan atau belum lengkap. Silakan mulai tes dari halaman detail tes untuk melihat profil 9 skala keyakinan kepribadian Anda."
+              : "Demi menjaga akurasi etis dan klinis psikotes, hasil tidak dapat disimpulkan karena kategori skor untuk hasil asesmen ini belum dikonfigurasi pada database."}
           </p>
           <Link
             href={`/psikotes/${params.testId}`}
@@ -294,7 +387,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   }
 
   // Ambil judul, deskripsi interpretasi, dan tips murni dari database
-  let headline = dbInterpretasi.judul;
+  let headline = dbInterpretasi?.judul || dbPackage?.judul || "Profil Skor Asesmen";
   if (isDASS) {
     // Pastikan tidak ada istilah GPD atau rangkaian keparahan beruntun di judul
     if (
@@ -307,7 +400,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
       headline = "Profil Kesehatan Emosional";
     }
   }
-  const interpretasiText = dbInterpretasi.deskripsi || "Asesmen psikologi telah diselesaikan.";
+  const interpretasiText = dbInterpretasi?.deskripsi || "Asesmen psikologi telah diselesaikan.";
 
   const rawTips = (dbInterpretasi as any)?.tips;
   const tipsList: any[] = Array.isArray(rawTips)
@@ -323,15 +416,259 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         {/* 1. Warm Illustration */}
         <SelfCareIllustration />
 
-        {/* 2. Clean Pastel Card (Bunda.id Inspired) */}
-        <InterpretasiCard
-          headline={headline}
-          interpretasiText={interpretasiText}
-          tipsList={tipsList}
-          isTipsExpanded={isTipsExpanded}
-          onToggleTips={() => setIsTipsExpanded(!isTipsExpanded)}
-          dassEvaluation={dassEvaluation}
-        />
+        {/* 2. Clean Pastel Card (Bunda.id Inspired) atau Profil 9 Skala PBQ */}
+        {isProfileOnlyWithoutTotal ? (
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="text-center space-y-2 border-b border-gray-100 pb-5">
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#561269] bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
+                PBQ • Profil Skor 9 Skala Kepribadian
+              </span>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
+                {dbPackage?.judul || "Personality Belief Questionnaire (PBQ)"}
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-xl mx-auto">
+                Skor mentah PBQ dihitung terpisah untuk setiap skala keyakinan kepribadian (rentang{" "}
+                <span className="font-semibold text-gray-800">0–56</span> dari 14 pernyataan per skala) dan{" "}
+                <span className="font-semibold text-gray-800">tidak dijumlahkan menjadi satu skor total</span>.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {bookingDetailSkor.subscalesList.map((sub: any) => {
+                const skor = Number(sub.skor ?? 0);
+                const maxSkor = Number(sub.max_skor ?? 56);
+                const pct = maxSkor > 0 ? Math.round((skor / maxSkor) * 100) : 0;
+
+                return (
+                  <div
+                    key={sub.key}
+                    className="p-4 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{sub.nama}</p>
+                        <p className="text-[11px] text-gray-500">Butir {sub.rentangButir}</p>
+                      </div>
+                      <span className="text-sm font-extrabold text-[#561269] shrink-0">
+                        {skor} <span className="text-xs font-medium text-gray-400">/ {maxSkor}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                        style={{ width: `${Math.max(skor > 0 ? 4 : 0, pct)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 leading-relaxed flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p>
+                <span className="font-bold">Catatan Acuan Interpretasi:</span> Kategori interpretasi (seperti rendah/sedang/tinggi) dan Z-score normatif sengaja belum ditampilkan karena masih menunggu acuan resmi dari tim Empathika. Kamu tetap dapat mendiskusikan profil skor mentah ini bersama psikolog.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <InterpretasiCard
+            headline={headline}
+            interpretasiText={interpretasiText}
+            tipsList={tipsList}
+            isTipsExpanded={isTipsExpanded}
+            onToggleTips={() => setIsTipsExpanded(!isTipsExpanded)}
+            dassEvaluation={dassEvaluation}
+          />
+        )}
+
+        {/* 2a-2. Tiga Dimensi Kecemasan RCMAS (tanpa Lie Scale & tanpa cutoff buatan) */}
+        {rcmasSubscales && (
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-4">
+            <div className="space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#561269]">
+                Profil Tiga Dimensi Kecemasan RCMAS
+              </p>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Skor mentah masing-masing dimensi kecemasan yang diukur (hanya bersifat deskriptif, bukan kategori keparahan terpisah).
+              </p>
+            </div>
+            <div className="space-y-3">
+              {rcmasSubscales.map((sub) => {
+                const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                return (
+                  <div key={sub.key} className="p-3.5 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="font-bold text-gray-900">{sub.label}</span>
+                      <span className="font-extrabold text-[#561269]">
+                        {sub.score} <span className="text-xs font-medium text-gray-400">/ {sub.max}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                        style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 2a-3. Lima Dimensi Depresi Anak & Remaja CDI */}
+        {cdiSubscales && (
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-4">
+            <div className="space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#561269]">
+                Profil Lima Dimensi Depresi CDI
+              </p>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Skor mentah masing-masing dimensi depresi anak &amp; remaja yang diukur (menunjukkan kedalaman aspek sindrom depresi).
+              </p>
+            </div>
+            <div className="space-y-3">
+              {cdiSubscales.map((sub) => {
+                const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                return (
+                  <div key={sub.key} className="p-3.5 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="font-bold text-gray-900">{sub.label}</span>
+                      <span className="font-extrabold text-[#561269]">
+                        {sub.score} <span className="text-xs font-medium text-gray-400">/ {sub.max}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                        style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 2a-4. Hasil Skrining Trauma & PTSD Anak/Remaja (CATS) */}
+        {isCATS && (
+          <div className="space-y-5">
+            {/* Kriteria A: Paparan Peristiwa Traumatis (PTE) */}
+            {catsPTE && (
+              <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#561269]">
+                      Kriteria A: Paparan Peristiwa Berpotensi Traumatis
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Verifikasi paparan terhadap peristiwa yang mengancam keselamatan atau integritas fisik.
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-100">
+                    {catsPTE.totalDialami} Peristiwa Dilaporkan
+                  </span>
+                </div>
+
+                {catsPTE.totalDialami > 0 ? (
+                  <div className="pt-2 space-y-2">
+                    <p className="text-xs font-semibold text-gray-700">Daftar peristiwa yang dialami:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs text-gray-600 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
+                      {catsPTE.daftarPeristiwa?.map((p: any) => (
+                        <li key={p.no} className="leading-relaxed">
+                          {p.teks}
+                        </li>
+                      ))}
+                    </ul>
+                    {catsPTE.peristiwaPalingMengganggu && (
+                      <p className="text-xs text-purple-900 bg-purple-50/60 p-3 rounded-xl border border-purple-100">
+                        <strong>Paling mengganggu saat ini:</strong> {catsPTE.peristiwaPalingMengganggu}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded-xl">
+                    Tidak ada peristiwa traumatis yang dilaporkan. Sesuai panduan CATS, skrining dianggap selesai dalam kategori normal.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Klaster Gejala PTSD DSM-5 */}
+            {catsSubscales && (
+              <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-4">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#561269]">
+                    Profil Empat Klaster Gejala PTSD (DSM-5)
+                  </p>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Tingkat keparahan gejala yang dirasakan dalam 2 minggu terakhir berdasarkan kriteria diagnostik DSM-5.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {catsSubscales.map((sub) => {
+                    const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
+                    return (
+                      <div key={sub.key} className="p-3.5 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="font-bold text-gray-900">{sub.label}</span>
+                          <span className="font-extrabold text-[#561269]">
+                            {sub.score} <span className="text-xs font-medium text-gray-400">/ {sub.max}</span>
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#561269] rounded-full transition-all duration-500"
+                            style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Dampak terhadap Fungsi Psikososial (Tidak dijumlahkan ke skor 0-60) */}
+            {catsFungsi && (
+              <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#561269]">
+                      Dampak terhadap Fungsi Psikososial
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Evaluasi sejauh mana masalah yang dihadapi memengaruhi 5 area kehidupan anak sehari-hari.
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                    {catsFungsi.totalTerganggu} dari 5 Area Terganggu
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  {catsFungsi.rincian?.map((r: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs font-medium ${
+                        r.terganggu
+                          ? "bg-rose-50/70 border-rose-200 text-rose-900"
+                          : "bg-emerald-50/50 border-emerald-200 text-emerald-800"
+                      }`}
+                    >
+                      <span>{r.nama}</span>
+                      <span className="font-bold px-2 py-0.5 rounded text-[11px]">
+                        {r.terganggu ? "Terganggu (Ya)" : "Tidak"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol - Satu Persen Card Style) */}
         {isHarmDetected && <CrisisHotlineCard />}

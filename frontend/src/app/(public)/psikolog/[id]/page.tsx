@@ -5,11 +5,38 @@ import Link from "next/link"
 import { useTenant } from "@/hooks/useTenant"
 import { getDetailPsikolog, DetailPsikologUI } from "@/features/psikolog/data/detailDummy"
 import { DetailPsikologContent } from "@/features/psikolog/components/client/DetailPsikologContent"
-import { INITIAL_TENAGA_AHLI } from "@/features/psikolog/data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 
 interface PageProps {
   params: { id: string }
+}
+
+function formatScheduleLabel(dateKey: string, start: string, end: string, todayKey: string): string {
+  const timeRange = `${start} - ${end}`
+  if (!dateKey) return timeRange
+
+  const parts = dateKey.split("-").map(Number)
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return timeRange
+
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const target = new Date(parts[0], parts[1] - 1, parts[2])
+
+  const diffDays = Math.round((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+
+  if (diffDays === 0) {
+    return `Hari Ini • ${timeRange}`
+  }
+  if (diffDays === 1) {
+    return `Besok • ${timeRange}`
+  }
+
+  const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"]
+  const dayName = dayNames[target.getDay()] || ""
+  const monthName = monthNames[target.getMonth()] || ""
+
+  return `${dayName}, ${target.getDate()} ${monthName} • ${timeRange}`
 }
 
 function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBackendSlots?: any[]) {
@@ -17,36 +44,21 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
   const bookedKeys = new Set<string>()
 
   if (Array.isArray(rawBackendSlots)) {
-    rawSlots.push(...rawBackendSlots)
     rawBackendSlots.forEach((s: any) => {
+      // 1. Asesmen BUKAN untuk jadwal praktik psikolog!
+      const isAsesmen =
+        (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+        (s.layanan || "").toLowerCase().includes("asesmen")
+      if (isAsesmen) return
+
+      rawSlots.push(s)
       const st = (s.status || "").toUpperCase()
       if (st === "SUDAH_DIBOOKING" || st === "TIDAK_TERSEDIA" || st === "CANCELLED" || Boolean(s.booking_konsultasi)) {
         const j = (s.jam_mulai || "").toString().match(/(\d{2}:\d{2})/)?.[1]
         const d = (s.tanggal || "").toString().match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
         if (d && j) bookedKeys.add(`${d}_${j}`)
-        if (j) bookedKeys.add(j)
       }
     })
-  }
-
-  const hasDbSlots = Array.isArray(rawBackendSlots) && rawBackendSlots.length > 0
-
-  if (!hasDbSlots && typeof window !== "undefined") {
-    try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      if (raw) {
-        const parsed: any[] = JSON.parse(raw)
-        const matched = parsed.filter(
-          (s) =>
-            s.id_psikolog === psikologId ||
-            (psikologNama &&
-              (s.nama_psikolog === psikologNama ||
-                s.nama_psikolog?.toLowerCase().includes(psikologNama.toLowerCase()) ||
-                psikologNama.toLowerCase().includes(s.nama_psikolog?.toLowerCase())))
-        )
-        rawSlots.push(...matched)
-      }
-    } catch {}
   }
 
   const now = new Date()
@@ -85,6 +97,12 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
 
   // Filter slot yang belum lewat
   const validSlots = rawSlots.filter((slot) => {
+    // Pastikan slot asesmen tidak lolos ke jadwal praktik psikolog
+    const isAsesmen =
+      (slot.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+      (slot.layanan || "").toLowerCase().includes("asesmen")
+    if (isAsesmen) return false
+
     const statusUpper = (slot.status || "").toUpperCase()
     if (statusUpper === "SUDAH_DIBOOKING" || statusUpper === "TIDAK_TERSEDIA" || statusUpper === "CANCELLED") {
       return false
@@ -95,7 +113,6 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     const startMinutes = parseMinutes(jamMulai)
 
     if (slotDate && bookedKeys.has(`${slotDate}_${jamMulai}`)) return false
-    if (bookedKeys.has(jamMulai)) return false
 
     if (slotDate) {
       if (slotDate < todayKey) return false
@@ -113,9 +130,9 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
   for (const s of validSlots) {
     const start = parseJam(s.jam_mulai)
     const end = parseJam(s.jam_selesai)
-    const waktu = s.label_waktu || `${start} - ${end}`
     const slotDateKey = parseDateKey(s.tanggal) || todayKey
-    const uniqueKey = `${slotDateKey}_${waktu}`
+    const waktu = formatScheduleLabel(slotDateKey, start, end, todayKey)
+    const uniqueKey = `${slotDateKey}_${start}_${end}`
 
     if (!seen.has(uniqueKey)) {
       seen.add(uniqueKey)
@@ -223,7 +240,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
               if (!bioText) {
                 return []
               }
-              const paragraphs = bioText.split(/\n\s*\n/).map((p: string) => p.trim()).filter(Boolean)
+              const paragraphs = bioText.split(/\r?\n+/).map((p: string) => p.trim()).filter(Boolean)
               return paragraphs.length > 0 ? paragraphs : [bioText]
             })(),
             videoIntroUrl: data.video_intro_url || "",
@@ -250,7 +267,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
 
         try {
           const saved = localStorage.getItem("empathika_tenaga_ahli_data")
-          const list = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
+          const list = saved ? JSON.parse(saved) : []
           const cleanId = decodeURIComponent(id).toLowerCase().replace(/-/g, " ").trim()
           const found = list.find((t: any) =>
             t.id === id ||
@@ -291,7 +308,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
                     "Siap mendampingi proses pemulihan dan pertumbuhan diri Anda.",
                   ]
                 }
-                const paragraphs = bioText.split(/\n\s*\n/).map((p: string) => p.trim()).filter(Boolean)
+                const paragraphs = bioText.split(/\r?\n+/).map((p: string) => p.trim()).filter(Boolean)
                 return paragraphs.length > 0 ? paragraphs : [bioText]
               })(),
               videoIntroUrl: dummyDetail?.videoIntroUrl,

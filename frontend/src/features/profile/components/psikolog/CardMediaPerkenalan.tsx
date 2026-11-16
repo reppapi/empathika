@@ -139,7 +139,10 @@ export function CardMediaPerkenalan({
               <p className="text-xs font-bold text-gray-800">
                 Foto Cover / Thumbnail Video (JPG / PNG)
               </p>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-600 font-medium mt-1">
+                Rekomendasi ukuran: <span className="font-bold text-[#561269]">1200 × 675 piksel (Landscape / Memanjang, Rasio 16:9)</span>
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5">
                 Foto pratinjau yang ditampilkan sebelum klien memutar video (opsional).
               </p>
             </div>

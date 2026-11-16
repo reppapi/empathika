@@ -1,3 +1,4 @@
+/** Hook pengelola state pengerjaan soal psikotes (navigasi nomor soal, penyimpanan jawaban, dan hitung skor). */
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -50,6 +51,7 @@ export function usePsikotesTest(
     currentIndex,
     setCurrentIndex,
     answers,
+    setAnswers,
     showError,
     handleOptionSelect,
     handleNext,

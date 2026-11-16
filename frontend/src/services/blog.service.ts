@@ -1,4 +1,10 @@
 import apiClient from "@/lib/axios"
+import type {
+  BlogQueryParams,
+  BlogListApiResponse,
+  BlogDetailApiResponse,
+  BlogMutationApiResponse,
+} from "@/features/blog/types"
 
 export interface CreateBlogDto {
   judul: string
@@ -15,18 +21,18 @@ export interface UpdateBlogDto {
 }
 
 export const blogService = {
-  getList: (params?: { page?: number; limit?: number; search?: string }) =>
-    apiClient.get("/blog", { params }).then((r) => r.data),
+  getList: (params?: BlogQueryParams): Promise<BlogListApiResponse> =>
+    apiClient.get<BlogListApiResponse>("/blog", { params }).then((r) => r.data),
 
-  getById: (id: string) =>
-    apiClient.get(`/blog/${id}`).then((r) => r.data),
+  getById: (id: string): Promise<BlogDetailApiResponse> =>
+    apiClient.get<BlogDetailApiResponse>(`/blog/${id}`).then((r) => r.data),
 
-  create: (data: CreateBlogDto) =>
-    apiClient.post("/blog", data).then((r) => r.data),
+  create: (data: CreateBlogDto): Promise<BlogMutationApiResponse> =>
+    apiClient.post<BlogMutationApiResponse>("/blog", data).then((r) => r.data),
 
-  update: (id: string, data: UpdateBlogDto) =>
-    apiClient.put(`/blog/${id}`, data).then((r) => r.data),
+  update: (id: string, data: UpdateBlogDto): Promise<BlogMutationApiResponse> =>
+    apiClient.put<BlogMutationApiResponse>(`/blog/${id}`, data).then((r) => r.data),
 
-  delete: (id: string) =>
+  delete: (id: string): Promise<{ success: boolean; message: string; data: null }> =>
     apiClient.delete(`/blog/${id}`).then((r) => r.data),
 }

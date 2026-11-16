@@ -10,9 +10,21 @@ interface PsikologCardProps {
   psikolog: Psikolog | PsikologUI
   mode?: "psikolog" | "konseling"
   showJadwal?: boolean
+  disabled?: boolean
+  disabledMessage?: string
+  isLayananNonaktif?: boolean
+  onAttemptBooking?: (e: React.MouseEvent) => void
 }
 
-export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }: PsikologCardProps) {
+export function PsikologCard({
+  psikolog,
+  mode = "psikolog",
+  showJadwal = true,
+  disabled = false,
+  disabledMessage = "Layanan Nonaktif",
+  isLayananNonaktif = false,
+  onAttemptBooking,
+}: PsikologCardProps) {
   const { isBiro, biroPrefix, withBiro } = useTenant()
 
   const [imgError, setImgError] = useState(false)
@@ -123,16 +135,37 @@ export function PsikologCard({ psikolog, mode = "psikolog", showJadwal = true }:
           </div>
         )}
 
-        {/* Tombol Kuning: Daftar / Lihat Detail */}
-        <Link
-          href={buttonHref as any}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all transform active:scale-98"
-        >
-          <span>{buttonText}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-          </svg>
-        </Link>
+        {/* Tombol: Daftar / Lihat Detail */}
+        {isLayananNonaktif && onAttemptBooking ? (
+          <button
+            type="button"
+            onClick={onAttemptBooking}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all transform active:scale-98 cursor-pointer"
+          >
+            <span>{buttonText}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+        ) : disabled ? (
+          <button
+            type="button"
+            disabled
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full bg-gray-200 text-gray-500 font-bold text-xs sm:text-sm cursor-not-allowed shadow-none select-none opacity-80"
+          >
+            <span>{disabledMessage}</span>
+          </button>
+        ) : (
+          <Link
+            href={buttonHref as any}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all transform active:scale-98"
+          >
+            <span>{buttonText}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-4 w-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </Link>
+        )}
       </div>
 
     </div>

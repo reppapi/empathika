@@ -136,7 +136,7 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
           const list: TenagaAhliStorageItem[] = JSON.parse(saved)
           if (Array.isArray(list)) {
             const found =
-              list.find((d) => d.id === "1" || d.email === "putriqoida@empathika.com") || list[0]
+              list.find((d) => !['0', '1', '2', '3', '4'].includes(d.id || '') && !d.email?.endsWith('@empathika.test')) || list[0]
             if (found) {
               const mapped: AdminProfileData = {
                 nama: found.nama || "",

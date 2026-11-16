@@ -19,8 +19,7 @@ export interface TouchedFields {
 /**
  * Validasi Email:
  * - Wajib diisi
- * - Format email valid
- * - Wajib mengandung '@gmail' (sesuai instruksi: kalau email gaada @gmail berarti salah)
+ * - Format email valid (bebas domain apapun, contoh: .com, .id, .org, dll)
  */
 export function validateEmail(email: string): string | null {
   const val = email.trim()
@@ -29,10 +28,7 @@ export function validateEmail(email: string): string | null {
   }
   const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!basicEmailRegex.test(val)) {
-    return "Format email tidak valid (contoh: psikolog@gmail.com)"
-  }
-  if (!val.toLowerCase().includes("@gmail")) {
-    return "Email harus menggunakan domain Gmail (harus mengandung @gmail.com)"
+    return "Format email tidak valid (contoh: psikolog@empathika.id)"
   }
   return null
 }
@@ -45,17 +41,17 @@ export function validateEmail(email: string): string | null {
  * - Panjang 10 - 14 digit
  */
 export function validateNoTelepon(noTelepon: string): string | null {
-  const val = noTelepon.trim()
+  const val = (noTelepon || "").trim()
   if (!val) {
     return "Nomor telepon / WhatsApp wajib diisi"
   }
-  if (!val.startsWith("08")) {
-    return "Nomor telepon harus diawali dengan '08' (contoh: 081234567890)"
+  const digits = val.replace(/\D/g, "")
+  const local = digits.startsWith("62") ? "0" + digits.slice(2) : digits.startsWith("0") ? digits : "0" + digits
+
+  if (!local.startsWith("08")) {
+    return "Nomor telepon harus diawali dengan '08' atau '+62 8' (contoh: +62 812-3456-7890)"
   }
-  if (!/^\d+$/.test(val)) {
-    return "Nomor telepon hanya boleh berisi angka tanpa spasi atau karakter lain"
-  }
-  if (val.length < 10 || val.length > 14) {
+  if (local.length < 10 || local.length > 14) {
     return "Nomor telepon harus terdiri dari 10 sampai 14 digit angka"
   }
   return null

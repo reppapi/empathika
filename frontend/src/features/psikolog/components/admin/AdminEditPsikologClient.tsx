@@ -5,10 +5,11 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
-import { INITIAL_TENAGA_AHLI, LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
+import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
+import PhoneInputField from "@/components/shared/PhoneInputField"
 import {
   validateEmail,
   validateNoTelepon,
@@ -116,15 +117,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         )
       } catch {}
 
-      // 2. Cek di INITIAL_TENAGA_AHLI sebagai fallback data awal
-      const initialMatch = INITIAL_TENAGA_AHLI.find(
-        (d) =>
-          String(d.id).trim() === cleanId ||
-          String(d.id).trim() === decodedId ||
-          (d.email && localData?.email && d.email.toLowerCase() === localData.email.toLowerCase())
-      )
-
-      // 3. Coba fetch dari backend DB
+      // 2. Coba fetch dari backend DB
       let backendData: any = null
       if (cleanId) {
         try {
@@ -138,8 +131,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                   String(p.id).trim() === cleanId ||
                   String(p.id).trim() === decodedId ||
                   (p.account?.id && String(p.account.id).trim() === cleanId) ||
-                  (localData?.email && p.account?.email?.toLowerCase() === localData.email.toLowerCase()) ||
-                  (initialMatch?.email && p.account?.email?.toLowerCase() === initialMatch.email.toLowerCase())
+                  (localData?.email && p.account?.email?.toLowerCase() === localData.email.toLowerCase())
               )
             }
           } catch {}
@@ -148,7 +140,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
       if (!isMounted) return
 
-      const candidate = backendData || localData || initialMatch
+      const candidate = backendData || localData
 
       if (!candidate) {
         setNotFound(true)
@@ -156,196 +148,214 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         return
       }
 
-      const pick = (...vals: any[]) => {
-        for (const v of vals) {
-          if (v !== undefined && v !== null && String(v).trim() !== "") {
-            return v
-          }
+      if (backendData) {
+        const namaVal = backendData.nama_gelar || backendData.account?.nama || ""
+        const emailVal = backendData.account?.email || backendData.email || ""
+        const teleponVal = backendData.account?.no_telepon || backendData.no_telepon || ""
+        const spesialisasiVal =
+          backendData.spesialisasi?.nama ||
+          (typeof backendData.spesialisasi === "string" ? backendData.spesialisasi : "") ||
+          ""
+        const noStrVal = backendData.no_str || ""
+        const noSippVal = backendData.no_sipp || ""
+        const noSilpVal = backendData.no_silp || ""
+        const pendidikanVal = backendData.pendidikan || ""
+        const bioVal = backendData.bio || backendData.account?.bio || ""
+        const quoteVal = backendData.quote || ""
+        const instagramVal = backendData.instagram || ""
+        const fotoVal = backendData.foto || backendData.account?.foto || null
+
+        const katRaw = (backendData.kategori || "").toLowerCase()
+        const kategoriVal: KategoriTenaga = katRaw.includes("peer")
+          ? "peer-konselor"
+          : katRaw.includes("konselor")
+          ? "konselor"
+          : "psikolog"
+
+        const statusAksesVal: StatusAkses = backendData.status === "INACTIVE" ? "NONAKTIF" : "AKTIF"
+
+        let keahlianArr: string[] = []
+        if (Array.isArray(backendData.keahlian)) {
+          keahlianArr = backendData.keahlian
+        } else if (typeof backendData.keahlian === "string" && backendData.keahlian.trim()) {
+          keahlianArr = backendData.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
         }
-        return ""
+
+        const jumlahSesiVal =
+          typeof backendData.jumlah_sesi === "number" ? backendData.jumlah_sesi : 0
+
+        const tokenAktivasiVal =
+          backendData.tokenAktivasi ||
+          backendData.token_aktivasi ||
+          backendData.account?.token_aktivasi ||
+          ""
+
+        const tokenExpiredVal =
+          backendData.tokenExpiredAt ||
+          backendData.token_expired_at ||
+          backendData.account?.token_aktivasi_exp ||
+          ""
+
+        const passwordVal = localData?.password || "Psikolog123!"
+        const tanggalBergabungVal = localData?.tanggalBergabung || "Terdaftar di DB"
+
+        setNama(namaVal)
+        setEmail(emailVal)
+        setNoTelepon(teleponVal)
+        setPassword(passwordVal)
+        setKategori(kategoriVal)
+        setStatusAkses(statusAksesVal)
+        setSpesialisasi(spesialisasiVal)
+        setNoStr(noStrVal)
+        setNoSipp(noSippVal)
+        setNoSilp(noSilpVal)
+        setPendidikanText(pendidikanVal)
+        setBio(bioVal)
+        setQuote(quoteVal)
+        setInstagram(instagramVal)
+        setFoto(fotoVal)
+        setKeahlian(keahlianArr)
+        setJumlahSesi(jumlahSesiVal)
+        setTanggalBergabung(tanggalBergabungVal)
+
+        const accId =
+          backendData.account?.id ||
+          backendData.id_account ||
+          backendData.accountId ||
+          localData?.accountId ||
+          ""
+        if (accId) setRealAccountId(accId)
+
+        const isAktif = Boolean(
+          backendData.accountAktif ||
+          backendData.account?.accountAktif ||
+          backendData.account?.password ||
+          (backendData.account?.aktif && backendData.account?.password) ||
+          (statusAksesVal === "AKTIF" && passwordVal && passwordVal !== "Psikolog123!")
+        )
+        setAccountAktif(isAktif)
+        if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
+        if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
+
+        // Sinkronisasi data terbaru dari DB ke localStorage agar cache lokal selalu up-to-date
+        try {
+          const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
+          if (saved) {
+            const list: any[] = JSON.parse(saved)
+            const idx = list.findIndex(
+              (item) =>
+                item.id === cleanId ||
+                item.id === decodedId ||
+                (item.email && item.email.toLowerCase() === emailVal.toLowerCase())
+            )
+            const syncedItem = {
+              ...(idx !== -1 ? list[idx] : {}),
+              id: cleanId,
+              nama: namaVal,
+              email: emailVal,
+              noTelepon: teleponVal,
+              kategori: kategoriVal,
+              statusAkses: statusAksesVal,
+              spesialisasi: spesialisasiVal,
+              noStr: noStrVal || undefined,
+              noSipp: noSippVal || undefined,
+              noSilp: noSilpVal || undefined,
+              pendidikanText: pendidikanVal,
+              jumlahSesi: jumlahSesiVal,
+              bio: bioVal,
+              quote: quoteVal,
+              instagram: instagramVal,
+              foto: fotoVal,
+              keahlian: keahlianArr,
+              tanggalBergabung: tanggalBergabungVal,
+              tokenAktivasi: tokenAktivasiVal || undefined,
+              tokenExpiredAt: tokenExpiredVal || undefined,
+              accountId: accId || undefined,
+              accountAktif: isAktif,
+            }
+            if (idx !== -1) {
+              list[idx] = syncedItem
+            } else {
+              list.push(syncedItem)
+            }
+            localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(list))
+          }
+        } catch {}
+      } else {
+        // Fallback offline menggunakan localData jika backend offline
+        const pick = (...vals: any[]) => {
+          for (const v of vals) {
+            if (v !== undefined && v !== null && String(v).trim() !== "") {
+              return v
+            }
+          }
+          return ""
+        }
+
+        const namaVal = pick(localData?.nama, localData?.nama_gelar)
+        const emailVal = pick(localData?.email, localData?.account?.email)
+        const teleponVal = pick(localData?.noTelepon, localData?.account?.no_telepon)
+        const spesialisasiVal = pick(localData?.spesialisasi)
+        const noStrVal = pick(localData?.noStr, localData?.no_str)
+        const noSippVal = pick(localData?.noSipp, localData?.no_sipp)
+        const noSilpVal = pick(localData?.noSilp, localData?.no_silp)
+        const pendidikanVal = pick(localData?.pendidikanText, localData?.pendidikan)
+        const bioVal = pick(localData?.bio)
+        const quoteVal = pick(localData?.quote)
+        const instagramVal = pick(localData?.instagram)
+        const fotoVal = pick(localData?.foto)
+
+        const katRaw = pick(localData?.kategori).toLowerCase()
+        const kategoriVal: KategoriTenaga = katRaw.includes("peer")
+          ? "peer-konselor"
+          : katRaw.includes("konselor")
+          ? "konselor"
+          : "psikolog"
+
+        const statusRaw = pick(localData?.statusAkses, "AKTIF")
+        const statusAksesVal: StatusAkses = statusRaw === "NONAKTIF" ? "NONAKTIF" : "AKTIF"
+
+        let keahlianArr: string[] = []
+        const keahlianRaw = localData?.keahlian
+        if (Array.isArray(keahlianRaw)) {
+          keahlianArr = keahlianRaw
+        } else if (typeof keahlianRaw === "string" && keahlianRaw.trim()) {
+          keahlianArr = keahlianRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
+        }
+
+        const jumlahSesiVal = typeof localData?.jumlahSesi === "number" ? localData.jumlahSesi : 0
+        const tokenAktivasiVal = pick(localData?.tokenAktivasi)
+        const tokenExpiredVal = pick(localData?.tokenExpiredAt)
+        const passwordVal = pick(localData?.password, "Psikolog123!")
+        const tanggalBergabungVal = pick(localData?.tanggalBergabung, "Terdaftar di DB")
+
+        setNama(namaVal)
+        setEmail(emailVal)
+        setNoTelepon(teleponVal)
+        setPassword(passwordVal)
+        setKategori(kategoriVal)
+        setStatusAkses(statusAksesVal)
+        setSpesialisasi(spesialisasiVal)
+        setNoStr(noStrVal)
+        setNoSipp(noSippVal)
+        setNoSilp(noSilpVal)
+        setPendidikanText(pendidikanVal)
+        setBio(bioVal)
+        setQuote(quoteVal)
+        setInstagram(instagramVal)
+        setFoto(fotoVal || null)
+        setKeahlian(keahlianArr)
+        setJumlahSesi(jumlahSesiVal)
+        setTanggalBergabung(tanggalBergabungVal)
+        const accId = localData?.accountId || ""
+        if (accId) setRealAccountId(accId)
+        const isAktif = Boolean(
+          statusAksesVal === "AKTIF" && passwordVal && passwordVal !== "Psikolog123!"
+        )
+        setAccountAktif(isAktif)
+        if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
+        if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
       }
-
-      const namaVal = pick(
-        backendData?.nama_gelar,
-        backendData?.account?.nama,
-        localData?.nama,
-        localData?.nama_gelar,
-        initialMatch?.nama
-      )
-
-      const emailVal = pick(
-        backendData?.account?.email,
-        backendData?.email,
-        localData?.email,
-        localData?.account?.email,
-        initialMatch?.email
-      )
-
-      const teleponVal = pick(
-        backendData?.account?.no_telepon,
-        backendData?.no_telepon,
-        localData?.noTelepon,
-        localData?.account?.no_telepon,
-        initialMatch?.noTelepon
-      )
-
-      const spesialisasiVal = pick(
-        backendData?.spesialisasi?.nama,
-        backendData?.spesialisasi,
-        localData?.spesialisasi,
-        initialMatch?.spesialisasi
-      )
-
-      const noStrVal = pick(
-        backendData?.no_str,
-        backendData?.noStr,
-        localData?.noStr,
-        localData?.no_str,
-        initialMatch?.noStr
-      )
-
-      const noSippVal = pick(
-        backendData?.no_sipp,
-        backendData?.noSipp,
-        localData?.noSipp,
-        localData?.no_sipp,
-        initialMatch?.noSipp
-      )
-
-      const noSilpVal = pick(
-        backendData?.no_silp,
-        backendData?.noSilp,
-        localData?.noSilp,
-        localData?.no_silp,
-        initialMatch?.noSilp
-      )
-
-      const pendidikanVal = pick(
-        backendData?.pendidikan,
-        backendData?.pendidikanText,
-        localData?.pendidikanText,
-        localData?.pendidikan,
-        initialMatch?.pendidikanText
-      )
-
-      const bioVal = pick(
-        backendData?.bio,
-        localData?.bio,
-        initialMatch?.bio
-      )
-
-      const quoteVal = pick(
-        backendData?.quote,
-        localData?.quote,
-        initialMatch?.quote
-      )
-
-      const instagramVal = pick(
-        backendData?.instagram,
-        localData?.instagram,
-        initialMatch?.instagram
-      )
-
-      const fotoVal = pick(
-        backendData?.foto,
-        backendData?.account?.foto,
-        localData?.foto,
-        initialMatch?.foto
-      )
-
-      const katRaw = pick(
-        backendData?.kategori,
-        localData?.kategori,
-        initialMatch?.kategori
-      ).toLowerCase()
-
-      const kategoriVal: KategoriTenaga = katRaw.includes("peer")
-        ? "peer-konselor"
-        : katRaw.includes("konselor")
-        ? "konselor"
-        : "psikolog"
-
-      const statusRaw = pick(
-        localData?.statusAkses,
-        backendData?.status === "INACTIVE" ? "NONAKTIF" : "AKTIF",
-        initialMatch?.statusAkses,
-        "AKTIF"
-      )
-      const statusAksesVal: StatusAkses = statusRaw === "NONAKTIF" ? "NONAKTIF" : "AKTIF"
-
-      let keahlianArr: string[] = []
-      const keahlianRaw = backendData?.keahlian || localData?.keahlian || initialMatch?.keahlian
-      if (Array.isArray(keahlianRaw)) {
-        keahlianArr = keahlianRaw
-      } else if (typeof keahlianRaw === "string" && keahlianRaw.trim()) {
-        keahlianArr = keahlianRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
-      }
-
-      const jumlahSesiVal =
-        typeof backendData?.jumlah_sesi === "number"
-          ? backendData.jumlah_sesi
-          : typeof localData?.jumlahSesi === "number"
-          ? localData.jumlahSesi
-          : initialMatch?.jumlahSesi ?? 0
-
-      const tokenAktivasiVal = pick(
-        backendData?.account?.token_aktivasi,
-        backendData?.token_aktivasi,
-        backendData?.tokenAktivasi,
-        localData?.tokenAktivasi,
-        initialMatch?.tokenAktivasi
-      )
-
-      const tokenExpiredVal = pick(
-        backendData?.account?.token_aktivasi_exp,
-        backendData?.token_expired_at,
-        backendData?.tokenExpiredAt,
-        localData?.tokenExpiredAt,
-        initialMatch?.tokenExpiredAt
-      )
-
-      const passwordVal = pick(
-        localData?.password,
-        initialMatch?.password,
-        "Psikolog123!"
-      )
-
-      const tanggalBergabungVal = pick(
-        localData?.tanggalBergabung,
-        initialMatch?.tanggalBergabung,
-        "Terdaftar di DB"
-      )
-
-      setNama(namaVal)
-      setEmail(emailVal)
-      setNoTelepon(teleponVal)
-      setPassword(passwordVal)
-      setKategori(kategoriVal)
-      setStatusAkses(statusAksesVal)
-      setSpesialisasi(spesialisasiVal)
-      setNoStr(noStrVal)
-      setNoSipp(noSippVal)
-      setNoSilp(noSilpVal)
-      setPendidikanText(pendidikanVal)
-      setBio(bioVal)
-      setQuote(quoteVal)
-      setInstagram(instagramVal)
-      setFoto(fotoVal || null)
-      setKeahlian(keahlianArr)
-      setJumlahSesi(jumlahSesiVal)
-      setTanggalBergabung(tanggalBergabungVal)
-      const accId = backendData?.account?.id || backendData?.id_account || backendData?.accountId || localData?.accountId || ""
-      if (accId) setRealAccountId(accId)
-      const isAktif = Boolean(
-        backendData?.accountAktif ||
-        backendData?.account?.accountAktif ||
-        backendData?.account?.password ||
-        (backendData?.account?.aktif && backendData?.account?.password) ||
-        (statusAksesVal === "AKTIF" && passwordVal && passwordVal !== "Psikolog123!")
-      )
-      setAccountAktif(isAktif)
-      if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
-      if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
 
       setLoading(false)
     }
@@ -435,7 +445,9 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         noSipp: true,
         noSilp: true,
       })
-      setFormErrorAlert("Format data belum sesuai. Silakan periksa kolom yang bertanda merah di bawah.")
+      const errorList = Object.values(formErrors).filter(Boolean)
+      const detailMsg = errorList.length > 0 ? errorList.join(" • ") : "Format data belum sesuai."
+      setFormErrorAlert(detailMsg)
       window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }
@@ -445,7 +457,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
     const isPsikolog = kategori === "psikolog"
     const updatedTenaga: TenagaAhli = {
-      id: psikologId,
+      id: effectiveId || psikologId,
       nama: nama.trim(),
       email: email.trim(),
       password: password.trim(),
@@ -484,8 +496,13 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
     try {
       // 2. Simpan juga ke cache lokal
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-      const list: TenagaAhli[] = saved ? JSON.parse(saved) : INITIAL_TENAGA_AHLI
-      const updatedList = list.map((item) => (item.id === psikologId ? updatedTenaga : item))
+      const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
+      const targetId = effectiveId || psikologId
+      const updatedList = list.map((item) =>
+        item.id === targetId || (item.email && item.email.toLowerCase() === updatedTenaga.email.toLowerCase())
+          ? updatedTenaga
+          : item
+      )
       localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updatedList))
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("storage"))
@@ -601,8 +618,8 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 <p className="text-xs font-medium text-gray-700">
                   Ubah pas foto formal atau foto profil profesional tenaga ahli.
                 </p>
-                <p className="text-[11px] text-gray-600 font-medium">
-                  Rekomendasi pas foto: <span className="font-bold text-[#561269]">600 × 600 px (rasio 1:1 / 4:3, wajah di tengah)</span>
+                <p className="text-xs text-gray-600 font-medium">
+                  Rekomendasi ukuran: <span className="font-bold text-[#561269]">600 × 600 piksel (Persegi / Rasio 1:1, wajah di tengah)</span>
                 </p>
                 <p className="text-[11px] text-gray-400">
                   Format JPG, PNG, atau WebP • Bebas ukuran berapa pun, otomatis dikompresi untuk kartu & profil klien
@@ -651,36 +668,20 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Nomor Telepon / WhatsApp <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+              <PhoneInputField
+                label="No WhatsApp"
+                required
                 value={noTelepon}
-                onChange={(e) => {
-                  setNoTelepon(e.target.value)
+                onChange={(val) => {
+                  setNoTelepon(val)
                   if (formErrorAlert) setFormErrorAlert(null)
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, noTelepon: true }))}
-                required
-                className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
-                  noTeleponError
-                    ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
-                    : "border-gray-200 focus:border-[#561269]"
-                }`}
+                error={noTeleponError}
+                placeholder="+62 821-7373-9213"
+                inputClassName="rounded-2xl px-4 py-2.5 text-sm border-gray-200 focus:border-[#561269]"
+                helperText="Nomor otomatis diawali +62 (10-14 digit angka). Awalan 08 atau 62 otomatis disesuaikan."
               />
-              {noTeleponError ? (
-                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5 font-medium">
-                  <svg className="w-3.5 h-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{noTeleponError}</span>
-                </p>
-              ) : (
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Wajib diawali dengan 08 (10-14 digit angka).
-                </p>
-              )}
             </div>
 
             <div>
@@ -718,7 +719,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 rows={5}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog... Tekan Enter untuk membuat paragraf baru."
+                placeholder="Tuliskan perkenalan dan pendekatan konseling psikolog..."
                 className="w-full rounded-2xl border border-gray-200 p-4 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none resize-y min-h-[120px] whitespace-pre-wrap leading-relaxed"
               />
             </div>
@@ -776,6 +777,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 }}
                 onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
                 required
+                placeholder="contoh: psikolog@empathika.id"
                 className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-gray-800 transition focus:outline-none ${
                   emailError
                     ? "border-red-400 bg-red-50/20 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-400"
@@ -791,7 +793,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 </p>
               ) : (
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Wajib menggunakan email akun Gmail (harus mengandung @gmail.com).
+                  Gunakan alamat email aktif tenaga ahli untuk pengiriman kredensial login.
                 </p>
               )}
             </div>
