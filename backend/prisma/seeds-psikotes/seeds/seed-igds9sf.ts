@@ -203,7 +203,6 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
           max_skor: interp.max_skor,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     } else {
@@ -215,7 +214,6 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     }

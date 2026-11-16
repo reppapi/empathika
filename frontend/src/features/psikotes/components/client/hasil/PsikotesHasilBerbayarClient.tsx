@@ -236,7 +236,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 grade: bData.hasil.grade,
                 judul: bData.hasil.judul,
                 deskripsi: bData.hasil.deskripsi,
-                tips: bData.hasil.tips,
               } : null,
             });
 

@@ -185,7 +185,6 @@ export async function seedGAD7(prisma: PrismaClient) {
           grade: item.grade,
           judul: item.judul,
           deskripsi: item.deskripsi,
-          tips: item.tips,
         },
       })
     } else {
@@ -197,7 +196,6 @@ export async function seedGAD7(prisma: PrismaClient) {
           grade: item.grade,
           judul: item.judul,
           deskripsi: item.deskripsi,
-          tips: item.tips,
         },
       })
     }

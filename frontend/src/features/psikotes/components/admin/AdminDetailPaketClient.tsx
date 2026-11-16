@@ -590,62 +590,41 @@ export default function AdminDetailPaketClient({ paketId }: Props) {
                           Kategori
                         </th>
                         <th scope="col" className="px-6 py-3.5">
-                          Deskripsi Interpretasi &amp; Rekomendasi
+                          Deskripsi Interpretasi
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {interpretasiList.map((inter, idx) => {
-                        const tipsArray: any[] = Array.isArray(inter.tips)
-                          ? inter.tips
-                          : inter.tips?.saran || [];
+                      {interpretasiList.map((inter, idx) => (
+                        <tr
+                          key={inter.id || idx}
+                          className="hover:bg-gray-50/40 transition-colors"
+                        >
+                          {/* Rentang Skor */}
+                          <td className="px-6 py-4 font-mono font-bold text-gray-900 whitespace-nowrap align-top">
+                            {inter.min_skor} – {inter.max_skor}
+                          </td>
 
-                        return (
-                          <tr
-                            key={inter.id || idx}
-                            className="hover:bg-gray-50/40 transition-colors"
-                          >
-                            {/* Rentang Skor */}
-                            <td className="px-6 py-4 font-mono font-bold text-gray-900 whitespace-nowrap align-top">
-                              {inter.min_skor} – {inter.max_skor}
-                            </td>
-
-                            {/* Kategori Hasil */}
-                            <td className="px-6 py-4 align-top">
-                              <span className="font-bold text-gray-900 text-sm block">
-                                {inter.judul || inter.grade}
+                          {/* Kategori Hasil */}
+                          <td className="px-6 py-4 align-top">
+                            <span className="font-bold text-gray-900 text-sm block">
+                              {inter.judul || inter.grade}
+                            </span>
+                            {inter.grade && inter.judul && inter.grade !== inter.judul && (
+                              <span className="text-xs text-gray-400 block mt-0.5">
+                                Tingkat: {inter.grade}
                               </span>
-                              {inter.grade && inter.judul && inter.grade !== inter.judul && (
-                                <span className="text-xs text-gray-400 block mt-0.5">
-                                  Tingkat: {inter.grade}
-                                </span>
-                              )}
-                            </td>
+                            )}
+                          </td>
 
-                            {/* Deskripsi & Rekomendasi */}
-                            <td className="px-6 py-4 text-gray-700 leading-relaxed align-top space-y-2">
-                              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                                {inter.deskripsi || "Tidak ada keterangan interpretasi."}
-                              </p>
-
-                              {tipsArray.length > 0 && (
-                                <div className="pt-2 border-t border-gray-100 mt-2">
-                                  <span className="text-[11px] font-semibold text-gray-400 block mb-1">
-                                    Saran &amp; Tindak Lanjut:
-                                  </span>
-                                  <ul className="list-disc list-inside space-y-0.5 text-xs text-gray-600">
-                                    {tipsArray.map((tip: any, tIdx: number) => (
-                                      <li key={tIdx} className="leading-relaxed">
-                                        {typeof tip === "string" ? tip : tip?.teks || JSON.stringify(tip)}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                          {/* Deskripsi */}
+                          <td className="px-6 py-4 text-gray-700 leading-relaxed align-top">
+                            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                              {inter.deskripsi || "Tidak ada keterangan interpretasi."}
+                            </p>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

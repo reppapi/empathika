@@ -457,7 +457,6 @@ export async function seedCATS(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     } else {
@@ -469,7 +468,6 @@ export async function seedCATS(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     }

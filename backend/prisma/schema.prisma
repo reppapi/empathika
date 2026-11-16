@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ==========================================
@@ -513,7 +514,6 @@ model InterpretasiPsikotes {
   grade     String
   judul     String
   deskripsi String  @db.Text
-  tips      Json?
 
   paket     PaketPsikotes @relation(fields: [id_paket], references: [id], onDelete: Cascade)
   hasil_tes HasilTes[]

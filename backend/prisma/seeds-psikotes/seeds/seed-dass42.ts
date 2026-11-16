@@ -237,7 +237,6 @@ export async function seedDASS42(prisma: PrismaClient) {
           grade: item.grade,
           judul: item.judul,
           deskripsi: item.deskripsi,
-          tips: item.tips,
         },
       })
     } else {
@@ -249,7 +248,6 @@ export async function seedDASS42(prisma: PrismaClient) {
           grade: item.grade,
           judul: item.judul,
           deskripsi: item.deskripsi,
-          tips: item.tips,
         },
       })
     }

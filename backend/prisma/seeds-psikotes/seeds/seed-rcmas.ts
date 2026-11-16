@@ -206,7 +206,6 @@ export async function seedRCMAS(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     } else {
@@ -218,7 +217,6 @@ export async function seedRCMAS(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     }

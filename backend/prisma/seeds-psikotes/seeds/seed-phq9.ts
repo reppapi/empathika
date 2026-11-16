@@ -213,7 +213,6 @@ export async function seedPHQ9(prisma: PrismaClient) {
           grade: item.grade,
           judul: item.judul,
           deskripsi: item.deskripsi,
-          tips: item.tips,
         },
       })
     } else {
@@ -225,7 +224,6 @@ export async function seedPHQ9(prisma: PrismaClient) {
           grade: item.grade,
           judul: item.judul,
           deskripsi: item.deskripsi,
-          tips: item.tips,
         },
       })
     }
