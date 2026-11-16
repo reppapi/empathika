@@ -113,15 +113,15 @@ export default function ModalDetailSesiKlien({
         {/* Body */}
         <div className="space-y-4 text-xs sm:text-sm">
           {/* Card Klien */}
-          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
+          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2.5 overflow-hidden">
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Klien</p>
-                <p className="text-base font-extrabold text-gray-900 mt-0.5">
+                <p className="text-base font-extrabold text-gray-900 mt-0.5 truncate">
                   {session.namaKlien}
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-purple-100 text-[#561269] text-xs font-bold">
+              <span className="px-2.5 py-1 rounded-full bg-purple-100 text-[#561269] text-xs font-bold shrink-0">
                 ID: {session.klienId}
               </span>
             </div>
@@ -130,33 +130,35 @@ export default function ModalDetailSesiKlien({
               const displayContact = session.kontak || "+62 812-3456-7890"
               const sessionWithContact = { ...session, kontak: displayContact }
               return (
-                <div className="pt-3 border-t border-gray-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
+                <div className="pt-3 border-t border-gray-200/70 space-y-2.5">
+                  {/* Baris Informasi Nomor WhatsApp / Kontak */}
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#1C5E24] flex items-center justify-center shrink-0 border border-emerald-200">
                       <Phone className="w-4 h-4" />
                     </div>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-[10px] font-medium text-gray-400 leading-none">
                         No. WhatsApp / Kontak
                       </span>
-                      <span className="text-xs sm:text-sm font-bold text-gray-900 mt-1 whitespace-nowrap tracking-wide">
+                      <span className="text-xs sm:text-sm font-bold text-gray-900 mt-1 break-all tracking-wide select-all leading-tight">
                         {displayContact}
                       </span>
                     </div>
                   </div>
 
+                  {/* Baris Tombol Aksi: WhatsApp & Salin Template */}
                   {session.status !== "Selesai" && !isCancelled ? (
-                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap pt-0.5">
                       {isRescheduled ? (
                         <a
                           href={getWhatsAppClientRescheduleUrl(sessionWithContact)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3.5 py-1.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
+                          className="px-3.5 py-1.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer max-w-full"
                           title="Buka WhatsApp Klien dengan rincian jadwal reschedule baru"
                         >
                           <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                          <span>Info Reschedule (WA)</span>
+                          <span className="truncate">Info Reschedule (WA)</span>
                           <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                         </a>
                       ) : (
@@ -164,18 +166,18 @@ export default function ModalDetailSesiKlien({
                           href={getWhatsAppUrl(sessionWithContact)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3.5 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
+                          className="px-3.5 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer max-w-full"
                           title="Buka WhatsApp Klien dengan rincian jadwal otomatis"
                         >
                           <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                          <span>Chat WA</span>
+                          <span className="truncate">Chat WA</span>
                           <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                         </a>
                       )}
                       <button
                         type="button"
                         onClick={() => onCopyWhatsApp(sessionWithContact)}
-                        className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer whitespace-nowrap"
+                        className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
                         title="Salin Rincian Pesan WA ke Clipboard"
                       >
                         <Copy className="w-3.5 h-3.5 text-gray-500 shrink-0" />
@@ -183,11 +185,11 @@ export default function ModalDetailSesiKlien({
                       </button>
                     </div>
                   ) : session.status === "Selesai" ? (
-                    <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full whitespace-nowrap">
+                    <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full whitespace-nowrap inline-block">
                       Sesi telah selesai
                     </span>
                   ) : (
-                    <span className="text-[11px] font-medium text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full whitespace-nowrap">
+                    <span className="text-[11px] font-medium text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full whitespace-nowrap inline-block">
                       Sesi dibatalkan
                     </span>
                   )}
@@ -211,11 +213,11 @@ export default function ModalDetailSesiKlien({
 
           {/* Grid Info Sesi */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 overflow-hidden">
               <p className="text-[11px] font-semibold text-gray-500">Layanan</p>
-              <p className="font-bold text-gray-900 mt-1">{session.layanan}</p>
+              <p className="font-bold text-gray-900 mt-1 break-words">{session.layanan}</p>
             </div>
-            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 flex flex-col justify-between">
+            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 flex flex-col justify-between overflow-hidden">
               {(() => {
                 const isAsesmen =
                   (session.layanan && session.layanan.toLowerCase().includes("asesmen")) ||
@@ -226,7 +228,7 @@ export default function ModalDetailSesiKlien({
                   <>
                     <div>
                       <p className="text-[11px] font-semibold text-gray-500">Psikolog Bertugas</p>
-                      <p className="font-bold text-gray-900 mt-1">
+                      <p className="font-bold text-gray-900 mt-1 break-words">
                         {isAsesmen ? <span className="text-gray-400 font-semibold text-sm">-</span> : session.psikolog}
                       </p>
                     </div>
