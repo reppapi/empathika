@@ -296,6 +296,11 @@ export const CATS_INTERPRETASI = [
     judul: 'Tingkat Gejala Normal (Tidak Meningkat Secara Klinis)',
     deskripsi:
       'Hasil yang kamu peroleh menunjukkan bahwa saat ini gejala stres pascatrauma yang kamu alami belum terlihat meningkat secara signifikan. Artinya, kamu belum menunjukkan banyak gejala yang berkaitan dengan pengalaman traumatis. Meskipun begitu, perasaan sedih, takut, atau tidak nyaman ketika mengingat suatu kejadian tetap merupakan hal yang perlu diperhatikan.\n\nSetiap orang memiliki cara dan waktu yang berbeda dalam menghadapi pengalaman sulit. Terkadang, perasaan tertentu masih bisa muncul meskipun kejadian tersebut sudah berlalu. Karena itu, penting untuk tetap mengenali perasaan dan memahami apa yang kamu butuhkan.\n\nJika suatu saat ada hal yang membuatmu merasa tidak nyaman, jangan ragu untuk bercerita kepada orang yang kamu percaya. Kamu tetap berhak mendapatkan dukungan dan merasa aman dalam menjalani keseharian.',
+    tips: [
+      'Tinjauan singkat hasilnya dengan klien dan caregiver.',
+      'Lakukan validasi perasaan anak, normalisasi emosi, dan berikan rasa aman serta keyakinan.',
+      'Berikan bimbingan antisipatif dan pertahankan pola komunikasi yang hangat dan terbuka di keluarga.',
+    ],
   },
   {
     min_skor: 15,
@@ -304,6 +309,13 @@ export const CATS_INTERPRETASI = [
     judul: 'Distres Tingkat Menengah Terkait Trauma',
     deskripsi:
       'Hasil yang kamu peroleh menunjukkan adanya gejala stres tingkat menengah yang berkaitan dengan pengalaman sulit atau peristiwa berat yang pernah kamu alami. Kamu mungkin masih merasakan takut, khawatir, sedih, atau tidak nyaman ketika mengingat kejadian tersebut. Perasaan ini dapat memengaruhi kenyamananmu dalam menjalani aktivitas sehari-hari.\n\nMenghadapi pengalaman berat bukanlah hal yang mudah, dan setiap orang memiliki proses pemulihan yang berbeda. Dukungan dari keluarga, teman, maupun orang-orang yang kamu percaya dapat membantu membuatmu merasa lebih aman dan didengarkan. Kamu juga bisa melakukan kegiatan yang membuatmu nyaman sebagai salah satu cara untuk mengelola perasaan.\n\nJika gejala yang kamu alami masih terasa mengganggu, jangan ragu untuk mencari pendampingan dari psikolog. Dengan dukungan yang tepat, kamu dapat belajar memahami perasaanmu dan menjalani proses pemulihan secara bertahap.',
+    tips: [
+      'Tinjau hasilnya secara hati-hati bersama klien dan caregiver.',
+      'Validasi emosi anak, normalisasi perasaan, dan yakinkan bahwa respons stres wajar terjadi setelah peristiwa berat.',
+      'Berikan psikoedukasi tentang trauma dan ajarkan tips coping adaptif (seperti teknik relaksasi napas, grounding 5-4-3-2-1, dan jurnal emosi).',
+      'Sampaikan harapan bahwa banyak anak bisa pulih secara alami dengan dukungan lingkungan terdekat.',
+      'Tawarkan terapi khusus trauma jika dibutuhkan atau apabila gejala menetap.',
+    ],
   },
   {
     min_skor: 21,
@@ -312,6 +324,12 @@ export const CATS_INTERPRETASI = [
     judul: 'Skor Mengindikasikan Kemungkinan PTSD',
     deskripsi:
       'Hasil yang kamu peroleh menunjukkan adanya gejala stres pascatrauma yang cukup menonjol dan perlu mendapatkan perhatian lebih lanjut. Kamu mungkin mengalami perasaan takut, cemas, atau tidak nyaman yang berkaitan dengan pengalaman berat di masa lalu. Gejala tersebut juga dapat memengaruhi pikiran, perasaan, hubungan dengan orang lain, maupun aktivitas sehari-hari.\n\nPerlu diingat bahwa hasil ini belum merupakan diagnosis. Untuk memahami kondisi yang kamu alami secara lebih menyeluruh, diperlukan pemeriksaan dan wawancara lebih lanjut bersama psikolog. Melalui pendampingan tersebut, kamu dapat memperoleh bantuan yang sesuai dengan pengalaman dan kebutuhanmu.\n\nKamu tidak harus menghadapi semuanya sendirian. Pengalaman berat yang pernah terjadi tidak menentukan seluruh perjalanan hidupmu. Dengan dukungan dan penanganan yang tepat, kamu memiliki kesempatan untuk pulih, merasa lebih aman, dan kembali menjalani aktivitas dengan nyaman.',
+    tips: [
+      'Tinjau hasilnya secara hati-hati bersama klien dan lakukan wawancara diagnostik PTSD klinis lanjutan semi-terstruktur.',
+      'Lakukan validasi dan normalisasi perasaan anak tanpa memaksanya menceritakan detail kejadian traumatis sebelum merasa aman.',
+      'Sampaikan harapan positif mengenai pemulihan bahwa gejala stres pascatrauma dapat ditangani secara efektif melalui bantuan profesional.',
+      'Sangat disarankan untuk mempertimbangkan Trauma-Focused Cognitive Behavioral Therapy (TF-CBT) atau terapi khusus trauma berbasis bukti lainnya bersama psikolog anak/remaja.',
+    ],
   },
 ]
 
