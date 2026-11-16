@@ -105,7 +105,7 @@ export class BookingService {
         layanan: s.layanan.nama,
         psikolog: isAsesmen ? '' : (s.jadwal.psikolog?.nama_gelar || 'Belum Ditentukan'),
         idPsikolog: isAsesmen ? null : s.jadwal.psikolog?.id,
-        noTeleponPsikolog: isAsesmen ? null : ((s.jadwal.psikolog as any)?.account?.no_telepon || '081234567890'),
+        noTeleponPsikolog: isAsesmen ? null : ((s.jadwal.psikolog as any)?.account?.no_telepon || null),
         tipe_jadwal: s.jadwal?.tipe_jadwal || (isAsesmen ? 'ASESMEN' : 'KONSULTASI'),
         jamMulai: jamMulaiStr,
         jamSelesai: jamSelesaiStr,

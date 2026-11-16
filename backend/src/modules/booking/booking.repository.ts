@@ -73,6 +73,14 @@ export class BookingRepository {
             spesialisasi: {
               select: { nama: true },
             },
+            account: {
+              select: {
+                id: true,
+                nama: true,
+                email: true,
+                no_telepon: true,
+              },
+            },
           },
         },
         booking_konsultasi: {
