@@ -52,6 +52,16 @@ export function extractMinutes(timeStr?: string): number {
   return parseInt(match[1], 10) * 60 + parseInt(match[2], 10)
 }
 
+export interface AvailableProfessionOption {
+  id: string
+  key: "psikolog" | "konselor" | "peer"
+  label: string
+  sub: string
+  badge: string
+  badgeBg: string
+  badgeText: string
+}
+
 export interface UseJadwalClientOptions {
   mode?: "konseling" | "asesmen"
   tipeJadwal?: "KONSULTASI" | "ASESMEN"
@@ -118,13 +128,45 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     offline: true,
   })
 
-  // Sinkronisasi ketersediaan metode pelaksanaan & status aktif dari data layanan (Backend / Local)
+  // Daftar opsi tenaga ahli/layanan konsultasi yang tersedia berdasarkan harga yang diatur
+  const [availableCategories, setAvailableCategories] = useState<AvailableProfessionOption[]>([
+    {
+      id: "Psikolog",
+      key: "psikolog",
+      label: "Psikolog Klinis",
+      sub: "Konsultasi mendalam dengan psikolog klinis profesional berlisensi STR & SIPP.",
+      badge: "P",
+      badgeBg: "bg-purple-100",
+      badgeText: "text-purple-600",
+    },
+    {
+      id: "Konselor",
+      key: "konselor",
+      label: "Konselor",
+      sub: "Konseling terarah bersama tenaga konselor berpengalaman.",
+      badge: "K",
+      badgeBg: "bg-yellow-100",
+      badgeText: "text-yellow-700",
+    },
+    {
+      id: "Peer Konselor",
+      key: "peer",
+      label: "Peer Konselor",
+      sub: "Pendampingan teman sebaya yang terlatih, nyaman, dan terbuka tanpa stigma.",
+      badge: "PK",
+      badgeBg: "bg-emerald-100",
+      badgeText: "text-emerald-700",
+    },
+  ])
+
+  // Sinkronisasi ketersediaan metode pelaksanaan, kategori tenaga ahli & status aktif dari data layanan (Backend / Local)
   useEffect(() => {
     let isCancelled = false
 
     const checkServiceMethod = async () => {
       const activeName = (layanan || searchParams?.get("layanan") || "Psikolog").toLowerCase().trim()
       let matchedMetode = "Online/Offline"
+      let targetService: any = null
 
       try {
         const res: any = await layananService.getAll({ kategori: "KONSULTASI" })
@@ -140,6 +182,8 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
           const lName = l.layanan.toLowerCase()
           return lName.includes(activeName) || activeName.includes(lName)
         })
+
+        targetService = matched || localMatched || beList[0] || (stored.length > 0 ? stored[0] : null)
 
         const isNonaktif =
           (matched && (matched.aktif === false || matched.status === "Nonaktif")) ||
@@ -163,6 +207,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
           const lName = l.layanan.toLowerCase()
           return lName.includes(activeName) || activeName.includes(lName)
         })
+        targetService = localMatched || (stored.length > 0 ? stored[0] : null)
         if (localMatched && localMatched.status === "Nonaktif") {
           setIsLayananNonaktif(true)
           setNonaktifLayananNama(localMatched.layanan)
@@ -170,6 +215,87 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
       }
 
       if (isCancelled) return
+
+      // Hitung opsi tenaga ahli yang muncul di Box 3 sesuai konfigurasi harga (tarif_tenaga_ahli)
+      if (mode === "konseling" && targetService) {
+        const t = targetService.tarif_tenaga_ahli
+        const profList: string[] = targetService.profesi_tersedia || []
+
+        const hasPsi =
+          profList.includes("psikolog") ||
+          (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
+          (!t && (Number(targetService.harga_weekday) > 0 || Number(targetService.harga_weekend) > 0))
+        const hasKon =
+          profList.includes("konselor") ||
+          (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0))
+        const hasPeer =
+          profList.includes("peer") ||
+          (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0))
+
+        const dynamicCategories: AvailableProfessionOption[] = []
+        if (hasPsi) {
+          dynamicCategories.push({
+            id: "Psikolog",
+            key: "psikolog",
+            label: "Psikolog Klinis",
+            sub: "Konsultasi mendalam dengan psikolog klinis profesional berlisensi STR & SIPP.",
+            badge: "P",
+            badgeBg: "bg-purple-100",
+            badgeText: "text-purple-600",
+          })
+        }
+        if (hasKon) {
+          dynamicCategories.push({
+            id: "Konselor",
+            key: "konselor",
+            label: "Konselor",
+            sub: "Konseling terarah bersama tenaga konselor berpengalaman.",
+            badge: "K",
+            badgeBg: "bg-yellow-100",
+            badgeText: "text-yellow-700",
+          })
+        }
+        if (hasPeer) {
+          dynamicCategories.push({
+            id: "Peer Konselor",
+            key: "peer",
+            label: "Peer Konselor",
+            sub: "Pendampingan teman sebaya yang terlatih, nyaman, dan terbuka tanpa stigma.",
+            badge: "PK",
+            badgeBg: "bg-emerald-100",
+            badgeText: "text-emerald-700",
+          })
+        }
+
+        const effectiveCategories: AvailableProfessionOption[] = dynamicCategories.length > 0 ? dynamicCategories : [
+          {
+            id: "Psikolog",
+            key: "psikolog",
+            label: "Psikolog Klinis",
+            sub: "Konsultasi mendalam dengan psikolog klinis profesional berlisensi STR & SIPP.",
+            badge: "P",
+            badgeBg: "bg-purple-100",
+            badgeText: "text-purple-600",
+          }
+        ]
+
+        setAvailableCategories(effectiveCategories)
+
+        // Validasi dan sinkronkan pilihan layanan aktif dengan kategori yang memiliki tarif
+        setLayanan((cur) => {
+          const curLower = (cur || "").toLowerCase()
+          const isCurValid = effectiveCategories.some((c) => {
+            if (c.key === "psikolog") return curLower.includes("psikolog") || curLower.includes("konsultasi")
+            if (c.key === "konselor") return curLower.includes("konselor") && !curLower.includes("peer")
+            if (c.key === "peer") return curLower.includes("peer")
+            return false
+          })
+          if (!isCurValid && effectiveCategories.length > 0) {
+            return effectiveCategories[0].id
+          }
+          return cur
+        })
+      }
 
       const norm = matchedMetode.toLowerCase()
       const hasOnline = norm.includes("online") || norm === "keduanya" || norm === "semua"
@@ -198,7 +324,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
       window.removeEventListener("focus", checkServiceMethod)
       window.removeEventListener("storage", checkServiceMethod)
     }
-  }, [layanan, searchParams])
+  }, [layanan, searchParams, mode])
 
   // Waktu & slot terpilih (hanya boleh terisi jika slot TERSEDIA)
   const [waktu, setWaktu] = useState<string | null>(null)
@@ -655,5 +781,6 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     isOfflineAllowed: allowedMethods.offline,
     isLayananNonaktif,
     nonaktifLayananNama,
+    availableCategories,
   }
 }

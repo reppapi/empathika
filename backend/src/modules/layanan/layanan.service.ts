@@ -93,6 +93,43 @@ export class LayananService {
     }
   }
 
+  public enrichLayanan(item: any) {
+    if (!item) return item
+    const isKonsultasi = (item.kategori || '').toUpperCase() === 'KONSULTASI'
+    const profesiTersedia: string[] = []
+
+    if (isKonsultasi) {
+      const t = item.tarif_tenaga_ahli
+      if (t && typeof t === 'object') {
+        const psi = t.psikolog
+        const kon = t.konselor
+        const peer = t.peer
+
+        const hasPsi = psi && (Number(psi.weekday) > 0 || Number(psi.weekend) > 0)
+        const hasKon = kon && (Number(kon.weekday) > 0 || Number(kon.weekend) > 0)
+        const hasPeer = peer && (Number(peer.weekday) > 0 || Number(peer.weekend) > 0)
+
+        if (hasPsi) profesiTersedia.push('psikolog')
+        if (hasKon) profesiTersedia.push('konselor')
+        if (hasPeer) profesiTersedia.push('peer')
+      }
+
+      // Fallback jika belum diatur di tarif_tenaga_ahli namun harga weekday/weekend utama ada
+      if (
+        profesiTersedia.length === 0 &&
+        (Number(item.harga_weekday) > 0 || Number(item.harga_weekend) > 0)
+      ) {
+        profesiTersedia.push('psikolog')
+      }
+    }
+
+    return {
+      ...item,
+      profesi_tersedia: profesiTersedia,
+      kategori_tenaga_tersedia: profesiTersedia,
+    }
+  }
+
   async getAll(params?: Record<string, unknown>) {
     const queryParams: { kategori?: string; aktif?: boolean; search?: string } = {}
     if (params?.kategori && typeof params.kategori === 'string') {
@@ -104,13 +141,31 @@ export class LayananService {
     if (params?.search && typeof params.search === 'string') {
       queryParams.search = params.search
     }
-    return this.repo.findAll(queryParams)
+    const items = await this.repo.findAll(queryParams)
+    let enriched = items.map((item) => this.enrichLayanan(item))
+
+    // Filter dinamis berdasarkan kategori tenaga ahli jika ada parameter query
+    const targetKategoriTenaga = (
+      params?.kategori_tenaga ||
+      params?.kategoriTenaga ||
+      params?.profesi
+    )
+    if (targetKategoriTenaga && typeof targetKategoriTenaga === 'string') {
+      const cleanTarget = targetKategoriTenaga.toLowerCase().replace('-konselor', '').trim()
+      enriched = enriched.filter((item) => {
+        if (item.kategori !== 'KONSULTASI') return true
+        const profesiList = item.profesi_tersedia || []
+        return profesiList.includes(cleanTarget)
+      })
+    }
+
+    return enriched
   }
 
   async getById(id: string) {
     const item = await this.repo.findById(id)
     if (!item) throw Object.assign(new Error('Layanan tidak ditemukan'), { statusCode: 404 })
-    return item
+    return this.enrichLayanan(item)
   }
 
   async create(input: CreateLayananInput) {
@@ -139,12 +194,17 @@ export class LayananService {
       tarifTenagaAhli.manfaat = input.manfaat
     }
 
-    // Jika kategori Konsultasi dan ada tarif_tenaga_ahli, fallback harga umum ke tarif psikolog
+    // Jika kategori Konsultasi dan ada tarif_tenaga_ahli, fallback harga umum ke tarif tenaga ahli pertama yang aktif
     if (tarifTenagaAhli && typeof tarifTenagaAhli === 'object') {
       const psi = (tarifTenagaAhli as any).psikolog
-      if (psi) {
-        if (!hargaWeekday && psi.weekday) hargaWeekday = Number(psi.weekday)
-        if (!hargaWeekend && psi.weekend) hargaWeekend = Number(psi.weekend)
+      const kon = (tarifTenagaAhli as any).konselor
+      const peer = (tarifTenagaAhli as any).peer
+      const firstActive = (psi && (psi.weekday || psi.weekend) ? psi : null) ||
+                          (kon && (kon.weekday || kon.weekend) ? kon : null) ||
+                          (peer && (peer.weekday || peer.weekend) ? peer : null)
+      if (firstActive) {
+        if (!hargaWeekday && firstActive.weekday) hargaWeekday = Number(firstActive.weekday)
+        if (!hargaWeekend && firstActive.weekend) hargaWeekend = Number(firstActive.weekend)
       }
     }
 
@@ -170,7 +230,8 @@ export class LayananService {
       dataWithTarif.tarif_tenaga_ahli = tarifTenagaAhli
     }
 
-    return this.repo.create(createData)
+    const created = await this.repo.create(createData)
+    return this.enrichLayanan(created)
   }
 
   async update(id: string, input: UpdateLayananInput) {
@@ -218,12 +279,17 @@ export class LayananService {
       const dataWithTarif: Record<string, any> = updateData
       dataWithTarif.tarif_tenaga_ahli = input.tarif_tenaga_ahli as any
 
-      // Jika ada tarif_tenaga_ahli psikolog, sinkronkan juga harga_weekday/weekend utama
+      // Jika ada tarif_tenaga_ahli, sinkronkan juga harga_weekday/weekend utama dengan tenaga ahli pertama yang aktif
       if (input.tarif_tenaga_ahli && typeof input.tarif_tenaga_ahli === 'object') {
         const psi = (input.tarif_tenaga_ahli as any).psikolog
-        if (psi) {
-          if (psi.weekday && updateData.harga_weekday === undefined) updateData.harga_weekday = Number(psi.weekday)
-          if (psi.weekend && updateData.harga_weekend === undefined) updateData.harga_weekend = Number(psi.weekend)
+        const kon = (input.tarif_tenaga_ahli as any).konselor
+        const peer = (input.tarif_tenaga_ahli as any).peer
+        const firstActive = (psi && (psi.weekday || psi.weekend) ? psi : null) ||
+                            (kon && (kon.weekday || kon.weekend) ? kon : null) ||
+                            (peer && (peer.weekday || peer.weekend) ? peer : null)
+        if (firstActive) {
+          if (firstActive.weekday && updateData.harga_weekday === undefined) updateData.harga_weekday = Number(firstActive.weekday)
+          if (firstActive.weekend && updateData.harga_weekend === undefined) updateData.harga_weekend = Number(firstActive.weekend)
         }
       }
     }
@@ -254,7 +320,8 @@ export class LayananService {
       updateData.aktif = this.normalizeAktif(input.aktif, input.status)
     }
 
-    return this.repo.update(id, updateData)
+    const updated = await this.repo.update(id, updateData)
+    return this.enrichLayanan(updated)
   }
 
   async delete(id: string) {

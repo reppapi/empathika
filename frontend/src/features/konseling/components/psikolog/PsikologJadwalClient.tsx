@@ -507,16 +507,37 @@ export default function PsikologJadwalClient() {
     loadScheduleForPsikolog()
   }, [loadScheduleForPsikolog, currentWeekMonday])
 
-  // Ambil daftar layanan kategori KONSULTASI murni dari database/API (tanpa data dummy/hardcode)
+  // Ambil daftar layanan kategori KONSULTASI murni dari database/API yang sesuai dengan profesi tenaga ahli
   useEffect(() => {
     let isMounted = true
+    const myRole = (activePsikolog?.kategori || "").toLowerCase()
+    const cleanRole = myRole.includes("peer") ? "peer" : myRole.includes("konselor") ? "konselor" : "psikolog"
+
     layananService
-      .getAll({ kategori: "KONSULTASI" })
+      .getAll({ kategori: "KONSULTASI", kategori_tenaga: cleanRole })
       .then((res: any) => {
         if (!isMounted) return
         const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
         const activeNames: string[] = raw
-          .filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
+          .filter((l: any) => {
+            if (l.aktif === false || l.status === "Nonaktif") return false
+            const profs: string[] = l.profesi_tersedia || []
+            if (profs.length > 0) {
+              return profs.includes(cleanRole)
+            }
+            const t = l.tarif_tenaga_ahli
+            if (cleanRole === "psikolog") {
+              return (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
+                     (!t && (Number(l.harga_weekday) > 0 || Number(l.harga_weekend) > 0))
+            }
+            if (cleanRole === "konselor") {
+              return t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)
+            }
+            if (cleanRole === "peer") {
+              return t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)
+            }
+            return true
+          })
           .map((l: any) => (l.nama?.trim() as string))
           .filter(Boolean)
 
@@ -532,7 +553,16 @@ export default function PsikologJadwalClient() {
                   item.status !== "Nonaktif" &&
                   item.layanan
                 ) {
-                  activeNames.push(item.layanan.trim())
+                  const t = item.tarif_tenaga_ahli
+                  let isMatch = true
+                  if (t && typeof t === "object") {
+                    if (cleanRole === "psikolog") isMatch = Boolean(t.psikolog && (t.psikolog.weekday || t.psikolog.weekend))
+                    else if (cleanRole === "konselor") isMatch = Boolean(t.konselor && (t.konselor.weekday || t.konselor.weekend))
+                    else if (cleanRole === "peer") isMatch = Boolean(t.peer && (t.peer.weekday || t.peer.weekend))
+                  }
+                  if (isMatch) {
+                    activeNames.push(item.layanan.trim())
+                  }
                 }
               })
             }
@@ -553,7 +583,7 @@ export default function PsikologJadwalClient() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [activePsikolog?.kategori])
 
   // Listener real-time: jika admin membatalkan sesi di halaman admin, otomatis jadwal psikolog ter-update
   useEffect(() => {

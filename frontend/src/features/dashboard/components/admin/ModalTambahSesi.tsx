@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { X, Calendar, Clock, User, UserCheck, Phone, Video, MapPin, FileText, CheckCircle2, AlertCircle } from "lucide-react"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
+import { layananService } from "@/services/layanan.service"
 import PhoneInputField from "@/components/shared/PhoneInputField"
 
 export interface NewSessionData {
@@ -161,6 +162,24 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
   const [availableSlots, setAvailableSlots] = useState<JadwalSlotItem[]>([])
   const [allPsikologSlots, setAllPsikologSlots] = useState<JadwalSlotItem[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+  const [consultationServices, setConsultationServices] = useState<any[]>([])
+
+  // Ambil layanan konsultasi murni dari database/API
+  useEffect(() => {
+    let isMounted = true
+    layananService
+      .getAll({ kategori: "KONSULTASI" })
+      .then((res: any) => {
+        if (!isMounted) return
+        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        setConsultationServices(list.filter((l: any) => l.aktif !== false && l.status !== "Nonaktif"))
+      })
+      .catch(() => {})
+
+    return () => {
+      isMounted = false
+    }
+  }, [isOpen])
 
   const formatPsikologLabel = (p: { nama: string; kategori?: string; status?: string }) => {
     let label = p.nama
@@ -279,7 +298,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
   }, [psikologList])
 
   // Sinkronkan pilihan saat kategori profesi diganti
-  const handleSelectKategori = (kat: KategoriTenagaOption) => {
+  const handleSelectKategori = React.useCallback((kat: KategoriTenagaOption) => {
     setSelectedKategori(kat)
     const filtered = psikologList.filter((p) => normalizeKategori(p.kategori) === kat)
     if (filtered.length > 0) {
@@ -295,7 +314,7 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
         psikolog: "",
       }))
     }
-  }
+  }, [psikologList])
 
   // Tenaga Ahli yang sedang dipilih saat ini
   const currentPsikolog = useMemo(() => {
@@ -306,10 +325,64 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     )
   }, [filteredPsikologList, psikologList, formData.idPsikolog])
 
-  // Jenis Layanan dinamis sesuai kategori & keahlian psikolog
+  // Kategori profesi yang benar-benar memiliki input harga aktif pada layanan konsultasi
+  const availableCategoriesWithPricing = useMemo(() => {
+    if (consultationServices.length === 0) return ["psikolog", "konselor", "peer-konselor"]
+    const cats = new Set<string>()
+    consultationServices.forEach((s: any) => {
+      const profs: string[] = s.profesi_tersedia || []
+      profs.forEach((p) => cats.add(p === "peer" ? "peer-konselor" : p))
+      const t = s.tarif_tenaga_ahli
+      if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) cats.add("psikolog")
+      if (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)) cats.add("konselor")
+      if (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)) cats.add("peer-konselor")
+      if (!t && (Number(s.harga_weekday) > 0 || Number(s.harga_weekend) > 0)) cats.add("psikolog")
+    })
+    return Array.from(cats)
+  }, [consultationServices])
+
+  // Sinkronkan selectedKategori jika kategori saat ini tidak memiliki tarif yang diatur
+  useEffect(() => {
+    if (
+      availableCategoriesWithPricing.length > 0 &&
+      !availableCategoriesWithPricing.includes(selectedKategori)
+    ) {
+      handleSelectKategori(availableCategoriesWithPricing[0] as KategoriTenagaOption)
+    }
+  }, [availableCategoriesWithPricing, selectedKategori])
+
+  // Jenis Layanan dinamis: hanya tampilkan layanan yang memiliki tarif untuk kategori tenaga ahli yang dipilih
   const layananOptions = useMemo(() => {
+    const cleanKat = selectedKategori === "peer-konselor" ? "peer" : selectedKategori === "konselor" ? "konselor" : "psikolog"
+
+    if (consultationServices.length > 0) {
+      const matching = consultationServices.filter((s: any) => {
+        const profs: string[] = s.profesi_tersedia || []
+        if (profs.length > 0) {
+          return profs.includes(cleanKat)
+        }
+        const t = s.tarif_tenaga_ahli
+        if (cleanKat === "psikolog") {
+          return (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
+                 (!t && (Number(s.harga_weekday) > 0 || Number(s.harga_weekend) > 0))
+        }
+        if (cleanKat === "konselor") {
+          return t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)
+        }
+        if (cleanKat === "peer") {
+          return t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)
+        }
+        return false
+      })
+
+      const names = matching.map((s: any) => s.nama?.trim()).filter(Boolean)
+      if (names.length > 0) {
+        return Array.from(new Set<string>(names))
+      }
+    }
+
     return getLayananOptionsForPsikolog(currentPsikolog)
-  }, [currentPsikolog])
+  }, [consultationServices, selectedKategori, currentPsikolog])
 
   // Sinkronkan pilihan layanan jika belum ada atau tidak valid
   useEffect(() => {
@@ -575,9 +648,15 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
                 onChange={(e) => handleSelectKategori(e.target.value as KategoriTenagaOption)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
               >
-                <option value="psikolog">Psikolog ({categoryCounts.psikolog})</option>
-                <option value="konselor">Konselor ({categoryCounts.konselor})</option>
-                <option value="peer-konselor">Peer Konselor ({categoryCounts["peer-konselor"]})</option>
+                <option value="psikolog" disabled={!availableCategoriesWithPricing.includes("psikolog")}>
+                  Psikolog ({categoryCounts.psikolog}){!availableCategoriesWithPricing.includes("psikolog") ? " - Tarif Belum Diatur" : ""}
+                </option>
+                <option value="konselor" disabled={!availableCategoriesWithPricing.includes("konselor")}>
+                  Konselor ({categoryCounts.konselor}){!availableCategoriesWithPricing.includes("konselor") ? " - Tarif Belum Diatur" : ""}
+                </option>
+                <option value="peer-konselor" disabled={!availableCategoriesWithPricing.includes("peer-konselor")}>
+                  Peer Konselor ({categoryCounts["peer-konselor"]}){!availableCategoriesWithPricing.includes("peer-konselor") ? " - Tarif Belum Diatur" : ""}
+                </option>
               </select>
             </div>
 
