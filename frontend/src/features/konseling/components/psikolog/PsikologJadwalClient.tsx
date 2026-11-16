@@ -164,28 +164,27 @@ export function matchPsikologSession(
     nama_psikolog?: string | null
   },
   currentId?: string | null,
-  currentName?: string | null
+  currentName?: string | null,
+  currentAccountId?: string | null
 ): boolean {
   const targetId = target.id_psikolog || target.idPsikolog
   const targetName = target.namaPsikolog || target.psikolog || target.psikologName || target.nama_psikolog
 
   // 1. Jika ada ID di target dan di psikolog login, WAJIB cocok
-  if (currentId && currentId !== "0" && targetId && targetId !== "0") {
-    return targetId === currentId
+  if (targetId && targetId !== "0") {
+    if (currentId && currentId !== "0" && targetId === currentId) return true
+    if (currentAccountId && currentAccountId !== "0" && targetId === currentAccountId) return true
   }
 
-  // 2. Jika salah satu tidak ada ID atau "0", cocokkan nama spesifik (bukan title generik)
+  // 2. Jika nama cocok
   if (currentName && targetName) {
     const cleanCurrent = cleanRoleOrTitle(currentName)
     const cleanTarget = cleanRoleOrTitle(targetName)
     if (cleanCurrent.length >= 3 && cleanTarget.length >= 3) {
-      return cleanCurrent.includes(cleanTarget) || cleanTarget.includes(cleanCurrent)
+      if (cleanCurrent === cleanTarget || cleanCurrent.includes(cleanTarget) || cleanTarget.includes(cleanCurrent)) {
+        return true
+      }
     }
-  }
-
-  // 3. Jika currentId terdefinisi dan targetId berbeda, tidak cocok
-  if (currentId && currentId !== "0" && targetId && targetId !== currentId) {
-    return false
   }
 
   return false
@@ -236,6 +235,11 @@ export default function PsikologJadwalClient() {
     (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_name") || "" : "") ||
     user?.name ||
     ""
+  const resolvedAccountId =
+    (activePsikolog as any)?.id_account ||
+    (activePsikolog as any)?.account?.id ||
+    user?.id ||
+    (typeof window !== "undefined" ? localStorage.getItem("active_psikolog_account_id") || "" : "")
 
   const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan Konsultasi")
   const [layananOptions, setLayananOptions] = useState<string[]>(DEFAULT_LAYANAN_KONSULTASI)
@@ -261,7 +265,7 @@ export default function PsikologJadwalClient() {
     const dateSet = new Set<string>()
     bookedSessions.forEach((s) => {
       if ((s as any).tipe_jadwal === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) return
-      if (!matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName)) return
+      if (!matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName, resolvedAccountId)) return
 
       if (s.date && s.date >= todayKey && !s.isCancelled && s.status !== "Dibatalkan") {
         dateSet.add(s.date)
@@ -670,7 +674,8 @@ export default function PsikologJadwalClient() {
               const isMatch = matchPsikologSession(
                 { idPsikolog: t.idPsikolog || t.id_psikolog, psikolog: t.psikolog },
                 resolvedPsikologId,
-                resolvedPsikologName
+                resolvedPsikologName,
+                resolvedAccountId
               )
 
               if (isMatch && t.tanggal && t.waktuRange) {
@@ -704,7 +709,8 @@ export default function PsikologJadwalClient() {
               const isMatch = matchPsikologSession(
                 { id_psikolog: w.id_psikolog, psikologName: w.psikologName },
                 resolvedPsikologId,
-                resolvedPsikologName
+                resolvedPsikologName,
+                resolvedAccountId
               )
 
               if (isMatch && w.date && w.timeSlot) {
@@ -748,7 +754,8 @@ export default function PsikologJadwalClient() {
               const isMatch = matchPsikologSession(
                 { id_psikolog: s.id_psikolog, nama_psikolog: s.nama_psikolog },
                 resolvedPsikologId,
-                resolvedPsikologName
+                resolvedPsikologName,
+                resolvedAccountId
               )
 
               if (isMatch && s.tanggal && s.jam_mulai) {
@@ -798,7 +805,8 @@ export default function PsikologJadwalClient() {
             const isMatch = matchPsikologSession(
               { id_psikolog: r.idPsikolog, psikologName: r.psikolog },
               resolvedPsikologId,
-              resolvedPsikologName
+              resolvedPsikologName,
+              resolvedAccountId
             )
 
             if (!r.psikolog || isMatch) {
@@ -952,17 +960,31 @@ export default function PsikologJadwalClient() {
       )
     }
 
+    const handleAutoRefetch = () => {
+      loadScheduleForPsikolog()
+    }
+
     handleSyncCancelled()
     window.addEventListener("storage", handleSyncCancelled)
     window.addEventListener("storage", loadScheduleForPsikolog)
     window.addEventListener("empathika_session_cancelled", handleSyncCancelled as EventListener)
     window.addEventListener("empathika_session_rescheduled", loadScheduleForPsikolog as EventListener)
+    window.addEventListener("empathika_booking_created", handleAutoRefetch as EventListener)
+    window.addEventListener("focus", handleAutoRefetch)
+    document.addEventListener("visibilitychange", handleAutoRefetch)
+
+    // Polling periodik berkala agar booking dari browser lain otomatis termutakhirkan
+    const pollInterval = setInterval(handleAutoRefetch, 12000)
 
     return () => {
       window.removeEventListener("storage", handleSyncCancelled)
       window.removeEventListener("storage", loadScheduleForPsikolog)
       window.removeEventListener("empathika_session_cancelled", handleSyncCancelled as EventListener)
       window.removeEventListener("empathika_session_rescheduled", loadScheduleForPsikolog as EventListener)
+      window.removeEventListener("empathika_booking_created", handleAutoRefetch as EventListener)
+      window.removeEventListener("focus", handleAutoRefetch)
+      document.removeEventListener("visibilitychange", handleAutoRefetch)
+      clearInterval(pollInterval)
     }
   }, [])
 
@@ -1415,7 +1437,7 @@ export default function PsikologJadwalClient() {
                     if ((s as any).tipe_jadwal === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) {
                       return false
                     }
-                    return matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName)
+                    return matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName, resolvedAccountId)
                   }
 
                   const openedSession = date
@@ -1769,7 +1791,7 @@ export default function PsikologJadwalClient() {
                       s.date === wd.dateKey &&
                       (s as any).tipe_jadwal !== "ASESMEN" &&
                       !(s.layanan || "").toLowerCase().includes("asesmen") &&
-                      matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName)
+                      matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName, resolvedAccountId)
                   )
                   .sort((a, b) => a.waktu.localeCompare(b.waktu))
 
@@ -1959,44 +1981,49 @@ export default function PsikologJadwalClient() {
                           return (
                             <div
                               key={item.id || idx}
-                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden"
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden w-full min-w-0"
                             >
-                              <div className="flex items-center justify-between gap-1 flex-wrap">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
-                                  <span className="text-[11px] sm:text-xs font-bold text-gray-500 line-through whitespace-nowrap">
-                                    {item.waktu}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
-                                    Lewat
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleRemoveSlot(item.waktu, wd.dateKey)
-                                    }}
-                                    title="Tutup / Hapus slot riwayat ini"
-                                    className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                              {/* Baris 1: Jam & Bulatan Abu-abu */}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
+                                <span className="text-[11px] sm:text-xs font-bold text-gray-500 line-through whitespace-nowrap">
+                                  {item.waktu}
+                                </span>
                               </div>
+
+                              {/* Baris 2: Badge Lewat (kiri) & Tombol Hapus (kanan) */}
+                              <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                  Lewat
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleRemoveSlot(item.waktu, wd.dateKey)
+                                  }}
+                                  title="Tutup / Hapus slot riwayat ini"
+                                  className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Baris 3: Judul Slot */}
                               <p className="text-xs font-semibold leading-tight text-gray-700 line-clamp-2">
                                 Slot Tersedia (Tidak Terpakai)
                               </p>
-                              <div className="flex flex-col gap-0.5 text-[10px] text-gray-500 min-w-0">
-                                <div className="flex items-center justify-between gap-1 min-w-0">
+
+                              {/* Baris 4: Metode & Keterangan */}
+                              <div className="flex items-center justify-between gap-1 min-w-0 text-[10px] text-gray-500">
+                                {item.metode && (
                                   <span className="font-medium text-gray-600 bg-gray-200/80 px-1.5 py-0.5 rounded text-[9px] shrink-0">
                                     {item.metode}
                                   </span>
-                                  <span className="italic truncate text-[9px] text-gray-400 min-w-0">
-                                    Tidak terpakai
-                                  </span>
-                                </div>
+                                )}
+                                <span className="italic truncate text-[9px] text-gray-400 min-w-0">
+                                  Tidak terpakai
+                                </span>
                               </div>
                             </div>
                           )
@@ -2007,44 +2034,47 @@ export default function PsikologJadwalClient() {
                             key={item.id || idx}
                             className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden w-full min-w-0"
                           >
-                            <div className="flex items-center justify-between gap-1 flex-wrap">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 rounded-full shrink-0 bg-[#561269]" />
-                                <span className="text-[11px] sm:text-xs font-bold text-[#561269] whitespace-nowrap">
-                                  {item.waktu}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
-                                  Tersedia
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleRemoveSlot(item.waktu, wd.dateKey)
-                                  }}
-                                  title="Tutup / Hapus slot jam ini"
-                                  className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                            {/* Baris 1: Jam & Bulatan Ungu */}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="w-2 h-2 rounded-full shrink-0 bg-[#561269]" />
+                              <span className="text-[11px] sm:text-xs font-bold text-[#561269] whitespace-nowrap">
+                                {item.waktu}
+                              </span>
                             </div>
+
+                            {/* Baris 2: Badge Tersedia (kiri) & Tombol Hapus (kanan) */}
+                            <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
+                                Tersedia
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemoveSlot(item.waktu, wd.dateKey)
+                                }}
+                                title="Tutup / Hapus slot jam ini"
+                                className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Baris 3: Judul Slot */}
                             <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950 line-clamp-1">
                               Slot Tersedia
                             </p>
-                            <div className="flex flex-col gap-0.5 text-[10px] min-w-0">
-                              <div className="flex items-center justify-between gap-1 min-w-0">
-                                {item.metode && (
-                                  <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
-                                    {item.metode}
-                                  </span>
-                                )}
-                                <span className="italic text-purple-600/80 font-medium truncate text-[9px] min-w-0">
-                                  Tersedia
+
+                            {/* Baris 4: Metode & Keterangan Tersedia */}
+                            <div className="flex items-center justify-between gap-1 min-w-0 text-[10px]">
+                              {item.metode && (
+                                <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
+                                  {item.metode}
                                 </span>
-                              </div>
+                              )}
+                              <span className="italic text-purple-600/80 font-medium truncate text-[9px] min-w-0">
+                                Tersedia
+                              </span>
                             </div>
                           </div>
                         )

@@ -372,6 +372,10 @@ export function useBayarClient() {
       const finalOrderId = res?.kode_pesanan || ("W-EMP-" + String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0"))
       const bookingId = res?.id
 
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("empathika_booking_created", { detail: res }))
+      }
+
       const cleanBottomTime = isAsesmenLayanan && qBottomTime.includes("•")
         ? qBottomTime.split("•")[0].trim()
         : qBottomTime

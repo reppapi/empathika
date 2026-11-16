@@ -20,6 +20,15 @@ const isAsesmen = (s: any) => {
   if (tipe === "ASESMEN") return true
   if (tipe === "KONSULTASI") return false
   const layanan = (s.layanan || "").toLowerCase()
+  if (
+    layanan.includes("konsultasi") ||
+    layanan.includes("konseling") ||
+    layanan.includes("individu") ||
+    layanan.includes("pasangan") ||
+    layanan.includes("keluarga")
+  ) {
+    return false
+  }
   return layanan.includes("asesmen") || layanan.includes("psikotes")
 }
 

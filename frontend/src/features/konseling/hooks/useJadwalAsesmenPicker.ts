@@ -19,6 +19,24 @@ export interface UseJadwalAsesmenPickerProps {
   timeSlots?: string[]
 }
 
+export const isAsesmenSession = (s: any): boolean => {
+  if (!s) return false
+  const tipe = (s.tipe_jadwal || "").toUpperCase()
+  if (tipe === "ASESMEN") return true
+  if (tipe === "KONSULTASI") return false
+  const layanan = (s.layanan || "").toLowerCase()
+  if (
+    layanan.includes("konsultasi") ||
+    layanan.includes("konseling") ||
+    layanan.includes("individu") ||
+    layanan.includes("pasangan") ||
+    layanan.includes("keluarga")
+  ) {
+    return false
+  }
+  return layanan.includes("asesmen") || layanan.includes("psikotes")
+}
+
 export function formatFullDateIndonesian(d: Date): string {
   const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"]
   const months = [
@@ -58,11 +76,7 @@ export function useJadwalAsesmenPicker({
     setAvailableSlots((prev) => {
       const merged = new Set([...DEFAULT_SLOTS, ...timeSlots, ...prev])
       bookedSessions.forEach((s) => {
-        const isAsesmen =
-          (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
-          (s.layanan || "").toLowerCase().includes("asesmen") ||
-          (s.layanan || "").toLowerCase().includes("psikotes")
-        if (isAsesmen && s.waktu) merged.add(s.waktu)
+        if (isAsesmenSession(s) && s.waktu) merged.add(s.waktu)
       })
       const filtered = Array.from(merged).filter((t) => !deletedCustomSlots.includes(t))
       return filtered.sort()
@@ -90,12 +104,7 @@ export function useJadwalAsesmenPicker({
     const dates: Date[] = []
     const dateSet = new Set<string>()
     bookedSessions.forEach((s) => {
-      const isAsesmen =
-        (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
-        (s.layanan || "").toLowerCase().includes("asesmen") ||
-        (s.layanan || "").toLowerCase().includes("psikotes")
-
-      if (isAsesmen && s.date && s.date >= todayKey && s.status !== "Dibatalkan" && !s.isCancelled) {
+      if (isAsesmenSession(s) && s.date && s.date >= todayKey && s.status !== "Dibatalkan" && !s.isCancelled) {
         dateSet.add(s.date)
       }
     })

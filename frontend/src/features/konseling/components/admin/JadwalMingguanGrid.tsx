@@ -269,38 +269,43 @@ export default function JadwalMingguanGrid({
                           return (
                             <div
                               key={item.id}
-                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden"
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all bg-gray-100/85 border border-gray-200/90 text-gray-500 overflow-hidden w-full min-w-0"
                             >
-                              <div className="flex items-center justify-between gap-1 flex-wrap">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
-                                  <span className="text-[11px] sm:text-xs font-bold text-gray-500 line-through whitespace-nowrap">
-                                    {item.waktu}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
-                                    Lewat
-                                  </span>
-                                  {onRemoveSlot && isAsesmen && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault()
-                                        e.stopPropagation()
-                                        onRemoveSlot(item.waktu, item.date)
-                                      }}
-                                      title="Hapus slot asesmen ini dari jadwal"
-                                      className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
+                              {/* Baris 1: Jam & Bulatan Abu-abu */}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-2 h-2 rounded-full shrink-0 bg-gray-400" />
+                                <span className="text-[11px] sm:text-xs font-bold text-gray-500 line-through whitespace-nowrap">
+                                  {item.waktu}
+                                </span>
                               </div>
+
+                              {/* Baris 2: Badge Lewat (kiri) & Tombol Hapus (kanan) */}
+                              <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                                  Lewat
+                                </span>
+                                {onRemoveSlot && isAsesmen && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      onRemoveSlot(item.waktu, item.date)
+                                    }}
+                                    title="Hapus slot asesmen ini dari jadwal"
+                                    className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Baris 3: Judul Slot */}
                               <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-clamp-2">
                                 {isAsesmen ? "Slot Asesmen (Lewat)" : "Slot Tersedia (Tidak Terpakai)"}
                               </p>
+
+                              {/* Baris 4: Metode & Keterangan */}
                               <div className="flex flex-col gap-0.5 text-[10px] text-gray-500 min-w-0">
                                 <div className="flex items-center justify-between gap-1 min-w-0">
                                   {item.metode && (
@@ -322,36 +327,41 @@ export default function JadwalMingguanGrid({
                             key={item.id}
                             className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden w-full min-w-0"
                           >
-                            <div className="flex items-center justify-between gap-1 flex-wrap">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 rounded-full shrink-0 bg-[#561269]" />
-                                <span className="text-[11px] sm:text-xs font-bold text-[#561269] whitespace-nowrap">
-                                  {item.waktu}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
-                                  Tersedia
-                                </span>
-                                {onRemoveSlot && isAsesmen && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      onRemoveSlot(item.waktu, item.date)
-                                    }}
-                                    title="Hapus slot asesmen ini dari jadwal"
-                                    className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
+                            {/* Baris 1: Jam & Bulatan Ungu */}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="w-2 h-2 rounded-full shrink-0 bg-[#561269]" />
+                              <span className="text-[11px] sm:text-xs font-bold text-[#561269] whitespace-nowrap">
+                                {item.waktu}
+                              </span>
                             </div>
+
+                            {/* Baris 2: Badge Tersedia (kiri) & Tombol Hapus (kanan) */}
+                            <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
+                                Tersedia
+                              </span>
+                              {onRemoveSlot && isAsesmen && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    onRemoveSlot(item.waktu, item.date)
+                                  }}
+                                  title="Hapus slot asesmen ini dari jadwal"
+                                  className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Baris 3: Judul Slot */}
                             <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950 line-clamp-1">
                               {isAsesmen ? "Slot Asesmen" : "Slot Tersedia"}
                             </p>
+
+                            {/* Baris 4: Metode & Keterangan Tersedia */}
                             <div className="flex flex-col gap-0.5 text-[10px] min-w-0">
                               <div className="flex items-center justify-between gap-1 min-w-0">
                                 {item.metode && (
