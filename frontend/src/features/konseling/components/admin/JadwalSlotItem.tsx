@@ -2,6 +2,7 @@
 
 import { Trash2 } from "lucide-react"
 import { BookedAssessment } from "@/features/konseling/types"
+import { formatDateKey } from "@/features/konseling/data/jadwalAdminData"
 
 interface JadwalSlotItemProps {
   time: string
@@ -13,19 +14,69 @@ interface JadwalSlotItemProps {
   onDeleteCustom: () => void
 }
 
+const isAsesmen = (s: any) => {
+  if (!s) return false
+  const tipe = (s.tipe_jadwal || "").toUpperCase()
+  if (tipe === "ASESMEN") return true
+  if (tipe === "KONSULTASI") return false
+  const layanan = (s.layanan || "").toLowerCase()
+  return layanan.includes("asesmen") || layanan.includes("psikotes")
+}
+
+const normalizeTime = (t?: string) => (t || "").replace("WIB", "").trim()
+
 export default function JadwalSlotItem({
   time,
+  date,
+  bookedSessions = [],
   isChecked,
   isCustom,
   onToggle,
   onDeleteCustom,
 }: JadwalSlotItemProps) {
+  const normTime = normalizeTime(time)
+
+  // Hanya periksa slot asesmen klinik yang sudah dibuka
+  const openedAsesmenSlot = date
+    ? bookedSessions.find(
+        (s: any) =>
+          isAsesmen(s) &&
+          s.date === formatDateKey(date) &&
+          normalizeTime(s.waktu) === normTime &&
+          (s.isAvailableSlot || s.namaKlien === "Tersedia" || s.statusSlot === "TERSEDIA") &&
+          s.status !== "Dibatalkan" &&
+          !s.isCancelled
+      )
+    : undefined
+  const isAlreadyOpened = Boolean(openedAsesmenSlot)
+
+  // Hanya periksa booking asesmen klinik yang sudah ada kliennya
+  const bookedAsesmenSession = date
+    ? bookedSessions.find(
+        (s: any) =>
+          isAsesmen(s) &&
+          s.date === formatDateKey(date) &&
+          normalizeTime(s.waktu) === normTime &&
+          !s.isAvailableSlot &&
+          s.namaKlien &&
+          s.namaKlien !== "Tersedia" &&
+          s.statusSlot !== "TERSEDIA" &&
+          s.status !== "Dibatalkan" &&
+          !s.isCancelled
+      )
+    : undefined
+  const isAlreadyBooked = Boolean(bookedAsesmenSession)
+
   return (
     <div
       className={`flex items-center justify-between border rounded-xl px-4 py-2.5 transition-all ${
         isChecked
           ? "border-[#561269] bg-purple-50/70 shadow-2xs"
-          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+          : isAlreadyOpened
+            ? "border-emerald-300 bg-emerald-50/40"
+            : isAlreadyBooked
+              ? "border-blue-200 bg-blue-50/30"
+              : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
       }`}
     >
       <label className="flex items-center gap-3 cursor-pointer flex-1">
@@ -44,6 +95,16 @@ export default function JadwalSlotItem({
         </span>
       </label>
       <div className="flex items-center gap-1.5">
+        {isAlreadyOpened && !isChecked && (
+          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+            Sudah Dibuka {openedAsesmenSlot?.metode ? `(${openedAsesmenSlot.metode})` : ""}
+          </span>
+        )}
+        {isAlreadyBooked && !isChecked && (
+          <span className="text-[10px] font-semibold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">
+            Ada Klien
+          </span>
+        )}
         {isChecked && (
           <span className="text-[11px] font-semibold text-[#561269] bg-purple-100/80 px-2.5 py-0.5 rounded-full">
             Dipilih

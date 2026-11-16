@@ -58,7 +58,11 @@ export function useJadwalAsesmenPicker({
     setAvailableSlots((prev) => {
       const merged = new Set([...DEFAULT_SLOTS, ...timeSlots, ...prev])
       bookedSessions.forEach((s) => {
-        if (s.waktu) merged.add(s.waktu)
+        const isAsesmen =
+          (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+          (s.layanan || "").toLowerCase().includes("asesmen") ||
+          (s.layanan || "").toLowerCase().includes("psikotes")
+        if (isAsesmen && s.waktu) merged.add(s.waktu)
       })
       const filtered = Array.from(merged).filter((t) => !deletedCustomSlots.includes(t))
       return filtered.sort()
@@ -86,7 +90,12 @@ export function useJadwalAsesmenPicker({
     const dates: Date[] = []
     const dateSet = new Set<string>()
     bookedSessions.forEach((s) => {
-      if (s.date && s.date >= todayKey && s.status !== "Dibatalkan") {
+      const isAsesmen =
+        (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
+        (s.layanan || "").toLowerCase().includes("asesmen") ||
+        (s.layanan || "").toLowerCase().includes("psikotes")
+
+      if (isAsesmen && s.date && s.date >= todayKey && s.status !== "Dibatalkan" && !s.isCancelled) {
         dateSet.add(s.date)
       }
     })

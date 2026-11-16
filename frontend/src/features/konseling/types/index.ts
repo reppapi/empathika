@@ -15,6 +15,7 @@ export interface BookedAssessment {
   isAvailableSlot?: boolean
   isBooked?: boolean
   isRescheduled?: boolean
+  isCancelled?: boolean
   tipe_jadwal?: "ASESMEN" | "KONSULTASI" | string
 }
 
