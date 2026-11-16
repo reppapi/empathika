@@ -1549,7 +1549,7 @@ export class BookingRepository {
       const metode = booking.metode || booking.jadwal?.metode || 'ONLINE'
 
       // 4. Cari apakah sudah ada slot jadwal di tanggal dan jam baru tersebut
-      let targetSlot = await tx.jadwalSlot.findFirst({
+      const targetSlot = await tx.jadwalSlot.findFirst({
         where: {
           tanggal: parsedNewDate,
           jam_mulai: parsedJamMulai,

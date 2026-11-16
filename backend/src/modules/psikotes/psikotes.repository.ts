@@ -1629,8 +1629,6 @@ export class PsikotesRepository {
     const rawKode = (input.kode_akses || '').trim()
     const cleanKode = rawKode.toUpperCase().replace(/\s+/g, '')
     const rawPhone = (input.no_telepon || '').trim()
-    const cleanPhone = normalizePhoneNumber(rawPhone) || rawPhone
-    const digitsOnly = rawPhone.replace(/\D/g, '')
 
     if (!rawKode || !rawPhone) {
       throw Object.assign(new Error('Kode akses dan nomor WhatsApp pembeli wajib diisi'), { statusCode: 400 })
