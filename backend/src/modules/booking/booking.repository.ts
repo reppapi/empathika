@@ -518,11 +518,30 @@ export class BookingRepository {
             jenis_kelamin: data.klien.jenis_kelamin,
           },
         })
-      } else if (client.no_telepon !== standardizedPhone) {
-        await tx.client.update({
-          where: { id: client.id },
-          data: { no_telepon: standardizedPhone },
-        }).catch(() => {})
+      } else {
+        const updateData: Prisma.ClientUpdateInput = {}
+        if (client.no_telepon !== standardizedPhone) {
+          updateData.no_telepon = standardizedPhone
+        }
+        if (data.klien.nama?.trim() && data.klien.nama.trim() !== client.nama) {
+          updateData.nama = data.klien.nama.trim()
+        }
+        if (data.klien.usia && data.klien.usia !== client.usia) {
+          updateData.usia = data.klien.usia
+        }
+        if (data.klien.jenis_kelamin && data.klien.jenis_kelamin !== client.jenis_kelamin) {
+          updateData.jenis_kelamin = data.klien.jenis_kelamin
+        }
+        if (Object.keys(updateData).length > 0) {
+          client = await tx.client.update({
+            where: { id: client.id },
+            data: updateData,
+          }).catch(() => client)
+        }
+      }
+
+      if (!client) {
+        throw Object.assign(new Error('Gagal memproses data klien'), { statusCode: 400 })
       }
 
       let targetPsiId = data.id_psikolog
@@ -866,17 +885,25 @@ export class BookingRepository {
         if (client.no_telepon !== standardizedPhone) {
           updateData.no_telepon = standardizedPhone
         }
-        if (data.klien.nama?.trim() && !client.nama) {
+        if (data.klien.nama?.trim() && data.klien.nama.trim() !== client.nama) {
           updateData.nama = data.klien.nama.trim()
         }
-        if (data.klien.usia && !client.usia) updateData.usia = data.klien.usia
-        if (data.klien.jenis_kelamin && !client.jenis_kelamin) updateData.jenis_kelamin = data.klien.jenis_kelamin
+        if (data.klien.usia && data.klien.usia !== client.usia) {
+          updateData.usia = data.klien.usia
+        }
+        if (data.klien.jenis_kelamin && data.klien.jenis_kelamin !== client.jenis_kelamin) {
+          updateData.jenis_kelamin = data.klien.jenis_kelamin
+        }
         if (Object.keys(updateData).length > 0) {
-          await tx.client.update({
+          client = await tx.client.update({
             where: { id: client.id },
             data: updateData,
-          }).catch(() => {})
+          }).catch(() => client)
         }
+      }
+
+      if (!client) {
+        throw Object.assign(new Error('Gagal memproses data klien'), { statusCode: 400 })
       }
 
       // 4. Cari info layanan untuk menentukan nominal transaksi (fallback otomatis ke layanan aktif pertama)
