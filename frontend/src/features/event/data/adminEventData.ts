@@ -23,6 +23,7 @@ export interface AdminEventData {
   kuotaTiketBundling?: number
   namaBundling?: string
   paketBundling?: PaketBundlingItem[]
+  benefit?: string[]
   deskripsi?: string
   status: EventStatus
   bannerUrl?: string
@@ -102,6 +103,7 @@ export function mapApiToAdminEvent(apiItem: EventItemApi): AdminEventData {
     kuotaTiketBundling: apiItem.kuota_tiket_bundling ?? 2,
     namaBundling: apiItem.nama_bundling || undefined,
     paketBundling: apiItem.paket_bundling || undefined,
+    benefit: apiItem.benefit ?? [],
     deskripsi: apiItem.deskripsi,
     status,
     bannerUrl: apiItem.banner_url || undefined,

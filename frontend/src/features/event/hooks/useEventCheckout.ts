@@ -24,6 +24,7 @@ export function useEventCheckout() {
     nama_bundling?: string | null
     paket_bundling?: PaketBundlingItem[] | null
     harga?: number | string
+    benefit?: string[]
   } | null>(null)
 
   const [metodePembayaran, setMetodePembayaran] = useState<string | null>(null)
@@ -81,6 +82,7 @@ export function useEventCheckout() {
           nama_bundling: ev.nama_bundling,
           paket_bundling: ev.paket_bundling,
           harga: ev.harga,
+          benefit: ev.benefit,
         })
 
         // Jika status selesai, dibatalkan, atau masih draft (dinonaktifkan oleh admin)
@@ -143,6 +145,23 @@ export function useEventCheckout() {
   const waktuParam = searchParams.get("waktu") || "09:00"
   const kategoriParam = searchParams.get("kategori") || "Workshop"
   const hargaParam = searchParams.get("harga") || "Gratis"
+
+  // Benefit: dari server data atau parse dari URL params jika ada
+  let benefitList: string[] = []
+  if (serverEventData?.benefit && Array.isArray(serverEventData.benefit) && serverEventData.benefit.length > 0) {
+    benefitList = serverEventData.benefit
+  } else {
+    const benefitParam = searchParams.get("benefit")
+    if (benefitParam) {
+      try {
+        const parsed = JSON.parse(benefitParam)
+        if (Array.isArray(parsed)) benefitList = parsed
+      } catch {
+        // jika dipisah koma
+        benefitList = benefitParam.split(",").map((s) => s.trim()).filter(Boolean)
+      }
+    }
+  }
 
   // Parameter Bundling (Gabungan dari URL params dan Server DB response)
   const serverBundlingList: PaketBundlingItem[] =
@@ -445,6 +464,7 @@ export function useEventCheckout() {
     kategoriParam,
     hargaParam: activeHargaTeks,
     hargaNormalParam: hargaParam,
+    benefitList,
     selectedTicketType,
     setSelectedTicketType,
     hasBundling,

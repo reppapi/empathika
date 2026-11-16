@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { eventService, CreateEventDto, UpdateEventDto, PaketBundlingItem } from "@/services/event.service"
 import { uploadService } from "@/services/upload.service"
 import { EVENT_JENIS, EVENT_TIPE, EVENT_STATUS, EventJenis, EventTipe, EventStatus } from "../../constants/eventConstants"
-import { inputClass, labelClass, helperClass } from "./form/formStyles"
+import { inputClass, inputErrorClass, labelClass, helperClass } from "./form/formStyles"
 import { EventBannerUpload } from "./form/EventBannerUpload"
 import { EventTypeLinksSection } from "./form/EventTypeLinksSection"
 import { EventScheduleLocationSection } from "./form/EventScheduleLocationSection"
@@ -30,6 +30,7 @@ export type EventFormData = {
   namaBundling: string
   paketBundlingList: PaketBundlingItem[]
   isBundlingActive: boolean
+  benefit: string[]
   deskripsi: string
   status: EventStatus
 }
@@ -55,6 +56,7 @@ const INITIAL_FORM: EventFormData = {
     { nama_paket: "Paket Duo Hemat", kuota_tiket: 2, harga_paket: 0 },
   ],
   isBundlingActive: false,
+  benefit: [],
   deskripsi: "",
   status: EVENT_STATUS.DIPUBLIKASI,
 }
@@ -161,6 +163,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             namaBundling: item.nama_bundling || "Paket Duo Hemat",
             paketBundlingList: rawBundlingList,
             isBundlingActive: hasBundlingActive,
+            benefit: item.benefit && Array.isArray(item.benefit) ? item.benefit : [],
             deskripsi: item.deskripsi,
             status,
           })
@@ -236,6 +239,32 @@ export default function AdminEventFormClient({ eventId }: Props) {
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {}
 
+    // Field Wajib Utama
+    if (!form.judul || !form.judul.trim()) {
+      newErrors.judul = "Judul event wajib diisi."
+    }
+    if (!form.tanggal || !form.tanggal.trim()) {
+      newErrors.tanggal = "Tanggal event wajib dipilih."
+    }
+    if (!form.waktuMulai || !form.waktuMulai.trim()) {
+      newErrors.waktuMulai = "Waktu mulai wajib diisi."
+    }
+    if (!form.waktuSelesai || !form.waktuSelesai.trim()) {
+      newErrors.waktuSelesai = "Waktu selesai wajib diisi."
+    }
+    if (!form.lokasi || !form.lokasi.trim()) {
+      newErrors.lokasi = form.tipe === EVENT_TIPE.ONLINE ? "Platform online (cth: Google Meet) wajib diisi." : "Lokasi acara wajib diisi."
+    }
+    if (!form.pembicara || !form.pembicara.trim()) {
+      newErrors.pembicara = "Nama pembicara wajib diisi."
+    }
+    if (!form.kuota || isNaN(Number(form.kuota)) || Number(form.kuota) <= 0) {
+      newErrors.kuota = "Kuota peserta harus berupa angka lebih dari 0."
+    }
+    if (form.harga === "" || isNaN(Number(form.harga)) || Number(form.harga) < 0) {
+      newErrors.harga = "Harga satuan wajib diisi (minimal 0 jika gratis)."
+    }
+
     // Link WhatsApp wajib diisi & valid URL untuk online maupun offline
     if (!form.linkWa || !form.linkWa.trim()) {
       newErrors.linkWa = "Link grup WhatsApp wajib diisi."
@@ -262,7 +291,22 @@ export default function AdminEventFormClient({ eventId }: Props) {
     }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+
+    const errorKeys = Object.keys(newErrors)
+    if (errorKeys.length > 0) {
+      // Fokus dan scroll otomatis ke field pertama yang error
+      const firstFieldId = errorKeys[0]
+      setTimeout(() => {
+        const el = document.getElementById(firstFieldId)
+        if (el) {
+          el.focus()
+          el.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
+      }, 50)
+      return false
+    }
+
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -300,6 +344,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
     const kuotaTiketBundlingNum = firstBundle ? firstBundle.kuota_tiket : null
     const namaBundlingStr = firstBundle ? firstBundle.nama_paket : null
     const paketBundlingPayload = validBundlingList.length > 0 ? validBundlingList : null
+    const finalBenefit = (form.benefit || []).map((b) => b.trim()).filter(Boolean)
     const finalMeetUrl = tipeEvent === "ONLINE" ? (form.linkMeet.trim() || null) : null
     const finalWaUrl = form.linkWa.trim()
 
@@ -347,6 +392,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
           kuota_tiket_bundling: kuotaTiketBundlingNum,
           nama_bundling: namaBundlingStr,
           paket_bundling: paketBundlingPayload,
+          benefit: finalBenefit,
           banner_url: finalBannerUrl,
           nama_pembicara: form.pembicara,
           status: statusEvent,
@@ -371,6 +417,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
           kuota_tiket_bundling: kuotaTiketBundlingNum,
           nama_bundling: namaBundlingStr,
           paket_bundling: paketBundlingPayload,
+          benefit: finalBenefit,
           banner_url: finalBannerUrl,
           nama_pembicara: form.pembicara,
           status: statusEvent,
@@ -452,9 +499,18 @@ export default function AdminEventFormClient({ eventId }: Props) {
               required
               value={form.judul}
               onChange={handleChange}
-              className={inputClass}
+              className={`${inputClass} ${errors.judul ? inputErrorClass : ""}`}
             />
-            <span className={helperClass}>Gunakan judul yang jelas dan menarik peserta</span>
+            {errors.judul ? (
+              <span className="flex items-center gap-1.5 text-xs text-red-600 font-semibold mt-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                </svg>
+                {errors.judul}
+              </span>
+            ) : (
+              <span className={helperClass}>Gunakan judul yang jelas dan menarik peserta</span>
+            )}
           </div>
 
           {/* Jenis Event & Status Publikasi */}
@@ -509,6 +565,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             form={form}
             handleChange={handleChange}
             dateInputRef={dateInputRef}
+            errors={errors}
           />
 
           {/* Kuota, Harga Asli, dan Harga Coret (Efek Diskon) + Bundling */}
@@ -534,6 +591,65 @@ export default function AdminEventFormClient({ eventId }: Props) {
               className={`${inputClass} resize-y leading-relaxed font-normal whitespace-pre-wrap`}
             />
             <span className={helperClass}>Deskripsi detail yang akan dibaca oleh calon peserta</span>
+          </div>
+
+          {/* List Benefit Event */}
+          <div>
+            <label className={labelClass}>
+              List Benefit Event
+            </label>
+            <div className="space-y-3 mb-3">
+              {form.benefit.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={item}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setForm((prev) => ({
+                        ...prev,
+                        benefit: prev.benefit.map((b, i) => (i === idx ? val : b)),
+                      }))
+                    }}
+                    placeholder={`Benefit ${idx + 1} (cth: Akses Rekaman Video, E-Sertifikat, dll)`}
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        benefit: prev.benefit.filter((_, i) => i !== idx),
+                      }))
+                    }}
+                    className="p-2.5 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors shrink-0 cursor-pointer"
+                    title="Hapus benefit"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, benefit: [...prev.benefit, ""] }))}
+              className="inline-flex items-center gap-1.5 text-sm text-[#561269] hover:text-[#430e52] font-semibold transition-colors cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Tambah Benefit
+            </button>
+            <span className={helperClass}>Benefit kosong tidak akan disimpan</span>
           </div>
 
           {/* Action Buttons */}

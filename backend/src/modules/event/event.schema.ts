@@ -125,6 +125,7 @@ export const createEventSchema = z
       .optional()
       .nullable(),
     paket_bundling: z.array(paketBundlingItemSchema).optional().nullable(),
+    benefit: z.array(z.string().trim()).optional().default([]),
     banner_url: z.string().trim().nullish().default('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80'),
     nama_pembicara: z
       .string({ required_error: 'Nama pembicara wajib diisi' })
@@ -240,6 +241,7 @@ export const updateEventSchema = z
       .optional()
       .nullable(),
     paket_bundling: z.array(paketBundlingItemSchema).optional().nullable(),
+    benefit: z.array(z.string().trim()).optional(),
     banner_url: z.string().trim().nullish(),
     nama_pembicara: z
       .string()
@@ -296,6 +298,7 @@ export const eventItemSchema = z.object({
   kuota_tiket_bundling: z.number().nullable().optional(),
   nama_bundling: z.string().nullable().optional(),
   paket_bundling: z.any().nullable().optional(),
+  benefit: z.array(z.string()).default([]),
   banner_url: z.string().nullable(),
   nama_pembicara: z.string(),
   status: statusEventEnum,
