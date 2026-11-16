@@ -5,6 +5,7 @@ import { X, Calendar, Clock, User, UserCheck, Phone, Video, MapPin, FileText, Ch
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 import { layananService } from "@/services/layanan.service"
 import PhoneInputField from "@/components/shared/PhoneInputField"
+import DatePickerMiniCalendar from "@/components/shared/DatePickerMiniCalendar"
 
 export interface NewSessionData {
   id: string
@@ -511,6 +512,17 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
     return Array.from(new Set(dates)).sort()
   }, [allPsikologSlots])
 
+  // Jumlah slot ketersediaan per tanggal
+  const slotsCountByDate = useMemo(() => {
+    const map: Record<string, number> = {}
+    allPsikologSlots.forEach((s) => {
+      if (s.tanggal) {
+        map[s.tanggal] = (map[s.tanggal] || 0) + 1
+      }
+    })
+    return map
+  }, [allPsikologSlots])
+
   if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -703,16 +715,14 @@ export default function ModalTambahSesi({ isOpen, onClose, onSuccess }: ModalTam
           {/* Tanggal & Waktu (Wajib Slot Terbuka dari Psikolog) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#5D205E]" />
-                Tanggal Konsultasi <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
+              <DatePickerMiniCalendar
+                label="Tanggal Konsultasi"
                 required
                 value={formData.tanggal}
-                onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E8C32A] transition text-gray-900 font-medium cursor-pointer"
+                onChange={(newVal) => setFormData((prev) => ({ ...prev, tanggal: newVal }))}
+                datesWithSlots={datesWithSlots}
+                slotsCountByDate={slotsCountByDate}
+                colorTheme="purple"
               />
             </div>
 

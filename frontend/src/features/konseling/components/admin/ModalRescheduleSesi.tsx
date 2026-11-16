@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { ClientSessionToday } from "@/features/konseling/types"
 import { CalendarClock, AlertCircle, X, Calendar, Clock, User, CheckCircle2 } from "lucide-react"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
+import DatePickerMiniCalendar from "@/components/shared/DatePickerMiniCalendar"
 
 interface ModalRescheduleSesiProps {
   session: ClientSessionToday | null
@@ -229,6 +230,17 @@ export default function ModalRescheduleSesi({
     return Array.from(new Set(dates)).sort()
   }, [allPsikologSlots])
 
+  // Jumlah slot ketersediaan per tanggal
+  const slotsCountByDate = useMemo(() => {
+    const map: Record<string, number> = {}
+    allPsikologSlots.forEach((s) => {
+      if (s.tanggal) {
+        map[s.tanggal] = (map[s.tanggal] || 0) + 1
+      }
+    })
+    return map
+  }, [allPsikologSlots])
+
   if (!session) return null
 
   const cleanSessionWaktu = (session.waktu || "").replace(/\s*WIB/i, "").trim()
@@ -330,16 +342,14 @@ export default function ModalRescheduleSesi({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Tanggal Baru */}
           <div>
-            <label className="block font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#5D205E]" />
-              Tanggal Baru <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-gray-900 font-medium cursor-pointer"
+            <DatePickerMiniCalendar
+              label="Tanggal Baru"
               required
+              value={newDate}
+              onChange={(newVal) => setNewDate(newVal)}
+              datesWithSlots={datesWithSlots}
+              slotsCountByDate={slotsCountByDate}
+              colorTheme="amber"
             />
           </div>
 
