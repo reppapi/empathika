@@ -1899,32 +1899,39 @@ export default function PsikologJadwalClient() {
                           >
                             <div className="flex items-center justify-between gap-1 flex-wrap">
                               <div className="flex items-center gap-1.5 min-w-0">
-                                <div className="w-2 h-2 rounded-full bg-[#561269] shrink-0" />
+                                <span className="w-2 h-2 rounded-full shrink-0 bg-[#561269]" />
                                 <span className="text-[11px] sm:text-xs font-bold text-[#561269] whitespace-nowrap">
                                   {item.waktu}
                                 </span>
                               </div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRemoveSlot(item.waktu, wd.dateKey)
-                                }}
-                                title="Tutup / Hapus slot jam ini"
-                                className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-[#561269]">
+                                  Tersedia
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleRemoveSlot(item.waktu, wd.dateKey)
+                                  }}
+                                  title="Tutup / Hapus slot jam ini"
+                                  className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
-                            <span className="text-xs font-semibold text-purple-950">
+                            <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950 line-clamp-1">
                               Slot Tersedia
-                            </span>
+                            </p>
                             <div className="flex flex-col gap-0.5 text-[10px] min-w-0">
                               <div className="flex items-center justify-between gap-1 min-w-0">
-                                <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
-                                  {item.metode}
-                                </span>
-                                <span className="text-[9px] text-purple-600/80 font-medium italic truncate min-w-0">
+                                {item.metode && (
+                                  <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
+                                    {item.metode}
+                                  </span>
+                                )}
+                                <span className="italic text-purple-600/80 font-medium truncate text-[9px] min-w-0">
                                   Tersedia
                                 </span>
                               </div>
