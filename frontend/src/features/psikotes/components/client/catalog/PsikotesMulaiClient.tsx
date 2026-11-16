@@ -13,6 +13,7 @@ import { navigateToPsikotesHasil } from "@/features/psikotes/utils/navigationHis
 import {
   isCATS as checkCATS,
   isCDI as checkCDI,
+  isCHOCI as checkCHOCI,
   isDASS as checkDASS,
   isGAD as checkGAD,
   isIGDS as checkIGDS,
@@ -85,6 +86,8 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const [catsPeristiwaPalingMengganggu, setCatsPeristiwaPalingMengganggu] = useState<string>("");
   const [catsShowDistressPrompt, setCatsShowDistressPrompt] = useState<boolean>(false);
   const [catsShowZeroPTEComplete, setCatsShowZeroPTEComplete] = useState<boolean>(false);
+  // State Khusus Instrumen CHOCI-R (Isian Kualitatif Kebiasaan & Pikiran)
+  const [chociIsian, setChociIsian] = useState<Record<number, string>>({});
   const advanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const submitLockRef = useRef(false);
 
@@ -149,6 +152,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         });
         return {
           id: s.id,
+          urutan: s.urutan,
           text: s.pertanyaan,
           options: sortedPilihan.map((p) => p.teks_jawaban),
           weights: sortedPilihan.map((p) => Number(p.bobot) || 0),
@@ -190,6 +194,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const isGAD = checkGAD(dbData, params.testId);
   const isCDI = checkCDI(dbData, params.testId);
   const isCATS = checkCATS(dbData, params.testId);
+  const isCHOCI = checkCHOCI(dbData, params.testId);
 
   const isPaidFlow = Boolean(
     (dbData
@@ -297,7 +302,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         if (saved && typeof saved.answers === "object" && Object.keys(saved.answers).length > 0) {
           setAnswers(saved.answers);
           if (typeof saved.currentIndex === "number" && saved.currentIndex < questions.length) {
-            setCurrentIndex(saved.currentIndex);
+            let idx = saved.currentIndex;
+            if (isCHOCI) {
+              if (idx === 11 || idx === 12) idx = 10;
+              if (idx === 30 || idx === 31) idx = 29;
+            }
+            setCurrentIndex(idx);
           }
           if (typeof saved.functionalAnswer === "number") {
             setFunctionalAnswer(saved.functionalAnswer);
@@ -313,6 +323,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           }
           if (typeof saved.catsShowDistressPrompt === "boolean") {
             setCatsShowDistressPrompt(saved.catsShowDistressPrompt);
+          }
+          if (saved.chociIsian && typeof saved.chociIsian === "object") {
+            setChociIsian(saved.chociIsian);
           }
           if (typeof saved.identityCompleted === "boolean" && isCompleted) {
             setIsIdentityCompleted(saved.identityCompleted);
@@ -338,6 +351,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           catsPeristiwaLainnya,
           catsPeristiwaPalingMengganggu,
           catsShowDistressPrompt,
+          chociIsian,
           identityCompleted: isIdentityCompleted,
         })
       );
@@ -351,6 +365,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     catsPeristiwaLainnya,
     catsPeristiwaPalingMengganggu,
     catsShowDistressPrompt,
+    chociIsian,
     params.testId,
     questions.length,
     searchParams,
@@ -358,11 +373,42 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
 
   const currentQuestion = questions[currentIndex] || questions[0] || {
     id: "",
+    urutan: currentIndex + 1,
     text: "",
     options: [] as string[],
     weights: [] as number[],
     pilihanList: [],
   };
+  const currentUrutan = currentQuestion.urutan ?? (currentIndex + 1);
+  const isCHOCIKebiasaanStep = Boolean(isCHOCI && currentIndex === 10);
+  const isCHOCIPikiranStep = Boolean(isCHOCI && currentIndex === 29);
+  const isCHOCIUnifiedStep = isCHOCIKebiasaanStep || isCHOCIPikiranStep;
+
+  // Deteksi apakah ada gejala kompulsi (butir 1–10, index 0–9) pada CHOCI
+  const chociHasCompulsionSymptoms = useMemo(() => {
+    if (!isCHOCI) return false;
+    for (let i = 0; i < 10; i++) {
+      const a = answers[i] ?? (answers as Record<string, number>)[String(i)];
+      const q = questions[i];
+      if (a !== undefined && Number(q?.weights?.[Number(a)] ?? 0) > 0) {
+        return true;
+      }
+    }
+    return false;
+  }, [isCHOCI, questions, answers]);
+
+  // Deteksi apakah ada gejala obsesi (butir 20–29, index 19–28) pada CHOCI
+  const chociHasObsessionSymptoms = useMemo(() => {
+    if (!isCHOCI) return false;
+    for (let i = 19; i < 29; i++) {
+      const a = answers[i] ?? (answers as Record<string, number>)[String(i)];
+      const q = questions[i];
+      if (a !== undefined && Number(q?.weights?.[Number(a)] ?? 0) > 0) {
+        return true;
+      }
+    }
+    return false;
+  }, [isCHOCI, questions, answers]);
   const progressPercentage = totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
 
   // Instruksi / Timeframe dinamis per instrumen psikotes:
@@ -398,6 +444,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       : currentIndex < 35
       ? "Dalam 2 minggu terakhir, seberapa sering anak mengalami hal-hal berikut:"
       : "Pilih Ya atau Tidak untuk menunjukkan apakah masalah yang dialami anak mengganggu aspek-aspek berikut:"
+    : isCHOCI
+    ? isCHOCIKebiasaanStep
+      ? "Bagian A: Kompulsi — Isian Refleksi Kebiasaan"
+      : isCHOCIPikiranStep
+      ? "Bagian B: Obsesi — Isian Refleksi Pikiran"
+      : currentUrutan <= 10
+      ? "Pilihlah seberapa banyak kamu merasakan atau melakukan hal berikut:"
+      : currentUrutan <= 19
+      ? "Jawab pertanyaan berikut terkait kebiasaan yang kamu sebutkan sebelumnya:"
+      : currentUrutan <= 29
+      ? "Pilihlah seberapa banyak kamu memikirkan hal-hal berikut:"
+      : "Jawab pertanyaan berikut terkait pikiran yang kamu sebutkan sebelumnya:"
     : dbData?.alat_ukur?.instruksiSingkat ||
       (isIGDS
         ? "Dalam 12 bulan terakhir, seberapa sering kamu:"
@@ -504,6 +562,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       }
     }
 
+    // Khusus CHOCI: kembali dari nomor 14 langsung ke layar gabungan 11–13 (index 10)
+    if (isCHOCI && currentIndex === 13) {
+      setCurrentIndex(10);
+      return;
+    }
+
+    // Khusus CHOCI: kembali dari nomor 33 langsung ke layar gabungan 30–32 (index 29)
+    if (isCHOCI && currentIndex === 32) {
+      setCurrentIndex(29);
+      return;
+    }
+
     handlePrev();
   };
 
@@ -522,6 +592,52 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     // Jika sedang di layar CATS: 0 PTE Selesai
     if (isCATS && catsShowZeroPTEComplete) {
       handleFinish();
+      return;
+    }
+
+    // Khusus CHOCI saat di layar gabungan Kebiasaan (11–13, index 10)
+    if (isCHOCIKebiasaanStep) {
+      const hasFilledCompulsion = Boolean(
+        chociIsian[10]?.trim() || chociIsian[11]?.trim() || chociIsian[12]?.trim()
+      );
+
+      // Jika ada gejala kompulsi yang dilaporkan sebelumnya, wajib isi minimal 1 kebiasaan
+      if (chociHasCompulsionSymptoms && !hasFilledCompulsion) {
+        setLocalError(true);
+        return;
+      }
+
+      setAnswers((prev) => ({
+        ...prev,
+        [10]: chociIsian[10]?.trim() ? 1 : 0,
+        [11]: chociIsian[11]?.trim() ? 1 : 0,
+        [12]: chociIsian[12]?.trim() ? 1 : 0,
+      }));
+      setLocalError(false);
+      setCurrentIndex(13); // Lompat ke nomor 14 (skala keparahan kompulsi)
+      return;
+    }
+
+    // Khusus CHOCI saat di layar gabungan Pikiran (30–32, index 29)
+    if (isCHOCIPikiranStep) {
+      const hasFilledObsession = Boolean(
+        chociIsian[29]?.trim() || chociIsian[30]?.trim() || chociIsian[31]?.trim()
+      );
+
+      // Jika ada gejala obsesi yang dilaporkan sebelumnya, wajib isi minimal 1 pikiran
+      if (chociHasObsessionSymptoms && !hasFilledObsession) {
+        setLocalError(true);
+        return;
+      }
+
+      setAnswers((prev) => ({
+        ...prev,
+        [29]: chociIsian[29]?.trim() ? 1 : 0,
+        [30]: chociIsian[30]?.trim() ? 1 : 0,
+        [31]: chociIsian[31]?.trim() ? 1 : 0,
+      }));
+      setLocalError(false);
+      setCurrentIndex(32); // Lompat ke nomor 33 (skala keparahan obsesi)
       return;
     }
 
@@ -678,9 +794,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       const jawabanPayload = questions.map((q, idx) => {
         const selectedOptIdx = effectiveAnswers[idx] ?? 0;
         const pilihan = q.pilihanList[selectedOptIdx];
+        const isianTeks = isCHOCI && chociIsian[idx] !== undefined ? chociIsian[idx] : undefined;
         return {
           id_soal: q.id,
           id_pilihan: pilihan ? pilihan.id : q.pilihanList[0]?.id,
+          teks_jawaban: isianTeks,
         };
       });
 
@@ -698,6 +816,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         peristiwaLainnya: isCATS && catsPeristiwaLainnya.trim() ? catsPeristiwaLainnya.trim() : undefined,
         peristiwa_paling_mengganggu: isCATS && catsPeristiwaPalingMengganggu.trim() ? catsPeristiwaPalingMengganggu.trim() : undefined,
         peristiwaPalingMengganggu: isCATS && catsPeristiwaPalingMengganggu.trim() ? catsPeristiwaPalingMengganggu.trim() : undefined,
+        choci_isian: isCHOCI ? chociIsian : undefined,
         id_booking: bookingIdParam,
         bookingId: bookingIdParam,
         orderId: searchParams.get("orderId") || undefined,
@@ -1094,6 +1213,14 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wide">
                 {isCATS && catsShowDistressPrompt ? (
                   <span className="text-[#561269] font-bold">Peristiwa Paling Mengganggu</span>
+                ) : isCHOCIKebiasaanStep ? (
+                  <>
+                    Pertanyaan <span className="font-bold text-gray-800">11–13</span> dari {totalQuestions}
+                  </>
+                ) : isCHOCIPikiranStep ? (
+                  <>
+                    Pertanyaan <span className="font-bold text-gray-800">30–32</span> dari {totalQuestions}
+                  </>
                 ) : (
                   <>
                     Pertanyaan <span className="font-bold text-gray-800">{currentIndex + 1}</span> dari {totalQuestions}
@@ -1214,6 +1341,168 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                   />
                 </div>
               </div>
+            ) : isCHOCIKebiasaanStep ? (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="text-center space-y-2">
+                  <p className="text-xs sm:text-sm text-gray-400 font-medium">
+                    {timeframeText}
+                  </p>
+                  <p className="text-sm sm:text-base text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium">
+                    Sebutkan hingga 3 kebiasaan atau tindakan berulang yang paling mengganggu dan kamu merasa sulit untuk menghentikannya. Misalnya, merasa harus sering mencuci tangan, mengulangi suatu tindakan, atau memeriksa pintu dan jendela berkali-kali untuk memastikan semuanya sudah tertutup.
+                  </p>
+                </div>
+
+                <div className="space-y-5 pt-1">
+                  {/* Kebiasaan 1 */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                      Kebiasaan 1 (paling mengganggu):
+                      {chociHasCompulsionSymptoms && (
+                        <span className="text-red-500 font-bold ml-1" title="Wajib diisi">*</span>
+                      )}
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={chociIsian[10] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setChociIsian((prev) => ({ ...prev, 10: val }));
+                        setLocalError(false);
+                        setSubmitError(null);
+                      }}
+                      placeholder="Tuliskan kebiasaan 1 di sini..."
+                      className={`w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 transition shadow-xs ${
+                        localError && chociHasCompulsionSymptoms && !chociIsian[10]?.trim() && !chociIsian[11]?.trim() && !chociIsian[12]?.trim()
+                          ? "border-red-400 bg-red-50/20 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                          : "border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20"
+                      }`}
+                    />
+                  </div>
+
+                  {/* Kebiasaan 2 */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                      Kebiasaan 2:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={chociIsian[11] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setChociIsian((prev) => ({ ...prev, 11: val }));
+                        setLocalError(false);
+                        setSubmitError(null);
+                      }}
+                      placeholder="Tuliskan kebiasaan 2 di sini..."
+                      className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                    />
+                  </div>
+
+                  {/* Kebiasaan 3 */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                      Kebiasaan 3:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={chociIsian[12] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setChociIsian((prev) => ({ ...prev, 12: val }));
+                        setLocalError(false);
+                        setSubmitError(null);
+                      }}
+                      placeholder="Tuliskan kebiasaan 3 di sini..."
+                      className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-400 italic text-center pt-1">
+                  *Tidak perlu mengisi semua kolom jika kamu tidak memiliki kebiasaan lain untuk disebutkan. Kamu boleh melewati kolom yang tidak ingin atau tidak dapat diisi.*
+                </p>
+              </div>
+            ) : isCHOCIPikiranStep ? (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="text-center space-y-2">
+                  <p className="text-xs sm:text-sm text-gray-400 font-medium">
+                    {timeframeText}
+                  </p>
+                  <p className="text-sm sm:text-base text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium">
+                    Sebutkan hingga 3 pikiran atau kekhawatiran paling mengganggu yang terus muncul di kepala kamu dan sulit untuk dihentikan. Misalnya, takut kotor atau kuman, takut terjadi hal buruk pada keluarga, atau perasaan bahwa segala sesuatu harus dilakukan dengan sempurna.
+                  </p>
+                </div>
+
+                <div className="space-y-5 pt-1">
+                  {/* Pikiran 1 */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                      Pikiran 1 (paling mengganggu):
+                      {chociHasObsessionSymptoms && (
+                        <span className="text-red-500 font-bold ml-1" title="Wajib diisi">*</span>
+                      )}
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={chociIsian[29] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setChociIsian((prev) => ({ ...prev, 29: val }));
+                        setLocalError(false);
+                        setSubmitError(null);
+                      }}
+                      placeholder="Tuliskan pikiran 1 di sini..."
+                      className={`w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 transition shadow-xs ${
+                        localError && chociHasObsessionSymptoms && !chociIsian[29]?.trim() && !chociIsian[30]?.trim() && !chociIsian[31]?.trim()
+                          ? "border-red-400 bg-red-50/20 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                          : "border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20"
+                      }`}
+                    />
+                  </div>
+
+                  {/* Pikiran 2 */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                      Pikiran 2:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={chociIsian[30] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setChociIsian((prev) => ({ ...prev, 30: val }));
+                        setLocalError(false);
+                        setSubmitError(null);
+                      }}
+                      placeholder="Tuliskan pikiran 2 di sini..."
+                      className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                    />
+                  </div>
+
+                  {/* Pikiran 3 */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                      Pikiran 3:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={chociIsian[31] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setChociIsian((prev) => ({ ...prev, 31: val }));
+                        setLocalError(false);
+                        setSubmitError(null);
+                      }}
+                      placeholder="Tuliskan pikiran 3 di sini..."
+                      className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-400 italic text-center pt-1">
+                  *Tidak perlu mengisi semua kolom jika kamu tidak memiliki pikiran lain untuk disebutkan. Kamu boleh melewati kolom yang tidak ingin atau tidak dapat diisi.*
+                </p>
+              </div>
             ) : (
               <>
                 <p className="text-xs sm:text-sm text-gray-400 font-medium text-center mb-2">
@@ -1273,7 +1562,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             
             {(showError || localError) && (
               <p className="text-red-500 text-xs sm:text-sm font-medium text-center mt-5 animate-pulse">
-                Silakan pilih jawaban terlebih dahulu.
+                {isCHOCIKebiasaanStep
+                  ? "Mohon tuliskan minimal 1 kebiasaan yang paling mengganggu kamu."
+                  : isCHOCIPikiranStep
+                  ? "Mohon tuliskan minimal 1 pikiran yang paling mengganggu kamu."
+                  : "Silakan pilih jawaban terlebih dahulu."}
               </p>
             )}
 

@@ -122,7 +122,7 @@ export async function seedRCMAS(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-rcmas.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Rasa cemas bisa muncul dalam berbagai bentuk, baik melalui perasaan maupun respons tubuh. Tes ini membantu mengenali pengalaman kecemasan pada anak dan remaja, seperti keluhan fisik, kekhawatiran berlebihan, serta kesulitan berkonsentrasi.',
     status: 'PUBLISHED',
