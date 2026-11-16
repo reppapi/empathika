@@ -1,6 +1,6 @@
 {
   "hero": {
-    "tagline": "Ruang yang kami bangun untuk menemani setiap langkah menuju pemahaman dan pertumbuhan diri.",
+    "tagline": "Ruang yang hadir untuk menemani setiap langkah dalam memahami diri dan terus bertumbuh.",
     "gallery": [
       "http://localhost:3001/uploads/51a5a2ac-212e-4e24-b4d8-9adfd5288299.webp",
       "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80",
@@ -17,7 +17,7 @@
   },
   "nilai": {
     "judulSection": "Nilai yang Kami Bawa",
-    "subjudulSection": "Kami berpegang teguh pada nilai-nilai ini dalam setiap langkah perjalanan untuk mendukung kesejahteraan mental Anda.",
+    "subjudulSection": "Nilai-nilai ini menjadi landasan kami dalam menghadirkan layanan psikologi yang peduli dan berkualitas.",
     "items": [
       {
         "id": "empati",
@@ -54,6 +54,6 @@
   },
   "layananSection": {
     "judul": "Ada untuk Setiap Langkahmu",
-    "deskripsi": "Kami menyediakan beragam layanan yang dirancang secara khusus untuk memenuhi setiap fase perkembangan dan kebutuhan psikologismu."
+    "deskripsi": "Kami menyediakan beragam layanan psikologi untuk menemani setiap fase kehidupan dan membantu memenuhi kebutuhanmu."
   }
 }

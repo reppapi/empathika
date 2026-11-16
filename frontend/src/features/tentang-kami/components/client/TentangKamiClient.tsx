@@ -170,29 +170,29 @@ export default function TentangKamiClient() {
         </div>
 
         {/* Tabbed Chevron Container (Full Width Edge-to-Edge) */}
-        <div className="flex flex-col lg:flex-row w-full items-stretch">
+        <div className="flex flex-col lg:flex-row w-full items-stretch min-h-[360px] lg:min-h-[410px]">
 
           {/* Block 1: Pilar 1 */}
-          <div className="relative flex-1 z-40 drop-shadow-[0_8px_15px_rgba(0,0,0,0.2)] lg:drop-shadow-[12px_0_15px_rgba(0,0,0,0.25)] group">
+          <div className="relative flex-1 z-40 drop-shadow-[0_8px_15px_rgba(0,0,0,0.15)] lg:drop-shadow-[10px_0_15px_rgba(0,0,0,0.18)] group">
             <div className="w-full h-full bg-[#491c68] relative
               [clip-path:polygon(0_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
               lg:[clip-path:polygon(0_0,calc(100%-2.5rem)_0,calc(100%-2.5rem)_42%,100%_50%,calc(100%-2.5rem)_58%,calc(100%-2.5rem)_100%,0_100%)]
-              transition-transform duration-500 hover:scale-[1.02] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
-              pt-10 pb-16 px-6 sm:px-10 md:px-16 
-              lg:pt-10 lg:pb-10 lg:pl-10 xl:pl-12 lg:pr-16"
+              transition-transform duration-500 hover:scale-[1.015] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
+              pt-12 pb-20 px-6 sm:px-10 md:px-14 
+              lg:py-16 xl:py-18 lg:pl-10 xl:pl-14 lg:pr-18"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/50 pointer-events-none mix-blend-overlay"></div>
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/10 pointer-events-none"></div>
+              {/* Clean Subtle Glow */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20 pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
-                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-[1.5rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.25)] border-[2px] border-white/20 mb-4 lg:mb-5 group-hover:-translate-y-2 transition-transform duration-500 relative">
+                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-md border-[2px] border-white/25 mb-4 lg:mb-5 group-hover:-translate-y-1.5 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   {renderNilaiIcon(nilaiItems[0]?.icon)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-3xl text-white mb-2 lg:mb-3 drop-shadow-md tracking-tight">
+                <h3 className="font-black text-2xl lg:text-[1.65rem] text-white mb-2.5 drop-shadow-sm tracking-tight leading-tight">
                   {nilaiItems[0]?.judul}
                 </h3>
-                <p className="text-white/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">
+                <p className="text-white/90 text-[0.925rem] lg:text-[1.025rem] leading-relaxed font-light drop-shadow-xs max-w-xs">
                   {nilaiItems[0]?.deskripsi}
                 </p>
               </div>
@@ -200,26 +200,26 @@ export default function TentangKamiClient() {
           </div>
 
           {/* Block 2: Pilar 2 */}
-          <div className="relative flex-1 z-30 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.15)] lg:drop-shadow-[12px_0_15px_rgba(0,0,0,0.2)] group">
-            <div className="w-full h-full bg-[#7f5195] relative
+          <div className="relative flex-1 z-30 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.12)] lg:drop-shadow-[10px_0_15px_rgba(0,0,0,0.15)] group">
+            <div className="w-full h-full bg-[#6d3283] relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
               lg:[clip-path:polygon(0_0,calc(100%-2.5rem)_0,calc(100%-2.5rem)_42%,100%_50%,calc(100%-2.5rem)_58%,calc(100%-2.5rem)_100%,0_100%,0_58%,2.5rem_50%,0_42%)]
-              transition-transform duration-500 hover:scale-[1.02] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
-              pt-16 pb-16 px-6 sm:px-10 md:px-16
-              lg:pt-10 lg:pb-10 lg:pl-16 xl:pl-20 lg:pr-16"
+              transition-transform duration-500 hover:scale-[1.015] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
+              pt-16 pb-20 px-6 sm:px-10 md:px-14
+              lg:py-16 xl:py-18 lg:pl-16 xl:pl-20 lg:pr-18"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/30 pointer-events-none mix-blend-overlay"></div>
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/10 pointer-events-none"></div>
+              {/* Clean Subtle Glow */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/15 pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
-                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-[1.5rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.25)] border-[2px] border-white/20 mb-4 lg:mb-5 group-hover:-translate-y-2 transition-transform duration-500 relative">
+                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-md border-[2px] border-white/25 mb-4 lg:mb-5 group-hover:-translate-y-1.5 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   {renderNilaiIcon(nilaiItems[1]?.icon)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-3xl text-white mb-2 lg:mb-3 drop-shadow-md tracking-tight">
+                <h3 className="font-black text-2xl lg:text-[1.65rem] text-white mb-2.5 drop-shadow-sm tracking-tight leading-tight">
                   {nilaiItems[1]?.judul}
                 </h3>
-                <p className="text-white/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">
+                <p className="text-white/90 text-[0.925rem] lg:text-[1.025rem] leading-relaxed font-light drop-shadow-xs max-w-xs">
                   {nilaiItems[1]?.deskripsi}
                 </p>
               </div>
@@ -227,26 +227,26 @@ export default function TentangKamiClient() {
           </div>
 
           {/* Block 3: Pilar 3 */}
-          <div className="relative flex-1 z-20 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.1)] lg:drop-shadow-[12px_0_15px_rgba(0,0,0,0.15)] group">
-            <div className="w-full h-full bg-[#cdb1db] relative
+          <div className="relative flex-1 z-20 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.1)] lg:drop-shadow-[10px_0_15px_rgba(0,0,0,0.12)] group">
+            <div className="w-full h-full bg-[#9b58b4] relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
               lg:[clip-path:polygon(0_0,calc(100%-2.5rem)_0,calc(100%-2.5rem)_42%,100%_50%,calc(100%-2.5rem)_58%,calc(100%-2.5rem)_100%,0_100%,0_58%,2.5rem_50%,0_42%)]
-              transition-transform duration-500 hover:scale-[1.02] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
-              pt-16 pb-16 px-6 sm:px-10 md:px-16
-              lg:pt-10 lg:pb-10 lg:pl-16 xl:pl-20 lg:pr-16"
+              transition-transform duration-500 hover:scale-[1.015] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
+              pt-16 pb-20 px-6 sm:px-10 md:px-14
+              lg:py-16 xl:py-18 lg:pl-16 xl:pl-20 lg:pr-18"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-black/10 pointer-events-none mix-blend-overlay"></div>
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/30 pointer-events-none"></div>
+              {/* Clean Subtle Glow */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/10 pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
-                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-[1.5rem] bg-white/40 backdrop-blur-xl flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.15)] border-[2px] border-white/60 mb-4 lg:mb-5 group-hover:-translate-y-2 transition-transform duration-500 relative">
-                  <div className="absolute inset-0 bg-white/50 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-md border-[2px] border-white/30 mb-4 lg:mb-5 group-hover:-translate-y-1.5 transition-transform duration-500 relative">
+                  <div className="absolute inset-0 bg-white/25 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   {renderNilaiIcon(nilaiItems[2]?.icon)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-3xl text-[#491c68] mb-2 lg:mb-3 drop-shadow-sm tracking-tight">
+                <h3 className="font-black text-2xl lg:text-[1.65rem] text-white mb-2.5 drop-shadow-sm tracking-tight leading-tight">
                   {nilaiItems[2]?.judul}
                 </h3>
-                <p className="text-[#491c68]/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">
+                <p className="text-white/95 text-[0.925rem] lg:text-[1.025rem] leading-relaxed font-light drop-shadow-xs max-w-xs">
                   {nilaiItems[2]?.deskripsi}
                 </p>
               </div>
@@ -254,26 +254,26 @@ export default function TentangKamiClient() {
           </div>
 
           {/* Block 4: Pilar 4 */}
-          <div className="relative flex-1 z-10 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.05)] lg:drop-shadow-[12px_0_15px_rgba(0,0,0,0.05)] group">
-            <div className="w-full h-full bg-[#eadef2] relative
+          <div className="relative flex-1 z-10 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.06)] lg:drop-shadow-[10px_0_15px_rgba(0,0,0,0.08)] group">
+            <div className="w-full h-full bg-[#f4e8f7] relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_100%,0_100%)] 
               lg:[clip-path:polygon(0_0,100%_0,100%_100%,0_100%,0_58%,2.5rem_50%,0_42%)]
-              transition-transform duration-500 hover:scale-[1.02] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
-              pt-16 pb-10 px-6 sm:px-10 md:px-16
-              lg:pt-10 lg:pb-10 lg:pl-16 xl:pl-20 lg:pr-10 xl:pr-12"
+              transition-transform duration-500 hover:scale-[1.015] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
+              pt-16 pb-14 px-6 sm:px-10 md:px-14
+              lg:py-16 xl:py-18 lg:pl-16 xl:pl-20 lg:pr-10 xl:pr-14"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-transparent to-black/5 pointer-events-none mix-blend-overlay"></div>
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/50 pointer-events-none"></div>
+              {/* Clean Subtle Glow */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-transparent pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
-                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-[1.5rem] bg-white/60 backdrop-blur-xl flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.1)] border-[2px] border-white mb-4 lg:mb-5 group-hover:-translate-y-2 transition-transform duration-500 relative">
-                  <div className="absolute inset-0 bg-white/80 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.2rem] bg-white/80 backdrop-blur-xl flex items-center justify-center shadow-md border-[2px] border-white/80 mb-4 lg:mb-5 group-hover:-translate-y-1.5 transition-transform duration-500 relative">
+                  <div className="absolute inset-0 bg-white/60 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   {renderNilaiIcon(nilaiItems[3]?.icon)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-3xl text-[#491c68] mb-2 lg:mb-3 drop-shadow-sm tracking-tight">
+                <h3 className="font-black text-2xl lg:text-[1.65rem] text-[#491c68] mb-2.5 drop-shadow-xs tracking-tight leading-tight">
                   {nilaiItems[3]?.judul}
                 </h3>
-                <p className="text-[#491c68]/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">
+                <p className="text-[#491c68]/90 text-[0.925rem] lg:text-[1.025rem] leading-relaxed font-normal max-w-xs">
                   {nilaiItems[3]?.deskripsi}
                 </p>
               </div>
@@ -343,7 +343,7 @@ export default function TentangKamiClient() {
               Ada untuk Setiap Langkahmu
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto text-base md:text-lg font-light leading-relaxed">
-              Kami menyediakan beragam layanan yang dirancang secara khusus untuk memenuhi setiap fase perkembangan dan kebutuhan psikologismu.
+              Kami menyediakan beragam layanan psikologi untuk menemani setiap fase kehidupan dan membantu memenuhi kebutuhanmu.
             </p>
           </div>
 

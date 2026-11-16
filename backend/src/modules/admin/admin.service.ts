@@ -77,7 +77,7 @@ const DEFAULT_TENTANG_KAMI: UpdateTentangKamiInput = {
   layananSection: {
     judul: 'Ada untuk Setiap Langkahmu',
     deskripsi:
-      'Kami menyediakan beragam layanan yang dirancang secara khusus untuk memenuhi setiap fase perkembangan dan kebutuhan psikologismu.',
+      'Kami menyediakan beragam layanan psikologi untuk menemani setiap fase kehidupan dan membantu memenuhi kebutuhanmu.',
   },
 }
 
