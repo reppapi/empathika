@@ -17,44 +17,44 @@ import { join } from 'path'
 
 const DEFAULT_TENTANG_KAMI: UpdateTentangKamiInput = {
   hero: {
-    tagline: 'Ruang yang kami bangun untuk menemani setiap langkah menuju pemahaman dan pertumbuhan diri.',
+    tagline: 'Ruang yang hadir untuk menemani setiap langkah dalam memahami diri dan terus bertumbuh.',
     gallery: [
-      'https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=400&q=80',
+      'http://localhost:3001/uploads/9d944566-12e6-493c-900b-8b3575419f97.webp',
       'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=600&q=80',
+      'http://localhost:3001/uploads/6f72e553-dfe8-4a63-96c5-1b85dacb90d9.webp',
       'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80',
       'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=400&q=80',
+      'http://localhost:3001/uploads/05db008d-3d99-40fb-8555-d8c3bb286440.webp',
     ],
   },
   berkenalan: {
     judul: 'Mari Berkenalan dengan Empathika.',
     paragraf1:
-      'Empathika hadir sebagai ruang bagi siapa pun yang ingin lebih memahami diri, bertumbuh, dan menjalani setiap proses dengan lebih baik. Kami percaya bahwa kesehatan mental adalah bagian penting dari kesejahteraan hidup, sama pentingnya dengan kesehatan fisik. Melalui layanan psikologi, kami ingin membuat akses terhadap bantuan profesional terasa lebih dekat, nyaman, dan mudah dijangkau. Bersama para psikolog dan tenaga profesional, kami menghadirkan ruang yang aman untuk bercerita, belajar, dan menemukan langkah yang sesuai dengan kebutuhanmu.',
+      'Empathika hadir sebagai ruang bagi siapa pun untuk lebih memahami diri, bertumbuh, dan menjalani kehidupan dengan lebih baik. Kami percaya bahwa kesehatan mental merupakan bagian penting dari kesejahteraan hidup. Melalui berbagai layanan psikologi yang didukung oleh psikolog dan tenaga profesional, kami berupaya menghadirkan akses bantuan yang lebih dekat, nyaman, dan mudah dijangkau. Di sini, setiap orang memiliki ruang yang aman untuk bercerita, belajar, dan menemukan langkah yang sesuai dengan kebutuhannya.',
     paragraf2:
-      'Setiap orang memiliki cerita dan perjalanan yang berbeda. Karena itu, Empathika hadir untuk menemani, bukan menghakimi. Kami ingin menjadi bagian dari perjalananmu dalam memahami diri, menghadapi berbagai proses, dan tumbuh menjadi versi diri yang lebih baik. Bagi kami, mendapatkan bantuan bukanlah tanda kelemahan, melainkan sebuah langkah untuk lebih peduli pada diri sendiri dan menjalani kehidupan dengan lebih baik.',
+      'Kami memahami bahwa setiap orang memiliki cerita dan perjalanan yang berbeda. Karena itu, Empathika hadir untuk mendampingi tanpa menghakimi. Kami ingin menjadi bagian dari perjalananmu dalam mengenali diri, menghadapi berbagai tantangan, dan terus bertumbuh. Sebab, bagi kami, mencari bantuan bukanlah tanda kelemahan, melainkan bentuk kepedulian terhadap diri sendiri dan langkah awal untuk menjalani kehidupan yang lebih baik.',
   },
   nilai: {
     judulSection: 'Nilai yang Kami Bawa',
     subjudulSection:
-      'Kami berpegang teguh pada nilai-nilai ini dalam setiap langkah perjalanan untuk mendukung kesejahteraan mental Anda.',
+      'Nilai-nilai ini menjadi landasan kami dalam menghadirkan layanan psikologi yang peduli dan berkualitas.',
     items: [
       {
         id: 'empati',
         judul: 'Empati',
-        deskripsi: 'Mendengarkan tanpa menghakimi dan memahami potensi diri Anda sepenuhnya.',
+        deskripsi: 'Mendengarkan tanpa menghakimi dan memahami potensi diri setiap individu.',
         icon: 'heart',
       },
       {
         id: 'profesional',
         judul: 'Profesional',
-        deskripsi: 'Tenaga ahli klinis berlisensi dengan standar dan peran kompetensi yang tinggi.',
+        deskripsi: 'Didukung tenaga profesional yang kompeten dan berpengalaman.',
         icon: 'star',
       },
       {
         id: 'privasi',
         judul: 'Privasi Terjaga',
-        deskripsi: 'Kerahasiaan data setiap orang dan cerita Anda adalah prioritas mutlak kami.',
+        deskripsi: 'Menjaga kerahasiaan data dan cerita setiap individu sebagai prioritas utama kami.',
         icon: 'shield',
       },
       {
@@ -67,13 +67,13 @@ const DEFAULT_TENTANG_KAMI: UpdateTentangKamiInput = {
   },
   kenapaHadir: {
     judul: 'Kenapa Empathika Hadir?',
-    fotoTim: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=80',
+    fotoTim: 'http://localhost:3001/uploads/bff0e7cd-4b6e-449a-83d2-39ccb787b5aa.webp',
     paragraf1:
-      'Sering kali, mencari bantuan psikologis bukanlah hal yang mudah. Rasa takut, stigma, keterbatasan akses, hingga kekhawatiran untuk bercerita membuat banyak orang memilih menyimpan semuanya sendiri.',
+      'Mencari bantuan psikologis bukanlah hal yang selalu mudah. Rasa takut, stigma, keterbatasan akses, hingga kekhawatiran untuk terbuka sering kali membuat seseorang memilih memendam apa yang sedang dirasakannya.',
     paragraf2:
-      'Empathika hadir dari kepedulian terhadap hal tersebut. Kami ingin menciptakan ruang yang terasa aman, nyaman, dan terbuka bagi siapa pun untuk mulai memahami dirinya dan mendapatkan bantuan yang dibutuhkan.',
+      'Berangkat dari kepedulian tersebut, Empathika hadir untuk mendekatkan layanan psikologi melalui pemanfaatan teknologi. Kami ingin menghadirkan akses bantuan yang lebih mudah, nyaman, dan terbuka bagi siapa pun yang membutuhkannya.',
     paragraf3:
-      'Dengan memanfaatkan teknologi, Empathika menghadirkan layanan psikologi yang lebih mudah dijangkau dan dekat dengan keseharian. Karena mendapatkan bantuan seharusnya tidak terasa rumit, dan setiap orang berhak memiliki ruang untuk didengarkan.',
+      'Kami percaya bahwa setiap orang berhak mendapatkan dukungan dan ruang untuk didengarkan tanpa merasa dihakimi. Karena memahami diri dan mencari bantuan merupakan bagian dari perjalanan untuk menjalani kehidupan yang lebih baik.',
   },
   layananSection: {
     judul: 'Ada untuk Setiap Langkahmu',
@@ -825,7 +825,27 @@ export class AdminService {
 
   // ── Manajemen Tentang Kami ──────────────────────────────────────
 
-  getTentangKami(): UpdateTentangKamiInput {
+  async getTentangKami(): Promise<UpdateTentangKamiInput> {
+    // 1. Prioritaskan membaca dari Database (tabel SiteSetting dengan key 'tentang_kami')
+    try {
+      const setting = await this.repo.getSiteSetting('tentang_kami')
+      if (setting && setting.value) {
+        const val = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value
+        return {
+          ...DEFAULT_TENTANG_KAMI,
+          ...val,
+          hero: { ...DEFAULT_TENTANG_KAMI.hero, ...(val.hero || {}) },
+          berkenalan: { ...DEFAULT_TENTANG_KAMI.berkenalan, ...(val.berkenalan || {}) },
+          nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(val.nilai || {}) },
+          kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(val.kenapaHadir || {}) },
+          layananSection: { ...DEFAULT_TENTANG_KAMI.layananSection, ...(val.layananSection || {}) },
+        }
+      }
+    } catch {
+      // Abaikan error jika tabel belum ada atau DB tidak terjangkau, lanjut ke fallback
+    }
+
+    // 2. Fallback ke file JSON lokal jika ada
     const dataDir = join(process.cwd(), 'data')
     const filePath = join(dataDir, 'tentang-kami.json')
     try {
@@ -848,16 +868,28 @@ export class AdminService {
     return DEFAULT_TENTANG_KAMI
   }
 
-  updateTentangKami(input: UpdateTentangKamiInput): UpdateTentangKamiInput {
-    const dataDir = join(process.cwd(), 'data')
-    const filePath = join(dataDir, 'tentang-kami.json')
-    const tempPath = join(dataDir, `tentang-kami.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`)
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true })
+  async updateTentangKami(input: UpdateTentangKamiInput): Promise<UpdateTentangKamiInput> {
+    // 1. Simpan ke Database (tabel SiteSetting dengan key 'tentang_kami')
+    try {
+      await this.repo.upsertSiteSetting('tentang_kami', input)
+    } catch (err: any) {
+      console.warn('Gagal menyimpan Tentang Kami ke database, fallback ke berkas JSON:', err.message)
     }
-    // Tulis ke file temporer dulu sebelum rename untuk menjamin atomisitas (anti-korupsi file)
-    writeFileSync(tempPath, JSON.stringify(input, null, 2), 'utf-8')
-    renameSync(tempPath, filePath)
+
+    // 2. Simpan juga salinan ke file JSON lokal (dual-write redundansi & kompatibilitas lokal)
+    try {
+      const dataDir = join(process.cwd(), 'data')
+      const filePath = join(dataDir, 'tentang-kami.json')
+      const tempPath = join(dataDir, `tentang-kami.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`)
+      if (!existsSync(dataDir)) {
+        mkdirSync(dataDir, { recursive: true })
+      }
+      writeFileSync(tempPath, JSON.stringify(input, null, 2), 'utf-8')
+      renameSync(tempPath, filePath)
+    } catch {
+      // Abaikan error penulisan file jika environment read-only
+    }
+
     return input
   }
 }

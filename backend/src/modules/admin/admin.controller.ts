@@ -362,7 +362,7 @@ export class AdminController {
 
   getTentangKamiPublic = async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const data = this.service.getTentangKami()
+      const data = await this.service.getTentangKami()
       return reply.code(200).send({
         success: true,
         data,
@@ -378,7 +378,7 @@ export class AdminController {
 
   getTentangKami = async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const data = this.service.getTentangKami()
+      const data = await this.service.getTentangKami()
       return reply.code(200).send({
         success: true,
         data,
@@ -397,7 +397,7 @@ export class AdminController {
     reply: FastifyReply
   ) => {
     try {
-      const updated = this.service.updateTentangKami(request.body)
+      const updated = await this.service.updateTentangKami(request.body)
       return reply.code(200).send({
         success: true,
         message: 'Konten Tentang Kami berhasil disimpan',

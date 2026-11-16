@@ -2,7 +2,7 @@
   "hero": {
     "tagline": "Ruang yang hadir untuk menemani setiap langkah dalam memahami diri dan terus bertumbuh.",
     "gallery": [
-      "http://localhost:3001/uploads/c3a1c814-8f7f-4394-a84a-b611e1434230.webp",
+      "http://localhost:3001/uploads/9d944566-12e6-493c-900b-8b3575419f97.webp",
       "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80",
       "http://localhost:3001/uploads/6f72e553-dfe8-4a63-96c5-1b85dacb90d9.webp",
       "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80",
@@ -47,7 +47,7 @@
   },
   "kenapaHadir": {
     "judul": "Kenapa Empathika Hadir?",
-    "fotoTim": "http://localhost:3001/uploads/4c76ebe1-c6cd-4403-9b34-d68a48ccb6e7.webp",
+    "fotoTim": "http://localhost:3001/uploads/bff0e7cd-4b6e-449a-83d2-39ccb787b5aa.webp",
     "paragraf1": "Mencari bantuan psikologis bukanlah hal yang selalu mudah. Rasa takut, stigma, keterbatasan akses, hingga kekhawatiran untuk terbuka sering kali membuat seseorang memilih memendam apa yang sedang dirasakannya.",
     "paragraf2": "Berangkat dari kepedulian tersebut, Empathika hadir untuk mendekatkan layanan psikologi melalui pemanfaatan teknologi. Kami ingin menghadirkan akses bantuan yang lebih mudah, nyaman, dan terbuka bagi siapa pun yang membutuhkannya.",
     "paragraf3": "Kami percaya bahwa setiap orang berhak mendapatkan dukungan dan ruang untuk didengarkan tanpa merasa dihakimi. Karena memahami diri dan mencari bantuan merupakan bagian dari perjalanan untuk menjalani kehidupan yang lebih baik."
