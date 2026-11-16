@@ -1,0 +1,59 @@
+{
+  "hero": {
+    "tagline": "Ruang yang kami bangun untuk menemani setiap langkah menuju pemahaman dan pertumbuhan diri.",
+    "gallery": [
+      "http://localhost:3001/uploads/51a5a2ac-212e-4e24-b4d8-9adfd5288299.webp",
+      "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80",
+      "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=80",
+      "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=400&q=80"
+    ]
+  },
+  "berkenalan": {
+    "judul": "Mari Berkenalan dengan Empathika.",
+    "paragraf1": "Empathika hadir sebagai ruang bagi siapa pun untuk lebih memahami diri, bertumbuh, dan menjalani kehidupan dengan lebih baik. Kami percaya bahwa kesehatan mental merupakan bagian penting dari kesejahteraan hidup. Melalui berbagai layanan psikologi yang didukung oleh psikolog dan tenaga profesional, kami berupaya menghadirkan akses bantuan yang lebih dekat, nyaman, dan mudah dijangkau. Di sini, setiap orang memiliki ruang yang aman untuk bercerita, belajar, dan menemukan langkah yang sesuai dengan kebutuhannya.",
+    "paragraf2": "Kami memahami bahwa setiap orang memiliki cerita dan perjalanan yang berbeda. Karena itu, Empathika hadir untuk mendampingi tanpa menghakimi. Kami ingin menjadi bagian dari perjalananmu dalam mengenali diri, menghadapi berbagai tantangan, dan terus bertumbuh. Sebab, bagi kami, mencari bantuan bukanlah tanda kelemahan, melainkan bentuk kepedulian terhadap diri sendiri dan langkah awal untuk menjalani kehidupan yang lebih baik."
+  },
+  "nilai": {
+    "judulSection": "Nilai yang Kami Bawa",
+    "subjudulSection": "Kami berpegang teguh pada nilai-nilai ini dalam setiap langkah perjalanan untuk mendukung kesejahteraan mental Anda.",
+    "items": [
+      {
+        "id": "empati",
+        "judul": "Empati",
+        "deskripsi": "Mendengarkan tanpa menghakimi dan memahami potensi diri setiap individu.",
+        "icon": "heart"
+      },
+      {
+        "id": "profesional",
+        "judul": "Profesional",
+        "deskripsi": "Didukung tenaga profesional yang kompeten dan berpengalaman.",
+        "icon": "star"
+      },
+      {
+        "id": "privasi",
+        "judul": "Privasi Terjaga",
+        "deskripsi": "Menjaga kerahasiaan data dan cerita setiap individu sebagai prioritas utama kami.",
+        "icon": "shield"
+      },
+      {
+        "id": "solutif",
+        "judul": "Solutif Aktif",
+        "deskripsi": "Setiap orang bisa menangani dan mengatasi masalah secara aktif dan solutif.",
+        "icon": "users"
+      }
+    ]
+  },
+  "kenapaHadir": {
+    "judul": "Kenapa Empathika Hadir?",
+    "fotoTim": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=80",
+    "paragraf1": "Mencari bantuan psikologis bukanlah hal yang selalu mudah. Rasa takut, stigma, keterbatasan akses, hingga kekhawatiran untuk terbuka sering kali membuat seseorang memilih memendam apa yang sedang dirasakannya.",
+    "paragraf2": "Berangkat dari kepedulian tersebut, Empathika hadir untuk mendekatkan layanan psikologi melalui pemanfaatan teknologi. Kami ingin menghadirkan akses bantuan yang lebih mudah, nyaman, dan terbuka bagi siapa pun yang membutuhkannya.",
+    "paragraf3": "Kami percaya bahwa setiap orang berhak mendapatkan dukungan dan ruang untuk didengarkan tanpa merasa dihakimi. Karena memahami diri dan mencari bantuan merupakan bagian dari perjalanan untuk menjalani kehidupan yang lebih baik."
+  },
+  "layananSection": {
+    "judul": "Ada untuk Setiap Langkahmu",
+    "deskripsi": "Kami menyediakan beragam layanan yang dirancang secara khusus untuk memenuhi setiap fase perkembangan dan kebutuhan psikologismu."
+  }
+}

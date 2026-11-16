@@ -54,3 +54,40 @@ export const resendActivationSchema = z.object({
 
 export type UpdateAdminProfileInput = z.infer<typeof updateAdminProfileSchema>
 export type ResendActivationInput = z.infer<typeof resendActivationSchema>
+
+export const updateTentangKamiSchema = z.object({
+  hero: z.object({
+    tagline: z.string().min(1, 'Tagline hero wajib diisi'),
+    gallery: z.array(z.string()).length(6, 'Galeri hero harus berisi 6 foto'),
+  }),
+  berkenalan: z.object({
+    judul: z.string().min(1, 'Judul pengenalan wajib diisi'),
+    paragraf1: z.string().min(1, 'Paragraf 1 pengenalan wajib diisi'),
+    paragraf2: z.string().min(1, 'Paragraf 2 pengenalan wajib diisi'),
+  }),
+  nilai: z.object({
+    judulSection: z.string().min(1, 'Judul section nilai wajib diisi'),
+    subjudulSection: z.string().min(1, 'Subjudul section nilai wajib diisi'),
+    items: z.array(
+      z.object({
+        id: z.string(),
+        judul: z.string().min(1, 'Judul nilai wajib diisi'),
+        deskripsi: z.string().min(1, 'Deskripsi nilai wajib diisi'),
+        icon: z.string().default('heart'),
+      })
+    ).min(1, 'Minimal 1 nilai yang kami bawa'),
+  }),
+  kenapaHadir: z.object({
+    judul: z.string().min(1, 'Judul kenapa hadir wajib diisi'),
+    fotoTim: z.string().min(1, 'Foto tim wajib diisi'),
+    paragraf1: z.string().min(1, 'Paragraf 1 latar belakang wajib diisi'),
+    paragraf2: z.string().min(1, 'Paragraf 2 latar belakang wajib diisi'),
+    paragraf3: z.string().min(1, 'Paragraf 3 latar belakang wajib diisi'),
+  }),
+  layananSection: z.object({
+    judul: z.string().optional(),
+    deskripsi: z.string().optional(),
+  }).optional(),
+})
+
+export type UpdateTentangKamiInput = z.infer<typeof updateTentangKamiSchema>

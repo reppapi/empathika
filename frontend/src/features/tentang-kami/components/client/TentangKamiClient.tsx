@@ -1,17 +1,86 @@
 "use client"
 
 /* eslint-disable @next/next/no-img-element */
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { CtaSection } from '@/features/psikolog/components/client/CtaSection'
 import { useTenantContext } from '@/context/TenantContext'
+import {
+  tentangKamiService,
+  DEFAULT_TENTANG_KAMI,
+  type TentangKamiContent,
+} from '@/services/tentang-kami.service'
+
+function renderNilaiIcon(iconName?: string) {
+  switch (iconName) {
+    case 'star':
+      return (
+        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+        </svg>
+      )
+    case 'shield':
+      return (
+        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-[#491c68] drop-shadow-sm relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      )
+    case 'users':
+      return (
+        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-[#491c68] drop-shadow-sm relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      )
+    case 'lightbulb':
+      return (
+        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      )
+    case 'award':
+      return (
+        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      )
+    case 'heart':
+    default:
+      return (
+        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      )
+  }
+}
 
 export default function TentangKamiClient() {
   const { isBiro, biroProfile, withBiro } = useTenantContext()
   const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"
-  const deskripsi = isBiro && biroProfile?.deskripsi 
-    ? biroProfile.deskripsi 
-    : "Ruang yang kami bangun untuk menemani setiap langkah menuju pemahaman dan pertumbuhan diri."
+
+  const [content, setContent] = useState<TentangKamiContent>(DEFAULT_TENTANG_KAMI)
+
+  useEffect(() => {
+    let isMounted = true
+    tentangKamiService
+      .getPublic()
+      .then((res) => {
+        if (isMounted && res) {
+          setContent(res)
+        }
+      })
+      .catch((err) => {
+        console.warn("Gagal memuat konten dinamis Tentang Kami:", err)
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const deskripsi =
+    isBiro && biroProfile?.deskripsi ? biroProfile.deskripsi : content.hero.tagline
+  const gallery = content.hero.gallery || DEFAULT_TENTANG_KAMI.hero.gallery
+
+  const nilaiItems = content.nilai.items?.length === 4 ? content.nilai.items : DEFAULT_TENTANG_KAMI.nilai.items
 
   return (
     <div className="w-full font-sans bg-[#fbfbfb] text-gray-900 overflow-hidden pb-0 -mt-36 lg:-mt-24">
@@ -36,30 +105,30 @@ export default function TentangKamiClient() {
             {/* Column 1 */}
             <div className="flex flex-col gap-4 md:translate-y-6">
               <div className="h-[120px] md:h-[140px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img src="https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=400&q=80" className="w-full h-full object-cover" alt="Empathika Community" />
+                <img src={gallery[0]} className="w-full h-full object-cover" alt="Empathika Gallery 1" />
               </div>
               <div className="h-[140px] md:h-[160px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80" className="w-full h-full object-cover" alt="Empathika Professional" />
+                <img src={gallery[1]} className="w-full h-full object-cover" alt="Empathika Gallery 2" />
               </div>
             </div>
 
             {/* Column 2 */}
             <div className="hidden md:block h-[260px] md:h-[280px] rounded-[1.5rem] overflow-hidden shadow-md hover:shadow-lg transition-shadow translate-y-2">
-              <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=600&q=80" className="w-full h-full object-cover" alt="Empathika Main" />
+              <img src={gallery[2]} className="w-full h-full object-cover" alt="Empathika Gallery 3" />
             </div>
 
             {/* Column 3 */}
             <div className="h-[200px] md:h-[300px] rounded-[1.5rem] overflow-hidden shadow-md hover:shadow-lg transition-shadow md:-translate-y-4">
-              <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80" className="w-full h-full object-cover" alt="Empathika Session" />
+              <img src={gallery[3]} className="w-full h-full object-cover" alt="Empathika Gallery 4" />
             </div>
 
             {/* Column 4 */}
             <div className="flex flex-col gap-4 md:translate-y-8">
               <div className="h-[160px] md:h-[180px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=80" className="w-full h-full object-cover" alt="Empathika Group" />
+                <img src={gallery[4]} className="w-full h-full object-cover" alt="Empathika Gallery 5" />
               </div>
               <div className="h-[100px] md:h-[120px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=400&q=80" className="w-full h-full object-cover" alt="Empathika Activity" />
+                <img src={gallery[5]} className="w-full h-full object-cover" alt="Empathika Gallery 6" />
               </div>
             </div>
 
@@ -75,16 +144,12 @@ export default function TentangKamiClient() {
           <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-start lg:items-center">
             <div className="lg:w-5/12">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#561269] leading-[1.1] tracking-tight">
-                Mari Berkenalan dengan Empathika.
+                {content.berkenalan.judul}
               </h2>
             </div>
             <div className="lg:w-7/12 grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-600 text-base md:text-lg leading-relaxed font-light">
-              <p>
-                Empathika hadir sebagai ruang bagi siapa pun yang ingin lebih memahami diri, bertumbuh, dan menjalani setiap proses dengan lebih baik. Kami percaya bahwa kesehatan mental adalah bagian penting dari kesejahteraan hidup, sama pentingnya dengan kesehatan fisik. Melalui layanan psikologi, kami ingin membuat akses terhadap bantuan profesional terasa lebih dekat, nyaman, dan mudah dijangkau. Bersama para psikolog dan tenaga profesional, kami menghadirkan ruang yang aman untuk bercerita, belajar, dan menemukan langkah yang sesuai dengan kebutuhanmu.
-              </p>
-              <p>
-                Setiap orang memiliki cerita dan perjalanan yang berbeda. Karena itu, Empathika hadir untuk menemani, bukan menghakimi. Kami ingin menjadi bagian dari perjalananmu dalam memahami diri, menghadapi berbagai proses, dan tumbuh menjadi versi diri yang lebih baik. Bagi kami, mendapatkan bantuan bukanlah tanda kelemahan, melainkan sebuah langkah untuk lebih peduli pada diri sendiri dan menjalani kehidupan dengan lebih baik.
-              </p>
+              <p>{content.berkenalan.paragraf1}</p>
+              <p>{content.berkenalan.paragraf2}</p>
             </div>
           </div>
         </div>
@@ -93,19 +158,21 @@ export default function TentangKamiClient() {
       {/* ================================================================= */}
       {/* 3. NILAI YANG KAMI BAWA (Organic Premium Journey) */}
       {/* ================================================================= */}
-
-
       <section className="w-full py-16 md:py-24 bg-[#fbfbfb] relative overflow-hidden">
         {/* Title Container (Constrained) */}
         <div className="max-w-[1200px] mx-auto px-4 md:px-8 text-center mb-12 md:mb-16">
-          <h2 className="text-3xl md:text-5xl font-extrabold text-[#561269] mb-4 drop-shadow-sm">Nilai yang Kami Bawa</h2>
-          <p className="text-gray-500 max-w-2xl mx-auto">Kami berpegang teguh pada nilai-nilai ini dalam setiap langkah perjalanan untuk mendukung kesejahteraan mental Anda.</p>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-[#561269] mb-4 drop-shadow-sm">
+            {content.nilai.judulSection}
+          </h2>
+          <p className="text-gray-500 max-w-2xl mx-auto">
+            {content.nilai.subjudulSection}
+          </p>
         </div>
 
         {/* Tabbed Chevron Container (Full Width Edge-to-Edge) */}
         <div className="flex flex-col lg:flex-row w-full items-stretch">
 
-          {/* Block 1: Empati */}
+          {/* Block 1: Pilar 1 */}
           <div className="relative flex-1 z-40 drop-shadow-[0_8px_15px_rgba(0,0,0,0.2)] lg:drop-shadow-[12px_0_15px_rgba(0,0,0,0.25)] group">
             <div className="w-full h-full bg-[#491c68] relative
               [clip-path:polygon(0_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
@@ -114,22 +181,25 @@ export default function TentangKamiClient() {
               pt-10 pb-16 px-6 sm:px-10 md:px-16 
               lg:pt-10 lg:pb-10 lg:pl-10 xl:pl-12 lg:pr-16"
             >
-              {/* 3D Lighting Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/50 pointer-events-none mix-blend-overlay"></div>
               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/10 pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
                 <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-[1.5rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.25)] border-[2px] border-white/20 mb-4 lg:mb-5 group-hover:-translate-y-2 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                  {renderNilaiIcon(nilaiItems[0]?.icon)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-3xl text-white mb-2 lg:mb-3 drop-shadow-md tracking-tight">Empati</h3>
-                <p className="text-white/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">Mendengarkan tanpa menghakimi dan memahami potensi diri Anda sepenuhnya.</p>
+                <h3 className="font-black text-2xl lg:text-3xl text-white mb-2 lg:mb-3 drop-shadow-md tracking-tight">
+                  {nilaiItems[0]?.judul}
+                </h3>
+                <p className="text-white/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">
+                  {nilaiItems[0]?.deskripsi}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Block 2: Profesional */}
+          {/* Block 2: Pilar 2 */}
           <div className="relative flex-1 z-30 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.15)] lg:drop-shadow-[12px_0_15px_rgba(0,0,0,0.2)] group">
             <div className="w-full h-full bg-[#7f5195] relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
@@ -138,22 +208,25 @@ export default function TentangKamiClient() {
               pt-16 pb-16 px-6 sm:px-10 md:px-16
               lg:pt-10 lg:pb-10 lg:pl-16 xl:pl-20 lg:pr-16"
             >
-              {/* 3D Lighting Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/30 pointer-events-none mix-blend-overlay"></div>
               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/10 pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
                 <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-[1.5rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.25)] border-[2px] border-white/20 mb-4 lg:mb-5 group-hover:-translate-y-2 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+                  {renderNilaiIcon(nilaiItems[1]?.icon)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-3xl text-white mb-2 lg:mb-3 drop-shadow-md tracking-tight">Profesional</h3>
-                <p className="text-white/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">Tenaga ahli klinis berlisensi dengan standar dan peran kompetensi yang tinggi.</p>
+                <h3 className="font-black text-2xl lg:text-3xl text-white mb-2 lg:mb-3 drop-shadow-md tracking-tight">
+                  {nilaiItems[1]?.judul}
+                </h3>
+                <p className="text-white/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">
+                  {nilaiItems[1]?.deskripsi}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Block 3: Privasi Terjaga */}
+          {/* Block 3: Pilar 3 */}
           <div className="relative flex-1 z-20 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.1)] lg:drop-shadow-[12px_0_15px_rgba(0,0,0,0.15)] group">
             <div className="w-full h-full bg-[#cdb1db] relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
@@ -162,22 +235,25 @@ export default function TentangKamiClient() {
               pt-16 pb-16 px-6 sm:px-10 md:px-16
               lg:pt-10 lg:pb-10 lg:pl-16 xl:pl-20 lg:pr-16"
             >
-              {/* 3D Lighting Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-black/10 pointer-events-none mix-blend-overlay"></div>
               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/30 pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
                 <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-[1.5rem] bg-white/40 backdrop-blur-xl flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.15)] border-[2px] border-white/60 mb-4 lg:mb-5 group-hover:-translate-y-2 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/50 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <svg className="w-7 h-7 lg:w-8 lg:h-8 text-[#491c68] drop-shadow-sm relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                  {renderNilaiIcon(nilaiItems[2]?.icon)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-3xl text-[#491c68] mb-2 lg:mb-3 drop-shadow-sm tracking-tight">Privasi Terjaga</h3>
-                <p className="text-[#491c68]/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">Kerahasiaan data setiap orang dan cerita Anda adalah prioritas mutlak kami.</p>
+                <h3 className="font-black text-2xl lg:text-3xl text-[#491c68] mb-2 lg:mb-3 drop-shadow-sm tracking-tight">
+                  {nilaiItems[2]?.judul}
+                </h3>
+                <p className="text-[#491c68]/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">
+                  {nilaiItems[2]?.deskripsi}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Block 4: Solutif Aktif */}
+          {/* Block 4: Pilar 4 */}
           <div className="relative flex-1 z-10 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.05)] lg:drop-shadow-[12px_0_15px_rgba(0,0,0,0.05)] group">
             <div className="w-full h-full bg-[#eadef2] relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_100%,0_100%)] 
@@ -186,17 +262,20 @@ export default function TentangKamiClient() {
               pt-16 pb-10 px-6 sm:px-10 md:px-16
               lg:pt-10 lg:pb-10 lg:pl-16 xl:pl-20 lg:pr-10 xl:pr-12"
             >
-              {/* 3D Lighting Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-transparent to-black/5 pointer-events-none mix-blend-overlay"></div>
               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/50 pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
                 <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.25rem] lg:rounded-[1.5rem] bg-white/60 backdrop-blur-xl flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.1)] border-[2px] border-white mb-4 lg:mb-5 group-hover:-translate-y-2 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/80 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <svg className="w-7 h-7 lg:w-8 lg:h-8 text-[#491c68] drop-shadow-sm relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                  {renderNilaiIcon(nilaiItems[3]?.icon)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-3xl text-[#491c68] mb-2 lg:mb-3 drop-shadow-sm tracking-tight">Solutif Aktif</h3>
-                <p className="text-[#491c68]/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">Setiap orang bisa menangani dan mengatasi masalah secara aktif dan solutif.</p>
+                <h3 className="font-black text-2xl lg:text-3xl text-[#491c68] mb-2 lg:mb-3 drop-shadow-sm tracking-tight">
+                  {nilaiItems[3]?.judul}
+                </h3>
+                <p className="text-[#491c68]/90 text-sm lg:text-base leading-relaxed font-medium drop-shadow-sm max-w-sm">
+                  {nilaiItems[3]?.deskripsi}
+                </p>
               </div>
             </div>
           </div>
@@ -216,16 +295,23 @@ export default function TentangKamiClient() {
               className="lg:w-1/2 w-full relative h-[400px] md:h-[550px] flex items-center justify-center group"
               style={{ perspective: '1200px' }}
             >
-              {/* Background Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#561269]/15 blur-[80px] rounded-full z-0 transition-colors duration-700 group-hover:bg-[#d97706]/15"></div>
 
-              {/* 3D Photo Container */}
               <div 
                 className="relative w-[80%] h-[85%] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-700 ease-out z-10 border-[8px] border-white group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.2)] group-hover:-translate-y-2 group-hover:rotate-1"
               >
                  <div className="absolute inset-0 rounded-[2rem] overflow-hidden bg-gray-100">
-                   <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=80" alt="Empathika Team" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-                   {/* Glass glare effect for 3D realism */}
+                   <img
+                     src={content.kenapaHadir.fotoTim}
+                     alt="Empathika Team"
+                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                     onError={(e) => {
+                       ;(e.target as HTMLElement).setAttribute(
+                         "src",
+                         "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=80"
+                       )
+                     }}
+                   />
                    <div className="absolute inset-0 bg-gradient-to-tr from-white/30 via-white/5 to-transparent opacity-40 mix-blend-overlay"></div>
                  </div>
               </div>
@@ -234,18 +320,12 @@ export default function TentangKamiClient() {
             {/* Right: Typography Content */}
             <div className="lg:w-1/2">
               <h2 className="text-3xl md:text-5xl font-extrabold text-[#561269] mb-8 leading-tight">
-                Kenapa Empathika<br />Hadir?
+                {content.kenapaHadir.judul}
               </h2>
               <div className="space-y-6 text-gray-600 text-base md:text-lg leading-relaxed font-light">
-                <p>
-                  Sering kali, mencari bantuan psikologis bukanlah hal yang mudah. Rasa takut, stigma, keterbatasan akses, hingga kekhawatiran untuk bercerita membuat banyak orang memilih menyimpan semuanya sendiri.
-                </p>
-                <p>
-                  Empathika hadir dari kepedulian terhadap hal tersebut. Kami ingin menciptakan ruang yang terasa aman, nyaman, dan terbuka bagi siapa pun untuk mulai memahami dirinya dan mendapatkan bantuan yang dibutuhkan.
-                </p>
-                <p>
-                  Dengan memanfaatkan teknologi, Empathika menghadirkan layanan psikologi yang lebih mudah dijangkau dan dekat dengan keseharian. Karena mendapatkan bantuan seharusnya tidak terasa rumit, dan setiap orang berhak memiliki ruang untuk didengarkan.
-                </p>
+                <p>{content.kenapaHadir.paragraf1}</p>
+                <p>{content.kenapaHadir.paragraf2}</p>
+                <p>{content.kenapaHadir.paragraf3}</p>
               </div>
             </div>
 
@@ -259,7 +339,9 @@ export default function TentangKamiClient() {
       <section className="w-full py-16 lg:py-20 bg-white">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 lg:mb-20">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#561269] mb-6">Ada untuk Setiap Langkahmu</h2>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#561269] mb-6">
+              Ada untuk Setiap Langkahmu
+            </h2>
             <p className="text-gray-500 max-w-2xl mx-auto text-base md:text-lg font-light leading-relaxed">
               Kami menyediakan beragam layanan yang dirancang secara khusus untuk memenuhi setiap fase perkembangan dan kebutuhan psikologismu.
             </p>
@@ -276,7 +358,7 @@ export default function TentangKamiClient() {
               </div>
               <div className="relative z-10">
                 <h3 className="font-extrabold text-3xl text-white mb-3 tracking-tight">Konsultasi</h3>
-                <p className="text-white/80 text-base md:text-lg leading-relaxed font-light max-w-lg">Ruang untuk berbicara bersama psikolog profesional mengenai berbagai hal yang sedang kamu hadapi dan menemukan langkah yang sesuai dengan kebutuhanmu.</p>
+                <p className="text-white/80 text-base md:text-lg leading-relaxed font-light max-w-lg">Ruang untuk berbicara dengan psikolog profesional mengenai hal-hal yang sedang kamu hadapi, memahami diri, dan menemukan langkah yang sesuai dengan kebutuhanmu.</p>
               </div>
             </Link>
 
@@ -287,7 +369,7 @@ export default function TentangKamiClient() {
               </div>
               <div className="mt-6">
                 <h3 className="font-extrabold text-2xl text-[#d97706] mb-3 tracking-tight">Psikotes</h3>
-                <p className="text-gray-600 text-sm leading-relaxed font-light">Tes psikologi untuk membantu mengenali potensi, kepribadian, minat, dan aspek diri lainnya dengan cara yang praktis dan terarah.</p>
+                <p className="text-gray-600 text-sm leading-relaxed font-light">Tes psikologi untuk membantu mengenali potensi, kepribadian, minat, serta berbagai aspek diri melalui proses yang praktis dan terarah.</p>
               </div>
             </Link>
 
@@ -298,7 +380,7 @@ export default function TentangKamiClient() {
               </div>
               <div className="mt-6">
                 <h3 className="font-extrabold text-2xl text-[#8e4a9e] mb-3 tracking-tight leading-tight">Seminar</h3>
-                <p className="text-gray-600 text-sm leading-relaxed font-light">Program seminar sebagai ruang edukatif dan reflektif untuk meningkatkan pemahaman psikologis serta kesadaran diri.</p>
+                <p className="text-gray-600 text-sm leading-relaxed font-light">Kegiatan edukatif yang menghadirkan wawasan dan perspektif baru seputar psikologi, kesehatan mental, serta pengembangan diri.</p>
               </div>
             </Link>
 
@@ -309,7 +391,7 @@ export default function TentangKamiClient() {
               </div>
               <div className="mt-6 relative z-10">
                 <h3 className="font-extrabold text-2xl text-white mb-3 tracking-tight">Asesmen</h3>
-                <p className="text-white/80 text-sm leading-relaxed font-light">Proses evaluasi untuk memahami kondisi dan karakteristik psikologis sebagai dasar dalam menentukan langkah atau kebutuhan selanjutnya.</p>
+                <p className="text-white/80 text-sm leading-relaxed font-light">Layanan evaluasi psikologis untuk mendukung kebutuhan seleksi, pemetaan potensi, dan pengembangan sumber daya manusia di perusahaan maupun organisasi.</p>
               </div>
             </Link>
 
@@ -320,7 +402,7 @@ export default function TentangKamiClient() {
               </div>
               <div className="mt-6">
                 <h3 className="font-extrabold text-2xl text-gray-800 mb-3 tracking-tight">Workshop</h3>
-                <p className="text-gray-500 text-sm leading-relaxed font-light">Ruang belajar interaktif untuk memahami berbagai isu kesehatan mental bersama psikolog dan tenaga profesional.</p>
+                <p className="text-gray-500 text-sm leading-relaxed font-light">Kegiatan belajar interaktif yang mengajak peserta mengeksplorasi berbagai topik psikologi dan kesehatan mental melalui diskusi serta aktivitas praktis.</p>
               </div>
             </Link>
 
