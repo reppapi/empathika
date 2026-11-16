@@ -263,16 +263,16 @@ export default function JadwalMingguanGrid({
                               <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-clamp-2">
                                 {isAsesmen ? "Slot Asesmen (Lewat)" : "Slot Tersedia (Tidak Terpakai)"}
                               </p>
-                              <div className="flex flex-col gap-0.5 text-[10px] text-gray-500">
-                                <div className="flex items-center gap-1.5 flex-wrap">
+                              <div className="flex flex-col gap-0.5 text-[10px] text-gray-500 min-w-0">
+                                <div className="flex items-center justify-between gap-1 min-w-0">
                                   {item.metode && (
                                     <span className="font-medium text-gray-600 bg-gray-200/80 px-1.5 py-0.5 rounded text-[9px] shrink-0">
                                       {item.metode}
                                     </span>
                                   )}
-                                  <span className="italic text-gray-400 truncate text-[10px]">Tidak ada booking</span>
+                                  <span className="italic text-gray-400 truncate text-[9px] min-w-0">Tidak terpakai</span>
                                 </div>
-                                {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
+                                {showPsikolog && <span className="truncate min-w-0">Tenaga: {item.psikolog}</span>}
                               </div>
                             </div>
                           )
@@ -282,7 +282,7 @@ export default function JadwalMingguanGrid({
                         return (
                           <div
                             key={item.id}
-                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden"
+                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden w-full min-w-0"
                           >
                             <div className="flex items-center justify-between gap-1 flex-wrap">
                               <div className="flex items-center gap-1.5 min-w-0">
@@ -314,16 +314,16 @@ export default function JadwalMingguanGrid({
                             <p className="text-xs font-bold leading-tight mt-0.5 text-purple-950 line-clamp-1">
                               {isAsesmen ? "Slot Asesmen" : "Slot Tersedia"}
                             </p>
-                            <div className="flex flex-col gap-0.5 text-[10px]">
-                              <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex flex-col gap-0.5 text-[10px] min-w-0">
+                              <div className="flex items-center justify-between gap-1 min-w-0">
                                 {item.metode && (
                                   <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
                                     {item.metode}
                                   </span>
                                 )}
-                                <span className="italic text-gray-400 truncate text-[10px]">Belum ada klien</span>
+                                <span className="italic text-purple-600/80 font-medium truncate text-[9px] min-w-0">Tersedia</span>
                               </div>
-                              {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
+                              {showPsikolog && <span className="truncate min-w-0">Tenaga: {item.psikolog}</span>}
                             </div>
                           </div>
                         )

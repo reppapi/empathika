@@ -156,17 +156,17 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
       targetToday?.date ||
       formatDateKey(date || new Date())
 
-    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan sebelum hari H (maksimal H-1)
-    if (!canCancelSession(dateKey)) {
+    const waktu = targetToday?.waktu || targetBooked?.waktu || targetCombined?.waktu || ""
+    const psikolog = targetToday?.psikolog || targetBooked?.psikolog || targetCombined?.psikolog || ""
+
+    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan maksimal H-3 jam sebelum sesi dimulai
+    if (!canCancelSession(dateKey, waktu)) {
       triggerToast(
-        "Pembatalan tidak dapat dilakukan pada hari H konseling. Pembatalan hanya dapat dilakukan sebelum hari H.",
+        "Pembatalan tidak dapat dilakukan karena batas waktu maksimal pembatalan (H-3 jam sebelum sesi dimulai) telah terlewati.",
         "danger"
       )
       return
     }
-
-    const waktu = targetToday?.waktu || targetBooked?.waktu || targetCombined?.waktu || ""
-    const psikolog = targetToday?.psikolog || targetBooked?.psikolog || targetCombined?.psikolog || ""
 
     try {
       await adminService.updateBookingStatus(id, "CANCELLED")

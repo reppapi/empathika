@@ -125,17 +125,52 @@ export function isSessionCancelled(
 
 /**
  * Aturan Bisnis Pembatalan Sesi:
- * Sesi HANYA BISA dibatalkan sebelum hari H (maksimal H-1, tanggal jadwal > hari ini).
- * Sesi pada hari H (hari ini) atau masa lalu TIDAK DAPAT dibatalkan lagi.
+ * Sesi HANYA BISA dibatalkan maksimal H-3 jam sebelum jadwal sesi dimulai.
+ * Jika waktu saat ini sudah kurang dari 3 jam sebelum sesi (misal H-2 jam, H-1 jam, atau saat sesi sudah dimulai/lewat),
+ * sesi TIDAK DAPAT dibatalkan lagi baik di sisi Admin maupun Psikolog.
  */
-export function canCancelSession(dateStr?: string): boolean {
+export function canCancelSession(dateStr?: string, waktuStr?: string): boolean {
   if (!dateStr) return false
+
   const now = new Date()
   const year = now.getFullYear()
   const month = String(now.getMonth() + 1).padStart(2, "0")
   const day = String(now.getDate()).padStart(2, "0")
   const todayKey = `${year}-${month}-${day}`
 
-  // Format YYYY-MM-DD: bisa langsung dicocokkan string leksikografis
-  return dateStr > todayKey
+  // 1. Jika tanggal jadwal sudah kemarin atau lampau -> tidak bisa dibatalkan
+  if (dateStr < todayKey) return false
+
+  // 2. Ambil jam mulai sesi (default 09:00 jika waktuStr tidak disediakan)
+  let jamMulai = "09:00"
+  if (waktuStr) {
+    const match = waktuStr.match(/(\d{2}:\d{2})/)
+    if (match) {
+      jamMulai = match[1]
+    }
+  }
+
+  const [hours, minutes] = jamMulai.split(":").map(Number)
+  const dateParts = dateStr.split("-").map(Number)
+  if (dateParts.length !== 3 || !dateParts[0] || !dateParts[1] || !dateParts[2]) {
+    return false
+  }
+
+  // Waktu mulai sesi sebagai Date object (WIB lokal)
+  const sessionStartTime = new Date(
+    dateParts[0],
+    dateParts[1] - 1,
+    dateParts[2],
+    hours || 0,
+    minutes || 0,
+    0,
+    0
+  )
+
+  // Selisih waktu dalam jam
+  const diffMs = sessionStartTime.getTime() - now.getTime()
+  const diffHours = diffMs / (1000 * 60 * 60)
+
+  // Maksimal pembatalan adalah H-3 jam (minimal selisih 3 jam sebelum jadwal sesi dimulai)
+  return diffHours >= 3
 }

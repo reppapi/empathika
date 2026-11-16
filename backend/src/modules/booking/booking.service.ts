@@ -264,12 +264,17 @@ export class BookingService {
           throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
         }
 
-        const isExactSameTime =
-          overlap.jam_mulai.getTime() === parsedJamMulai.getTime() &&
-          overlap.jam_selesai.getTime() === parsedJamSelesai.getTime()
+        const overlapStart = formatTimeToString(overlap.jam_mulai)
+        const overlapEnd = formatTimeToString(overlap.jam_selesai)
+        const inputStart = formatTimeToString(parsedJamMulai)
+        const inputEnd = formatTimeToString(parsedJamSelesai)
+
+        const isExactSameTime = overlapStart === inputStart && overlapEnd === inputEnd
 
         if (!isExactSameTime) {
-          throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
+          throw new Error(
+            `Slot jam ${inputStart} - ${inputEnd} bertabrakan dengan rentang jam slot lain yang sudah ada (${overlapStart} - ${overlapEnd})`
+          )
         }
 
         const updatedSlot = await (this.repo as any).prisma.jadwalSlot.update({
@@ -349,8 +354,11 @@ export class BookingService {
       )
 
       if (overlap) {
+        const hasActiveBooking =
+          (overlap as any).booking_konsultasi &&
+          (overlap as any).booking_konsultasi.status !== 'CANCELLED'
         const isAlreadyBooked =
-          overlap.status === 'SUDAH_DIBOOKING' || Boolean((overlap as any).booking_konsultasi)
+          overlap.status === 'SUDAH_DIBOOKING' || hasActiveBooking
         if (isAlreadyBooked) {
           throw new Error('Slot jam tersebut sudah dibooking oleh sesi lain')
         }
@@ -768,12 +776,17 @@ export class BookingService {
         throw new Error('Slot jam tersebut bentrok dengan jadwal konsultasi klien yang sudah ada')
       }
 
-      const isExactSameTime =
-        overlap.jam_mulai.getTime() === parsedJamMulai.getTime() &&
-        overlap.jam_selesai.getTime() === parsedJamSelesai.getTime()
+      const overlapStart = formatTimeToString(overlap.jam_mulai)
+      const overlapEnd = formatTimeToString(overlap.jam_selesai)
+      const inputStart = formatTimeToString(parsedJamMulai)
+      const inputEnd = formatTimeToString(parsedJamSelesai)
+
+      const isExactSameTime = overlapStart === inputStart && overlapEnd === inputEnd
 
       if (!isExactSameTime) {
-        throw new Error('Slot jam tersebut bentrok dengan jadwal yang sudah ada')
+        throw new Error(
+          `Slot jam ${inputStart} - ${inputEnd} bertabrakan dengan rentang jam slot lain yang sudah ada (${overlapStart} - ${overlapEnd})`
+        )
       }
 
       // Jika slot jamnya SAMA PERSIS dan tidak ada booking aktif (misal slot sebelumnya berstatus TERSEDIA,

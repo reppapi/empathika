@@ -209,6 +209,69 @@ export function getWhatsAppPsikologUrl(session: {
   return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
 }
 
+export function formatWhatsAppPsikologCancellation(session: {
+  namaKlien: string
+  klienId?: string
+  layanan: string
+  psikolog: string
+  waktu: string
+  date?: string
+  tanggal?: string
+  tipe?: string
+}): string {
+  const tgl = session.date || session.tanggal || "hari ini"
+  return `Halo ${session.psikolog},
+
+Pemberitahuan resmi dari Tim Administrasi Empathika bahwa sesi konseling berikut telah *DIBATALKAN*:
+
+📋 *Detail Sesi yang Dibatalkan:*
+• *Klien:* ${session.namaKlien} (ID: ${session.klienId || "-"})
+• *Layanan:* ${session.layanan}
+• *Tanggal:* ${tgl}
+• *Waktu Sesi:* ${session.waktu} WIB
+• *Metode:* ${session.tipe || "Konsultasi"}
+• *Status:* Dibatalkan
+
+Slot jam tersebut telah dinonaktifkan di sistem. Anda tidak perlu bersiap untuk sesi ini. Terima kasih atas pengertian dan kerjasamanya! 🙏
+- Tim Admin Empathika`
+}
+
+export function getWhatsAppPsikologCancelUrl(session: {
+  noTeleponPsikolog?: string
+  kontak?: string
+  namaKlien: string
+  klienId?: string
+  layanan: string
+  psikolog: string
+  waktu: string
+  date?: string
+  tanggal?: string
+  tipe?: string
+}): string {
+  let phone = session.noTeleponPsikolog
+
+  if (!phone && typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+      const list = saved ? JSON.parse(saved) : []
+      const found = list.find(
+        (p: any) =>
+          p.nama?.toLowerCase().includes(session.psikolog.toLowerCase()) ||
+          session.psikolog.toLowerCase().includes(p.nama?.toLowerCase())
+      )
+      if (found && found.noTelepon) {
+        phone = found.noTelepon
+      }
+    } catch { }
+  }
+
+  const clean = (phone || "").replace(/\D/g, "")
+  if (!clean) return "#"
+  const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
+  const message = formatWhatsAppPsikologCancellation(session)
+  return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+}
+
 export function generateWeekSessions(_monday: Date): BookedAssessment[] {
   return []
 }

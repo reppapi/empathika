@@ -10,6 +10,7 @@ import {
   getCancelledSessions,
   isSessionCancelled,
   recordCancelledSession,
+  canCancelSession,
 } from "@/features/konseling/utils/cancellationSync"
 import ModalDetailSesiKlien from "@/features/konseling/components/admin/ModalDetailSesiKlien"
 import { ClientSessionToday, ClientSessionStatus } from "@/features/konseling/types"
@@ -362,7 +363,7 @@ export default function PsikologJadwalClient() {
     setSelectedDetailSession(convertSessionToDetail(s))
   }
 
-  // Pembatalan otomatis sesi klien
+  // Pembatalan otomatis sesi klien (maksimal H-3 jam)
   const handleCancelClientBooking = async (sessionOrItem: BookedSession | ClientSessionToday) => {
     const targetId = sessionOrItem.id
     const targetDate = sessionOrItem.date || (sessionOrItem as any).tanggal || ""
@@ -373,6 +374,15 @@ export default function PsikologJadwalClient() {
       (sessionOrItem as any).psikolog ||
       activePsikolog?.nama_gelar ||
       "Psikolog"
+
+    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan maksimal H-3 jam sebelum sesi dimulai
+    if (!canCancelSession(targetDate, targetTime)) {
+      triggerToast(
+        "Pembatalan tidak dapat dilakukan karena batas waktu maksimal pembatalan (H-3 jam sebelum sesi dimulai) telah terlewati.",
+        "danger"
+      )
+      return
+    }
 
     // 1. Optimistic UI update di grid
     setBookedSessions((prev) =>
@@ -1662,18 +1672,20 @@ export default function PsikologJadwalClient() {
                                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs shrink-0">
                                     {item.metode}
                                   </span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      handleCancelClientBooking(item)
-                                    }}
-                                    title="Batalkan sesi klien ini"
-                                    className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
+                                  {canCancelSession(wd.dateKey || item.date, item.waktu) && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        handleCancelClientBooking(item)
+                                      }}
+                                      title="Batalkan sesi klien ini (Maks H-3 Jam)"
+                                      className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                               <span className="text-xs font-bold text-gray-900 line-clamp-1">
@@ -1725,13 +1737,13 @@ export default function PsikologJadwalClient() {
                               <p className="text-xs font-semibold leading-tight text-gray-700 line-clamp-2">
                                 Slot Tersedia (Tidak Terpakai)
                               </p>
-                              <div className="flex flex-col gap-0.5 text-[10px] text-gray-500">
-                                <div className="flex items-center gap-1.5 flex-wrap">
+                              <div className="flex flex-col gap-0.5 text-[10px] text-gray-500 min-w-0">
+                                <div className="flex items-center justify-between gap-1 min-w-0">
                                   <span className="font-medium text-gray-600 bg-gray-200/80 px-1.5 py-0.5 rounded text-[9px] shrink-0">
                                     {item.metode}
                                   </span>
-                                  <span className="italic truncate text-[10px] text-gray-400">
-                                    Tidak ada booking
+                                  <span className="italic truncate text-[9px] text-gray-400 min-w-0">
+                                    Tidak terpakai
                                   </span>
                                 </div>
                               </div>
@@ -1742,7 +1754,7 @@ export default function PsikologJadwalClient() {
                         return (
                           <div
                             key={item.id || idx}
-                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden"
+                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs hover:shadow-sm transition-all bg-[#FAF5FD] border border-[#D8C3E8] overflow-hidden w-full min-w-0"
                           >
                             <div className="flex items-center justify-between gap-1 flex-wrap">
                               <div className="flex items-center gap-1.5 min-w-0">
@@ -1766,13 +1778,13 @@ export default function PsikologJadwalClient() {
                             <span className="text-xs font-semibold text-purple-950">
                               Slot Tersedia
                             </span>
-                            <div className="flex flex-col gap-0.5 text-[10px]">
-                              <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex flex-col gap-0.5 text-[10px] min-w-0">
+                              <div className="flex items-center justify-between gap-1 min-w-0">
                                 <span className="text-[9px] font-medium text-purple-700 bg-purple-100/70 px-1.5 py-0.5 rounded shrink-0">
                                   {item.metode}
                                 </span>
-                                <span className="text-[10px] text-gray-400 italic truncate">
-                                  Belum ada klien
+                                <span className="text-[9px] text-purple-600/80 font-medium italic truncate min-w-0">
+                                  Tersedia
                                 </span>
                               </div>
                             </div>
