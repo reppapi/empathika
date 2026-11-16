@@ -53,6 +53,15 @@ function renderNilaiIcon(iconName?: string) {
   }
 }
 
+function getSafeImageUrl(url?: string, fallback = ""): string {
+  if (!url || typeof url !== "string") return fallback
+  const trimmed = url.trim()
+  if (/^(https?:\/\/|\/uploads\/|\/images\/|\/)/i.test(trimmed)) {
+    return trimmed
+  }
+  return fallback
+}
+
 export default function TentangKamiClient() {
   const { isBiro, biroProfile, withBiro } = useTenantContext()
   const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"
@@ -99,36 +108,152 @@ export default function TentangKamiClient() {
             {deskripsi}
           </p>
 
-          {/* Modern Compact Staggered Grid (Bento Style) */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl mx-auto h-auto md:h-[320px] mt-4">
+          {/* ======================================================== */}
+          {/* Responsive Gallery Grid: Mobile/Tablet (< md)             */}
+          {/* ======================================================== */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-xl sm:max-w-2xl mx-auto md:hidden mt-4 px-1">
+            {/* Slot 1 */}
+            <div className="h-[125px] sm:h-[150px] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
+              <img
+                src={getSafeImageUrl(gallery[0], DEFAULT_TENTANG_KAMI.hero.gallery[0])}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                alt="Empathika Gallery 1"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[0])
+                }}
+              />
+            </div>
+            {/* Slot 2 */}
+            <div className="h-[125px] sm:h-[150px] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
+              <img
+                src={getSafeImageUrl(gallery[1], DEFAULT_TENTANG_KAMI.hero.gallery[1])}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                alt="Empathika Gallery 2"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[1])
+                }}
+              />
+            </div>
+            {/* Slot 3 - Kini Tampil di Mobile & Tablet */}
+            <div className="h-[140px] sm:h-[150px] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
+              <img
+                src={getSafeImageUrl(gallery[2], DEFAULT_TENTANG_KAMI.hero.gallery[2])}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                alt="Empathika Gallery 3"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[2])
+                }}
+              />
+            </div>
+            {/* Slot 4 */}
+            <div className="h-[140px] sm:h-[150px] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
+              <img
+                src={getSafeImageUrl(gallery[3], DEFAULT_TENTANG_KAMI.hero.gallery[3])}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                alt="Empathika Gallery 4"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[3])
+                }}
+              />
+            </div>
+            {/* Slot 5 */}
+            <div className="h-[125px] sm:h-[150px] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
+              <img
+                src={getSafeImageUrl(gallery[4], DEFAULT_TENTANG_KAMI.hero.gallery[4])}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                alt="Empathika Gallery 5"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[4])
+                }}
+              />
+            </div>
+            {/* Slot 6 */}
+            <div className="h-[125px] sm:h-[150px] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
+              <img
+                src={getSafeImageUrl(gallery[5], DEFAULT_TENTANG_KAMI.hero.gallery[5])}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                alt="Empathika Gallery 6"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[5])
+                }}
+              />
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* Desktop Staggered Bento Grid (>= md)                      */}
+          {/* ======================================================== */}
+          <div className="hidden md:grid md:grid-cols-4 gap-4 w-full max-w-4xl mx-auto h-auto md:h-[320px] mt-4">
 
             {/* Column 1 */}
             <div className="flex flex-col gap-4 md:translate-y-6">
-              <div className="h-[120px] md:h-[140px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img src={gallery[0]} className="w-full h-full object-cover" alt="Empathika Gallery 1" />
+              <div className="h-[120px] md:h-[140px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                <img
+                  src={getSafeImageUrl(gallery[0], DEFAULT_TENTANG_KAMI.hero.gallery[0])}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  alt="Empathika Gallery 1"
+                  onError={(e) => {
+                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[0])
+                  }}
+                />
               </div>
-              <div className="h-[140px] md:h-[160px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img src={gallery[1]} className="w-full h-full object-cover" alt="Empathika Gallery 2" />
+              <div className="h-[140px] md:h-[160px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                <img
+                  src={getSafeImageUrl(gallery[1], DEFAULT_TENTANG_KAMI.hero.gallery[1])}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  alt="Empathika Gallery 2"
+                  onError={(e) => {
+                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[1])
+                  }}
+                />
               </div>
             </div>
 
             {/* Column 2 */}
-            <div className="hidden md:block h-[260px] md:h-[280px] rounded-[1.5rem] overflow-hidden shadow-md hover:shadow-lg transition-shadow translate-y-2">
-              <img src={gallery[2]} className="w-full h-full object-cover" alt="Empathika Gallery 3" />
+            <div className="h-[260px] md:h-[280px] rounded-[1.5rem] overflow-hidden shadow-md hover:shadow-lg transition-shadow translate-y-2 group">
+              <img
+                src={getSafeImageUrl(gallery[2], DEFAULT_TENTANG_KAMI.hero.gallery[2])}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                alt="Empathika Gallery 3"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[2])
+                }}
+              />
             </div>
 
             {/* Column 3 */}
-            <div className="h-[200px] md:h-[300px] rounded-[1.5rem] overflow-hidden shadow-md hover:shadow-lg transition-shadow md:-translate-y-4">
-              <img src={gallery[3]} className="w-full h-full object-cover" alt="Empathika Gallery 4" />
+            <div className="h-[200px] md:h-[300px] rounded-[1.5rem] overflow-hidden shadow-md hover:shadow-lg transition-shadow md:-translate-y-4 group">
+              <img
+                src={getSafeImageUrl(gallery[3], DEFAULT_TENTANG_KAMI.hero.gallery[3])}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                alt="Empathika Gallery 4"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[3])
+                }}
+              />
             </div>
 
             {/* Column 4 */}
             <div className="flex flex-col gap-4 md:translate-y-8">
-              <div className="h-[160px] md:h-[180px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img src={gallery[4]} className="w-full h-full object-cover" alt="Empathika Gallery 5" />
+              <div className="h-[160px] md:h-[180px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                <img
+                  src={getSafeImageUrl(gallery[4], DEFAULT_TENTANG_KAMI.hero.gallery[4])}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  alt="Empathika Gallery 5"
+                  onError={(e) => {
+                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[4])
+                  }}
+                />
               </div>
-              <div className="h-[100px] md:h-[120px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img src={gallery[5]} className="w-full h-full object-cover" alt="Empathika Gallery 6" />
+              <div className="h-[100px] md:h-[120px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                <img
+                  src={getSafeImageUrl(gallery[5], DEFAULT_TENTANG_KAMI.hero.gallery[5])}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  alt="Empathika Gallery 6"
+                  onError={(e) => {
+                    ;(e.target as HTMLElement).setAttribute("src", DEFAULT_TENTANG_KAMI.hero.gallery[5])
+                  }}
+                />
               </div>
             </div>
 
@@ -292,23 +417,26 @@ export default function TentangKamiClient() {
 
             {/* Left: 3D Single Photo Layout */}
             <div 
-              className="lg:w-1/2 w-full relative h-[400px] md:h-[550px] flex items-center justify-center group"
+              className="lg:w-1/2 w-full relative h-[320px] sm:h-[420px] md:h-[500px] lg:h-[550px] flex items-center justify-center group"
               style={{ perspective: '1200px' }}
             >
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#561269]/15 blur-[80px] rounded-full z-0 transition-colors duration-700 group-hover:bg-[#d97706]/15"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] sm:w-[300px] h-[240px] sm:h-[300px] bg-[#561269]/15 blur-[80px] rounded-full z-0 transition-colors duration-700 group-hover:bg-[#d97706]/15"></div>
 
               <div 
-                className="relative w-[80%] h-[85%] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-700 ease-out z-10 border-[8px] border-white group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.2)] group-hover:-translate-y-2 group-hover:rotate-1"
+                className="relative w-[90%] sm:w-[80%] h-[85%] rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-700 ease-out z-10 border-[6px] sm:border-[8px] border-white group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.2)] group-hover:-translate-y-2 group-hover:rotate-1"
               >
                  <div className="absolute inset-0 rounded-[2rem] overflow-hidden bg-gray-100">
                    <img
-                     src={content.kenapaHadir.fotoTim}
+                     src={getSafeImageUrl(
+                       content.kenapaHadir.fotoTim,
+                       DEFAULT_TENTANG_KAMI.kenapaHadir.fotoTim
+                     )}
                      alt="Empathika Team"
                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                      onError={(e) => {
                        ;(e.target as HTMLElement).setAttribute(
                          "src",
-                         "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=80"
+                         DEFAULT_TENTANG_KAMI.kenapaHadir.fotoTim
                        )
                      }}
                    />
@@ -340,10 +468,11 @@ export default function TentangKamiClient() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 lg:mb-20">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#561269] mb-6">
-              Ada untuk Setiap Langkahmu
+              {content.layananSection?.judul || "Ada untuk Setiap Langkahmu"}
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto text-base md:text-lg font-light leading-relaxed">
-              Kami menyediakan beragam layanan psikologi untuk menemani setiap fase kehidupan dan membantu memenuhi kebutuhanmu.
+              {content.layananSection?.deskripsi ||
+                "Kami menyediakan beragam layanan psikologi untuk menemani setiap fase kehidupan dan membantu memenuhi kebutuhanmu."}
             </p>
           </div>
 

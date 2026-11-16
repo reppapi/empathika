@@ -114,12 +114,24 @@ export const tentangKamiService = {
         "/admin/tentang-kami/public"
       )
       if (response.data?.success && response.data?.data) {
+        const merged: TentangKamiContent = {
+          ...DEFAULT_TENTANG_KAMI,
+          ...response.data.data,
+          hero: { ...DEFAULT_TENTANG_KAMI.hero, ...(response.data.data.hero || {}) },
+          berkenalan: { ...DEFAULT_TENTANG_KAMI.berkenalan, ...(response.data.data.berkenalan || {}) },
+          nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(response.data.data.nilai || {}) },
+          kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(response.data.data.kenapaHadir || {}) },
+          layananSection: {
+            ...DEFAULT_TENTANG_KAMI.layananSection,
+            ...(response.data.data.layananSection || {}),
+          },
+        }
         if (typeof window !== "undefined") {
           try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(response.data.data))
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
           } catch {}
         }
-        return response.data.data
+        return merged
       }
     } catch {
       // Fallback ke cache localStorage jika ada
@@ -127,7 +139,19 @@ export const tentangKamiService = {
         try {
           const cached = localStorage.getItem(STORAGE_KEY)
           if (cached) {
-            return JSON.parse(cached)
+            const parsed = JSON.parse(cached)
+            return {
+              ...DEFAULT_TENTANG_KAMI,
+              ...parsed,
+              hero: { ...DEFAULT_TENTANG_KAMI.hero, ...(parsed.hero || {}) },
+              berkenalan: { ...DEFAULT_TENTANG_KAMI.berkenalan, ...(parsed.berkenalan || {}) },
+              nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(parsed.nilai || {}) },
+              kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(parsed.kenapaHadir || {}) },
+              layananSection: {
+                ...DEFAULT_TENTANG_KAMI.layananSection,
+                ...(parsed.layananSection || {}),
+              },
+            }
           }
         } catch {}
       }
@@ -144,7 +168,18 @@ export const tentangKamiService = {
         "/admin/tentang-kami"
       )
       if (response.data?.success && response.data?.data) {
-        return response.data.data
+        return {
+          ...DEFAULT_TENTANG_KAMI,
+          ...response.data.data,
+          hero: { ...DEFAULT_TENTANG_KAMI.hero, ...(response.data.data.hero || {}) },
+          berkenalan: { ...DEFAULT_TENTANG_KAMI.berkenalan, ...(response.data.data.berkenalan || {}) },
+          nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(response.data.data.nilai || {}) },
+          kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(response.data.data.kenapaHadir || {}) },
+          layananSection: {
+            ...DEFAULT_TENTANG_KAMI.layananSection,
+            ...(response.data.data.layananSection || {}),
+          },
+        }
       }
     } catch {
       // Fallback jika API sedang offline

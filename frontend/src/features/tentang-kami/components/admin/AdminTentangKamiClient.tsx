@@ -30,6 +30,16 @@ export default function AdminTentangKamiClient() {
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
+  // Panduan rasio foto untuk masing-masing slot galeri hero
+  const GALLERY_SLOT_RATIOS = [
+    "Rasio 4:3",
+    "Rasio 1:1",
+    "Rasio 3:4",
+    "Rasio 2:3",
+    "Rasio 1:1",
+    "Rasio 16:9",
+  ]
+
   // Ambil data konten saat halaman pertama kali dimuat
   useEffect(() => {
     let isMounted = true
@@ -64,6 +74,80 @@ export default function AdminTentangKamiClient() {
   const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(initialData)
 
   const handleSave = async () => {
+    // Validasi Keamanan & Integritas Input Sebelum Dikirim ke Backend
+    const safeUrlRegex = /^(https?:\/\/|\/uploads\/|\/images\/|\/)/i
+
+    if (!formData.hero.tagline?.trim()) {
+      setToast({ type: "error", message: "Tagline hero tidak boleh kosong." })
+      setActiveTab("hero")
+      return
+    }
+
+    for (let i = 0; i < 6; i++) {
+      const url = formData.hero.gallery[i]?.trim()
+      if (!url || !safeUrlRegex.test(url)) {
+        setToast({
+          type: "error",
+          message: `URL foto galeri slot ${i + 1} tidak valid (harus diawali http://, https://, atau /uploads/).`,
+        })
+        setActiveTab("hero")
+        return
+      }
+    }
+
+    if (
+      !formData.berkenalan.judul?.trim() ||
+      !formData.berkenalan.paragraf1?.trim() ||
+      !formData.berkenalan.paragraf2?.trim()
+    ) {
+      setToast({
+        type: "error",
+        message: "Seluruh kolom judul dan paragraf pada tab Mari Berkenalan wajib diisi.",
+      })
+      setActiveTab("berkenalan")
+      return
+    }
+
+    if (
+      !formData.nilai.judulSection?.trim() ||
+      !formData.nilai.subjudulSection?.trim()
+    ) {
+      setToast({
+        type: "error",
+        message: "Judul dan subjudul pada tab Nilai yang Kami Bawa wajib diisi.",
+      })
+      setActiveTab("nilai")
+      return
+    }
+
+    for (let i = 0; i < formData.nilai.items.length; i++) {
+      const it = formData.nilai.items[i]
+      if (!it.judul?.trim() || !it.deskripsi?.trim()) {
+        setToast({
+          type: "error",
+          message: `Judul dan deskripsi pilar nilai ke-${i + 1} tidak boleh kosong.`,
+        })
+        setActiveTab("nilai")
+        return
+      }
+    }
+
+    if (
+      !formData.kenapaHadir.judul?.trim() ||
+      !formData.kenapaHadir.fotoTim?.trim() ||
+      !safeUrlRegex.test(formData.kenapaHadir.fotoTim.trim()) ||
+      !formData.kenapaHadir.paragraf1?.trim() ||
+      !formData.kenapaHadir.paragraf2?.trim() ||
+      !formData.kenapaHadir.paragraf3?.trim()
+    ) {
+      setToast({
+        type: "error",
+        message: "Seluruh kolom narasi dan URL foto tim pada tab Kenapa Kami Hadir wajib valid dan terisi.",
+      })
+      setActiveTab("kenapaHadir")
+      return
+    }
+
     setIsSaving(true)
     try {
       const updated = await tentangKamiService.update(formData)
@@ -94,6 +178,21 @@ export default function AdminTentangKamiClient() {
 
   // Handler upload foto galeri hero
   const handleUploadGalleryImage = async (slotIdx: number, file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setToast({
+        type: "error",
+        message: "File yang diunggah harus berupa gambar (JPG, PNG, WEBP, atau GIF).",
+      })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({
+        type: "error",
+        message: "Ukuran file terlalu besar. Maksimal ukuran gambar adalah 5MB.",
+      })
+      return
+    }
+
     setUploadingSlot(slotIdx)
     try {
       const uploadedUrl = await uploadService.uploadImage(file)
@@ -118,6 +217,21 @@ export default function AdminTentangKamiClient() {
 
   // Handler upload foto tim kenapa hadir
   const handleUploadTeamPhoto = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setToast({
+        type: "error",
+        message: "File yang diunggah harus berupa gambar (JPG, PNG, WEBP, atau GIF).",
+      })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({
+        type: "error",
+        message: "Ukuran file terlalu besar. Maksimal ukuran foto tim adalah 5MB.",
+      })
+      return
+    }
+
     setIsUploadingTeamPhoto(true)
     try {
       const uploadedUrl = await uploadService.uploadImage(file)
@@ -163,22 +277,18 @@ export default function AdminTentangKamiClient() {
         </div>
       )}
 
-      {/* Top Header Card */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Top Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          {hasUnsavedChanges && (
-            <div className="mb-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 animate-pulse">
-                Ada perubahan belum disimpan
-              </span>
-            </div>
+          {hasUnsavedChanges ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 animate-pulse">
+              Ada perubahan belum disimpan
+            </span>
+          ) : (
+            <span className="text-xs text-gray-400 font-medium">
+              Semua perubahan telah tersimpan
+            </span>
           )}
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#561269] tracking-tight">
-            Kelola Halaman Tentang Kami
-          </h1>
-          <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-            Atur foto galeri, narasi filosofi, nilai utama, dan alasan kehadiran Empathika untuk pengunjung publik.
-          </p>
         </div>
 
         {/* Action Buttons */}
@@ -186,7 +296,7 @@ export default function AdminTentangKamiClient() {
           <button
             type="button"
             onClick={() => setShowResetModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-700 text-xs sm:text-sm font-semibold border border-gray-200 hover:border-rose-200 transition-all active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-rose-50 text-gray-600 hover:text-rose-700 text-xs sm:text-sm font-semibold border border-gray-200 hover:border-rose-200 transition-all active:scale-95 cursor-pointer shadow-2xs"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Reset Default</span>
@@ -254,16 +364,11 @@ export default function AdminTentangKamiClient() {
 
           {/* 6 Bento Gallery Images */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-gray-100 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Galeri Foto Bento Hero (6 Slot)</h2>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  Foto-foto ini disusun berselang-seling (staggered bento grid) di bawah tagline hero.
-                </p>
-              </div>
-              <span className="text-xs font-semibold text-[#561269] bg-purple-50 px-3 py-1 rounded-full border border-purple-100 self-start sm:self-auto">
-                Rekomendasi rasio: 1:1 atau 4:3
-              </span>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Galeri Foto Bento Hero (6 Slot)</h2>
+              <p className="text-xs sm:text-sm text-gray-500">
+                Foto-foto ini disusun berselang-seling di bawah tagline hero pada website.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -272,10 +377,16 @@ export default function AdminTentangKamiClient() {
                   key={idx}
                   className="rounded-2xl border border-gray-200/80 p-4 bg-gray-50/50 flex flex-col justify-between gap-4 transition hover:border-[#561269]/40"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-700 bg-white px-2.5 py-1 rounded-lg border border-gray-200 shadow-xs">
-                      Foto Slot {idx + 1}
-                    </span>
+                  {/* Header Slot & Rasio */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-800 bg-white px-2.5 py-1 rounded-lg border border-gray-200 shadow-2xs">
+                        Slot {idx + 1}
+                      </span>
+                      <span className="text-xs font-semibold text-gray-500">
+                        {GALLERY_SLOT_RATIOS[idx]}
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -287,7 +398,7 @@ export default function AdminTentangKamiClient() {
                       }}
                       className="text-[11px] text-gray-400 hover:text-gray-700 transition"
                     >
-                      Kembali Default
+                      Default
                     </button>
                   </div>
 
@@ -408,7 +519,7 @@ export default function AdminTentangKamiClient() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                  Paragraf 1 (Kolom Kiri)
+                  Paragraf 1
                 </label>
                 <textarea
                   rows={8}
@@ -426,7 +537,7 @@ export default function AdminTentangKamiClient() {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                  Paragraf 2 (Kolom Kanan)
+                  Paragraf 2
                 </label>
                 <textarea
                   rows={8}
@@ -576,9 +687,14 @@ export default function AdminTentangKamiClient() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Foto Tim 3D */}
             <div className="lg:col-span-5 space-y-4">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Foto Utama Tim (Frame 3D)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Foto Utama Tim (Frame 3D)
+                </label>
+                <span className="text-xs font-semibold text-gray-500">
+                  Rasio 4:3
+                </span>
+              </div>
 
               <div className="relative w-full h-64 sm:h-72 rounded-3xl overflow-hidden bg-gray-100 border-4 border-white shadow-xl group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
