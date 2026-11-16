@@ -9,6 +9,10 @@ import {
   getCancelledSessions,
   isSessionCancelled,
   canCancelSession,
+  recordRescheduledSession,
+  getRescheduledSessions,
+  isSessionRescheduled,
+  canRescheduleSession,
 } from "@/features/konseling/utils/cancellationSync"
 
 import {
@@ -58,6 +62,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [selectedDetailSession, setSelectedDetailSession] = useState<ClientSessionToday | null>(null)
   const [sessionToCancel, setSessionToCancel] = useState<ClientSessionToday | null>(null)
+  const [sessionToReschedule, setSessionToReschedule] = useState<ClientSessionToday | null>(null)
   const [actionToast, setActionToast] = useState<{ message: string; type: "success" | "danger" } | null>(null)
 
   // State Modal Tambah Sesi
@@ -159,10 +164,10 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     const waktu = targetToday?.waktu || targetBooked?.waktu || targetCombined?.waktu || ""
     const psikolog = targetToday?.psikolog || targetBooked?.psikolog || targetCombined?.psikolog || ""
 
-    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan maksimal H-3 jam sebelum sesi dimulai
-    if (!canCancelSession(dateKey, waktu)) {
+    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan jika jadwal belum lewat kemarin
+    if (!canCancelSession(dateKey)) {
       triggerToast(
-        "Pembatalan tidak dapat dilakukan karena batas waktu maksimal pembatalan (H-3 jam sebelum sesi dimulai) telah terlewati.",
+        "Pembatalan tidak dapat dilakukan untuk jadwal yang sudah lampau.",
         "danger"
       )
       return
@@ -251,6 +256,95 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     }
 
     triggerToast(`Sesi ${namaKlien} (${waktu}) telah dibatalkan.`, "danger")
+    fetchJadwalData()
+  }
+
+  const handleConfirmReschedule = async (
+    id: string,
+    newDate: string,
+    newWaktu: string,
+    alasan?: string
+  ) => {
+    const targetToday = todaySessions.find((s) => s.id === id)
+    const targetBooked = bookedSessions.find((s) => s.id === id)
+    const targetCombined = currentWeekAllSessions.find((s) => s.id === id)
+
+    const dateKey =
+      (targetBooked && targetBooked.date) ||
+      (targetCombined && targetCombined.date) ||
+      targetToday?.date ||
+      formatDateKey(date || new Date())
+
+    const waktu = targetToday?.waktu || targetBooked?.waktu || targetCombined?.waktu || ""
+    const namaKlien = targetToday?.namaKlien || targetBooked?.namaKlien || "Klien"
+    const psikolog = targetToday?.psikolog || targetBooked?.psikolog || targetCombined?.psikolog || ""
+
+    // Aturan Bisnis: Reschedule HANYA BISA dilakukan maksimal H-3 jam sebelum sesi dimulai
+    if (!canRescheduleSession(dateKey, waktu)) {
+      triggerToast(
+        "Reschedule tidak dapat dilakukan karena batas waktu maksimal reschedule (H-3 jam sebelum sesi dimulai) telah terlewati.",
+        "danger"
+      )
+      return
+    }
+
+    recordRescheduledSession({
+      id,
+      date: dateKey,
+      waktu,
+      newDate,
+      newWaktu,
+      namaKlien,
+      psikolog,
+    })
+
+    setTodaySessions((prev) =>
+      prev.map((s) =>
+        s.id === id
+          ? {
+              ...s,
+              status: "Reschedule",
+              date: newDate,
+              tanggal: newDate,
+              waktu: newWaktu,
+              isUpcomingNearest: false,
+            }
+          : s
+      )
+    )
+
+    setBookedSessions((prev) =>
+      prev.map((b) =>
+        b.id === id || (b.date === dateKey && b.waktu === waktu)
+          ? {
+              ...b,
+              status: "Reschedule",
+              isRescheduled: true,
+              date: newDate,
+              waktu: newWaktu,
+            }
+          : b
+      )
+    )
+
+    triggerToast(
+      `Sesi ${namaKlien} berhasil dijadwalkan ulang (Reschedule) ke ${newDate} (${newWaktu}).`,
+      "success"
+    )
+    setSessionToReschedule(null)
+    if (selectedDetailSession && selectedDetailSession.id === id) {
+      setSelectedDetailSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "Reschedule",
+              date: newDate,
+              tanggal: newDate,
+              waktu: newWaktu,
+            }
+          : null
+      )
+    }
     fetchJadwalData()
   }
 
@@ -377,6 +471,9 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
         if (item.status === "Dibatalkan" || (item.status as string) === "Dibatalkan (Refund)") {
           return { ...item, isUpcomingNearest: false }
         }
+        if (item.status === "Reschedule") {
+          return { ...item, isUpcomingNearest: false }
+        }
         if (item.status === "Selesai") {
           return { ...item, isUpcomingNearest: false }
         }
@@ -445,7 +542,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
     // 1. Cek sesi yang sedang berlangsung saat ini (bisa multiple paralel dari psikolog berbeda)
     const ongoing = filteredTodaySessions.filter((s) => {
-      if (s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)" || s.status === "Selesai") return false
+      if (s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)" || s.status === "Selesai" || s.status === "Reschedule") return false
       if (s.status === "Sedang Berlangsung") return true
       const { startMinutes, endMinutes } = parseTimeRangeMinutes(s.waktu)
       return Boolean(startMinutes && endMinutes && currentMinutes >= startMinutes && currentMinutes < endMinutes)
@@ -454,7 +551,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
     // 2. Cek semua sesi yang segera dimulai di jam terdekat yang sama
     const upcoming = filteredTodaySessions.filter((s) => {
-      if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)") return false
+      if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)" || s.status === "Reschedule") return false
       if (s.status !== "Segera Dimulai" && !s.isUpcomingNearest) return false
       const { endMinutes } = parseTimeRangeMinutes(s.waktu)
       return endMinutes > currentMinutes
@@ -464,7 +561,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     // 3. Fallback: ambil semua sesi terdekat yang belum mulai (jam paling awal berikutnya)
     const validFuture = filteredTodaySessions
       .filter((s) => {
-        if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)") return false
+        if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)" || s.status === "Reschedule") return false
         const { startMinutes } = parseTimeRangeMinutes(s.waktu)
         return startMinutes && startMinutes > currentMinutes
       })
@@ -507,12 +604,31 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     setIsLoading(true)
     try {
       const res: any = await adminService.getJadwal({ date: datePickerValue })
+      const rescheduledList = getRescheduledSessions()
+      const cancelledList = getCancelledSessions()
+
       if (res) {
         if (Array.isArray(res.todaySessions)) {
           const mappedToday: ClientSessionToday[] = res.todaySessions.map((s: any) => {
             const isAsesmen =
               (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
               (s.layanan || "").toLowerCase().includes("asesmen")
+            const isResched = isSessionRescheduled(
+              { id: s.id, date: s.tanggal, waktu: s.waktuRange, namaKlien: s.namaKlien },
+              rescheduledList
+            )
+            const isCanc = isSessionCancelled(
+              { id: s.id, date: s.tanggal, waktu: s.waktuRange, namaKlien: s.namaKlien },
+              cancelledList
+            )
+
+            let finalStatus = s.status as ClientSessionStatus
+            if (isResched) {
+              finalStatus = "Reschedule"
+            } else if (isCanc) {
+              finalStatus = "Dibatalkan"
+            }
+
             return {
               id: s.id,
               date: s.tanggal,
@@ -526,7 +642,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               layanan: s.layanan,
               tipe: s.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
               catatan: s.deskripsiTrauma || undefined,
-              status: s.status as ClientSessionStatus,
+              status: finalStatus,
               tanggal: s.tanggal,
               canRefund: s.canRefund,
               isPastH1: s.isPastH1,
@@ -549,6 +665,22 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               (w.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
               (w.layanan || "").toLowerCase().includes("asesmen")
             const isAvailable = w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")
+            const isResched = isSessionRescheduled(
+              { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
+              rescheduledList
+            )
+            const isCanc = isSessionCancelled(
+              { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
+              cancelledList
+            )
+
+            let finalWeeklyStatus = w.status || (w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif")
+            if (isResched) {
+              finalWeeklyStatus = "Reschedule"
+            } else if (isCanc) {
+              finalWeeklyStatus = "Dibatalkan"
+            }
+
             return {
               id: w.id,
               date: w.date,
@@ -562,13 +694,14 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               id_psikolog: w.id_psikolog,
               noTeleponPsikolog: w.noTeleponPsikolog,
               catatan: w.catatan,
-              status: w.status || (w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif"),
+              status: finalWeeklyStatus,
               isAvailableSlot: w.statusSlot === "TERSEDIA",
               tipe_jadwal: isAsesmen ? "ASESMEN" : "KONSULTASI",
               isBooked:
                 w.isBooked ??
                 (w.statusSlot === "SUDAH_DIBOOKING" ||
                   (Boolean(w.clientName) && w.clientName !== "Tersedia")),
+              isRescheduled: isResched,
             }
           })
 
@@ -592,9 +725,11 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     }
     window.addEventListener("storage", handleStorageChange)
     window.addEventListener("empathika_session_cancelled", handleStorageChange)
+    window.addEventListener("empathika_session_rescheduled", handleStorageChange)
     return () => {
       window.removeEventListener("storage", handleStorageChange)
       window.removeEventListener("empathika_session_cancelled", handleStorageChange)
+      window.removeEventListener("empathika_session_rescheduled", handleStorageChange)
     }
   }, [fetchJadwalData])
 
@@ -984,7 +1119,10 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     setSelectedDetailSession,
     sessionToCancel,
     setSessionToCancel,
+    sessionToReschedule,
+    setSessionToReschedule,
     handleCancelSession,
+    handleConfirmReschedule,
     handleMarkCompleted,
     handleCopyWhatsAppMessage,
     handleCopyWhatsAppPsikologMessage,

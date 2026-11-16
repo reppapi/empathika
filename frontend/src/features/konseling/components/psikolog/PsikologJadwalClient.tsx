@@ -11,8 +11,13 @@ import {
   isSessionCancelled,
   recordCancelledSession,
   canCancelSession,
+  recordRescheduledSession,
+  getRescheduledSessions,
+  isSessionRescheduled,
+  canRescheduleSession,
 } from "@/features/konseling/utils/cancellationSync"
 import ModalDetailSesiKlien from "@/features/konseling/components/admin/ModalDetailSesiKlien"
+import ModalRescheduleSesi from "@/features/konseling/components/admin/ModalRescheduleSesi"
 import { ClientSessionToday, ClientSessionStatus } from "@/features/konseling/types"
 import {
   formatWhatsAppMessage,
@@ -65,6 +70,7 @@ interface BookedSession {
   isAvailableSlot?: boolean
   status?: string
   isCancelled?: boolean
+  isRescheduled?: boolean
 }
 
 const INITIAL_BOOKINGS: BookedSession[] = []
@@ -318,6 +324,7 @@ export default function PsikologJadwalClient() {
 
   // State detail sesi yang sedang dipilih untuk pop-up modal
   const [selectedDetailSession, setSelectedDetailSession] = useState<ClientSessionToday | null>(null)
+  const [sessionToReschedule, setSessionToReschedule] = useState<ClientSessionToday | null>(null)
 
   // Toast feedback aksi sesi (pembatalan, salin link/pesan, selesai)
   const [actionToast, setActionToast] = useState<{ message: string; type: "success" | "danger" } | null>(null)
@@ -334,6 +341,8 @@ export default function PsikologJadwalClient() {
       let statusSession: ClientSessionStatus = "Menunggu Jadwal"
       if (s.isCancelled || s.status === "Dibatalkan" || s.status === "CANCELLED") {
         statusSession = "Dibatalkan"
+      } else if (s.status === "Reschedule" || s.isRescheduled) {
+        statusSession = "Reschedule"
       } else if (isPastOrDone || s.status === "Selesai" || s.status === "COMPLETED") {
         statusSession = "Selesai"
       }
@@ -381,10 +390,10 @@ export default function PsikologJadwalClient() {
       activePsikolog?.nama_gelar ||
       "Psikolog"
 
-    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan maksimal H-3 jam sebelum sesi dimulai
-    if (!canCancelSession(targetDate, targetTime)) {
+    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan jika tanggal belum lampau
+    if (!canCancelSession(targetDate)) {
       triggerToast(
-        "Pembatalan tidak dapat dilakukan karena batas waktu maksimal pembatalan (H-3 jam sebelum sesi dimulai) telah terlewati.",
+        "Pembatalan tidak dapat dilakukan untuk jadwal yang sudah lampau.",
         "danger"
       )
       return
@@ -425,6 +434,77 @@ export default function PsikologJadwalClient() {
     triggerToast(`Sesi ${clientName} (${targetTime}) berhasil dibatalkan.`, "danger")
 
     // 5. Muat ulang jadwal agar data konsisten
+    loadScheduleForPsikolog()
+  }
+
+  const handleConfirmReschedule = async (
+    id: string,
+    newDate: string,
+    newWaktu: string,
+    alasan?: string
+  ) => {
+    const target = bookedSessions.find((s) => s.id === id)
+    const targetDate = target?.date || ""
+    const targetTime = target?.waktu || ""
+    const clientName = target?.namaKlien || "Klien"
+    const psikologName =
+      target?.namaPsikolog ||
+      activePsikolog?.nama_gelar ||
+      "Psikolog"
+
+    // Validasi aturan bisnis: Reschedule hanya bisa dilakukan maksimal H-3 jam sebelum sesi dimulai
+    if (!canRescheduleSession(targetDate, targetTime)) {
+      triggerToast(
+        "Reschedule tidak dapat dilakukan karena batas waktu maksimal reschedule (H-3 jam sebelum sesi dimulai) telah terlewati.",
+        "danger"
+      )
+      return
+    }
+
+    recordRescheduledSession({
+      id,
+      date: targetDate,
+      waktu: targetTime,
+      newDate,
+      newWaktu,
+      namaKlien: clientName,
+      psikolog: psikologName,
+    })
+
+    setBookedSessions((prev) =>
+      prev.map((s) => {
+        const isMatch = (id && s.id === id) || (s.date === targetDate && s.waktu === targetTime)
+        if (isMatch) {
+          return {
+            ...s,
+            status: "Reschedule",
+            isRescheduled: true,
+            date: newDate,
+            waktu: newWaktu,
+          }
+        }
+        return s
+      })
+    )
+
+    triggerToast(
+      `Sesi ${clientName} berhasil dijadwalkan ulang (Reschedule) ke ${newDate} (${newWaktu}).`,
+      "success"
+    )
+    setSessionToReschedule(null)
+    if (selectedDetailSession && selectedDetailSession.id === id) {
+      setSelectedDetailSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "Reschedule",
+              date: newDate,
+              tanggal: newDate,
+              waktu: newWaktu,
+            }
+          : null
+      )
+    }
     loadScheduleForPsikolog()
   }
 
@@ -656,6 +736,18 @@ export default function PsikologJadwalClient() {
         }
       } catch {}
 
+      // 5. Terapkan status reschedule admin / psikolog
+      try {
+        const rescheduledList = getRescheduledSessions()
+        if (rescheduledList.length > 0) {
+          sessionMap.forEach((item, key) => {
+            if (isSessionRescheduled(item, rescheduledList)) {
+              sessionMap.set(key, { ...item, status: "Reschedule", isRescheduled: true })
+            }
+          })
+        }
+      } catch {}
+
       const allSessions = Array.from(sessionMap.values())
       setBookedSessions(allSessions)
 
@@ -784,11 +876,13 @@ export default function PsikologJadwalClient() {
     window.addEventListener("storage", handleSyncCancelled)
     window.addEventListener("storage", loadScheduleForPsikolog)
     window.addEventListener("empathika_session_cancelled", handleSyncCancelled as EventListener)
+    window.addEventListener("empathika_session_rescheduled", loadScheduleForPsikolog as EventListener)
 
     return () => {
       window.removeEventListener("storage", handleSyncCancelled)
       window.removeEventListener("storage", loadScheduleForPsikolog)
       window.removeEventListener("empathika_session_cancelled", handleSyncCancelled as EventListener)
+      window.removeEventListener("empathika_session_rescheduled", loadScheduleForPsikolog as EventListener)
     }
   }, [])
 
@@ -1595,6 +1689,7 @@ export default function PsikologJadwalClient() {
                     {sessions.length > 0 ? (
                       sessions.map((item, idx) => {
                         const isCancelled = item.isCancelled || item.status === "Dibatalkan"
+                        const isRescheduled = item.status === "Reschedule" || Boolean(item.isRescheduled)
                         const isClientBooking = !item.isAvailableSlot && item.namaKlien && item.namaKlien !== "Tersedia"
 
                         // 1. Dibatalkan
@@ -1629,7 +1724,39 @@ export default function PsikologJadwalClient() {
                           )
                         }
 
-                        // 2. Sesi Klien (Sudah Dibooking)
+                        // 2. Reschedule
+                        if (isRescheduled) {
+                          return (
+                            <div
+                              key={item.id || idx}
+                              onClick={() => handleSelectDetailSession(item)}
+                              className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-amber-50/85 border border-amber-300 text-gray-700 overflow-hidden"
+                            >
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                                  <span className="text-[11px] sm:text-xs font-bold text-amber-800 whitespace-nowrap">
+                                    {item.waktu}
+                                  </span>
+                                </div>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                                  Reschedule
+                                </span>
+                              </div>
+                              <span className="text-xs font-semibold text-gray-900 line-clamp-1">
+                                {item.layanan}
+                              </span>
+                              <div className="flex items-center justify-between gap-1 text-[11px] text-gray-600">
+                                <span className="truncate">{item.namaKlien || "Klien"}</span>
+                                <span className="font-semibold text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded text-[9px] shrink-0">
+                                  {item.metode}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        // 3. Sesi Klien (Sudah Dibooking)
                         if (isClientBooking) {
                           const isCompleted = isSessionPastOrCompleted(wd.dateKey || item.date, item.waktu, item.status)
 
@@ -1690,7 +1817,7 @@ export default function PsikologJadwalClient() {
                                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white text-[#185e26] border border-[#b4d6be] shadow-2xs shrink-0">
                                     {item.metode}
                                   </span>
-                                  {canCancelSession(wd.dateKey || item.date, item.waktu) && (
+                                  {canCancelSession(wd.dateKey || item.date) && (
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -1698,7 +1825,7 @@ export default function PsikologJadwalClient() {
                                         e.stopPropagation()
                                         handleCancelClientBooking(item)
                                       }}
-                                      title="Batalkan sesi klien ini (Maks H-3 Jam)"
+                                      title="Batalkan sesi klien ini"
                                       className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
                                     >
                                       <X className="w-3.5 h-3.5" />
@@ -1855,6 +1982,10 @@ export default function PsikologJadwalClient() {
             <span className="text-xs font-medium text-gray-700">Sudah Dibooking Klien</span>
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            <span className="text-xs font-medium text-amber-800">Sesi Reschedule</span>
+          </div>
+          <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-[#561269]" />
             <span className="text-xs font-medium text-gray-700">Slot Tersedia Dibuka</span>
           </div>
@@ -1881,12 +2012,23 @@ export default function PsikologJadwalClient() {
           handleCancelClientBooking(session)
           setSelectedDetailSession(null)
         }}
+        onRescheduleClick={(session) => {
+          setSelectedDetailSession(null)
+          setSessionToReschedule(session)
+        }}
         onMarkCompleted={(id, namaKlien) => {
           handleMarkCompleted(id, namaKlien)
           setSelectedDetailSession(null)
         }}
         onCopyWhatsApp={handleCopyWhatsAppMessage}
         onCopyWhatsAppPsikolog={handleCopyWhatsAppPsikologMessage}
+      />
+
+      {/* ── Modal Reschedule Sesi ── */}
+      <ModalRescheduleSesi
+        session={sessionToReschedule}
+        onClose={() => setSessionToReschedule(null)}
+        onConfirmReschedule={handleConfirmReschedule}
       />
 
       {/* ── Toast Notifikasi Aksi ── */}

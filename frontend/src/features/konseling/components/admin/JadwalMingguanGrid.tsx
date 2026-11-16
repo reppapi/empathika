@@ -145,6 +145,7 @@ export default function JadwalMingguanGrid({
                   {sessions.length > 0 ? (
                     sessions.map((item) => {
                       const isCancelled = item.status === "Dibatalkan" || (item as any).isCancelled
+                      const isRescheduled = item.status === "Reschedule" || Boolean(item.isRescheduled)
                       const isUnbooked =
                         item.isAvailableSlot ||
                         item.status === "Tersedia" ||
@@ -224,7 +225,44 @@ export default function JadwalMingguanGrid({
                         )
                       }
 
-                      // 2. UNBOOKED (SLOT TERSEDIA DIBUKA TAPI TIDAK ADA YANG BOOKING)
+                      // 2. RESCHEDULE
+                      if (isRescheduled) {
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => onSelectSession && onSelectSession(item)}
+                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-amber-50/85 border border-amber-300 text-gray-700 overflow-hidden"
+                          >
+                            <div className="flex items-center justify-between gap-1 flex-wrap">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
+                                <span className="text-[11px] sm:text-xs font-bold text-amber-800 whitespace-nowrap">
+                                  {item.waktu}
+                                </span>
+                              </div>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                                Reschedule
+                              </span>
+                            </div>
+                            <p className="text-xs font-bold leading-tight mt-0.5 text-gray-900 line-clamp-1">
+                              {item.layanan}
+                            </p>
+                            <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600 gap-0.5">
+                              {item.namaKlien && (
+                                <span className="truncate">
+                                  Klien: <strong className="text-gray-800">{item.namaKlien}</strong>
+                                </span>
+                              )}
+                              {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
+                              <span className="text-[9px] text-amber-700 italic">
+                                [{item.metode}]
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      }
+
+                      // 3. UNBOOKED (SLOT TERSEDIA DIBUKA TAPI TIDAK ADA YANG BOOKING)
                       if (isUnbooked) {
                         // Kalau jamnya sudah lewat dan tidak ada yang booking -> DIABUIN
                         if (isPastTime) {
@@ -411,6 +449,10 @@ export default function JadwalMingguanGrid({
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-green-600"></span>
           <span className="text-xs font-bold text-gray-700">Sesi Aktif / Terjadwal</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+          <span className="text-xs font-bold text-amber-800">Sesi Reschedule</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>

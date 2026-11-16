@@ -272,6 +272,136 @@ export function getWhatsAppPsikologCancelUrl(session: {
   return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
 }
 
+export function formatWhatsAppClientReschedule(
+  session: {
+    namaKlien: string
+    klienId?: string
+    layanan: string
+    psikolog: string
+    waktu: string
+    date?: string
+    tanggal?: string
+    tipe?: string
+  },
+  newDate?: string,
+  newWaktu?: string
+): string {
+  const tglLama = session.date || session.tanggal || "hari ini"
+  const tglBaru = newDate || session.date || session.tanggal || "Jadwal Baru"
+  const jamBaru = newWaktu || session.waktu || "Sesuai Konfirmasi"
+  return `Halo Kak ${session.namaKlien},
+
+Pemberitahuan dari Tim Administrasi Empathika bahwa sesi konseling Anda telah berhasil *DIJADWALKAN ULANG (RESCHEDULE)*:
+
+📋 *Detail Pembaruan Jadwal Konseling:*
+• *Klien:* ${session.namaKlien} (ID: ${session.klienId || "-"})
+• *Layanan:* ${session.layanan}
+• *Psikolog:* ${session.psikolog}
+• *Metode:* ${session.tipe || "Konsultasi"}
+
+⏱️ *Jadwal Sebelumnya:* ${tglLama} (${session.waktu} WIB)
+✨ *JADWAL BARU:* *${tglBaru}* jam *${jamBaru} WIB*
+
+Mohon dapat bersiap 10 menit sebelum sesi dimulai pada jadwal baru tersebut. Jika ada pertanyaan, silakan membalas pesan ini. Terima kasih! 🙏
+- Tim Admin Empathika`
+}
+
+export function formatWhatsAppPsikologReschedule(
+  session: {
+    namaKlien: string
+    klienId?: string
+    layanan: string
+    psikolog: string
+    waktu: string
+    date?: string
+    tanggal?: string
+    tipe?: string
+  },
+  newDate?: string,
+  newWaktu?: string
+): string {
+  const tglLama = session.date || session.tanggal || "hari ini"
+  const tglBaru = newDate || session.date || session.tanggal || "Jadwal Baru"
+  const jamBaru = newWaktu || session.waktu || "Sesuai Konfirmasi"
+  return `Halo ${session.psikolog},
+
+Pemberitahuan dari Tim Administrasi Empathika bahwa sesi konseling berikut telah *DIJADWALKAN ULANG (RESCHEDULE)*:
+
+📋 *Detail Reschedule Sesi:*
+• *Klien:* ${session.namaKlien} (ID: ${session.klienId || "-"})
+• *Layanan:* ${session.layanan}
+• *Metode:* ${session.tipe || "Konsultasi"}
+
+⏱️ *Jadwal Sebelumnya:* ${tglLama} (${session.waktu} WIB)
+✨ *JADWAL BARU:* *${tglBaru}* jam *${jamBaru} WIB*
+
+Slot jadwal baru telah disesuaikan di sistem. Mohon dapat mencatat jadwal baru ini di kalender Anda. Terima kasih atas pengertian dan kerjasamanya! 🙏
+- Tim Admin Empathika`
+}
+
+export function getWhatsAppClientRescheduleUrl(
+  session: {
+    kontak?: string
+    namaKlien: string
+    klienId?: string
+    layanan: string
+    psikolog: string
+    waktu: string
+    date?: string
+    tanggal?: string
+    tipe?: string
+  },
+  newDate?: string,
+  newWaktu?: string
+): string {
+  const phone = session.kontak
+  const clean = (phone || "").replace(/\D/g, "")
+  if (!clean) return "#"
+  const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
+  const message = formatWhatsAppClientReschedule(session, newDate, newWaktu)
+  return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+}
+
+export function getWhatsAppPsikologRescheduleUrl(
+  session: {
+    noTeleponPsikolog?: string
+    kontak?: string
+    namaKlien: string
+    klienId?: string
+    layanan: string
+    psikolog: string
+    waktu: string
+    date?: string
+    tanggal?: string
+    tipe?: string
+  },
+  newDate?: string,
+  newWaktu?: string
+): string {
+  let phone = session.noTeleponPsikolog
+
+  if (!phone && typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("empathika_tenaga_ahli_data")
+      const list = saved ? JSON.parse(saved) : []
+      const found = list.find(
+        (p: any) =>
+          p.nama?.toLowerCase().includes(session.psikolog.toLowerCase()) ||
+          session.psikolog.toLowerCase().includes(p.nama?.toLowerCase())
+      )
+      if (found && found.noTelepon) {
+        phone = found.noTelepon
+      }
+    } catch { }
+  }
+
+  const clean = (phone || "").replace(/\D/g, "")
+  if (!clean) return "#"
+  const waNumber = clean.startsWith("0") ? "62" + clean.slice(1) : clean
+  const message = formatWhatsAppPsikologReschedule(session, newDate, newWaktu)
+  return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+}
+
 export function generateWeekSessions(_monday: Date): BookedAssessment[] {
   return []
 }
