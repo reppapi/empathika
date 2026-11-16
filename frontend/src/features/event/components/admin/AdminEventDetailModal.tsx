@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { AdminEventData } from "../../data/adminEventData"
-import { eventService } from "@/services/event.service"
+import { eventService, EventBookingClientApi } from "@/services/event.service"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import {
   X,
@@ -17,7 +18,61 @@ import {
   Video,
   MessageCircle,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Copy,
+  Check,
+  Phone,
 } from "lucide-react"
+
+function CopyableTicket({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1 font-mono text-[11px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded transition"
+      title="Salin kode tiket"
+    >
+      <span>{code}</span>
+      {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-gray-400" />}
+    </button>
+  )
+}
+
+function formatDisplayPhone(phone: string | null | undefined): string {
+  if (!phone) return "-"
+  // Bersihkan karakter non-digit
+  const digits = phone.replace(/\D/g, "")
+  if (!digits) return phone
+
+  // Normalisasi prefix: jika diawali 08..., ubah jadi 628...
+  let normalized = digits
+  if (normalized.startsWith("0")) {
+    normalized = "62" + normalized.slice(1)
+  } else if (!normalized.startsWith("62")) {
+    normalized = "62" + normalized
+  }
+
+  // Format: +62 xxx-xxxx-xxxx
+  // Contoh: 6289999999999 -> prefix '62', lalu '899', '9999', '9999'
+  const rest = normalized.slice(2)
+  if (rest.length <= 3) {
+    return `+62 ${rest}`
+  } else if (rest.length <= 7) {
+    return `+62 ${rest.slice(0, 3)}-${rest.slice(3)}`
+  } else if (rest.length <= 11) {
+    return `+62 ${rest.slice(0, 3)}-${rest.slice(3, 7)}-${rest.slice(7)}`
+  } else {
+    return `+62 ${rest.slice(0, 3)}-${rest.slice(3, 7)}-${rest.slice(7, 11)}${rest.slice(11) ? `-${rest.slice(11)}` : ""}`
+  }
+}
 
 interface AdminEventDetailModalProps {
   isOpen: boolean
@@ -37,11 +92,47 @@ export default function AdminEventDetailModal({
   const [currentEvent, setCurrentEvent] = useState<AdminEventData | null>(event)
   const [updating, setUpdating] = useState(false)
 
+  // State untuk daftar peserta di dalam modal
+  const [showPeserta, setShowPeserta] = useState(false)
+  const [bookings, setBookings] = useState<EventBookingClientApi[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(false)
+  const [hasLoadedBookings, setHasLoadedBookings] = useState(false)
+
   useEffect(() => {
     setCurrentEvent(event)
+    setShowPeserta(false)
+    setBookings([])
+    setHasLoadedBookings(false)
   }, [event])
 
-  if (!isOpen || !currentEvent) return null
+  // Fetch daftar peserta saat tombol daftar peserta dibuka (hanya yang sudah bayar lunas PAID / CONFIRMED)
+  const handleTogglePeserta = async () => {
+    if (!currentEvent) return
+    const nextState = !showPeserta
+    setShowPeserta(nextState)
+
+    if (nextState && !hasLoadedBookings) {
+      setLoadingBookings(true)
+      try {
+        const res = await eventService.getEventBookings(currentEvent.id)
+        // Backend sudah memfilter hanya peserta yang lunas (CONFIRMED/PAID)
+        setBookings(res?.data ?? [])
+        setHasLoadedBookings(true)
+      } catch (err) {
+        console.error("Gagal memuat peserta event:", err)
+      } finally {
+        setLoadingBookings(false)
+      }
+    }
+  }
+
+  // SSR-safe: hanya render portal setelah mounted di client
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!isOpen || !currentEvent || !mounted) return null
 
   const handleMarkAsCompleted = async () => {
     const isCompleted = currentEvent.status === "Selesai"
@@ -63,9 +154,11 @@ export default function AdminEventDetailModal({
     }
   }
 
-  return (
+  const totalPesertaLunas = bookings.reduce((acc, b) => acc + (b.jumlah_peserta || 1), 0)
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 transition-all duration-300"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -266,44 +359,136 @@ export default function AdminEventDetailModal({
             </div>
           </div>
 
-          {/* Akses & Link Komunikasi (Google Meet & WhatsApp) */}
-          {(currentEvent.linkMeet || currentEvent.linkWa) && (
-            <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-2xs flex flex-col gap-2.5">
-              <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">
-                Akses Link Acara & Koordinasi
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                {currentEvent.tipe === "Online" && currentEvent.linkMeet && (
-                  <a
-                    href={currentEvent.linkMeet}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100/80 text-blue-700 text-xs font-semibold border border-blue-200 transition"
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <Video className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span className="truncate">Google Meet</span>
-                    </div>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
-                )}
-                {currentEvent.linkWa && (
-                  <a
-                    href={currentEvent.linkWa}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 text-xs font-semibold border border-emerald-200 transition"
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span className="truncate">Grup WhatsApp</span>
-                    </div>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
-                )}
-              </div>
+          {/* 3. Akses Link Acara (Google Meet & WhatsApp) + Toggle Daftar Peserta Langsung */}
+          <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-2xs flex flex-col gap-3">
+            <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">
+              Akses Link Acara & Koordinasi
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              {currentEvent.tipe === "Online" && currentEvent.linkMeet && (
+                <a
+                  href={currentEvent.linkMeet}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100/80 text-blue-700 text-xs font-semibold border border-blue-200 transition"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Video className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span className="truncate">Google Meet</span>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                </a>
+              )}
+
+              {currentEvent.linkWa && (
+                <a
+                  href={currentEvent.linkWa}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 text-xs font-semibold border border-emerald-200 transition"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="truncate">Grup WhatsApp</span>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                </a>
+              )}
             </div>
-          )}
+
+            {/* Tombol Tampilkan Peserta Terdaftar di bawah WhatsApp */}
+            <div className="pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={handleTogglePeserta}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-purple-50/70 hover:bg-purple-100/70 text-[#561269] text-xs font-bold transition border border-purple-200/70 cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#561269]" />
+                  <span>Daftar Peserta Terdaftar ({currentEvent.tiketTerjual} Peserta)</span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-semibold text-[#561269]/80">
+                  <span>{showPeserta ? "Sembunyikan" : "Tampilkan"}</span>
+                  {showPeserta ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
+              </button>
+
+              {/* Accordion / Content Peserta Langsung di Modal */}
+              {showPeserta && (
+                <div className="mt-3 p-3.5 rounded-xl bg-gray-50/90 border border-gray-200 space-y-3">
+                  {loadingBookings ? (
+                    <div className="py-8 flex flex-col items-center justify-center text-gray-400 gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin text-[#561269]" />
+                      <span className="text-xs">Memuat daftar peserta...</span>
+                    </div>
+                  ) : bookings.length === 0 ? (
+                    <div className="py-6 text-center text-gray-400">
+                      <p className="text-xs font-bold">Belum ada peserta lunas yang mendaftar event ini.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Summary ringkas */}
+                      <div className="flex items-center justify-between gap-2 text-[11px] pb-2 border-b border-gray-200/70">
+                        <span className="font-bold text-gray-700">Total: {totalPesertaLunas} Peserta Lunas</span>
+                      </div>
+
+                      {/* Tabel Peserta Ringkas: Hanya Nama & Tiket, Kontak, Aksi */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="text-[10px] text-gray-500 uppercase font-bold tracking-wider border-b border-gray-200">
+                              <th className="py-2 px-2">Nama & Tiket</th>
+                              <th className="py-2 px-2">Kontak</th>
+                              <th className="py-2 px-2 text-center">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200/60">
+                            {bookings.map((b) => (
+                              <tr key={b.id} className="hover:bg-white/60 transition">
+                                <td className="py-2.5 px-2">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold text-gray-800">{b.client.nama}</span>
+                                    <CopyableTicket code={b.kode_tiket} />
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-2">
+                                  {b.client.no_telepon ? (
+                                    <span className="inline-flex items-center gap-1 font-mono text-[11px] text-gray-700">
+                                      <Phone className="w-3 h-3 text-gray-400" />
+                                      {formatDisplayPhone(b.client.no_telepon)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400 text-[11px]">-</span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-2 text-center">
+                                  {b.client.wa_link ? (
+                                    <a
+                                      href={b.client.wa_link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold transition shadow-xs cursor-pointer"
+                                      title="Hubungi Client via WhatsApp"
+                                    >
+                                      <MessageCircle className="w-3 h-3" />
+                                      <span>WA</span>
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-300 text-xs">-</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Footer Modal */}
@@ -345,6 +530,7 @@ export default function AdminEventDetailModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

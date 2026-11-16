@@ -26,6 +26,7 @@
     "seed:pbq": "tsx prisma/seeds-psikotes/seeds/seed-pbq.ts",
     "seed:cdi": "tsx prisma/seeds-psikotes/seeds/seed-cdi.ts",
     "seed:cats": "tsx prisma/seeds-psikotes/seeds/seed-cats.ts",
+    "seed:choci": "tsx prisma/seeds-psikotes/seeds/seed-choci.ts",
     "prisma:seed:event": "tsx prisma/seed-event.ts",
     "generate:docs": "tsx src/server.ts --export-docs"
   },

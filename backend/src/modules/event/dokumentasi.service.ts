@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { DokumentasiRepository } from './dokumentasi.repository'
+import { EventRepository } from './event.repository'
 import type {
   CreateDokumentasiInput,
   UpdateDokumentasiInput,
@@ -10,12 +11,18 @@ import { EVENT_LIMITS } from './event.constants'
 
 export class DokumentasiService {
   private repo: DokumentasiRepository
+  private eventRepo: EventRepository
 
   constructor(fastify: FastifyInstance) {
     this.repo = new DokumentasiRepository(fastify.prisma)
+    this.eventRepo = new EventRepository(fastify.prisma)
   }
 
   async getAll(query?: DokumentasiQueryInput) {
+    // Trigger auto-sinkronisasi event yang sudah lewat sebelum mengambil daftar dokumentasi,
+    // agar event COMPLETED otomatis dibuatkan entri EventDokumentasi meski admin
+    // tidak membuka halaman daftar event terlebih dahulu.
+    await this.eventRepo.autoUpdatePassedEvents()
     return this.repo.findAll(query)
   }
 

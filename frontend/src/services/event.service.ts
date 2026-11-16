@@ -10,7 +10,7 @@ export interface PaketBundlingItem {
 export interface EventItemApi {
   id: string
   judul: string
-  jenis_event: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  jenis_event: "WEBINAR" | "WORKSHOP" | "SEMINAR" | "KOLABORASI"
   tipe_event: "ONLINE" | "OFFLINE"
   link_meet?: string | null
   link_wa?: string | null
@@ -26,6 +26,7 @@ export interface EventItemApi {
   kuota_tiket_bundling?: number | null
   nama_bundling?: string | null
   paket_bundling?: PaketBundlingItem[] | null
+  benefit?: string[]
   banner_url: string | null
   nama_pembicara: string
   status: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -37,7 +38,7 @@ export interface EventItemApi {
 
 export interface CreateEventDto {
   judul: string
-  jenis_event: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  jenis_event: "WEBINAR" | "WORKSHOP" | "SEMINAR" | "KOLABORASI"
   tipe_event: "ONLINE" | "OFFLINE"
   link_meet?: string | null
   link_wa: string
@@ -53,6 +54,7 @@ export interface CreateEventDto {
   kuota_tiket_bundling?: number | null
   nama_bundling?: string | null
   paket_bundling?: PaketBundlingItem[] | null
+  benefit?: string[]
   banner_url?: string | null
   nama_pembicara: string
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -60,7 +62,7 @@ export interface CreateEventDto {
 
 export interface UpdateEventDto {
   judul?: string
-  jenis_event?: "WEBINAR" | "WORKSHOP" | "SEMINAR"
+  jenis_event?: "WEBINAR" | "WORKSHOP" | "SEMINAR" | "KOLABORASI"
   tipe_event?: "ONLINE" | "OFFLINE"
   link_meet?: string | null
   link_wa?: string | null
@@ -76,6 +78,7 @@ export interface UpdateEventDto {
   kuota_tiket_bundling?: number | null
   nama_bundling?: string | null
   paket_bundling?: PaketBundlingItem[] | null
+  benefit?: string[]
   banner_url?: string | null
   nama_pembicara?: string
   status?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "DRAFT"
@@ -137,6 +140,28 @@ export interface EventDokumentasiQueryParams {
   limit?: number
 }
 
+export interface EventBookingClientApi {
+  id: string
+  kode_tiket: string
+  jumlah_peserta: number
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+  createdAt: string
+  client: {
+    id: string
+    nama: string
+    no_telepon: string | null
+    wa_link: string | null
+  }
+  transaksi: {
+    id: string
+    kode_transaksi: string | null
+    total: string
+    status_pembayaran: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
+    metode_pembayaran: string
+    tanggal_bayar: string | null
+  } | null
+}
+
 export const eventService = {
   // Regular Event
   getList: (params?: EventQueryParams) =>
@@ -188,5 +213,11 @@ export const eventService = {
   deleteDokumentasi: (id: string) =>
     apiClient
       .delete<{ success: boolean; message: string }>(`/event/dokumentasi/${id}`)
+      .then((r) => r.data),
+
+  // Daftar peserta/booking suatu event (Admin Only)
+  getEventBookings: (eventId: string) =>
+    apiClient
+      .get<{ success: boolean; data: EventBookingClientApi[] }>(`/event/${eventId}/bookings`)
       .then((r) => r.data),
 }

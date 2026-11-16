@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { CheckCircle2 } from "lucide-react"
 import { AdminEventData } from "@/features/event/data/adminEventData"
 
 interface Props {
@@ -24,6 +25,7 @@ export default function EventDetailClient({ id: _id, event }: Props) {
     hargaCoretNum > hargaNum && hargaCoretNum > 0
       ? Math.round(((hargaCoretNum - hargaNum) / hargaCoretNum) * 100)
       : 0
+  const benefits = (event?.benefit ?? []).filter((b) => b.trim() !== "")
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#F3E8F5] to-[#B583C2] font-poppins pb-10">
@@ -95,6 +97,25 @@ export default function EventDetailClient({ id: _id, event }: Props) {
             </div>
           )}
         </div>
+
+        {/* Benefit Section (Grid 2 Kolom dengan icon Ceklis Hijau) */}
+        {benefits.length > 0 && (
+          <div className="mt-10 pt-8 border-t border-purple-200/60 text-left">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 text-center sm:text-left">
+              Benefit yang Didapatkan:
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {benefits.map((benefitItem, idx) => (
+                <div key={idx} className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="text-sm sm:text-[15px] font-medium text-gray-800 leading-snug">
+                    {benefitItem}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Split Section */}

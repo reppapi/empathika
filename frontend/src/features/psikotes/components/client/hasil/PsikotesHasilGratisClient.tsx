@@ -20,6 +20,7 @@ import {
   isPBQ as checkPBQ,
   isPHQ as checkPHQ,
   isRCMAS as checkRCMAS,
+  isCHOCI as checkCHOCI,
 } from "@/features/psikotes/utils/instrumentDetector";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 import InterpretasiCard from "./InterpretasiCard";
@@ -196,6 +197,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const isCATS = checkCATS(dbPackage, params.testId);
   const isRCMAS = checkRCMAS(dbPackage, params.testId);
   const isPBQ = checkPBQ(dbPackage, params.testId);
+  const isCHOCI = checkCHOCI(dbPackage, params.testId);
   const isDASS = checkDASS(dbPackage, params.testId);
 
   const isHarmDetected =
@@ -416,20 +418,32 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         {/* 1. Warm Illustration */}
         <SelfCareIllustration />
 
-        {/* 2. Clean Pastel Card (Bunda.id Inspired) atau Profil 9 Skala PBQ */}
+        {/* 2. Clean Pastel Card (Bunda.id Inspired) atau Profil Skor PBQ / CHOCI-R */}
         {isProfileOnlyWithoutTotal ? (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 shadow-sm space-y-6">
             <div className="text-center space-y-2 border-b border-gray-100 pb-5">
               <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#561269] bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
-                PBQ • Profil Skor 9 Skala Kepribadian
+                {isCHOCI
+                  ? "CHOCI-R • Profil Gejala & Keparahan OCD"
+                  : "PBQ • Profil Skor 9 Skala Kepribadian"}
               </span>
               <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
-                {dbPackage?.judul || "Personality Belief Questionnaire (PBQ)"}
+                {dbPackage?.judul || (isCHOCI ? "Children’s Obsessive-Compulsive Inventory – Revised (CHOCI-R)" : "Personality Belief Questionnaire (PBQ)")}
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-xl mx-auto">
-                Skor mentah PBQ dihitung terpisah untuk setiap skala keyakinan kepribadian (rentang{" "}
-                <span className="font-semibold text-gray-800">0–56</span> dari 14 pernyataan per skala) dan{" "}
-                <span className="font-semibold text-gray-800">tidak dijumlahkan menjadi satu skor total</span>.
+                {isCHOCI ? (
+                  <>
+                    Hasil CHOCI-R menyajikan profil terpisah antara keberadaan gejala (Total Symptoms Score rentang{" "}
+                    <span className="font-semibold text-gray-800">0–40</span>) dan tingkat keparahan/distres (Total Impairment Score rentang{" "}
+                    <span className="font-semibold text-gray-800">0–48</span>) tanpa pengelompokan kategori artifisial.
+                  </>
+                ) : (
+                  <>
+                    Skor mentah PBQ dihitung terpisah untuk setiap skala keyakinan kepribadian (rentang{" "}
+                    <span className="font-semibold text-gray-800">0–56</span> dari 14 pernyataan per skala) dan{" "}
+                    <span className="font-semibold text-gray-800">tidak dijumlahkan menjadi satu skor total</span>.
+                  </>
+                )}
               </p>
             </div>
 
@@ -453,6 +467,9 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
                         {skor} <span className="text-xs font-medium text-gray-400">/ {maxSkor}</span>
                       </span>
                     </div>
+                    {sub.deskripsi && (
+                      <p className="text-[11px] text-gray-500 leading-relaxed">{sub.deskripsi}</p>
+                    )}
                     <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-[#561269] rounded-full transition-all duration-500"
@@ -467,9 +484,46 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
             <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 leading-relaxed flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p>
-                <span className="font-bold">Catatan Acuan Interpretasi:</span> Kategori interpretasi (seperti rendah/sedang/tinggi) dan Z-score normatif sengaja belum ditampilkan karena masih menunggu acuan resmi dari tim Empathika. Kamu tetap dapat mendiskusikan profil skor mentah ini bersama psikolog.
+                {isCHOCI ? (
+                  <>
+                    <span className="font-bold">Interpretasi Skor CHOCI-R:</span> Total Symptoms Score yang lebih tinggi menunjukkan kompleksitas dan luasnya gejala OCD. Total Impairment Score yang lebih tinggi menunjukkan tingkat keparahan/stres yang lebih tinggi. Skor persentil 50 adalah skor rata-rata untuk anak/remaja dengan OCD (gejala khas & signifikan secara klinis).
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold">Catatan Acuan Interpretasi:</span> Kategori interpretasi (seperti rendah/sedang/tinggi) dan Z-score normatif sengaja belum ditampilkan karena masih menunggu acuan resmi dari tim Empathika. Kamu tetap dapat mendiskusikan profil skor mentah ini bersama psikolog.
+                  </>
+                )}
               </p>
             </div>
+
+            {/* Catatan Isian Kualitatif Khusus CHOCI-R */}
+            {isCHOCI && (bookingDetailSkor?.kualitatif?.kebiasaanKompulsi?.length > 0 || bookingDetailSkor?.kualitatif?.pikiranObsesi?.length > 0) && (
+              <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100/80 space-y-3">
+                <p className="text-xs font-bold text-[#561269] uppercase tracking-wider">
+                  Catatan Kualitatif Refleksi Gejala
+                </p>
+                {bookingDetailSkor.kualitatif.kebiasaanKompulsi?.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold text-gray-700">Kebiasaan paling menjengkelkan:</p>
+                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
+                      {bookingDetailSkor.kualitatif.kebiasaanKompulsi.map((k: string, idx: number) => (
+                        <li key={idx} className="italic">&ldquo;{k}&rdquo;</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {bookingDetailSkor.kualitatif.pikiranObsesi?.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold text-gray-700">Pikiran/kekhawatiran paling mengganggu:</p>
+                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
+                      {bookingDetailSkor.kualitatif.pikiranObsesi.map((p: string, idx: number) => (
+                        <li key={idx} className="italic">&ldquo;{p}&rdquo;</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <InterpretasiCard

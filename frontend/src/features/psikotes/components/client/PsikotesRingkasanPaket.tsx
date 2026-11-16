@@ -2,6 +2,7 @@
 "use client"
 
 import { CheckCircle2, FileText, Brain, ShieldCheck } from "lucide-react"
+import { CHECKOUT_PAID_BENEFITS } from "@/features/psikotes/data/psikotesData"
 
 interface PsikotesRingkasanPaketProps {
   judul: string
@@ -43,32 +44,18 @@ export default function PsikotesRingkasanPaket({
 
         {/* Info Detail */}
         <div className="flex flex-col w-full">
-          <h2 className="text-lg sm:text-xl font-extrabold text-[#561269] mb-2 leading-tight">
+          <h2 className="text-lg sm:text-xl font-extrabold text-[#561269] mb-3 leading-tight">
             {judul}
           </h2>
 
-          <p className="text-xs text-gray-600 mb-4 leading-relaxed">
-            {subjudul}
-          </p>
-
           {/* Manfaat / Fitur Paket */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-gray-100">
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Akses Pengerjaan Online Langsung</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
-              <FileText className="w-4 h-4 text-[#561269] shrink-0" />
-              <span>Laporan Analisis Komprehensif</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Sertifikat Digital Hasil Pemeriksaan</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Rekomendasi Karir &amp; Potensi Diri</span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3 border-t border-gray-100">
+            {CHECKOUT_PAID_BENEFITS.map((benefit, idx) => (
+              <div key={idx} className="flex items-start gap-2 text-xs font-medium text-gray-700">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span className="leading-snug">{benefit}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
