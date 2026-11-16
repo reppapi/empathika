@@ -546,10 +546,12 @@ export class BookingService {
         include: { booking_konsultasi: true },
       })
 
-      // Jika belum ada row di database (misal slot custom yang baru dibuka di portal atau localStorage),
-      // slot ini TETAP TERSEDIA untuk dipesan (karena sistem booking akan otomatis membuatkannya di database)!
+      // Slot wajib sudah dibuka dan terdaftar resmi di database oleh psikolog
       if (!slot) {
-        return { available: true }
+        return {
+          available: false,
+          reason: 'Slot jadwal ini belum dibuka atau tidak tersedia pada database psikolog.',
+        }
       }
       if (slot.status === 'TIDAK_TERSEDIA' || slot.status === 'CANCELLED') {
         return {

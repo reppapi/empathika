@@ -61,45 +61,6 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     })
   }
 
-  // Gabungkan juga slot ketersediaan dari localStorage agar slot yang baru dibuat langsung muncul
-  if (typeof window !== "undefined") {
-    try {
-      const raw = localStorage.getItem("empathika_custom_jadwal_slots")
-      if (raw) {
-        const parsed: any[] = JSON.parse(raw)
-        const matched = parsed.filter((s: any) => {
-          // Asesmen bukan untuk jadwal praktik psikolog
-          const isAsesmen =
-            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
-            (s.layanan || "").toLowerCase().includes("asesmen")
-          if (isAsesmen) return false
-
-          // Wajib secara spesifik cocok dengan ID psikolog atau nama psikolog (bukan string kosong!)
-          if (s.id_psikolog && s.id_psikolog === psikologId) return true
-          if (s.nama_psikolog && typeof s.nama_psikolog === "string" && s.nama_psikolog.trim().length > 0 && psikologNama) {
-            const sName = s.nama_psikolog.toLowerCase().trim()
-            const pName = psikologNama.toLowerCase().trim()
-            return sName === pName || sName.includes(pName) || pName.includes(sName)
-          }
-          return false
-        })
-
-        matched.forEach((ms: any) => {
-          const mDate = (ms.tanggal || "").toString().match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
-          const mJam = (ms.jam_mulai || "").toString().match(/(\d{2}:\d{2})/)?.[1]
-          const already = rawSlots.some((rs: any) => {
-            const rDate = (rs.tanggal || "").toString().match(/^(\d{4}-\d{2}-\d{2})/)?.[1]
-            const rJam = (rs.jam_mulai || "").toString().match(/(\d{2}:\d{2})/)?.[1]
-            return rs.id === ms.id || (rDate && mDate && rDate === mDate && rJam && mJam && rJam === mJam)
-          })
-          if (!already) {
-            rawSlots.push(ms)
-          }
-        })
-      }
-    } catch {}
-  }
-
   const now = new Date()
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
   const currentMinutes = now.getHours() * 60 + now.getMinutes()

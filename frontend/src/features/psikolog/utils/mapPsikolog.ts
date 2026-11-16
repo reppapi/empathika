@@ -100,50 +100,6 @@ export function mapDbPsikologToUI(item: any): PsikologUI {
     });
   }
 
-  // Gabungkan juga data slot dari localStorage (jika ada yang baru dibuat)
-  if (typeof window !== 'undefined') {
-    try {
-      const rawCustom = localStorage.getItem('empathika_custom_jadwal_slots');
-      if (rawCustom) {
-        const parsedCustom: any[] = JSON.parse(rawCustom);
-        const matchingCustom = parsedCustom.filter((s: any) => {
-          // Asesmen bukan untuk jadwal praktik psikolog
-          const isAsesmen =
-            (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
-            (s.layanan || "").toLowerCase().includes("asesmen");
-          if (isAsesmen) return false;
-
-          if (s.id_psikolog && s.id_psikolog === item.id) return true;
-          if (s.nama_psikolog && typeof s.nama_psikolog === "string" && s.nama_psikolog.trim().length > 0) {
-            const sName = s.nama_psikolog.toLowerCase().trim();
-            if (item.nama_gelar) {
-              const pName = item.nama_gelar.toLowerCase().trim();
-              if (sName === pName || sName.includes(pName) || pName.includes(sName)) return true;
-            }
-            if (item.account?.nama) {
-              const aName = item.account.nama.toLowerCase().trim();
-              if (sName === aName || sName.includes(aName) || aName.includes(sName)) return true;
-            }
-          }
-          return false;
-        });
-
-        matchingCustom.forEach((ms: any) => {
-          const mDate = parseDateKey(ms.tanggal);
-          const mJam = parseJam(ms.jam_mulai);
-          const already = rawSlots.some((rs: any) => {
-            const rDate = parseDateKey(rs.tanggal);
-            const rJam = parseJam(rs.jam_mulai);
-            return rs.id === ms.id || (rDate && mDate && rDate === mDate && rJam && mJam && rJam === mJam);
-          });
-          if (!already) {
-            rawSlots.push(ms);
-          }
-        });
-      }
-    } catch {}
-  }
-
   if (rawSlots.length > 0) {
     const now = new Date();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
