@@ -47,7 +47,7 @@ export interface CDICalculationResult {
   totalSkor: number; // 0–54
   maxSkor: number; // 54
   kategori: string;
-  grade: "Depresi Normal / Wajar" | "Depresi Bermakna Klinis";
+  grade: "Gejala Depresi Tidak Menonjol" | "Gejala Depresi Perlu Mendapat Perhatian";
   isKlinisSignifikan: boolean;
   ideMelukaiDiri: boolean; // Butir 9 > 0
   subscales: {
@@ -136,12 +136,12 @@ export function calculateCDI(
   const isKlinisSignifikan = totalSkor >= CDI_CLINICAL_CUTOFF;
 
   const grade = isKlinisSignifikan
-    ? ("Depresi Bermakna Klinis" as const)
-    : ("Depresi Normal / Wajar" as const);
+    ? ("Gejala Depresi Perlu Mendapat Perhatian" as const)
+    : ("Gejala Depresi Tidak Menonjol" as const);
 
   const kategori = isKlinisSignifikan
-    ? "Kecenderungan Depresi Bermakna Secara Klinis (Perlu Perhatian)"
-    : "Tingkat Depresi Berada dalam Batas Wajar";
+    ? "Gejala Depresi Perlu Mendapat Perhatian"
+    : "Gejala Depresi Tidak Menonjol";
 
   const ideMelukaiDiri = skorItem9 > 0;
 

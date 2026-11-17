@@ -473,7 +473,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       })()
     : null;
 
-  const catsPTE = isCATS ? bookingReport?.detailSkor?.pte : null;
   const catsFungsi = isCATS ? bookingReport?.detailSkor?.fungsiPsikososial : null;
 
   // ── Dynamic interpretation from database ──────────────────────────────────
@@ -1158,43 +1157,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {/* Hasil Skrining Trauma & PTSD Anak/Remaja (CATS) */}
               {isCATS && (
                 <div className="space-y-6">
-                  {/* Kriteria A: Paparan Peristiwa Traumatis (PTE) */}
-                  {catsPTE && (
-                    <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-4">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                          <Compass className="w-5 h-5 text-[#561269]" />
-                          Kriteria A: Paparan Peristiwa Berpotensi Traumatis
-                        </h3>
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-100">
-                          {catsPTE.totalDialami} Peristiwa Dilaporkan
-                        </span>
-                      </div>
-
-                      {catsPTE.totalDialami > 0 ? (
-                        <div className="space-y-3">
-                          <p className="text-xs font-semibold text-gray-700">Daftar peristiwa yang dialami:</p>
-                          <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 bg-gray-50/80 p-4 rounded-2xl border border-gray-100">
-                            {catsPTE.daftarPeristiwa?.map((p: any) => (
-                              <li key={p.no} className="leading-relaxed">
-                                {p.teks}
-                              </li>
-                            ))}
-                          </ul>
-                          {catsPTE.peristiwaPalingMengganggu && (
-                            <p className="text-xs text-purple-900 bg-purple-50/60 p-3.5 rounded-xl border border-purple-100">
-                              <strong>Paling mengganggu saat ini:</strong> {catsPTE.peristiwaPalingMengganggu}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-500 italic bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                          Tidak ada peristiwa berpotensi traumatis yang dilaporkan. Sesuai panduan klinis CATS, skrining dianggap selesai dalam kategori normal.
-                        </p>
-                      )}
-                    </section>
-                  )}
-
                   {/* Profil Empat Klaster Gejala PTSD DSM-5 */}
                   {catsSubscales && (
                     <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">

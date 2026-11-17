@@ -239,16 +239,6 @@ export async function printLaporanPsikotes(
       },
     ];
 
-    if (parsedDs?.pte?.totalDialami !== undefined) {
-      const pteNote = `Kriteria A (Paparan Trauma): Dilaporkan ${parsedDs.pte.totalDialami} peristiwa berpotensi traumatis.${
-        parsedDs.pte.peristiwaPalingMengganggu ? ` Peristiwa paling mengganggu: "${parsedDs.pte.peristiwaPalingMengganggu}".` : ""
-      }`;
-      if (!detail.kekuatanUtama.includes(pteNote)) {
-        detail.kekuatanUtama = [pteNote, ...detail.kekuatanUtama];
-        detail.judulKekuatan = "Paparan Peristiwa Traumatis (Kriteria A)";
-      }
-    }
-
     if (parsedDs?.fungsiPsikososial?.totalTerganggu !== undefined) {
       const fungsiNote = `Dampak terhadap Fungsi Psikososial: Terdeteksi kendala pada ${parsedDs.fungsiPsikososial.totalTerganggu} dari 5 area kehidupan (pergaulan, hobi, sekolah, keluarga, kebahagiaan).`;
       if (!detail.blindspots.includes(fungsiNote)) {

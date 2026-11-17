@@ -1258,7 +1258,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                   Tidak Ada Paparan Peristiwa Traumatis Dilaporkan
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Berdasarkan jawaban pada 15 daftar peristiwa, anak/remaja tidak melaporkan adanya peristiwa yang berpotensi menimbulkan trauma. Sesuai alur asesmen, pemeriksaan gejala PTSD tidak perlu dilanjutkan karena tidak ditemukan paparan peristiwa traumatis dalam jawaban.
+                  Berdasarkan jawaban yang diberikan, tidak ditemukan peristiwa yang berpotensi menimbulkan trauma pada anak/remaja. Oleh karena itu, pemeriksaan gejala stres pascatrauma tidak dilanjutkan dan asesmen dinyatakan selesai.
                 </p>
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                   <button
