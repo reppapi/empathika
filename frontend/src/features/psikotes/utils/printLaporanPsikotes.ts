@@ -246,6 +246,43 @@ export async function printLaporanPsikotes(
         detail.judulBlindspots = "Dampak terhadap Fungsi Kehidupan Sehari-hari";
       }
     }
+  } else if (
+    paketLower.includes("mcmi") ||
+    (parsedDs?.validitas && Array.isArray(parsedDs?.polaKepribadianList))
+  ) {
+    heroPrefix = "MCMI-IV • MILLON CLINICAL MULTIAXIAL INVENTORY-IV";
+    heroTitle = parsedDs.validitas?.isValid ? "Profil Multiaxial MCMI-IV" : "Hasil Tes Tidak Valid (MCMI-IV)";
+    heroDesc =
+      parsedDs.laporanNaratif?.polaKepribadian ||
+      parsedDs.validitas?.kesimpulan ||
+      detail.deskripsi;
+    subscalesTitle = "Profil Spektrum Kepribadian (15 Skala Millon)";
+    subscalesMaxNote = "Skor Base Rate (BR 0–115, BR ≥ 75 = Tipe, BR ≥ 85 = Gangguan)";
+    subscales = (parsedDs.polaKepribadianList || []).map((s: any) => {
+      const br = Number(s.brScore ?? 0);
+      return {
+        name: `${s.code} - ${s.nama}`,
+        score: br,
+        maxScore: 115,
+        percentage: Math.min(100, Math.round((br / 115) * 100)),
+        grade: `BR ${br} (${s.level || "Subklinis"})`,
+        deskripsi: s.deskripsi || "Karakteristik spektrum kepribadian.",
+        colorHex: br >= 85 ? "#e11d48" : br >= 75 ? "#d97706" : "#561269",
+      };
+    });
+
+    if (parsedDs.laporanNaratif?.klinis) {
+      const klinisText = `Sindroma Klinis: ${parsedDs.laporanNaratif.klinis}`;
+      if (!detail.blindspots.includes(klinisText)) {
+        detail.blindspots = [klinisText, ...detail.blindspots];
+        detail.judulBlindspots = "Indikasi Sindroma Klinis (MCMI-IV)";
+      }
+    }
+    if (parsedDs.validitas?.kesimpulan) {
+      const validitasText = `Pemeriksaan Validitas: ${parsedDs.validitas.kesimpulan} (Skala V=${parsedDs.validitas.skalaV}, W=${parsedDs.validitas.skalaW}, X=${parsedDs.validitas.skalaX})`;
+      detail.kekuatanUtama = [validitasText, ...(detail.kekuatanUtama || [])];
+      detail.judulKekuatan = "Status Validitas & Modifikasi Profil";
+    }
   }
 
   const isWithoutTotal = Boolean(parsedDs?.tanpaSkorTotal);
@@ -269,7 +306,7 @@ export async function printLaporanPsikotes(
     noDokumen,
     judulTes: peserta.paket || "Laporan Hasil Psikotes",
     tanggalAsesmen: peserta.tanggal || "-",
-    masaBerlaku: "Masa Berlaku: 6 Bulan",
+    masaBerlaku: "Masa Berlaku: 3 Bulan",
     peserta: {
       nama: pProfile?.nama_lengkap || peserta.nama || "Peserta Asesmen Empathika",
       noHp: peserta.noHp || pProfile?.no_telepon_orang_tua || null,

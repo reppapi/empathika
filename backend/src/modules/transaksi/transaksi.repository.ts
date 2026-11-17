@@ -55,8 +55,8 @@ export class TransaksiRepository {
   }
 
   async findAll(_params?: AdminTransaksiQueryInput & { clientId?: string }) {
-    // Jalankan pembersihan otomatis untuk transaksi yang sudah lewat tahun
-    await this.purgeExpiredTransactions()
+    // Jalankan pembersihan otomatis untuk transaksi yang sudah lewat tahun di background (non-blocking)
+    this.purgeExpiredTransactions().catch(() => {})
 
     const page = _params?.page ?? 1
     const limit = _params?.limit ?? 20
@@ -131,13 +131,15 @@ export class TransaksiRepository {
       },
       booking_psikotes: {
         include: {
-          paket: true,
-          client: true,
-          hasil_tes: {
-            include: {
-              interpretasi: true,
+          paket: {
+            select: {
+              id: true,
+              judul: true,
+              jenis_akses: true,
+              harga: true,
             },
           },
+          client: true,
         },
       },
       booking_event: {

@@ -115,6 +115,27 @@ export default function ModalDetailPeserta({
   const waOrangTuaDigits = toWaDigits(noHpOrangTua);
 
   // --- A. PENGINGAT TES (Belum Mengerjakan) ---
+  // Perhitungan Tanggal Transaksi & Batas Akhir Pengerjaan (3 Bulan / 90 Hari)
+  const parseDateSafe = (val: string | null | undefined): Date => {
+    if (!val) return new Date();
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
+  const trxDate = parseDateSafe(peserta.rawTanggal || peserta.tanggal);
+  const tanggalTransaksiFormatted = trxDate.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const batasAkhirDate = new Date(trxDate.getTime() + 90 * 24 * 60 * 60 * 1000);
+  const batasAkhirFormatted = batasAkhirDate.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   // Ditujukan kepada pemegang tiket pengerjaan (Pembeli)
   const hasDifferentPhones = Boolean(
     hasPesertaData &&
@@ -125,46 +146,48 @@ export default function ModalDetailPeserta({
 
   const waReminderUrlPembeli = waPembeliDigits
     ? `https://wa.me/${waPembeliDigits}?text=${encodeURIComponent(
-`Halo Kak ${namaPembeli},
+`Halo Kak ${namaPembeli}!
 
-Akses asesmen psikotes Anda (${peserta.paket}) di Empathika telah aktif.
+Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta.paket} di Empathika telah aktif, tetapi asesmen masih belum diselesaikan.
 
-Untuk memulai pengerjaan tes, silakan ikuti petunjuk berikut:
+Sebagai pengingat, masa akses pengerjaan tes berlaku selama 3 bulan sejak tanggal transaksi.
+- Tanggal transaksi: ${tanggalTransaksiFormatted}
+- Batas akhir pengerjaan: ${batasAkhirFormatted}
+Kami menyarankan Kakak untuk segera menyelesaikan asesmen sebelum batas waktu tersebut agar akses tes tidak kedaluwarsa.
 
-1. Buka website Empathika di https://empathika.id, lalu pilih paket *${peserta.paket}*
-
+Untuk memulai pengerjaan tes, silakan ikuti langkah berikut:
+1. Buka website Empathika di https://empathika.id, lalu pilih paket ${peserta.paket}.
 2. Masukkan data verifikasi tiket:
-• Kode Booking: *${kodeBooking || "Cek bukti transaksi Anda"}*
-• Nomor WhatsApp: *${formatToIndonesianPhone(noHpPembeli)}*
+   - Kode Booking: ${kodeBooking || "Cek bukti transaksi Anda"}
+   - Nomor WhatsApp: ${formatToIndonesianPhone(noHpPembeli)}
+3. Klik "Verifikasi & Masuk Tes", lengkapi identitas peserta, dan selesaikan asesmen.
+Apabila Kakak mengalami kendala atau memiliki pertanyaan terkait akses tes, silakan hubungi tim Empathika kembali, ya.
 
-3. Klik "Verifikasi & Masuk Tes", lengkapi identitas peserta, dan selesaikan instrumen asesmen.
-
-Apabila Kakak memiliki pertanyaan atau kendala dalam mengakses tes, silakan hubungi tim Empathika kembali, ya.
-
-Terima kasih.`
+Terima kasih! 😊`
       )}`
     : null;
 
   const waReminderUrlPeserta =
     hasDifferentPhones && waPesertaDigits
       ? `https://wa.me/${waPesertaDigits}?text=${encodeURIComponent(
-`Halo Kak ${namaPeserta},
+`Halo Kak ${namaPeserta || namaPembeli}!
 
-Anda telah terdaftar untuk mengikuti asesmen psikotes (${peserta.paket}) di Empathika.
+Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta.paket} di Empathika telah aktif, tetapi asesmen masih belum diselesaikan.
 
-Untuk memulai pengerjaan tes, silakan ikuti petunjuk berikut:
+Sebagai pengingat, masa akses pengerjaan tes berlaku selama 3 bulan sejak tanggal transaksi.
+- Tanggal transaksi: ${tanggalTransaksiFormatted}
+- Batas akhir pengerjaan: ${batasAkhirFormatted}
+Kami menyarankan Kakak untuk segera menyelesaikan asesmen sebelum batas waktu tersebut agar akses tes tidak kedaluwarsa.
 
-1. Buka website Empathika di https://empathika.id, lalu pilih paket *${peserta.paket}*
-
+Untuk memulai pengerjaan tes, silakan ikuti langkah berikut:
+1. Buka website Empathika di https://empathika.id, lalu pilih paket ${peserta.paket}.
 2. Masukkan data verifikasi tiket:
-• Kode Booking: *${kodeBooking || "Cek bukti transaksi Anda"}*
-• Nomor WhatsApp Pembeli/Pendaftar: *${formatToIndonesianPhone(noHpPembeli)}*
+   - Kode Booking: ${kodeBooking || "Cek bukti transaksi Anda"}
+   - Nomor WhatsApp: ${formatToIndonesianPhone(noHpPembeli)}
+3. Klik "Verifikasi & Masuk Tes", lengkapi identitas peserta, dan selesaikan asesmen.
+Apabila Kakak mengalami kendala atau memiliki pertanyaan terkait akses tes, silakan hubungi tim Empathika kembali, ya.
 
-3. Klik "Verifikasi & Masuk Tes", lengkapi identitas diri, dan selesaikan instrumen asesmen.
-
-Apabila Kakak memiliki pertanyaan atau kendala dalam mengakses tes, silakan hubungi tim Empathika kembali, ya.
-
-Terima kasih.`
+Terima kasih! 😊`
         )}`
       : null;
 
