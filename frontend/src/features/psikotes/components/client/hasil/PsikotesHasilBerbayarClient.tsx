@@ -25,6 +25,7 @@ import {
   isCDI as checkCDI,
   isDASS as checkDASS,
   isRCMAS as checkRCMAS,
+  isMCMI as checkMCMI,
 } from "@/features/psikotes/utils/instrumentDetector";
 import {
   downloadLaporanPsikotesPdf,
@@ -319,6 +320,13 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const isRCMAS = checkRCMAS(dbPackage, params.testId);
   const isCDI = checkCDI(dbPackage, params.testId);
   const isCATS = checkCATS(dbPackage, params.testId);
+  const isMCMI = checkMCMI(dbPackage, params.testId);
+
+  const mcmiResult =
+    (isMCMI || bookingReport?.detailSkor?.validitas) &&
+    Array.isArray(bookingReport?.detailSkor?.polaKepribadianList)
+      ? bookingReport.detailSkor
+      : null;
 
   const rcmasSubscales = isRCMAS
     ? (() => {
@@ -521,6 +529,17 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       };
     }
 
+    if (mcmiResult) {
+      const isValid = mcmiResult.validitas?.isValid ?? true;
+      return {
+        prefix: "MCMI-IV • LAPORAN MULTIAXIAL",
+        value: isValid ? "Laporan Spektrum Kepribadian & Sindroma Klinis" : "Hasil Asesmen MCMI-IV Tidak Valid",
+        color: isValid ? "text-[#561269]" : "text-red-700",
+        bgColor: isValid ? "bg-purple-50" : "bg-red-50",
+        borderColor: isValid ? "border-purple-200" : "border-red-200"
+      };
+    }
+
     if (dbInterpretasi) {
       return {
         prefix: null,
@@ -598,6 +617,34 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       };
     }
 
+    if (mcmiResult) {
+      const mcmiCatatan: string[] = Array.isArray(mcmiResult.catatanKlinis)
+        ? (mcmiResult.catatanKlinis as string[])
+        : [];
+      const mcmiBlindspots: string[] = Array.isArray(mcmiResult.sindromaKlinisList)
+        ? mcmiResult.sindromaKlinisList
+            .filter((s: any) => (s?.brScore ?? 0) >= 75)
+            .map((s: any) => `${s.nama}: ${s.deskripsi}`)
+        : [];
+
+      return {
+        deskripsi:
+          mcmiResult.laporanNaratif?.polaKepribadian ||
+          mcmiResult.deskripsi ||
+          "Evaluasi komprehensif profil multiaxial MCMI-IV mencakup 15 spektrum kepribadian dan 10 sindroma klinis.",
+        judulKekuatan: "Catatan Validitas & Keterandalan Tes",
+        judulBlindspots: "Sindroma Klinis Terindikasi",
+        judulLingkungan: "Rekomendasi & Tindak Lanjut Klinis",
+        kekuatanUtama: mcmiCatatan,
+        blindspots: mcmiBlindspots,
+        lingkunganOptimal: [
+          "Laporan ini bersifat rahasia untuk penggunaan profesional psikologis/psikiatris.",
+          "Disarankan melakukan asesmen kolaboratif bersama psikolog atau psikiater guna menyusun rencana intervensi/psikoterapi yang tepat."
+        ],
+        saranList: [],
+      };
+    }
+
     // Jika tes DASS-42 (menggunakan evaluasi klinis 3 dimensi)
     if (isDASS && dassEvaluation) {
       return {
@@ -636,7 +683,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         noDokumen,
         judulTes: displayTestName,
         tanggalAsesmen: peserta.tanggal,
-        masaBerlaku: "Masa Berlaku: 6 Bulan",
+        masaBerlaku: "Masa Berlaku: 3 Bulan",
         peserta: {
           nama: peserta.nama || "Peserta Asesmen Empathika",
           noHp: peserta.noHp || peserta.noTeleponOrangTua || null,
@@ -763,7 +810,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     );
   }
 
-  // Layar Error / Masa Berlaku Berakhir (6 Bulan)
+  // Layar Error / Masa Berlaku Berakhir (3 Bulan)
   if (errorMessage) {
     const isExpired = errorMessage.toLowerCase().includes("berakhir") || errorMessage.toLowerCase().includes("kedaluwarsa");
 
@@ -802,7 +849,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
   // dan bukan instrumen DASS-42 (yang memiliki perhitungan evaluasi multidimensi khusus),
   // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
-  if (!dbInterpretasi && !dassEvaluation && !pbqProfile) {
+  if (!dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
@@ -957,9 +1004,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 </div>
               </div>
               <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-200" title="Sesuai standar validitas klinis asesmen psikologi, laporan ini berlaku 6 bulan sejak tanggal tes">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-200" title="Sesuai standar validitas klinis asesmen psikologi, laporan ini berlaku 3 bulan sejak tanggal tes">
                   <Calendar className="w-3.5 h-3.5" />
-                  Masa Berlaku: 6 Bulan
+                  Masa Berlaku: 3 Bulan
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -1115,6 +1162,209 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   <p className="text-xs text-amber-900 bg-amber-50/80 border border-amber-200/80 rounded-xl p-3 leading-relaxed">
                     Catatan: Skor ditampilkan sebagai skor mentah per skala (rentang 0–56). Kategori interpretasi dan Z-score normatif belum ditampilkan sambil menunggu acuan resmi.
                   </p>
+                </section>
+              )}
+
+              {/* Laporan Hasil Multiaxial MCMI-IV (15 Spektrum Kepribadian, 10 Sindroma Klinis, & 5 Skala Validitas) */}
+              {mcmiResult && (
+                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
+                  {/* Header Multiaxial */}
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-4 flex-wrap gap-2">
+                    <div>
+                      <span className="text-[10px] font-bold tracking-wider uppercase text-[#561269] bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">
+                        CONFIDENTIAL • FOR PROFESSIONAL USE ONLY
+                      </span>
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mt-1 flex items-center gap-2">
+                        <Compass className="w-5 h-5 text-[#561269]" />
+                        Millon Clinical Multiaxial Inventory-IV (MCMI-IV)
+                      </h3>
+                    </div>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                      mcmiResult.validitas?.isValid
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-red-50 text-red-700 border-red-200"
+                    }`}>
+                      {mcmiResult.validitas?.isValid ? "✓ Hasil Valid" : "⚠ Hasil Tidak Valid"}
+                    </span>
+                  </div>
+
+                  {/* A. Bagian Validitas */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-[#561269] text-white text-xs flex items-center justify-center font-bold">A</span>
+                      <span>Validitas Asesmen</span>
+                    </h4>
+                    <div className={`p-4 rounded-2xl border ${
+                      mcmiResult.validitas?.isValid
+                        ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-950"
+                        : "bg-red-50/80 border-red-200 text-red-950"
+                    }`}>
+                      <p className="text-xs sm:text-sm font-bold">
+                        {mcmiResult.laporanNaratif?.validitas || (mcmiResult.validitas?.isValid ? "Hasil tes ini akurat dan dapat dipercaya." : "Hasil tes ini tidak akurat dan tidak dapat diinterpretasi.")}
+                      </p>
+                      {mcmiResult.validitas?.alasanInvalid && mcmiResult.validitas.alasanInvalid.length > 0 && (
+                        <ul className="mt-2 space-y-1 text-xs list-disc list-inside text-red-800">
+                          {mcmiResult.validitas.alasanInvalid.map((alasan: string, idx: number) => (
+                            <li key={idx}>{alasan}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    {/* Grid Indeks Validitas */}
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
+                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala V</span>
+                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaV ?? 0}</span>
+                        <span className="text-[10px] text-gray-500 block">Maks 1</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
+                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala W</span>
+                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaW ?? 0}</span>
+                        <span className="text-[10px] text-gray-500 block">Maks 19</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
+                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala X</span>
+                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaX ?? 0}</span>
+                        <span className="text-[10px] text-gray-500 block">7 – 114</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
+                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala Y (BR)</span>
+                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaY_BR ?? 0}</span>
+                        <span className="text-[10px] text-gray-500 block">&gt; 75 Desirable</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center col-span-2 sm:col-span-1">
+                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala Z (BR)</span>
+                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaZ_BR ?? 0}</span>
+                        <span className="text-[10px] text-gray-500 block">&gt; 75 Debasement</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* B. Bagian Pola Spektrum Kepribadian (15 Skala) */}
+                  <div className="space-y-3 pt-3 border-t border-gray-100">
+                    <h4 className="text-sm font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-[#561269] text-white text-xs flex items-center justify-center font-bold">B</span>
+                      <span>Pola Spektrum Kepribadian</span>
+                    </h4>
+                    <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
+                      <p className="font-semibold text-gray-900 mb-1">Deskripsi Kesimpulan Kepribadian:</p>
+                      <p>{mcmiResult.laporanNaratif?.polaKepribadian || "Tidak dapat diinterpretasi."}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      {mcmiResult.polaKepribadianList?.map((scale: any) => {
+                        const br = Number(scale.brScore ?? 0);
+                        const isDisorder = br >= 85;
+                        const isType = br >= 75 && br < 85;
+                        const isStyle = br >= 60 && br < 75;
+
+                        return (
+                          <div
+                            key={scale.kode}
+                            className={`p-3.5 rounded-2xl border space-y-2 transition-all ${
+                              isDisorder
+                                ? "bg-rose-50/70 border-rose-200"
+                                : isType
+                                  ? "bg-amber-50/70 border-amber-200"
+                                  : isStyle
+                                    ? "bg-purple-50/50 border-purple-100"
+                                    : "bg-gray-50/60 border-gray-100"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="font-bold text-xs sm:text-sm text-gray-900 block leading-tight">{scale.nama}</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider inline-block mt-0.5 px-2 py-0.5 rounded-md ${
+                                  isDisorder
+                                    ? "bg-rose-100 text-rose-800"
+                                    : isType
+                                      ? "bg-amber-100 text-amber-800"
+                                      : isStyle
+                                        ? "bg-purple-100 text-purple-800"
+                                        : "bg-gray-200 text-gray-600"
+                                }`}>
+                                  {scale.level}
+                                </span>
+                              </div>
+                              <span className="text-xs font-extrabold text-[#561269] shrink-0">
+                                BR {br} <span className="text-[10px] text-gray-400 font-normal">/ 115</span>
+                              </span>
+                            </div>
+
+                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  isDisorder ? "bg-rose-600" : isType ? "bg-amber-500" : "bg-[#561269]"
+                                }`}
+                                style={{ width: `${Math.min(100, Math.round((br / 115) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* C. Bagian Sindroma Klinis (10 Skala) */}
+                  <div className="space-y-3 pt-3 border-t border-gray-100">
+                    <h4 className="text-sm font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-[#561269] text-white text-xs flex items-center justify-center font-bold">C</span>
+                      <span>Sindroma Klinis</span>
+                    </h4>
+                    <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
+                      <p className="font-semibold text-gray-900 mb-1">Deskripsi Kesimpulan Klinis:</p>
+                      <p>{mcmiResult.laporanNaratif?.klinis || "Tidak dapat diinterpretasi."}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      {mcmiResult.sindromaKlinisList?.map((scale: any) => {
+                        const br = Number(scale.brScore ?? 0);
+                        const isSevere = br >= 85;
+                        const isMild = br >= 75 && br < 85;
+
+                        return (
+                          <div
+                            key={scale.kode}
+                            className={`p-3.5 rounded-2xl border space-y-2 transition-all ${
+                              isSevere
+                                ? "bg-rose-50/70 border-rose-200"
+                                : isMild
+                                  ? "bg-amber-50/70 border-amber-200"
+                                  : "bg-gray-50/60 border-gray-100"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="font-bold text-xs sm:text-sm text-gray-900 block leading-tight">{scale.nama}</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider inline-block mt-0.5 px-2 py-0.5 rounded-md ${
+                                  isSevere
+                                    ? "bg-rose-100 text-rose-800"
+                                    : isMild
+                                      ? "bg-amber-100 text-amber-800"
+                                      : "bg-gray-200 text-gray-600"
+                                }`}>
+                                  {scale.level}
+                                </span>
+                              </div>
+                              <span className="text-xs font-extrabold text-[#561269] shrink-0">
+                                BR {br} <span className="text-[10px] text-gray-400 font-normal">/ 115</span>
+                              </span>
+                            </div>
+
+                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  isSevere ? "bg-rose-600" : isMild ? "bg-amber-500" : "bg-[#561269]"
+                                }`}
+                                style={{ width: `${Math.min(100, Math.round((br / 115) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </section>
               )}
 
@@ -1307,7 +1557,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                           </span>
                         </div>
                         <ul className="space-y-2.5 text-xs text-emerald-950">
-                          {berbayarDetail.kekuatanUtama.map((point, pIdx) => (
+                          {berbayarDetail.kekuatanUtama.map((point: string, pIdx: number) => (
                             <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
                               <span>{point}</span>
@@ -1327,7 +1577,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                           </span>
                         </div>
                         <ul className="space-y-2.5 text-xs text-rose-950">
-                          {berbayarDetail.blindspots.map((point, pIdx) => (
+                          {berbayarDetail.blindspots.map((point: string, pIdx: number) => (
                             <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
                               <span>{point}</span>

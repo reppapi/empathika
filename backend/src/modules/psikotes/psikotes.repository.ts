@@ -705,6 +705,16 @@ export class PsikotesRepository {
           )
         }
 
+        const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000
+        if (booking?.createdAt && Date.now() - new Date(booking.createdAt).getTime() > THREE_MONTHS_MS) {
+          throw Object.assign(
+            new Error(
+              'Masa berlaku tiket pengerjaan asesmen ini telah berakhir (berlaku 3 bulan sejak tanggal pembelian). Silakan hubungi admin Empathika jika Anda memerlukan bantuan.'
+            ),
+            { statusCode: 410 }
+          )
+        }
+
         if (booking?.transaksi && booking.transaksi.status_pembayaran !== 'PAID') {
           throw Object.assign(
             new Error('Pembayaran tiket belum lunas. Selesaikan pembayaran terlebih dahulu sebelum mengirimkan jawaban tes.'),
@@ -885,6 +895,37 @@ export class PsikotesRepository {
         })
       }
 
+      // Pastikan booking berbayar selalu memiliki entri transaksi resmi
+      if (paket.jenis_akses === 'BERBAYAR' && !booking.id_transaksi) {
+        const nominal = Number(paket.harga) > 0 ? Number(paket.harga) : 75000
+        const kodeTrx =
+          (input as any).orderId ||
+          (input as any).kode_transaksi ||
+          booking.kode_akses ||
+          `PSI-${generateOrderId()}`
+        const newTrx = await tx.transaksi.create({
+          data: {
+            id_client: client.id,
+            kode_transaksi: kodeTrx,
+            tipe_transaksi: 'PSIKOTES',
+            subtotal: nominal,
+            biaya_admin: 0,
+            total: nominal,
+            metode_pembayaran: 'QRIS',
+            channel_pembayaran: 'QRIS',
+            status_pembayaran: 'PAID',
+            tanggal_bayar: new Date(),
+          },
+        })
+        booking = await tx.bookingPsikotes.update({
+          where: { id: booking.id },
+          data: {
+            id_transaksi: newTrx.id,
+            kode_akses: booking.kode_akses || kodeTrx,
+          },
+        })
+      }
+
       // 5b. Simpan/sinkronkan data peserta tes ke tabel peserta_psikotes jika bukan tamu anonim
       const pesertaSource = (input as any).peserta || input.klien || {}
       const namaPeserta = (input as any).peserta?.nama_lengkap || input.klien?.nama || inputName
@@ -1042,11 +1083,29 @@ export class PsikotesRepository {
           tanggal_selesai: hasilTes.tanggal_selesai,
         },
       }
-    })
+    }, { maxWait: 10000, timeout: 25000 })
   }
 
   async findPeserta(params?: PesertaQueryInput) {
-    // 1. Filter: HANYA peserta berbayar resmi (memiliki transaksi & bukan tamu anonim)
+    // Jalankan pembersihan otomatis data psikotes yang sudah > 3 bulan (90 hari) di background
+    this.purgeExpiredPsikotesData().catch(() => {})
+
+    const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+
+    // Filter retensi 3 bulan (90 hari):
+    // - Jika sudah selesai tes: tanggal_selesai >= cutoffDate
+    // - Jika belum selesai tes: createdAt >= cutoffDate
+    const nonExpiredFilter = {
+      OR: [
+        { hasil_tes: { tanggal_selesai: { gte: cutoffDate } } },
+        {
+          hasil_tes: null,
+          createdAt: { gte: cutoffDate },
+        },
+      ],
+    }
+
+    // 1. Filter: HANYA peserta berbayar resmi (memiliki transaksi atau hasil tes/peserta & bukan tamu anonim)
     const where: any = {
       paket: {
         jenis_akses: 'BERBAYAR',
@@ -1054,19 +1113,22 @@ export class PsikotesRepository {
       client: {
         nama: { not: 'Tamu Anonim' },
       },
-      id_transaksi: { not: null },
+      OR: [
+        { id_transaksi: { not: null } },
+        { hasil_tes: { isNot: null } },
+        { peserta_psikotes: { isNot: null } },
+      ],
+      AND: [nonExpiredFilter],
     }
 
     if (params?.search) {
-      where.AND = [
-        {
-          OR: [
-            { client: { nama: { contains: params.search, mode: 'insensitive' } } },
-            { client: { no_telepon: { contains: params.search, mode: 'insensitive' } } },
-            { paket: { judul: { contains: params.search, mode: 'insensitive' } } },
-          ],
-        },
-      ]
+      where.AND.push({
+        OR: [
+          { client: { nama: { contains: params.search, mode: 'insensitive' } } },
+          { client: { no_telepon: { contains: params.search, mode: 'insensitive' } } },
+          { paket: { judul: { contains: params.search, mode: 'insensitive' } } },
+        ],
+      })
     }
 
     if (params?.id_paket) {
@@ -1088,7 +1150,12 @@ export class PsikotesRepository {
           ...(params?.id_biro ? { id_biro: params.id_biro } : {}),
         },
       },
-      id_transaksi: { not: null },
+      OR: [
+        { id_transaksi: { not: null } },
+        { hasil_tes: { isNot: null } },
+        { peserta_psikotes: { isNot: null } },
+      ],
+      AND: [nonExpiredFilter],
     }
 
     const [totalBerbayar, totalSelesai, totalGratis, items] = await Promise.all([
@@ -1585,15 +1652,17 @@ export class PsikotesRepository {
           jenis_kelamin: booking.client.jenis_kelamin,
         },
       }
-    })
+    }, { maxWait: 10000, timeout: 25000 })
   }
 
   /**
    * Pembersihan berkala data pengerjaan psikotes tamu anonim (Retention Lifecycle).
-   * Hanya menghapus data tamu anonim gratis yang usianya lebih dari `daysOld` (default: 60 hari).
-   * Data pengerjaan peserta berbayar resmi TIDAK PERNAH disentuh/dihapus.
+   * Menghapus data tamu anonim gratis yang usianya lebih dari `daysOld` (default: 60 hari)
+   * serta memicu pembersihan data berbayar yang melewati retensi 90 hari.
    */
   async cleanupOldAnonymousGuests(daysOld: number = 60) {
+    this.purgeExpiredPsikotesData().catch(() => {})
+
     const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000)
 
     const oldGuestBookings = await this.prisma.bookingPsikotes.findMany({
@@ -1633,7 +1702,64 @@ export class PsikotesRepository {
     })
   }
 
+  /**
+   * Pembersihan berkala (Hard Delete / Auto-purge) data pengerjaan psikotes, tiket akses, dan peserta berbayar
+   * yang usianya telah melewati batas masa berlaku 3 bulan (90 hari).
+   * - Tes Selesai: dihitung 90 hari sejak tanggal_selesai hasil tes.
+   * - Tiket Belum Selesai / Kedaluwarsa: dihitung 90 hari sejak createdAt booking.
+   * Menghapus secara permanen record hasil_tes, peserta_psikotes, jawaban_psikotes, dan booking_psikotes.
+   */
+  async purgeExpiredPsikotesData(daysOld: number = 90) {
+    try {
+      if (
+        typeof this.prisma?.bookingPsikotes?.findMany !== 'function' ||
+        typeof this.prisma?.$transaction !== 'function'
+      ) {
+        return { deletedCount: 0 }
+      }
+
+      const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000)
+
+      const expiredBookings = await this.prisma.bookingPsikotes.findMany({
+        where: {
+          paket: { jenis_akses: 'BERBAYAR' },
+          OR: [
+            {
+              hasil_tes: {
+                tanggal_selesai: { lt: cutoffDate },
+              },
+            },
+            {
+              hasil_tes: null,
+              createdAt: { lt: cutoffDate },
+            },
+          ],
+        },
+        select: { id: true },
+      })
+
+      if (expiredBookings.length === 0) {
+        return { deletedCount: 0 }
+      }
+
+      const bookingIds = expiredBookings.map((b) => b.id)
+
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.hasilTes.deleteMany({ where: { id_booking: { in: bookingIds } } })
+        await tx.pesertaPsikotes.deleteMany({ where: { id_booking: { in: bookingIds } } })
+        await tx.jawabanPsikotes.deleteMany({ where: { id_booking: { in: bookingIds } } })
+        const res = await tx.bookingPsikotes.deleteMany({ where: { id: { in: bookingIds } } })
+        return { deletedCount: res.count }
+      }, { maxWait: 10000, timeout: 25000 })
+    } catch (err) {
+      console.error('[purgeExpiredPsikotesData] Gagal membersihkan data psikotes kedaluwarsa:', err)
+      return { deletedCount: 0 }
+    }
+  }
+
   async verifyTicket(input: VerifyTicketInput) {
+    this.purgeExpiredPsikotesData().catch(() => {})
+
     const rawKode = (input.kode_akses || '').trim()
     const cleanKode = rawKode.toUpperCase().replace(/\s+/g, '')
     const rawPhone = (input.no_telepon || '').trim()
@@ -1745,14 +1871,25 @@ export class PsikotesRepository {
 
     const isSelesai = booking.status_pengerjaan === 'SELESAI' || Boolean(booking.hasil_tes)
 
-    // Validasi masa aktif akses hasil psikotes (6 bulan / 180 hari sejak tes diselesaikan)
+    const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000
+
+    // Validasi masa aktif tiket pengerjaan yang belum diselesaikan (3 bulan / 90 hari sejak pembelian)
+    if (!isSelesai && booking.createdAt && Date.now() - new Date(booking.createdAt).getTime() > THREE_MONTHS_MS) {
+      throw Object.assign(
+        new Error(
+          'Masa berlaku tiket pengerjaan asesmen ini telah berakhir (berlaku 3 bulan sejak tanggal pembelian). Silakan hubungi admin Empathika jika Anda memerlukan bantuan.'
+        ),
+        { statusCode: 410 }
+      )
+    }
+
+    // Validasi masa aktif akses online laporan hasil asesmen (3 bulan / 90 hari sejak tes diselesaikan)
     if (isSelesai && booking.hasil_tes?.tanggal_selesai) {
       const selesaiDate = new Date(booking.hasil_tes.tanggal_selesai).getTime()
-      const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000
-      if (Date.now() - selesaiDate > SIX_MONTHS_MS) {
+      if (Date.now() - selesaiDate > THREE_MONTHS_MS) {
         throw Object.assign(
           new Error(
-            'Masa aktif akses online laporan hasil asesmen ini telah berakhir (berlaku 6 bulan sejak tanggal pengerjaan). Untuk evaluasi kondisi psikologis terkini, disarankan untuk melakukan asesmen ulang atau hubungi admin Empathika.'
+            'Masa aktif akses online laporan hasil asesmen ini telah berakhir (berlaku 3 bulan sejak tanggal pengerjaan). Untuk evaluasi kondisi psikologis terkini, disarankan untuk melakukan asesmen ulang atau hubungi admin Empathika.'
           ),
           { statusCode: 410 }
         )
@@ -1804,6 +1941,8 @@ export class PsikotesRepository {
     if (!cleanId) {
       throw Object.assign(new Error('ID pengerjaan atau tiket wajib diisi'), { statusCode: 400 })
     }
+
+    this.purgeExpiredPsikotesData().catch(() => {})
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cleanId)
 
@@ -1890,15 +2029,15 @@ export class PsikotesRepository {
       )
     }
 
-    // Validasi masa aktif akses online laporan hasil asesmen untuk klien: 6 bulan (180 hari) sejak pengerjaan
+    // Validasi masa aktif akses online laporan hasil asesmen untuk klien: 3 bulan (90 hari) sejak pengerjaan
     // Pengecualian: Admin tetap memiliki wewenang akses riwayat asesmen untuk arsip rekap & konseling
     if (booking.hasil_tes?.tanggal_selesai && !options?.isAdmin) {
       const selesaiDate = new Date(booking.hasil_tes.tanggal_selesai).getTime()
-      const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000
-      if (Date.now() - selesaiDate > SIX_MONTHS_MS) {
+      const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000
+      if (Date.now() - selesaiDate > THREE_MONTHS_MS) {
         throw Object.assign(
           new Error(
-            'Masa aktif akses online laporan hasil asesmen ini telah berakhir (berlaku 6 bulan sejak tanggal pengerjaan). Untuk evaluasi kondisi psikologis terkini, disarankan untuk melakukan asesmen ulang atau hubungi admin Empathika.'
+            'Masa aktif akses online laporan hasil asesmen ini telah berakhir (berlaku 3 bulan sejak tanggal pengerjaan). Untuk evaluasi kondisi psikologis terkini, disarankan untuk melakukan asesmen ulang atau hubungi admin Empathika.'
           ),
           { statusCode: 410 }
         )

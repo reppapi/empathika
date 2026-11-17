@@ -471,7 +471,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
             </div>
 
             <p className="text-xs text-gray-600 mb-5 leading-relaxed">
-              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes aktif tanpa batas waktu.
+              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes aktif selama 3 bulan.
             </p>
 
             {/* Status alerts */}

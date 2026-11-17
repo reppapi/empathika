@@ -572,7 +572,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
             <View style={styles.pillRow}>
               <View style={styles.pillPurple}>
                 <Text style={styles.pillPurpleText}>
-                  {sanitizePdfText(data.masaBerlaku || "Masa Berlaku: 6 Bulan")}
+                  {sanitizePdfText(data.masaBerlaku || "Masa Berlaku: 3 Bulan")}
                 </Text>
               </View>
               <View style={styles.pillGreen}>
