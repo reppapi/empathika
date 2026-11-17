@@ -181,9 +181,9 @@ export default function PsikotesFormIdentitas({
         "empathika_peserta_psikotes",
         JSON.stringify({
           nama,
-          noTelepon: underAgeMode ? (finalNoTeleponPeserta || finalNoTeleponOrangTua) : finalNoTeleponPeserta,
-          no_telepon: underAgeMode ? (finalNoTeleponPeserta || finalNoTeleponOrangTua) : finalNoTeleponPeserta,
-          whatsapp: underAgeMode ? (finalNoTeleponPeserta || finalNoTeleponOrangTua) : finalNoTeleponPeserta,
+          noTelepon: finalNoTeleponPeserta || "",
+          no_telepon: finalNoTeleponPeserta || "",
+          whatsapp: finalNoTeleponPeserta || "",
           tempatLahir,
           tanggalLahir,
           umur: currentAge,
@@ -241,20 +241,7 @@ export default function PsikotesFormIdentitas({
               />
             </div>
 
-            {/* 2. Nomor WhatsApp Peserta */}
-            <div>
-              <PhoneInputField
-                label={isUnderAge ? "No WhatsApp Peserta (Opsional)" : "No WhatsApp Pribadi"}
-                labelClassName="uppercase tracking-wider font-bold mb-1.5 text-xs"
-                required={!isUnderAge}
-                value={data.noTelepon || ""}
-                onChange={(formatted) => onChange((prev) => ({ ...prev, noTelepon: formatted }))}
-                placeholder="+62 821-7373-9213"
-                inputClassName="px-4 py-2.5 rounded-xl border-gray-200 text-sm font-medium focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15"
-              />
-            </div>
-
-            {/* 3. Tempat Lahir & Tanggal Lahir (Grid 2 Kolom) */}
+            {/* 2. Tempat Lahir & Tanggal Lahir (Grid 2 Kolom) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
@@ -282,6 +269,19 @@ export default function PsikotesFormIdentitas({
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15 transition font-medium text-gray-800 bg-white"
                 />
               </div>
+            </div>
+
+            {/* 3. Nomor WhatsApp Peserta */}
+            <div>
+              <PhoneInputField
+                label={isUnderAge ? "No WhatsApp Peserta (Opsional)" : "No WhatsApp Pribadi"}
+                labelClassName="uppercase tracking-wider font-bold mb-1.5 text-xs"
+                required={!isUnderAge}
+                value={data.noTelepon || ""}
+                onChange={(formatted) => onChange((prev) => ({ ...prev, noTelepon: formatted }))}
+                placeholder="+62 821-7373-9213"
+                inputClassName="px-4 py-2.5 rounded-xl border-gray-200 text-sm font-medium focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/15"
+              />
             </div>
 
             {/* 4. Jenis Kelamin & Umur (Grid 2 Kolom) */}

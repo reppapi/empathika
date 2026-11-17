@@ -1,4 +1,4 @@
-/** Halaman hasil skrining psikotes gratis (ringkasan kategori, evaluasi DASS, saran, dan hotline krisis). */
+/** Halaman hasil skrining psikotes gratis (ringkasan kategori, evaluasi DASS, dan saran tindak lanjut). */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,13 +18,11 @@ import {
   isCDI as checkCDI,
   isDASS as checkDASS,
   isPBQ as checkPBQ,
-  isPHQ as checkPHQ,
   isRCMAS as checkRCMAS,
   isCHOCI as checkCHOCI,
 } from "@/features/psikotes/utils/instrumentDetector";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 import InterpretasiCard from "./InterpretasiCard";
-import CrisisHotlineCard from "./CrisisHotlineCard";
 
 function SelfCareIllustration() {
   return (
@@ -191,17 +189,12 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const rawSkor = searchParams.get("skor");
   const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
 
-  // Protokol darurat / Crisis Hotline untuk PHQ-9 & CDI (Butir 9 ide bunuh diri)
-  const isPHQ9 = checkPHQ(dbPackage, params.testId);
   const isCDI = checkCDI(dbPackage, params.testId);
   const isCATS = checkCATS(dbPackage, params.testId);
   const isRCMAS = checkRCMAS(dbPackage, params.testId);
   const isPBQ = checkPBQ(dbPackage, params.testId);
   const isCHOCI = checkCHOCI(dbPackage, params.testId);
   const isDASS = checkDASS(dbPackage, params.testId);
-
-  const isHarmDetected =
-    (isPHQ9 || isCDI) && (Boolean(bookingDetailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
 
   // Dimensi DASS-42 (Depresi, Kecemasan, Stres)
   const rawDep = searchParams.get("dep");
@@ -280,7 +273,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
       })()
     : null;
 
-  const catsPTE = isCATS ? bookingDetailSkor?.pte : null;
   const catsFungsi = isCATS ? bookingDetailSkor?.fungsiPsikososial : null;
 
   const dassEvaluation = isDASS
@@ -609,47 +601,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         {/* 2a-4. Hasil Skrining Trauma & PTSD Anak/Remaja (CATS) */}
         {isCATS && (
           <div className="space-y-5">
-            {/* Kriteria A: Paparan Peristiwa Traumatis (PTE) */}
-            {catsPTE && (
-              <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#561269]">
-                      Kriteria A: Paparan Peristiwa Berpotensi Traumatis
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Verifikasi paparan terhadap peristiwa yang mengancam keselamatan atau integritas fisik.
-                    </p>
-                  </div>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-100">
-                    {catsPTE.totalDialami} Peristiwa Dilaporkan
-                  </span>
-                </div>
-
-                {catsPTE.totalDialami > 0 ? (
-                  <div className="pt-2 space-y-2">
-                    <p className="text-xs font-semibold text-gray-700">Daftar peristiwa yang dialami:</p>
-                    <ul className="list-disc list-inside space-y-1 text-xs text-gray-600 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
-                      {catsPTE.daftarPeristiwa?.map((p: any) => (
-                        <li key={p.no} className="leading-relaxed">
-                          {p.teks}
-                        </li>
-                      ))}
-                    </ul>
-                    {catsPTE.peristiwaPalingMengganggu && (
-                      <p className="text-xs text-purple-900 bg-purple-50/60 p-3 rounded-xl border border-purple-100">
-                        <strong>Paling mengganggu saat ini:</strong> {catsPTE.peristiwaPalingMengganggu}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded-xl">
-                    Tidak ada peristiwa traumatis yang dilaporkan. Sesuai panduan CATS, skrining dianggap selesai dalam kategori normal.
-                  </p>
-                )}
-              </div>
-            )}
-
             {/* Klaster Gejala PTSD DSM-5 */}
             {catsSubscales && (
               <div className="bg-white rounded-3xl border border-purple-100 p-6 shadow-sm space-y-4">
@@ -723,9 +674,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
             )}
           </div>
         )}
-
-        {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol - Satu Persen Card Style) */}
-        {isHarmDetected && <CrisisHotlineCard />}
 
         {/* 3. Konsultasi Purple Card (Clean, without calendar icon & without "privat aman") */}
         <div className="pt-2">

@@ -905,10 +905,9 @@ export class PsikotesRepository {
         namaOrangTua = pesertaSource.nama_orang_tua || null
         noTeleponOrangTua =
           pesertaSource.no_telepon_orang_tua ||
-          pesertaSource.whatsapp ||
-          pesertaSource.no_telepon ||
+          pesertaSource.noTeleponOrangTua ||
           null
-        noHpPeserta = pesertaSource.no_telepon || null
+        noHpPeserta = pesertaSource.no_telepon || pesertaSource.noTelepon || null
         pekerjaan = null
         statusPernikahan = null
       } else {
@@ -1158,6 +1157,7 @@ export class PsikotesRepository {
       items: filteredItems.map((b) => ({
         id: b.id,
         id_paket: b.id_paket,
+        kode_akses: b.kode_akses || b.transaksi?.kode_transaksi || null,
         nama_paket: b.paket.judul,
         jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
         harga: b.paket.harga,
@@ -1496,10 +1496,9 @@ export class PsikotesRepository {
         namaOrangTua = pesertaSource.nama_orang_tua || null
         noTeleponOrangTua =
           pesertaSource.no_telepon_orang_tua ||
-          pesertaSource.whatsapp ||
-          pesertaSource.no_telepon ||
+          pesertaSource.noTeleponOrangTua ||
           null
-        noHpPeserta = pesertaSource.no_telepon || null
+        noHpPeserta = pesertaSource.no_telepon || pesertaSource.noTelepon || null
         pekerjaan = null
         statusPernikahan = null
       } else {
@@ -1746,7 +1745,19 @@ export class PsikotesRepository {
 
     const isSelesai = booking.status_pengerjaan === 'SELESAI' || Boolean(booking.hasil_tes)
 
-    // Tiket pengerjaan & akses arsip hasil tes aktif tanpa batas waktu (dapat dikerjakan & diakses kapan saja)
+    // Validasi masa aktif akses hasil psikotes (6 bulan / 180 hari sejak tes diselesaikan)
+    if (isSelesai && booking.hasil_tes?.tanggal_selesai) {
+      const selesaiDate = new Date(booking.hasil_tes.tanggal_selesai).getTime()
+      const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000
+      if (Date.now() - selesaiDate > SIX_MONTHS_MS) {
+        throw Object.assign(
+          new Error(
+            'Masa aktif akses online laporan hasil asesmen ini telah berakhir (berlaku 6 bulan sejak tanggal pengerjaan). Untuk evaluasi kondisi psikologis terkini, disarankan untuk melakukan asesmen ulang atau hubungi admin Empathika.'
+          ),
+          { statusCode: 410 }
+        )
+      }
+    }
 
     const effectiveKode = booking.kode_akses || booking.transaksi?.kode_transaksi || rawKode
     const accessToken = createHasilAccessToken(booking.id)
@@ -1879,7 +1890,20 @@ export class PsikotesRepository {
       )
     }
 
-    // Akses arsip hasil laporan asesmen aktif tanpa batas waktu
+    // Validasi masa aktif akses online laporan hasil asesmen untuk klien: 6 bulan (180 hari) sejak pengerjaan
+    // Pengecualian: Admin tetap memiliki wewenang akses riwayat asesmen untuk arsip rekap & konseling
+    if (booking.hasil_tes?.tanggal_selesai && !options?.isAdmin) {
+      const selesaiDate = new Date(booking.hasil_tes.tanggal_selesai).getTime()
+      const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000
+      if (Date.now() - selesaiDate > SIX_MONTHS_MS) {
+        throw Object.assign(
+          new Error(
+            'Masa aktif akses online laporan hasil asesmen ini telah berakhir (berlaku 6 bulan sejak tanggal pengerjaan). Untuk evaluasi kondisi psikologis terkini, disarankan untuk melakukan asesmen ulang atau hubungi admin Empathika.'
+          ),
+          { statusCode: 410 }
+        )
+      }
+    }
 
     const detailSkor = typeof booking.hasil_tes.detail_skor === 'string'
       ? JSON.parse(booking.hasil_tes.detail_skor)

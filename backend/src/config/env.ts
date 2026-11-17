@@ -1,8 +1,15 @@
 import { z } from "zod"
+import path from "node:path"
+import { existsSync } from "node:fs"
 
 if (typeof process.loadEnvFile === "function") {
   try {
-    process.loadEnvFile()
+    const backendEnvPath = path.resolve(__dirname, "../../.env")
+    if (existsSync(backendEnvPath)) {
+      process.loadEnvFile(backendEnvPath)
+    } else {
+      process.loadEnvFile()
+    }
   } catch {
     // Ignore if .env doesn't exist
   }

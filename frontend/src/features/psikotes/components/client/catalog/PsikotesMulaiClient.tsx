@@ -831,9 +831,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         peserta: isPaidFlow
           ? {
               nama_lengkap: identityData.nama.trim() || pesertaNama || "Peserta Psikotes",
-              no_telepon: isUnderAge
-                ? (identityData.noTelepon?.trim() || identityData.noTeleponOrangTua?.trim() || undefined)
-                : (identityData.noTelepon?.trim() || undefined),
+              no_telepon: identityData.noTelepon?.trim() || undefined,
               nama_orang_tua: isUnderAge ? (identityData.namaOrangTua?.trim() || undefined) : undefined,
               no_telepon_orang_tua: isUnderAge ? (identityData.noTeleponOrangTua?.trim() || undefined) : undefined,
               tempat_lahir: identityData.tempatLahir.trim() || undefined,
@@ -911,29 +909,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (dsm.isIndikasiEvaluasi) query.set("dsmAlert", "1");
         }
 
-        // Protokol Krisis / Melukai Diri untuk instrumen PHQ-9 dan CDI (Butir 9).
-        // Instrumen DASS-42, GAD-7, dan RCMAS tidak memiliki butir skrining melukai diri.
-        const isPHQ9 =
-          dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
-          dbData?.judul?.toUpperCase().includes("PHQ") ||
-          params.testId.toLowerCase().includes("phq");
-
-        const isCDI =
-          dbData?.alat_ukur?.kode?.toUpperCase().includes("CDI") ||
-          dbData?.judul?.toUpperCase().includes("CDI") ||
-          params.testId.toLowerCase().includes("cdi");
-
-        const hasHarm =
-          (isPHQ9 || isCDI) &&
-          Boolean(
-            res.data.detail_skor?.ideMelukaiDiri ||
-            (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0)
-          );
-
-        if (hasHarm) {
-          query.set("harm", "1");
-        }
-
         // Simpan jawaban pertanyaan tambahan (Functional Impairment) ke query param & localStorage
         if (functionalAnswer !== null) {
           query.set("impairment", String(functionalAnswer));
@@ -967,9 +942,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             } catch {}
           }
           const finalNama = identityData.nama.trim() || pesertaNama;
-          const finalWa = isUnderAge
-            ? (identityData.noTelepon?.trim() || identityData.noTeleponOrangTua?.trim() || pesertaWa)
-            : (identityData.noTelepon?.trim() || pesertaWa);
+          const finalWa = identityData.noTelepon?.trim() || "";
           if (finalNama) query.set("nama", finalNama);
           if (finalWa) query.set("whatsapp", finalWa);
           if (calculatedKategori) query.set("kategori", calculatedKategori);
@@ -1285,7 +1258,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                   Tidak Ada Paparan Peristiwa Traumatis Dilaporkan
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Berdasarkan jawaban pada 15 daftar peristiwa, anak/remaja tidak melaporkan adanya peristiwa yang berpotensi menimbulkan trauma. Sesuai alur asesmen, pemeriksaan gejala PTSD tidak perlu dilanjutkan karena tidak ditemukan paparan peristiwa traumatis dalam jawaban.
+                  Berdasarkan jawaban yang diberikan, tidak ditemukan peristiwa yang berpotensi menimbulkan trauma pada anak/remaja. Oleh karena itu, pemeriksaan gejala stres pascatrauma tidak dilanjutkan dan asesmen dinyatakan selesai.
                 </p>
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                   <button
