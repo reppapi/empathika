@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ==========================================
@@ -696,4 +697,18 @@ model Invoice {
   transaksi Transaksi @relation(fields: [id_transaksi], references: [id], onDelete: Restrict)
 
   @@map("invoices")
+}
+
+// ==========================================
+// 8. SITE SETTINGS (PENGATURAN SISTEM DINAMIS)
+// ==========================================
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
 }

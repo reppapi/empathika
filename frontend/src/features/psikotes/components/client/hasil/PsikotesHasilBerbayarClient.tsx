@@ -236,7 +236,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 grade: bData.hasil.grade,
                 judul: bData.hasil.judul,
                 deskripsi: bData.hasil.deskripsi,
-                tips: bData.hasil.tips,
               } : null,
             });
 
@@ -1319,9 +1318,15 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                     <Info className="w-5 h-5 text-[#561269]" />
                     Interpretasi Hasil
                   </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {berbayarDetail.deskripsi}
-                  </p>
+                  <div className="space-y-3.5 text-sm text-gray-600 leading-relaxed">
+                    {String(berbayarDetail.deskripsi || "")
+                      .split(/\r?\n\s*\r?\n/)
+                      .map((p: string) => p.trim())
+                      .filter(Boolean)
+                      .map((para: string, i: number) => (
+                        <p key={i}>{para}</p>
+                      ))}
+                  </div>
                 </div>
               </section>
 

@@ -63,7 +63,6 @@ export interface PaketPsikotesApiResponse {
     grade: string
     judul: string
     deskripsi: string
-    tips?: any
   }>
   statistik?: {
     total_peserta: number
@@ -132,7 +131,6 @@ export interface SubmitPsikotesResult {
     grade: string
     judul: string
     deskripsi: string
-    tips?: any
     tanggal_selesai: string
   }
 }
@@ -285,7 +283,6 @@ export const psikotesService = {
             grade?: string | null
             judul?: string | null
             deskripsi?: string | null
-            tips?: any
           }
         }
       }>(`/psikotes/booking/${bookingId}/hasil`, {

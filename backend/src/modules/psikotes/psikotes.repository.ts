@@ -192,7 +192,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  tips: i.tips ?? null,
                 })),
               }
             : undefined,
@@ -334,7 +333,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  tips: i.tips ?? null,
                 },
               })
             }
@@ -357,7 +355,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  tips: i.tips ?? null,
                 },
               })
             } else {
@@ -369,7 +366,6 @@ export class PsikotesRepository {
                   grade: i.grade || `Kategori ${iIdx + 1}`,
                   judul: i.judul || `Interpretasi ${iIdx + 1}`,
                   deskripsi: i.deskripsi || '',
-                  tips: i.tips ?? null,
                 },
               })
             }
@@ -636,7 +632,6 @@ export class PsikotesRepository {
           grade: dbMatched?.grade || calculationResult.grade || 'Hasil Tes',
           judul: dbMatched?.judul || calculationResult.kategori || 'Hasil Asesmen',
           deskripsi: dbMatched?.deskripsi || calculationResult.deskripsi || '',
-          tips: (dbMatched as any)?.tips || calculationResult.saran || null,
         }
       } else {
         const interpretasiList = paket.interpretasi_psikotes || []
@@ -1045,7 +1040,6 @@ export class PsikotesRepository {
           grade: matchedInterpretasi.grade,
           judul: matchedInterpretasi.judul,
           deskripsi: matchedInterpretasi.deskripsi,
-          tips: matchedInterpretasi.tips ?? null,
           tanggal_selesai: hasilTes.tanggal_selesai,
         },
       }
@@ -1140,21 +1134,16 @@ export class PsikotesRepository {
       }),
     ])
 
-    // 2. Deduplikasi tampilan per peserta & paket:
-    // Urutan query adalah createdAt: 'desc'. Booking paling baru (pertama ditemui) mewakili status sesi terbaru klien.
-    // Jika klien baru saja membayar, booking terbarunya berstatus 'Berjalan' (hasil_tes masih null).
-    // Booking terbaru ini harus tampil di tabel, dan TIDAK BOLEH ditimpa/dibuang oleh hasil tes lama!
-    const seenClientPaket = new Set<string>()
+    // 2. Tampilkan setiap booking transaksi secara mandiri berdasarkan ID booking unik:
+    // Jika ada 2 orang atau lebih mendaftar dengan nomor telepon yang sama (misal keluarga/anak yang didaftarkan orang tua)
+    // atau 1 orang mendaftar beberapa kali dengan transaksi berbeda, seluruh data tetap tampil sebagai baris mandiri.
+    const seenBookingIds = new Set<string>()
     const filteredItems: typeof items = []
 
     for (const b of items) {
       if (!b.client || b.client.nama === 'Tamu Anonim') continue
-      const clientKey = (b.client.no_telepon || b.id_client).trim()
-      const paketKey = b.paket.judul.trim().toLowerCase()
-      const key = `${clientKey}_${paketKey}`
-
-      if (!seenClientPaket.has(key)) {
-        seenClientPaket.add(key)
+      if (!seenBookingIds.has(b.id)) {
+        seenBookingIds.add(b.id)
         filteredItems.push(b)
       }
     }
@@ -1226,7 +1215,6 @@ export class PsikotesRepository {
                 deskripsi:
                   b.hasil_tes.interpretasi?.deskripsi ||
                   (isNoTotal ? ds?.deskripsi || '—' : '—'),
-                tips: (b.hasil_tes.interpretasi as any)?.tips || [],
                 tanggal_selesai: b.hasil_tes.tanggal_selesai,
                 detail_skor: b.hasil_tes.detail_skor,
               }
@@ -1934,7 +1922,6 @@ export class PsikotesRepository {
         deskripsi:
           booking.hasil_tes.interpretasi?.deskripsi ||
           (detailSkor?.tanpaSkorTotal ? detailSkor?.deskripsi || null : null),
-        tips: (booking.hasil_tes.interpretasi as any)?.tips || null,
       },
     }
   }
