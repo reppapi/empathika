@@ -61,6 +61,8 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         const rawItems = Array.isArray(res.data.items) ? res.data.items : [];
         const mapped: AdminPsikotesPeserta[] = rawItems.map((it: any) => ({
           id: it.id,
+          idPaket: it.id_paket || null,
+          kodeAkses: it.kode_akses || null,
           nama: it.nama_peserta,
           noHp: it.no_hp ? formatToIndonesianPhone(it.no_hp) : it.no_hp,
           paket: it.nama_paket,

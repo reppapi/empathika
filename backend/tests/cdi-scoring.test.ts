@@ -52,7 +52,7 @@ describe("CDI (Children's Depression Inventory) Scoring & Psychometrics", () => 
     }
   });
 
-  it("skor minimum adalah 0 (Depresi Normal / Wajar)", () => {
+  it("skor minimum adalah 0 (Gejala Depresi Tidak Menonjol)", () => {
     const zeroAnswers: Record<number, number> = {};
     for (let i = 1; i <= 27; i++) zeroAnswers[i] = 0;
 
@@ -60,8 +60,8 @@ describe("CDI (Children's Depression Inventory) Scoring & Psychometrics", () => 
     expect(res.totalSkor).toBe(0);
     expect(res.maxSkor).toBe(54);
     expect(res.isKlinisSignifikan).toBe(false);
-    expect(res.grade).toBe("Depresi Normal / Wajar");
-    expect(res.kategori).toBe("Tingkat Depresi Berada dalam Batas Wajar");
+    expect(res.grade).toBe("Gejala Depresi Tidak Menonjol");
+    expect(res.kategori).toBe("Gejala Depresi Tidak Menonjol");
     expect(res.ideMelukaiDiri).toBe(false);
 
     expect(res.subscales.negativeMood.skor).toBe(0);
@@ -71,7 +71,7 @@ describe("CDI (Children's Depression Inventory) Scoring & Psychometrics", () => 
     expect(res.subscales.negativeSelfEsteem.skor).toBe(0);
   });
 
-  it("skor maksimum adalah 54 (Depresi Bermakna Klinis & Ide Melukai Diri Aktif)", () => {
+  it("skor maksimum adalah 54 (Gejala Depresi Perlu Mendapat Perhatian & Ide Melukai Diri Aktif)", () => {
     const maxAnswers: Record<number, number> = {};
     for (let i = 1; i <= 27; i++) maxAnswers[i] = 2;
 
@@ -79,8 +79,8 @@ describe("CDI (Children's Depression Inventory) Scoring & Psychometrics", () => 
     expect(res.totalSkor).toBe(54);
     expect(res.maxSkor).toBe(54);
     expect(res.isKlinisSignifikan).toBe(true);
-    expect(res.grade).toBe("Depresi Bermakna Klinis");
-    expect(res.kategori).toBe("Kecenderungan Depresi Bermakna Secara Klinis (Perlu Perhatian)");
+    expect(res.grade).toBe("Gejala Depresi Perlu Mendapat Perhatian");
+    expect(res.kategori).toBe("Gejala Depresi Perlu Mendapat Perhatian");
     expect(res.ideMelukaiDiri).toBe(true);
 
     expect(res.subscales.negativeMood.skor).toBe(12);
@@ -104,14 +104,14 @@ describe("CDI (Children's Depression Inventory) Scoring & Psychometrics", () => 
     const res18 = calculateCDI(answers18);
     expect(res18.totalSkor).toBe(18);
     expect(res18.isKlinisSignifikan).toBe(false);
-    expect(res18.grade).toBe("Depresi Normal / Wajar");
+    expect(res18.grade).toBe("Gejala Depresi Tidak Menonjol");
 
     // Skor 19 (Mencapai batas cut-off klinis)
     const answers19 = { ...answers18, 11: 1 };
     const res19 = calculateCDI(answers19);
     expect(res19.totalSkor).toBe(19);
     expect(res19.isKlinisSignifikan).toBe(true);
-    expect(res19.grade).toBe("Depresi Bermakna Klinis");
+    expect(res19.grade).toBe("Gejala Depresi Perlu Mendapat Perhatian");
   });
 
   it("memverifikasi deteksi ide bunuh diri / menyakiti diri pada Butir 9", () => {

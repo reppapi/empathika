@@ -262,8 +262,8 @@ describe("AUDIT MENYELURUH IMPLEMENTASI CDI (CHILDREN'S DEPRESSION INVENTORY)", 
         const res = calculateCDI(ans);
         expect(res.totalSkor).toBe(s);
         expect(res.isKlinisSignifikan).toBe(false);
-        expect(res.grade).toBe("Depresi Normal / Wajar");
-        expect(res.kategori).toBe("Tingkat Depresi Berada dalam Batas Wajar");
+        expect(res.grade).toBe("Gejala Depresi Tidak Menonjol");
+        expect(res.kategori).toBe("Gejala Depresi Tidak Menonjol");
       }
     });
 
@@ -281,8 +281,8 @@ describe("AUDIT MENYELURUH IMPLEMENTASI CDI (CHILDREN'S DEPRESSION INVENTORY)", 
         const res = calculateCDI(ans);
         expect(res.totalSkor).toBe(s);
         expect(res.isKlinisSignifikan).toBe(true);
-        expect(res.grade).toBe("Depresi Bermakna Klinis");
-        expect(res.kategori).toContain("Kecenderungan Depresi Bermakna Secara Klinis");
+        expect(res.grade).toBe("Gejala Depresi Perlu Mendapat Perhatian");
+        expect(res.kategori).toBe("Gejala Depresi Perlu Mendapat Perhatian");
         // Pastikan tidak ada klaim vonis medis diagnosis langsung
         expect(res.kategori).not.toMatch(/^Diagnosis:/i);
         expect(res.grade).not.toMatch(/^Diagnosis:/i);
@@ -290,13 +290,14 @@ describe("AUDIT MENYELURUH IMPLEMENTASI CDI (CHILDREN'S DEPRESSION INVENTORY)", 
     });
 
     it("4.3 Teks interpretasi pada seeder database tidak boleh memvonis diagnosis medis", () => {
-      // Tier 1 (Normal 0-18): Menyatakan tidak ada sindrom depresi bermakna dan fluktuasi emosi adalah wajar
-      expect(CDI_INTERPRETASI[0].deskripsi).toContain("tidak mengindikasikan adanya sindrom depresi yang bermakna secara klinis");
+      // Tier 1 (Normal 0-18): Menyatakan gejala depresi belum tampak menonjol
+      expect(CDI_INTERPRETASI[0].deskripsi).toContain("gejala depresi yang kamu alami belum tampak menonjol");
       expect(CDI_INTERPRETASI[0].deskripsi).not.toMatch(/diagnosis:/i);
 
-      // Tier 2 (Klinis 19-54): Menyatakan skrining awal dan bukan diagnosis medis mutlak
-      expect(CDI_INTERPRETASI[1].deskripsi).toMatch(/bukan diagnosis medis mutlak|bukan sebagai diagnosis/i);
+      // Tier 2 (Klinis 19-54): Menyarankan bercerita dan konsultasi bersama psikolog
+      expect(CDI_INTERPRETASI[1].deskripsi).toContain("gejala depresi yang perlu mendapat perhatian lebih lanjut");
       expect(CDI_INTERPRETASI[1].deskripsi).toContain("psikolog");
+      expect(CDI_INTERPRETASI[1].deskripsi).not.toMatch(/diagnosis:/i);
     });
   });
 
