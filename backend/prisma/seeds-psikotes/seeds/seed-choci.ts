@@ -397,12 +397,6 @@ export const CHOCI_INTERPRETASI = [
     judul: 'Profil Skor Gejala & Keparahan OCD (CHOCI-R)',
     deskripsi:
       'CHOCI-R menyajikan profil skor terpisah antara keberadaan gejala (Total Symptoms Score rentang 0–40) dan tingkat keparahan/distres fungsional (Total Impairment Score rentang 0–48) tanpa pengelompokan kategori artifisial.',
-    tips: [
-      'Total Symptoms Score: Semakin tinggi skor, semakin besar kompleksitas dan luasnya gejala OCD yang dialami anak/remaja.',
-      'Total Impairment Score: Semakin tinggi skor, semakin tinggi tingkat keparahan atau distres yang berkaitan dengan gejala OCD.',
-      'Persentil 50: Disebut sebagai skor rata-rata untuk anak/remaja dengan OCD, yang menunjukkan gejala khas dan signifikan secara klinis.',
-      'Tinjau dan diskusikan profil skor ini secara komprehensif bersama psikolog anak dan remaja.',
-    ],
   },
 ]
 

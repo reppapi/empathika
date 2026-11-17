@@ -63,19 +63,19 @@ describe("Audit Kelayakan & Integritas Alat Ukur CATS (Child and Adolescent Trau
     expect(CATS_INTERPRETASI[0].min_skor).toBe(0);
     expect(CATS_INTERPRETASI[0].max_skor).toBe(14);
     expect(CATS_INTERPRETASI[0].grade).toBe("Normal, tidak meningkat secara klinis");
-    expect(CATS_INTERPRETASI[0].tips.length).toBeGreaterThanOrEqual(3);
+    expect(CATS_INTERPRETASI[0].deskripsi.length).toBeGreaterThan(50);
 
     // Tier 2: Distres Menengah (15–20)
     expect(CATS_INTERPRETASI[1].min_skor).toBe(15);
     expect(CATS_INTERPRETASI[1].max_skor).toBe(20);
     expect(CATS_INTERPRETASI[1].grade).toBe("Distres level menengah terkait trauma");
-    expect(CATS_INTERPRETASI[1].tips.length).toBeGreaterThanOrEqual(3);
+    expect(CATS_INTERPRETASI[1].deskripsi.length).toBeGreaterThan(50);
 
     // Tier 3: Kemungkinan PTSD (21–60)
     expect(CATS_INTERPRETASI[2].min_skor).toBe(21);
     expect(CATS_INTERPRETASI[2].max_skor).toBe(60);
     expect(CATS_INTERPRETASI[2].grade).toBe("Kemungkinan PTSD");
-    expect(CATS_INTERPRETASI[2].tips.length).toBeGreaterThanOrEqual(3);
+    expect(CATS_INTERPRETASI[2].deskripsi.length).toBeGreaterThan(50);
   });
 
   it("E. Verifikasi Skenario Klinis Mandiri", () => {
