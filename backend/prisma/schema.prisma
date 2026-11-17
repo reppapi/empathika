@@ -516,7 +516,6 @@ model InterpretasiPsikotes {
   grade     String
   judul     String
   deskripsi String  @db.Text
-  tips      Json?
 
   paket     PaketPsikotes @relation(fields: [id_paket], references: [id], onDelete: Cascade)
   hasil_tes HasilTes[]

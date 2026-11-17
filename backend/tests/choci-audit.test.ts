@@ -80,11 +80,8 @@ describe("Audit Kelayakan & Integritas Alat Ukur CHOCI-R", () => {
   it("D. Verifikasi Interpretasi Master Sesuai Handout (Tanpa Cut-off Buatan)", () => {
     expect(CHOCI_INTERPRETASI).toHaveLength(1);
     expect(CHOCI_INTERPRETASI[0].grade).toBe("Profil Gejala & Keparahan CHOCI-R");
-    expect(CHOCI_INTERPRETASI[0].tips.length).toBeGreaterThanOrEqual(3);
-
-    // Catatan persentil 50
-    const hasP50 = CHOCI_INTERPRETASI[0].tips.some((t) => t.includes("Persentil 50"));
-    expect(hasP50).toBe(true);
+    expect(CHOCI_INTERPRETASI[0].deskripsi).toContain("Total Symptoms Score");
+    expect(CHOCI_INTERPRETASI[0].deskripsi).toContain("Total Impairment Score");
   });
 });
 

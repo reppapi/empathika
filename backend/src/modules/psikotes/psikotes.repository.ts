@@ -47,8 +47,8 @@ export class PsikotesRepository {
     } else if (params?.status) {
       where.status = params.status
     } else {
-      // Default: Hanya paket PUBLISHED yang tampil ke publik
-      where.status = 'PUBLISHED'
+      // Default: Hanya paket PUBLISHED atau AKTIF yang tampil ke publik
+      where.status = { in: ['PUBLISHED', 'published', 'AKTIF', 'aktif'] }
     }
 
     const rawList = await this.prisma.paketPsikotes.findMany({
