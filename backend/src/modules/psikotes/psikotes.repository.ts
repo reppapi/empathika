@@ -905,10 +905,9 @@ export class PsikotesRepository {
         namaOrangTua = pesertaSource.nama_orang_tua || null
         noTeleponOrangTua =
           pesertaSource.no_telepon_orang_tua ||
-          pesertaSource.whatsapp ||
-          pesertaSource.no_telepon ||
+          pesertaSource.noTeleponOrangTua ||
           null
-        noHpPeserta = pesertaSource.no_telepon || null
+        noHpPeserta = pesertaSource.no_telepon || pesertaSource.noTelepon || null
         pekerjaan = null
         statusPernikahan = null
       } else {
@@ -1158,6 +1157,7 @@ export class PsikotesRepository {
       items: filteredItems.map((b) => ({
         id: b.id,
         id_paket: b.id_paket,
+        kode_akses: b.kode_akses || b.transaksi?.kode_transaksi || null,
         nama_paket: b.paket.judul,
         jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
         harga: b.paket.harga,
@@ -1496,10 +1496,9 @@ export class PsikotesRepository {
         namaOrangTua = pesertaSource.nama_orang_tua || null
         noTeleponOrangTua =
           pesertaSource.no_telepon_orang_tua ||
-          pesertaSource.whatsapp ||
-          pesertaSource.no_telepon ||
+          pesertaSource.noTeleponOrangTua ||
           null
-        noHpPeserta = pesertaSource.no_telepon || null
+        noHpPeserta = pesertaSource.no_telepon || pesertaSource.noTelepon || null
         pekerjaan = null
         statusPernikahan = null
       } else {

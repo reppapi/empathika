@@ -55,6 +55,8 @@ export type JudulPsikotesItem = {
 
 export type AdminPsikotesPeserta = {
   id: string | number;
+  idPaket?: string | null;
+  kodeAkses?: string | null;
   nama: string;
   noHp: string;
   paket: string;

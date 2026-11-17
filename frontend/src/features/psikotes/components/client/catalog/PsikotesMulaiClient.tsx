@@ -831,9 +831,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         peserta: isPaidFlow
           ? {
               nama_lengkap: identityData.nama.trim() || pesertaNama || "Peserta Psikotes",
-              no_telepon: isUnderAge
-                ? (identityData.noTelepon?.trim() || identityData.noTeleponOrangTua?.trim() || undefined)
-                : (identityData.noTelepon?.trim() || undefined),
+              no_telepon: identityData.noTelepon?.trim() || undefined,
               nama_orang_tua: isUnderAge ? (identityData.namaOrangTua?.trim() || undefined) : undefined,
               no_telepon_orang_tua: isUnderAge ? (identityData.noTeleponOrangTua?.trim() || undefined) : undefined,
               tempat_lahir: identityData.tempatLahir.trim() || undefined,
@@ -967,9 +965,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             } catch {}
           }
           const finalNama = identityData.nama.trim() || pesertaNama;
-          const finalWa = isUnderAge
-            ? (identityData.noTelepon?.trim() || identityData.noTeleponOrangTua?.trim() || pesertaWa)
-            : (identityData.noTelepon?.trim() || pesertaWa);
+          const finalWa = identityData.noTelepon?.trim() || "";
           if (finalNama) query.set("nama", finalNama);
           if (finalWa) query.set("whatsapp", finalWa);
           if (calculatedKategori) query.set("kategori", calculatedKategori);
