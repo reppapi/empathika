@@ -909,29 +909,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           if (dsm.isIndikasiEvaluasi) query.set("dsmAlert", "1");
         }
 
-        // Protokol Krisis / Melukai Diri untuk instrumen PHQ-9 dan CDI (Butir 9).
-        // Instrumen DASS-42, GAD-7, dan RCMAS tidak memiliki butir skrining melukai diri.
-        const isPHQ9 =
-          dbData?.alat_ukur?.kode?.toUpperCase().includes("PHQ") ||
-          dbData?.judul?.toUpperCase().includes("PHQ") ||
-          params.testId.toLowerCase().includes("phq");
-
-        const isCDI =
-          dbData?.alat_ukur?.kode?.toUpperCase().includes("CDI") ||
-          dbData?.judul?.toUpperCase().includes("CDI") ||
-          params.testId.toLowerCase().includes("cdi");
-
-        const hasHarm =
-          (isPHQ9 || isCDI) &&
-          Boolean(
-            res.data.detail_skor?.ideMelukaiDiri ||
-            (answers[8] !== undefined && Number(questions[8]?.weights[answers[8]]) > 0)
-          );
-
-        if (hasHarm) {
-          query.set("harm", "1");
-        }
-
         // Simpan jawaban pertanyaan tambahan (Functional Impairment) ke query param & localStorage
         if (functionalAnswer !== null) {
           query.set("impairment", String(functionalAnswer));

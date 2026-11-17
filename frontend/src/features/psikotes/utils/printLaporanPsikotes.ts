@@ -279,7 +279,7 @@ export async function printLaporanPsikotes(
     noDokumen,
     judulTes: peserta.paket || "Laporan Hasil Psikotes",
     tanggalAsesmen: peserta.tanggal || "-",
-    masaBerlaku: "Masa Berlaku: Tanpa Batas Waktu",
+    masaBerlaku: "Masa Berlaku: 6 Bulan",
     peserta: {
       nama: pProfile?.nama_lengkap || peserta.nama || "Peserta Asesmen Empathika",
       noHp: peserta.noHp || pProfile?.no_telepon_orang_tua || null,

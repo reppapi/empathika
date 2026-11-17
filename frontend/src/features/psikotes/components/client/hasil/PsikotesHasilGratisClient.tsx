@@ -1,4 +1,4 @@
-/** Halaman hasil skrining psikotes gratis (ringkasan kategori, evaluasi DASS, saran, dan hotline krisis). */
+/** Halaman hasil skrining psikotes gratis (ringkasan kategori, evaluasi DASS, dan saran tindak lanjut). */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,13 +18,11 @@ import {
   isCDI as checkCDI,
   isDASS as checkDASS,
   isPBQ as checkPBQ,
-  isPHQ as checkPHQ,
   isRCMAS as checkRCMAS,
   isCHOCI as checkCHOCI,
 } from "@/features/psikotes/utils/instrumentDetector";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 import InterpretasiCard from "./InterpretasiCard";
-import CrisisHotlineCard from "./CrisisHotlineCard";
 
 function SelfCareIllustration() {
   return (
@@ -191,17 +189,12 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const rawSkor = searchParams.get("skor");
   const totalSkor = rawSkor !== null && rawSkor !== "" ? parseInt(rawSkor, 10) : null;
 
-  // Protokol darurat / Crisis Hotline untuk PHQ-9 & CDI (Butir 9 ide bunuh diri)
-  const isPHQ9 = checkPHQ(dbPackage, params.testId);
   const isCDI = checkCDI(dbPackage, params.testId);
   const isCATS = checkCATS(dbPackage, params.testId);
   const isRCMAS = checkRCMAS(dbPackage, params.testId);
   const isPBQ = checkPBQ(dbPackage, params.testId);
   const isCHOCI = checkCHOCI(dbPackage, params.testId);
   const isDASS = checkDASS(dbPackage, params.testId);
-
-  const isHarmDetected =
-    (isPHQ9 || isCDI) && (Boolean(bookingDetailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
 
   // Dimensi DASS-42 (Depresi, Kecemasan, Stres)
   const rawDep = searchParams.get("dep");
@@ -723,9 +716,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
             )}
           </div>
         )}
-
-        {/* 2b. Safety & Crisis Hotline Card (PHQ-9 Suicidal/Self-Harm Ideation Protocol - Satu Persen Card Style) */}
-        {isHarmDetected && <CrisisHotlineCard />}
 
         {/* 3. Konsultasi Purple Card (Clean, without calendar icon & without "privat aman") */}
         <div className="pt-2">

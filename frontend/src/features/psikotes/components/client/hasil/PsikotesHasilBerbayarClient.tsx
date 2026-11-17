@@ -24,7 +24,6 @@ import {
   isCATS as checkCATS,
   isCDI as checkCDI,
   isDASS as checkDASS,
-  isPHQ as checkPHQ,
   isRCMAS as checkRCMAS,
 } from "@/features/psikotes/utils/instrumentDetector";
 import {
@@ -33,7 +32,6 @@ import {
   type LaporanPsikotesPdfData,
 } from "@/features/psikotes/utils/downloadLaporanPsikotesPdf";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
-import CrisisHotlineCard from "./CrisisHotlineCard";
 
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
@@ -319,12 +317,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       : null;
 
   const isRCMAS = checkRCMAS(dbPackage, params.testId);
-  const isPHQ9 = checkPHQ(dbPackage, params.testId);
   const isCDI = checkCDI(dbPackage, params.testId);
   const isCATS = checkCATS(dbPackage, params.testId);
-
-  const isHarmDetected =
-    (isPHQ9 || isCDI) && (Boolean(bookingReport?.detailSkor?.ideMelukaiDiri) || searchParams.get("harm") === "1");
 
   const rcmasSubscales = isRCMAS
     ? (() => {
@@ -643,7 +637,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         noDokumen,
         judulTes: displayTestName,
         tanggalAsesmen: peserta.tanggal,
-        masaBerlaku: "Masa Berlaku: Tanpa Batas Waktu",
+        masaBerlaku: "Masa Berlaku: 6 Bulan",
         peserta: {
           nama: peserta.nama || "Peserta Asesmen Empathika",
           noHp: peserta.noHp || peserta.noTeleponOrangTua || null,
@@ -770,7 +764,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     );
   }
 
-  // Layar Error / Masa Berlaku Berakhir (14 Hari)
+  // Layar Error / Masa Berlaku Berakhir (6 Bulan)
   if (errorMessage) {
     const isExpired = errorMessage.toLowerCase().includes("berakhir") || errorMessage.toLowerCase().includes("kedaluwarsa");
 
@@ -964,9 +958,9 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 </div>
               </div>
               <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-200" title="Sesuai standar validitas klinis asesmen psikologi, laporan ini berlaku 6 bulan sejak tanggal tes">
                   <Calendar className="w-3.5 h-3.5" />
-                  Masa Berlaku: Tanpa Batas Waktu
+                  Masa Berlaku: 6 Bulan
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -1307,9 +1301,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   </div>
                 </section>
               )}
-
-              {/* Safety & Crisis Hotline Card untuk PHQ-9 Butir 9 */}
-              {isHarmDetected && <CrisisHotlineCard />}
 
               {/* Interpretasi Hasil & Implikasi Strategis */}
               <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
