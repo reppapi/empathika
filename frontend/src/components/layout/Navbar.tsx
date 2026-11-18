@@ -4,14 +4,50 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTenantContext } from "@/context/TenantContext"
+import { adminService } from "@/services/admin.service"
 
 export function Navbar() {
   const pathname = usePathname()
-  const { isBiro, biroProfile, withBiro } = useTenantContext()
+  const { isBiro, slug, biroProfile, withBiro } = useTenantContext()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [adminFoto, setAdminFoto] = useState<string | null>(null)
 
-  const themeColor = isBiro && biroProfile?.warna_tema ? biroProfile.warna_tema : "#561269"
+  useEffect(() => {
+    if (isBiro) return
+    const loadEmpathikaLogo = () => {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed.foto !== undefined) setAdminFoto(parsed.foto)
+        }
+      } catch {}
+
+      adminService
+        .getPublicProfile()
+        .then((res) => {
+          if (res?.data?.foto !== undefined) {
+            setAdminFoto(res.data.foto)
+          }
+        })
+        .catch(() => {})
+    }
+
+    loadEmpathikaLogo()
+    window.addEventListener("storage", loadEmpathikaLogo)
+    window.addEventListener("focus", loadEmpathikaLogo)
+    window.addEventListener("empathika_admin_profile_updated", loadEmpathikaLogo)
+    return () => {
+      window.removeEventListener("storage", loadEmpathikaLogo)
+      window.removeEventListener("focus", loadEmpathikaLogo)
+      window.removeEventListener("empathika_admin_profile_updated", loadEmpathikaLogo)
+    }
+  }, [isBiro])
+
+  const themeColor = isBiro
+    ? (biroProfile?.warna_tema || "var(--biro-theme-color, #561269)")
+    : "#561269"
 
   const navLinks = [
     { name: "home", path: withBiro("/") },
@@ -72,20 +108,23 @@ export function Navbar() {
               aria-label="Home"
             >
               <div 
+                suppressHydrationWarning
                 className="h-14 w-14 shrink-0 rounded-full flex items-center justify-center text-white font-extrabold text-xl overflow-hidden shadow-sm"
                 style={{ backgroundColor: themeColor }}
               >
-                {biroProfile?.logoURI ? (
+                {isBiro && biroProfile?.logoURI ? (
                   <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
+                ) : !isBiro && adminFoto ? (
+                  <img src={adminFoto} alt="Empathika" className="w-full h-full object-cover" />
                 ) : (
-                  (biroProfile?.nama_biro?.[0] || "E").toUpperCase()
+                  (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()
                 )}
               </div>
               <span 
                 className="text-[22px] font-extrabold tracking-widest uppercase max-w-[280px] truncate"
                 style={{ color: themeColor }}
               >
-                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "EMPATHIKA"}
+                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : (isBiro && slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "EMPATHIKA")}
               </span>
             </Link>
 
@@ -173,15 +212,20 @@ export function Navbar() {
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center gap-4"
             >
-              <div className="h-12 w-12 shrink-0 rounded-full bg-white/20 flex items-center justify-center text-white font-extrabold text-lg overflow-hidden">
-                {biroProfile?.logoURI ? (
+              <div 
+                suppressHydrationWarning
+                className="h-12 w-12 shrink-0 rounded-full bg-white/20 flex items-center justify-center text-white font-extrabold text-lg overflow-hidden"
+              >
+                {isBiro && biroProfile?.logoURI ? (
                   <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
+                ) : !isBiro && adminFoto ? (
+                  <img src={adminFoto} alt="Empathika" className="w-full h-full object-cover" />
                 ) : (
-                  (biroProfile?.nama_biro?.[0] || "E").toUpperCase()
+                  (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()
                 )}
               </div>
               <span className="text-[22px] font-extrabold tracking-widest text-white uppercase truncate">
-                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "EMPATHIKA"}
+                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : (isBiro && slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "EMPATHIKA")}
               </span>
             </Link>
             <div className="mt-6 h-[1.5px] w-full bg-white/40"></div>

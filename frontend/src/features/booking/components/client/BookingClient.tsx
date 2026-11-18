@@ -68,14 +68,18 @@ export default function BookingClient() {
       .then((res: any) => {
         const allConsultation = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
 
+        const isMatch = (itemNama: string) => {
+          if (!initialLayanan) return false
+          const lName = (itemNama || "").toLowerCase().trim()
+          const initName = initialLayanan.toLowerCase().trim()
+          if (lName === initName || lName.includes(initName) || initName.includes(lName)) return true
+          const lClean = lName.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+          const initClean = initName.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+          return Boolean(lClean && initClean && (lClean === initClean || lClean.includes(initClean) || initClean.includes(lClean)))
+        }
+
         // Deteksi apakah ada item spesifik yang cocok dengan initialLayanan
-        const targetByName = initialLayanan
-          ? allConsultation.find(
-              (l: any) =>
-                (l.nama || "").toLowerCase().includes(initialLayanan.toLowerCase()) ||
-                initialLayanan.toLowerCase().includes((l.nama || "").toLowerCase())
-            )
-          : null
+        const targetByName = initialLayanan ? allConsultation.find((l: any) => isMatch(l.nama)) : null
 
         const isTargetExplicitlyNonaktif =
           targetByName && (targetByName.aktif === false || targetByName.status === "Nonaktif")
@@ -98,6 +102,9 @@ export default function BookingClient() {
           const targetLayanan = targetByName || activeList[0] || allConsultation[0]
           if (targetLayanan) {
             setNamaLayananTerpilih(targetLayanan.nama)
+            if (typeof window !== "undefined") {
+              localStorage.setItem("empathika_last_selected_layanan", targetLayanan.nama)
+            }
             const t = targetLayanan.tarif_tenaga_ahli
             const items: typeof DAFTAR_HARGA = []
 
@@ -159,17 +166,24 @@ export default function BookingClient() {
       .catch((err) => {
         console.error("Gagal mengambil tarif layanan konsultasi:", err)
         const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
-        const localTarget = initialLayanan
-          ? stored.find(
-              (l) =>
-                l.layanan.toLowerCase().includes(initialLayanan.toLowerCase()) ||
-                initialLayanan.toLowerCase().includes(l.layanan.toLowerCase())
-            )
-          : null
+        const isMatchLocal = (itemNama: string) => {
+          if (!initialLayanan) return false
+          const lName = (itemNama || "").toLowerCase().trim()
+          const initName = initialLayanan.toLowerCase().trim()
+          if (lName === initName || lName.includes(initName) || initName.includes(lName)) return true
+          const lClean = lName.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+          const initClean = initName.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+          return Boolean(lClean && initClean && (lClean === initClean || lClean.includes(initClean) || initClean.includes(lClean)))
+        }
+
+        const localTarget = initialLayanan ? stored.find((l) => isMatchLocal(l.layanan)) : null
         if (localTarget && localTarget.status === "Nonaktif") {
           setIsLayananNonaktif(true)
           setNamaLayananTerpilih(localTarget.layanan)
         } else if (localTarget) {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("empathika_last_selected_layanan", localTarget.layanan)
+          }
           const t = localTarget.tarif_tenaga_ahli
           const items: typeof DAFTAR_HARGA = []
           if (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) {

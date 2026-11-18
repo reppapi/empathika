@@ -175,7 +175,15 @@ export default function LayananClient() {
         </Link>
 
         <div className="p-5 sm:p-6 flex flex-col flex-1">
-          <Link href={destinationHref as any} className="block group-hover:text-[#561269] transition-colors">
+          <Link
+            href={destinationHref as any}
+            onClick={() => {
+              if (typeof window !== "undefined" && service.bottomTitle) {
+                localStorage.setItem("empathika_last_selected_layanan", service.bottomTitle)
+              }
+            }}
+            className="block group-hover:text-[#561269] transition-colors"
+          >
             <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 leading-tight line-clamp-2">{service.bottomTitle}</h3>
           </Link>
           <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6 line-clamp-2">{service.bottomDescription}</p>
@@ -183,6 +191,11 @@ export default function LayananClient() {
           <div className="mt-auto pt-2">
             <Link
               href={destinationHref as any}
+              onClick={() => {
+                if (typeof window !== "undefined" && service.bottomTitle) {
+                  localStorage.setItem("empathika_last_selected_layanan", service.bottomTitle)
+                }
+              }}
               className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
             >
               {service.btnText}
@@ -217,10 +230,13 @@ export default function LayananClient() {
                   {cat.id}
                 </span>
                 <span
+                  style={{
+                    color: isActive ? "var(--biro-theme-color, #561269)" : undefined,
+                  }}
                   className={`transition-all duration-300 ease-out leading-tight mt-1 ${
                     isActive
-                      ? "text-[30px] lg:text-[32px] font-bold text-[#561269]"
-                      : "text-[24px] lg:text-[26px] font-semibold text-[#B385C0] group-hover:text-[#763E8B]"
+                      ? "text-[30px] lg:text-[32px] font-bold"
+                      : "text-[24px] lg:text-[26px] font-semibold category-tab-inactive"
                   }`}
                 >
                   {cat.title}

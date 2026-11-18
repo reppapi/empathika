@@ -88,6 +88,25 @@ export function recordCancelledSession(record: {
 }
 
 /**
+ * Menghapus sesi dari daftar pembatalan ketika slot dibuka kembali oleh tenaga ahli/admin.
+ */
+export function removeCancelledSession(filter: { id?: string; date?: string; waktu?: string }): void {
+  if (typeof window === "undefined") return
+  try {
+    const current = getCancelledSessions()
+    const updated = current.filter((r) => {
+      if (filter.id && r.id && filter.id === r.id) return false
+      if (filter.date && filter.waktu && r.date === filter.date && r.waktu === filter.waktu) return false
+      return true
+    })
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    window.dispatchEvent(new Event("storage"))
+  } catch (err) {
+    console.warn("Gagal menghapus sesi dari daftar pembatalan:", err)
+  }
+}
+
+/**
  * Mengecek apakah suatu sesi termasuk dalam daftar sesi yang telah dibatalkan admin.
  */
 export function isSessionCancelled(

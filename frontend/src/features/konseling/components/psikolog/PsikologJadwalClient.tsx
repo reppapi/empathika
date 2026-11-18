@@ -15,6 +15,7 @@ import {
   getRescheduledSessions,
   isSessionRescheduled,
   canRescheduleSession,
+  removeCancelledSession,
 } from "@/features/konseling/utils/cancellationSync"
 import ModalDetailSesiKlien from "@/features/konseling/components/admin/ModalDetailSesiKlien"
 import ModalRescheduleSesi from "@/features/konseling/components/admin/ModalRescheduleSesi"
@@ -243,7 +244,54 @@ export default function PsikologJadwalClient() {
 
   const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan Konsultasi")
   const [layananOptions, setLayananOptions] = useState<string[]>(DEFAULT_LAYANAN_KONSULTASI)
+  const [serviceItems, setServiceItems] = useState<any[]>([])
   const [selectedMetode, setSelectedMetode] = useState<MetodeKonsultasi>("Online")
+
+  // Menentukan metode konsultasi yang diperbolehkan berdasarkan pengaturan layanan di Admin
+  const allowedMetode = useMemo(() => {
+    let targetServices = serviceItems
+    if (selectedLayanan && selectedLayanan !== "Semua Layanan Konsultasi") {
+      const found = serviceItems.filter(
+        (s) => (s.nama || s.layanan || "").trim().toLowerCase() === selectedLayanan.trim().toLowerCase()
+      )
+      if (found.length > 0) {
+        targetServices = found
+      }
+    }
+
+    if (targetServices.length === 0) {
+      return { online: true, offline: true, both: true }
+    }
+
+    let hasOnline = false
+    let hasOffline = false
+
+    targetServices.forEach((s) => {
+      const m = (s.metode || "Online/Offline").toLowerCase()
+      if (m.includes("online") || m.includes("keduanya") || m === "semua") {
+        hasOnline = true
+      }
+      if (m.includes("offline") || m.includes("keduanya") || m === "semua") {
+        hasOffline = true
+      }
+    })
+
+    return {
+      online: hasOnline,
+      offline: hasOffline,
+      both: hasOnline && hasOffline,
+    }
+  }, [selectedLayanan, serviceItems])
+
+  // Sinkronkan metode otomatis jika metode aktif tidak didukung oleh layanan yang dipilih
+  useEffect(() => {
+    if (allowedMetode.both) return
+    if (allowedMetode.online && !allowedMetode.offline) {
+      if (selectedMetode !== "Online") setSelectedMetode("Online")
+    } else if (!allowedMetode.online && allowedMetode.offline) {
+      if (selectedMetode !== "Offline") setSelectedMetode("Offline")
+    }
+  }, [allowedMetode, selectedMetode])
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])
   const [date, setDate] = useState<Date | undefined>(() => {
     const d = new Date()
@@ -641,7 +689,12 @@ export default function PsikologJadwalClient() {
           if ((s.tipe_jadwal || "").toUpperCase() === "ASESMEN") return
 
           const mapKey = `${s.date}_${s.waktu}`
-          const isAvailable = s.status === "TERSEDIA"
+          const isCancelled =
+            Boolean(s.is_cancelled) ||
+            s.booking?.is_cancelled ||
+            s.booking?.status_booking === "CANCELLED" ||
+            s.status === "Dibatalkan"
+          const isAvailable = s.status === "TERSEDIA" || isCancelled
           const clientPhone = s.booking?.no_telepon_klien || s.booking?.kontak || undefined
           sessionMap.set(mapKey, {
             id: s.id,
@@ -651,13 +704,15 @@ export default function PsikologJadwalClient() {
             metode: (s.booking?.metode
               ? (s.booking.metode === "OFFLINE" ? "Offline" : "Online")
               : (s.metode === "OFFLINE" ? "Offline" : s.metode === "KEDUANYA" ? "Keduanya" : "Online")) as MetodeKonsultasi,
-            namaKlien: s.booking?.nama_klien || "Tersedia",
+            namaKlien: isAvailable ? "Tersedia" : (s.booking?.nama_klien || "Tersedia"),
             kontak: clientPhone,
             klienId: s.booking?.klien_id || undefined,
             catatan: s.booking?.deskripsi_trauma,
             id_psikolog: res.psikolog?.id || resolvedPsikologId,
             namaPsikolog: res.psikolog?.nama_gelar || resolvedPsikologName,
             isAvailableSlot: isAvailable,
+            isCancelled,
+            status: isCancelled ? "Dibatalkan" : (isAvailable ? "TERSEDIA" : "Aktif"),
           })
         })
       }
@@ -681,20 +736,22 @@ export default function PsikologJadwalClient() {
               if (isMatch && t.tanggal && t.waktuRange) {
                 const mapKey = `${t.tanggal}_${t.waktuRange}`
                 if (!sessionMap.has(mapKey)) {
+                  const isCancelled = t.status === "Dibatalkan" || t.status === "Dibatalkan (Refund)" || Boolean(t.isCancelled)
                   sessionMap.set(mapKey, {
                     id: t.id,
                     date: t.tanggal,
                     waktu: t.waktuRange,
                     layanan: t.layanan || "Konsultasi Psikologi",
                     metode: t.tipe?.includes("Offline") ? "Offline" : "Online",
-                    namaKlien: t.namaKlien || "",
+                    namaKlien: isCancelled ? "Tersedia" : (t.namaKlien || ""),
                     kontak: t.kontak || "",
                     klienId: t.klienId || "",
                     catatan: t.catatan,
                     id_psikolog: t.idPsikolog || resolvedPsikologId,
                     namaPsikolog: t.psikolog || resolvedPsikologName,
-                    isAvailableSlot: false,
-                    status: t.status,
+                    isAvailableSlot: isCancelled,
+                    isCancelled,
+                    status: isCancelled ? "Dibatalkan" : t.status,
                   })
                 }
               }
@@ -716,7 +773,11 @@ export default function PsikologJadwalClient() {
               if (isMatch && w.date && w.timeSlot) {
                 const mapKey = `${w.date}_${w.timeSlot}`
                 if (!sessionMap.has(mapKey)) {
-                  const isAvailable = w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")
+                  const isBookingCancelled =
+                    w.status === "Dibatalkan" ||
+                    Boolean(w.isCancelled) ||
+                    (w as any).booking_status === "CANCELLED"
+                  const isAvailable = (w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")) || isBookingCancelled
                   const clientPhone = w.kontak || w.no_telepon || undefined
                   sessionMap.set(mapKey, {
                     id: w.id,
@@ -731,7 +792,8 @@ export default function PsikologJadwalClient() {
                     id_psikolog: resolvedPsikologId,
                     namaPsikolog: w.psikologName || resolvedPsikologName,
                     isAvailableSlot: isAvailable,
-                    status: isAvailable ? "TERSEDIA" : "Aktif",
+                    isCancelled: isBookingCancelled,
+                    status: isBookingCancelled ? "Dibatalkan" : (isAvailable ? "TERSEDIA" : "Aktif"),
                   })
                 }
               }
@@ -868,28 +930,31 @@ export default function PsikologJadwalClient() {
       .then((res: any) => {
         if (!isMounted) return
         const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-        const activeNames: string[] = raw
-          .filter((l: any) => {
-            if (l.aktif === false || l.status === "Nonaktif") return false
-            const profs: string[] = l.profesi_tersedia || []
-            if (profs.length > 0) {
-              return profs.includes(cleanRole)
-            }
+        const activeServices: any[] = []
+        const activeNames: string[] = []
+
+        raw.forEach((l: any) => {
+          if (l.aktif === false || l.status === "Nonaktif") return
+          const profs: string[] = l.profesi_tersedia || []
+          let matchProf = true
+          if (profs.length > 0) {
+            matchProf = profs.includes(cleanRole)
+          } else {
             const t = l.tarif_tenaga_ahli
             if (cleanRole === "psikolog") {
-              return (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
-                     (!t && (Number(l.harga_weekday) > 0 || Number(l.harga_weekend) > 0))
+              matchProf = Boolean((t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
+                     (!t && (Number(l.harga_weekday) > 0 || Number(l.harga_weekend) > 0)))
+            } else if (cleanRole === "konselor") {
+              matchProf = Boolean(t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0))
+            } else if (cleanRole === "peer") {
+              matchProf = Boolean(t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0))
             }
-            if (cleanRole === "konselor") {
-              return t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0)
-            }
-            if (cleanRole === "peer") {
-              return t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0)
-            }
-            return true
-          })
-          .map((l: any) => (l.nama?.trim() as string))
-          .filter(Boolean)
+          }
+          if (matchProf) {
+            activeServices.push(l)
+            if (l.nama) activeNames.push(l.nama.trim())
+          }
+        })
 
         // Periksa juga jika ada layanan konsultasi aktif dari database/admin storage lokal
         try {
@@ -911,6 +976,7 @@ export default function PsikologJadwalClient() {
                     else if (cleanRole === "peer") isMatch = Boolean(t.peer && (t.peer.weekday || t.peer.weekend))
                   }
                   if (isMatch) {
+                    activeServices.push(item)
                     activeNames.push(item.layanan.trim())
                   }
                 }
@@ -918,6 +984,8 @@ export default function PsikologJadwalClient() {
             }
           }
         } catch {}
+
+        setServiceItems(activeServices)
 
         const uniqueNames: string[] = Array.from(new Set<string>(activeNames))
         if (uniqueNames.length > 0) {
@@ -1256,6 +1324,13 @@ export default function PsikologJadwalClient() {
       window.dispatchEvent(new Event("storage"))
     } catch {}
 
+    // Bersihkan status pembatalan di penyimpanan lokal jika slot jam dibuka kembali
+    try {
+      timesToOpen.forEach((tw) => {
+        removeCancelledSession({ date: dateKey, waktu: tw })
+      })
+    } catch {}
+
     // 3. Update state secara optimis
     setBookedSessions((prev) => {
       const map = new Map<string, BookedSession>()
@@ -1393,35 +1468,50 @@ export default function PsikologJadwalClient() {
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedMetode("Online")}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedMetode === "Online"
-                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
-                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
-                      }`}
+                    disabled={!allowedMetode.online}
+                    onClick={() => allowedMetode.online && setSelectedMetode("Online")}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${
+                      !allowedMetode.online
+                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                        : selectedMetode === "Online"
+                        ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269] cursor-pointer"
+                        : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white cursor-pointer"
+                    }`}
+                    title={!allowedMetode.online ? "Metode Online tidak tersedia untuk layanan ini" : "Pilih metode Online"}
                   >
-                    <Video className="w-3.5 h-3.5 text-[#561269]" />
+                    <Video className={`w-3.5 h-3.5 ${!allowedMetode.online ? "text-gray-400" : "text-[#561269]"}`} />
                     <span>Online</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedMetode("Offline")}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedMetode === "Offline"
-                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
-                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
-                      }`}
+                    disabled={!allowedMetode.offline}
+                    onClick={() => allowedMetode.offline && setSelectedMetode("Offline")}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${
+                      !allowedMetode.offline
+                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                        : selectedMetode === "Offline"
+                        ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269] cursor-pointer"
+                        : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white cursor-pointer"
+                    }`}
+                    title={!allowedMetode.offline ? "Metode Offline tidak tersedia untuk layanan ini" : "Pilih metode Offline"}
                   >
-                    <Building2 className="w-3.5 h-3.5 text-[#561269]" />
+                    <Building2 className={`w-3.5 h-3.5 ${!allowedMetode.offline ? "text-gray-400" : "text-[#561269]"}`} />
                     <span>Offline</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedMetode("Keduanya")}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedMetode === "Keduanya"
-                      ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269]"
-                      : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white"
-                      }`}
+                    disabled={!allowedMetode.both}
+                    onClick={() => allowedMetode.both && setSelectedMetode("Keduanya")}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border text-xs font-bold transition-all ${
+                      !allowedMetode.both
+                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                        : selectedMetode === "Keduanya"
+                        ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269] cursor-pointer"
+                        : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white cursor-pointer"
+                    }`}
+                    title={!allowedMetode.both ? "Layanan ini tidak mendukung metode fleksibel Keduanya" : "Pilih metode Keduanya (Fleksibel)"}
                   >
-                    <Layers className="w-3.5 h-3.5 text-[#561269]" />
+                    <Layers className={`w-3.5 h-3.5 ${!allowedMetode.both ? "text-gray-400" : "text-[#561269]"}`} />
                     <span>Keduanya</span>
                   </button>
                 </div>
@@ -1448,6 +1538,8 @@ export default function PsikologJadwalClient() {
                         s.date === formatDateKey(date) &&
                         s.waktu === time &&
                         s.isAvailableSlot &&
+                        !s.isCancelled &&
+                        s.status !== "Dibatalkan" &&
                         isCurrentPsikolog(s)
                     )
                     : undefined
@@ -1463,7 +1555,7 @@ export default function PsikologJadwalClient() {
                         isCurrentPsikolog(s)
                     )
                     : undefined
-                  const isAlreadyCancelled = Boolean(cancelledSession)
+                  const isAlreadyCancelled = Boolean(cancelledSession) && !isAlreadyOpened
 
                   const bookedSession = date
                     ? bookedSessions.find(
@@ -1477,7 +1569,7 @@ export default function PsikologJadwalClient() {
                         isCurrentPsikolog(s)
                     )
                     : undefined
-                  const isAlreadyBooked = Boolean(bookedSession)
+                  const isAlreadyBooked = Boolean(bookedSession) && !isAlreadyCancelled && !isAlreadyOpened
                   const isCustom = !DEFAULT_TIME_SLOTS.includes(time)
 
                   return (

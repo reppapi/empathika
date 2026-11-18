@@ -106,6 +106,26 @@ export class BiroController {
     }
   }
 
+  updateMyBiroProfile = async (
+    request: FastifyRequest<{ Body: UpdateBiroProfileInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = (request as any).user
+      const accountId = user?.id || (request.headers["x-account-id"] as string)
+
+      if (!accountId) {
+        return reply.code(401).send({ error: "Unauthorized", message: "ID akun tidak ditemukan" })
+      }
+
+      const result = await this.service.updateBiroProfile(accountId, request.body)
+      return reply.code(200).send(result)
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({ error: "Bad Request", message: err.message })
+    }
+  }
+
 
 
   /**

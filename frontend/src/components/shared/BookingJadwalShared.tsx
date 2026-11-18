@@ -60,6 +60,7 @@ export function BookingJadwalShared({
     setMetode,
     layanan,
     setLayanan,
+    serviceName,
     waktu,
     setWaktu,
     setSelectedSlotId,
@@ -74,6 +75,8 @@ export function BookingJadwalShared({
     buildBayarUrl,
     isSlotReady,
     availableCategories,
+    isOnlineAllowed,
+    isOfflineAllowed,
   } = useJadwalClient({
     mode,
     tipeJadwal: mode === "asesmen" ? "ASESMEN" : "KONSULTASI",
@@ -163,23 +166,31 @@ export function BookingJadwalShared({
               <div className="flex gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setMetode("Online")}
-                  className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold rounded-xl border transition-all cursor-pointer ${
-                    metode === "Online"
-                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  disabled={!isOnlineAllowed}
+                  onClick={() => isOnlineAllowed && setMetode("Online")}
+                  className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold rounded-xl border transition-all ${
+                    !isOnlineAllowed
+                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none hover:bg-gray-100"
+                      : metode === "Online"
+                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269] cursor-pointer"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer"
                   }`}
+                  title={!isOnlineAllowed ? "Metode Online tidak tersedia untuk layanan ini" : "Pilih metode Online"}
                 >
                   Online
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMetode("Offline")}
-                  className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold rounded-xl border transition-all cursor-pointer ${
-                    metode === "Offline"
-                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269]"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  disabled={!isOfflineAllowed}
+                  onClick={() => isOfflineAllowed && setMetode("Offline")}
+                  className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold rounded-xl border transition-all ${
+                    !isOfflineAllowed
+                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none hover:bg-gray-100"
+                      : metode === "Offline"
+                      ? "bg-[#E6D9E9] border-[#C3A4CE] text-[#561269] cursor-pointer"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer"
                   }`}
+                  title={!isOfflineAllowed ? "Metode Offline tidak tersedia untuk layanan ini" : "Pilih metode Offline"}
                 >
                   Offline
                 </button>
@@ -300,13 +311,21 @@ export function BookingJadwalShared({
                   <div className="w-5 h-5 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">
                     3
                   </div>
-                  <h3 className="text-sm font-semibold text-gray-800">Pilih Layanan</h3>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-800">Pilih Layanan</h3>
+                    {serviceName && (
+                      <p className="text-[10px] text-gray-400 font-normal">
+                        {serviceName}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2.5 max-h-[200px] overflow-y-auto pr-1.5 custom-scrollbar">
                   {availableCategories.map((cat) => {
                     const isSelected =
-                      (cat.key === "psikolog" && (layanan.toLowerCase().includes("psikolog") || layanan.toLowerCase().includes("konsultasi"))) ||
+                      cat.id.toLowerCase() === layanan.toLowerCase() ||
+                      (cat.key === "psikolog" && (layanan.toLowerCase().includes("psikolog") || layanan.toLowerCase() === "p")) ||
                       (cat.key === "konselor" && (layanan.toLowerCase().includes("konselor") && !layanan.toLowerCase().includes("peer"))) ||
                       (cat.key === "peer" && layanan.toLowerCase().includes("peer"))
 

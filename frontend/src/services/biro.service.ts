@@ -178,4 +178,8 @@ export const biroAdminService = {
   /** Mengambil data akun & profil biro yang sedang login */
   getMyAccount: () =>
     api.get<{ success: boolean; data: BiroAccountData }>("/biro/account").then((r) => r.data),
+
+  /** Biro memperbarui profil lembaga miliknya sendiri */
+  updateMyProfile: (payload: UpdateBiroPayload) =>
+    api.put<{ success: boolean; message: string; data?: any }>("/biro/profile", payload).then((r) => r.data),
 }

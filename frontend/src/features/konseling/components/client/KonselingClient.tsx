@@ -181,6 +181,11 @@ export default function KonselingClient() {
                     <div className="mt-auto pt-2">
                       <Link
                         href={withBiro(`/booking?layanan=${encodeURIComponent(item.nama)}`) as any}
+                        onClick={() => {
+                          if (typeof window !== "undefined") {
+                            localStorage.setItem("empathika_last_selected_layanan", item.nama)
+                          }
+                        }}
                         className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
                       >
                         Booking Sesi

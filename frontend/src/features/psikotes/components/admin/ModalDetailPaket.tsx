@@ -16,6 +16,7 @@ export interface ModalDetailPaketProps {
   judul: JudulPsikotesItem | null;
   onClose: () => void;
   onToggleStatus: (paket: PaketDetailItem) => void;
+  isReadOnly?: boolean;
 }
 
 /**
@@ -94,6 +95,7 @@ export default function ModalDetailPaket({
   judul,
   onClose,
   onToggleStatus,
+  isReadOnly = false,
 }: ModalDetailPaketProps) {
   if (!judul) return null;
 
@@ -263,16 +265,27 @@ export default function ModalDetailPaket({
                         </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => onToggleStatus(paket)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer self-start sm:self-auto shrink-0 ${isAktif
-                          ? "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
-                          : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-xs"
+                      {isReadOnly ? (
+                        <span
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold ${
+                            isAktif ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-600"
                           }`}
-                      >
-                        {isAktif ? "Jadikan Draf" : "Publikasikan"}
-                      </button>
+                        >
+                          {isAktif ? "Aktif" : "Draf"}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onToggleStatus(paket)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer self-start sm:self-auto shrink-0 ${
+                            isAktif
+                              ? "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
+                              : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-xs"
+                          }`}
+                        >
+                          {isAktif ? "Jadikan Draf" : "Publikasikan"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

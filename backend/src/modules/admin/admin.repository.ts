@@ -4,13 +4,14 @@ export class AdminRepository {
   constructor(private prisma: PrismaClient) {}
 
   async findAdminUtama(id?: string) {
-    if (id) {
-      return this.prisma.account.findUnique({
+    if (id && id !== 'admin-dev') {
+      const account = await this.prisma.account.findUnique({
         where: { id },
       })
+      if (account) return account
     }
     return this.prisma.account.findFirst({
-      where: { role: 'ADMIN', aktif: true },
+      where: { role: 'ADMIN' },
       orderBy: { createdAt: 'asc' },
     })
   }
@@ -40,27 +41,20 @@ export class AdminRepository {
             lte: endDate,
           },
         },
+        status: {
+          in: ['CONFIRMED', 'COMPLETED'],
+        },
         NOT: {
           status: 'CANCELLED',
         },
-        AND: [
-          {
-            OR: [
-              { status: { in: ['CONFIRMED', 'COMPLETED'] } },
-              { transaksi: { status_pembayaran: 'PAID' } },
-            ],
-          },
-          ...(biroId
-            ? [
-                {
-                  OR: [
-                    { client: { id_biro: biroId } },
-                    { jadwal: { psikolog: { account: { id_biro: biroId } } } },
-                  ],
-                },
-              ]
-            : []),
-        ],
+        ...(biroId
+          ? {
+              OR: [
+                { client: { id_biro: biroId } },
+                { jadwal: { psikolog: { account: { id_biro: biroId } } } },
+              ],
+            }
+          : {}),
       },
       include: {
         jadwal: true,

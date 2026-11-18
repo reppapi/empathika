@@ -56,11 +56,14 @@ export function getSubdomainSlug(): string | null {
 }
 
 export function useTenant(): TenantInfo {
-  const [subdomainSlug, setSubdomainSlug] = useState<string | null>(null)
+  const [subdomainSlug, setSubdomainSlug] = useState<string | null>(() => getSubdomainSlug())
 
   useEffect(() => {
-    setSubdomainSlug(getSubdomainSlug())
-  }, [])
+    const detected = getSubdomainSlug()
+    if (detected !== subdomainSlug) {
+      setSubdomainSlug(detected)
+    }
+  }, [subdomainSlug])
 
   // Model 2 (Subdomain-based): satu-satunya akses website tenant
   const isSubdomain = !!subdomainSlug

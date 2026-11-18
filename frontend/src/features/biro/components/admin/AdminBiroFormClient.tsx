@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { BiroKomunitas, StatusAktivasiBiro } from "../../types"
-import { INITIAL_BIRO_LIST, LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
+import { LOCAL_STORAGE_KEY_BIRO } from "../../data/initialData"
 import { biroAdminService, BiroAccountData } from "@/services/biro.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import { getBiroWebsiteUrl } from "@/lib/utils"
@@ -160,6 +160,7 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
 
     const loadData = async () => {
       let beAccount: BiroAccountData | null = null
+      let fetchErrorMsg: string | null = null
 
       // 1. Coba ambil dari BE
       try {
@@ -167,8 +168,9 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
         if (res?.data) {
           beAccount = res.data
         }
-      } catch (err) {
-        console.warn("Gagal mengambil detail biro dari BE, coba fallback:", err)
+      } catch (err: any) {
+        console.warn("Gagal mengambil detail biro dari BE:", err)
+        fetchErrorMsg = err?.response?.data?.message || err?.message || null
       }
 
       // 2. Jika tidak dapat dari getById, coba cari dari getAllBiroAccounts
@@ -183,7 +185,11 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             )
             if (found) beAccount = found
           }
-        } catch {}
+        } catch (listErr: any) {
+          if (!fetchErrorMsg) {
+            fetchErrorMsg = listErr?.response?.data?.message || listErr?.message || null
+          }
+        }
       }
 
       if (!isMounted) return
@@ -211,31 +217,10 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
         return
       }
 
-      // 3. Fallback localStorage jika BE belum mengembalikan
-      let currentList: BiroKomunitas[] = INITIAL_BIRO_LIST
-      try {
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BIRO)
-        if (saved) currentList = JSON.parse(saved)
-      } catch {}
-
-      const found = currentList.find((b) => b.id === biroId || b.accountId === biroId)
-      if (found) {
-        setRealAccountId(found.accountId || found.id)
-        setNama(found.nama || "")
-        setSlug(found.slug || "")
-        setLogo(found.logo || "")
-        setDeskripsi(found.deskripsi || "")
-        setWarnaIdentitas(found.warnaIdentitas || "#561269")
-        setEmailAdmin(found.emailAdmin || "")
-        setTelepon(found.telepon || "")
-        setAlamat(found.alamat || "")
-        setStatusAktivasi(found.statusAktivasi || "Menunggu Aktivasi")
-        setAccountAktif(found.accountAktif || found.statusAktivasi === "Aktif")
-        setAktivasiToken(found.aktivasiToken || "")
-        setTokenExpiredAt(found.tokenExpiredAt || "")
-        setIsSlugManuallyEdited(true)
-      } else {
-        setNotFound(true)
+      // Jika data tidak ditemukan di server backend
+      setNotFound(true)
+      if (fetchErrorMsg) {
+        setErrors((prev) => ({ ...prev, submit: `Gagal memuat data biro dari server: ${fetchErrorMsg}` }))
       }
       setLoading(false)
     }
