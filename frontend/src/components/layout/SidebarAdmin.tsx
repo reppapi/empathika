@@ -1,8 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { removeAuthCookie } from "@/lib/cookie"
+import { adminService } from "@/services/admin.service"
 
 export interface NavItem {
   name: string
@@ -30,6 +32,36 @@ interface SidebarAdminProps {
 
 export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
   const pathname = usePathname()
+  const [adminFoto, setAdminFoto] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadProfile = () => {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed.foto !== undefined) setAdminFoto(parsed.foto)
+        }
+      } catch {}
+
+      adminService
+        .getProfile()
+        .then((res) => {
+          if (res?.data?.foto !== undefined) {
+            setAdminFoto(res.data.foto)
+          }
+        })
+        .catch(() => {})
+    }
+
+    loadProfile()
+    window.addEventListener("storage", loadProfile)
+    window.addEventListener("empathika_admin_profile_updated", loadProfile)
+    return () => {
+      window.removeEventListener("storage", loadProfile)
+      window.removeEventListener("empathika_admin_profile_updated", loadProfile)
+    }
+  }, [])
 
   const isActive = (path: string) => {
     if (path === "/admin") return pathname === "/admin"
@@ -58,7 +90,13 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
             onClick={onClose}
             className="flex items-center gap-3 transition-transform hover:scale-105"
           >
-            <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm" />
+            <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm overflow-hidden flex items-center justify-center text-[#561269] font-extrabold text-lg">
+              {adminFoto ? (
+                <img src={adminFoto} alt="Empathika" className="h-full w-full object-cover" />
+              ) : (
+                "E"
+              )}
+            </div>
             <span className="text-[25px] font-extrabold tracking-wide text-white uppercase truncate">
               EMPATHIKA
             </span>

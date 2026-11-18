@@ -402,6 +402,30 @@ export class BiroService {
       })
     }
 
+    if (!biro && input.nama) {
+      const baseSlug = (input.slug || input.nama)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+      biro = await this.prisma.biro.create({
+        data: {
+          id_account: account.id,
+          nama_biro: input.nama.trim(),
+          slug: baseSlug,
+          alamat: input.alamat ? input.alamat.trim() : null,
+          deskripsi: input.deskripsi ? input.deskripsi.trim() : null,
+          warna_tema: input.warnaIdentitas ? input.warnaIdentitas.trim().toUpperCase() : "#561269",
+          logoURI: input.logoURI || null,
+          no_telepon: input.noTelepon ? input.noTelepon.trim() : null,
+          status: "ACTIVE",
+        },
+      })
+      await this.prisma.account.update({
+        where: { id: account.id },
+        data: { id_biro: biro.id },
+      })
+    }
+
     // Update email jika berubah
     if (input.email && input.email.trim().toLowerCase() !== account.email.toLowerCase()) {
       const existingEmail = await this.prisma.account.findUnique({
@@ -475,11 +499,30 @@ export class BiroService {
 
 
   /**
+   * Helper pencarian biro berdasarkan slug yang fleksibel:
+   * Mendukung 'niscan' maupun 'biro-niscan' agar URL subdomain tidak gagal saat dicari.
+   */
+  private async findBiroBySlugFlexible(slug: string, options?: any): Promise<any> {
+    let biro: any = await this.prisma.biro.findUnique({
+      where: { slug },
+      ...(options || {}),
+    })
+
+    if (!biro) {
+      const alternateSlug = slug.startsWith("biro-") ? slug.replace(/^biro-/, "") : `biro-${slug}`
+      biro = await this.prisma.biro.findUnique({
+        where: { slug: alternateSlug },
+        ...(options || {}),
+      })
+    }
+    return biro
+  }
+
+  /**
    * 1. Mengambil detail informasi profil publik biro berdasarkan slug
    */
   async getPublicBiroBySlug(slug: string) {
-    const biro = await this.prisma.biro.findUnique({
-      where: { slug },
+    const biro = await this.findBiroBySlugFlexible(slug, {
       include: {
         owner: {
           select: {
@@ -551,8 +594,7 @@ export class BiroService {
    * 2. Mengambil daftar psikolog / konselor yang bertugas di biro
    */
   async getPublicBiroPsikolog(slug: string, query?: GetPublicBiroPsikologQuery) {
-    const biro = await this.prisma.biro.findUnique({
-      where: { slug },
+    const biro = await this.findBiroBySlugFlexible(slug, {
       select: { id: true, status: true, nama_biro: true },
     })
 
@@ -665,8 +707,7 @@ export class BiroService {
    * 3. Mengambil profil lengkap satu tenaga ahli di biro
    */
   async getPublicBiroPsikologDetail(slug: string, psikologId: string) {
-    const biro = await this.prisma.biro.findUnique({
-      where: { slug },
+    const biro = await this.findBiroBySlugFlexible(slug, {
       select: { id: true, status: true, nama_biro: true },
     })
 
@@ -746,8 +787,7 @@ export class BiroService {
    * 4. Mengambil daftar layanan yang disediakan di website biro
    */
   async getPublicBiroLayanan(slug: string, query?: GetPublicBiroLayananQuery) {
-    const biro = await this.prisma.biro.findUnique({
-      where: { slug },
+    const biro = await this.findBiroBySlugFlexible(slug, {
       select: { id: true, status: true },
     })
 
@@ -784,8 +824,7 @@ export class BiroService {
    * 5. Mengambil slot jadwal ketersediaan untuk klien di website biro
    */
   async getPublicBiroJadwal(slug: string, query: GetPublicBiroJadwalQuery) {
-    const biro = await this.prisma.biro.findUnique({
-      where: { slug },
+    const biro = await this.findBiroBySlugFlexible(slug, {
       select: { id: true, status: true },
     })
 
@@ -852,8 +891,7 @@ export class BiroService {
    * 6. Klien membuat booking konsultasi baru melalui website biro
    */
   async createPublicBiroBooking(slug: string, input: CreatePublicBiroBookingInput) {
-    const biro = await this.prisma.biro.findUnique({
-      where: { slug },
+    const biro = await this.findBiroBySlugFlexible(slug, {
       select: { id: true, slug: true, nama_biro: true, status: true },
     })
 
@@ -1046,8 +1084,7 @@ export class BiroService {
    * 7. Klien mengecek status booking mereka menggunakan kode pesanan di website biro
    */
   async getPublicBiroBookingStatus(slug: string, kodePesanan: string) {
-    const biro = await this.prisma.biro.findUnique({
-      where: { slug },
+    const biro = await this.findBiroBySlugFlexible(slug, {
       select: { id: true, nama_biro: true, slug: true, status: true },
     })
 
@@ -1112,8 +1149,7 @@ export class BiroService {
    * 8. Form kontak / pesan dari pengunjung website biro
    */
   async sendPublicBiroContact(slug: string, input: SendPublicBiroContactInput) {
-    const biro = await this.prisma.biro.findUnique({
-      where: { slug },
+    const biro = await this.findBiroBySlugFlexible(slug, {
       select: { id: true, nama_biro: true, slug: true, status: true, owner: { select: { email: true, nama: true } } },
     })
 

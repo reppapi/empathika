@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTenant } from '@/hooks/useTenant';
 import { DetailPsikologUI } from '../../data/detailDummy';
 
@@ -12,6 +13,8 @@ interface DetailContentProps {
 
 export function DetailPsikologContent({ psikolog }: DetailContentProps) {
   const { withBiro } = useTenant();
+  const searchParams = useSearchParams();
+  const qLayanan = searchParams?.get('layanan');
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   const initial = psikolog.nama_gelar ? psikolog.nama_gelar.charAt(0) : 'P';
 
@@ -281,7 +284,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
               )?.map((jadwal: { waktu: string }, idx: number) => (
                 <Link 
                   key={idx}
-                  href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}`) as any}
+                  href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}${qLayanan ? `&layanan=${encodeURIComponent(qLayanan)}` : ""}`) as any}
                   className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800 hover:bg-[#F3E8F7] hover:border-purple-300 transition-all cursor-pointer shadow-2xs hover:scale-105"
                 >
                   {jadwal.waktu}
@@ -334,7 +337,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
 
           <div>
             <Link
-              href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}`) as any}
+              href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}${qLayanan ? `&layanan=${encodeURIComponent(qLayanan)}` : ""}`) as any}
               className="inline-block bg-[#EAB308] hover:bg-[#CA9A06] text-black font-bold text-base sm:text-lg md:text-xl px-10 sm:px-14 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Daftar Sesi

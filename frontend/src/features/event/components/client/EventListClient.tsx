@@ -484,7 +484,7 @@ export function EventListClient() {
                             <div className="pt-4 border-t border-black/5 mt-auto">
                               <button
                                 onClick={() => handleSelectKategori(cat.id)}
-                                className="w-full py-3 px-5 rounded-2xl bg-white hover:bg-gray-50 text-gray-900 font-bold text-xs sm:text-sm shadow-xs border border-black/10 flex items-center justify-center gap-2 transition-all group-hover:bg-[#561269] group-hover:text-white group-hover:border-[#561269] cursor-pointer"
+                                className="w-full py-3 px-5 rounded-2xl bg-[#EAB308] hover:bg-yellow-500 text-black font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer group-hover:shadow-md"
                               >
                                 <span>Lihat Selengkapnya</span>
                                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

@@ -124,7 +124,20 @@ export default function AdminDashboardClient() {
 
   useEffect(() => {
     fetchSessions()
-  }, [fetchSessions])
+
+    const handleSync = () => {
+      fetchSessions()
+      fetchMetrics()
+    }
+
+    window.addEventListener("empathika_session_cancelled", handleSync)
+    window.addEventListener("storage", handleSync)
+
+    return () => {
+      window.removeEventListener("empathika_session_cancelled", handleSync)
+      window.removeEventListener("storage", handleSync)
+    }
+  }, [fetchSessions, fetchMetrics])
 
   // Muat transaksi pembayaran terbaru murni dari Database PostgreSQL
   const fetchTransactions = useCallback(() => {

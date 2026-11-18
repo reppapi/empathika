@@ -173,12 +173,24 @@ export function useBayarClient() {
       }
     }
 
+    const qProfesi = (searchParams.get("profesi") || searchParams.get("role") || "").toLowerCase()
     const psiLower = (qPsikologName || "").toLowerCase()
-    const roleKey: "psikolog" | "konselor" | "peer" = psiLower.includes("peer")
-      ? "peer"
-      : psiLower.includes("konselor")
-      ? "konselor"
-      : "psikolog"
+    const qLayananLower = (qLayanan || "").toLowerCase()
+    const roleKey: "psikolog" | "konselor" | "peer" =
+      qProfesi.includes("peer") || psiLower.includes("peer") || qLayananLower.includes("peer")
+        ? "peer"
+        : qProfesi.includes("konselor") || psiLower.includes("konselor") || qLayananLower.includes("konselor")
+        ? "konselor"
+        : "psikolog"
+
+    const isMatch = (nama: string) => {
+      if (!qLayananLower) return false
+      const n = (nama || "").toLowerCase()
+      if (n === qLayananLower || n.includes(qLayananLower) || qLayananLower.includes(n)) return true
+      const nClean = n.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+      const qClean = qLayananLower.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+      return Boolean(nClean && qClean && (nClean === qClean || nClean.includes(qClean) || qClean.includes(nClean)))
+    }
 
     const formatRp = (num: number | string) => {
       const n = typeof num === "string" ? parseInt(num.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10) : num
@@ -190,17 +202,10 @@ export function useBayarClient() {
         .getAll({ kategori: "KONSULTASI" })
         .then((res: any) => {
           const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-          const item =
-            list.find((l: any) => {
-              if (qLayanan) return l.nama.toLowerCase().includes(qLayanan.toLowerCase()) || qLayanan.toLowerCase().includes(l.nama.toLowerCase())
-              return true
-            }) || list[0]
+          const item = list.find((l: any) => isMatch(l.nama)) || (qLayanan ? null : list[0]) || list[0]
 
           const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
-          const localItem = stored.find((l) => {
-            if (qLayanan) return l.layanan.toLowerCase().includes(qLayanan.toLowerCase()) || qLayanan.toLowerCase().includes(l.layanan.toLowerCase())
-            return true
-          })
+          const localItem = stored.find((l) => isMatch(l.layanan)) || stored[0]
 
           const isNonaktif =
             (item && (item.aktif === false || item.status === "Nonaktif")) ||

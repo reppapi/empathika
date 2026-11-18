@@ -66,13 +66,27 @@ export function middleware(request: NextRequest) {
 
   // ── DETEKSI TENANT MODEL 2 (SUBDOMAIN-BASED) ─────────────────────────────
   const host = request.headers.get("host")
-  const subdomain = extractSubdomain(host)
+  let subdomain = extractSubdomain(host)
+
+  // Support query param ?biro=slug atau ?tenant=slug untuk pengujian dev
+  if (!subdomain && request.nextUrl.searchParams) {
+    const paramBiro = request.nextUrl.searchParams.get("biro") || request.nextUrl.searchParams.get("tenant")
+    if (paramBiro) {
+      subdomain = paramBiro.toLowerCase().trim()
+    }
+  }
 
   if (subdomain) {
     // Pengguna mengakses via subdomain (misal: ugm.localhost:3000 atau ugm.empathika.com)
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set("x-biro-slug", subdomain)
     requestHeaders.set("x-tenant-slug", subdomain)
+
+    // Cek apakah ada cookie tema biro yang tersimpan
+    const cachedColor = request.cookies.get(`biro_theme_${subdomain}`)?.value
+    if (cachedColor) {
+      requestHeaders.set("x-biro-theme-color", decodeURIComponent(cachedColor))
+    }
 
     const response = NextResponse.next({
       request: {
@@ -81,6 +95,9 @@ export function middleware(request: NextRequest) {
     })
     response.headers.set("x-biro-slug", subdomain)
     response.headers.set("x-tenant-slug", subdomain)
+    if (cachedColor) {
+      response.headers.set("x-biro-theme-color", decodeURIComponent(cachedColor))
+    }
     return response
   }
 

@@ -24,20 +24,50 @@ const TenantContext = createContext<TenantContextValue>({
   withBiro: (path) => path,
 })
 
-export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const [subdomainSlug, setSubdomainSlug] = useState<string | null>(null)
-  const [biroProfile, setBiroProfile] = useState<PublicBiroProfile | null>(null)
+interface TenantProviderProps {
+  children: React.ReactNode
+  initialSlug?: string | null
+  initialThemeColor?: string | null
+  initialProfile?: PublicBiroProfile | null
+}
+
+export function TenantProvider({
+  children,
+  initialSlug = null,
+  initialThemeColor = null,
+  initialProfile = null,
+}: TenantProviderProps) {
+  const [subdomainSlug, setSubdomainSlug] = useState<string | null>(() => {
+    if (initialSlug) return initialSlug
+    return getSubdomainSlug()
+  })
+  const [biroProfile, setBiroProfile] = useState<PublicBiroProfile | null>(initialProfile)
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
 
   useEffect(() => {
-    setSubdomainSlug(getSubdomainSlug())
-  }, [])
+    const detected = getSubdomainSlug()
+    if (detected && detected !== subdomainSlug) {
+      setSubdomainSlug(detected)
+    }
+  }, [subdomainSlug])
 
   // Model 2 (Subdomain-based): satu-satunya penentu tenant
   const isSubdomain = !!subdomainSlug
   const isBiro = !!subdomainSlug
   const slug = subdomainSlug || ""
   const biroPrefix = ""
+
+  // Hydration-safe fallback: ambil dari cache lokal hanya setelah mounting selesai
+  useEffect(() => {
+    if (!biroProfile && slug && typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`biro_profile_${slug}`)
+        if (cached) {
+          setBiroProfile(JSON.parse(cached))
+        }
+      } catch (e) {}
+    }
+  }, [slug, biroProfile])
 
   // Fetch profil biro jika berada dalam konteks biro (subdomain)
   useEffect(() => {
@@ -47,13 +77,25 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
 
     let isMounted = true
-    setIsLoadingProfile(true)
+    // Jangan tampilkan loading state jika profil sudah ada (dari SSR / cache) untuk mencegah layout shift
+    if (!biroProfile || biroProfile.slug !== slug) {
+      setIsLoadingProfile(true)
+    }
 
     biroPublicService
       .getProfile(slug)
       .then((res) => {
         if (isMounted && res.success && res.data) {
           setBiroProfile(res.data)
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(`biro_profile_${slug}`, JSON.stringify(res.data))
+              if (res.data.warna_tema) {
+                localStorage.setItem(`biro_theme_${slug}`, res.data.warna_tema)
+                document.cookie = `biro_theme_${slug}=${encodeURIComponent(res.data.warna_tema)}; path=/; max-age=2592000; SameSite=Lax`
+              }
+            } catch (e) {}
+          }
         }
       })
       .catch((err) => {
@@ -68,6 +110,28 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
   }, [slug])
 
+  // Sinkronisasi otomatis saat ada pembaruan profil biro dari tab/jendela lain
+  useEffect(() => {
+    const handleProfileSync = () => {
+      if (!slug || typeof window === "undefined") return
+      try {
+        const cached = localStorage.getItem(`biro_profile_${slug}`)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          setBiroProfile(parsed)
+        }
+      } catch (e) {}
+    }
+
+    window.addEventListener("storage", handleProfileSync)
+    window.addEventListener("biro_profile_updated", handleProfileSync)
+
+    return () => {
+      window.removeEventListener("storage", handleProfileSync)
+      window.removeEventListener("biro_profile_updated", handleProfileSync)
+    }
+  }, [slug])
+
   // Sinkronisasi variabel warna tema biro ke CSS root browser
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -76,15 +140,23 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      if (isBiro && biroProfile?.warna_tema) {
-        document.documentElement.style.setProperty("--biro-theme-color", biroProfile.warna_tema)
+      const activeColor = biroProfile?.warna_tema || initialThemeColor
+
+      if (isBiro && activeColor) {
+        document.documentElement.style.setProperty("--biro-theme-color", activeColor)
         document.documentElement.setAttribute("data-biro-theme", "true")
-      } else {
+        if (typeof window !== "undefined" && slug) {
+          try {
+            localStorage.setItem(`biro_theme_${slug}`, activeColor)
+            document.cookie = `biro_theme_${slug}=${encodeURIComponent(activeColor)}; path=/; max-age=2592000; SameSite=Lax`
+          } catch (e) {}
+        }
+      } else if (!isBiro) {
         document.documentElement.style.removeProperty("--biro-theme-color")
         document.documentElement.removeAttribute("data-biro-theme")
       }
     }
-  }, [isBiro, biroProfile?.warna_tema])
+  }, [isBiro, biroProfile?.warna_tema, initialThemeColor, slug])
 
   const withBiro = (path: string): string => {
     if (!path) return "/"

@@ -96,7 +96,52 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
   const mode = isAsesmen ? "asesmen" : "konseling"
   const effectiveTipeJadwal = options?.tipeJadwal || (isAsesmen ? "ASESMEN" : "KONSULTASI")
 
-  const initialLayanan = options?.asesmenPackage?.title || searchParams?.get("layanan") || (isAsesmen ? "Asesmen Minat Bakat" : "Psikolog")
+  // Resolusi nama layanan induk (misal: "Pasangan", "Konsultasi Pasangan", dsb.)
+  const serviceQueryParam = (options as any)?.serviceName || searchParams?.get("layanan") || searchParams?.get("service") || ""
+
+  const isProfessionName = (name: string) => {
+    const n = (name || "").toLowerCase().trim()
+    return (
+      n === "psikolog" ||
+      n === "psikolog klinis" ||
+      n === "konselor" ||
+      n === "peer konselor" ||
+      n === "peer" ||
+      n === "p" ||
+      n === "k" ||
+      n === "pk"
+    )
+  }
+
+  // State nama layanan induk (bukan nama profesi)
+  const [serviceName, setServiceName] = useState<string>(() => {
+    if (serviceQueryParam && !isProfessionName(serviceQueryParam)) {
+      return serviceQueryParam
+    }
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("empathika_last_selected_layanan")
+      if (stored && !isProfessionName(stored)) return stored
+    }
+    return ""
+  })
+
+  const [currentServiceData, setCurrentServiceData] = useState<any>(null)
+
+  // Pilihan opsi profesi aktif untuk Box 3
+  const initialLayanan = (() => {
+    if (isAsesmen) {
+      return options?.asesmenPackage?.title || searchParams?.get("layanan") || "Asesmen Minat Bakat"
+    }
+    const param = searchParams?.get("layanan") || searchParams?.get("profesi") || ""
+    if (param && isProfessionName(param)) {
+      const p = param.toLowerCase()
+      if (p.includes("peer")) return "Peer Konselor"
+      if (p.includes("konselor")) return "Konselor"
+      return "Psikolog"
+    }
+    return "Psikolog"
+  })()
+
   const psikologIdParam = searchParams?.get("psikologId") || undefined
   const psikologNameParam = searchParams?.get("psikologName") || undefined
   const tanggalParam = searchParams?.get("tanggal") || searchParams?.get("date") || undefined
@@ -164,26 +209,61 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     let isCancelled = false
 
     const checkServiceMethod = async () => {
-      const activeName = (layanan || searchParams?.get("layanan") || "Psikolog").toLowerCase().trim()
+      // Tentukan nama layanan target yang ingin dicocokkan (bukan nama profesi)
+      let activeServiceName = ""
+      if (serviceQueryParam && !isProfessionName(serviceQueryParam)) {
+        activeServiceName = serviceQueryParam
+      } else if (serviceName && !isProfessionName(serviceName)) {
+        activeServiceName = serviceName
+      } else if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("empathika_last_selected_layanan")
+        if (stored && !isProfessionName(stored)) {
+          activeServiceName = stored
+        }
+      }
+
+      const activeNorm = activeServiceName.toLowerCase().trim()
       let matchedMetode = "Online/Offline"
       let targetService: any = null
 
       try {
-        const res: any = await layananService.getAll({ kategori: "KONSULTASI" })
+        const categoryFilter = mode === "asesmen" ? "ASESMEN" : "KONSULTASI"
+        const res: any = await layananService.getAll({ kategori: categoryFilter })
         const beList = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-        const matched = beList.find((l: any) => {
-          const lName = (l.nama || "").toLowerCase()
-          return lName.includes(activeName) || activeName.includes(lName)
-        })
+
+        // Fungsi pencocokan cerdas antara nama di database dan target layanan
+        const isMatch = (itemNama: string) => {
+          if (!activeNorm) return false
+          const lName = (itemNama || "").toLowerCase().trim()
+          if (lName === activeNorm) return true
+          if (lName.includes(activeNorm) || activeNorm.includes(lName)) return true
+          const lClean = lName.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+          const tClean = activeNorm.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+          return Boolean(lClean && tClean && (lClean === tClean || lClean.includes(tClean) || tClean.includes(lClean)))
+        }
+
+        const matched = beList.find((l: any) => isMatch(l.nama))
 
         // Cek juga di localStorage untuk respon instan antartab
-        const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
-        const localMatched = stored.find((l) => {
-          const lName = l.layanan.toLowerCase()
-          return lName.includes(activeName) || activeName.includes(lName)
-        })
+        const storedCategory = mode === "asesmen" ? "05" : "01"
+        const stored = getStoredLayanan().filter((l) => l.kategoriId === storedCategory)
+        const localMatched = stored.find((l) => isMatch(l.layanan))
 
-        targetService = matched || localMatched || beList[0] || (stored.length > 0 ? stored[0] : null)
+        targetService = matched || localMatched || (activeNorm ? null : beList[0] || (stored.length > 0 ? stored[0] : null))
+
+        // Fallback jika tidak ada yang cocok tapi ada data di database
+        if (!targetService && beList.length > 0) {
+          targetService = beList.find((l: any) => l.aktif !== false) || beList[0]
+        }
+
+        if (targetService) {
+          const resolvedName = targetService.nama || targetService.layanan || activeServiceName
+          setServiceName(resolvedName)
+          setCurrentServiceData(targetService)
+          if (typeof window !== "undefined" && resolvedName) {
+            localStorage.setItem("empathika_last_selected_layanan", resolvedName)
+          }
+        }
 
         const isNonaktif =
           (matched && (matched.aktif === false || matched.status === "Nonaktif")) ||
@@ -191,7 +271,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
 
         if (isNonaktif) {
           setIsLayananNonaktif(true)
-          setNonaktifLayananNama(matched?.nama || localMatched?.layanan || layanan)
+          setNonaktifLayananNama(matched?.nama || localMatched?.layanan || activeServiceName)
         } else {
           setIsLayananNonaktif(false)
         }
@@ -200,17 +280,28 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
           matchedMetode = matched.metode
         } else if (localMatched?.metode) {
           matchedMetode = localMatched.metode
+        } else if (targetService?.metode) {
+          matchedMetode = targetService.metode
         }
       } catch {
-        const stored = getStoredLayanan().filter((l) => l.kategoriId === "01")
+        const storedCategory = mode === "asesmen" ? "05" : "01"
+        const stored = getStoredLayanan().filter((l) => l.kategoriId === storedCategory)
         const localMatched = stored.find((l) => {
-          const lName = l.layanan.toLowerCase()
-          return lName.includes(activeName) || activeName.includes(lName)
+          if (!activeNorm) return false
+          const lName = (l.layanan || "").toLowerCase().trim()
+          return lName.includes(activeNorm) || activeNorm.includes(lName)
         })
         targetService = localMatched || (stored.length > 0 ? stored[0] : null)
+        if (targetService) {
+          setServiceName(targetService.layanan || activeServiceName)
+          setCurrentServiceData(targetService)
+        }
         if (localMatched && localMatched.status === "Nonaktif") {
           setIsLayananNonaktif(true)
           setNonaktifLayananNama(localMatched.layanan)
+        }
+        if (targetService?.metode) {
+          matchedMetode = targetService.metode
         }
       }
 
@@ -221,16 +312,23 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         const t = targetService.tarif_tenaga_ahli
         const profList: string[] = targetService.profesi_tersedia || []
 
+        const parsePrice = (val: any): number => {
+          if (!val && val !== 0) return 0
+          if (typeof val === "number") return val
+          const cleanStr = String(val).replace(/[,.]00$/, "").replace(/[^0-9]/g, "")
+          return parseInt(cleanStr || "0", 10)
+        }
+
         const hasPsi =
           profList.includes("psikolog") ||
-          (t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
-          (!t && (Number(targetService.harga_weekday) > 0 || Number(targetService.harga_weekend) > 0))
+          (t?.psikolog && (parsePrice(t.psikolog.weekday) > 0 || parsePrice(t.psikolog.weekend) > 0)) ||
+          (!t && (parsePrice(targetService.harga_weekday) > 0 || parsePrice(targetService.harga_weekend) > 0))
         const hasKon =
           profList.includes("konselor") ||
-          (t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0))
+          (t?.konselor && (parsePrice(t.konselor.weekday) > 0 || parsePrice(t.konselor.weekend) > 0))
         const hasPeer =
           profList.includes("peer") ||
-          (t?.peer && (Number(t.peer.weekday) > 0 || Number(t.peer.weekend) > 0))
+          (t?.peer && (parsePrice(t.peer.weekday) > 0 || parsePrice(t.peer.weekend) > 0))
 
         const dynamicCategories: AvailableProfessionOption[] = []
         if (hasPsi) {
@@ -281,19 +379,20 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
 
         setAvailableCategories(effectiveCategories)
 
-        // Validasi dan sinkronkan pilihan layanan aktif dengan kategori yang memiliki tarif
+        // Validasi dan sinkronkan pilihan profesi aktif dengan kategori yang memiliki tarif
         setLayanan((cur) => {
-          const curLower = (cur || "").toLowerCase()
-          const isCurValid = effectiveCategories.some((c) => {
-            if (c.key === "psikolog") return curLower.includes("psikolog") || curLower.includes("konsultasi")
-            if (c.key === "konselor") return curLower.includes("konselor") && !curLower.includes("peer")
-            if (c.key === "peer") return curLower.includes("peer")
-            return false
+          const curLower = (cur || "").toLowerCase().trim()
+          const matchedCategory = effectiveCategories.find((c) => {
+            if (c.key === "psikolog" && (curLower.includes("psikolog") || curLower === "p")) return true
+            if (c.key === "konselor" && curLower.includes("konselor") && !curLower.includes("peer")) return true
+            if (c.key === "peer" && curLower.includes("peer")) return true
+            return c.id.toLowerCase() === curLower || c.label.toLowerCase() === curLower
           })
-          if (!isCurValid && effectiveCategories.length > 0) {
-            return effectiveCategories[0].id
+
+          if (matchedCategory) {
+            return matchedCategory.id
           }
-          return cur
+          return effectiveCategories[0].id
         })
       }
 
@@ -324,7 +423,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
       window.removeEventListener("focus", checkServiceMethod)
       window.removeEventListener("storage", checkServiceMethod)
     }
-  }, [layanan, searchParams, mode])
+  }, [serviceQueryParam, serviceName, mode])
 
   // Waktu & slot terpilih (hanya boleh terisi jika slot TERSEDIA)
   const [waktu, setWaktu] = useState<string | null>(null)
@@ -621,12 +720,40 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         searchParams.get("psikologName") ||
         null
 
-  const activePrice =
-    mode === "asesmen"
-      ? selectedOfflinePlan === "weekday"
+  const activePrice = useMemo(() => {
+    if (mode === "asesmen") {
+      return selectedOfflinePlan === "weekday"
         ? options?.asesmenPackage?.weekday || "Rp 400.000"
         : options?.asesmenPackage?.weekend || "Rp 500.000"
-      : null
+    }
+
+    if (!currentServiceData || !date) return null
+
+    const day = date.getDay()
+    const isWeekend = day === 0 || day === 6
+    const t = currentServiceData.tarif_tenaga_ahli
+
+    const formatRp = (num: any) => {
+      if (!num && num !== 0) return null
+      const n = typeof num === "string" ? parseInt(num.replace(/[,.]00$/, "").replace(/[^0-9]/g, "") || "0", 10) : num
+      return `Rp ${n.toLocaleString("id-ID")}`
+    }
+
+    const roleKey: "psikolog" | "konselor" | "peer" =
+      layanan.toLowerCase().includes("peer")
+        ? "peer"
+        : layanan.toLowerCase().includes("konselor")
+        ? "konselor"
+        : "psikolog"
+
+    if (t?.[roleKey]) {
+      const price = isWeekend ? t[roleKey].weekend : t[roleKey].weekday
+      return formatRp(price)
+    }
+
+    const fallbackPrice = isWeekend ? currentServiceData.harga_weekend : currentServiceData.harga_weekday
+    return formatRp(fallbackPrice)
+  }, [mode, selectedOfflinePlan, options?.asesmenPackage, currentServiceData, date, layanan])
 
   const buildBayarUrl = () => {
     if (!date || !waktu) return "#"
@@ -637,7 +764,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     if (mode === "asesmen") {
       const selectedPrice = activePrice || "Rp 400.000"
       const planName = selectedOfflinePlan === "weekday" ? "Weekday" : "Weekend"
-      const asesmenTitle = options?.asesmenPackage?.title || layanan || "Asesmen Minat Bakat"
+      const asesmenTitle = options?.asesmenPackage?.title || serviceName || layanan || "Asesmen Minat Bakat"
 
       const params = new URLSearchParams({
         layanan: `${asesmenTitle} (${planName})`,
@@ -657,7 +784,8 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
 
     const psiName = activePsikologName || ""
     const params = new URLSearchParams({
-      layanan,
+      layanan: serviceName || layanan,
+      profesi: layanan,
       metode,
       tanggal: `${dayStr}/${monthStr}`,
       tahun: String(date.getFullYear()),
@@ -685,6 +813,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     setMetode: handleSetMetode,
     layanan,
     setLayanan,
+    serviceName,
     waktu,
     setWaktu,
     selectedSlotId,

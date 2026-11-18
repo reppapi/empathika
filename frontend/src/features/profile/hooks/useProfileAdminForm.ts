@@ -43,12 +43,88 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
   // State toast notifikasi & live modal preview
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("")
+  const [toastType, setToastType] = useState<"success" | "error">("success")
+  const [isLoadingProfile, setIsLoadingProfile] = useState(role === "admin")
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [previewModalOpen, setPreviewModalOpen] = useState(false)
   const [isPlayingVideoPreview, setIsPlayingVideoPreview] = useState(false)
 
   // Ref DOM & status sinkronisasi
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isFetchedRef = useRef(false)
+
+  const fetchAdminProfile = async () => {
+    setIsLoadingProfile(true)
+    setLoadError(null)
+
+    try {
+      const res = await adminService.getProfile()
+      if (res?.data) {
+        const p = res.data
+        const mapped: AdminProfileData = {
+          nama: p.nama || "",
+          email: p.email || "",
+          noTelepon: p.noTelepon || p.no_telepon || "",
+          bio: p.bio || "",
+          foto: p.foto || null,
+          alamat: p.alamat || "",
+          linkMaps: p.linkMaps || p.link_maps || "",
+          instagram: p.instagram || "",
+          tiktok: p.tiktok || "",
+          youtube: p.youtube || "",
+          linkedin: p.linkedin || "",
+        }
+        setAdminData(mapped)
+        setForm(mapped)
+        try {
+          localStorage.setItem(
+            "empathika_admin_profile",
+            JSON.stringify({
+              ...mapped,
+              linkMapsEmbed: p.linkMapsEmbed || p.link_maps_embed,
+            })
+          )
+        } catch {}
+      }
+    } catch (err: any) {
+      // Coba getPublicProfile jika auth token belum siap
+      try {
+        const publicRes = await adminService.getPublicProfile()
+        if (publicRes?.data) {
+          const p = publicRes.data
+          const mapped: AdminProfileData = {
+            nama: p.nama || "",
+            email: p.email || "",
+            noTelepon: p.no_telepon || p.noTelepon || "",
+            alamat: p.alamat || "",
+            linkMaps: p.link_maps || p.linkMaps || "",
+            bio: p.bio || "",
+            foto: p.foto || null,
+            instagram: p.instagram || "",
+            tiktok: p.tiktok || "",
+            youtube: p.youtube || "",
+            linkedin: p.linkedin || "",
+          }
+          setAdminData(mapped)
+          setForm(mapped)
+        }
+      } catch (publicErr: any) {
+        const errMsg =
+          err?.response?.data?.message ||
+          publicErr?.response?.data?.message ||
+          err?.message ||
+          "Gagal memuat profil admin dari backend"
+        console.error("Gagal memuat profil admin:", err, publicErr)
+        setLoadError(errMsg)
+        setToastMessage(`Gagal memuat data profil: ${errMsg}`)
+        setToastType("error")
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 5000)
+      }
+    } finally {
+      setIsLoadingProfile(false)
+    }
+  }
 
   // Sinkronisasi data awal saat mount atau role berubah
   useEffect(() => {
@@ -57,76 +133,15 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
         const savedAdmin = localStorage.getItem("empathika_admin_profile")
         if (savedAdmin) {
           const parsed = JSON.parse(savedAdmin)
-          if (parsed.noTelepon === "081234567890" || parsed.no_telepon === "081234567890") {
-            parsed.noTelepon = "0878-7878-5498"
-            parsed.no_telepon = "0878-7878-5498"
-            localStorage.setItem("empathika_admin_profile", JSON.stringify(parsed))
-          }
           setForm((prev) => ({ ...prev, ...parsed }))
         }
       } catch {
         // Abaikan error saat akses/parse localStorage
       }
 
-      // Ambil data resmi profil admin dari backend database (hanya sekali saat mount)
       if (!isFetchedRef.current) {
         isFetchedRef.current = true
-        adminService
-          .getProfile()
-          .then((res) => {
-            if (res?.data) {
-              const p = res.data
-              const rawTel = p.noTelepon || p.no_telepon || ""
-              const effectiveTel = !rawTel || rawTel === "081234567890" ? "0878-7878-5498" : rawTel
-              const mapped: AdminProfileData = {
-                nama: p.nama || "",
-                email: p.email || "",
-                noTelepon: effectiveTel,
-                bio: p.bio || "",
-                foto: p.foto || null,
-                alamat: p.alamat || "",
-                linkMaps: p.linkMaps || p.link_maps || "",
-                instagram: p.instagram || "",
-                tiktok: p.tiktok || "",
-                youtube: p.youtube || "",
-                linkedin: p.linkedin || "",
-              }
-              setForm((prev) => ({ ...prev, ...mapped }))
-              try {
-                localStorage.setItem(
-                  "empathika_admin_profile",
-                  JSON.stringify({
-                    ...mapped,
-                    linkMapsEmbed: p.linkMapsEmbed || p.link_maps_embed,
-                  })
-                )
-              } catch {}
-            }
-          })
-          .catch(() => {
-            // Jika token belum ada atau request gagal, coba getPublicProfile sebagai fallback
-            adminService
-              .getPublicProfile()
-              .then((res) => {
-                if (res?.data) {
-                  const p = res.data
-                  setForm((prev) => ({
-                    ...prev,
-                    nama: p.nama || prev.nama,
-                    email: p.email || prev.email,
-                    noTelepon: p.no_telepon || p.noTelepon || prev.noTelepon,
-                    alamat: p.alamat || prev.alamat,
-                    linkMaps: p.link_maps || p.linkMaps || prev.linkMaps,
-                    bio: p.bio || prev.bio,
-                    instagram: p.instagram || prev.instagram,
-                    tiktok: p.tiktok || prev.tiktok,
-                    youtube: p.youtube || prev.youtube,
-                    linkedin: p.linkedin || prev.linkedin,
-                  }))
-                }
-              })
-              .catch(() => {})
-          })
+        fetchAdminProfile()
       }
     } else {
       // Ambil data dari shared storage tenaga ahli
@@ -184,20 +199,59 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
     if (file) {
       try {
         const { url } = await processAndUploadImage(file, "psikolog")
-        setForm((prev) => ({ ...prev, foto: url }))
+        setForm((prev) => {
+          const updated = { ...prev, foto: url }
+          if (role === "admin") {
+            try {
+              const saved = localStorage.getItem("empathika_admin_profile")
+              const parsed = saved ? JSON.parse(saved) : {}
+              localStorage.setItem("empathika_admin_profile", JSON.stringify({ ...parsed, ...updated, foto: url }))
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new Event("empathika_admin_profile_updated"))
+                window.dispatchEvent(new Event("storage"))
+              }
+            } catch {}
+          }
+          return updated
+        })
+        setToastMessage("Foto berhasil diunggah! Jangan lupa klik 'Simpan Perubahan' di bawah untuk menyimpan permanen ke server.")
+        setToastType("success")
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 5000)
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Gagal memproses foto"
-        alert(message)
+        setToastMessage(`Gagal mengunggah foto: ${message}`)
+        setToastType("error")
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 5000)
       }
     }
   }
 
   // Hapus Foto Profil
   const handleRemovePhoto = () => {
-    setForm((prev) => ({ ...prev, foto: null }))
+    setForm((prev) => {
+      const updated = { ...prev, foto: null }
+      if (role === "admin") {
+        try {
+          const saved = localStorage.getItem("empathika_admin_profile")
+          const parsed = saved ? JSON.parse(saved) : {}
+          localStorage.setItem("empathika_admin_profile", JSON.stringify({ ...parsed, ...updated, foto: null }))
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("empathika_admin_profile_updated"))
+            window.dispatchEvent(new Event("storage"))
+          }
+        } catch {}
+      }
+      return updated
+    })
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
+    setToastMessage("Foto profil dihapus. Klik 'Simpan Perubahan' di bawah untuk menyimpan perubahan.")
+    setToastType("success")
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 4000)
   }
 
   // Tambah Keahlian (Psikolog)
@@ -255,9 +309,8 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
 
       // Simpan langsung ke database backend
       try {
-        const res = await adminService.updateProfile({
+        const payload: any = {
           nama: form.nama,
-          email: form.email,
           noTelepon: form.noTelepon,
           bio: form.bio,
           foto: form.foto,
@@ -267,16 +320,21 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
           tiktok: form.tiktok,
           youtube: form.youtube,
           linkedin: form.linkedin,
-        })
+        }
+        if (form.email && form.email.trim() && form.email !== "admin@empathika.com") {
+          payload.email = form.email.trim()
+        }
+
+        const res = await adminService.updateProfile(payload)
 
         if (res?.data) {
           const updated = res.data
           const mapped: AdminProfileData = {
-            nama: updated.nama,
-            email: updated.email,
-            noTelepon: updated.noTelepon || updated.no_telepon || "",
+            nama: updated.nama || form.nama,
+            email: updated.email || form.email,
+            noTelepon: updated.noTelepon || updated.no_telepon || form.noTelepon || "",
             bio: updated.bio || "",
-            foto: updated.foto || null,
+            foto: updated.foto !== undefined && updated.foto !== null ? updated.foto : form.foto,
             alamat: updated.alamat || "",
             linkMaps: updated.linkMaps || updated.link_maps || "",
             instagram: updated.instagram || "",
@@ -312,12 +370,23 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
             }
           } catch {}
         }
-      } catch (backendErr) {
-        console.warn("Update profil ke backend gagal/offline, tetap tersimpan lokal:", backendErr)
-      }
 
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("empathika_admin_profile_updated"))
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("empathika_admin_profile_updated"))
+          window.dispatchEvent(new Event("storage"))
+        }
+
+        setToastMessage("Profil Admin berhasil diperbarui!")
+        setToastType("success")
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 3500)
+      } catch (backendErr: any) {
+        console.error("Update profil ke backend gagal:", backendErr)
+        const errMsg = backendErr?.response?.data?.message || backendErr?.message || "Gagal menyimpan perubahan ke server"
+        setToastMessage(`Gagal memperbarui profil: ${errMsg}`)
+        setToastType("error")
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 5000)
       }
     } else {
       setPsikologData(form)
@@ -353,11 +422,12 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
           }
         }
       } catch {}
-    }
 
-    setToastMessage(`Profil ${role === "admin" ? "Admin" : "Psikolog"} berhasil diperbarui!`)
-    setShowToast(true)
-    setTimeout(() => setShowToast(false), 3500)
+      setToastMessage("Profil Psikolog berhasil diperbarui!")
+      setToastType("success")
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3500)
+    }
   }
 
   // Inisial avatar cadangan jika foto profil belum diunggah
@@ -381,6 +451,10 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
     setNewParagraph,
     showToast,
     toastMessage,
+    toastType,
+    isLoadingProfile,
+    loadError,
+    fetchAdminProfile,
     previewModalOpen,
     setPreviewModalOpen,
     isPlayingVideoPreview,

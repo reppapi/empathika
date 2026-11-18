@@ -85,37 +85,51 @@ export default function HomeClient() {
   }, [])
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("empathika_admin_profile")
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        setAdminProfile((prev) => ({
-          ...prev,
-          alamat: parsed.alamat || prev.alamat,
-          linkMaps: parsed.linkMaps || parsed.link_maps || prev.linkMaps,
-          linkMapsEmbed: parsed.linkMapsEmbed || parsed.link_maps_embed || prev.linkMapsEmbed,
-          email: parsed.email || prev.email,
-          noTelepon: parsed.noTelepon || parsed.no_telepon || prev.noTelepon,
-        }))
-      }
-    } catch {}
-
-    adminService
-      .getPublicProfile()
-      .then((res) => {
-        if (res?.data) {
-          const d = res.data
+    const loadAdminProfile = () => {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile")
+        if (saved) {
+          const parsed = JSON.parse(saved)
           setAdminProfile((prev) => ({
             ...prev,
-            alamat: d.alamat || prev.alamat,
-            linkMaps: d.link_maps || d.linkMaps || prev.linkMaps,
-            linkMapsEmbed: d.link_maps_embed || d.linkMapsEmbed || prev.linkMapsEmbed,
-            email: d.email || prev.email,
-            noTelepon: d.no_telepon || d.noTelepon || prev.noTelepon,
+            alamat: parsed.alamat || prev.alamat,
+            linkMaps: parsed.linkMaps || parsed.link_maps || prev.linkMaps,
+            linkMapsEmbed: parsed.linkMapsEmbed || parsed.link_maps_embed || prev.linkMapsEmbed,
+            email: parsed.email || prev.email,
+            noTelepon: parsed.noTelepon || parsed.no_telepon || prev.noTelepon,
           }))
         }
-      })
-      .catch(() => {})
+      } catch {}
+
+      adminService
+        .getPublicProfile()
+        .then((res) => {
+          if (res?.data) {
+            const d = res.data
+            setAdminProfile((prev) => ({
+              ...prev,
+              alamat: d.alamat || prev.alamat,
+              linkMaps: d.link_maps || d.linkMaps || prev.linkMaps,
+              linkMapsEmbed: d.link_maps_embed || d.linkMapsEmbed || prev.linkMapsEmbed,
+              email: d.email || prev.email,
+              noTelepon: d.no_telepon || d.noTelepon || prev.noTelepon,
+            }))
+          }
+        })
+        .catch(() => {})
+    }
+
+    loadAdminProfile()
+
+    window.addEventListener("storage", loadAdminProfile)
+    window.addEventListener("focus", loadAdminProfile)
+    window.addEventListener("empathika_admin_profile_updated", loadAdminProfile)
+
+    return () => {
+      window.removeEventListener("storage", loadAdminProfile)
+      window.removeEventListener("focus", loadAdminProfile)
+      window.removeEventListener("empathika_admin_profile_updated", loadAdminProfile)
+    }
   }, [])
 
   useEffect(() => {

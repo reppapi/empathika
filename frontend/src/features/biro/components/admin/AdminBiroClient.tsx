@@ -75,12 +75,12 @@ export default function AdminBiroClient() {
 
   const [notification, setNotification] = useState<{
     message: string
-    type: "success" | "info"
+    type: "success" | "info" | "error"
   } | null>(null)
 
-  const showNotification = (message: string, type: "success" | "info" = "success") => {
+  const showNotification = (message: string, type: "success" | "info" | "error" = "success") => {
     setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3500)
+    setTimeout(() => setNotification(null), 4000)
   }
 
   // Load data dari BE
@@ -91,8 +91,10 @@ export default function AdminBiroClient() {
       if (res?.data && Array.isArray(res.data)) {
         setBiroList(res.data.map(mapBiroAccountToKomunitas))
       }
-    } catch (err) {
-      console.warn("Gagal mengambil data biro dari server:", err)
+    } catch (err: any) {
+      console.error("Gagal mengambil data biro dari server:", err)
+      const msg = err?.response?.data?.message || err?.message || "Gagal memuat data biro dari server."
+      showNotification(msg, "error")
     } finally {
       setIsLoading(false)
     }
@@ -300,10 +302,20 @@ export default function AdminBiroClient() {
     <div className="flex flex-col gap-6 font-poppins pb-16">
       {/* Toast Notifikasi */}
       {notification && (
-        <div className="fixed top-24 right-6 z-50 flex items-center gap-3 rounded-2xl bg-[#561269] px-5 py-3 text-white shadow-xl transition-all">
-          <svg className="w-5 h-5 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
+        <div
+          className={`fixed top-24 right-6 z-50 flex items-center gap-3 rounded-2xl px-5 py-3 text-white shadow-xl transition-all ${
+            notification.type === "error" ? "bg-rose-600" : "bg-[#561269]"
+          }`}
+        >
+          {notification.type === "error" ? (
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          )}
           <p className="text-xs sm:text-sm font-medium">{notification.message}</p>
         </div>
       )}
