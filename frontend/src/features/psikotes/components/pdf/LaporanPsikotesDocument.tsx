@@ -1,6 +1,6 @@
 /** Template layout dokumen Vector PDF laporan resmi psikotes Empathika menggunakan @react-pdf/renderer. */
 import React from "react";
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import type { LaporanPsikotesPdfData } from "../../utils/downloadLaporanPsikotesPdf";
 
 const BRAND_PURPLE = "#561269";
@@ -618,9 +618,12 @@ const officialStyles = StyleSheet.create({
 
   // 5. TANDA TANGAN PSIKOLOG RESMI
   signatureContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
     alignItems: "flex-end",
     marginTop: 8,
     marginBottom: 4,
+    paddingTop: 4,
   },
   signatureBox: {
     width: 220,
@@ -662,13 +665,6 @@ const officialStyles = StyleSheet.create({
     fontSize: 9,
     color: "#111827",
     textDecoration: "underline",
-    textAlign: "center",
-  },
-  signatureSipp: {
-    fontFamily: "Helvetica",
-    fontSize: 7.5,
-    color: "#6B7280",
-    marginTop: 2,
     textAlign: "center",
   },
 
@@ -988,6 +984,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
               <View wrap={false}>
                 {isLastPage && (
                   <View style={officialStyles.signatureContainer}>
+                    {/* Tanda Tangan Psikolog Pemeriksa */}
                     <View style={officialStyles.signatureBox}>
                       <Text style={officialStyles.signatureDate}>
                         Bandung, {sanitizePdfText(formatIdDate(data.tanggalReview, true))}
@@ -1004,9 +1001,6 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
 
                       <Text style={officialStyles.signatureName}>
                         {sanitizePdfText(data.namaPsikolog || "Psikolog Klinis Empathika")}
-                      </Text>
-                      <Text style={officialStyles.signatureSipp}>
-                        Surat Izin Praktik Psikologi (SIPP / SIPPK) Terdaftar
                       </Text>
                     </View>
                   </View>
@@ -1436,11 +1430,14 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
 
         {/* Footer Tanda Tangan & Catatan Resmi */}
         <View style={styles.signatureSection} wrap={false}>
+          {data.qrCodeUrl ? (
+            <Image src={data.qrCodeUrl} style={{ width: 44, height: 44, marginRight: 8, borderRadius: 4 }} />
+          ) : null}
           <Text style={styles.legalNote}>
             <Text style={styles.legalBold}>Catatan Resmi: </Text>
             Dokumen ini bersifat rahasia (confidential) dan diterbitkan secara
             digital sebagai hasil asesmen psikometri resmi Empathika.
-            {"\n"}Verifikasi Dokumen: {sanitizePdfText(data.noDokumen)}
+            {"\n"}Pindai QR Code untuk memvalidasi keaslian dokumen: {sanitizePdfText(data.noDokumen)}
           </Text>
           <View style={styles.signatureBox}>
             <Text style={styles.signatureDate}>

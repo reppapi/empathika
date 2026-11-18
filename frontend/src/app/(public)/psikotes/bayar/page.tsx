@@ -1,23 +1,22 @@
-/** Halaman rute pembayaran psikotes (diarahkan ke komponen checkout). */
-import { Suspense } from "react"
-import PsikotesCheckoutClient from "@/features/psikotes/components/client/PsikotesCheckoutClient"
+/** Redireksi rute lama /psikotes/bayar ke rute resmi /psikotes/checkout. */
+import { redirect } from "next/navigation"
 
-export const metadata = {
-  title: "Pendaftaran & Pembayaran Psikotes - Empathika",
-  description: "Selesaikan pendaftaran dan pembayaran paket tes psikotes profesional Empathika.",
-}
-
-export default function PsikotesBayarPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center font-poppins text-gray-400 text-sm">
-          Memuat halaman pembayaran...
-        </div>
+export default function PsikotesBayarPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>
+}) {
+  const query = new URLSearchParams()
+  if (searchParams) {
+    Object.entries(searchParams).forEach(([key, val]) => {
+      if (Array.isArray(val)) {
+        val.forEach((v) => query.append(key, v))
+      } else if (val !== undefined) {
+        query.append(key, val)
       }
-    >
-      <PsikotesCheckoutClient />
-    </Suspense>
-  )
+    })
+  }
+  const queryString = query.toString()
+  redirect(queryString ? `/psikotes/checkout?${queryString}` : "/psikotes/checkout")
 }
 

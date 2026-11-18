@@ -135,9 +135,23 @@ export interface SubmitPsikotesResult {
   }
 }
 
+export interface RekapJawabanItem {
+  nomor: number
+  pertanyaan: string
+  jawaban: string
+  label?: string | null
+  skor: number
+  id_soal?: string
+  id_pilihan?: string
+}
+
 export interface ReviewPsikotesItem {
   id: string
   id_paket: string
+  id_psikolog?: string | null
+  is_claimed?: boolean
+  claimed_at?: string | null
+  is_stale_claim?: boolean
   kode_akses: string | null
   nama_paket: string
   jenis_akses: string
@@ -154,6 +168,7 @@ export interface ReviewPsikotesItem {
   tanggal_review?: string | null
   psikolog?: {
     id: string
+    id_account?: string | null
     nama: string
     kategori?: string
     foto?: string | null
@@ -166,6 +181,8 @@ export interface ReviewPsikotesListResponse {
   summary: {
     total: number
     menunggu_review: number
+    kolam_bersama: number
+    sedang_ditelaah: number
     selesai_review: number
   }
   items: ReviewPsikotesItem[]
@@ -329,6 +346,9 @@ export const psikotesService = {
             kategori?: string
             foto?: string | null
           } | null
+          rekap_jawaban?: RekapJawabanItem[]
+          total_jawaban?: number
+          snapshot_jawaban?: any
         }
       }>(`/psikotes/booking/${bookingId}/hasil`, {
         params: accessToken ? { token: accessToken } : undefined,
@@ -359,6 +379,36 @@ export const psikotesService = {
         message: string
         data: any
       }>(`/psikotes/booking/${bookingId}/review`, payload)
+      .then((r) => r.data),
+
+  claimReviewTicket: (bookingId: string) =>
+    apiClient
+      .post<{
+        success: boolean
+        message: string
+        data: {
+          id: string
+          status_pengerjaan: string
+          is_claimed: boolean
+          claimed_by: any
+          claimed_at: string
+        }
+      }>(`/psikotes/booking/${bookingId}/claim`)
+      .then((r) => r.data),
+
+  releaseReviewTicket: (bookingId: string) =>
+    apiClient
+      .post<{
+        success: boolean
+        message: string
+        data: {
+          id: string
+          status_pengerjaan: string
+          is_claimed: boolean
+          claimed_by: null
+          message: string
+        }
+      }>(`/psikotes/booking/${bookingId}/release`)
       .then((r) => r.data),
 }
 
