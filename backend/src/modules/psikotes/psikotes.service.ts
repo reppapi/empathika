@@ -9,6 +9,8 @@ import type {
   PesertaQueryInput,
   CreateBookingPsikotesInput,
   VerifyTicketInput,
+  ReviewPsikotesQueryInput,
+  SubmitReviewPsikotesInput,
 } from './psikotes.schema'
 
 export class PsikotesService {
@@ -67,6 +69,18 @@ export class PsikotesService {
 
   async cleanupOldAnonymousGuests(daysOld?: number) {
     return this.repo.cleanupOldAnonymousGuests(daysOld)
+  }
+
+  async getReviewList(params?: ReviewPsikotesQueryInput) {
+    return this.repo.getReviewList(params)
+  }
+
+  async submitReview(
+    bookingId: string,
+    input: SubmitReviewPsikotesInput,
+    userId?: string
+  ) {
+    return this.repo.submitReview(bookingId, input, userId)
   }
 }
 

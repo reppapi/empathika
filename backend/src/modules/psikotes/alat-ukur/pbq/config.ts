@@ -54,7 +54,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Avoidant (Penghindaran)",
       deskripsi: "Keyakinan inti bahwa diri rentan ditolak dan dihina, sehingga memilih menjauhi kedekatan personal.",
-      nomorSoal: [1, 10, 19, 28, 37, 46, 55, 64, 73, 82, 91, 100, 109, 118],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 1),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,
@@ -62,7 +62,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Dependent (Ketergantungan)",
       deskripsi: "Keyakinan diri tidak berdaya, tidak mampu mengambil keputusan sendiri, dan butuh orang lain untuk menopang.",
-      nomorSoal: [2, 11, 20, 29, 38, 47, 56, 65, 74, 83, 92, 101, 110, 119],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 15),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,
@@ -70,7 +70,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Passive-Aggressive (Pasif-Agresif)",
       deskripsi: "Keyakinan bahwa otoritas mengekang kemandirian, merespon tuntutan dengan penundaan dan perlawanan pasif.",
-      nomorSoal: [3, 12, 21, 30, 39, 48, 57, 66, 75, 84, 93, 102, 111, 120],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 29),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,
@@ -78,7 +78,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Obsessive-Compulsive (Obsesif-Kompulsif)",
       deskripsi: "Keyakinan standar kaku, ketertiban mutlak, dan keharusan mengontrol segala detail agar tidak terjadi bencana.",
-      nomorSoal: [4, 13, 22, 31, 40, 49, 58, 67, 76, 85, 94, 103, 112, 121],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 43),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,
@@ -86,7 +86,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Antisocial (Antisosial)",
       deskripsi: "Keyakinan dunia keras (hukum rimba), aturan dibuat untuk dilanggar, dan hak memanfaatkan orang lain.",
-      nomorSoal: [5, 14, 23, 32, 41, 50, 59, 68, 77, 86, 95, 104, 113, 122],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 57),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,
@@ -94,7 +94,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Narcissistic (Narsisistik)",
       deskripsi: "Keyakinan diri istimewa, berhak atas perlakuan khusus, dan berada di atas standar orang kebanyakan.",
-      nomorSoal: [6, 15, 24, 33, 42, 51, 60, 69, 78, 87, 96, 105, 114, 123],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 71),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,
@@ -102,7 +102,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Histrionic (Histrionik)",
       deskripsi: "Keyakinan diri harus menjadi pusat perhatian dan dikagumi agar merasa berharga.",
-      nomorSoal: [7, 16, 25, 34, 43, 52, 61, 70, 79, 88, 97, 106, 115, 124],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 85),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,
@@ -110,7 +110,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Schizoid (Skizoid)",
       deskripsi: "Keyakinan relasi intim merepotkan dan tidak menyenangkan, lebih nyaman menyendiri tanpa keterikatan emosi.",
-      nomorSoal: [8, 17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 107, 116, 125],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 99),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,
@@ -118,7 +118,7 @@ export const PBQ_CONFIG: AlatUkurConfig = {
     {
       nama: "Paranoid (Paranoid)",
       deskripsi: "Keyakinan bahwa orang lain berniat buruk, tidak dapat dipercaya, dan selalu memiliki motif tersembunyi.",
-      nomorSoal: [9, 18, 27, 36, 45, 54, 63, 72, 81, 90, 99, 108, 117, 126],
+      nomorSoal: Array.from({ length: 14 }, (_, i) => i + 113),
       jumlahSoal: 14,
       skorMin: 0,
       skorMax: 56,

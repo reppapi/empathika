@@ -12,6 +12,9 @@ export interface BiroKomunitas {
   statusAktivasi: StatusAktivasiBiro
   telepon?: string
   alamat?: string
+  bankCode?: string
+  nomorRekening?: string
+  namaPemilikRekening?: string
   websiteUrl?: string
   dashboardUrl?: string
   aktivasiToken?: string
@@ -32,6 +35,9 @@ export interface BiroFormData {
   emailAdmin: string
   telepon?: string
   alamat?: string
+  bankCode?: string
+  nomorRekening?: string
+  namaPemilikRekening?: string
   statusAktivasi?: StatusAktivasiBiro
   aktivasiToken?: string
   tokenExpiredAt?: string

@@ -41,6 +41,9 @@ export default function BiroFormModal({
   const [emailAdmin, setEmailAdmin] = useState("")
   const [telepon, setTelepon] = useState("")
   const [alamat, setAlamat] = useState("")
+  const [bankCode, setBankCode] = useState("BCA")
+  const [nomorRekening, setNomorRekening] = useState("")
+  const [namaPemilikRekening, setNamaPemilikRekening] = useState("")
   const [statusAktivasi, setStatusAktivasi] = useState<StatusAktivasiBiro>("Menunggu Aktivasi")
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -66,6 +69,9 @@ export default function BiroFormModal({
       setEmailAdmin(initialData.emailAdmin || "")
       setTelepon(initialData.telepon || "")
       setAlamat(initialData.alamat || "")
+      setBankCode((initialData as any).bank_code || (initialData as any).bankCode || "BCA")
+      setNomorRekening((initialData as any).nomor_rekening || (initialData as any).nomorRekening || "")
+      setNamaPemilikRekening((initialData as any).nama_pemilik_rek || (initialData as any).namaPemilikRekening || "")
       setStatusAktivasi(initialData.statusAktivasi || "Menunggu Aktivasi")
       setIsSlugManuallyEdited(true)
     } else {
@@ -77,6 +83,9 @@ export default function BiroFormModal({
       setEmailAdmin("")
       setTelepon("")
       setAlamat("")
+      setBankCode("BCA")
+      setNomorRekening("")
+      setNamaPemilikRekening("")
       setStatusAktivasi("Menunggu Aktivasi")
       setIsSlugManuallyEdited(false)
     }
@@ -200,6 +209,9 @@ export default function BiroFormModal({
         emailAdmin: emailAdmin.trim(),
         telepon: telepon.trim(),
         alamat: alamat.trim(),
+        bankCode,
+        nomorRekening: nomorRekening.trim(),
+        namaPemilikRekening: namaPemilikRekening.trim(),
         websiteUrl: getBiroWebsiteUrl(finalSlug),
         dashboardUrl: `/admin-biro`,
         statusAktivasi,
@@ -464,6 +476,56 @@ export default function BiroFormModal({
               }`}
             />
             {errors.alamat && <p className="text-xs text-red-500 mt-1 font-medium">{errors.alamat}</p>}
+          </div>
+
+          {/* ── Rekening Bank Biro (Untuk Payout Otomatis) ── */}
+          <div className="p-4 bg-purple-50/60 border border-purple-200/80 rounded-2xl space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#561269]" />
+              <h4 className="text-xs font-extrabold text-[#561269] uppercase tracking-wider">
+                Rekening Pencairan / Payout Komisi Biro
+              </h4>
+            </div>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Digunakan untuk transfer pencairan payout komisi biro via bank transfer.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Bank</label>
+                <select
+                  value={bankCode}
+                  onChange={(e) => setBankCode(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#561269]"
+                >
+                  <option value="BCA">BCA</option>
+                  <option value="BNI">BNI</option>
+                  <option value="BRI">BRI</option>
+                  <option value="MANDIRI">Mandiri</option>
+                  <option value="PERMATA">Permata</option>
+                  <option value="CIMB">CIMB Niaga</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Nomor Rekening</label>
+                <input
+                  type="text"
+                  value={nomorRekening}
+                  onChange={(e) => setNomorRekening(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Contoh: 1234567890"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 focus:outline-none focus:border-[#561269]"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Nama Pemilik Rekening</label>
+                <input
+                  type="text"
+                  value={namaPemilikRekening}
+                  onChange={(e) => setNamaPemilikRekening(e.target.value)}
+                  placeholder="Sesuai buku tabungan"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 focus:outline-none focus:border-[#561269]"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Deskripsi Profil */}
