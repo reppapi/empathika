@@ -33,3 +33,29 @@ export const EVENT_LIMITS = {
   MIN_KUOTA: 1,
 } as const
 
+export const ARSIP_KATEGORI_TABS = [
+  { id: "SEMINAR", label: "Seminar" },
+  { id: "WORKSHOP", label: "Workshop" },
+  { id: "KOLABORASI", label: "Kolaborasi" },
+] as const
+
+export type ArsipKategoriTab = (typeof ARSIP_KATEGORI_TABS)[number]["id"]
+
+export const DOKUMENTASI_WORKSHOP_PILLS = [
+  "Semua",
+  "SEFT",
+  "Mind Record",
+  "Empty Chair",
+  "Financial Well Being",
+  "Self Compassion",
+  "Mindfulness",
+  "Clinical Hypnotherapy",
+  "Positive Psychotherapy",
+  "Public Speaking Kesehatan Mental",
+  "Peer Helper",
+] as const
+
+export type DokumentasiWorkshopPill = (typeof DOKUMENTASI_WORKSHOP_PILLS)[number]
+
+
+
