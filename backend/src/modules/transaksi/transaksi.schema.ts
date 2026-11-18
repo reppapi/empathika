@@ -23,6 +23,7 @@ export const createCheckoutTransaksiSchema = z.object({
     nama: z.string(),
     whatsapp: z.string().optional().or(z.literal('')),
   })).optional(),
+  id_biro: z.string().optional().describe('ID Biro jika transaksi berasal dari website tenant biro'),
   success_redirect_url: z.string().url().optional(),
   failure_redirect_url: z.string().url().optional(),
 })

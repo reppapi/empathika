@@ -15,6 +15,7 @@ export type InstrumentCode =
   | "DASS"
   | "PHQ"
   | "GAD"
+  | "MCMI"
   | "UNKNOWN";
 
 export interface DetectablePackage {
@@ -50,9 +51,11 @@ export function getInstrumentCode(
   if (kode.includes("DASS")) return "DASS";
   if (kode.includes("PHQ")) return "PHQ";
   if (kode.includes("GAD")) return "GAD";
+  if (kode.includes("MCMI")) return "MCMI";
 
   // 2. Prioritas Kedua: Akronim Spesifik pada Judul
   const j = (data?.judul || "").toUpperCase();
+  if (j.includes("(MCMI") || j.includes("MCMI-IV") || j.includes("MCMI") || j.includes("MILLON") || j.includes("MULTIAXIAL")) return "MCMI";
   if (j.includes("(CATS)") || j.includes(" CATS") || j.includes("TRAUMA SCREEN") || j.includes("PENGALAMAN TRAUMATIS") || j.includes("PASCATRAUMA")) return "CATS";
   if (j.includes("(CDI)") || j.includes(" CDI") || j.includes("CHILDREN'S DEPRESSION") || j.includes("DEPRESI ANAK")) return "CDI";
   if (j.includes("(PBQ)") || j.includes(" PBQ") || j.includes("POLA KEYAKINAN KEPRIBADIAN") || j.includes("KEYAKINAN DAN POLA KEPRIBADIAN")) return "PBQ";
@@ -74,6 +77,7 @@ export function getInstrumentCode(
   if (slug.includes("DASS")) return "DASS";
   if (slug.includes("PHQ")) return "PHQ";
   if (slug.includes("GAD")) return "GAD";
+  if (slug.includes("MCMI")) return "MCMI";
 
   return "UNKNOWN";
 }
@@ -117,6 +121,10 @@ export function isGAD(data?: DetectablePackage | null, fallbackId?: string): boo
   return getInstrumentCode(data, fallbackId) === "GAD";
 }
 
+export function isMCMI(data?: DetectablePackage | null, fallbackId?: string): boolean {
+  return getInstrumentCode(data, fallbackId) === "MCMI";
+}
+
 /**
  * Target Rentang Usia Baku Sesuai Materi Handout & Manual Resmi Alat Ukur
  */
@@ -141,6 +149,8 @@ export function getInstrumentTargetUsia(
     case "PHQ":
       return "18 tahun ke atas";
     case "GAD":
+      return "18 tahun ke atas";
+    case "MCMI":
       return "18 tahun ke atas";
     case "PBQ":
       return "Tidak dicantumkan dalam handout";

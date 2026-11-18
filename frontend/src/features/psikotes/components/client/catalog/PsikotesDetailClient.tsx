@@ -28,6 +28,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import PhoneInputField from "@/components/shared/PhoneInputField";
+import { useAdminContact } from "@/hooks/useAdminContact";
 
 const DEFAULT_GUIDELINES = [
   "Jawab setiap pertanyaan dengan jujur sesuai dengan dirimu. Tidak ada jawaban benar atau salah.",
@@ -41,6 +42,7 @@ const DEFAULT_BANNER = "https://images.unsplash.com/photo-1543269865-cbf427effba
 export default function PsikotesDetailClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { getWhatsAppUrl } = useAdminContact();
   const [apiData, setApiData] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -101,17 +103,43 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
       const res = await psikotesService.verifyTicket({
         kode_akses: ticketKode.trim(),
         no_telepon: ticketWa.trim(),
+        id_paket: apiData?.id || params.testId,
       });
 
       if (res && res.success && res.data) {
-        if (res.data.status_pengerjaan === "SELESAI") {
-          setTicketSuccess("Tiket ini sudah pernah diselesaikan. Anda akan dialihkan ke halaman hasil tes...");
+        // Validasi kecocokan paket tiket dengan tes yang sedang dibuka
+        const currentId = (apiData?.id || "").toLowerCase();
+        const currentSlug = (params.testId || "").toLowerCase();
+        const ticketTestId = (res.data.test_id || "").toLowerCase();
+        const redirectUrl = (res.data.redirect_url || "").toLowerCase();
+
+        const isPaketMatched =
+          !currentId ||
+          ticketTestId === currentId ||
+          (currentSlug && redirectUrl.includes(`/psikotes/${currentSlug}/`));
+
+        if (!isPaketMatched) {
+          setTicketError(
+            `Kode tiket tidak valid untuk tes ini. Tiket Anda terdaftar untuk paket "${res.data.judul_paket || "lain"}".`
+          );
+          return;
+        }
+
+        // Teks feedback sesuai status riil tiket
+        if (res.data.status_pengerjaan === "MENUNGGU_REVIEW") {
+          setTicketSuccess("Asesmen sedang ditelaah oleh psikolog. Mengalihkan ke halaman status hasil...");
           setTimeout(() => {
             markPsikotesDetailOrigin(params.testId);
             router.push(res.data.redirect_url as any);
-          }, 1200);
+          }, 1000);
+        } else if (res.data.status_pengerjaan === "SELESAI") {
+          setTicketSuccess("Laporan hasil asesmen resmi sudah terbit. Mengalihkan ke halaman hasil tes...");
+          setTimeout(() => {
+            markPsikotesDetailOrigin(params.testId);
+            router.push(res.data.redirect_url as any);
+          }, 1000);
         } else {
-          setTicketSuccess("Kode valid! Mengalihkan ke halaman pengerjaan tes...");
+          setTicketSuccess("Kode tiket valid! Mengalihkan ke halaman pengerjaan tes...");
           setTimeout(() => {
             markPsikotesDetailOrigin(params.testId);
             router.push(res.data.redirect_url as any);
@@ -471,7 +499,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
             </div>
 
             <p className="text-xs text-gray-600 mb-5 leading-relaxed">
-              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes aktif tanpa batas waktu.
+              Jika Anda sudah membeli paket ini, masukkan kode akses transaksi dan nomor WhatsApp pembeli untuk melanjutkan. Tiket pengerjaan dan akses hasil tes aktif selama 3 bulan.
             </p>
 
             {/* Status alerts */}
@@ -542,7 +570,7 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
                 <p className="text-xs text-gray-500">
                   Lupa kode akses atau nomor WhatsApp?{" "}
                   <a
-                    href="https://wa.me/6287878785498?text=Halo%20Admin%20Empathika,%20saya%20lupa%20kode%20akses%20tiket%20psikotes%20saya.%20Mohon%20bantuannya."
+                    href={getWhatsAppUrl(`Halo Admin Empathika, saya lupa kode akses tiket tes ${apiData?.judul || "psikotes"} saya. Mohon bantuannya.`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#561269] font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"

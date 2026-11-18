@@ -63,11 +63,6 @@ export const DASS42_INTERPRETASI = [
     judul: 'Kondisi Emosional Normal',
     deskripsi:
       'Kondisi kesehatan emosional secara umum berada dalam batas normal. Keseimbangan suasana hati dan daya lenting (resiliensi) terhadap tekanan sehari-hari terjaga dengan baik.',
-    tips: [
-      'Pertahankan rutinitas istirahat, olahraga, dan nutrisi seimbang.',
-      'Lakukan aktivitas rekreasional yang menyenangkan secara teratur.',
-      'Jaga koneksi sosial yang hangat bersama sahabat dan keluarga.',
-    ],
   },
   {
     min_skor: 31,
@@ -76,11 +71,6 @@ export const DASS42_INTERPRETASI = [
     judul: 'Kondisi Emosional Ringan',
     deskripsi:
       'Terdeteksi adanya ketegangan emosional tingkat ringan. Kamu mungkin sedang mengalami beban pikiran atau kelelahan situasional yang memicu sedikit rasa lelah secara mental.',
-    tips: [
-      'Ambil jeda istirahat sejenak dari rutinitas yang menguras energi mental.',
-      'Praktikkan latihan pernapasan dalam, relaksasi otot, atau journaling emosi.',
-      'Ceritakan hal yang membebanimu kepada teman atau keluarga terpercaya.',
-    ],
   },
   {
     min_skor: 41,
@@ -89,11 +79,6 @@ export const DASS42_INTERPRETASI = [
     judul: 'Kondisi Emosional Sedang',
     deskripsi:
       'Kondisi emosional berada pada tingkat sedang. Kombinasi perubahan suasana hati, kecemasan, atau ketegangan mulai mempengaruhi kenyamanan aktivitas harian.',
-    tips: [
-      'Prioritaskan manajemen stres dan atur batasan beban kerja yang realistis.',
-      'Hindari memendam beban sendirian dan kurangi overthinking dengan aktivitas terarah.',
-      'Sangat disarankan berkonsultasi dengan psikolog profesional Empathika untuk memetakan pemicunya.',
-    ],
   },
   {
     min_skor: 61,
@@ -102,11 +87,6 @@ export const DASS42_INTERPRETASI = [
     judul: 'Kondisi Emosional Berat',
     deskripsi:
       'Terdeteksi beban emosional yang cukup berat. Tekanan yang dialami cukup intens dan dapat mengganggu konsentrasi, produktivitas, maupun kenyamanan relasi sosial.',
-    tips: [
-      'Jadwalkan sesi konsultasi dan konseling komprehensif bersama psikolog profesional.',
-      'Kurangi tuntutan tinggi dan mintalah dukungan dari support system terdekat.',
-      'Fokus pada perawatan diri mendasar (pola tidur, makan teratur, dan lingkungan tenang).',
-    ],
   },
   {
     min_skor: 71,
@@ -115,11 +95,6 @@ export const DASS42_INTERPRETASI = [
     judul: 'Kondisi Emosional Sangat Berat',
     deskripsi:
       'Kondisi emosional berada pada tingkat sangat intens. Kondisi ini memerlukan perhatian dan pendampingan psikologis profesional demi memulihkan kestabilan mental dan kenyamanan diri.',
-    tips: [
-      'Segera hubungi psikolog profesional atau layanan kesehatan mental terdekat untuk mendapatkan pendampingan klinis yang tepat.',
-      'Jangan ragu meminta bantuan orang terdekat untuk mendampingimu dalam menjalani masa sulit ini.',
-      'Empathika menyediakan ruang konsultasi privat dan aman bersama psikolog terpercaya.',
-    ],
   },
 ]
 

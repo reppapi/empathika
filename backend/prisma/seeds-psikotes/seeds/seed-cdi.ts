@@ -323,13 +323,6 @@ export const CDI_INTERPRETASI = [
     judul: 'Gejala Depresi Tidak Menonjol',
     deskripsi:
       'Berdasarkan hasil asesmen, gejala depresi yang kamu alami belum tampak menonjol. Meski begitu, kamu mungkin sesekali merasa sedih, kurang bersemangat, atau mengalami perubahan suasana hati.\n\nKamu juga mungkin pernah merasa kurang percaya diri, kesulitan menghadapi situasi tertentu, atau mengalami kendala dalam hubungan dengan orang lain. Perasaan tersebut tetap perlu diperhatikan, terutama jika mulai mengganggu aktivitas sehari-hari.\n\nCobalah untuk tetap melakukan kegiatan yang kamu sukai, menjaga hubungan dengan orang-orang terdekat, dan bercerita ketika sedang menghadapi kesulitan. Jangan ragu mencari dukungan dari orang dewasa yang kamu percaya apabila perasaan tersebut terus berlanjut.',
-    tips: [
-      'Pertahankan komunikasi terbuka dengan orang tua, guru, atau teman sebaya mengenai apa yang kamu rasakan.',
-      'Lakukan kegiatan atau hobi yang menyenangkan untuk menjaga suasana hati dan menyalurkan energi secara positif.',
-      'Jaga pola tidur teratur dan asupan makanan bergizi untuk mendukung kesehatan fisik dan konsentrasi belajar.',
-      'Tetap kembangkan rasa percaya diri dan hargai setiap usaha atau pencapaian kecil yang kamu raih.',
-      'Ceritakan kepada orang yang kamu percaya jika sesekali merasa sedih atau menghadapi masalah yang berat.',
-    ],
   },
   {
     min_skor: 19,
@@ -338,13 +331,6 @@ export const CDI_INTERPRETASI = [
     judul: 'Gejala Depresi Perlu Mendapat Perhatian',
     deskripsi:
       'Berdasarkan hasil asesmen, terdapat gejala depresi yang perlu mendapat perhatian lebih lanjut. Kondisi ini dapat berkaitan dengan perasaan sedih, suasana hati negatif, kehilangan minat terhadap kegiatan yang biasanya disukai, atau merasa kurang mampu menghadapi berbagai situasi.\n\nSelain itu, kamu mungkin mengalami kesulitan dalam hubungan dengan orang lain, merasa kurang percaya diri, atau kehilangan semangat dalam menjalani aktivitas sehari-hari. Pengalaman tersebut dapat memengaruhi kenyamanan diri, kegiatan belajar, maupun hubungan sosial.\n\nKamu tidak harus menghadapi perasaan tersebut sendirian. Cobalah untuk bercerita kepada orang dewasa yang kamu percaya dan pertimbangkan untuk berkonsultasi dengan psikolog agar dapat memperoleh pemahaman serta pendampingan yang sesuai dengan kebutuhanmu.',
-    tips: [
-      'Sangat disarankan untuk berkonsultasi dengan profesional psikolog anak/remaja atau psikiater untuk evaluasi komprehensif.',
-      'Ceritakan apa yang kamu rasakan kepada orang tua, wali, atau guru yang kamu percaya agar mendapatkan dukungan emosional.',
-      'Hindari memendam beban perasaan sendirian; kehadiran dan dukungan lingkungan terdekat sangat berarti.',
-      'Berikan ruang bagi diri sendiri untuk beristirahat dan jangan terlalu menyalahkan diri sendiri atas kesulitan yang dialami.',
-      'Ceritakan kepada orang dewasa yang kamu percaya apabila perasaan tersebut terus berlanjut.',
-    ],
   },
 ]
 

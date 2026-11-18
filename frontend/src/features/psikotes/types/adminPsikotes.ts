@@ -63,6 +63,8 @@ export type AdminPsikotesPeserta = {
   tanggal: string;
   rawTanggal?: string;
   status: string;
+  status_pengerjaan?: string | null;
+  perlu_review_psikolog?: boolean;
   skor: string;
   jenisAkses: string;
   usia?: number | null;

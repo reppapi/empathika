@@ -36,6 +36,10 @@ export interface LaporanPsikotesPdfData {
     totalSkor?: number | null;
     deskripsi: string;
   };
+  catatanPsikolog?: string | null;
+  rekomendasiPsikolog?: string | null;
+  namaPsikolog?: string | null;
+  tanggalReview?: string | null;
   subscales?: LaporanPsikotesSubscale[];
   subscalesTitle?: string;
   subscalesMaxNote?: string;

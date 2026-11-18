@@ -20,6 +20,7 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
   const navItems = [
     { name: "Beranda", path: "/psikolog-web/beranda" },
     { name: "Jadwal & Sesi", path: "/psikolog-web/jadwal" },
+    { name: "Review Asesmen", path: "/psikolog-web/review-asesmen" },
   ]
 
   return (
