@@ -18,19 +18,12 @@ import {
   Search,
   RefreshCw,
   Stethoscope,
-  ChevronRight,
   User,
-  Phone,
   Calendar,
   FileText,
   Filter,
-  Sparkles,
   Loader2,
   Lock,
-  Waves,
-  UserCheck,
-  ShieldCheck,
-  Inbox,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem, type ReviewPsikotesListResponse } from "@/services/psikotes.service";

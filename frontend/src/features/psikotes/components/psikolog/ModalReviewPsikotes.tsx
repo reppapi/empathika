@@ -6,7 +6,6 @@ import {
   FileCheck2,
   CheckCircle2,
   AlertTriangle,
-  Clock,
   Loader2,
   Stethoscope,
   BarChart3,

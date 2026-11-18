@@ -1,4 +1,4 @@
-/** Halaman hasil skrining psikotes gratis (ringkasan kategori, evaluasi DASS, dan saran tindak lanjut). */
+/** Halaman hasil skrining psikotes gratis (ringkasan kategori skor dan saran tindak lanjut). */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,11 +12,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
-import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
 import {
   isCATS as checkCATS,
   isCDI as checkCDI,
-  isDASS as checkDASS,
   isPBQ as checkPBQ,
   isRCMAS as checkRCMAS,
   isCHOCI as checkCHOCI,
@@ -194,12 +192,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   const isRCMAS = checkRCMAS(dbPackage, params.testId);
   const isPBQ = checkPBQ(dbPackage, params.testId);
   const isCHOCI = checkCHOCI(dbPackage, params.testId);
-  const isDASS = checkDASS(dbPackage, params.testId);
-
-  // Dimensi DASS-42 (Depresi, Kecemasan, Stres)
-  const rawDep = searchParams.get("dep");
-  const rawAnx = searchParams.get("anx");
-  const rawStr = searchParams.get("str");
 
   // Subskala kecemasan RCMAS (tanpa lieScale di sisi peserta, tanpa cutoff buatan)
   const rcmasSubscales = isRCMAS
@@ -274,15 +266,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
     : null;
 
   const catsFungsi = isCATS ? bookingDetailSkor?.fungsiPsikososial : null;
-
-  const dassEvaluation = isDASS
-    ? evaluateDASS(
-        totalSkor,
-        rawDep !== null && rawDep !== "" ? parseInt(rawDep, 10) : null,
-        rawAnx !== null && rawAnx !== "" ? parseInt(rawAnx, 10) : null,
-        rawStr !== null && rawStr !== "" ? parseInt(rawStr, 10) : null
-      )
-    : null;
 
   const isProfileOnlyWithoutTotal = Boolean(
     bookingDetailSkor?.tanpaSkorTotal &&
@@ -381,19 +364,7 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
   }
 
   // Ambil judul, deskripsi interpretasi, dan tips murni dari database
-  let headline = dbInterpretasi?.judul || dbPackage?.judul || "Profil Skor Asesmen";
-  if (isDASS) {
-    // Pastikan tidak ada istilah GPD atau rangkaian keparahan beruntun di judul
-    if (
-      !headline ||
-      /general psychological distress/i.test(headline) ||
-      /\(gpd\)/i.test(headline) ||
-      /depresi.*kecemasan.*stres/i.test(headline) ||
-      /depresi.*kecemasan.*stress/i.test(headline)
-    ) {
-      headline = "Profil Kesehatan Emosional";
-    }
-  }
+  const headline = dbInterpretasi?.judul || dbPackage?.judul || "Profil Skor Asesmen";
   const interpretasiText = dbInterpretasi?.deskripsi || "Asesmen psikologi telah diselesaikan.";
 
   const rawTips = (dbInterpretasi as any)?.tips;
@@ -524,7 +495,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
             tipsList={tipsList}
             isTipsExpanded={isTipsExpanded}
             onToggleTips={() => setIsTipsExpanded(!isTipsExpanded)}
-            dassEvaluation={dassEvaluation}
           />
         )}
 

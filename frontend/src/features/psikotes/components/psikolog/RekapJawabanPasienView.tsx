@@ -4,16 +4,9 @@ import React, { useState, useMemo } from "react";
 import {
   Search,
   X,
-  CheckCircle2,
   AlertTriangle,
-  AlertOctagon,
   FileText,
-  ShieldAlert,
   Check,
-  HelpCircle,
-  ExternalLink,
-  ChevronDown,
-  Sparkles,
 } from "lucide-react";
 import type { RekapJawabanItem } from "@/services/psikotes.service";
 

@@ -5,10 +5,8 @@ import {
   X,
   Search,
   AlertTriangle,
-  FileText,
   Check,
   Printer,
-  Sparkles,
   ClipboardList,
 } from "lucide-react";
 import type { RekapJawabanItem } from "@/services/psikotes.service";

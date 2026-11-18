@@ -667,13 +667,6 @@ const officialStyles = StyleSheet.create({
     textDecoration: "underline",
     textAlign: "center",
   },
-  signatureSipp: {
-    fontFamily: "Helvetica",
-    fontSize: 7.5,
-    color: "#6B7280",
-    marginTop: 2,
-    textAlign: "center",
-  },
 
   // 6. FOOTER DOKUMEN RESMI
   footerContainer: {
