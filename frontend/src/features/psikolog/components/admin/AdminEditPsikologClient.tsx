@@ -57,6 +57,9 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
   const [quote, setQuote] = useState("")
   const [instagram, setInstagram] = useState("")
   const [foto, setFoto] = useState<string | null>(null)
+  const [bankCode, setBankCode] = useState("BCA")
+  const [nomorRekening, setNomorRekening] = useState("")
+  const [namaPemilikRekening, setNamaPemilikRekening] = useState("")
   const [keahlian, setKeahlian] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
   const [jumlahSesi, setJumlahSesi] = useState(0)
@@ -196,6 +199,10 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
           backendData.account?.token_aktivasi_exp ||
           ""
 
+        const bankCodeVal = backendData.bank_code || backendData.bankCode || "BCA"
+        const nomorRekeningVal = backendData.nomor_rekening || backendData.nomorRekening || ""
+        const namaPemilikRekeningVal = backendData.nama_pemilik_rek || backendData.namaPemilikRekening || ""
+
         const passwordVal = localData?.password || "Psikolog123!"
         const tanggalBergabungVal = localData?.tanggalBergabung || "Terdaftar di DB"
 
@@ -214,6 +221,9 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         setQuote(quoteVal)
         setInstagram(instagramVal)
         setFoto(fotoVal)
+        setBankCode(bankCodeVal)
+        setNomorRekening(nomorRekeningVal)
+        setNamaPemilikRekening(namaPemilikRekeningVal)
         setKeahlian(keahlianArr)
         setJumlahSesi(jumlahSesiVal)
         setTanggalBergabung(tanggalBergabungVal)
@@ -481,6 +491,9 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       instagram: instagram.trim(),
       foto,
       keahlian,
+      bankCode: bankCode || undefined,
+      nomorRekening: nomorRekening.trim() || undefined,
+      namaPemilikRekening: namaPemilikRekening.trim() || undefined,
       tanggalBergabung,
       tokenAktivasi: activationToken || undefined,
       tokenExpiredAt: tokenExpiredAt || undefined,
@@ -1093,6 +1106,62 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 </button>
               </span>
             ))}
+          </div>
+        </div>
+
+        {/* 5. REKENING BANK (UNTUK PAYOUT) */}
+        <div className="rounded-3xl border border-purple-200 bg-purple-50/40 p-6 sm:p-8 space-y-4">
+          <div className="border-b border-purple-100 pb-3">
+            <h3 className="text-base font-bold text-[#561269]">
+              Rekening Bank Tenaga Ahli (Payout Transfer)
+            </h3>
+            <p className="text-xs text-gray-600">
+              Data rekening bank untuk penyaluran payout honor sesi konseling via transfer bank.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Bank Penerima
+              </label>
+              <select
+                value={bankCode}
+                onChange={(e) => setBankCode(e.target.value)}
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#561269]"
+              >
+                <option value="BCA">BCA</option>
+                <option value="BNI">BNI</option>
+                <option value="BRI">BRI</option>
+                <option value="MANDIRI">Mandiri</option>
+                <option value="PERMATA">Permata</option>
+                <option value="CIMB">CIMB Niaga</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Nomor Rekening
+              </label>
+              <input
+                type="text"
+                value={nomorRekening}
+                onChange={(e) => setNomorRekening(e.target.value.replace(/\D/g, ""))}
+                placeholder="Contoh: 1234567890"
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-mono text-gray-800 focus:outline-none focus:border-[#561269]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Nama Pemilik Rekening
+              </label>
+              <input
+                type="text"
+                value={namaPemilikRekening}
+                onChange={(e) => setNamaPemilikRekening(e.target.value)}
+                placeholder="Harus sesuai buku tabungan"
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#561269]"
+              />
+            </div>
           </div>
         </div>
 

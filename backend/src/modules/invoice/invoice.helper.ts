@@ -19,6 +19,12 @@ export interface InvoiceData {
   harga: Decimal | number
   metode_bayar: string
   no_wa_client?: string | null
+  // Rincian pembayaran
+  harga_dasar?: Decimal | number | null
+  biaya_layanan?: Decimal | number | null
+  komisi_biro?: Decimal | number | null
+  nominal_ditahan?: Decimal | number | null
+  nominal_dikembalikan?: Decimal | number | null
   // Bidang tambahan spesifik tipe transaksi (Psikotes, Konseling, Event)
   tipe_transaksi?: 'PSIKOTES' | 'KONSULTASI' | 'EVENT' | string
   kode_akses?: string | null
@@ -193,6 +199,17 @@ export function buildInvoiceWhatsAppText(data: InvoiceData): string {
   const jadwal = formatTanggalJamWIB(data.tanggal_sesi)
   const jenisSesi = formatJenisSesi(data.jenis_sesi)
 
+  const rincianBiayaLines = []
+  if (data.harga_dasar) {
+    rincianBiayaLines.push(`Harga Sesi    : ${formatRupiahInvoice(data.harga_dasar)}`)
+    if (data.komisi_biro && Number(data.komisi_biro) > 0) {
+      rincianBiayaLines.push(`Biaya Biro    : ${formatRupiahInvoice(data.komisi_biro)}`)
+    }
+    if (data.biaya_layanan && Number(data.biaya_layanan) > 0) {
+      rincianBiayaLines.push(`Biaya Layanan : ${formatRupiahInvoice(data.biaya_layanan)}`)
+    }
+  }
+
   const lines = [
     `*INVOICE EMPATHIKA LAYANAN PSIKOLOGI*`,
     ``,
@@ -211,16 +228,27 @@ export function buildInvoiceWhatsAppText(data: InvoiceData): string {
     ``,
     `---`,
     ``,
+    `*Rincian Pembayaran*`,
+    ...(rincianBiayaLines.length > 0 ? rincianBiayaLines : []),
     `*Total Bayar : ${totalBayar}*`,
     `Metode Bayar : ${metodeBayar}`,
     `Status       : Lunas`,
     ``,
     `---`,
     ``,
-    `*Kebijakan Pembatalan & Refund*`,
-    `Pembatalan sesi dapat dilakukan paling lambat *H-1 (24 jam sebelum jadwal sesi)*. Pengajuan pembatalan yang melewati batas waktu tersebut tidak dapat diproses dan tidak memenuhi syarat untuk pengembalian dana.`,
+    `*Syarat dan Ketentuan Konseling EMPATHIKA*`,
     ``,
-    `Untuk mengajukan pembatalan, hubungi nomor whatsapp ini sebelum batas waktu yang tertera di atas.`,
+    `1. Biaya reservasi sebesar Rp 150.000 digunakan untuk mengamankan jadwal konseling Anda dan mendukung kebutuhan operasional layanan. Biaya ini sudah termasuk dalam total pembayaran Anda.`,
+    ``,
+    `2. Mohon hadir tepat waktu agar sesi berjalan optimal. Jika Anda terlambat, sesi tetap berakhir sesuai jadwal yang telah ditentukan agar tidak mengganggu jadwal klien berikutnya.`,
+    ``,
+    `3. Jika Anda berhalangan hadir, mohon beri tahu kami sebelumnya. Apabila klien tidak hadir tanpa pemberitahuan, biaya reservasi sebesar Rp 150.000 tidak dapat dikembalikan karena jadwal tersebut sudah dicadangkan untuk Anda.`,
+    ``,
+    `4. Jadwal sesi dapat diubah (reschedule) paling lambat 3 jam sebelum sesi dimulai, dengan maksimal dua kali perubahan.`,
+    ``,
+    `5. Perubahan jadwal yang mendadak dapat memengaruhi ketersediaan psikolog. Karena itu, jadwal pengganti bisa lebih lama dari yang direncanakan atau ditangani oleh psikolog yang berbeda, sesuai kesepakatan bersama.`,
+    ``,
+    `6. Jika Anda mengajukan pengembalian dana (refund), biaya reservasi sebesar Rp 150.000 tidak termasuk dalam pengembalian. Sisa pembayaran akan dikembalikan kepada Anda sepenuhnya.`,
     ``,
     `---`,
     ``,

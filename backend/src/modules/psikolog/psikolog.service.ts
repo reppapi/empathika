@@ -538,6 +538,9 @@ export class PsikologService {
           video_duration: videoDuration,
           profil_lengkap: profilLengkap,
           status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+          bank_code: body.bank_code ?? body.bankCode ?? undefined,
+          nomor_rekening: body.nomor_rekening ?? body.nomorRekening ?? undefined,
+          nama_pemilik_rek: body.nama_pemilik_rek ?? body.namaPemilikRekening ?? undefined,
           tarif_per_jam: tarif,
         },
         include: {
@@ -610,6 +613,9 @@ export class PsikologService {
             video_duration: videoDuration,
             profil_lengkap: profilLengkap,
             status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+          bank_code: body.bank_code ?? body.bankCode ?? undefined,
+          nomor_rekening: body.nomor_rekening ?? body.nomorRekening ?? undefined,
+          nama_pemilik_rek: body.nama_pemilik_rek ?? body.namaPemilikRekening ?? undefined,
             tarif_per_jam: tarif,
           },
           include: {
@@ -640,6 +646,9 @@ export class PsikologService {
             video_duration: videoDuration,
             profil_lengkap: profilLengkap,
             status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+          bank_code: body.bank_code ?? body.bankCode ?? undefined,
+          nomor_rekening: body.nomor_rekening ?? body.nomorRekening ?? undefined,
+          nama_pemilik_rek: body.nama_pemilik_rek ?? body.namaPemilikRekening ?? undefined,
             tarif_per_jam: tarif,
           },
           include: {
