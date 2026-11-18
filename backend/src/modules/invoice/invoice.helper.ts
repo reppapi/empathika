@@ -19,6 +19,12 @@ export interface InvoiceData {
   harga: Decimal | number
   metode_bayar: string
   no_wa_client?: string | null
+  // Rincian pembayaran
+  harga_dasar?: Decimal | number | null
+  biaya_layanan?: Decimal | number | null
+  komisi_biro?: Decimal | number | null
+  nominal_ditahan?: Decimal | number | null
+  nominal_dikembalikan?: Decimal | number | null
   // Bidang tambahan spesifik tipe transaksi (Psikotes, Konseling, Event)
   tipe_transaksi?: 'PSIKOTES' | 'KONSULTASI' | 'EVENT' | string
   kode_akses?: string | null
@@ -193,6 +199,17 @@ export function buildInvoiceWhatsAppText(data: InvoiceData): string {
   const jadwal = formatTanggalJamWIB(data.tanggal_sesi)
   const jenisSesi = formatJenisSesi(data.jenis_sesi)
 
+  const rincianBiayaLines = []
+  if (data.harga_dasar) {
+    rincianBiayaLines.push(`Harga Sesi    : ${formatRupiahInvoice(data.harga_dasar)}`)
+    if (data.komisi_biro && Number(data.komisi_biro) > 0) {
+      rincianBiayaLines.push(`Biaya Biro    : ${formatRupiahInvoice(data.komisi_biro)}`)
+    }
+    if (data.biaya_layanan && Number(data.biaya_layanan) > 0) {
+      rincianBiayaLines.push(`Biaya Layanan : ${formatRupiahInvoice(data.biaya_layanan)}`)
+    }
+  }
+
   const lines = [
     `*INVOICE EMPATHIKA LAYANAN PSIKOLOGI*`,
     ``,
@@ -211,6 +228,8 @@ export function buildInvoiceWhatsAppText(data: InvoiceData): string {
     ``,
     `---`,
     ``,
+    `*Rincian Pembayaran*`,
+    ...(rincianBiayaLines.length > 0 ? rincianBiayaLines : []),
     `*Total Bayar : ${totalBayar}*`,
     `Metode Bayar : ${metodeBayar}`,
     `Status       : Lunas`,

@@ -358,9 +358,17 @@ export default function MetodePembayaranBox({
           <span className="text-xs text-gray-500">{biayaLabel}</span>
           <span className="text-xs font-medium text-gray-500">{biayaNominal}</span>
         </div>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <span className="text-sm font-extrabold text-[#561269]">Total Bayar</span>
           <span className="text-sm font-extrabold text-[#561269]">{totalNominal}</span>
+        </div>
+
+        {/* Info Ketentuan Pembatalan & DP Hangus */}
+        <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-xl text-[11px] text-gray-600 leading-relaxed">
+          <p className="font-semibold text-gray-800 mb-0.5">Ketentuan Pembatalan & Reservasi:</p>
+          <p>
+            Apabila terjadi pembatalan atau klien tidak hadir tanpa pemberitahuan, biaya reservasi sebesar <strong className="text-gray-900">Rp 150.000</strong> ditahan untuk operasional layanan dan sisanya akan dikembalikan.
+          </p>
         </div>
 
         {attemptedSubmit && Object.keys(errors).some((k) => errors[k as keyof typeof errors]) && (

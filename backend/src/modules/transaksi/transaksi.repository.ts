@@ -380,23 +380,57 @@ export class TransaksiRepository {
       }
 
       const totalTransaksi = Number(transaksi.total)
-      // Skema Refund: 70% dikembalikan ke Klien, 30% ditahan (15% Psikolog, 15% Empathika)
-      const refundClientPercentage = 0.70
-      const refundAmount = Math.round(totalTransaksi * refundClientPercentage)
-      const potonganEmpathika = Math.round(totalTransaksi * 0.15)
-      const potonganPsikolog = totalTransaksi - refundAmount - potonganEmpathika // sisa pas 15%
+      const hargaDasar = transaksi.harga_dasar ? Number(transaksi.harga_dasar) : totalTransaksi
 
-      // Keterangan rincian disimpan di alasan refund
-      const catatanAlokasi = `[Refund 70%: Rp ${refundAmount.toLocaleString('id-ID')} | Empathika 15%: Rp ${potonganEmpathika.toLocaleString('id-ID')} | Psikolog 15%: Rp ${potonganPsikolog.toLocaleString('id-ID')}] - ${params.alasan}`
+      // ── Skema Refund Baru (menggantikan aturan 70/30 yang sudah dihapus) ──────
+      // Nominal yang ditahan adalah tetap Rp150.000, berlaku berapa pun harga sesi.
+      // Lihat: src/config/transaksi.config.ts → DP_NOMINAL
+      // Lihat: src/modules/transaksi/transaksi.calc.ts → hitungPembagianDPHangus
+      //
+      // Alur refund admin:
+      //   1. Admin mengajukan refund lewat panel ini
+      //   2. Rp150.000 ditahan (dibagi ke psikolog & Empathika sesuai tipe sesi)
+      //   3. Sisa (totalTransaksi - 150.000) dikembalikan ke client via Xendit refund
+      //
+      // Pembagian ditahan menggunakan fungsi hitungPembagianDPHangus dari transaksi.calc.ts
+      // yang sudah diuji unit. Import tidak dilakukan di sini untuk menghindari circular dep;
+      // nilai dihitung langsung dengan konstanta yang sama.
+      //
+      // TODO: Proses refund aktual ke client via Xendit Refund API belum diimplementasi.
+      //       Saat ini hanya update status DB. Implementasi Xendit Refund API diperlukan
+      //       sebelum sistem ini digunakan di production.
 
-      // 1. Update status transaksi menjadi REFUNDED (refund_amount mencatat dana yang dikembalikan ke klien)
+      const DP_NOMINAL = 150_000
+      const tipeSesi = (booking?.metode || 'ONLINE').toUpperCase() === 'OFFLINE' ? 'OFFLINE' : 'ONLINE'
+      const persenPsikolog = tipeSesi === 'OFFLINE' ? 60 : 50
+
+      const ditahan = Math.min(DP_NOMINAL, totalTransaksi)
+      const porsiPsikologDP = Math.floor(ditahan * persenPsikolog / 100)
+      const porsiEmpathikaDP = ditahan - porsiPsikologDP
+      const dikembalikanKeClient = totalTransaksi - ditahan
+
+      const catatanAlokasi = [
+        `[Refund DP Hangus]`,
+        `Total dibayar: Rp ${totalTransaksi.toLocaleString('id-ID')}`,
+        `Ditahan (DP): Rp ${ditahan.toLocaleString('id-ID')}`,
+        `  → Psikolog: Rp ${porsiPsikologDP.toLocaleString('id-ID')} (${persenPsikolog}%)`,
+        `  → Empathika: Rp ${porsiEmpathikaDP.toLocaleString('id-ID')} (${100 - persenPsikolog}%)`,
+        `Dikembalikan ke client: Rp ${dikembalikanKeClient.toLocaleString('id-ID')}`,
+        `Alasan: ${params.alasan}`,
+      ].join(' | ')
+
+      // 1. Update status transaksi menjadi REFUNDED
       const updatedTransaksi = await tx.transaksi.update({
         where: { id: transaksi.id },
         data: {
           status_pembayaran: 'REFUNDED',
           refund_at: new Date(),
           refund_reason: catatanAlokasi,
-          refund_amount: refundAmount,
+          refund_amount: dikembalikanKeClient,
+          // Field baru (nullable — aman untuk data lama yang belum punya nilai)
+          nominal_ditahan: ditahan,
+          nominal_dikembalikan: dikembalikanKeClient,
+          alasan_penahanan: params.alasan,
         },
       })
 
@@ -429,10 +463,11 @@ export class TransaksiRepository {
         transaksi: updatedTransaksi,
         booking: updatedBooking,
         totalTransaksi,
-        nominalRefund: refundAmount,
-        potonganEmpathika,
-        potonganPsikolog,
-        persentaseRefund: '70%',
+        nominalRefund: dikembalikanKeClient,
+        nominalDitahan: ditahan,
+        porsiPsikologDP,
+        porsiEmpathikaDP,
+        tipeSesi,
       }
     })
   }

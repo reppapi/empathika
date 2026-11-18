@@ -17,6 +17,12 @@ export const createBiroSchema = z.object({
   deskripsi: z.string().optional(),
   warnaIdentitas: z.string().optional(),
   logoURI: z.string().url("Format URL logo tidak valid").optional(),
+  bank_code: z.string().optional().nullable(),
+  nomor_rekening: z.string().optional().nullable(),
+  nama_pemilik_rek: z.string().optional().nullable(),
+  bankCode: z.string().optional().nullable(),
+  nomorRekening: z.string().optional().nullable(),
+  namaPemilikRekening: z.string().optional().nullable(),
   tokenAktivasi: z.string().optional(),
   tokenExpiredAt: z.string().optional(),
 })
@@ -33,6 +39,12 @@ export const updateBiroProfileSchema = z.object({
   deskripsi: z.string().optional().nullable(),
   warnaIdentitas: z.string().optional().nullable(),
   logoURI: z.string().optional().nullable(),
+  bank_code: z.string().optional().nullable(),
+  nomor_rekening: z.string().optional().nullable(),
+  nama_pemilik_rek: z.string().optional().nullable(),
+  bankCode: z.string().optional().nullable(),
+  nomorRekening: z.string().optional().nullable(),
+  namaPemilikRekening: z.string().optional().nullable(),
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"]).optional(),
 })
 

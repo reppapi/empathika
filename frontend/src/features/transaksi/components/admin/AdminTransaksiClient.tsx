@@ -51,9 +51,14 @@ function ModalRefundTransaksi({
     0
   )
 
-  const refundKlien = Math.round(totalNominal * 0.70)
-  const potEmpathika = Math.round(totalNominal * 0.15)
-  const potPsikolog = totalNominal - refundKlien - potEmpathika
+  // Aturan baru: DP Hangus / Biaya reservasi tetap Rp 150.000
+  const DP_NOMINAL = 150_000
+  const ditahan = Math.min(DP_NOMINAL, totalNominal)
+  const isOffline = (transaksi.booking_konsultasi?.metode || "").toUpperCase() === "OFFLINE"
+  const persenPsikolog = isOffline ? 60 : 50
+  const potPsikolog = Math.floor((ditahan * persenPsikolog) / 100)
+  const potEmpathika = ditahan - potPsikolog
+  const refundKlien = Math.max(0, totalNominal - ditahan)
 
   const formatRupiah = (val: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -65,6 +70,7 @@ function ModalRefundTransaksi({
 
   const totalStr = formatRupiah(totalNominal)
   const refundKlienStr = formatRupiah(refundKlien)
+  const ditahanStr = formatRupiah(ditahan)
   const potEmpathikaStr = formatRupiah(potEmpathika)
   const potPsikologStr = formatRupiah(potPsikolog)
 
@@ -118,7 +124,7 @@ function ModalRefundTransaksi({
                 Konfirmasi Refund Transaksi
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Pengembalian 70% ke Klien • 15% Psikolog • 15% Empathika (Maksimal H-1)
+                Biaya Reservasi Rp 150.000 Ditahan (DP) • Sisa Dikembalikan ke Klien (Maksimal H-1)
               </p>
             </div>
           </div>
@@ -157,16 +163,20 @@ function ModalRefundTransaksi({
             <div className="border-t border-gray-200/80 pt-2 space-y-1.5">
               <div className="flex justify-between items-center text-emerald-700 font-semibold">
                 <span className="flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Dikembalikan ke Klien (70%)
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Dikembalikan ke Klien
                 </span>
                 <span className="font-extrabold text-sm text-emerald-700">{refundKlienStr}</span>
               </div>
-              <div className="flex justify-between items-center text-[11px] text-gray-500">
-                <span>Hak Psikolog (15%)</span>
+              <div className="flex justify-between items-center text-[11px] text-amber-700 font-medium">
+                <span>Total Ditahan (Biaya Reservasi)</span>
+                <span className="font-semibold">{ditahanStr}</span>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-gray-500 pl-3">
+                <span>↳ Hak Psikolog ({persenPsikolog}%)</span>
                 <span className="font-semibold text-gray-700">{potPsikologStr}</span>
               </div>
-              <div className="flex justify-between items-center text-[11px] text-gray-500">
-                <span>Operasional Empathika (15%)</span>
+              <div className="flex justify-between items-center text-[11px] text-gray-500 pl-3">
+                <span>↳ Operasional Empathika ({100 - persenPsikolog}%)</span>
                 <span className="font-semibold text-gray-700">{potEmpathikaStr}</span>
               </div>
             </div>
@@ -516,6 +526,12 @@ function normalizeTransaksi(raw: any) {
       : null,
     refundAmount: raw.refund_amount ? Number(raw.refund_amount) : null,
     refundReason: raw.refund_reason || null,
+    // Field rincian baru
+    hargaDasar: raw.harga_dasar ? Number(raw.harga_dasar) : null,
+    komisiBiro: raw.komisi_biro ? Number(raw.komisi_biro) : null,
+    nominalDitahan: raw.nominal_ditahan ? Number(raw.nominal_ditahan) : null,
+    nominalDikembalikan: raw.nominal_dikembalikan ? Number(raw.nominal_dikembalikan) : null,
+    alasanPenahanan: raw.alasan_penahanan || null,
     // raw for refund
     _raw: raw,
   }
@@ -1231,14 +1247,35 @@ export default function AdminTransaksiClient() {
 
                   {/* Biaya */}
                   <div className="rounded-2xl bg-gray-50 p-4 flex flex-col gap-2 text-xs">
-                    <div className="flex justify-between text-gray-600">
-                      <span>Subtotal</span>
-                      <span className="font-medium text-gray-800">Rp. {activeDetailItem.subtotal.toLocaleString("id-ID")}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Biaya Layanan</span>
-                      <span className="font-medium text-gray-800">Rp. {activeDetailItem.biayaLayanan.toLocaleString("id-ID")}</span>
-                    </div>
+                    {activeDetailItem.hargaDasar != null ? (
+                      <>
+                        <div className="flex justify-between text-gray-600">
+                          <span>Harga Sesi</span>
+                          <span className="font-medium text-gray-800">Rp. {activeDetailItem.hargaDasar.toLocaleString("id-ID")}</span>
+                        </div>
+                        {activeDetailItem.komisiBiro != null && activeDetailItem.komisiBiro > 0 && (
+                          <div className="flex justify-between text-gray-600">
+                            <span>Komisi Biro</span>
+                            <span className="font-medium text-gray-800">Rp. {activeDetailItem.komisiBiro.toLocaleString("id-ID")}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-gray-600">
+                          <span>Biaya Layanan (Xendit)</span>
+                          <span className="font-medium text-gray-800">Rp. {activeDetailItem.biayaLayanan.toLocaleString("id-ID")}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-gray-600">
+                          <span>Subtotal</span>
+                          <span className="font-medium text-gray-800">Rp. {activeDetailItem.subtotal.toLocaleString("id-ID")}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600">
+                          <span>Biaya Layanan</span>
+                          <span className="font-medium text-gray-800">Rp. {activeDetailItem.biayaLayanan.toLocaleString("id-ID")}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="h-[1px] w-full bg-gray-200 my-1" />
                     <div className="flex justify-between text-sm font-extrabold text-gray-900">
                       <span>Total Bayar</span>
@@ -1269,10 +1306,10 @@ export default function AdminTransaksiClient() {
                     <div className="pt-3 pb-1 border-t border-gray-100 flex flex-col gap-2 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-red-600 uppercase tracking-wide">
-                          Status: Transaksi Telah Di-Refund (70%)
+                          Status: Transaksi Di-Refund (DP Ditahan)
                         </span>
                         <span className="font-bold text-red-600">
-                          Rp. {(activeDetailItem.refundAmount ?? Math.round(activeDetailItem.totalBayar * 0.7)).toLocaleString("id-ID")}
+                          Rp. {(activeDetailItem.refundAmount ?? Math.max(0, activeDetailItem.totalBayar - 150000)).toLocaleString("id-ID")}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-gray-500 text-[11px]">
@@ -1321,7 +1358,7 @@ export default function AdminTransaksiClient() {
                         className="w-full rounded-full border-2 border-amber-400 bg-transparent hover:bg-amber-50 px-4 py-3 text-xs sm:text-sm font-bold text-amber-600 transition-all flex items-center justify-center gap-2 active:scale-98"
                       >
                         <RotateCcw className="w-4 h-4" />
-                        Proses Refund (70% Klien)
+                        Proses Refund (DP Hangus)
                       </button>
                     )}
                   </div>
