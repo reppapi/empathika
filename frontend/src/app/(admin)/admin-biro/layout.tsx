@@ -18,7 +18,7 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { user } = useAuthStore()
-  const [biroName, setBiroName] = useState<string>(user?.name || "Biro Mitra")
+  const [biroName, setBiroName] = useState<string>(user?.name || "")
   const [biroColor, setBiroColor] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const cached = localStorage.getItem("biro_theme_color")
@@ -33,30 +33,43 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
     if (user?.name) {
       setBiroName(user.name)
     }
-    biroAdminService
-      .getMyAccount()
-      .then((res) => {
-        if (!isMounted || !res?.data) return
-        const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
-        if (beBiro?.nama_biro) {
-          setBiroName(beBiro.nama_biro)
-        } else if (res.data.nama) {
-          setBiroName(res.data.nama)
-        }
-        if (beBiro?.warna_tema) {
-          setBiroColor(beBiro.warna_tema)
-          if (typeof window !== "undefined") {
-            localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+
+    const loadBiroData = () => {
+      biroAdminService
+        .getMyAccount()
+        .then((res) => {
+          if (!isMounted || !res?.data) return
+          const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
+          if (beBiro?.nama_biro) {
+            setBiroName(beBiro.nama_biro)
+          } else if (res.data.nama) {
+            setBiroName(res.data.nama)
           }
-        }
-        if (beBiro?.logoURI) {
-          setBiroLogo(beBiro.logoURI)
-        }
-      })
-      .catch(() => {})
+          if (beBiro?.warna_tema) {
+            setBiroColor(beBiro.warna_tema)
+            if (typeof window !== "undefined") {
+              localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+            }
+          }
+          if (beBiro?.logoURI) {
+            setBiroLogo(beBiro.logoURI)
+          }
+        })
+        .catch((err) => {
+          console.error("AdminBiroLayout: Gagal memuat data akun biro dari backend:", err)
+        })
+    }
+
+    loadBiroData()
+
+    const handleUpdated = () => {
+      loadBiroData()
+    }
+    window.addEventListener("biro_profile_updated", handleUpdated)
 
     return () => {
       isMounted = false
+      window.removeEventListener("biro_profile_updated", handleUpdated)
     }
   }, [user])
 

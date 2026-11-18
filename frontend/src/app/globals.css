@@ -380,6 +380,45 @@ html[data-biro-theme="true"] .hover\:border-purple-200:hover,
   border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 30%, transparent) !important;
 }
 
+/* 15. Inactive & Muted Tabs / Navigation Items (Warna Biro Versi Muda Saat Belum Diklik) */
+.category-tab-inactive {
+  color: #B385C0;
+  transition: color 0.3s ease-out;
+}
+.category-tab-inactive:hover,
+.group:hover .category-tab-inactive {
+  color: #763E8B;
+}
+
+html[data-biro-theme="true"] .category-tab-inactive,
+[data-biro-theme="true"] .category-tab-inactive {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 45%, white) !important;
+}
+
+html[data-biro-theme="true"] .category-tab-inactive:hover,
+html[data-biro-theme="true"] .group:hover .category-tab-inactive,
+[data-biro-theme="true"] .category-tab-inactive:hover,
+[data-biro-theme="true"] .group:hover .category-tab-inactive {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 80%, white) !important;
+}
+
+html[data-biro-theme="true"] .text-\[\#B385C0\],
+[data-biro-theme="true"] .text-\[\#B385C0\],
+html[data-biro-theme="true"] .text-\[\#b385c0\],
+[data-biro-theme="true"] .text-\[\#b385c0\] {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 45%, white) !important;
+}
+
+html[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#763E8B\],
+[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#763E8B\],
+html[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#B385C0\],
+[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#B385C0\],
+html[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#b385c0\],
+[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#b385c0\] {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 80%, white) !important;
+}
+
+
 
 
 

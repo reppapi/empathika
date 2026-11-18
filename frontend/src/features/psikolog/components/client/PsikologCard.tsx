@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useTenant } from "@/hooks/useTenant"
 import { Psikolog, PsikologUI } from "@/types/psikolog"
 
@@ -43,10 +44,15 @@ export function PsikologCard({
   const keahlianList = ("keahlian" in psikolog && psikolog.keahlian) ? psikolog.keahlian : []
   const initial = psikolog.nama_gelar ? psikolog.nama_gelar.charAt(0) : "P"
 
+  const searchParams = useSearchParams()
+  const qLayanan = searchParams?.get("layanan")
+
   // Baik dari daftar psikolog maupun alur konseling: masuk ke profil dulu,
   // baru dari profil bisa lanjut ke pilih jadwal / pembayaran.
   const buttonText = mode === "konseling" ? "Daftar" : "Lihat Detail"
-  const buttonHref = withBiro(`/psikolog/${psikolog.id}`)
+  const buttonHref = withBiro(
+    `/psikolog/${psikolog.id}${qLayanan ? `?layanan=${encodeURIComponent(qLayanan)}` : ""}`
+  )
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_rgba(86,18,105,0.12)] transition-all duration-300 group hover:-translate-y-1 h-full justify-between">

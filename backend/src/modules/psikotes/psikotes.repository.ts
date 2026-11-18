@@ -27,7 +27,7 @@ export function determineKategoriPeserta(usia?: number | null): string | null {
 }
 
 export class PsikotesRepository {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaClient) { }
 
   async findAll(params?: PsikotesQueryInput) {
     const where: any = {}
@@ -47,7 +47,20 @@ export class PsikotesRepository {
     if (params?.status === 'ALL' || includeDraft) {
       // Tampilkan semua status tanpa filter
     } else if (params?.status) {
-      where.status = params.status
+      const s = String(params.status).trim()
+      if (s.toUpperCase() === 'PUBLISHED' || s.toUpperCase() === 'AKTIF') {
+        where.status = {
+          in: ['PUBLISHED', 'published', 'AKTIF', 'aktif'],
+        }
+      } else if (s.toUpperCase() === 'DRAFT' || s.toUpperCase() === 'DRAF') {
+        where.status = {
+          in: ['DRAFT', 'draft', 'DRAF', 'draf'],
+        }
+      } else {
+        where.status = {
+          in: [s, s.toUpperCase(), s.toLowerCase()],
+        }
+      }
     } else {
       // Default: Hanya paket PUBLISHED atau AKTIF yang tampil ke publik
       where.status = { in: ['PUBLISHED', 'published', 'AKTIF', 'aktif'] }
@@ -82,7 +95,9 @@ export class PsikotesRepository {
   async findById(id: string, allowDraft: boolean = false) {
     const where: any = { id }
     if (!allowDraft) {
-      where.status = 'PUBLISHED'
+      where.status = {
+        in: ['PUBLISHED', 'published', 'AKTIF', 'aktif'],
+      }
     }
 
     const item = await this.prisma.paketPsikotes.findFirst({
@@ -172,30 +187,30 @@ export class PsikotesRepository {
         soal_psikotes:
           data.soal_psikotes && data.soal_psikotes.length > 0
             ? {
-                create: data.soal_psikotes.map((s, idx) => ({
-                  urutan: s.urutan ?? idx + 1,
-                  pertanyaan: s.pertanyaan || `Pertanyaan ${idx + 1}`,
-                  pilihan_jawaban: {
-                    create: (s.pilihan_jawaban || []).map((p, pIdx) => ({
-                      label: p.label || String.fromCharCode(65 + pIdx),
-                      teks_jawaban: p.teks_jawaban || `Pilihan ${pIdx + 1}`,
-                      bobot: p.bobot ?? 0,
-                    })),
-                  },
-                })),
-              }
+              create: data.soal_psikotes.map((s, idx) => ({
+                urutan: s.urutan ?? idx + 1,
+                pertanyaan: s.pertanyaan || `Pertanyaan ${idx + 1}`,
+                pilihan_jawaban: {
+                  create: (s.pilihan_jawaban || []).map((p, pIdx) => ({
+                    label: p.label || String.fromCharCode(65 + pIdx),
+                    teks_jawaban: p.teks_jawaban || `Pilihan ${pIdx + 1}`,
+                    bobot: p.bobot ?? 0,
+                  })),
+                },
+              })),
+            }
             : undefined,
         interpretasi_psikotes:
           data.interpretasi_psikotes && data.interpretasi_psikotes.length > 0
             ? {
-                create: data.interpretasi_psikotes.map((i, iIdx) => ({
-                  min_skor: i.min_skor ?? 0,
-                  max_skor: i.max_skor ?? 0,
-                  grade: i.grade || `Kategori ${iIdx + 1}`,
-                  judul: i.judul || `Interpretasi ${iIdx + 1}`,
-                  deskripsi: i.deskripsi || '',
-                })),
-              }
+              create: data.interpretasi_psikotes.map((i, iIdx) => ({
+                min_skor: i.min_skor ?? 0,
+                max_skor: i.max_skor ?? 0,
+                grade: i.grade || `Kategori ${iIdx + 1}`,
+                judul: i.judul || `Interpretasi ${iIdx + 1}`,
+                deskripsi: i.deskripsi || '',
+              })),
+            }
             : undefined,
       },
       include: {
@@ -387,7 +402,7 @@ export class PsikotesRepository {
             orderBy: { urutan: 'asc' },
           },
           interpretasi_psikotes: true,
-        alat_ukur: true,
+          alat_ukur: true,
         },
       })
     })
@@ -461,7 +476,7 @@ export class PsikotesRepository {
             orderBy: { urutan: 'asc' },
           },
           interpretasi_psikotes: true,
-        alat_ukur: true,
+          alat_ukur: true,
         },
       })
 
@@ -691,20 +706,20 @@ export class PsikotesRepository {
         booking = await tx.bookingPsikotes.findFirst({
           where: isUuid
             ? {
-                OR: [
-                  { id: explicitBookingId },
-                  { id_transaksi: explicitBookingId },
-                  { kode_akses: { equals: explicitBookingId, mode: 'insensitive' } },
-                ],
-              }
+              OR: [
+                { id: explicitBookingId },
+                { id_transaksi: explicitBookingId },
+                { kode_akses: { equals: explicitBookingId, mode: 'insensitive' } },
+              ],
+            }
             : {
-                OR: [
-                  { kode_akses: { equals: explicitBookingId, mode: 'insensitive' } },
-                  { kode_akses: { equals: explicitBookingId.replace(/\s+/g, ''), mode: 'insensitive' } },
-                  { transaksi: { kode_transaksi: { equals: explicitBookingId, mode: 'insensitive' } } },
-                  { transaksi: { kode_transaksi: { equals: explicitBookingId.replace(/\s+/g, ''), mode: 'insensitive' } } },
-                ],
-              },
+              OR: [
+                { kode_akses: { equals: explicitBookingId, mode: 'insensitive' } },
+                { kode_akses: { equals: explicitBookingId.replace(/\s+/g, ''), mode: 'insensitive' } },
+                { transaksi: { kode_transaksi: { equals: explicitBookingId, mode: 'insensitive' } } },
+                { transaksi: { kode_transaksi: { equals: explicitBookingId.replace(/\s+/g, ''), mode: 'insensitive' } } },
+              ],
+            },
           include: { hasil_tes: true, client: true, transaksi: true },
         })
 
@@ -956,9 +971,10 @@ export class PsikotesRepository {
         namaOrangTua = pesertaSource.nama_orang_tua || null
         noTeleponOrangTua =
           pesertaSource.no_telepon_orang_tua ||
-          pesertaSource.noTeleponOrangTua ||
+          pesertaSource.whatsapp ||
+          pesertaSource.no_telepon ||
           null
-        noHpPeserta = pesertaSource.no_telepon || pesertaSource.noTelepon || null
+        noHpPeserta = pesertaSource.no_telepon || null
         pekerjaan = null
         statusPernikahan = null
       } else {
@@ -1006,7 +1022,7 @@ export class PsikotesRepository {
             pekerjaan: pekerjaan,
             status_pernikahan: statusPernikahan,
           },
-        }).catch(() => {})
+        }).catch(() => { })
       }
 
       // 6. Simpan butir jawaban ke tabel jawaban_psikotes jika soal berasal dari database asli
@@ -1064,7 +1080,7 @@ export class PsikotesRepository {
         data: {
           status_pengerjaan: targetStatusPengerjaan,
         },
-      }).catch(() => {})
+      }).catch(() => { })
 
       return {
         id_booking: booking.id,
@@ -1243,26 +1259,25 @@ export class PsikotesRepository {
       items: filteredItems.map((b) => ({
         id: b.id,
         id_paket: b.id_paket,
-        kode_akses: b.kode_akses || b.transaksi?.kode_transaksi || null,
         nama_paket: b.paket.judul,
         jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
         harga: b.paket.harga,
         nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
         no_hp: formatIndonesianPhone(
           (b as any).peserta_psikotes?.no_telepon ||
-            (b as any).peserta_psikotes?.no_telepon_orang_tua ||
-            b.client.no_telepon ||
-            '—'
+          (b as any).peserta_psikotes?.no_telepon_orang_tua ||
+          b.client.no_telepon ||
+          '—'
         ),
         usia: (b as any).peserta_psikotes?.usia ?? b.client.usia,
         jenis_kelamin: (b as any).peserta_psikotes?.jenis_kelamin || b.client.jenis_kelamin,
         peserta: (b as any).peserta_psikotes
           ? {
-              ...(b as any).peserta_psikotes,
-              kategori_peserta:
-                (b as any).peserta_psikotes.kategori_peserta ||
-                determineKategoriPeserta((b as any).peserta_psikotes.usia ?? b.client.usia),
-            }
+            ...(b as any).peserta_psikotes,
+            kategori_peserta:
+              (b as any).peserta_psikotes.kategori_peserta ||
+              determineKategoriPeserta((b as any).peserta_psikotes.usia ?? b.client.usia),
+          }
           : null,
         tanggal: b.createdAt,
         status:
@@ -1292,26 +1307,26 @@ export class PsikotesRepository {
           : (b.hasil_tes?.total_skor ?? null),
         hasil: b.hasil_tes
           ? (() => {
-              const ds =
-                typeof b.hasil_tes.detail_skor === 'string'
-                  ? JSON.parse(b.hasil_tes.detail_skor)
-                  : (b.hasil_tes.detail_skor as any)
-              const isNoTotal = Boolean(ds?.tanpaSkorTotal)
-              return {
-                id: b.hasil_tes.id,
-                grade:
-                  b.hasil_tes.interpretasi?.grade ||
-                  (isNoTotal ? ds?.grade || 'Profil 9 Skala PBQ' : '—'),
-                judul:
-                  b.hasil_tes.interpretasi?.judul ||
-                  (isNoTotal ? ds?.kategori || 'Profil Skor Mentah 9 Skala Kepribadian (PBQ)' : '—'),
-                deskripsi:
-                  b.hasil_tes.interpretasi?.deskripsi ||
-                  (isNoTotal ? ds?.deskripsi || '—' : '—'),
-                tanggal_selesai: b.hasil_tes.tanggal_selesai,
-                detail_skor: b.hasil_tes.detail_skor,
-              }
-            })()
+            const ds =
+              typeof b.hasil_tes.detail_skor === 'string'
+                ? JSON.parse(b.hasil_tes.detail_skor)
+                : (b.hasil_tes.detail_skor as any)
+            const isNoTotal = Boolean(ds?.tanpaSkorTotal)
+            return {
+              id: b.hasil_tes.id,
+              grade:
+                b.hasil_tes.interpretasi?.grade ||
+                (isNoTotal ? ds?.grade || 'Profil 9 Skala PBQ' : '—'),
+              judul:
+                b.hasil_tes.interpretasi?.judul ||
+                (isNoTotal ? ds?.kategori || 'Profil Skor Mentah 9 Skala Kepribadian (PBQ)' : '—'),
+              deskripsi:
+                b.hasil_tes.interpretasi?.deskripsi ||
+                (isNoTotal ? ds?.deskripsi || '—' : '—'),
+              tanggal_selesai: b.hasil_tes.tanggal_selesai,
+              detail_skor: b.hasil_tes.detail_skor,
+            }
+          })()
           : null,
       })),
     }
@@ -1331,21 +1346,21 @@ export class PsikotesRepository {
         where: (isUuid
           ? { id: rawPaketId }
           : {
-              OR: [
-                { id: rawPaketId },
-                { alat_ukur: { kode: { equals: rawPaketId, mode: 'insensitive' as const } } },
-                { alat_ukur: { kode: { contains: rawPaketId, mode: 'insensitive' as const } } },
-                { judul: { equals: rawPaketId, mode: 'insensitive' as const } },
-                { judul: { contains: rawPaketId, mode: 'insensitive' as const } },
-                ...(rawPaketId.toLowerCase().includes('dass')
-                  ? [
-                      { alat_ukur: { kode: { contains: 'DASS', mode: 'insensitive' as const } } },
-                      { judul: { contains: 'stres', mode: 'insensitive' as const } },
-                      { judul: { contains: 'depresi', mode: 'insensitive' as const } },
-                    ]
-                  : []),
-              ],
-            }) as any,
+            OR: [
+              { id: rawPaketId },
+              { alat_ukur: { kode: { equals: rawPaketId, mode: 'insensitive' as const } } },
+              { alat_ukur: { kode: { contains: rawPaketId, mode: 'insensitive' as const } } },
+              { judul: { equals: rawPaketId, mode: 'insensitive' as const } },
+              { judul: { contains: rawPaketId, mode: 'insensitive' as const } },
+              ...(rawPaketId.toLowerCase().includes('dass')
+                ? [
+                  { alat_ukur: { kode: { contains: 'DASS', mode: 'insensitive' as const } } },
+                  { judul: { contains: 'stres', mode: 'insensitive' as const } },
+                  { judul: { contains: 'depresi', mode: 'insensitive' as const } },
+                ]
+                : []),
+            ],
+          }) as any,
       })
 
       if (!paket) {
@@ -1461,7 +1476,7 @@ export class PsikotesRepository {
               jenis_kelamin: inputGender ?? client.jenis_kelamin,
             },
           })
-          .catch(() => {})
+          .catch(() => { })
       }
 
       // 3. Tentukan nominal biaya transaksi
@@ -1589,9 +1604,10 @@ export class PsikotesRepository {
         namaOrangTua = pesertaSource.nama_orang_tua || null
         noTeleponOrangTua =
           pesertaSource.no_telepon_orang_tua ||
-          pesertaSource.noTeleponOrangTua ||
+          pesertaSource.whatsapp ||
+          pesertaSource.no_telepon ||
           null
-        noHpPeserta = pesertaSource.no_telepon || pesertaSource.noTelepon || null
+        noHpPeserta = pesertaSource.no_telepon || null
         pekerjaan = null
         statusPernikahan = null
       } else {
@@ -1638,7 +1654,7 @@ export class PsikotesRepository {
             pekerjaan: pekerjaan,
             status_pernikahan: statusPernikahan,
           },
-        }).catch(() => {})
+        }).catch(() => { })
       }
 
       return {
@@ -1717,7 +1733,7 @@ export class PsikotesRepository {
       for (const cId of clientIds) {
         const remaining = await tx.bookingPsikotes.count({ where: { id_client: cId } })
         if (remaining === 0) {
-          await tx.client.delete({ where: { id: cId } }).catch(() => {})
+          await tx.client.delete({ where: { id: cId } }).catch(() => { })
         }
       }
 
@@ -1974,14 +1990,14 @@ export class PsikotesRepository {
       nama_pembeli: booking.client.nama,
       peserta: booking.peserta_psikotes
         ? {
-            nama_lengkap: booking.peserta_psikotes.nama_lengkap,
-            no_telepon: (booking.peserta_psikotes as any).no_telepon || (booking.peserta_psikotes as any).no_telepon_orang_tua || null,
-            usia: booking.peserta_psikotes.usia,
-            jenis_kelamin: booking.peserta_psikotes.jenis_kelamin,
-            kategori_peserta:
-              booking.peserta_psikotes.kategori_peserta ||
-              determineKategoriPeserta(booking.peserta_psikotes.usia),
-          }
+          nama_lengkap: booking.peserta_psikotes.nama_lengkap,
+          no_telepon: (booking.peserta_psikotes as any).no_telepon || (booking.peserta_psikotes as any).no_telepon_orang_tua || null,
+          usia: booking.peserta_psikotes.usia,
+          jenis_kelamin: booking.peserta_psikotes.jenis_kelamin,
+          kategori_peserta:
+            booking.peserta_psikotes.kategori_peserta ||
+            determineKategoriPeserta(booking.peserta_psikotes.usia),
+        }
         : null,
       hasil_tes: booking.hasil_tes,
       redirect_url: redirectUrl,
@@ -2009,12 +2025,12 @@ export class PsikotesRepository {
       where: isUuid
         ? { id: cleanId }
         : {
-            OR: [
-              { id: cleanId },
-              { kode_akses: { equals: cleanId, mode: 'insensitive' as const } },
-              { transaksi: { kode_transaksi: { equals: cleanId, mode: 'insensitive' as const } } },
-            ],
-          },
+          OR: [
+            { id: cleanId },
+            { kode_akses: { equals: cleanId, mode: 'insensitive' as const } },
+            { transaksi: { kode_transaksi: { equals: cleanId, mode: 'insensitive' as const } } },
+          ],
+        },
       include: {
         paket: {
           select: {

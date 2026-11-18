@@ -32,6 +32,10 @@ export default function ProfileAdminClient({
     setNewParagraph,
     showToast,
     toastMessage,
+    toastType,
+    isLoadingProfile,
+    loadError,
+    fetchAdminProfile,
     previewModalOpen,
     setPreviewModalOpen,
     isPlayingVideoPreview,
@@ -51,16 +55,53 @@ export default function ProfileAdminClient({
     <div className="space-y-6 font-poppins pb-12">
       {/* ── 1. TOAST ALERT NOTIFIKASI ── */}
       {showToast && (
-        <div className="fixed top-24 right-6 z-50 flex items-center gap-3 rounded-2xl bg-[#561269] px-5 py-4 text-white shadow-2xl transition-all animate-bounce">
+        <div
+          className={`fixed top-24 right-6 z-50 flex items-center gap-3 rounded-2xl px-5 py-4 text-white shadow-2xl transition-all animate-bounce ${
+            toastType === "error" ? "bg-rose-600" : "bg-[#561269]"
+          }`}
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
+            {toastType === "error" ? (
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-purple-200">Berhasil</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
+              {toastType === "error" ? "Terjadi Kesalahan" : "Berhasil"}
+            </p>
             <p className="text-sm font-medium">{toastMessage}</p>
           </div>
+        </div>
+      )}
+
+      {/* ── ERROR BANNER JIKA BACKEND GAGAL DIMUAT ── */}
+      {loadError && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800 flex items-center justify-between gap-3 text-xs sm:text-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">Error Server:</span>
+            <span>{loadError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={fetchAdminProfile}
+            className="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-medium hover:bg-rose-700 transition"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
+
+      {/* ── LOADING SKELETON JIKA SEDANG MEMUAT AWAL ── */}
+      {isLoadingProfile && (
+        <div className="rounded-3xl border border-gray-200/90 bg-white p-8 text-center text-gray-500 shadow-sm flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-4 border-[#561269] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-medium">Memuat data profil resmi dari server...</p>
         </div>
       )}
 

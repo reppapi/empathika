@@ -61,8 +61,6 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         const rawItems = Array.isArray(res.data.items) ? res.data.items : [];
         const mapped: AdminPsikotesPeserta[] = rawItems.map((it: any) => ({
           id: it.id,
-          idPaket: it.id_paket || null,
-          kodeAkses: it.kode_akses || null,
           nama: it.nama_peserta,
           noHp: it.no_hp ? formatToIndonesianPhone(it.no_hp) : it.no_hp,
           paket: it.nama_paket,
@@ -112,10 +110,6 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
 
   // Baca URL query parameter saat pertama kali dibuka (misal /admin/psikotes?tab=paket)
   useEffect(() => {
-    if (isBiroContext) {
-      setActiveTab("peserta");
-      return;
-    }
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
@@ -123,7 +117,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         setActiveTab(tabParam);
       }
     }
-  }, [isBiroContext]);
+  }, []);
 
   useEffect(() => {
     loadDataFromBackend();
@@ -146,9 +140,8 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
       if (res && res.success) {
         setNotification({
           type: "success",
-          message: `Status paket berhasil diubah menjadi ${
-            nextStatus === "PUBLISHED" ? "Dipublikasi (Aktif)" : "Draf (Nonaktif)"
-          }.`,
+          message: `Status paket berhasil diubah menjadi ${nextStatus === "PUBLISHED" ? "Dipublikasi (Aktif)" : "Draf (Nonaktif)"
+            }.`,
         });
         await loadDataFromBackend();
         if (selectedJudul) {
@@ -168,9 +161,8 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
     } catch (err: any) {
       setNotification({
         type: "error",
-        message: `Gagal mengubah status: ${
-          err.response?.data?.message || err.message || "Terjadi kesalahan"
-        }`,
+        message: `Gagal mengubah status: ${err.response?.data?.message || err.message || "Terjadi kesalahan"
+          }`,
       });
     }
   };
@@ -207,9 +199,8 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
     } catch (err: any) {
       setNotification({
         type: "error",
-        message: `Gagal menghapus: ${
-          err.response?.data?.message || err.message || "Terjadi kesalahan pada server"
-        }`,
+        message: `Gagal menghapus: ${err.response?.data?.message || err.message || "Terjadi kesalahan pada server"
+          }`,
       });
     } finally {
       setIsDeletingJudul(false);
@@ -221,13 +212,12 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
       {/* Toast Notification */}
       {notification && (
         <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${
-            notification.type === "success"
-              ? "bg-emerald-600 text-white"
-              : notification.type === "error"
+          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${notification.type === "success"
+            ? "bg-emerald-600 text-white"
+            : notification.type === "error"
               ? "bg-red-600 text-white"
               : "bg-[#561269] text-white"
-          }`}
+            }`}
         >
           {notification.type === "success" ? (
             <CheckCircle className="w-5 h-5 shrink-0" />
@@ -251,30 +241,27 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
           <button
             type="button"
             onClick={() => setActiveTab("peserta")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === "peserta"
-                ? "bg-[#EAB308] text-gray-950 shadow-sm"
-                : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-            }`}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === "peserta"
+              ? "bg-[#EAB308] text-gray-950 shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+              }`}
           >
             <Users className="w-4 h-4" />
             <span>Data Klien ({pesertaSummary.total_berbayar})</span>
           </button>
 
-          {!isBiroContext && (
-            <button
-              type="button"
-              onClick={() => setActiveTab("paket")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeTab === "paket"
-                  ? "bg-[#EAB308] text-gray-950 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              <span>Katalog Paket ({judulList.length})</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setActiveTab("paket")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "paket"
+                ? "bg-[#EAB308] text-gray-950 shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Katalog Paket ({judulList.length})</span>
+          </button>
         </div>
       </div>
 
@@ -286,43 +273,43 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
 
           {/* Tabel Data Klien */}
           <TabPesertaPsikotes
-          pesertaList={pesertaList}
-          searchQuery={searchPeserta}
-          onSearchChange={setSearchPeserta}
-          selectedPaket={selectedPaketPeserta}
-          onSelectPaketChange={setSelectedPaketPeserta}
-          paketOptions={Array.from(
-            new Set([
-              ...judulList.map((j) => j.judul),
-              ...pesertaList.map((p) => p.paket).filter(Boolean),
-            ])
-          ).filter(Boolean)}
-          isLoading={isLoadingPeserta}
-          onSelectPeserta={setSelectedPeserta}
-        />
-      </div>
-    ) : (
+            pesertaList={pesertaList}
+            searchQuery={searchPeserta}
+            onSearchChange={setSearchPeserta}
+            selectedPaket={selectedPaketPeserta}
+            onSelectPaketChange={setSelectedPaketPeserta}
+            paketOptions={Array.from(
+              new Set([
+                ...judulList.map((j) => j.judul),
+                ...pesertaList.map((p) => p.paket).filter(Boolean),
+              ])
+            ).filter(Boolean)}
+            isLoading={isLoadingPeserta}
+            onSelectPeserta={setSelectedPeserta}
+          />
+        </div>
+      ) : (
         /* Tabel Kelola Paket Psikotes */
         <TabPaketPsikotes
           judulList={judulList}
           searchQuery={searchPaket}
           onSearchChange={setSearchPaket}
           onSelectJudul={setSelectedJudul}
-          onDeleteJudul={handleOpenDeleteJudul}
+          onDeleteJudul={isBiroContext ? () => {} : handleOpenDeleteJudul}
+          isReadOnly={isBiroContext}
           isLoading={isLoadingPaket}
           errorMessage={loadPaketError}
           onRetry={loadDataFromBackend}
         />
       )}
 
-      {/* ── 3. Modal Detail Paket & Kelola Status (Khusus Admin Utama) ── */}
-      {!isBiroContext && (
-        <ModalDetailPaket
-          judul={selectedJudul}
-          onClose={() => setSelectedJudul(null)}
-          onToggleStatus={handleToggleStatus}
-        />
-      )}
+      {/* ── 3. Modal Detail Paket & Kelola Status ── */}
+      <ModalDetailPaket
+        judul={selectedJudul}
+        onClose={() => setSelectedJudul(null)}
+        onToggleStatus={handleToggleStatus}
+        isReadOnly={isBiroContext}
+      />
 
       {/* ── 4. Modal Detail Peserta (Hasil Dokumen PDF Klien) ── */}
       <ModalDetailPeserta

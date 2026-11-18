@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { removeAuthCookie } from "@/lib/cookie"
+import { adminService } from "@/services/admin.service"
 
 interface AdminNavbarProps {
   title?: string
@@ -84,6 +85,39 @@ export function AdminNavbar({
 }: AdminNavbarProps) {
   const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [currentAdminName, setCurrentAdminName] = useState(adminName)
+  const [adminFoto, setAdminFoto] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadProfile = () => {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed.nama) setCurrentAdminName(parsed.nama)
+          if (parsed.foto !== undefined) setAdminFoto(parsed.foto)
+        }
+      } catch {}
+
+      adminService
+        .getProfile()
+        .then((res) => {
+          if (res?.data) {
+            if (res.data.nama) setCurrentAdminName(res.data.nama)
+            if (res.data.foto !== undefined) setAdminFoto(res.data.foto)
+          }
+        })
+        .catch(() => {})
+    }
+
+    loadProfile()
+    window.addEventListener("storage", loadProfile)
+    window.addEventListener("empathika_admin_profile_updated", loadProfile)
+    return () => {
+      window.removeEventListener("storage", loadProfile)
+      window.removeEventListener("empathika_admin_profile_updated", loadProfile)
+    }
+  }, [])
 
   // Otomatis deteksi konfigurasi route aktif
   const matchedConfig = pathname ? PAGE_CONFIG.find((c) => c.match(pathname)) : undefined
@@ -92,7 +126,7 @@ export function AdminNavbar({
 
   // Inisial avatar misalnya "AE" dari Admin Empathika
   const initials =
-    adminName
+    currentAdminName
       .split(" ")
       .map((n) => n[0])
       .join("")
@@ -144,13 +178,17 @@ export function AdminNavbar({
         >
           {/* Info Teks Admin (tersembunyi di layar sangat kecil, tampak di sm ke atas) */}
           <div className="hidden sm:block text-right leading-tight">
-            <p className="text-sm font-bold text-gray-900">{adminName}</p>
+            <p className="text-sm font-bold text-gray-900">{currentAdminName}</p>
             <p className="text-[11px] text-gray-400 font-medium">{subtitle}</p>
           </div>
 
-          {/* Avatar Bulat Inisial */}
-          <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-[#E8D4F0] text-sm font-bold text-[#561269]">
-            {initials}
+          {/* Avatar Bulat Inisial / Foto */}
+          <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-[#E8D4F0] text-sm font-bold text-[#561269] overflow-hidden shadow-xs ring-1 ring-purple-200/50">
+            {adminFoto ? (
+              <img src={adminFoto} alt={currentAdminName} className="h-full w-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
 
           {/* Chevron Icon */}

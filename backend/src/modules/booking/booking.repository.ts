@@ -163,6 +163,10 @@ export class BookingRepository {
       include: {
         booking_konsultasi: true,
       },
+      orderBy: [
+        { status: 'desc' }, // 'SUDAH_DIBOOKING' prioritized so active bookings are checked first
+        { createdAt: 'desc' },
+      ],
     })
   }
 
@@ -1167,17 +1171,68 @@ export class BookingRepository {
 
   async updateBookingStatus(id: string, status: StatusBooking) {
     return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.bookingKonsultasi.findUnique({
-        where: { id },
-        include: { jadwal: true },
+      let existing = await tx.bookingKonsultasi.findFirst({
+        where: {
+          OR: [
+            { id },
+            { id_jadwal: id },
+          ],
+        },
+        include: {
+          client: true,
+          layanan: true,
+          jadwal: {
+            include: {
+              psikolog: true,
+            },
+          },
+        },
       })
+
+      if (!existing) {
+        // Cek jika ID yang dikirim merupakan ID dari JadwalSlot
+        const slot = await tx.jadwalSlot.findUnique({
+          where: { id },
+          include: {
+            booking_konsultasi: {
+              include: {
+                client: true,
+                layanan: true,
+                jadwal: {
+                  include: {
+                    psikolog: true,
+                  },
+                },
+              },
+            },
+          },
+        })
+
+        if (slot) {
+          if (slot.booking_konsultasi) {
+            existing = slot.booking_konsultasi as any
+          } else {
+            // Slot mandiri tanpa booking: kembalikan ke TERSEDIA
+            const updatedSlot = await tx.jadwalSlot.update({
+              where: { id },
+              data: { status: 'TERSEDIA' } as any,
+            })
+            return {
+              id: updatedSlot.id,
+              status: 'CANCELLED',
+              client: { nama: '-' },
+              layanan: { nama: '-' },
+            } as any
+          }
+        }
+      }
 
       if (!existing) {
         throw new Error('Booking konsultasi tidak ditemukan')
       }
 
       const updated = await tx.bookingKonsultasi.update({
-        where: { id },
+        where: { id: existing.id },
         data: { status },
         include: {
           client: true,
@@ -1204,6 +1259,17 @@ export class BookingRepository {
           await tx.psikolog.update({
             where: { id: existing.jadwal.id_psikolog },
             data: { jumlah_sesi: { decrement: 1 } },
+          }).catch(() => { })
+        }
+        // Update transaksi jika ada
+        if (existing.id_transaksi) {
+          await tx.transaksi.update({
+            where: { id: existing.id_transaksi },
+            data: {
+              status_pembayaran: 'REFUNDED',
+              refund_at: new Date(),
+              refund_reason: 'Dibatalkan oleh Admin',
+            },
           }).catch(() => { })
         }
       } else if (existing.status === 'CANCELLED' && (status === 'CONFIRMED' || status === 'PENDING')) {

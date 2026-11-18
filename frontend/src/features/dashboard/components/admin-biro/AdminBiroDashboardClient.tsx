@@ -111,7 +111,7 @@ export default function AdminBiroDashboardClient() {
       .then((res) => {
         if (!isMounted || !res?.data) return
         const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
-        const finalName = beBiro?.nama_biro || res.data.nama || user?.name || "Biro Mitra"
+        const finalName = beBiro?.nama_biro || res.data.nama || user?.name || ""
         const finalSlug = beBiro?.slug || "biro"
         const finalColor =
           beBiro?.warna_tema ||
@@ -138,7 +138,9 @@ export default function AdminBiroDashboardClient() {
           ),
         }))
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error("AdminBiroDashboard: Gagal memuat data akun biro dari backend:", err)
+      })
 
     return () => {
       isMounted = false

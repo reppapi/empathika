@@ -22,6 +22,7 @@ export interface TabPaketPsikotesProps {
   onSearchChange: (val: string) => void;
   onSelectJudul: (judul: JudulPsikotesItem) => void;
   onDeleteJudul: (judul: JudulPsikotesItem) => void;
+  isReadOnly?: boolean;
   isLoading?: boolean;
   errorMessage?: string | null;
   onRetry?: () => void;
@@ -33,6 +34,7 @@ export default function TabPaketPsikotes({
   onSearchChange,
   onSelectJudul,
   onDeleteJudul,
+  isReadOnly = false,
   isLoading = false,
   errorMessage = null,
   onRetry,
@@ -70,12 +72,22 @@ export default function TabPaketPsikotes({
             <img src={item.image} alt={item.judul} className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col">
-            <Link
-              href={`/admin/psikotes/${item.paketList[0]?.id || item.id}`}
-              className="font-extrabold text-gray-900 leading-tight hover:text-[#561269] transition-colors cursor-pointer"
-            >
-              {item.judul}
-            </Link>
+            {isReadOnly ? (
+              <button
+                type="button"
+                onClick={() => onSelectJudul(item)}
+                className="text-left font-extrabold text-gray-900 leading-tight hover:text-[#561269] transition-colors cursor-pointer"
+              >
+                {item.judul}
+              </button>
+            ) : (
+              <Link
+                href={`/admin/psikotes/${item.paketList[0]?.id || item.id}`}
+                className="font-extrabold text-gray-900 leading-tight hover:text-[#561269] transition-colors cursor-pointer"
+              >
+                {item.judul}
+              </Link>
+            )}
           </div>
         </div>
       ),

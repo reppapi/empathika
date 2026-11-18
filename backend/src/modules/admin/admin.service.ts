@@ -250,8 +250,8 @@ export class AdminService {
       linkMapsEmbed: embedUrl,
       bio: admin.bio,
       foto: admin.foto,
-      instagram: (admin as any).instagram || 'https://www.instagram.com/empathika_psikologi?psln=dzgxaTNybnZhbmts',
-      tiktok: (admin as any).tiktok || 'https://www.tiktok.com/@empathika_psikologi?_r=1&_t=ZS-9Aje7iAkpFZ',
+      instagram: (admin as any).instagram || '',
+      tiktok: (admin as any).tiktok || '',
       youtube: (admin as any).youtube || '',
       linkedin: (admin as any).linkedin || '',
     }
@@ -273,12 +273,13 @@ export class AdminService {
       updateData.nama = input.nama
     }
 
-    if (input.email !== undefined && input.email !== existing.email) {
-      const emailUsed = await this.repo.findAccountByEmail(input.email)
+    if (input.email && input.email.trim() !== '' && input.email.trim().toLowerCase() !== existing.email.toLowerCase()) {
+      const cleanEmail = input.email.trim().toLowerCase()
+      const emailUsed = await this.repo.findAccountByEmail(cleanEmail)
       if (emailUsed && emailUsed.id !== existing.id) {
         throw Object.assign(new Error('Email sudah digunakan oleh akun lain'), { statusCode: 400 })
       }
-      updateData.email = input.email
+      updateData.email = cleanEmail
     }
 
     const noTelepon = input.no_telepon !== undefined ? input.no_telepon : input.noTelepon
@@ -352,28 +353,24 @@ export class AdminService {
     try {
       admin = await this.repo.findAdminUtama()
     } catch {
-      // Fallback ke profil publik default jika database belum di-seed atau belum siap
+      // Biarkan null jika database belum siap
     }
     const embedUrl = await resolveGoogleMapsEmbedUrl(admin?.link_maps, admin?.alamat)
 
-    const rawPhone = admin?.no_telepon?.trim()
-    const isLegacyDummy = !rawPhone || rawPhone === '081234567890' || rawPhone === '08123456789'
-    const officialPhone = isLegacyDummy ? '0878-7878-5498' : rawPhone
-
     return {
-      nama: admin?.nama || 'Empathika',
-      email: admin?.email || 'empathika889@gmail.com',
-      no_telepon: officialPhone,
-      noTelepon: officialPhone,
-      alamat: admin?.alamat || 'Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024',
-      link_maps: admin?.link_maps || 'https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw',
-      linkMaps: admin?.link_maps || 'https://maps.app.goo.gl/4VJEM2aoFPAUSC4s7?g_st=iw',
+      nama: admin?.nama || '',
+      email: admin?.email || '',
+      no_telepon: admin?.no_telepon || '',
+      noTelepon: admin?.no_telepon || '',
+      alamat: admin?.alamat || '',
+      link_maps: admin?.link_maps || '',
+      linkMaps: admin?.link_maps || '',
       link_maps_embed: embedUrl,
       linkMapsEmbed: embedUrl,
-      bio: admin?.bio || 'Platform psikologi dan kesehatan mental.',
+      bio: admin?.bio || '',
       foto: admin?.foto || null,
-      instagram: (admin as any)?.instagram || 'https://www.instagram.com/empathika_psikologi?psln=dzgxaTNybnZhbmts',
-      tiktok: (admin as any)?.tiktok || 'https://www.tiktok.com/@empathika_psikologi?_r=1&_t=ZS-9Aje7iAkpFZ',
+      instagram: (admin as any)?.instagram || '',
+      tiktok: (admin as any)?.tiktok || '',
       youtube: (admin as any)?.youtube || '',
       linkedin: (admin as any)?.linkedin || '',
     }

@@ -86,6 +86,18 @@ export default async function biroRoutes(fastify: FastifyInstance) {
     handler: controller.updateAccount,
   })
 
+  // PUT /biro/profile - Biro memperbarui profil lembaga miliknya sendiri
+  fastify.put("/profile", {
+    preHandler: [authGuard],
+    schema: {
+      tags: ["Biro - Akun"],
+      summary: "Memperbarui profil lembaga Biro yang sedang login",
+      security: [{ bearerAuth: [] }],
+      body: updateBiroProfileSchema,
+    },
+    handler: controller.updateMyBiroProfile,
+  })
+
 
 
   // GET /biro/public/:slug - Profil utama website biro

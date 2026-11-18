@@ -48,6 +48,18 @@ export default function DashboardChart() {
 
   useEffect(() => {
     fetchChart()
+
+    const handleSync = () => {
+      fetchChart()
+    }
+
+    window.addEventListener("empathika_session_cancelled", handleSync)
+    window.addEventListener("storage", handleSync)
+
+    return () => {
+      window.removeEventListener("empathika_session_cancelled", handleSync)
+      window.removeEventListener("storage", handleSync)
+    }
   }, [fetchChart])
 
   // Sinkronkan periode saat query param URL berubah (misal tombol Back / Forward browser)
