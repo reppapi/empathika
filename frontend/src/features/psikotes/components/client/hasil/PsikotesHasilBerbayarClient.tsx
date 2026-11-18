@@ -17,7 +17,14 @@ import {
   User,
   WifiOff,
   RefreshCw,
+  Clock,
+  Stethoscope,
+  Copy,
+  Check,
+  FileText,
+  Sparkles,
 } from "lucide-react";
+import { calculateReviewSla, getEstimatedReviewClientText, REVIEW_MAX_DAYS } from "@/features/psikotes/utils/reviewSla";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
 import {
@@ -32,12 +39,15 @@ import {
   tailwindBarToHex,
   type LaporanPsikotesPdfData,
 } from "@/features/psikotes/utils/downloadLaporanPsikotesPdf";
+import { useAdminContact } from "@/hooks/useAdminContact";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { getWhatsAppUrl } = useAdminContact();
   const [isDownloading, setIsDownloading] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -152,6 +162,12 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     str: number | null;
     detailSkor?: any | null;
     dbInterpretasi?: any | null;
+    statusPengerjaan?: string | null;
+    catatanPsikolog?: string | null;
+    rekomendasiPsikolog?: string | null;
+    psikolog?: { id?: number; nama?: string; gelar?: string; nama_gelar?: string } | null;
+    tanggalReview?: string | null;
+    tanggalSelesai?: string | null;
   } | null>(null);
 
   const paramBookingId = searchParams.get("bookingId") || searchParams.get("orderId");
@@ -236,6 +252,12 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 judul: bData.hasil.judul,
                 deskripsi: bData.hasil.deskripsi,
               } : null,
+              statusPengerjaan: (bData as any).status_pengerjaan || null,
+              catatanPsikolog: (bData as any).catatan_psikolog || null,
+              rekomendasiPsikolog: (bData as any).rekomendasi_psikolog || null,
+              psikolog: (bData as any).psikolog || null,
+              tanggalReview: (bData as any).tanggal_review || null,
+              tanggalSelesai: bData.hasil?.tanggal_selesai || (bData as any).tanggal_mulai || null,
             });
 
             setIsLoadingDb(false);
@@ -321,6 +343,26 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const isCDI = checkCDI(dbPackage, params.testId);
   const isCATS = checkCATS(dbPackage, params.testId);
   const isMCMI = checkMCMI(dbPackage, params.testId);
+
+  // Status Menunggu Review Psikolog (SLA Maks. 3 Hari)
+  // Menahan tampilan hasil analitik mentah/grafik klinis sebelum verifikasi psikolog diterbitkan
+  const isKlinisPerluReview = Boolean((dbPackage as any)?.perlu_review_psikolog) || isMCMI;
+  const isMenungguReview =
+    bookingReport?.statusPengerjaan === "MENUNGGU_REVIEW" ||
+    (isKlinisPerluReview &&
+      (bookingReport?.statusPengerjaan !== "SELESAI" ||
+        (!bookingReport?.catatanPsikolog && !bookingReport?.tanggalReview)));
+
+  // Informasi SLA batas waktu telaah psikolog (maksimal 3 hari kerja)
+  const slaInfo = calculateReviewSla(bookingReport?.tanggalSelesai || peserta.tanggal);
+
+  const handleCopyLink = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
 
   const mcmiResult =
     (isMCMI || bookingReport?.detailSkor?.validitas) &&
@@ -561,6 +603,21 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
   // Data komprehensif interpretasi untuk paket Berbayar murni dari database
   const berbayarDetail = (() => {
+    // Khusus instrumen MCMI-IV: Hasil bersifat klinis komprehensif dan FULL DARI PSIKOLOG.
+    // Tidak menggunakan template teks otomatis (tanpa deskripsi template, tanpa kekuatan, blindspots, lingkungan, dan tips generic).
+    if (isMCMI) {
+      return {
+        deskripsi: "",
+        kekuatanUtama: [],
+        judulKekuatan: "",
+        blindspots: [],
+        judulBlindspots: "",
+        lingkunganOptimal: [],
+        judulLingkungan: "",
+        saranList: [],
+      };
+    }
+
     if (dbInterpretasi) {
       let parsedTips: any = {};
       const rawTips = (dbInterpretasi as any)?.tips;
@@ -673,6 +730,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   })();
 
   const handleDownloadPdf = async () => {
+    if (isDownloading || isMenungguReview) return;
     setIsDownloading(true);
     try {
       const noDokumen = `EMP-PSI-${
@@ -698,11 +756,26 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
           namaOrangTua: peserta.namaOrangTua || null,
           noTeleponOrangTua: peserta.noTeleponOrangTua || null,
         },
+        catatanPsikolog: bookingReport?.catatanPsikolog || null,
+        rekomendasiPsikolog: bookingReport?.rekomendasiPsikolog || null,
+        namaPsikolog: bookingReport?.psikolog?.nama_gelar || "Psikolog Klinis Empathika",
+        tanggalReview: bookingReport?.tanggalReview
+          ? new Date(bookingReport.tanggalReview).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : null,
         hasilUtama: {
           prefix: dynamicResult.prefix,
           judul: dynamicResult.value,
-          totalSkor: pbqProfile ? null : totalSkor,
-          deskripsi: isDASS && dassEvaluation ? dassEvaluation.introText : berbayarDetail.deskripsi,
+          totalSkor: pbqProfile || isMCMI ? null : totalSkor,
+          deskripsi:
+            isDASS && dassEvaluation
+              ? dassEvaluation.introText
+              : isMCMI
+              ? "Laporan resmi evaluasi klinis multiaxial kepribadian. Seluruh telaah dinamika, indikator psikologis, dan rekomendasi disusun secara personal oleh Psikolog Empathika."
+              : berbayarDetail.deskripsi,
         },
         subscales: dassEvaluation
           ? dassEvaluation.subscalesList.map((s) => ({
@@ -781,15 +854,17 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 : catsSubscales
                   ? "Skor mentah per klaster (cut-off klinis total >= 21)"
                   : undefined,
-        kekuatanUtama: berbayarDetail.kekuatanUtama,
-        judulKekuatan: berbayarDetail.judulKekuatan,
-        blindspots: berbayarDetail.blindspots,
-        judulBlindspots: berbayarDetail.judulBlindspots,
-        lingkunganOptimal: berbayarDetail.lingkunganOptimal,
-        judulLingkungan: berbayarDetail.judulLingkungan,
-        saranList: berbayarDetail.saranList.map((t: any) =>
-          typeof t === "string" ? { title: "Rekomendasi", desc: t } : t
-        ),
+        kekuatanUtama: isMCMI ? undefined : berbayarDetail.kekuatanUtama,
+        judulKekuatan: isMCMI ? undefined : berbayarDetail.judulKekuatan,
+        blindspots: isMCMI ? undefined : berbayarDetail.blindspots,
+        judulBlindspots: isMCMI ? undefined : berbayarDetail.judulBlindspots,
+        lingkunganOptimal: isMCMI ? undefined : berbayarDetail.lingkunganOptimal,
+        judulLingkungan: isMCMI ? undefined : berbayarDetail.judulLingkungan,
+        saranList: isMCMI
+          ? undefined
+          : berbayarDetail.saranList.map((t: any) =>
+              typeof t === "string" ? { title: "Rekomendasi", desc: t } : t
+            ),
       };
 
       await downloadLaporanPsikotesPdf(pdfData);
@@ -832,7 +907,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               Kembali ke Detail Tes
             </Link>
             <a
-              href="https://wa.me/6281234567890?text=Halo%20Admin%20Empathika,%20saya%20butuh%20bantuan%20terkait%20akses%20arsip%20tiket%20psikotes%20saya"
+              href={getWhatsAppUrl("Halo Admin Empathika, saya butuh bantuan terkait akses arsip tiket psikotes saya")}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition shadow-sm"
@@ -849,7 +924,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
   // dan bukan instrumen DASS-42 (yang memiliki perhitungan evaluasi multidimensi khusus),
   // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
-  if (!dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult) {
+  if (!isMenungguReview && !dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
@@ -923,42 +998,44 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Header Bersih & Profesional */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
-          <div>
-            <p className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-1.5">
-              Laporan Analisis Asesmen Resmi
-            </p>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">
-              {displayTestName}
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-xl">
-              Evaluasi mendalam profil personal, gaya komunikasi, serta panduan pengembangan potensi dirimu.
-            </p>
-          </div>
+        {/* Header Bersih & Profesional (Hanya tampil saat laporan resmi sudah terbit) */}
+        {!isMenungguReview && (
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
+            <div>
+              <p className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-1.5">
+                Laporan Analisis Asesmen Resmi
+              </p>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">
+                {displayTestName}
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-xl">
+                Evaluasi mendalam profil personal, gaya komunikasi, serta panduan pengembangan potensi dirimu.
+              </p>
+            </div>
 
-          <div className="flex items-center gap-3 shrink-0 print:hidden">
-            <button
-              onClick={handleDownloadPdf}
-              disabled={isDownloading}
-              className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all active:scale-98 ${
-                isDownloading ? "bg-[#763E8B] text-white opacity-80 cursor-wait" : "bg-[#561269] hover:bg-[#6e1886] text-white cursor-pointer"
-              }`}
-            >
-              {isDownloading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Mengunduh PDF...</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  <span>Download Laporan (PDF)</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-3 shrink-0 print:hidden">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isDownloading}
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all active:scale-98 ${
+                  isDownloading ? "bg-[#763E8B] text-white opacity-80 cursor-wait" : "bg-[#561269] hover:bg-[#6e1886] text-white cursor-pointer"
+                }`}
+              >
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Mengunduh PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Download Laporan (PDF)</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ══ KONTEN UTAMA LAPORAN BERBAYAR (TAMPILAN WEB & PDF) ══ */}
         <div id="laporan-berbayar-container" className="space-y-6 bg-white p-4 sm:p-8 rounded-2xl border border-gray-200/80 shadow-xs">
@@ -987,7 +1064,116 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             </div>
           </div>
 
-          {/* Card Identitas Peserta Asesmen */}
+          {/* Percabangan Tampilan: Menunggu Review vs Laporan Terbit Lengkap */}
+          {isMenungguReview ? (
+            <div className="py-8 sm:py-12 px-3 sm:px-6 max-w-xl mx-auto text-center space-y-6">
+              {/* Icon Elegan & Tenang */}
+              <div className="inline-flex items-center justify-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-purple-50 text-[#561269] flex items-center justify-center border border-purple-100 shadow-xs">
+                  <Clock className="w-8 h-8 sm:w-10 sm:h-10 text-[#561269]" />
+                </div>
+              </div>
+
+              {/* Judul & Penjelasan Ringkas */}
+              <div className="space-y-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+                  Asesmen Berhasil Diselesaikan!
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-md mx-auto">
+                  Terima kasih telah menyelesaikan asesmen <strong>{displayTestName}</strong>. Jawaban Anda berhasil disimpan. Selanjutnya, hasil asesmen akan melalui proses penelaahan oleh psikolog Empathika sebelum laporan diterbitkan.
+                </p>
+              </div>
+
+              {/* Ringkasan Data Asesmen: Simpel & Bersih */}
+              <div className="bg-gray-50/80 rounded-2xl border border-gray-200/80 p-4 sm:p-5 text-left text-xs sm:text-sm space-y-2.5">
+                <h3 className="font-bold text-gray-900 text-sm pb-2 border-b border-gray-200">
+                  Informasi Asesmen
+                </h3>
+                <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                  <span className="text-gray-500">Nama Peserta</span>
+                  <span className="font-bold text-gray-900 truncate max-w-[200px] text-right">
+                    {peserta.nama || "Peserta Asesmen"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                  <span className="text-gray-500">Kode Tiket</span>
+                  <span className="font-mono font-bold text-[#561269] bg-white px-2 py-0.5 rounded border border-gray-200">
+                    {peserta.bookingId || "PSI-VERIFIED"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                  <span className="text-gray-500">Tanggal Tes</span>
+                  <span className="font-medium text-gray-800">{peserta.tanggal}</span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                  <span className="text-gray-500">Status</span>
+                  <span className="font-medium text-gray-800 text-right">
+                    Dalam Proses Telaah Psikolog
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-500">Estimasi Laporan Selesai</span>
+                  <span className="font-medium text-gray-800 text-right">
+                    Maksimal {REVIEW_MAX_DAYS} hari kerja, yaitu {slaInfo.deadlineDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Informasi Hasil (Gaya Callout Sebelumnya dengan Kata-kata Baru) */}
+              <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100/80 text-left text-xs text-purple-950 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-[#561269] shrink-0 mt-0.5" />
+                <p className="leading-relaxed text-gray-700">
+                  <strong className="text-gray-900 font-bold">Informasi Hasil:</strong> Laporan hasil asesmen dalam format PDF akan dikirimkan oleh admin melalui WhatsApp yang terdaftar. Anda juga dapat mengecek dan mengunduh laporan secara mandiri melalui website Empathika menggunakan kode tiket setelah proses penelaahan selesai.
+                </p>
+              </div>
+
+              {/* Aksi Sederhana */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#6e1886] text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer"
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-300" />
+                      <span>Link Berhasil Disalin!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Salin Link Hasil</span>
+                    </>
+                  )}
+                </button>
+
+                <Link
+                  href="/psikotes"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition"
+                >
+                  Kembali ke Katalog Tes
+                </Link>
+              </div>
+
+              {/* Pertanyaan & Kontak Admin WhatsApp */}
+              <div className="pt-2 text-xs text-gray-500 space-y-1">
+                <p>Ada pertanyaan mengenai hasil asesmen?</p>
+                <p>
+                  Silakan hubungi Admin Empathika melalui WhatsApp.{" "}
+                  <a
+                    href={getWhatsAppUrl(`Halo Admin Empathika, saya ingin bertanya mengenai status review asesmen psikotes saya (Tiket: ${peserta.bookingId || "PSI-VERIFIED"})`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#561269] font-bold hover:underline inline-flex items-center gap-1"
+                  >
+                    Hubungi Admin WhatsApp
+                  </a>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Card Identitas Peserta Asesmen */}
           <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-7 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-2">
               <div className="flex items-center gap-2.5">
@@ -1069,7 +1255,11 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               {dynamicResult.value}
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              {isDASS && dassEvaluation ? dassEvaluation.introText : berbayarDetail.deskripsi}
+              {isDASS && dassEvaluation
+                ? dassEvaluation.introText
+                : isMCMI
+                ? "Laporan resmi evaluasi klinis multiaxial kepribadian. Seluruh telaah dinamika kepribadian, indikator psikologis, dan rekomendasi disusun secara personal oleh Psikolog Empathika."
+                : berbayarDetail.deskripsi}
             </p>
           </section>
 
@@ -1514,24 +1704,26 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 </section>
               )}
 
-              {/* Interpretasi Hasil & Implikasi Strategis */}
-              <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <Info className="w-5 h-5 text-[#561269]" />
-                    Interpretasi Hasil
-                  </h3>
-                  <div className="space-y-3.5 text-sm text-gray-600 leading-relaxed">
-                    {String(berbayarDetail.deskripsi || "")
-                      .split(/\r?\n\s*\r?\n/)
-                      .map((p: string) => p.trim())
-                      .filter(Boolean)
-                      .map((para: string, i: number) => (
-                        <p key={i}>{para}</p>
-                      ))}
+              {/* Interpretasi Hasil & Implikasi Strategis (Hanya untuk instrumen non-klinis dengan interpretasi template) */}
+              {!isMCMI && berbayarDetail.deskripsi && (
+                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                      <Info className="w-5 h-5 text-[#561269]" />
+                      Interpretasi Hasil
+                    </h3>
+                    <div className="space-y-3.5 text-sm text-gray-600 leading-relaxed">
+                      {String(berbayarDetail.deskripsi || "")
+                        .split(/\r?\n\s*\r?\n/)
+                        .map((p: string) => p.trim())
+                        .filter(Boolean)
+                        .map((para: string, i: number) => (
+                          <p key={i}>{para}</p>
+                        ))}
+                    </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
 
               {/* Analisis Karakteristik & Dinamika Diri */}
               {(berbayarDetail.kekuatanUtama.length > 0 || berbayarDetail.blindspots.length > 0) && (
@@ -1668,11 +1860,19 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                   </div>
                   <div className="flex justify-between items-center text-gray-600">
                     <span>Cakupan Laporan</span>
-                    <span className="font-semibold text-[#561269]">Analisis Komprehensif</span>
+                    <span className="font-semibold text-[#561269]">
+                      {isMCMI ? "Telaah Klinis Psikolog" : "Analisis Komprehensif"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600">
                     <span>Validitas Respon</span>
-                    <span className="font-semibold text-gray-900">Konsisten</span>
+                    <span className="font-semibold text-gray-900">
+                      {isMCMI
+                        ? mcmiResult?.validitas?.isValid
+                          ? "Valid & Terpercaya"
+                          : "Indikasi Tidak Valid"
+                        : "Konsisten"}
+                    </span>
                   </div>
                   {dassEvaluation && (
                     <div className="pt-3 border-t border-gray-100 space-y-2">
@@ -1744,10 +1944,15 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             </div>
           </div>
 
+            </>
+          )}
+
         </div>
 
         {/* Rekomendasi Tes Dinamis dari Database (TIDAK MASUK KE PRINT) */}
-        <PsikotesRekomendasiSection currentTestId={params.testId} />
+        {!isMenungguReview && (
+          <PsikotesRekomendasiSection currentTestId={params.testId} />
+        )}
 
       </div>
     </div>

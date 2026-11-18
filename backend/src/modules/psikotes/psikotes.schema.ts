@@ -159,7 +159,26 @@ export type CreateBookingPsikotesInput = z.infer<typeof createBookingPsikotesSch
 export const verifyTicketSchema = z.object({
   kode_akses: z.string().min(3, 'Kode akses atau nomor transaksi wajib diisi'),
   no_telepon: z.string().min(6, 'Nomor WhatsApp pembeli wajib diisi'),
+  id_paket: z.string().optional(),
 })
 
 export type VerifyTicketInput = z.infer<typeof verifyTicketSchema>
+
+// ── 9. Review Psikolog untuk Asesmen Klinis ──
+export const reviewPsikotesQuerySchema = z.object({
+  status: z.enum(['ALL', 'MENUNGGU_REVIEW', 'SELESAI']).optional().default('ALL'),
+  search: z.string().optional(),
+  page: z.coerce.number().int().optional().default(1),
+  limit: z.coerce.number().int().optional().default(50),
+})
+
+export type ReviewPsikotesQueryInput = z.infer<typeof reviewPsikotesQuerySchema>
+
+export const submitReviewPsikotesSchema = z.object({
+  catatan_psikolog: z.string().min(5, 'Catatan dinamika kepribadian psikolog minimal 5 karakter'),
+  rekomendasi_psikolog: z.string().optional().nullable(),
+  id_psikolog: z.string().optional().nullable(),
+})
+
+export type SubmitReviewPsikotesInput = z.infer<typeof submitReviewPsikotesSchema>
 

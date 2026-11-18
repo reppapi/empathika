@@ -246,6 +246,7 @@ export async function seedMCMI(prisma: PrismaClient) {
     tentang_tes:
       'Millon Clinical Multiaxial Inventory-IV (MCMI-IV) adalah tes psikometri klinis komprehensif yang terdiri dari 195 pernyataan untuk mengevaluasi 15 spektrum kepribadian dan 10 sindroma klinis pada individu dewasa usia 18 tahun ke atas.',
     status: 'PUBLISHED',
+    perlu_review_psikolog: true,
   }
 
   if (paket) {

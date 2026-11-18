@@ -113,6 +113,8 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
     pageTitle = "Jadwal dan Sesi Psikolog"
   } else if (pathname?.startsWith("/psikolog-web/profile") || pathname?.startsWith("/profile") || pathname?.startsWith("/admin/psikolog-web/profile")) {
     pageTitle = "Profil Saya"
+  } else if (pathname?.startsWith("/psikolog-web/review-asesmen")) {
+    pageTitle = "Review Asesmen Psikotes"
   } else {
     pageTitle = "Beranda"
   }

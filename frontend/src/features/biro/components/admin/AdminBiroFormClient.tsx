@@ -407,7 +407,24 @@ export default function AdminBiroFormClient({ biroId }: AdminBiroFormClientProps
             const updatedList = list.map((b) => (b.id === targetAccountId || b.accountId === targetAccountId ? resultBiro : b))
             localStorage.setItem(LOCAL_STORAGE_KEY_BIRO, JSON.stringify(updatedList))
           }
+
+          if (telepon.trim()) {
+            const rawSaved = localStorage.getItem("empathika_admin_profile")
+            const adminProf = rawSaved ? JSON.parse(rawSaved) : {}
+            localStorage.setItem(
+              "empathika_admin_profile",
+              JSON.stringify({
+                ...adminProf,
+                noTelepon: telepon.trim(),
+                no_telepon: telepon.trim(),
+              })
+            )
+          }
         } catch {}
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("empathika_admin_profile_updated"))
+        }
 
         setSubmittedBiro(resultBiro)
         setIsSuccessModalOpen(true)

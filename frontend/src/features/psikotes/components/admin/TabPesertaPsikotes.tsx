@@ -232,13 +232,23 @@ export default function TabPesertaPsikotes({
       key: "status",
       header: "Status",
       render: (peserta: AdminPsikotesPeserta) => {
-        const isSelesai = peserta.status === "Selesai";
+        const isMenungguReview =
+          peserta.status === "Menunggu Review" ||
+          peserta.status_pengerjaan === "MENUNGGU_REVIEW";
+        const isSelesai =
+          !isMenungguReview &&
+          (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI");
+
         return (
           <AdminStatusBadge
-            variant={isSelesai ? "success" : "warning"}
+            variant={isSelesai ? "success" : isMenungguReview ? "info" : "warning"}
             className="w-36"
           >
-            {peserta.status || (isSelesai ? "Selesai" : "Menunggu Pengerjaan")}
+            {isMenungguReview
+              ? "Menunggu Review"
+              : isSelesai
+              ? "Selesai"
+              : "Menunggu Pengerjaan"}
           </AdminStatusBadge>
         );
       },
