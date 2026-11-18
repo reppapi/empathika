@@ -84,6 +84,8 @@ enum JenisAksesPsikotes {
 
 enum StatusPengerjaan {
   BELUM_MULAI
+  SEDANG_MENGERJAKAN
+  MENUNGGU_REVIEW
   SELESAI
 }
 
@@ -104,6 +106,24 @@ enum TipeTransaksi {
   KONSULTASI
   EVENT
   PSIKOTES
+}
+
+enum StatusPayout {
+  BELUM_DICAIRKAN
+  DIPROSES
+  BERHASIL
+  GAGAL
+}
+
+enum TipePenerima {
+  PSIKOLOG
+  BIRO
+  EMPATHIKA
+}
+
+enum AlasanPembagian {
+  SESI_NORMAL
+  DP_HANGUS
 }
 
 // ==========================================
@@ -193,6 +213,10 @@ model Biro {
   deskripsi   String?    @db.Text
   no_telepon  String?
   website_url String?
+  // === Rekening Bank untuk Payout ===
+  bank_code          String?  // Kode bank Xendit (mis. BCA, BNI, BRI, MANDIRI)
+  nomor_rekening     String?  // Nomor rekening biro
+  nama_pemilik_rek   String?  // Nama pemilik rekening
   status      StatusBiro @default(PENDING)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -200,6 +224,8 @@ model Biro {
   owner   Account   @relation("BiroOwner", fields: [id_account], references: [id], onDelete: Restrict)
   staff   Account[] @relation("BiroStaff")
   clients Client[]
+  transaksi_biro   Transaksi[] @relation("TransaksiBiro")
+  payout_biro      Payout[]    @relation("PayoutBiro")
 
   @@map("biros")
 }
@@ -260,6 +286,10 @@ model Psikolog {
   status            StatusPsikolog @default(ACTIVE)
   jumlah_sesi       Int            @default(0)
   tarif_per_jam     Decimal        @db.Decimal(12, 2)
+  // === Rekening Bank untuk Payout ===
+  bank_code          String?  // Kode bank Xendit (mis. BCA, BNI, BRI, MANDIRI)
+  nomor_rekening     String?  // Nomor rekening penerima
+  nama_pemilik_rek   String?  // Nama pemilik rekening (harus sesuai nama di bank)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -300,6 +330,15 @@ model Transaksi {
   subtotal           Decimal          @db.Decimal(12, 2)
   biaya_admin        Decimal          @db.Decimal(12, 2)
   total              Decimal          @db.Decimal(12, 2)
+  // === FIELD BARU: Rincian harga dan tenant ===
+  id_biro_tenant     String?          // null = web Empathika langsung, terisi = web biro
+  harga_dasar        Decimal?         @db.Decimal(12, 2) // Harga sesi sebelum komisi/fee
+  biaya_layanan      Decimal?         @db.Decimal(12, 2) // Fee Xendit yang ditanggung client
+  komisi_biro        Decimal?         @db.Decimal(12, 2) // Komisi untuk biro (0 jika bukan dari biro)
+  // === FIELD BARU: Refund & DP hangus ===
+  nominal_ditahan    Decimal?         @db.Decimal(12, 2) // Nominal yang ditahan (DP hangus)
+  nominal_dikembalikan Decimal?       @db.Decimal(12, 2) // Nominal yang dikembalikan ke client
+  alasan_penahanan   String?          @db.Text            // Alasan penahanan DP
   metode_pembayaran  MetodePembayaran
   channel_pembayaran String?
   status_pembayaran  StatusPembayaran @default(PENDING)
@@ -317,6 +356,8 @@ model Transaksi {
   booking_event      BookingEvent?
   booking_psikotes   BookingPsikotes?
   invoice            Invoice?
+  biro_tenant        Biro?            @relation("TransaksiBiro", fields: [id_biro_tenant], references: [id], onDelete: SetNull)
+  pembagian          PembagianTransaksi[]
 
   @@map("transaksis")
 }
@@ -452,6 +493,7 @@ model PaketPsikotes {
   harga       Decimal            @db.Decimal(12, 2)
   banner_url  String?
   tentang_tes String?            @db.Text
+  perlu_review_psikolog Boolean? @default(false)
   status      String             @default("PUBLISHED")
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
@@ -699,7 +741,57 @@ model Invoice {
 }
 
 // ==========================================
-// 8. SITE SETTINGS (PENGATURAN SISTEM DINAMIS)
+// 8b. LEDGER PEMBAGIAN TRANSAKSI
+// ==========================================
+
+model PembagianTransaksi {
+  id             String          @id @default(uuid())
+  id_transaksi   String
+  penerima_tipe  TipePenerima
+  penerima_id    String?         // ID psikolog atau biro (null untuk Empathika)
+  jumlah         Decimal         @db.Decimal(12, 2)
+  alasan         AlasanPembagian @default(SESI_NORMAL)
+  status         StatusPayout    @default(BELUM_DICAIRKAN)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  transaksi Transaksi @relation(fields: [id_transaksi], references: [id], onDelete: Restrict)
+  payout    Payout[]
+
+  @@index([id_transaksi])
+  @@index([status])
+  @@map("pembagian_transaksi")
+}
+
+// ==========================================
+// 8c. PAYOUT (TRANSFER KELUAR KE PSIKOLOG/BIRO)
+// ==========================================
+
+model Payout {
+  id               String       @id @default(uuid())
+  id_pembagian     String
+  id_biro          String?      // null jika payout ke psikolog
+  xendit_payout_id String?      @unique // ID dari Xendit setelah payout dibuat
+  idempotency_key  String       @unique // Mencegah payout dobel
+  jumlah           Decimal      @db.Decimal(12, 2)
+  fee_payout       Decimal      @db.Decimal(12, 2) @default(0)
+  status           StatusPayout @default(BELUM_DICAIRKAN)
+  error_message    String?      @db.Text
+  attempted_at     DateTime?    // Waktu terakhir percobaan
+  completed_at     DateTime?    // Waktu sukses
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  pembagian PembagianTransaksi @relation(fields: [id_pembagian], references: [id], onDelete: Restrict)
+  biro      Biro?              @relation("PayoutBiro", fields: [id_biro], references: [id], onDelete: SetNull)
+
+  @@index([id_pembagian])
+  @@index([status])
+  @@map("payouts")
+}
+
+// ==========================================
+// 9. SITE SETTINGS (PENGATURAN SISTEM DINAMIS)
 // ==========================================
 
 model SiteSetting {

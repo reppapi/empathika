@@ -8,6 +8,7 @@ import type {
 import { paymentService } from './payment/payment.service'
 import { env } from '../../config/env'
 import { generateOrderId, generateTrxId, normalizePhoneNumber } from '../../utils'
+import { hitungTransaksi } from './transaksi.calc'
 
 export class TransaksiService {
   private repo: TransaksiRepository
@@ -42,13 +43,15 @@ export class TransaksiService {
     const result = await this.repo.refundTransaksi(params)
     return {
       success: true,
-      message: 'Refund transaksi berhasil diproses. 70% dikembalikan ke klien, 15% dialokasikan ke psikolog, dan 15% ke Empathika.',
+      message: `Refund transaksi berhasil diproses. Rp${result.nominalDitahan?.toLocaleString('id-ID') ?? '150.000'} ditahan (DP hangus); Rp${result.nominalRefund?.toLocaleString('id-ID') ?? '0'} dikembalikan ke klien.`,
       transaksiId: result.transaksi.id,
       kodeTransaksi: result.transaksi.kode_transaksi,
-      totalTransaksi: (result as any).totalTransaksi,
-      nominalRefund: result.nominalRefund, // 70%
-      potonganEmpathika: (result as any).potonganEmpathika, // 15%
-      potonganPsikolog: (result as any).potonganPsikolog, // 15%
+      totalTransaksi: result.totalTransaksi,
+      nominalDitahan: result.nominalDitahan,     // Rp150.000 yang ditahan
+      nominalRefund: result.nominalRefund,        // Sisa yang dikembalikan ke client
+      porsiPsikologDP: result.porsiPsikologDP,   // Bagian psikolog dari nominal ditahan
+      porsiEmpathikaDP: result.porsiEmpathikaDP, // Bagian Empathika dari nominal ditahan
+      tipeSesi: result.tipeSesi,
       statusPembayaran: result.transaksi.status_pembayaran,
       refundAt: result.transaksi.refund_at,
       refundReason: result.transaksi.refund_reason,
@@ -158,7 +161,7 @@ export class TransaksiService {
         }
 
         const layanan = await tx.layanan.findFirst({ where: { aktif: true } })
-        nominal = layanan?.harga_weekday ? Number(layanan.harga_weekday) : 200000
+        const hargaDasar = layanan?.harga_weekday ? Number(layanan.harga_weekday) : 200000
         kodePesanan = generateOrderId('KONS')
         deskripsiTagihan = `Konseling Psikologi (${slot.psikolog?.nama_gelar || 'Psikolog'}) - ${kodePesanan}`
 
@@ -167,15 +170,25 @@ export class TransaksiService {
           data: { status: 'SUDAH_DIBOOKING' },
         })
 
+        // Hitung rincian biaya (harga dasar, komisi biro, biaya layanan/Xendit fee, total)
+        const metodeBayar = (input.metode_pembayaran || 'QRIS').toUpperCase()
+        const tipeSesi = (input.metode_layanan || 'ONLINE').toUpperCase() as 'ONLINE' | 'OFFLINE'
+        const dariBiro = Boolean(input.id_biro)
+        const rincian = hitungTransaksi(hargaDasar, tipeSesi, metodeBayar, dariBiro)
+
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
+            id_biro_tenant: input.id_biro || null,
             kode_transaksi: kodeTransaksi,
             tipe_transaksi: 'KONSULTASI',
-            subtotal: nominal,
-            biaya_admin: 0,
-            total: nominal,
-            metode_pembayaran: (input.metode_pembayaran || 'QRIS').toUpperCase(),
+            harga_dasar: rincian.hargaDasar,
+            biaya_layanan: rincian.biayaLayanan,
+            komisi_biro: rincian.komisiBiro,
+            subtotal: rincian.subtotalKlien,
+            biaya_admin: rincian.biayaLayanan, // backward compatibility
+            total: rincian.total,
+            metode_pembayaran: metodeBayar,
             channel_pembayaran: input.channel_pembayaran || null,
             status_pembayaran: 'PENDING',
           },
@@ -196,7 +209,7 @@ export class TransaksiService {
 
         const invoice = await paymentService.createInvoice({
           externalId: kodeTransaksi,
-          amount: nominal,
+          amount: rincian.total,
           payerEmail: input.email || undefined,
           description: deskripsiTagihan,
           customer: {
@@ -534,13 +547,18 @@ export class TransaksiService {
           ],
         },
         include: {
-          booking_konsultasi: true,
+          booking_konsultasi: { include: { jadwal: true } },
           booking_event: true,
           booking_psikotes: true,
         },
       })
 
       if (!transaksi) {
+        return
+      }
+
+      // Idempotency guard: jika sudah PAID sebelumnya, skip seluruh pemrosesan
+      if (transaksi.status_pembayaran === 'PAID' && (status === 'PAID' || status === 'SETTLED')) {
         return
       }
 
@@ -576,6 +594,74 @@ export class TransaksiService {
             status: newStatus === 'PAID' ? 'CONFIRMED' : newStatus === 'FAILED' ? 'CANCELLED' : 'PENDING',
           },
         })
+      }
+
+      // ── Catat pembagian ke ledger PembagianTransaksi saat PAID ──────────────
+      // Pembagian hanya berlaku untuk transaksi KONSULTASI (bukan event/psikotes
+      // karena event/psikotes tidak ada payout ke psikolog tertentu).
+      // Payout ke psikolog BELUM dikirim di sini — dipicu saat sesi SELESAI.
+      if (newStatus === 'PAID' && transaksi.tipe_transaksi === 'KONSULTASI') {
+        try {
+          // Pastikan belum ada ledger untuk transaksi ini (idempotency)
+          const existingPembagian = await tx.pembagianTransaksi.count({
+            where: { id_transaksi: transaksi.id },
+          })
+
+          if (existingPembagian === 0) {
+            const hargaDasar = transaksi.harga_dasar
+              ? Number(transaksi.harga_dasar)
+              : Number(transaksi.subtotal) // fallback ke subtotal untuk data lama
+
+            const metode = (transaksi.metode_pembayaran as string) || 'QRIS'
+            const tipeSesi = (transaksi.booking_konsultasi?.metode || 'ONLINE').toUpperCase() as 'OFFLINE' | 'ONLINE'
+            const dariBiro = Boolean(transaksi.id_biro_tenant)
+
+            const hasil = hitungTransaksi(hargaDasar, tipeSesi, metode, dariBiro)
+
+            // Baris 1: Porsi psikolog
+            // Mencari id psikolog dari booking -> jadwal
+            const idPsikolog = transaksi.booking_konsultasi?.jadwal?.id_psikolog ?? null
+            await tx.pembagianTransaksi.create({
+              data: {
+                id_transaksi: transaksi.id,
+                penerima_tipe: 'PSIKOLOG',
+                penerima_id: idPsikolog,
+                jumlah: hasil.porsiPsikolog,
+                alasan: 'SESI_NORMAL',
+                status: 'BELUM_DICAIRKAN',
+              },
+            })
+
+            // Baris 2: Porsi Empathika (tetap di saldo Xendit, tidak ada payout)
+            await tx.pembagianTransaksi.create({
+              data: {
+                id_transaksi: transaksi.id,
+                penerima_tipe: 'EMPATHIKA',
+                penerima_id: null,
+                jumlah: hasil.porsiEmpathika,
+                alasan: 'SESI_NORMAL',
+                status: 'BERHASIL', // Langsung BERHASIL — tidak perlu payout keluar
+              },
+            })
+
+            // Baris 3: Porsi biro (jika ada)
+            if (dariBiro && hasil.komisiBiro > 0) {
+              await tx.pembagianTransaksi.create({
+                data: {
+                  id_transaksi: transaksi.id,
+                  penerima_tipe: 'BIRO',
+                  penerima_id: transaksi.id_biro_tenant,
+                  jumlah: hasil.komisiBiro,
+                  alasan: 'SESI_NORMAL',
+                  status: 'BELUM_DICAIRKAN',
+                },
+              })
+            }
+          }
+        } catch (ledgerErr: any) {
+          // Gagal catat ledger tidak boleh menggagalkan webhook — log saja
+          console.error('[Webhook] Gagal mencatat ledger pembagian transaksi:', ledgerErr?.message)
+        }
       }
     })
   }
