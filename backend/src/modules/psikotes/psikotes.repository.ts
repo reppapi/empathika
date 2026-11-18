@@ -1206,6 +1206,13 @@ export class PsikotesRepository {
           },
           transaksi: true,
           peserta_psikotes: true,
+          psikolog: {
+            select: {
+              id: true,
+              nama_gelar: true,
+              kategori: true,
+            },
+          },
           hasil_tes: {
             include: {
               interpretasi: true,
@@ -1310,8 +1317,19 @@ export class PsikotesRepository {
                   (isNoTotal ? ds?.deskripsi || '—' : '—'),
                 tanggal_selesai: b.hasil_tes.tanggal_selesai,
                 detail_skor: b.hasil_tes.detail_skor,
+                catatan_psikolog: (b.hasil_tes as any).catatan_psikolog || null,
+                rekomendasi_psikolog: (b.hasil_tes as any).rekomendasi_psikolog || null,
+                tanggal_review: (b.hasil_tes as any).tanggal_review || null,
               }
             })()
+          : null,
+        psikolog: (b as any).psikolog
+          ? {
+              id: (b as any).psikolog.id,
+              nama: (b as any).psikolog.nama_gelar,
+              nama_gelar: (b as any).psikolog.nama_gelar,
+              kategori: (b as any).psikolog.kategori,
+            }
           : null,
       })),
     }
@@ -2121,6 +2139,9 @@ export class PsikotesRepository {
       id_paket: booking.id_paket,
       kode_akses: booking.kode_akses || booking.transaksi?.kode_transaksi || null,
       status_pengerjaan: booking.status_pengerjaan,
+      catatan_psikolog: (booking.hasil_tes as any)?.catatan_psikolog || null,
+      rekomendasi_psikolog: (booking.hasil_tes as any)?.rekomendasi_psikolog || null,
+      tanggal_review: (booking.hasil_tes as any)?.tanggal_review || null,
       paket: booking.paket,
       client: booking.client,
       peserta: {
@@ -2283,7 +2304,22 @@ export class PsikotesRepository {
       },
       items: items.map((b) => {
         const tglPengerjaan = b.hasil_tes?.tanggal_selesai || b.createdAt
-        const batasReview = new Date(new Date(tglPengerjaan).getTime() + 3 * 24 * 60 * 60 * 1000)
+        // Hitung deadline 3 hari kerja (Senin s.d. Sabtu, Minggu libur)
+        const addWorkingDays = (startDate: Date, workingDays: number): Date => {
+          const result = new Date(startDate.getTime())
+          let added = 0
+          if (result.getDay() === 0) {
+            result.setDate(result.getDate() + 1)
+          }
+          while (added < workingDays) {
+            result.setDate(result.getDate() + 1)
+            if (result.getDay() !== 0) {
+              added++
+            }
+          }
+          return result
+        }
+        const batasReview = addWorkingDays(new Date(tglPengerjaan), 3)
 
         return {
           id: b.id,
@@ -2356,11 +2392,22 @@ export class PsikotesRepository {
         )
       }
 
-      // Cari record psikolog berdasarkan userId (id account atau id psikolog)
+      // Cari record psikolog yang valid di tabel psikolog
       let resolvedPsikologId: string | null = null
+
+      // 1. Cek dari input.id_psikolog (bisa berupa psikolog.id atau account.id)
       if (input.id_psikolog) {
-        resolvedPsikologId = input.id_psikolog
-      } else if (userId) {
+        const found = await tx.psikolog.findFirst({
+          where: {
+            OR: [{ id: input.id_psikolog }, { id_account: input.id_psikolog }],
+          },
+          select: { id: true },
+        })
+        if (found) resolvedPsikologId = found.id
+      }
+
+      // 2. Cek dari userId auth token jika belum ditemukan
+      if (!resolvedPsikologId && userId) {
         const found = await tx.psikolog.findFirst({
           where: {
             OR: [{ id_account: userId }, { id: userId }],
@@ -2368,6 +2415,23 @@ export class PsikotesRepository {
           select: { id: true },
         })
         if (found) resolvedPsikologId = found.id
+      }
+
+      // 3. Jika belum ditemukan, gunakan psikolog yang sudah tersimpan di booking sebelumnya
+      if (!resolvedPsikologId && booking.id_psikolog) {
+        const existing = await tx.psikolog.findUnique({
+          where: { id: booking.id_psikolog },
+          select: { id: true },
+        })
+        if (existing) resolvedPsikologId = existing.id
+      }
+
+      // 4. Jika bukan draf dan masih belum ada psikolog, ambil default psikolog pertama di database
+      if (!resolvedPsikologId && !input.is_draft) {
+        const fallback = await tx.psikolog.findFirst({
+          select: { id: true },
+        })
+        if (fallback) resolvedPsikologId = fallback.id
       }
 
       // 1. Update HasilTes
@@ -2380,11 +2444,12 @@ export class PsikotesRepository {
         },
       })
 
-      // 2. Update BookingPsikotes: status_pengerjaan -> SELESAI, id_psikolog -> resolvedPsikologId
+      // 2. Update BookingPsikotes: status_pengerjaan -> SELESAI jika bukan draft
+      const targetStatus = input.is_draft ? booking.status_pengerjaan : 'SELESAI'
       const updatedBooking = await tx.bookingPsikotes.update({
         where: { id: booking.id },
         data: {
-          status_pengerjaan: 'SELESAI',
+          status_pengerjaan: targetStatus,
           ...(resolvedPsikologId ? { id_psikolog: resolvedPsikologId } : {}),
         },
         include: {

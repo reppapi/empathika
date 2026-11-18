@@ -42,6 +42,118 @@ import {
 import { useAdminContact } from "@/hooks/useAdminContact";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
 
+const PAGE1_MAX_LINES = 30;
+const SUBSEQUENT_PAGE_MAX_LINES = 35;
+
+/** Memecah teks dokumen klinis menjadi lembaran A4 terpisah sesuai format editor psikolog */
+function parseTextToPages(rawText: string): string[] {
+  if (!rawText || !rawText.trim()) return [""];
+
+  if (rawText.includes("<!-- PAGE_BREAK -->")) {
+    const parts = rawText.split("<!-- PAGE_BREAK -->").map((p) => p.trim());
+    return parts.length > 0 ? parts : [""];
+  }
+
+  if (rawText.includes("--- HALAMAN BARU ---")) {
+    const parts = rawText.split("--- HALAMAN BARU ---").map((p) => p.trim());
+    return parts.length > 0 ? parts : [""];
+  }
+
+  const lines = rawText.split("\n");
+  const pages: string[] = [];
+  let currentLines: string[] = [];
+  let currentVisualLines = 0;
+  let isFirst = true;
+
+  for (const line of lines) {
+    const visualWeight = Math.max(1, Math.ceil(line.length / 75));
+    const maxCapacity = isFirst ? PAGE1_MAX_LINES : SUBSEQUENT_PAGE_MAX_LINES;
+
+    if (currentVisualLines + visualWeight > maxCapacity && currentLines.length > 0) {
+      pages.push(currentLines.join("\n"));
+      currentLines = [line];
+      currentVisualLines = visualWeight;
+      isFirst = false;
+    } else {
+      currentLines.push(line);
+      currentVisualLines += visualWeight;
+    }
+  }
+
+  if (currentLines.length > 0) {
+    pages.push(currentLines.join("\n"));
+  }
+
+  if (pages.length === 1 && currentVisualLines > 24) {
+    pages.push("");
+  }
+
+  return pages.length > 0 ? pages : [""];
+}
+
+function renderInlineFormatting(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(line.slice(lastIndex, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith("**") && token.endsWith("**")) {
+      parts.push(
+        <strong key={match.index} className="font-bold text-gray-950 font-sans">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith("*") && token.endsWith("*")) {
+      parts.push(
+        <em key={match.index} className="italic text-gray-900">
+          {token.slice(1, -1)}
+        </em>
+      );
+    }
+    lastIndex = match.index + token.length;
+  }
+  if (lastIndex < line.length) {
+    parts.push(line.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : [line];
+}
+
+function FormattedSheetContent({ text }: { text: string }) {
+  if (!text || !text.trim()) {
+    return <div className="h-full min-h-[100px]" />;
+  }
+
+  const lines = text.split("\n");
+
+  return (
+    <div className="font-serif text-[13.5px] sm:text-[15px] leading-relaxed text-gray-900 space-y-1">
+      {lines.map((line, idx) => {
+        if (!line.trim()) {
+          return <div key={idx} className="h-2.5 sm:h-3" />;
+        }
+
+        const indentMatch = line.match(/^(\s+)/);
+        const indentLength = indentMatch ? indentMatch[1].length : 0;
+        const indentClass =
+          indentLength >= 8 ? "pl-8 sm:pl-10" : indentLength >= 4 ? "pl-4 sm:pl-5" : "";
+
+        const content = renderInlineFormatting(line.trimStart());
+
+        return (
+          <p key={idx} className={`leading-relaxed text-gray-900 ${indentClass}`}>
+            {content}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -253,10 +365,10 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 deskripsi: bData.hasil.deskripsi,
               } : null,
               statusPengerjaan: (bData as any).status_pengerjaan || null,
-              catatanPsikolog: (bData as any).catatan_psikolog || null,
-              rekomendasiPsikolog: (bData as any).rekomendasi_psikolog || null,
-              psikolog: (bData as any).psikolog || null,
-              tanggalReview: (bData as any).tanggal_review || null,
+              catatanPsikolog: bData.hasil?.catatan_psikolog || (bData as any).catatan_psikolog || null,
+              rekomendasiPsikolog: bData.hasil?.rekomendasi_psikolog || (bData as any).rekomendasi_psikolog || null,
+              psikolog: bData.psikolog || (bData as any).psikolog || null,
+              tanggalReview: bData.hasil?.tanggal_review || (bData as any).tanggal_review || null,
               tanggalSelesai: bData.hasil?.tanggal_selesai || (bData as any).tanggal_mulai || null,
             });
 
@@ -350,8 +462,22 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const isMenungguReview =
     bookingReport?.statusPengerjaan === "MENUNGGU_REVIEW" ||
     (isKlinisPerluReview &&
-      (bookingReport?.statusPengerjaan !== "SELESAI" ||
-        (!bookingReport?.catatanPsikolog && !bookingReport?.tanggalReview)));
+      bookingReport?.statusPengerjaan !== "SELESAI" &&
+      !bookingReport?.catatanPsikolog);
+
+  // Status ketersediaan dokumen telaah klinis resmi yang sudah dibuat dan diterbitkan oleh psikolog
+  const hasCatatanPsikolog = Boolean(
+    bookingReport?.catatanPsikolog && bookingReport.catatanPsikolog.trim().length > 0
+  );
+
+  const fullReportText =
+    bookingReport?.rekomendasiPsikolog &&
+    bookingReport.catatanPsikolog &&
+    !bookingReport.catatanPsikolog.includes(bookingReport.rekomendasiPsikolog.trim())
+      ? `${bookingReport.catatanPsikolog}\n\n**REKOMENDASI:**\n${bookingReport.rekomendasiPsikolog}`
+      : bookingReport?.catatanPsikolog || "";
+
+  const docPages = parseTextToPages(fullReportText);
 
   // Informasi SLA batas waktu telaah psikolog (maksimal 3 hari kerja)
   const slaInfo = calculateReviewSla(bookingReport?.tanggalSelesai || peserta.tanggal);
@@ -924,7 +1050,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
   // dan bukan instrumen DASS-42 (yang memiliki perhitungan evaluasi multidimensi khusus),
   // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
-  if (!isMenungguReview && !dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult) {
+  if (!isMenungguReview && !dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult && !bookingReport?.catatanPsikolog) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">
@@ -970,6 +1096,21 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             margin: 0 !important;
             width: 100% !important;
           }
+          .a4-sheet-canvas {
+            background: transparent !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+          }
+          .a4-print-sheet {
+            box-shadow: none !important;
+            border: none !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            margin: 0 !important;
+            width: 100% !important;
+            min-height: auto !important;
+            padding: 0 !important;
+          }
           .pdf-card {
             box-shadow: none !important;
             border-radius: 10px !important;
@@ -1002,14 +1143,27 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         {!isMenungguReview && (
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
             <div>
-              <p className="text-xs font-bold text-[#561269] uppercase tracking-wider mb-1.5">
-                Laporan Analisis Asesmen Resmi
-              </p>
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-[#561269] border border-purple-200">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {hasCatatanPsikolog ? "Dokumen Resmi Terverifikasi" : "Laporan Analisis Resmi"}
+                </span>
+                {peserta.bookingId && (
+                  <>
+                    <span className="text-xs text-gray-300">•</span>
+                    <span className="text-xs font-semibold text-gray-500">
+                      No. Tiket: <strong className="text-gray-800 font-mono">{peserta.bookingId}</strong>
+                    </span>
+                  </>
+                )}
+              </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">
-                {displayTestName}
+                {hasCatatanPsikolog ? "Laporan Hasil Pemeriksaan Psikologis" : displayTestName}
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-xl">
-                Evaluasi mendalam profil personal, gaya komunikasi, serta panduan pengembangan potensi dirimu.
+                {hasCatatanPsikolog
+                  ? `Surat Keterangan & Telaah Klinis Resmi alat ukur ${displayTestName}. Disusun dan disahkan oleh Psikolog Empathika.`
+                  : "Evaluasi mendalam profil personal, gaya komunikasi, serta panduan pengembangan potensi dirimu."}
               </p>
             </div>
 
@@ -1024,12 +1178,12 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
                 {isDownloading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Mengunduh PDF...</span>
+                    <span>Mengunduh Dokumen...</span>
                   </>
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    <span>Download Laporan (PDF)</span>
+                    <span>Unduh Dokumen Lengkap (PDF)</span>
                   </>
                 )}
               </button>
@@ -1038,147 +1192,410 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         )}
 
         {/* ══ KONTEN UTAMA LAPORAN BERBAYAR (TAMPILAN WEB & PDF) ══ */}
-        <div id="laporan-berbayar-container" className="space-y-6 bg-white p-4 sm:p-8 rounded-2xl border border-gray-200/80 shadow-xs">
+        <div id="laporan-berbayar-container" className="space-y-6">
 
-          {/* Kop Surat Resmi Empathika khusus Dokumen PDF */}
-          <div
-            id="laporan-pdf-header"
-            style={{ display: "none" }}
-            className="pb-4 mb-5 border-b-2 border-[#561269]"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-xl font-black text-[#561269] tracking-tight">EMPATHIKA</div>
-                <div className="text-[10px] font-medium text-gray-500 mt-0.5">Pusat Layanan Asesmen &amp; Konsultasi Psikologi Digital</div>
-                <div className="text-[9px] text-gray-400 mt-0.5">www.empathika.id • info@empathika.id</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#561269]">
-                  Laporan Hasil Asesmen Psikotes
+          {/* Percabangan Tampilan: Menunggu Review vs Dokumen Telaah Psikolog A4 vs Fallback Scorecard */}
+          {isMenungguReview ? (
+            <div className="bg-white p-6 sm:p-10 rounded-2xl border border-gray-200/80 shadow-xs">
+              <div className="py-8 sm:py-12 px-3 sm:px-6 max-w-xl mx-auto text-center space-y-6">
+                {/* Icon Elegan & Tenang */}
+                <div className="inline-flex items-center justify-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-purple-50 text-[#561269] flex items-center justify-center border border-purple-100 shadow-xs">
+                    <Clock className="w-8 h-8 sm:w-10 sm:h-10 text-[#561269]" />
+                  </div>
                 </div>
-                <div className="text-sm font-bold text-gray-900 mt-0.5">{displayTestName}</div>
-                <div className="text-[9px] font-medium text-gray-500 mt-0.5">
-                  No. Dokumen: <span className="font-mono font-bold text-gray-800">EMP-PSI-{peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"}</span>
+
+                {/* Judul & Penjelasan Ringkas */}
+                <div className="space-y-2">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+                    Asesmen Berhasil Diselesaikan!
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-md mx-auto">
+                    Terima kasih telah menyelesaikan asesmen <strong>{displayTestName}</strong>. Jawaban Anda berhasil disimpan. Selanjutnya, hasil asesmen akan melalui proses penelaahan oleh psikolog Empathika sebelum laporan diterbitkan.
+                  </p>
+                </div>
+
+                {/* Ringkasan Data Asesmen: Simpel & Bersih */}
+                <div className="bg-gray-50/80 rounded-2xl border border-gray-200/80 p-4 sm:p-5 text-left text-xs sm:text-sm space-y-2.5">
+                  <h3 className="font-bold text-gray-900 text-sm pb-2 border-b border-gray-200">
+                    Informasi Asesmen
+                  </h3>
+                  <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                    <span className="text-gray-500">Nama Peserta</span>
+                    <span className="font-bold text-gray-900 truncate max-w-[200px] text-right">
+                      {peserta.nama || "Peserta Asesmen"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                    <span className="text-gray-500">Kode Tiket</span>
+                    <span className="font-mono font-bold text-[#561269] bg-white px-2 py-0.5 rounded border border-gray-200">
+                      {peserta.bookingId || "PSI-VERIFIED"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                    <span className="text-gray-500">Tanggal Tes</span>
+                    <span className="font-medium text-gray-800">{peserta.tanggal}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                    <span className="text-gray-500">Status</span>
+                    <span className="font-medium text-gray-800 text-right">
+                      Dalam Proses Telaah Psikolog
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-gray-500">Estimasi Laporan Selesai</span>
+                    <span className="font-medium text-gray-800 text-right">
+                      Maksimal {REVIEW_MAX_DAYS} hari kerja, yaitu {slaInfo.deadlineDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Informasi Hasil */}
+                <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100/80 text-left text-xs text-purple-950 flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-[#561269] shrink-0 mt-0.5" />
+                  <p className="leading-relaxed text-gray-700">
+                    <strong className="text-gray-900 font-bold">Informasi Hasil:</strong> Laporan hasil asesmen dalam format PDF akan dikirimkan oleh admin melalui WhatsApp yang terdaftar. Anda juga dapat mengecek dan mengunduh laporan secara mandiri melalui website Empathika menggunakan kode tiket setelah proses penelaahan selesai.
+                  </p>
+                </div>
+
+                {/* Aksi Sederhana */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#6e1886] text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer"
+                  >
+                    {copiedLink ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-300" />
+                        <span>Link Berhasil Disalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Salin Link Hasil</span>
+                      </>
+                    )}
+                  </button>
+
+                  <Link
+                    href="/psikotes"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition"
+                  >
+                    Kembali ke Katalog Tes
+                  </Link>
+                </div>
+
+                {/* Pertanyaan & Kontak Admin WhatsApp */}
+                <div className="pt-2 text-xs text-gray-500 space-y-1">
+                  <p>Ada pertanyaan mengenai hasil asesmen?</p>
+                  <p>
+                    Silakan hubungi Admin Empathika melalui WhatsApp.{" "}
+                    <a
+                      href={getWhatsAppUrl(`Halo Admin Empathika, saya ingin bertanya mengenai status review asesmen psikotes saya (Tiket: ${peserta.bookingId || "PSI-VERIFIED"})`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#561269] font-bold hover:underline inline-flex items-center gap-1"
+                    >
+                      Hubungi Admin WhatsApp
+                    </a>
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
+          ) : hasCatatanPsikolog ? (
+            <div className="space-y-8">
+              {/* CANVAS DOKUMEN FISIK A4 (1:1 SESUAI DOKUMEN RESMI REVIEW PSIKOLOG) */}
+              <div className="a4-sheet-canvas bg-[#525659] p-3 sm:p-6 lg:p-8 rounded-2xl shadow-inner overflow-x-auto">
+                <div className="max-w-[820px] mx-auto space-y-8 min-w-0">
+                  {docPages.map((pageText, pageIdx) => {
+                    const isFirstPage = pageIdx === 0;
+                    const isLastPage = pageIdx === docPages.length - 1;
 
-          {/* Percabangan Tampilan: Menunggu Review vs Laporan Terbit Lengkap */}
-          {isMenungguReview ? (
-            <div className="py-8 sm:py-12 px-3 sm:px-6 max-w-xl mx-auto text-center space-y-6">
-              {/* Icon Elegan & Tenang */}
-              <div className="inline-flex items-center justify-center">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-purple-50 text-[#561269] flex items-center justify-center border border-purple-100 shadow-xs">
-                  <Clock className="w-8 h-8 sm:w-10 sm:h-10 text-[#561269]" />
+                    return (
+                      <div
+                        key={pageIdx}
+                        id={`page-sheet-${pageIdx}`}
+                        className="a4-print-sheet relative bg-white rounded-sm shadow-2xl border border-gray-300/90 w-full max-w-[794px] min-h-[1123px] mx-auto px-6 sm:px-12 py-7 sm:py-8 flex flex-col justify-between text-gray-900 font-sans transition-all box-border"
+                        style={{ minHeight: "1123px" }}
+                      >
+                        {/* BAGIAN ATAS LEMBAR A4 (HEADER & IDENTITAS) */}
+                        <div className="shrink-0 space-y-3">
+                          {isFirstPage ? (
+                            <>
+                              {/* 1. KOP SURAT RESMI BIRO PSIKOLOGI EMPATHIKA */}
+                              <div className="text-center space-y-1 pb-2 font-sans">
+                                <h1 className="text-xl sm:text-2xl font-black tracking-wider text-gray-900 uppercase">
+                                  EMPATHIKA PSYCHOLOGICAL SERVICES
+                                </h1>
+                                <p className="text-xs sm:text-[13px] font-semibold text-gray-700 tracking-wide">
+                                  BIRO LAYANAN PSIKOLOGI, ASESMEN KLINIS &amp; KESEHATAN MENTAL TERPADU
+                                </p>
+                                <p className="text-[11px] text-gray-500 font-normal">
+                                  Layanan Psikotes Online &bull; Surat Keterangan / Laporan Psikologis Resmi Terverifikasi
+                                </p>
+
+                                {/* Garis Dobel Formal Kop Surat (Klasik Resmi) */}
+                                <div className="pt-2">
+                                  <div className="border-b-2 border-gray-900 w-full" />
+                                  <div className="border-b border-gray-900 w-full mt-[2px]" />
+                                </div>
+                              </div>
+
+                              {/* 2. IDENTITAS PESERTA (2 Kolom Bersih & Resmi) */}
+                              <div className="font-sans text-xs sm:text-[13px] text-gray-800 py-2.5 border-b border-gray-300/80">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5">
+                                  {/* Kolom Kiri */}
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-start">
+                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Nama Lengkap</span>
+                                      <span className="w-4 text-gray-500 shrink-0">:</span>
+                                      <span className="font-bold text-gray-900 leading-snug break-words flex-1">
+                                        {peserta.nama || "Peserta Asesmen Empathika"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center">
+                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Jenis Kelamin</span>
+                                      <span className="w-4 text-gray-500 shrink-0">:</span>
+                                      <span className="text-gray-800">{peserta.jenisKelamin || "—"}</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Usia</span>
+                                      <span className="w-4 text-gray-500 shrink-0">:</span>
+                                      <span className="text-gray-800">{peserta.usia ? `${peserta.usia} Tahun` : "—"}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Kolom Kanan */}
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center">
+                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Nomor Tiket</span>
+                                      <span className="w-4 text-gray-500 shrink-0">:</span>
+                                      <span className="font-mono font-bold text-gray-900">
+                                        {peserta.bookingId || "—"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center">
+                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Tanggal Pemeriksaan</span>
+                                      <span className="w-4 text-gray-500 shrink-0">:</span>
+                                      <span className="text-gray-800">
+                                        {peserta.tanggal ||
+                                          new Date().toLocaleDateString("id-ID", {
+                                            day: "numeric",
+                                            month: "long",
+                                            year: "numeric",
+                                          })}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-start">
+                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Alat Ukur / Asesmen</span>
+                                      <span className="w-4 text-gray-500 shrink-0">:</span>
+                                      <span className="font-semibold text-gray-900 leading-snug break-words flex-1">
+                                        {displayTestName}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            /* JIKA HALAMAN 2+: RUNNING HEADER DOKUMEN LANJUTAN RESMI */
+                            <div className="pb-2.5 border-b border-gray-300/80 flex items-center justify-between text-xs text-gray-600 font-sans">
+                              <span className="font-bold text-gray-900 tracking-wider uppercase text-[11px]">
+                                EMPATHIKA PSYCHOLOGICAL SERVICES
+                              </span>
+                              <span className="font-mono text-[10px] text-gray-500">
+                                {peserta.bookingId ? `No. Tiket: ${peserta.bookingId}` : ""}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* AREA TEKS LEMBAR A4 DOKUMEN (GAYA RESMI KLINIS) */}
+                        <div className="flex-1 flex flex-col min-h-0 pt-3 pb-3.5">
+                          <FormattedSheetContent text={pageText} />
+                        </div>
+
+                        {/* BAGIAN BAWAH LEMBAR A4 (TANDA TANGAN & FOOTER) */}
+                        <div className="shrink-0 space-y-2 pt-1.5">
+                          {/* JIKA HALAMAN TERAKHIR: TANDA TANGAN & PENGESAHAN PSIKOLOG RESMI */}
+                          {isLastPage && (
+                            <div className="font-sans flex justify-end pt-1">
+                              <div className="text-center w-72 space-y-1 text-xs sm:text-sm text-gray-800">
+                                <p className="text-gray-600">
+                                  Bandung,{" "}
+                                  {bookingReport?.tanggalReview
+                                    ? new Date(bookingReport.tanggalReview).toLocaleDateString("id-ID", {
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                      })
+                                    : peserta.tanggal ||
+                                      new Date().toLocaleDateString("id-ID", {
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                      })}
+                                </p>
+                                <p className="font-semibold text-gray-900">Psikolog Pemeriksa,</p>
+
+                                {/* Ruang Tanda Tangan */}
+                                <div className="h-14 flex items-center justify-center">
+                                  <div className="px-3 py-1 rounded-md border border-gray-300 text-[10px] text-gray-400 font-mono italic">
+                                    [ Terverifikasi Secara Digital ]
+                                  </div>
+                                </div>
+
+                                <p className="font-bold text-gray-900 underline underline-offset-2">
+                                  {bookingReport?.psikolog?.nama_gelar ||
+                                    bookingReport?.psikolog?.nama ||
+                                    "Psikolog Klinis Empathika"}
+                                </p>
+                                <p className="text-[11px] text-gray-500">
+                                  Surat Izin Praktik Psikologi (SIPP / SIPPK) Terdaftar
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Footer Kertas Dokumen Formal */}
+                          <div className="pt-2 border-t border-gray-200/80 flex flex-col sm:flex-row items-center justify-between gap-2 font-sans text-[11px] text-gray-400">
+                            <p>&copy; {new Date().getFullYear()} Empathika Psychological Services &bull; Kerahasiaan Medis Dijamin</p>
+                            <p className="font-mono font-medium text-gray-600">
+                              {pageIdx + 1}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Judul & Penjelasan Ringkas */}
-              <div className="space-y-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-                  Asesmen Berhasil Diselesaikan!
-                </h2>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-md mx-auto">
-                  Terima kasih telah menyelesaikan asesmen <strong>{displayTestName}</strong>. Jawaban Anda berhasil disimpan. Selanjutnya, hasil asesmen akan melalui proses penelaahan oleh psikolog Empathika sebelum laporan diterbitkan.
-                </p>
-              </div>
+              {/* PANEL AKSI & INFORMASI PASCA TERBIT */}
+              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/80 shadow-xs space-y-6 print:hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      Dokumen Laporan Resmi Telah Terbit
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Laporan ini merupakan dokumen psikologis resmi yang telah diverifikasi dan disahkan oleh Psikolog Empathika.
+                    </p>
+                  </div>
 
-              {/* Ringkasan Data Asesmen: Simpel & Bersih */}
-              <div className="bg-gray-50/80 rounded-2xl border border-gray-200/80 p-4 sm:p-5 text-left text-xs sm:text-sm space-y-2.5">
-                <h3 className="font-bold text-gray-900 text-sm pb-2 border-b border-gray-200">
-                  Informasi Asesmen
-                </h3>
-                <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
-                  <span className="text-gray-500">Nama Peserta</span>
-                  <span className="font-bold text-gray-900 truncate max-w-[200px] text-right">
-                    {peserta.nama || "Peserta Asesmen"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
-                  <span className="text-gray-500">Kode Tiket</span>
-                  <span className="font-mono font-bold text-[#561269] bg-white px-2 py-0.5 rounded border border-gray-200">
-                    {peserta.bookingId || "PSI-VERIFIED"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
-                  <span className="text-gray-500">Tanggal Tes</span>
-                  <span className="font-medium text-gray-800">{peserta.tanggal}</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
-                  <span className="text-gray-500">Status</span>
-                  <span className="font-medium text-gray-800 text-right">
-                    Dalam Proses Telaah Psikolog
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-gray-500">Estimasi Laporan Selesai</span>
-                  <span className="font-medium text-gray-800 text-right">
-                    Maksimal {REVIEW_MAX_DAYS} hari kerja, yaitu {slaInfo.deadlineDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                  </span>
-                </div>
-              </div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPdf}
+                      disabled={isDownloading}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+                    >
+                      {isDownloading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Mengunduh Dokumen...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>Unduh Dokumen Lengkap (PDF)</span>
+                        </>
+                      )}
+                    </button>
 
-              {/* Informasi Hasil (Gaya Callout Sebelumnya dengan Kata-kata Baru) */}
-              <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100/80 text-left text-xs text-purple-950 flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-[#561269] shrink-0 mt-0.5" />
-                <p className="leading-relaxed text-gray-700">
-                  <strong className="text-gray-900 font-bold">Informasi Hasil:</strong> Laporan hasil asesmen dalam format PDF akan dikirimkan oleh admin melalui WhatsApp yang terdaftar. Anda juga dapat mengecek dan mengunduh laporan secara mandiri melalui website Empathika menggunakan kode tiket setelah proses penelaahan selesai.
-                </p>
-              </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-600" />
+                          <span>Link Disalin!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Salin Link Hasil</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-              {/* Aksi Sederhana */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#6e1886] text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer"
-                >
-                  {copiedLink ? (
-                    <>
-                      <Check className="w-4 h-4 text-emerald-300" />
-                      <span>Link Berhasil Disalin!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      <span>Salin Link Hasil</span>
-                    </>
-                  )}
-                </button>
+                {/* Konsultasi & Dukungan */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-100/90 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <HeartHandshake className="w-4 h-4 text-[#561269]" />
+                      <span className="text-xs font-bold text-[#561269]">Butuh Konsultasi Mendalam?</span>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Ingin mendiskusikan hasil telaah klinis ini lebih lanjut dengan psikolog? Anda dapat menjadwalkan sesi konseling privat secara online maupun tatap muka.
+                    </p>
+                    <Link
+                      href="/konseling"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#561269] hover:underline pt-1"
+                    >
+                      <span>Jadwalkan Sesi Konseling</span>
+                      <Compass className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
 
-                <Link
-                  href="/psikotes"
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition"
-                >
-                  Kembali ke Katalog Tes
-                </Link>
-              </div>
-
-              {/* Pertanyaan & Kontak Admin WhatsApp */}
-              <div className="pt-2 text-xs text-gray-500 space-y-1">
-                <p>Ada pertanyaan mengenai hasil asesmen?</p>
-                <p>
-                  Silakan hubungi Admin Empathika melalui WhatsApp.{" "}
-                  <a
-                    href={getWhatsAppUrl(`Halo Admin Empathika, saya ingin bertanya mengenai status review asesmen psikotes saya (Tiket: ${peserta.bookingId || "PSI-VERIFIED"})`)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#561269] font-bold hover:underline inline-flex items-center gap-1"
-                  >
-                    Hubungi Admin WhatsApp
-                  </a>
-                </p>
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Info className="w-4 h-4 text-gray-700" />
+                      <span className="text-xs font-bold text-gray-900">Bantuan &amp; Verifikasi Tiket</span>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Ada kendala saat mengunduh dokumen atau ingin menanyakan validitas sertifikat hasil asesmen?
+                    </p>
+                    <a
+                      href={getWhatsAppUrl(`Halo Admin Empathika, saya ingin bertanya mengenai laporan hasil asesmen psikotes saya (No Tiket: ${peserta.bookingId || "PSI-VERIFIED"})`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:underline pt-1"
+                    >
+                      <span>Hubungi Admin WhatsApp</span>
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
-            <>
+            <div className="space-y-6 bg-white p-4 sm:p-8 rounded-2xl border border-gray-200/80 shadow-xs">
+              {/* Kop Surat Resmi Empathika khusus Dokumen PDF */}
+              <div
+                id="laporan-pdf-header"
+                style={{ display: "none" }}
+                className="pb-4 mb-5 border-b-2 border-[#561269]"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="text-xl font-black text-[#561269] tracking-tight">EMPATHIKA</div>
+                    <div className="text-[10px] font-medium text-gray-500 mt-0.5">Pusat Layanan Asesmen &amp; Konsultasi Psikologi Digital</div>
+                    <div className="text-[9px] text-gray-400 mt-0.5">www.empathika.id • info@empathika.id</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#561269]">
+                      Laporan Hasil Asesmen Psikotes
+                    </div>
+                    <div className="text-sm font-bold text-gray-900 mt-0.5">{displayTestName}</div>
+                    <div className="text-[9px] font-medium text-gray-500 mt-0.5">
+                      No. Dokumen: <span className="font-mono font-bold text-gray-800">EMP-PSI-{peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Card Identitas Peserta Asesmen */}
-          <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-7 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
-                  <User className="w-5 h-5" />
+              <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-7 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
+                      <User className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 leading-tight">
@@ -1944,7 +2361,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
             </div>
           </div>
 
-            </>
+          </div>
           )}
 
         </div>

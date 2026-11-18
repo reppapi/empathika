@@ -211,36 +211,32 @@ export default function ModalDetailPaket({
                 return (
                   <div
                     key={paket.id}
-                    className={`p-4 sm:p-5 rounded-2xl transition-all border ${
-                      isGratis
-                        ? "bg-gradient-to-r from-emerald-50/50 via-teal-50/20 to-white border-emerald-200/70"
-                        : "bg-gradient-to-r from-purple-50/50 via-pink-50/20 to-white border-purple-200/70"
-                    }`}
+                    className={`p-4 sm:p-5 rounded-2xl transition-all border ${isGratis
+                      ? "bg-gradient-to-r from-emerald-50/50 via-teal-50/20 to-white border-emerald-200/70"
+                      : "bg-gradient-to-r from-purple-50/50 via-pink-50/20 to-white border-purple-200/70"
+                      }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
-                            className={`text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 ${
-                              isGratis
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-purple-100 text-[#561269]"
-                            }`}
+                            className={`text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 ${isGratis
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-purple-100 text-[#561269]"
+                              }`}
                           >
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isGratis ? "bg-emerald-600" : "bg-[#561269]"
-                              }`}
+                              className={`w-1.5 h-1.5 rounded-full ${isGratis ? "bg-emerald-600" : "bg-[#561269]"
+                                }`}
                             />
                             {isGratis ? "Paket Gratis" : "Paket Berbayar Resmi"}
                           </span>
 
                           <span
-                            className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
-                              isAktif
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : "bg-amber-50 text-amber-700 border border-amber-200"
-                            }`}
+                            className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${isAktif
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                              }`}
                           >
                             {isAktif ? "● Dipublikasi" : "○ Draf (Nonaktif)"}
                           </span>
@@ -270,11 +266,10 @@ export default function ModalDetailPaket({
                       <button
                         type="button"
                         onClick={() => onToggleStatus(paket)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer self-start sm:self-auto shrink-0 ${
-                          isAktif
-                            ? "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
-                            : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-xs"
-                        }`}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer self-start sm:self-auto shrink-0 ${isAktif
+                          ? "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
+                          : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-xs"
+                          }`}
                       >
                         {isAktif ? "Jadikan Draf" : "Publikasikan"}
                       </button>

@@ -350,6 +350,7 @@ export const psikotesService = {
       catatan_psikolog: string
       rekomendasi_psikolog?: string | null
       id_psikolog?: string | null
+      is_draft?: boolean
     }
   ) =>
     apiClient
