@@ -319,32 +319,18 @@ export const CDI_INTERPRETASI = [
   {
     min_skor: 0,
     max_skor: 18,
-    grade: 'Depresi Normal / Wajar',
-    judul: 'Tingkat Depresi Berada dalam Batas Wajar',
+    grade: 'Gejala Depresi Tidak Menonjol',
+    judul: 'Gejala Depresi Tidak Menonjol',
     deskripsi:
-      'Skor yang kamu peroleh menunjukkan bahwa gejala depresi berada dalam batas normal dan tidak mengindikasikan adanya sindrom depresi yang bermakna secara klinis. Kondisi suasana hati, interaksi sosial, efektivitas belajar, minat beraktivitas, serta penilaian terhadap diri sendiri secara umum berada dalam rentang wajar anak dan remaja. Naik turunnya emosi sesekali merupakan bagian wajar dari pertumbuhan. Tetap jaga komunikasi terbuka dengan orang tua dan teman sebaya, serta rawat pola istirahat dan kegiatan yang positif. Hasil ini merupakan skrining awal kondisi emosional anak/remaja dan bukan diagnosis medis mutlak.',
-    tips: [
-      'Pertahankan komunikasi terbuka dengan orang tua, guru, atau teman sebaya mengenai apa yang kamu rasakan.',
-      'Lakukan kegiatan atau hobi yang menyenangkan untuk menjaga suasana hati dan menyalurkan energi secara positif.',
-      'Jaga pola tidur teratur dan asupan makanan bergizi untuk mendukung kesehatan fisik dan konsentrasi belajar.',
-      'Tetap kembangkan rasa percaya diri dan hargai setiap usaha atau pencapaian kecil yang kamu raih.',
-      'Ceritakan kepada orang yang kamu percaya jika sesekali merasa sedih atau menghadapi masalah yang berat.',
-    ],
+      'Berdasarkan hasil asesmen, gejala depresi yang kamu alami belum tampak menonjol. Meski begitu, kamu mungkin sesekali merasa sedih, kurang bersemangat, atau mengalami perubahan suasana hati.\n\nKamu juga mungkin pernah merasa kurang percaya diri, kesulitan menghadapi situasi tertentu, atau mengalami kendala dalam hubungan dengan orang lain. Perasaan tersebut tetap perlu diperhatikan, terutama jika mulai mengganggu aktivitas sehari-hari.\n\nCobalah untuk tetap melakukan kegiatan yang kamu sukai, menjaga hubungan dengan orang-orang terdekat, dan bercerita ketika sedang menghadapi kesulitan. Jangan ragu mencari dukungan dari orang dewasa yang kamu percaya apabila perasaan tersebut terus berlanjut.',
   },
   {
     min_skor: 19,
     max_skor: 54,
-    grade: 'Depresi Bermakna Klinis',
-    judul: 'Kecenderungan Depresi Bermakna Secara Klinis (Perlu Perhatian)',
+    grade: 'Gejala Depresi Perlu Mendapat Perhatian',
+    judul: 'Gejala Depresi Perlu Mendapat Perhatian',
     deskripsi:
-      'Skor yang kamu peroleh mencapai ambang batas klinis (skor ≥ 19), yang mengindikasikan kemungkinan adanya sindrom depresi yang bermakna pada anak atau remaja. Kondisi ini dapat terlihat dari perasaan sedih atau murung yang sering muncul, penurunan minat dan kesenangan dalam beraktivitas (anhedonia), penurunan motivasi atau rasa tidak mampu di sekolah, kesulitan dalam bergaul, serta pandangan negatif terhadap diri sendiri. Hasil ini merupakan skrining awal dan bukan diagnosis medis mutlak. Sangat disarankan untuk berkonsultasi lebih lanjut dengan psikolog klinis anak/remaja atau psikiater agar mendapatkan evaluasi komprehensif dan pendampingan yang tepat.',
-    tips: [
-      'Sangat disarankan untuk berkonsultasi dengan profesional psikolog anak/remaja atau psikiater untuk evaluasi komprehensif.',
-      'Ceritakan apa yang kamu rasakan kepada orang tua, wali, atau guru yang kamu percaya agar mendapatkan dukungan emosional.',
-      'Hindari memendam beban perasaan sendirian; kehadiran dan dukungan lingkungan terdekat sangat berarti.',
-      'Berikan ruang bagi diri sendiri untuk beristirahat dan jangan terlalu menyalahkan diri sendiri atas kesulitan yang dialami.',
-      'Jika muncul perasaan ingin menyakiti diri sendiri atau keputusasaan berat, segera hubungi orang dewasa terdekat atau layanan krisis kesehatan mental.',
-    ],
+      'Berdasarkan hasil asesmen, terdapat gejala depresi yang perlu mendapat perhatian lebih lanjut. Kondisi ini dapat berkaitan dengan perasaan sedih, suasana hati negatif, kehilangan minat terhadap kegiatan yang biasanya disukai, atau merasa kurang mampu menghadapi berbagai situasi.\n\nSelain itu, kamu mungkin mengalami kesulitan dalam hubungan dengan orang lain, merasa kurang percaya diri, atau kehilangan semangat dalam menjalani aktivitas sehari-hari. Pengalaman tersebut dapat memengaruhi kenyamanan diri, kegiatan belajar, maupun hubungan sosial.\n\nKamu tidak harus menghadapi perasaan tersebut sendirian. Cobalah untuk bercerita kepada orang dewasa yang kamu percaya dan pertimbangkan untuk berkonsultasi dengan psikolog agar dapat memperoleh pemahaman serta pendampingan yang sesuai dengan kebutuhanmu.',
   },
 ]
 
@@ -385,7 +371,7 @@ export async function seedCDI(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-depresi.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Perasaan sedih, kehilangan semangat, atau merasa kurang percaya diri bisa menjadi pengalaman yang tidak mudah untuk diungkapkan. Tes ini membantu mengenali berbagai pengalaman emosional pada anak dan remaja, mulai dari suasana hati negatif, hubungan dengan orang lain, perasaan tidak mampu, kehilangan minat, hingga cara mereka memandang diri sendiri.',
     status: 'PUBLISHED',
@@ -470,7 +456,6 @@ export async function seedCDI(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     } else {
@@ -482,7 +467,6 @@ export async function seedCDI(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     }

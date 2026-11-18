@@ -23,6 +23,12 @@ import { calculateCDI } from "./cdi/scoring";
 import { CATS_CONFIG } from "./cats/config";
 import { calculateCATS } from "./cats/scoring";
 
+import { CHOCI_CONFIG } from "./choci-r/config";
+import { calculateCHOCI } from "./choci-r/scoring";
+
+import { MCMI4_CONFIG } from "./mcmi-iv/config";
+import { calculateMCMI4 } from "./mcmi-iv/scoring";
+
 export interface AlatUkurModule {
   config: {
     kode: string;
@@ -74,6 +80,22 @@ const registry: Record<string, AlatUkurModule> = {
   "CATS": {
     config: CATS_CONFIG,
     calculate: calculateCATS,
+  },
+  "CHOCI-R": {
+    config: CHOCI_CONFIG,
+    calculate: calculateCHOCI,
+  },
+  "CHOCI": {
+    config: CHOCI_CONFIG,
+    calculate: calculateCHOCI,
+  },
+  "MCMI-IV": {
+    config: MCMI4_CONFIG,
+    calculate: calculateMCMI4,
+  },
+  "MCMI": {
+    config: MCMI4_CONFIG,
+    calculate: calculateMCMI4,
   },
 };
 

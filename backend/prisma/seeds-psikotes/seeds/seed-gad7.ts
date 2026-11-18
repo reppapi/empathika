@@ -27,11 +27,7 @@ export const GAD7_INTERPRETASI = [
     grade: 'Minimal',
     judul: 'Yay, Kamu Baik-baik Saja!',
     deskripsi:
-      'Berdasarkan hasil screening kesehatan mental, saat ini kondisimu tergolong stabil. Jaga terus kesehatan mental kamu ya.',
-    tips: [
-      'Pertahankan pola hidup sehat, waktu tidur teratur, dan rutinitas relaksasi harian.',
-      'Tetap sadari pemicu stres kecil agar tidak menumpuk di kemudian hari.',
-    ],
+      'Hasil tes menunjukkan bahwa gejala kecemasan yang kamu alami tergolong minimal. Dalam keseharian, kamu mungkin sesekali merasa khawatir, gugup, atau gelisah ketika menghadapi situasi tertentu. Namun, perasaan tersebut cenderung tidak muncul secara intens atau berkepanjangan.\n\nKamu mungkin masih dapat mengelola kekhawatiran dan menjalani aktivitas sehari-hari dengan cukup nyaman. Meski begitu, bukan berarti kamu tidak pernah mengalami kecemasan. Perasaan khawatir merupakan hal yang wajar dialami setiap orang, terutama ketika menghadapi situasi yang tidak pasti.\n\nTetap luangkan waktu untuk mengenali perasaan dan kebutuhan diri sendiri. Menjaga keseimbangan antara aktivitas dan waktu istirahat, melakukan kegiatan yang disukai, serta berbagi cerita dengan orang yang dipercaya dapat membantu menjaga kesejahteraan emosionalmu.',
   },
   {
     min_skor: 5,
@@ -39,12 +35,7 @@ export const GAD7_INTERPRETASI = [
     grade: 'Ringan',
     judul: 'Kondisimu Sedikit Tegang (Kecemasan Ringan)',
     deskripsi:
-      'Kamu mengalami beberapa gejala kecemasan ringan yang mungkin dipicu oleh tekanan pekerjaan, studi, atau situasi tertentu.',
-    tips: [
-      'Luangkan waktu jeda (istirahat berkualitas) di sela-sela kesibukan rutinitas.',
-      'Praktikkan teknik pernapasan dalam (deep breathing) atau mindfulness ketika rasa khawatir mulai muncul.',
-      'Ceritakan hal-hal yang mengganjal pikiran kepada orang terdekat yang kamu percayai.',
-    ],
+      'Hasil tes menunjukkan bahwa kamu mengalami gejala kecemasan dalam kategori ringan. Dalam beberapa situasi, kamu mungkin lebih sering merasa khawatir, gugup, atau gelisah dibandingkan biasanya. Ada kalanya pikiran terasa sulit dihentikan karena terus memikirkan berbagai kemungkinan yang belum tentu terjadi.\n\nKamu juga mungkin mengalami kesulitan untuk benar-benar merasa santai, mudah tersinggung, atau merasa tidak tenang ketika menghadapi hal-hal tertentu. Meskipun gejala tersebut belum tentu mengganggu seluruh aktivitas, pengalaman ini tetap dapat membuatmu merasa kurang nyaman dalam menjalani keseharian.\n\nCobalah mulai memperhatikan situasi yang sering memicu kekhawatiranmu. Memberikan waktu bagi diri sendiri untuk beristirahat, melakukan aktivitas yang menenangkan, dan berbagi cerita dengan orang tepercaya dapat menjadi langkah awal untuk mengelola kecemasan. Jika gejala semakin sering muncul atau mulai mengganggu aktivitas, kamu dapat mempertimbangkan konsultasi dengan psikolog.',
   },
   {
     min_skor: 10,
@@ -52,12 +43,7 @@ export const GAD7_INTERPRETASI = [
     grade: 'Sedang',
     judul: 'Kecemasan Tingkat Sedang Terdeteksi',
     deskripsi:
-      'Gejala kecemasan kamu berada pada tingkat sedang dan kemungkinan mengarah pada Generalized Anxiety Disorder (GAD).',
-    tips: [
-      'Sangat disarankan untuk menjadwalkan sesi konseling dengan psikolog atau konselor profesional.',
-      'Identifikasi pola pikiran negatif yang sering berulang dan mulai buat batasan terhadap sumber pemicu stres berlebih.',
-      'Lakukan aktivitas fisik ringan secara teratur untuk membantu pelepasan hormon penenang alami tubuh.',
-    ],
+      'Hasil tes menunjukkan bahwa gejala kecemasan yang kamu alami berada dalam kategori sedang. Kamu mungkin cukup sering merasa khawatir, gelisah, atau kesulitan mengendalikan pikiran yang terus memikirkan berbagai hal. Bahkan, ketika tidak sedang menghadapi masalah tertentu, perasaan tidak tenang mungkin tetap muncul dan membuatmu sulit merasa rileks.\n\nKondisi ini juga dapat disertai dengan mudah tersinggung, kesulitan untuk duduk tenang, atau munculnya rasa takut seolah-olah sesuatu yang buruk akan terjadi. Pengalaman tersebut bisa membuatmu lebih sulit berkonsentrasi, menikmati waktu istirahat, maupun menjalankan aktivitas dengan nyaman.\n\nPada kondisi ini, penting untuk tidak mengabaikan apa yang sedang kamu rasakan. Cobalah mengenali hal-hal yang memicu kekhawatiran, memberikan waktu bagi diri sendiri untuk beristirahat, dan mencari dukungan dari orang yang dipercaya. Kamu juga disarankan mempertimbangkan konsultasi dengan psikolog agar gejala yang dialami dapat dipahami lebih lanjut dan memperoleh pendampingan yang sesuai.',
   },
   {
     min_skor: 15,
@@ -65,12 +51,7 @@ export const GAD7_INTERPRETASI = [
     grade: 'Berat',
     judul: 'Kondisimu Memerlukan Perhatian Khusus',
     deskripsi:
-      'Kondisi kecemasan kamu berada pada tingkat berat yang signifikan. Gejala ini memerlukan perhatian serius dan bantuan profesional.',
-    tips: [
-      'Sangat direkomendasikan untuk segera berkonsultasi dengan psikolog klinis atau psikiater untuk asesmen mendalam.',
-      'Jangan memendam beban sendirian, mintalah dukungan dari keluarga atau support system terdekat.',
-      'Hindari konsumsi stimulan berlebih seperti kafein tinggi yang dapat memicu detak jantung lebih cepat.',
-    ],
+      'Hasil tes menunjukkan bahwa gejala kecemasan yang kamu alami berada dalam kategori berat. Kamu mungkin merasakan kekhawatiran yang intens dan sulit dikendalikan, bahkan ketika sudah berusaha menenangkan diri. Pikiran dapat terus dipenuhi berbagai kemungkinan buruk sehingga membuatmu merasa tidak tenang dan sulit melepaskan diri dari rasa khawatir.\n\nSelain itu, kamu mungkin mengalami kegelisahan yang cukup kuat, kesulitan untuk bersantai atau duduk diam, mudah tersinggung, hingga perasaan takut seolah-olah sesuatu yang buruk akan terjadi. Gejala-gejala tersebut dapat terasa melelahkan secara emosional maupun fisik dan berpotensi mengganggu konsentrasi, waktu istirahat, hubungan dengan orang lain, serta aktivitas sehari-hari.\n\nApa yang kamu rasakan tetap layak untuk diperhatikan dan mendapatkan dukungan. Kamu tidak perlu menyalahkan diri sendiri atau merasa harus menghadapi semuanya sendirian. Cobalah mencari dukungan dari orang-orang yang kamu percaya dan sangat disarankan untuk berkonsultasi dengan psikolog atau tenaga profesional agar dapat memahami kondisi yang dialami serta memperoleh pendampingan yang sesuai.',
   },
 ]
 
@@ -111,7 +92,7 @@ export async function seedGAD7(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-kecemasan.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Pernah merasa gelisah, terus-menerus khawatir, atau sulit menenangkan pikiran? Tes ini mengajak kamu mengenali pengalaman kecemasan yang mungkin muncul dalam dua minggu terakhir, mulai dari rasa gugup, sulit mengendalikan kekhawatiran, hingga perasaan takut bahwa sesuatu yang buruk akan terjadi.',
     status: 'PUBLISHED',
@@ -185,7 +166,6 @@ export async function seedGAD7(prisma: PrismaClient) {
           grade: item.grade,
           judul: item.judul,
           deskripsi: item.deskripsi,
-          tips: item.tips,
         },
       })
     } else {
@@ -197,7 +177,6 @@ export async function seedGAD7(prisma: PrismaClient) {
           grade: item.grade,
           judul: item.judul,
           deskripsi: item.deskripsi,
-          tips: item.tips,
         },
       })
     }

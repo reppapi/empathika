@@ -8,6 +8,7 @@ import type {
   RescheduleBookingInput,
   UpdateAdminProfileInput,
   ResendActivationInput,
+  UpdateTentangKamiInput,
 } from './admin.schema'
 import {
   buildActivationUrl,
@@ -357,5 +358,57 @@ export class AdminController {
 
   remove = async (_request: FastifyRequest, reply: FastifyReply) => {
     reply.code(204).send()
+  }
+
+  getTentangKamiPublic = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getTentangKami()
+      return reply.code(200).send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil konten Tentang Kami',
+        error: err.message,
+      })
+    }
+  }
+
+  getTentangKami = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getTentangKami()
+      return reply.code(200).send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil konfigurasi Tentang Kami',
+        error: err.message,
+      })
+    }
+  }
+
+  updateTentangKami = async (
+    request: FastifyRequest<{ Body: UpdateTentangKamiInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const updated = await this.service.updateTentangKami(request.body)
+      return reply.code(200).send({
+        success: true,
+        message: 'Konten Tentang Kami berhasil disimpan',
+        data: updated,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal menyimpan konfigurasi Tentang Kami',
+        error: err.message,
+      })
+    }
   }
 }

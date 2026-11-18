@@ -7,6 +7,7 @@ import {
   PBQ_MAX_SCALE_SCORE,
   PBQ_SCALE_DEFINITIONS,
 } from "../src/modules/psikotes/alat-ukur/pbq/scoring";
+import { PBQ_CONFIG } from "../src/modules/psikotes/alat-ukur/pbq/config";
 import { PBQ_SOAL, PBQ_OPSI } from "../prisma/seeds-psikotes/seeds/seed-pbq";
 
 describe("PBQ Psychometrics & Scoring Engine", () => {
@@ -33,6 +34,14 @@ describe("PBQ Psychometrics & Scoring Engine", () => {
 
     // Skala opsi 0..4 (Tidak Yakin Sepenuhnya .. Yakin Sepenuhnya)
     expect(PBQ_OPSI.map((o) => o.bobot)).toEqual([0, 1, 2, 3, 4]);
+
+    // Konsistensi konfigurasi metadata dimensiList dengan definisi scoring
+    expect(PBQ_CONFIG.dimensiList?.length).toBe(9);
+    PBQ_CONFIG.dimensiList?.forEach((dim, idx) => {
+      const def = PBQ_SCALE_DEFINITIONS[idx];
+      expect(dim.nomorSoal[0]).toBe(def.startItem);
+      expect(dim.nomorSoal[dim.nomorSoal.length - 1]).toBe(def.endItem);
+    });
   });
 
   it("skor mentah per skala harus di rentang 0–56 dan tidak dijumlahkan menjadi skor total gabungan", () => {

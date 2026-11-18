@@ -1,5 +1,7 @@
 import { PrismaClient, Role, KategoriLayanan, JenisAksesPsikotes, TipeTransaksi, MetodePembayaran, StatusPembayaran } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as fs from 'fs';
+import * as path from 'path';
 import { seedEvent } from './seed-event';
 import { seedPsikotes } from './seeds-psikotes';
 
@@ -576,6 +578,33 @@ async function main() {
   // 11. Jalankan Seeder Event Terintegrasi
   console.log('\n--- Menjalankan Seeder Event ---');
   await seedEvent(prisma);
+
+  // 12. Seed SiteSetting: Tentang Kami
+  console.log('\n--- Menjalankan Seeder SiteSetting ---');
+  try {
+    const jsonPath = path.join(__dirname, '../data/tentang-kami.json');
+    if (fs.existsSync(jsonPath)) {
+      const tentangKamiData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      if ((prisma as any).siteSetting) {
+        await (prisma as any).siteSetting.upsert({
+          where: { key: 'tentang_kami' },
+          create: { key: 'tentang_kami', value: tentangKamiData },
+          update: { value: tentangKamiData },
+        });
+      } else {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "site_settings" ("id", "key", "value", "createdAt", "updatedAt")
+           VALUES (gen_random_uuid(), 'tentang_kami', $1::jsonb, NOW(), NOW())
+           ON CONFLICT ("key") DO UPDATE
+           SET "value" = EXCLUDED."value", "updatedAt" = NOW()`,
+          JSON.stringify(tentangKamiData)
+        );
+      }
+      console.log('✓ SiteSetting tentang_kami berhasil disemai ke database');
+    }
+  } catch (err: any) {
+    console.warn('Lewati seed SiteSetting:', err.message);
+  }
 
   console.log('\nSeeding finished successfully.');
 }

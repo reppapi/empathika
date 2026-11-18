@@ -31,7 +31,7 @@ function buildMockPaket(kode: string, jumlahSoal: number, jenisAkses: 'GRATIS' |
     alat_ukur: { id: 'au-1', kode, nama: kode, kategori: 'KLINIS' },
     soal_psikotes,
     interpretasi_psikotes: [
-      { id: 'interp-1', id_paket: 'paket-1', min_skor: 0, max_skor: 100, grade: 'Ringan', judul: 'Ringan', deskripsi: 'Deskripsi', tips: [] },
+      { id: 'interp-1', id_paket: 'paket-1', min_skor: 0, max_skor: 100, grade: 'Ringan', judul: 'Ringan', deskripsi: 'Deskripsi' },
     ],
   }
 }
@@ -205,7 +205,7 @@ describe('Audit Pipeline Psikotes (A–G)', () => {
       expect(res.subscales.physiological.skor).toBe(10)
       expect(res.subscales.worry.skor).toBe(11)
       expect(res.subscales.concentration.skor).toBe(7)
-      expect(res.subscales.lieScale).toBeUndefined()
+      expect('lieScale' in res.subscales).toBe(false)
       expect(res.lieScale.skor).toBe(9)
     })
 

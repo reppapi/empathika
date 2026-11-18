@@ -22,7 +22,6 @@ export const interpretasiPsikotesSchema = z.object({
   grade: z.string().optional().default(''),
   judul: z.string().optional().default(''),
   deskripsi: z.string().optional().default(''),
-  tips: z.any().optional().nullable(),
 })
 
 export const createPsikotesSchema = z.object({
@@ -52,6 +51,7 @@ export type PsikotesQueryInput = z.infer<typeof psikotesQuerySchema>
 export const submitJawabanItemSchema = z.object({
   id_soal: z.string().min(1, 'ID soal wajib diisi'),
   id_pilihan: z.string().min(1, 'ID pilihan jawaban wajib diisi'),
+  teks_jawaban: z.string().optional().nullable(),
 })
 
 export const pesertaPsikotesInputSchema = z.object({
@@ -100,6 +100,7 @@ export const submitPsikotesSchema = z.object({
   peristiwaLainnya: z.string().optional().nullable(),
   peristiwa_paling_mengganggu: z.string().optional().nullable(),
   peristiwaPalingMengganggu: z.string().optional().nullable(),
+  choci_isian: z.record(z.string(), z.string()).optional().nullable(),
 })
 
 export type SubmitPsikotesInput = z.infer<typeof submitPsikotesSchema>
@@ -158,7 +159,26 @@ export type CreateBookingPsikotesInput = z.infer<typeof createBookingPsikotesSch
 export const verifyTicketSchema = z.object({
   kode_akses: z.string().min(3, 'Kode akses atau nomor transaksi wajib diisi'),
   no_telepon: z.string().min(6, 'Nomor WhatsApp pembeli wajib diisi'),
+  id_paket: z.string().optional(),
 })
 
 export type VerifyTicketInput = z.infer<typeof verifyTicketSchema>
+
+// ── 9. Review Psikolog untuk Asesmen Klinis ──
+export const reviewPsikotesQuerySchema = z.object({
+  status: z.enum(['ALL', 'MENUNGGU_REVIEW', 'SELESAI']).optional().default('ALL'),
+  search: z.string().optional(),
+  page: z.coerce.number().int().optional().default(1),
+  limit: z.coerce.number().int().optional().default(50),
+})
+
+export type ReviewPsikotesQueryInput = z.infer<typeof reviewPsikotesQuerySchema>
+
+export const submitReviewPsikotesSchema = z.object({
+  catatan_psikolog: z.string().min(5, 'Catatan dinamika kepribadian psikolog minimal 5 karakter'),
+  rekomendasi_psikolog: z.string().optional().nullable(),
+  id_psikolog: z.string().optional().nullable(),
+})
+
+export type SubmitReviewPsikotesInput = z.infer<typeof submitReviewPsikotesSchema>
 

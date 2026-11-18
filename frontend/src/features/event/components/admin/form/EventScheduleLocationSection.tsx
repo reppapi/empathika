@@ -1,7 +1,7 @@
 "use client"
 
 import React, { RefObject } from "react"
-import { inputClass, labelClass, helperClass } from "./formStyles"
+import { inputClass, inputErrorClass, labelClass, helperClass } from "./formStyles"
 import { EventFormData } from "../AdminEventFormClient"
 
 interface EventScheduleLocationSectionProps {
@@ -10,12 +10,14 @@ interface EventScheduleLocationSectionProps {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => void
   dateInputRef: RefObject<HTMLInputElement>
+  errors?: { [key: string]: string }
 }
 
 export function EventScheduleLocationSection({
   form,
   handleChange,
   dateInputRef,
+  errors = {},
 }: EventScheduleLocationSectionProps) {
   return (
     <>
@@ -34,7 +36,9 @@ export function EventScheduleLocationSection({
               required
               value={form.tanggal}
               onChange={handleChange}
-              className={`${inputClass} pr-11 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none`}
+              className={`${inputClass} pr-11 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none ${
+                errors.tanggal ? inputErrorClass : ""
+              }`}
             />
             <button
               type="button"
@@ -64,7 +68,16 @@ export function EventScheduleLocationSection({
               </svg>
             </button>
           </div>
-          <span className={helperClass}>Tanggal penyelenggaraan event</span>
+          {errors.tanggal ? (
+            <span className="flex items-center gap-1.5 text-xs text-red-600 font-semibold mt-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
+                <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+              </svg>
+              {errors.tanggal}
+            </span>
+          ) : (
+            <span className={helperClass}>Tanggal penyelenggaraan event</span>
+          )}
         </div>
 
         <div>
@@ -78,9 +91,18 @@ export function EventScheduleLocationSection({
             required
             value={form.waktuMulai}
             onChange={handleChange}
-            className={inputClass}
+            className={`${inputClass} ${errors.waktuMulai ? inputErrorClass : ""}`}
           />
-          <span className={helperClass}>Jam mulai event (WIB)</span>
+          {errors.waktuMulai ? (
+            <span className="flex items-center gap-1.5 text-xs text-red-600 font-semibold mt-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
+                <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+              </svg>
+              {errors.waktuMulai}
+            </span>
+          ) : (
+            <span className={helperClass}>Jam mulai event (WIB)</span>
+          )}
         </div>
 
         <div>
@@ -94,9 +116,18 @@ export function EventScheduleLocationSection({
             required
             value={form.waktuSelesai}
             onChange={handleChange}
-            className={inputClass}
+            className={`${inputClass} ${errors.waktuSelesai ? inputErrorClass : ""}`}
           />
-          <span className={helperClass}>Jam berakhir event (WIB)</span>
+          {errors.waktuSelesai ? (
+            <span className="flex items-center gap-1.5 text-xs text-red-600 font-semibold mt-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
+                <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+              </svg>
+              {errors.waktuSelesai}
+            </span>
+          ) : (
+            <span className={helperClass}>Jam berakhir event (WIB)</span>
+          )}
         </div>
       </div>
 
@@ -113,13 +144,22 @@ export function EventScheduleLocationSection({
             required
             value={form.lokasi}
             onChange={handleChange}
-            className={inputClass}
+            className={`${inputClass} ${errors.lokasi ? inputErrorClass : ""}`}
           />
-          <span className={helperClass}>
-            {form.tipe === "Online"
-              ? "Tulis platform pertemuan (misal: Google Meet / Zoom)"
-              : "Tulis nama tempat atau alamat gedung acara"}
-          </span>
+          {errors.lokasi ? (
+            <span className="flex items-center gap-1.5 text-xs text-red-600 font-semibold mt-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
+                <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+              </svg>
+              {errors.lokasi}
+            </span>
+          ) : (
+            <span className={helperClass}>
+              {form.tipe === "Online"
+                ? "Tulis platform pertemuan (misal: Google Meet / Zoom)"
+                : "Tulis nama tempat atau alamat gedung acara"}
+            </span>
+          )}
         </div>
 
         <div>
@@ -133,9 +173,18 @@ export function EventScheduleLocationSection({
             required
             value={form.pembicara}
             onChange={handleChange}
-            className={inputClass}
+            className={`${inputClass} ${errors.pembicara ? inputErrorClass : ""}`}
           />
-          <span className={helperClass}>Nama pembicara beserta gelar lengkap</span>
+          {errors.pembicara ? (
+            <span className="flex items-center gap-1.5 text-xs text-red-600 font-semibold mt-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
+                <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+              </svg>
+              {errors.pembicara}
+            </span>
+          ) : (
+            <span className={helperClass}>Nama pembicara beserta gelar lengkap</span>
+          )}
         </div>
       </div>
     </>

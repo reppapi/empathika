@@ -10,10 +10,12 @@ export type InstrumentCode =
   | "CDI"
   | "PBQ"
   | "RCMAS"
+  | "CHOCI"
   | "IGDS"
   | "DASS"
   | "PHQ"
   | "GAD"
+  | "MCMI"
   | "UNKNOWN";
 
 export interface DetectablePackage {
@@ -44,17 +46,21 @@ export function getInstrumentCode(
   if (kode.includes("CDI")) return "CDI";
   if (kode.includes("PBQ")) return "PBQ";
   if (kode.includes("RCMAS")) return "RCMAS";
+  if (kode.includes("CHOCI")) return "CHOCI";
   if (kode.includes("IGDS")) return "IGDS";
   if (kode.includes("DASS")) return "DASS";
   if (kode.includes("PHQ")) return "PHQ";
   if (kode.includes("GAD")) return "GAD";
+  if (kode.includes("MCMI")) return "MCMI";
 
   // 2. Prioritas Kedua: Akronim Spesifik pada Judul
   const j = (data?.judul || "").toUpperCase();
+  if (j.includes("(MCMI") || j.includes("MCMI-IV") || j.includes("MCMI") || j.includes("MILLON") || j.includes("MULTIAXIAL")) return "MCMI";
   if (j.includes("(CATS)") || j.includes(" CATS") || j.includes("TRAUMA SCREEN") || j.includes("PENGALAMAN TRAUMATIS") || j.includes("PASCATRAUMA")) return "CATS";
   if (j.includes("(CDI)") || j.includes(" CDI") || j.includes("CHILDREN'S DEPRESSION") || j.includes("DEPRESI ANAK")) return "CDI";
   if (j.includes("(PBQ)") || j.includes(" PBQ") || j.includes("POLA KEYAKINAN KEPRIBADIAN") || j.includes("KEYAKINAN DAN POLA KEPRIBADIAN")) return "PBQ";
   if (j.includes("(RCMAS)") || j.includes(" RCMAS") || (j.includes("KECEMASAN ANAK") && !j.includes("CATS"))) return "RCMAS";
+  if (j.includes("(CHOCI") || j.includes("CHOCI-R") || j.includes("CHOCI") || j.includes("OBSESI & KOMPULSI") || j.includes("GEJALA OBSESI") || j.includes("GEJALA OCD") || j.includes("OCD ANAK")) return "CHOCI";
   if (j.includes("(IGDS") || j.includes("IGDS9") || j.includes("BERMAIN GAME") || j.includes("KEBIASAAN BERMAIN GAME") || j.includes("GAMING")) return "IGDS";
   if (j.includes("DASS-42") || j.includes("DASS42") || (j.includes("DEPRESI") && j.includes("KECEMASAN") && j.includes("STRES"))) return "DASS";
   if (j.includes("(PHQ-9)") || j.includes("PHQ-9") || j === "TES DEPRESI" || (j.includes("SKRINING GEJALA DEPRESI AWAL") && !j.includes("CDI"))) return "PHQ";
@@ -66,10 +72,12 @@ export function getInstrumentCode(
   if (slug.includes("CDI")) return "CDI";
   if (slug.includes("PBQ")) return "PBQ";
   if (slug.includes("RCMAS")) return "RCMAS";
+  if (slug.includes("CHOCI")) return "CHOCI";
   if (slug.includes("IGDS") || slug.includes("GAMING")) return "IGDS";
   if (slug.includes("DASS")) return "DASS";
   if (slug.includes("PHQ")) return "PHQ";
   if (slug.includes("GAD")) return "GAD";
+  if (slug.includes("MCMI")) return "MCMI";
 
   return "UNKNOWN";
 }
@@ -93,6 +101,10 @@ export function isRCMAS(data?: DetectablePackage | null, fallbackId?: string): b
   return getInstrumentCode(data, fallbackId) === "RCMAS";
 }
 
+export function isCHOCI(data?: DetectablePackage | null, fallbackId?: string): boolean {
+  return getInstrumentCode(data, fallbackId) === "CHOCI";
+}
+
 export function isIGDS(data?: DetectablePackage | null, fallbackId?: string): boolean {
   return getInstrumentCode(data, fallbackId) === "IGDS";
 }
@@ -107,6 +119,10 @@ export function isPHQ(data?: DetectablePackage | null, fallbackId?: string): boo
 
 export function isGAD(data?: DetectablePackage | null, fallbackId?: string): boolean {
   return getInstrumentCode(data, fallbackId) === "GAD";
+}
+
+export function isMCMI(data?: DetectablePackage | null, fallbackId?: string): boolean {
+  return getInstrumentCode(data, fallbackId) === "MCMI";
 }
 
 /**
@@ -124,6 +140,8 @@ export function getInstrumentTargetUsia(
       return "7–19 tahun";
     case "RCMAS":
       return "6–19 tahun";
+    case "CHOCI":
+      return "7–17 tahun";
     case "DASS":
       return "13 tahun ke atas";
     case "IGDS":
@@ -131,6 +149,8 @@ export function getInstrumentTargetUsia(
     case "PHQ":
       return "18 tahun ke atas";
     case "GAD":
+      return "18 tahun ke atas";
+    case "MCMI":
       return "18 tahun ke atas";
     case "PBQ":
       return "Tidak dicantumkan dalam handout";

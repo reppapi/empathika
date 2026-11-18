@@ -7,6 +7,8 @@ import { seedRCMAS, RCMAS_SOAL, RCMAS_OPSI, RCMAS_INTERPRETASI } from './seeds/s
 import { seedPBQ, PBQ_SOAL, PBQ_OPSI } from './seeds/seed-pbq'
 import { seedCDI, CDI_SOAL, CDI_INTERPRETASI } from './seeds/seed-cdi'
 import { seedCATS, CATS_SOAL, CATS_OPSI_YA_TIDAK, CATS_OPSI_GEJALA, CATS_INTERPRETASI } from './seeds/seed-cats'
+import { seedCHOCI, CHOCI_SOAL, CHOCI_OPSI_GEJALA, CHOCI_OPSI_ISIAN, CHOCI_INTERPRETASI } from './seeds/seed-choci'
+import { seedMCMI, MCMI_SOAL, MCMI_OPSI } from './seeds/seed-mcmi'
 
 const prisma = new PrismaClient()
 
@@ -43,6 +45,14 @@ export {
   CATS_OPSI_YA_TIDAK,
   CATS_OPSI_GEJALA,
   CATS_INTERPRETASI,
+  seedCHOCI,
+  CHOCI_SOAL,
+  CHOCI_OPSI_GEJALA,
+  CHOCI_OPSI_ISIAN,
+  CHOCI_INTERPRETASI,
+  seedMCMI,
+  MCMI_SOAL,
+  MCMI_OPSI,
 }
 
 // ============================================================================
@@ -98,6 +108,8 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   const paketPBQ = await seedPBQ(p)
   const paketCDI = await seedCDI(p)
   const paketCATS = await seedCATS(p)
+  const paketCHOCI = await seedCHOCI(p)
+  const paketMCMI = await seedMCMI(p)
 
   console.log('\n========================================================')
   console.log('🎉 SELURUH SEEDER PSIKOTES BERHASIL DIJALANKAN!')
@@ -111,6 +123,8 @@ export async function seedPsikotes(customPrisma?: PrismaClient) {
   console.log(`6. "${paketPBQ.judul}" -> GRATIS (Rp 0) [Alat: PBQ]`)
   console.log(`7. "Tes Gejala Depresi Anak & Remaja (CDI)" -> GRATIS (Rp 0) [Alat: CDI]`)
   console.log(`8. "${paketCATS.judul}" -> GRATIS (Rp 0) [Alat: CATS]`)
+  console.log(`9. "${paketCHOCI.judul}" -> GRATIS (Rp 0) [Alat: CHOCI-R]`)
+  console.log(`10. "${paketMCMI.judul}" -> BERBAYAR (Rp ${Number(paketMCMI.harga).toLocaleString('id-ID')}) [Alat: MCMI-IV]`)
   console.log('========================================================\n')
 }
 

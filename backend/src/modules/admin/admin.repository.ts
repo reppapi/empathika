@@ -406,4 +406,38 @@ export class AdminRepository {
 
     return { upcomingEvents, upcomingSessions, pendingPayments }
   }
+
+  // ── Site Settings (Pengaturan Sistem Dinamis) ────────────────────
+
+  async getSiteSetting(key: string) {
+    if ((this.prisma as any).siteSetting) {
+      return (this.prisma as any).siteSetting.findUnique({
+        where: { key },
+      })
+    }
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT "id", "key", "value", "createdAt", "updatedAt" FROM "site_settings" WHERE "key" = $1 LIMIT 1`,
+      key
+    )
+    return rows[0] || null
+  }
+
+  async upsertSiteSetting(key: string, value: any) {
+    if ((this.prisma as any).siteSetting) {
+      return (this.prisma as any).siteSetting.upsert({
+        where: { key },
+        create: { key, value },
+        update: { value },
+      })
+    }
+    const jsonStr = typeof value === 'string' ? value : JSON.stringify(value)
+    return this.prisma.$executeRawUnsafe(
+      `INSERT INTO "site_settings" ("id", "key", "value", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2::jsonb, NOW(), NOW())
+       ON CONFLICT ("key") DO UPDATE
+       SET "value" = EXCLUDED."value", "updatedAt" = NOW()`,
+      key,
+      jsonStr
+    )
+  }
 }

@@ -32,6 +32,9 @@ export const createPsikologSchema = z.object({
   foto: z.string().optional(),
   bio: z.string().optional(),
   tarif_per_jam: z.number().default(0),
+  bank_code: z.string().nullable().optional(),
+  nomor_rekening: z.string().nullable().optional(),
+  nama_pemilik_rek: z.string().nullable().optional(),
 })
 
 export const updatePsikologSchema = createPsikologSchema.partial()
@@ -65,6 +68,12 @@ export const updatePsikologProfileSchema = z.object({
   profil_lengkap: z.union([z.string(), z.array(z.string())]).nullable().optional(),
   tarif_per_jam: z.number().nullable().optional(),
   kategori: z.string().nullable().optional(),
+  bank_code: z.string().nullable().optional(),
+  nomor_rekening: z.string().nullable().optional(),
+  nama_pemilik_rek: z.string().nullable().optional(),
+  bankCode: z.string().nullable().optional(),
+  nomorRekening: z.string().nullable().optional(),
+  namaPemilikRekening: z.string().nullable().optional(),
 }).passthrough()
 
 export const registerPsikologBaruSchema = z.object({
@@ -84,6 +93,12 @@ export const registerPsikologBaruSchema = z.object({
   instagram: z.string().nullable().optional(),
   keahlian: z.union([z.string(), z.array(z.string())]).nullable().optional(),
   tarif_per_jam: z.number().nullable().optional(),
+  bank_code: z.string().nullable().optional(),
+  nomor_rekening: z.string().nullable().optional(),
+  nama_pemilik_rek: z.string().nullable().optional(),
+  bankCode: z.string().nullable().optional(),
+  nomorRekening: z.string().nullable().optional(),
+  namaPemilikRekening: z.string().nullable().optional(),
   statusAkses: z.enum(['AKTIF', 'NONAKTIF']).default('AKTIF'),
   foto: z.string().nullable().optional(),
   pengalaman_tahun: z.string().nullable().optional(),

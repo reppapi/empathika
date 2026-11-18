@@ -572,7 +572,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
             <View style={styles.pillRow}>
               <View style={styles.pillPurple}>
                 <Text style={styles.pillPurpleText}>
-                  {sanitizePdfText(data.masaBerlaku || "Masa Berlaku: Tanpa Batas Waktu")}
+                  {sanitizePdfText(data.masaBerlaku || "Masa Berlaku: 3 Bulan")}
                 </Text>
               </View>
               <View style={styles.pillGreen}>
@@ -677,6 +677,44 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
           </Text>
         </View>
 
+        {/* Telaah Klinis & Catatan Psikolog Resmi */}
+        {data.catatanPsikolog ? (
+          <View style={styles.card} wrap={false}>
+            <View style={styles.cardHeaderRow}>
+              <View>
+                <Text style={styles.cardTitle}>Telaah Klinis &amp; Catatan Psikolog</Text>
+                <Text style={styles.cardSubtitle}>
+                  {data.namaPsikolog || "Psikolog Klinis Empathika"}
+                  {data.tanggalReview ? ` • Ditelaah pada ${sanitizePdfText(data.tanggalReview)}` : ""}
+                </Text>
+              </View>
+              <View style={styles.pillGreen}>
+                <Text style={styles.pillGreenText}>Terverifikasi Resmi</Text>
+              </View>
+            </View>
+            <View style={{ gap: 8, marginTop: 4 }}>
+              <View style={{ backgroundColor: BG_GRAY, padding: 8, borderRadius: 6, borderWidth: 1, borderColor: "#F3F4F6" }}>
+                <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 8, color: BRAND_PURPLE, textTransform: "uppercase", marginBottom: 3 }}>
+                  Dinamika Kepribadian &amp; Gambaran Klinis
+                </Text>
+                <Text style={styles.bodyText}>
+                  {sanitizePdfText(data.catatanPsikolog)}
+                </Text>
+              </View>
+              {data.rekomendasiPsikolog ? (
+                <View style={{ backgroundColor: BG_GRAY, padding: 8, borderRadius: 6, borderWidth: 1, borderColor: "#F3F4F6" }}>
+                  <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 8, color: BRAND_PURPLE, textTransform: "uppercase", marginBottom: 3 }}>
+                    Rekomendasi Intervensi &amp; Rencana Tindak Lanjut
+                  </Text>
+                  <Text style={styles.bodyText}>
+                    {sanitizePdfText(data.rekomendasiPsikolog)}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+
         {/* Profil Dimensi / Subskala (misal DASS-42) */}
         {subscales.length > 0 ? (
           <View style={styles.card}>
@@ -733,15 +771,23 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
           </View>
         ) : null}
 
-        {/* Interpretasi Hasil */}
-        {hasilUtama.deskripsi ? (
+        {/* Interpretasi Hasil (hanya jika belum ada catatan telaah khusus dari psikolog) */}
+        {hasilUtama.deskripsi && !data.catatanPsikolog ? (
           <View style={styles.card} wrap={false}>
             <View style={styles.cardHeaderRow}>
               <Text style={styles.cardTitle}>Interpretasi Hasil</Text>
             </View>
-            <Text style={styles.bodyText}>
-              {sanitizePdfText(hasilUtama.deskripsi)}
-            </Text>
+            <View style={{ gap: 5 }}>
+              {(hasilUtama.deskripsi || "")
+                .split(/\r?\n\s*\r?\n/)
+                .map((p) => p.trim())
+                .filter(Boolean)
+                .map((para, pIdx) => (
+                  <Text key={pIdx} style={styles.bodyText}>
+                    {sanitizePdfText(para)}
+                  </Text>
+                ))}
+            </View>
           </View>
         ) : null}
 

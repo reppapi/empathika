@@ -53,9 +53,7 @@ export function usePsikotesBayar() {
   // Parameter Detail Layanan Psikotes
   const testIdParam = searchParams.get("testId") || ""
   const judulParam = searchParams.get("judul") || "Tes Psikotes"
-  const subjudulParam =
-    searchParams.get("subjudul") ||
-    "Akses paket tes psikotes lengkap beserta laporan analisis profesional."
+  const subjudulParam = searchParams.get("subjudul") || ""
   const kategoriParam = searchParams.get("kategori") || "Psikotes"
   const hargaParam = searchParams.get("harga") || "Rp 0"
   const bannerUrlParam =
@@ -63,13 +61,7 @@ export function usePsikotesBayar() {
     searchParams.get("banner_url") ||
     searchParams.get("image") ||
     (() => {
-      const t = testIdParam.toLowerCase();
-      if (t.includes("dass")) return "/images/psikotes/banner-dass42.jpg";
-      if (t.includes("phq") || t.includes("depresi") || t.includes("cdi")) return "/images/psikotes/banner-depresi.jpg";
-      if (t.includes("gad") || t.includes("cemas")) return "/images/psikotes/banner-kecemasan.jpg";
-      if (t.includes("rcmas") || (t.includes("anak") && !t.includes("depresi"))) return "/images/psikotes/banner-rcmas.jpg";
-      if (t.includes("igds") || t.includes("game")) return "/images/psikotes/banner-game.jpg";
-      return "";
+      return "/images/psikotes/banner-default.jpg";
     })();
 
   const handleSelectPayment = (id: string) => {

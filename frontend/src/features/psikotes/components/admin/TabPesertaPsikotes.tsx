@@ -172,15 +172,16 @@ export default function TabPesertaPsikotes({
       header: "Nama Peserta",
       render: (peserta: AdminPsikotesPeserta) => {
         const isSelesai = peserta.status === "Selesai";
+        const hasPeserta = Boolean(peserta.peserta && peserta.peserta.nama_lengkap);
         return (
           <div className="flex flex-col">
             <span className="font-extrabold text-gray-900 leading-tight">
-              {peserta.nama}
+              {hasPeserta ? peserta.peserta?.nama_lengkap : "Belum Mengisi Identitas"}
             </span>
-            {isSelesai ? (
+            {hasPeserta ? (
               <div className="flex flex-wrap items-center gap-1 text-[11px] text-gray-500 font-medium mt-0.5">
-                {peserta.usia ? <span>{peserta.usia} tahun</span> : null}
-                {peserta.jenisKelamin ? <span>• {peserta.jenisKelamin}</span> : null}
+                {peserta.peserta?.usia ? <span>{peserta.peserta.usia} tahun</span> : null}
+                {peserta.peserta?.jenis_kelamin ? <span>• {peserta.peserta.jenis_kelamin}</span> : null}
                 {peserta.peserta?.status_pernikahan ? <span>• {peserta.peserta.status_pernikahan}</span> : null}
                 {peserta.isPembeliBerbeda && peserta.namaPemesan ? (
                   <span className="text-gray-400 font-normal">
@@ -190,7 +191,7 @@ export default function TabPesertaPsikotes({
               </div>
             ) : (
               <div className="flex items-center gap-1 text-[11px] text-amber-700 font-medium mt-0.5">
-                <span>(Pemesan — Menunggu Peserta)</span>
+                <span>Dipesan oleh: {peserta.namaPemesan || peserta.nama}</span>
               </div>
             )}
           </div>
@@ -231,13 +232,23 @@ export default function TabPesertaPsikotes({
       key: "status",
       header: "Status",
       render: (peserta: AdminPsikotesPeserta) => {
-        const isSelesai = peserta.status === "Selesai";
+        const isMenungguReview =
+          peserta.status === "Menunggu Review" ||
+          peserta.status_pengerjaan === "MENUNGGU_REVIEW";
+        const isSelesai =
+          !isMenungguReview &&
+          (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI");
+
         return (
           <AdminStatusBadge
-            variant={isSelesai ? "success" : "warning"}
+            variant={isSelesai ? "success" : isMenungguReview ? "info" : "warning"}
             className="w-36"
           >
-            {peserta.status || (isSelesai ? "Selesai" : "Menunggu Pengerjaan")}
+            {isMenungguReview
+              ? "Menunggu Review"
+              : isSelesai
+              ? "Selesai"
+              : "Menunggu Pengerjaan"}
           </AdminStatusBadge>
         );
       },

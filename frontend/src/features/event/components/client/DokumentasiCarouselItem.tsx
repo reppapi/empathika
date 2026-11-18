@@ -74,18 +74,18 @@ export function DokumentasiCarouselItem({ item }: DokumentasiCarouselItemProps) 
         )}
       </div>
 
-      {/* ── 2. CAROUSEL SLIDER DENGAN PERSPEKTIF 3D (REFERENSI GAMBAR USER) ── */}
+      {/* ── 2. CAROUSEL SLIDER FOTO FULL KE PINGGIR (EDGE-TO-EDGE OVERFLOW SCREEN) ── */}
       {total > 1 ? (
-        <div className="relative w-full py-2 select-none">
-          {/* Viewport Carousel dengan Swipe (Tinggi compact proporsional max-w-3xl seperti Kerja Sama) */}
+        <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] py-4 select-none overflow-hidden">
+          {/* Viewport Carousel dengan Swipe gesture: Full Width Screen */}
           <div
-            className="relative w-full h-[220px] sm:h-[300px] md:h-[350px] flex items-center justify-center overflow-hidden"
+            className="relative w-full h-[340px] sm:h-[460px] md:h-[540px] lg:h-[600px] flex items-center justify-center"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
             {photos.map((photo, idx) => {
-              // Hitung jarak relatif terhadap activeIndex dengan perulangan sirkular
+              // Hitung jarak relatif terhadap activeIndex dengan perulangan sirkular (looping tak hingga)
               let offset = (idx - activeIndex) % total
               if (offset > Math.floor(total / 2)) offset -= total
               if (offset < -Math.floor(total / 2)) offset += total
@@ -104,24 +104,27 @@ export function DokumentasiCarouselItem({ item }: DokumentasiCarouselItemProps) 
               let opacity = 1
 
               if (isCenter) {
+                // Foto aktif di tengah: besar penuh, di paling depan
                 transformStyle = "translateX(0) scale(1)"
                 opacity = 1
                 zIndex = 30
               } else if (isPrev) {
-                transformStyle = "translateX(-48%) scale(0.85)"
+                // Foto di kiri: terlihat jelas membentang ke pinggir kiri layar
+                transformStyle = "translateX(-82%) scale(0.92)"
                 opacity = 0.85
                 zIndex = 20
               } else if (isNext) {
-                transformStyle = "translateX(48%) scale(0.85)"
+                // Foto di kanan: terlihat jelas membentang ke pinggir kanan layar
+                transformStyle = "translateX(82%) scale(0.92)"
                 opacity = 0.85
                 zIndex = 20
               } else if (isFarLeft) {
-                transformStyle = "translateX(-85%) scale(0.7)"
-                opacity = 0.5
+                transformStyle = "translateX(-155%) scale(0.8)"
+                opacity = 0.35
                 zIndex = 10
               } else if (isFarRight) {
-                transformStyle = "translateX(85%) scale(0.7)"
-                opacity = 0.5
+                transformStyle = "translateX(155%) scale(0.8)"
+                opacity = 0.35
                 zIndex = 10
               }
 
@@ -134,54 +137,71 @@ export function DokumentasiCarouselItem({ item }: DokumentasiCarouselItemProps) 
                     zIndex,
                     opacity,
                   }}
-                  className={`absolute w-[75%] sm:w-[68%] md:w-[62%] aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl transition-all duration-500 ease-out cursor-pointer bg-black/5 ${
-                    isCenter ? "ring-2 ring-black/5" : "hover:opacity-95"
+                  className={`absolute w-[72vw] max-w-[850px] aspect-video rounded-none overflow-hidden shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer bg-gray-900 border border-gray-800 ${
+                    isCenter ? "ring-2 ring-black/25" : "hover:opacity-95"
                   }`}
                 >
-                  <div className="relative w-full h-full bg-gray-900">
-                    <Image
-                      src={photo.foto_url}
-                      alt={`${item.judul} foto ${idx + 1}`}
-                      fill
-                      unoptimized
-                      className="object-contain"
-                    />
-                  </div>
+                  <Image
+                    src={photo.foto_url}
+                    alt={`${item.judul} foto ${idx + 1}`}
+                    fill
+                    unoptimized
+                    priority={idx === 0}
+                    className="object-cover sm:object-contain"
+                  />
                 </div>
               )
             })}
           </div>
 
-          {/* Tombol Navigasi Bulat Minimalis di Bawah Slider (Sesuai Referensi Gambar) */}
-          <div className="flex items-center justify-center gap-4 mt-4">
+          {/* Navigation Controls di Bawah Slider (Tombol Kiri-Kanan Bulat + Dots) Sesuai Referensi Gambar */}
+          <div className="flex items-center justify-center gap-6 mt-5">
             <button
               type="button"
               onClick={handlePrev}
               aria-label="Foto sebelumnya"
-              className="w-10 h-10 rounded-full border border-gray-900/80 bg-white hover:bg-gray-100 text-gray-900 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
+              className="w-11 h-11 rounded-full border border-gray-300 bg-white flex items-center justify-center text-gray-700 hover:text-black hover:border-gray-500 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5 pr-0.5" />
             </button>
+
+            {/* Pagination Dots */}
+            <div className="flex items-center gap-2">
+              {photos.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveIndex(idx)}
+                  aria-label={`Ke foto ${idx + 1}`}
+                  className={`rounded-full transition-all duration-300 cursor-pointer ${
+                    idx === activeIndex
+                      ? "bg-[#561269] w-3 h-3"
+                      : "bg-gray-300 hover:bg-gray-400 w-2 h-2"
+                  }`}
+                />
+              ))}
+            </div>
+
             <button
               type="button"
               onClick={handleNext}
               aria-label="Foto berikutnya"
-              className="w-10 h-10 rounded-full border border-gray-900/80 bg-white hover:bg-gray-100 text-gray-900 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
+              className="w-11 h-11 rounded-full border border-gray-300 bg-white flex items-center justify-center text-gray-700 hover:text-black hover:border-gray-500 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5 pl-0.5" />
             </button>
           </div>
         </div>
       ) : (
-        /* Jika Hanya 1 Foto / Thumbnail: Tampil Frame 16:9 Utuh (Object Contain) */
-        <div className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900 shadow-lg">
+        /* Jika Hanya 1 Foto / Thumbnail: Kotak Tegas Persegi Panjang Tanpa Rounded */
+        <div className="relative w-full aspect-video rounded-none overflow-hidden bg-gray-900 shadow-lg border border-gray-800">
           {photos[0] ? (
             <Image
               src={photos[0].foto_url}
               alt={item.judul}
               fill
               unoptimized
-              className="object-contain"
+              className="object-cover sm:object-contain"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-100">

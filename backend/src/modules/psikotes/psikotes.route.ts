@@ -2,6 +2,7 @@
 import type { FastifyInstance } from 'fastify'
 import { PsikotesController } from './psikotes.controller'
 import { adminGuard, adminOrBiroGuard } from '../../middlewares/admin-guard'
+import { psikologGuard } from '../../middlewares/psikolog-guard'
 import { createRateLimiter } from '../../middlewares/rate-limit'
 import {
   createPsikotesSchema,
@@ -11,6 +12,8 @@ import {
   pesertaQuerySchema,
   createBookingPsikotesSchema,
   verifyTicketSchema,
+  reviewPsikotesQuerySchema,
+  submitReviewPsikotesSchema,
 } from './psikotes.schema'
 
 export default async function psikotesRoutes(fastify: FastifyInstance) {
@@ -163,6 +166,30 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
       body: submitPsikotesSchema,
     },
     handler: controller.submit,
+  })
+
+  // 7. Psikolog & Admin: Ambil daftar antrean pengerjaan asesmen yang perlu review klinis
+  fastify.get('/review-list', {
+    preHandler: [psikologGuard],
+    schema: {
+      tags: ['Psikotes - Review Psikolog'],
+      summary: 'Mendapatkan daftar antrean asesmen psikotes yang memerlukan review klinis psikolog',
+      security: [{ bearerAuth: [] }],
+      querystring: reviewPsikotesQuerySchema,
+    },
+    handler: controller.getReviewList,
+  })
+
+  // 8. Psikolog & Admin: Verifikasi telaah klinis psikolog dan terbitkan laporan resmi
+  fastify.post('/booking/:bookingId/review', {
+    preHandler: [psikologGuard],
+    schema: {
+      tags: ['Psikotes - Review Psikolog'],
+      summary: 'Menyimpan telaah klinis, dinamika kepribadian, dan rekomendasi psikolog untuk laporan resmi',
+      security: [{ bearerAuth: [] }],
+      body: submitReviewPsikotesSchema,
+    },
+    handler: controller.submitReview,
   })
 }
 

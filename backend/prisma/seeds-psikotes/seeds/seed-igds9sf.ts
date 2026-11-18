@@ -58,13 +58,7 @@ export const IGDS9SF_INTERPRETASI = [
     grade: 'Gambaran Pola Bermain Terkendali',
     judul: 'Pola Bermain Game Kamu Masih Relatif Terkendali',
     deskripsi:
-      'Berdasarkan jawaban yang kamu berikan, aktivitas bermain game tampaknya belum menunjukkan banyak tanda yang berkaitan dengan Internet Gaming Disorder. Game dapat menjadi salah satu bentuk hiburan yang menyenangkan selama tetap seimbang dengan tanggung jawab, waktu istirahat, hubungan sosial, dan aktivitas sehari-hari lainnya.',
-    tips: [
-      'Pertahankan keseimbangan antara bermain game, belajar atau bekerja, beristirahat, dan melakukan aktivitas lainnya.',
-      'Tetapkan batas waktu bermain agar tidak mengganggu jadwal tidur dan kegiatan sehari-hari.',
-      'Luangkan waktu untuk melakukan hobi lain dan berinteraksi dengan keluarga maupun teman.',
-      'Perhatikan perubahan pola bermain, terutama jika mulai sulit mengendalikan durasi atau frekuensi bermain.',
-    ],
+      'Hasil tes menunjukkan bahwa pola bermain game yang kamu miliki masih berada dalam kategori normal. Berdasarkan jawaban yang diberikan, belum terlihat indikasi gejala Internet Gaming Disorder (IGD) yang menonjol.\n\nKamu mungkin menikmati aktivitas bermain game sebagai salah satu bentuk hiburan atau kegiatan untuk mengisi waktu luang. Meskipun demikian, penting untuk tetap memperhatikan kebiasaan bermain agar tidak mengganggu tanggung jawab, waktu istirahat, maupun aktivitas lain dalam kehidupan sehari-hari.\n\nTetap jaga keseimbangan antara bermain game dan kegiatan lainnya. Pastikan kamu masih memiliki waktu untuk belajar, beristirahat, berinteraksi dengan orang lain, serta menjalankan aktivitas yang menjadi tanggung jawabmu.',
   },
   {
     min_skor: 36,
@@ -72,14 +66,7 @@ export const IGDS9SF_INTERPRETASI = [
     grade: 'Kemungkinan Internet Gaming Disorder (IGD)',
     judul: 'Kemungkinan Internet Gaming Disorder (IGD)',
     deskripsi:
-      'Berdasarkan jawaban yang kamu berikan, terdapat sejumlah tanda yang berkaitan dengan Internet Gaming Disorder. Hal ini dapat terlihat dari aktivitas bermain game yang mulai sulit dikendalikan atau berpotensi memengaruhi kegiatan sehari-hari, hubungan dengan orang lain, maupun tanggung jawab pribadi. Kondisi ini bukan berarti kamu pasti mengalami gangguan, tetapi dapat menjadi pengingat untuk lebih memperhatikan pola bermain game dan dampaknya terhadap kehidupanmu.',
-    tips: [
-      'Coba kenali situasi atau perasaan yang membuatmu terdorong untuk bermain game dalam waktu lama.',
-      'Mulailah mengatur jadwal bermain secara bertahap dan berikan ruang untuk aktivitas lain.',
-      'Tetapkan waktu khusus untuk beristirahat, belajar atau bekerja, serta berinteraksi dengan orang terdekat.',
-      'Ceritakan kesulitan yang kamu alami kepada orang yang kamu percaya.',
-      'Jika pola bermain mulai mengganggu aktivitas atau hubunganmu, pertimbangkan untuk berkonsultasi dengan psikolog profesional.',
-    ],
+      'Hasil tes menunjukkan adanya kemungkinan gejala Internet Gaming Disorder (IGD). Skor ini mengindikasikan bahwa aktivitas bermain game mungkin mulai sulit dikendalikan dan menunjukkan pola yang berpotensi menimbulkan dampak negatif dalam kehidupan sehari-hari.\n\nKondisi tersebut dapat berkaitan dengan kesulitan mengatur waktu bermain, meningkatnya prioritas terhadap game dibandingkan aktivitas lain, atau tetap bermain meskipun mulai merasakan dampak yang kurang baik. Hal ini dapat memengaruhi kegiatan belajar, waktu istirahat, hubungan sosial, maupun tanggung jawab lainnya.\n\nPenting untuk mulai memperhatikan pola bermain game dan dampaknya terhadap kehidupan sehari-hari. Kamu disarankan untuk berkonsultasi dengan psikolog atau tenaga profesional agar kondisi yang dialami dapat dievaluasi lebih lanjut dan memperoleh pendampingan yang sesuai.',
   },
 ]
 
@@ -120,7 +107,7 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
     id_alat_ukur: alatUkur.id,
     jenis_akses: JenisAksesPsikotes.GRATIS,
     harga: 0,
-    banner_url: '/images/psikotes/banner-gaming-disorder.jpg',
+    banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
       'Bermain game bisa menjadi hiburan yang menyenangkan. Namun, bagaimana jika aktivitas tersebut mulai sulit dikendalikan atau mengganggu kegiatan lainnya? Tes ini membantu mengenali pola bermain game selama 12 bulan terakhir, termasuk kesulitan mengontrol waktu bermain dan dampaknya terhadap kehidupan sehari-hari.',
     status: 'PUBLISHED',
@@ -191,7 +178,10 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
     const existing = await prisma.interpretasiPsikotes.findFirst({
       where: {
         id_paket: paket.id,
-        grade: interp.grade,
+        OR: [
+          { grade: interp.grade },
+          { min_skor: interp.min_skor, max_skor: interp.max_skor },
+        ],
       },
     })
 
@@ -201,9 +191,9 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
         data: {
           min_skor: interp.min_skor,
           max_skor: interp.max_skor,
+          grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     } else {
@@ -215,7 +205,6 @@ export async function seedIGDS9SF(prisma: PrismaClient) {
           grade: interp.grade,
           judul: interp.judul,
           deskripsi: interp.deskripsi,
-          tips: interp.tips,
         },
       })
     }
