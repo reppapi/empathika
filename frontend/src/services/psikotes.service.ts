@@ -135,6 +135,42 @@ export interface SubmitPsikotesResult {
   }
 }
 
+export interface ReviewPsikotesItem {
+  id: string
+  id_paket: string
+  kode_akses: string | null
+  nama_paket: string
+  jenis_akses: string
+  nama_peserta: string
+  no_hp: string
+  usia: number | null
+  jenis_kelamin: string | null
+  tanggal_pengerjaan: string
+  batas_review?: string | null
+  status_pengerjaan: "BELUM_MULAI" | "SEDANG_MENGERJAKAN" | "MENUNGGU_REVIEW" | "SELESAI"
+  perlu_review_psikolog: boolean
+  catatan_psikolog?: string | null
+  rekomendasi_psikolog?: string | null
+  tanggal_review?: string | null
+  psikolog?: {
+    id: string
+    nama: string
+    kategori?: string
+    foto?: string | null
+  } | null
+  total_skor?: number | null
+  detail_skor?: any
+}
+
+export interface ReviewPsikotesListResponse {
+  summary: {
+    total: number
+    menunggu_review: number
+    selesai_review: number
+  }
+  items: ReviewPsikotesItem[]
+}
+
 export const psikotesService = {
   getList: (params?: { search?: string; status?: string; jenis_akses?: string; include_draft?: boolean | string }) =>
     apiClient.get<{ success: boolean; message: string; data: PaketPsikotesApiResponse[] }>("/psikotes", { params }).then((r) => r.data),
@@ -219,7 +255,7 @@ export const psikotesService = {
       }>("/psikotes/booking", payload)
       .then((r) => r.data),
 
-  verifyTicket: (payload: { kode_akses: string; no_telepon: string }) =>
+  verifyTicket: (payload: { kode_akses: string; no_telepon: string; id_paket?: string }) =>
     apiClient
       .post<{
         success: boolean
@@ -228,7 +264,7 @@ export const psikotesService = {
           booking_id: string
           access_token?: string
           kode_akses: string
-          status_pengerjaan: "BELUM_MULAI" | "SELESAI"
+          status_pengerjaan: "BELUM_MULAI" | "SEDANG_MENGERJAKAN" | "MENUNGGU_REVIEW" | "SELESAI" | string
           test_id: string
           judul_paket: string
           nama_pembeli: string
@@ -283,11 +319,45 @@ export const psikotesService = {
             grade?: string | null
             judul?: string | null
             deskripsi?: string | null
+            catatan_psikolog?: string | null
+            rekomendasi_psikolog?: string | null
+            tanggal_review?: string | null
           }
+          psikolog?: {
+            id: string
+            nama_gelar: string
+            kategori?: string
+            foto?: string | null
+          } | null
         }
       }>(`/psikotes/booking/${bookingId}/hasil`, {
         params: accessToken ? { token: accessToken } : undefined,
       })
+      .then((r) => r.data),
+
+  getReviewList: (params?: { status?: string; search?: string; page?: number; limit?: number }) =>
+    apiClient
+      .get<{
+        success: boolean
+        message: string
+        data: ReviewPsikotesListResponse
+      }>("/psikotes/review-list", { params })
+      .then((r) => r.data),
+
+  submitReview: (
+    bookingId: string,
+    payload: {
+      catatan_psikolog: string
+      rekomendasi_psikolog?: string | null
+      id_psikolog?: string | null
+    }
+  ) =>
+    apiClient
+      .post<{
+        success: boolean
+        message: string
+        data: any
+      }>(`/psikotes/booking/${bookingId}/review`, payload)
       .then((r) => r.data),
 }
 

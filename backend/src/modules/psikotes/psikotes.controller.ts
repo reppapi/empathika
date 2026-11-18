@@ -10,6 +10,8 @@ import type {
   PesertaQueryInput,
   CreateBookingPsikotesInput,
   VerifyTicketInput,
+  ReviewPsikotesQueryInput,
+  SubmitReviewPsikotesInput,
 } from './psikotes.schema'
 
 export class PsikotesController {
@@ -172,7 +174,7 @@ export class PsikotesController {
         try {
           await request.jwtVerify()
           const role = (request.user as any)?.role
-          isAdmin = role === 'ADMIN' || role === 'BIRO'
+          isAdmin = role === 'ADMIN' || role === 'BIRO' || role === 'PSIKOLOG'
         } catch {
           isAdmin = false
         }
@@ -207,6 +209,53 @@ export class PsikotesController {
       message: result.message,
       data: result,
     })
+  }
+
+  getReviewList = async (
+    request: FastifyRequest<{ Querystring: ReviewPsikotesQueryInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getReviewList(request.query)
+      return reply.code(200).send({
+        success: true,
+        message: 'Berhasil mengambil daftar antrean review asesmen psikotes',
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(400).send({
+        success: false,
+        message: err.message || 'Gagal mengambil antrean review asesmen',
+      })
+    }
+  }
+
+  submitReview = async (
+    request: FastifyRequest<{
+      Params: { bookingId: string }
+      Body: SubmitReviewPsikotesInput
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = request.user as { id?: string } | undefined
+      const data = await this.service.submitReview(
+        request.params.bookingId,
+        request.body,
+        user?.id
+      )
+      return reply.code(200).send({
+        success: true,
+        message: 'Verifikasi telaah klinis psikolog berhasil disimpan dan laporan resmi telah terbit.',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal menyimpan telaah klinis psikolog',
+      })
+    }
   }
 }
 

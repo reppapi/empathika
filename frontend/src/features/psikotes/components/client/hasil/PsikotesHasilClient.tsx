@@ -43,20 +43,18 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
   }, [params.testId]);
 
   // Evaluasi jenis akses psikotes: gratis atau berbayar
-  const isExplicitFree =
-    searchParams.get("paket") === "gratis" ||
-    (searchParams.get("paket") !== "berbayar" &&
-      !searchParams.get("orderId") &&
-      !params.testId.toLowerCase().includes("dass"));
+  const hasBooking = Boolean(searchParams.get("bookingId")) || Boolean(searchParams.get("orderId"));
+  const isExplicitPaid =
+    searchParams.get("paket") === "berbayar" ||
+    searchParams.get("plan") === "berbayar" ||
+    searchParams.get("tipe") === "berbayar";
+  const isKlinisOrPaidTest =
+    params.testId.toLowerCase().includes("dass") ||
+    params.testId.toLowerCase().includes("mcmi") ||
+    params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" ||
+    params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa";
 
-  const isPaid =
-    !isExplicitFree &&
-    (Boolean(searchParams.get("bookingId")) ||
-      Boolean(searchParams.get("orderId")) ||
-      searchParams.get("paket") === "berbayar" ||
-      searchParams.get("plan") === "berbayar" ||
-      searchParams.get("tipe") === "berbayar" ||
-      params.testId.toLowerCase().includes("dass"));
+  const isPaid = isExplicitPaid || hasBooking || isKlinisOrPaidTest;
 
   if (isPaid) {
     return <PsikotesHasilBerbayarClient params={params} />;

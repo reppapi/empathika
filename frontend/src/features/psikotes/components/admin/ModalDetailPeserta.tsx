@@ -50,7 +50,12 @@ export default function ModalDetailPeserta({
 
   if (!peserta || !mounted) return null;
 
-  const isCompleted = peserta.status === "Selesai" || Boolean(peserta.hasil);
+  const isMenungguReview =
+    peserta.status === "Menunggu Review" ||
+    (peserta as any).status_pengerjaan === "MENUNGGU_REVIEW";
+  const isCompleted =
+    !isMenungguReview &&
+    (peserta.status === "Selesai" || Boolean(peserta.hasil));
 
   const handleDownloadClick = async () => {
     if (isDownloading) return;
@@ -410,7 +415,27 @@ Terima kasih telah menjadi bagian dari Empathika.`;
               Hasil Psikotes
             </h4>
 
-            {isCompleted ? (
+            {isMenungguReview ? (
+              <div className="p-4 rounded-xl bg-purple-50/80 border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 text-[#561269] flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-purple-950 block text-xs">
+                      Menunggu Review &amp; Telaah Psikolog (SLA Maks. 3 Hari)
+                    </span>
+                    <span className="text-[11px] text-purple-800/80 font-normal">
+                      Peserta telah selesai mengerjakan tes. Laporan PDF resmi akan otomatis aktif setelah psikolog memverifikasi telaah klinis di portal psikolog.
+                    </span>
+                  </div>
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-[#561269] border border-purple-200 shrink-0 self-start sm:self-auto">
+                  Menunggu Review
+                </span>
+              </div>
+            ) : isCompleted ? (
               <div className="p-4 rounded-xl bg-gray-50/80 border border-gray-100 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-purple-50 text-[#561269] flex items-center justify-center shrink-0">
