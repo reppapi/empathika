@@ -991,13 +991,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                       </Text>
                       <Text style={officialStyles.signatureRole}>Psikolog Pemeriksa,</Text>
 
-                      <View style={officialStyles.signatureBadgeWrapper}>
-                        <View style={officialStyles.signatureBadge}>
-                          <Text style={officialStyles.signatureBadgeText}>
-                            [ Terverifikasi Secara Digital ]
-                          </Text>
-                        </View>
-                      </View>
+                      <View style={officialStyles.signatureBadgeWrapper} />
 
                       <Text style={officialStyles.signatureName}>
                         {sanitizePdfText(data.namaPsikolog || "Psikolog Klinis Empathika")}

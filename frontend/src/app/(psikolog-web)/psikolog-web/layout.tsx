@@ -108,6 +108,10 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
     }
   }, [pathname])
 
+  const isDedicatedEditor = Boolean(
+    pathname?.startsWith("/psikolog-web/review-asesmen/") && pathname !== "/psikolog-web/review-asesmen"
+  )
+
   let pageTitle = "Beranda"
   if (pathname?.startsWith("/psikolog-web/jadwal") || pathname?.startsWith("/jadwal") || pathname?.startsWith("/admin/psikolog-web/jadwal")) {
     pageTitle = "Jadwal dan Sesi Psikolog"
@@ -120,6 +124,43 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   }
 
   const isAktif = currentPsikolog?.statusAkses === "AKTIF"
+
+  // Mode Focus Studio untuk Telaah Klinis Psikolog (layar lega tanpa terhimpit sidebar portal)
+  if (isDedicatedEditor) {
+    return (
+      <AuthGuard allowedRoles={["PSIKOLOG", "ADMIN"]}>
+        {!isCheckingAccess && !isAktif ? (
+          <div className="min-h-screen bg-[#FBFBFC] flex items-center justify-center p-4">
+            <div className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-3xl border border-gray-200 shadow-sm text-center max-w-xl mx-auto space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Akses Web Belum Aktif</h3>
+                <p className="text-xs text-gray-500 mt-1 max-w-md">
+                  Akun <strong>{currentPsikolog?.nama}</strong> belum diberikan akses masuk oleh Admin Utama. Silakan hubungi admin utama untuk aktivasi akun.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <Link
+                  href="/login"
+                  className="rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+                >
+                  Kembali
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-screen w-screen overflow-hidden bg-[#F3F4F6] flex flex-col font-sans">
+            {children}
+          </div>
+        )}
+      </AuthGuard>
+    )
+  }
 
   return (
     <AuthGuard allowedRoles={["PSIKOLOG", "ADMIN"]}>

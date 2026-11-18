@@ -10,6 +10,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   Clock,
@@ -28,22 +29,20 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem, type ReviewPsikotesListResponse } from "@/services/psikotes.service";
 import { calculateReviewSla, REVIEW_MAX_DAYS } from "../../utils/reviewSla";
-import ModalReviewPsikotes from "./ModalReviewPsikotes";
-import ModalRekapJawabanFullscreen from "./ModalRekapJawabanFullscreen";
 
 export default function PsikologReviewAsesmenClient() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const [data, setData] = useState<ReviewPsikotesListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Filter & Search
-  const [activeTab, setActiveTab] = useState<"ALL" | "MENUNGGU_REVIEW" | "SELESAI">("ALL");
+  // Filter & Search (Menunggu Review & Selesai Diterbitkan)
+  const [activeTab, setActiveTab] = useState<"MENUNGGU_REVIEW" | "SELESAI">("MENUNGGU_REVIEW");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modal State
-  const [selectedItem, setSelectedItem] = useState<ReviewPsikotesItem | null>(null);
+  // Toast & Loading State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
@@ -56,26 +55,6 @@ export default function PsikologReviewAsesmenClient() {
       return new Set<string>();
     }
   });
-
-  // Modal Rekap Jawaban Standalone
-  const [selectedJawabanItem, setSelectedJawabanItem] = useState<ReviewPsikotesItem | null>(null);
-  const [jawabanData, setJawabanData] = useState<any>(null);
-  const [isLoadingJawaban, setIsLoadingJawaban] = useState(false);
-
-  const handleOpenJawaban = async (item: ReviewPsikotesItem) => {
-    setSelectedJawabanItem(item);
-    setIsLoadingJawaban(true);
-    try {
-      const res = await psikotesService.getHasilByBooking(item.id);
-      if (res?.data) {
-        setJawabanData(res.data);
-      }
-    } catch (err) {
-      console.warn("Gagal mengambil rekap jawaban pasien:", err);
-    } finally {
-      setIsLoadingJawaban(false);
-    }
-  };
 
   const fetchData = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setIsRefreshing(true);
@@ -124,6 +103,17 @@ export default function PsikologReviewAsesmenClient() {
       if (!confirmTakeover) return;
     }
 
+    // Simpan item langsung ke sessionStorage untuk navigasi instan 0ms
+    try {
+      sessionStorage.setItem(`empathika_active_review_${item.id}`, JSON.stringify(item));
+    } catch {}
+
+    // Jika tiket sudah diklaim oleh diri sendiri dan bukan takeover, langsung pindah halaman tanpa tunggu network
+    if (item.is_claimed && !isTakeover) {
+      router.push(`/psikolog-web/review-asesmen/${item.id}`);
+      return;
+    }
+
     setActionLoadingId(item.id);
     try {
       if (!item.is_claimed || isTakeover) {
@@ -136,6 +126,10 @@ export default function PsikologReviewAsesmenClient() {
             claimed_at: res.data.claimed_at,
             psikolog: res.data.claimed_by || item.psikolog,
           };
+
+          try {
+            sessionStorage.setItem(`empathika_active_review_${item.id}`, JSON.stringify(updatedItem));
+          } catch {}
 
           setData((prev) => {
             if (!prev) return prev;
@@ -158,47 +152,16 @@ export default function PsikologReviewAsesmenClient() {
             return next;
           });
 
-          setSelectedItem(updatedItem);
-          setToastMessage(`Tiket untuk ${item.nama_peserta} berhasil dikunci atas nama Anda.`);
+          router.push(`/psikolog-web/review-asesmen/${item.id}`);
           return;
         }
       }
-      setSelectedItem(item);
+      router.push(`/psikolog-web/review-asesmen/${item.id}`);
     } catch (err: any) {
       alert(err?.response?.data?.message || err.message || "Gagal mengklaim tiket.");
       fetchData();
     } finally {
       setActionLoadingId(null);
-    }
-  };
-
-  // Handler saat psikolog berhasil menyimpan telaah
-  const handleReviewSuccess = (updatedItem: ReviewPsikotesItem) => {
-    setData((prev) => {
-      if (!prev) return prev;
-      const newItems = prev.items.map((it) => (it.id === updatedItem.id ? updatedItem : it));
-      const kolamCount = newItems.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog).length;
-      const sedangCount = newItems.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && Boolean(i.id_psikolog)).length;
-      const selesaiCount = newItems.filter((i) => i.status_pengerjaan === "SELESAI").length;
-
-      return {
-        ...prev,
-        summary: {
-          total: prev.summary.total,
-          menunggu_review: kolamCount + sedangCount,
-          kolam_bersama: kolamCount,
-          sedang_ditelaah: sedangCount,
-          selesai_review: selesaiCount,
-        },
-        items: newItems,
-      };
-    });
-
-    if (updatedItem.status_pengerjaan === "SELESAI") {
-      setToastMessage(`Telaah klinis untuk ${updatedItem.nama_peserta} berhasil diverifikasi dan laporan resmi telah diterbitkan.`);
-      setTimeout(() => {
-        setToastMessage(null);
-      }, 5000);
     }
   };
 
@@ -294,14 +257,7 @@ export default function PsikologReviewAsesmenClient() {
       {/* Kartu Ringkasan Statistik */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Antrean */}
-        <div
-          onClick={() => setActiveTab("ALL")}
-          className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between cursor-pointer transition-all hover:scale-[1.01] ${
-            activeTab === "ALL"
-              ? "bg-purple-50/70 border-purple-300 ring-2 ring-purple-500/20"
-              : "bg-white border-gray-200 hover:border-purple-200"
-          }`}
-        >
+        <div className="p-5 rounded-3xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
               Total Asesmen Klinis
@@ -318,7 +274,7 @@ export default function PsikologReviewAsesmenClient() {
           </div>
         </div>
 
-        {/* Menunggu Review (Highlight) */}
+        {/* Menunggu Tinjau (Highlight) */}
         <div
           onClick={() => setActiveTab("MENUNGGU_REVIEW")}
           className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
@@ -330,7 +286,7 @@ export default function PsikologReviewAsesmenClient() {
           <div className="relative z-10">
             <div className="flex items-center gap-1.5">
               <p className="text-xs font-bold text-amber-900 uppercase tracking-wider">
-                Menunggu Telaah
+                Menunggu Tinjau
               </p>
               {summary.menunggu_review > 0 && (
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
@@ -361,7 +317,7 @@ export default function PsikologReviewAsesmenClient() {
           </div>
         </div>
 
-        {/* Selesai Diterbitkan */}
+        {/* Laporan Diterbitkan */}
         <div
           onClick={() => setActiveTab("SELESAI")}
           className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between cursor-pointer transition-all hover:scale-[1.01] ${
@@ -372,7 +328,7 @@ export default function PsikologReviewAsesmenClient() {
         >
           <div>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Laporan Selesai Terbit
+              Laporan Diterbitkan
             </p>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
               {isLoading ? "..." : summary.selesai_review}
@@ -395,42 +351,30 @@ export default function PsikologReviewAsesmenClient() {
           <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl">
             <button
               type="button"
-              onClick={() => setActiveTab("ALL")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "ALL"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Semua ({summary.total})
-            </button>
-
-            <button
-              type="button"
               onClick={() => setActiveTab("MENUNGGU_REVIEW")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "MENUNGGU_REVIEW"
                   ? "bg-amber-500 text-white shadow-sm"
-                  : "text-amber-800 hover:bg-amber-100/50"
+                  : "text-amber-900/80 hover:bg-amber-100/60"
               }`}
             >
               {summary.menunggu_review > 0 && (
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               )}
-              Menunggu Review ({summary.menunggu_review})
+              Menunggu Tinjau ({summary.menunggu_review})
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("SELESAI")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "SELESAI"
                   ? "bg-[#561269] text-white shadow-sm"
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Selesai Diterbitkan ({summary.selesai_review})
+              Diterbitkan ({summary.selesai_review})
             </button>
           </div>
 
@@ -499,9 +443,7 @@ export default function PsikologReviewAsesmenClient() {
                           ? `Tidak ditemukan asesmen dengan kata kunci "${searchQuery}".`
                           : activeTab === "MENUNGGU_REVIEW"
                           ? "Hebat! Semua asesmen klinis saat ini sudah ditelaah dan diterbitkan."
-                          : activeTab === "SELESAI"
-                          ? "Belum ada laporan asesmen yang selesai diterbitkan."
-                          : "Belum ada riwayat pengerjaan asesmen klinis."}
+                          : "Belum ada laporan asesmen yang diterbitkan."}
                       </p>
                     </div>
                   </td>
@@ -637,18 +579,18 @@ export default function PsikologReviewAsesmenClient() {
                           !item.id_psikolog ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
                               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                              Menunggu Review
+                              Menunggu Tinjau
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-purple-100 text-[#561269] border border-purple-200">
-                              <Lock className="w-3.5 h-3.5 text-[#561269]" />
-                              Sedang Ditelaah
+                              <span className="w-2 h-2 rounded-full bg-[#561269]" />
+                              Sedang Ditinjau
                             </span>
                           )
                         ) : isSelesai ? (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Selesai Diterbitkan
+                            Diterbitkan
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600">
@@ -661,20 +603,7 @@ export default function PsikologReviewAsesmenClient() {
                       <td className="py-4 px-6 text-gray-700 whitespace-nowrap">
                         {item.id_psikolog ? (
                           <div>
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-semibold text-gray-900">{item.psikolog?.nama || "Psikolog Empathika"}</p>
-                              {isClaimedByMe && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-[#561269]">
-                                  Anda
-                                </span>
-                              )}
-                            </div>
-                            {item.claimed_at && isMenunggu && (
-                              <p className="text-[10px] text-purple-600 flex items-center gap-1 mt-0.5 font-medium">
-                                <Clock className="w-2.5 h-2.5" /> Sejak{" "}
-                                {new Date(item.claimed_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
-                              </p>
-                            )}
+                            <p className="font-semibold text-gray-900">{item.psikolog?.nama || "Psikolog Empathika"}</p>
                             {item.tanggal_review && (
                               <p className="text-[10px] text-gray-400">
                                 Ditelaah:{" "}
@@ -695,59 +624,54 @@ export default function PsikologReviewAsesmenClient() {
 
                       {/* Tindakan */}
                       <td className="py-4 px-6 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenJawaban(item)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-300 hover:border-purple-300 hover:bg-purple-50/50 text-gray-700 text-xs font-semibold transition-all cursor-pointer"
-                            title="Lihat Rekap Lembar Jawaban Pasien"
-                          >
-                            <ClipboardList className="w-3.5 h-3.5 text-purple-700" />
-                            <span>Jawaban</span>
-                          </button>
-
+                        <div className="flex items-center justify-center">
                           {isMenunggu ? (
                             !item.id_psikolog ? (
                               <button
                                 type="button"
                                 onClick={() => handleClaimAndReview(item)}
                                 disabled={actionLoadingId === item.id}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                                className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-50 min-w-[76px]"
                               >
                                 {actionLoadingId === item.id ? (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                 ) : (
-                                  <Stethoscope className="w-3.5 h-3.5" />
+                                  <span>Tinjau</span>
                                 )}
-                                <span>Tinjau & Nilai</span>
                               </button>
                             ) : isClaimedByMe ? (
                               <button
                                 type="button"
                                 onClick={() => handleClaimAndReview(item)}
                                 disabled={actionLoadingId === item.id}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                                className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-50 min-w-[76px]"
                               >
-                                <Stethoscope className="w-3.5 h-3.5" />
-                                <span>Lanjut Telaah</span>
+                                {actionLoadingId === item.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <span>Lanjutkan</span>
+                                )}
                               </button>
                             ) : (
                               <span
-                                className="inline-flex items-center gap-1 px-3 py-2 rounded-full bg-gray-100 text-gray-500 text-xs font-medium border border-gray-200 cursor-not-allowed"
+                                className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-500 text-xs font-medium border border-gray-200 cursor-not-allowed min-w-[76px]"
                                 title={`Sedang aktif ditelaah oleh ${item.psikolog?.nama || "rekan psikolog lain"}`}
                               >
-                                <Lock className="w-3.5 h-3.5 text-gray-400" />
-                                <span>Terkunci</span>
+                                <span>Diproses</span>
                               </span>
                             )
                           ) : (
                             <button
                               type="button"
-                              onClick={() => setSelectedItem(item)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-300 hover:border-purple-300 hover:bg-purple-50/50 text-gray-700 text-xs font-semibold transition-all cursor-pointer"
+                              onClick={() => {
+                                try {
+                                  sessionStorage.setItem(`empathika_active_review_${item.id}`, JSON.stringify(item));
+                                } catch {}
+                                router.push(`/psikolog-web/review-asesmen/${item.id}`);
+                              }}
+                              className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full border border-gray-300 hover:border-purple-300 hover:bg-purple-50/50 text-gray-700 text-xs font-semibold transition-all cursor-pointer"
                             >
-                              <FileText className="w-3.5 h-3.5 text-purple-700" />
-                              Lihat / Edit Catatan
+                              <span>Lihat Laporan</span>
                             </button>
                           )}
                         </div>
@@ -760,31 +684,6 @@ export default function PsikologReviewAsesmenClient() {
           </table>
         </div>
       </div>
-
-      {/* Modal Review Psikotes */}
-      {selectedItem && (
-        <ModalReviewPsikotes
-          item={selectedItem}
-          onClose={() => setSelectedItem(null)}
-          onSuccess={handleReviewSuccess}
-        />
-      )}
-
-      {/* Modal Rekap Jawaban Standalone */}
-      {selectedJawabanItem && (
-        <ModalRekapJawabanFullscreen
-          isOpen={Boolean(selectedJawabanItem)}
-          onClose={() => {
-            setSelectedJawabanItem(null);
-            setJawabanData(null);
-          }}
-          rekapJawaban={jawabanData?.rekap_jawaban || []}
-          namaPeserta={selectedJawabanItem.nama_peserta}
-          namaPaket={selectedJawabanItem.nama_paket}
-          alatUkurKode={jawabanData?.paket?.alat_ukur?.kode}
-          snapshotJawaban={jawabanData?.snapshot_jawaban}
-        />
-      )}
     </div>
   );
 }
