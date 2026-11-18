@@ -17,7 +17,7 @@ export function WorkshopDescriptionSection({
     <section className="w-full pt-14 pb-6 sm:pt-20 sm:pb-8 bg-white">
       <div className="max-w-4xl mx-auto px-6 sm:px-8">
         {/* Teks Pengantar Utama (Di atas Manfaat) */}
-        <p className="text-base sm:text-lg md:text-xl text-gray-800 leading-relaxed font-medium mb-10 text-justify whitespace-pre-wrap">
+        <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap text-justify mb-8">
           {intro}
         </p>
 

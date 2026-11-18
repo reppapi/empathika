@@ -24,7 +24,7 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
   const isEdit = Boolean(id)
 
   const [judul, setJudul] = useState("")
-  const [kategori, setKategori] = useState<"SEMINAR" | "WORKSHOP" | "KOLABORASI">("KOLABORASI")
+  const [kategori, setKategori] = useState<string>("KOLABORASI")
   const [tanggal, setTanggal] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
   const [photos, setPhotos] = useState<PhotoItem[]>([])
@@ -36,6 +36,14 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll ke error alert saat ada pesan error baru
+  useEffect(() => {
+    if (errorMsg && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }, [errorMsg])
 
   // Ambil data jika mode EDIT
   useEffect(() => {
@@ -48,8 +56,8 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
         if (res?.data) {
           const d = res.data
           setJudul(d.judul || "")
-          if (d.kategori && ["SEMINAR", "WORKSHOP", "KOLABORASI"].includes(d.kategori)) {
-            setKategori(d.kategori as any)
+          if (d.kategori) {
+            setKategori(d.kategori)
           }
           // format tanggal YYYY-MM-DD
           const tglStr = d.tanggal ? d.tanggal.split("T")[0] : ""
@@ -134,16 +142,16 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!judul.trim()) {
-      setErrorMsg("Judul event wajib diisi.")
+    if (!judul.trim() || judul.trim().length < 3) {
+      setErrorMsg("Judul event wajib diisi (minimal 3 karakter).")
       return
     }
     if (!tanggal) {
       setErrorMsg("Tanggal pelaksanaan wajib diisi.")
       return
     }
-    if (!deskripsi.trim()) {
-      setErrorMsg("Deskripsi wajib diisi.")
+    if (!deskripsi.trim() || deskripsi.trim().length < 5) {
+      setErrorMsg("Deskripsi wajib diisi (minimal 5 karakter).")
       return
     }
     if (photos.length > 10) {
@@ -176,8 +184,15 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
       router.refresh()
     } catch (err: any) {
       console.error("Gagal menyimpan dokumentasi:", err)
-      const msg = err.response?.data?.message || err.message || "Gagal menyimpan data."
-      setErrorMsg(msg)
+      // Ambil pesan error dari berbagai kemungkinan format response
+      const serverMsg =
+        err.response?.data?.message ||
+        (Array.isArray(err.response?.data?.errors)
+          ? err.response.data.errors.map((e: any) => e.message || e).join(", ")
+          : null) ||
+        err.message ||
+        "Gagal menyimpan data. Periksa koneksi atau coba lagi."
+      setErrorMsg(serverMsg)
     } finally {
       setSubmitting(false)
     }
@@ -215,7 +230,10 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
 
       {/* Error Alert */}
       {errorMsg && (
-        <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-3">
+        <div
+          ref={errorRef}
+          className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-3"
+        >
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <span>{errorMsg}</span>
         </div>
@@ -244,13 +262,16 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
           </label>
           <select
             value={kategori}
-            onChange={(e) => setKategori(e.target.value as any)}
+            onChange={(e) => setKategori(e.target.value)}
             className="w-full sm:w-72 px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-900 transition-all font-medium cursor-pointer bg-white"
           >
             <option value="WORKSHOP">Workshop</option>
             <option value="SEMINAR">Seminar</option>
             <option value="KOLABORASI">Kolaborasi</option>
           </select>
+          <p className="mt-1.5 text-xs text-gray-400">
+            Topik spesifik workshop (mis. SEFT, Empty Chair) cukup tulis di <span className="font-semibold text-gray-500">Judul Event</span>.
+          </p>
         </div>
 
         {/* Field 2: Tanggal Pelaksanaan */}
