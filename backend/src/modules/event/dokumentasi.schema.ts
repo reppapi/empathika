@@ -11,7 +11,7 @@ export const dokumentasiIdParamSchema = z.object({
 
 export const dokumentasiQuerySchema = z.object({
   search: z.string().trim().optional(),
-  kategori: z.enum(['SEMINAR', 'WORKSHOP', 'KOLABORASI']).optional(),
+  kategori: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 })
@@ -39,7 +39,7 @@ export const createDokumentasiSchema = z.object({
     .min(3, 'Judul minimal 3 karakter')
     .max(255, 'Judul maksimal 255 karakter'),
   kategori: z
-    .enum(['SEMINAR', 'WORKSHOP', 'KOLABORASI'])
+    .string()
     .default('KOLABORASI'),
   tanggal: z
     .string({ required_error: 'Tanggal pelaksanaan wajib diisi' })
@@ -62,7 +62,7 @@ export const updateDokumentasiSchema = z.object({
     .max(255, 'Judul maksimal 255 karakter')
     .optional(),
   kategori: z
-    .enum(['SEMINAR', 'WORKSHOP', 'KOLABORASI'])
+    .string()
     .optional(),
   tanggal: z
     .string()

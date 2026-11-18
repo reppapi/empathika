@@ -119,7 +119,7 @@ export interface EventDokumentasiApi {
 
 export interface CreateEventDokumentasiDto {
   judul: string
-  kategori?: "SEMINAR" | "WORKSHOP" | "KOLABORASI"
+  kategori?: string
   tanggal: string // YYYY-MM-DD
   deskripsi: string
   foto: Array<{ foto_url: string; urutan?: number }>
@@ -127,7 +127,7 @@ export interface CreateEventDokumentasiDto {
 
 export interface UpdateEventDokumentasiDto {
   judul?: string
-  kategori?: "SEMINAR" | "WORKSHOP" | "KOLABORASI"
+  kategori?: string
   tanggal?: string
   deskripsi?: string
   foto?: Array<{ foto_url: string; urutan?: number }>
@@ -135,7 +135,7 @@ export interface UpdateEventDokumentasiDto {
 
 export interface EventDokumentasiQueryParams {
   search?: string
-  kategori?: "SEMINAR" | "WORKSHOP" | "KOLABORASI"
+  kategori?: string
   page?: number
   limit?: number
 }
