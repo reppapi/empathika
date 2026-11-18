@@ -231,7 +231,7 @@ export default function PsikologReviewAsesmenClient() {
             </h3>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
               <span className="text-amber-900/90 font-bold bg-amber-200/60 px-2 py-0.5 rounded-md">
-                SLA: Maks. {REVIEW_MAX_DAYS} Hari
+                SLA: Maks. {REVIEW_MAX_DAYS} Hari Kerja (Senin–Sabtu)
               </span>
               {slaStats.overdueCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold border border-rose-200 flex items-center gap-1">

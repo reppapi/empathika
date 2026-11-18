@@ -82,6 +82,15 @@ export type AdminPsikotesPeserta = {
     tips?: any;
     tanggal_selesai?: string;
     detail_skor?: any;
+    catatan_psikolog?: string | null;
+    rekomendasi_psikolog?: string | null;
+    tanggal_review?: string | null;
+  } | null;
+  psikolog?: {
+    id?: string;
+    nama?: string;
+    nama_gelar?: string;
+    kategori?: string;
   } | null;
   peserta?: {
     id?: string;

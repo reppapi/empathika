@@ -474,16 +474,340 @@ const styles = StyleSheet.create({
   },
 });
 
+/** Gaya Dokumen Resmi Multi-Halaman A4 1:1 Lembar Telaah Klinis Empathika. */
+const officialStyles = StyleSheet.create({
+  page: {
+    fontFamily: "Helvetica",
+    fontSize: 9.5,
+    color: "#111827",
+    paddingTop: 36,
+    paddingBottom: 36,
+    paddingHorizontal: 40,
+    backgroundColor: "#FFFFFF",
+    flexDirection: "column",
+    justifyContent: "space-between",
+  },
+
+  // 1. KOP SURAT RESMI
+  kopContainer: {
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  kopTitle: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 15,
+    letterSpacing: 1.1,
+    color: "#111827",
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
+  kopSubtitle: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8.5,
+    letterSpacing: 0.4,
+    color: "#374151",
+    marginTop: 3,
+    textAlign: "center",
+  },
+  kopDesc: {
+    fontFamily: "Helvetica",
+    fontSize: 7.5,
+    color: "#6B7280",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  kopDoubleLineWrapper: {
+    width: "100%",
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  kopLineThick: {
+    borderBottomWidth: 1.8,
+    borderBottomColor: "#111827",
+    width: "100%",
+  },
+  kopLineThin: {
+    borderBottomWidth: 0.6,
+    borderBottomColor: "#111827",
+    width: "100%",
+    marginTop: 1.5,
+  },
+
+  // 2. IDENTITAS PESERTA (2 KOLOM RESMI)
+  identitasContainer: {
+    borderBottomWidth: 0.75,
+    borderBottomColor: "#D1D5DB",
+    paddingBottom: 7,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  identitasCol: {
+    width: "48.5%",
+  },
+  identitasRow: {
+    flexDirection: "row",
+    marginBottom: 3,
+    alignItems: "flex-start",
+  },
+  identitasLabel: {
+    fontFamily: "Helvetica",
+    fontSize: 8.5,
+    color: "#4B5563",
+    width: 95,
+  },
+  identitasSeparator: {
+    fontFamily: "Helvetica",
+    fontSize: 8.5,
+    color: "#6B7280",
+    width: 8,
+  },
+  identitasValue: {
+    fontFamily: "Helvetica",
+    fontSize: 8.5,
+    color: "#111827",
+    flex: 1,
+  },
+  identitasValueBold: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8.5,
+    color: "#111827",
+    flex: 1,
+  },
+
+  // 3. RUNNING HEADER HALAMAN 2+ (LANJUTAN)
+  runningHeader: {
+    borderBottomWidth: 0.75,
+    borderBottomColor: "#D1D5DB",
+    paddingBottom: 6,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  runningHeaderTitle: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8.5,
+    letterSpacing: 0.8,
+    color: "#111827",
+    textTransform: "uppercase",
+  },
+  runningHeaderDocNo: {
+    fontFamily: "Helvetica",
+    fontSize: 7.5,
+    color: "#6B7280",
+  },
+
+  // 4. ISI TELAAH KLINIS (SERIF TIMES-ROMAN)
+  bodyContainer: {
+    flex: 1,
+    minHeight: 0,
+  },
+  bodyText: {
+    fontFamily: "Times-Roman",
+    fontSize: 10,
+    lineHeight: 1.45,
+    color: "#111827",
+  },
+  bodyBold: {
+    fontFamily: "Times-Bold",
+  },
+  bodyItalic: {
+    fontFamily: "Times-Italic",
+  },
+
+  // 5. TANDA TANGAN PSIKOLOG RESMI
+  signatureContainer: {
+    alignItems: "flex-end",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  signatureBox: {
+    width: 220,
+    alignItems: "center",
+  },
+  signatureDate: {
+    fontFamily: "Helvetica",
+    fontSize: 8.5,
+    color: "#4B5563",
+    textAlign: "center",
+  },
+  signatureRole: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8.5,
+    color: "#111827",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  signatureBadgeWrapper: {
+    height: 42,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 4,
+  },
+  signatureBadge: {
+    borderWidth: 0.75,
+    borderColor: "#D1D5DB",
+    borderRadius: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  signatureBadgeText: {
+    fontFamily: "Courier-Oblique",
+    fontSize: 7.5,
+    color: "#6B7280",
+  },
+  signatureName: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 9,
+    color: "#111827",
+    textDecoration: "underline",
+    textAlign: "center",
+  },
+  signatureSipp: {
+    fontFamily: "Helvetica",
+    fontSize: 7.5,
+    color: "#6B7280",
+    marginTop: 2,
+    textAlign: "center",
+  },
+
+  // 6. FOOTER DOKUMEN RESMI
+  footerContainer: {
+    borderTopWidth: 0.75,
+    borderTopColor: "#E5E7EB",
+    paddingTop: 6,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  footerLegal: {
+    fontFamily: "Helvetica",
+    fontSize: 7.5,
+    color: "#9CA3AF",
+  },
+  footerPageNum: {
+    fontFamily: "Helvetica",
+    fontSize: 7.5,
+    color: "#6B7280",
+  },
+});
+
 /**
- * Sanitasi karakter non-Latin-1 agar font standar Helvetica PDFKit selalu merender bersih tanpa glyph rusak.
+ * Sanitasi karakter teks agar ramah terhadap rendering engine PDF tanpa glyph rusak.
  */
 function sanitizePdfText(val?: string | number | null): string {
   if (val === null || val === undefined) return "";
   return String(val)
+    .replace(/\t/g, "    ")
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2013\u2014]/g, "-")
-    .replace(/[^\x20-\x7E\xA0-\xFF\n\r]/g, "");
+    .replace(/[^\x20-\x7E\xA0-\xFF\n\r•]/g, "");
+}
+
+/** Formatter tanggal bahasa Indonesia */
+function formatIdDate(val?: string | null, fallbackToNow = false): string {
+  if (!val && !fallbackToNow) return "-";
+  try {
+    const d = val ? new Date(val) : new Date();
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    }
+  } catch {}
+  return val || "-";
+}
+
+/** Parser inline formatting markdown (tebal & miring) untuk teks telaah */
+function parseFormattedText(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith("**") && token.endsWith("**")) {
+      parts.push(
+        <Text key={match.index} style={officialStyles.bodyBold}>
+          {token.slice(2, -2)}
+        </Text>
+      );
+    } else if (token.startsWith("*") && token.endsWith("*")) {
+      parts.push(
+        <Text key={match.index} style={officialStyles.bodyItalic}>
+          {token.slice(1, -1)}
+        </Text>
+      );
+    }
+    lastIndex = match.index + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
+/** Memecah teks dokumen klinis menjadi lembaran A4 multi-halaman */
+function parseTextToPages(rawText: string): string[] {
+  if (!rawText || !rawText.trim()) return [""];
+
+  let initialPages: string[] = [];
+  if (rawText.includes("<!-- PAGE_BREAK -->")) {
+    initialPages = rawText.split("<!-- PAGE_BREAK -->").map((p) => p.trim());
+  } else if (rawText.includes("--- HALAMAN BARU ---")) {
+    initialPages = rawText.split("--- HALAMAN BARU ---").map((p) => p.trim());
+  } else {
+    const lines = rawText.split("\n");
+    let currentLines: string[] = [];
+    let currentVisualLines = 0;
+    let isFirst = true;
+
+    for (const line of lines) {
+      const visualWeight = Math.max(1, Math.ceil(line.length / 75));
+      const maxCapacity = isFirst ? 30 : 35;
+
+      if (currentVisualLines + visualWeight > maxCapacity && currentLines.length > 0) {
+        initialPages.push(currentLines.join("\n"));
+        currentLines = [line];
+        currentVisualLines = visualWeight;
+        isFirst = false;
+      } else {
+        currentLines.push(line);
+        currentVisualLines += visualWeight;
+      }
+    }
+
+    if (currentLines.length > 0) {
+      initialPages.push(currentLines.join("\n"));
+    }
+  }
+
+  if (initialPages.length === 0) return [""];
+
+  // Pastikan halaman terakhir muat bersama tanda tangan
+  const lastIdx = initialPages.length - 1;
+  const lastPageText = initialPages[lastIdx];
+  const lastLines = lastPageText.split("\n");
+  let lastVisualWeight = 0;
+  for (const l of lastLines) {
+    lastVisualWeight += Math.max(1, Math.ceil(l.length / 75));
+  }
+  const maxSigLines = lastIdx === 0 ? 24 : 28;
+  if (lastVisualWeight > maxSigLines) {
+    initialPages.push("");
+  }
+
+  return initialPages;
 }
 
 function formatBirthInfo(tempat?: string | null, tanggal?: string | null): string {
@@ -511,6 +835,200 @@ function formatBirthInfo(tempat?: string | null, tanggal?: string | null): strin
 export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }> = ({
   data,
 }) => {
+  // JIKA TERDAPAT TELAAH PSIKOLOG: Render Dokumen Resmi Multi-Halaman A4 1:1
+  const hasCatatanPsikolog = Boolean(
+    data.catatanPsikolog && data.catatanPsikolog.trim().length > 0
+  );
+
+  if (hasCatatanPsikolog) {
+    let combinedCatatan = (data.catatanPsikolog || "").trim();
+    if (
+      data.rekomendasiPsikolog &&
+      !combinedCatatan.includes(data.rekomendasiPsikolog.trim())
+    ) {
+      combinedCatatan = `${combinedCatatan}\n\nREKOMENDASI:\n${data.rekomendasiPsikolog.trim()}`;
+    }
+
+    const pages = parseTextToPages(combinedCatatan);
+    const safeNama = sanitizePdfText(data.peserta.nama || "Peserta");
+
+    return (
+      <Document
+        title={`Laporan-Resmi-Psikotes-${safeNama.replace(/[^a-zA-Z0-9]/g, "_")}-Empathika`}
+        author="Empathika Psychological Services"
+        subject={sanitizePdfText(data.judulTes)}
+      >
+        {pages.map((pageText, pageIdx) => {
+          const isFirstPage = pageIdx === 0;
+          const isLastPage = pageIdx === pages.length - 1;
+          const cleanPageText = sanitizePdfText(pageText);
+          const lines = cleanPageText.split("\n");
+
+          return (
+            <Page
+              key={pageIdx}
+              size="A4"
+              style={officialStyles.page}
+            >
+              {/* BAGIAN ATAS: KOP SURAT ATAU RUNNING HEADER */}
+              <View>
+                {isFirstPage ? (
+                  <>
+                    {/* Kop Surat Resmi */}
+                    <View style={officialStyles.kopContainer}>
+                      <Text style={officialStyles.kopTitle}>
+                        EMPATHIKA PSYCHOLOGICAL SERVICES
+                      </Text>
+                      <Text style={officialStyles.kopSubtitle}>
+                        BIRO LAYANAN PSIKOLOGI, ASESMEN KLINIS & KESEHATAN MENTAL TERPADU
+                      </Text>
+                      <Text style={officialStyles.kopDesc}>
+                        Layanan Psikotes Online • Surat Keterangan / Laporan Psikologis Resmi Terverifikasi
+                      </Text>
+                      <View style={officialStyles.kopDoubleLineWrapper}>
+                        <View style={officialStyles.kopLineThick} />
+                        <View style={officialStyles.kopLineThin} />
+                      </View>
+                    </View>
+
+                    {/* Identitas Klien */}
+                    <View style={officialStyles.identitasContainer}>
+                      {/* Kolom Kiri */}
+                      <View style={officialStyles.identitasCol}>
+                        <View style={officialStyles.identitasRow}>
+                          <Text style={officialStyles.identitasLabel}>Nama Lengkap</Text>
+                          <Text style={officialStyles.identitasSeparator}>:</Text>
+                          <Text style={officialStyles.identitasValueBold}>
+                            {safeNama}
+                          </Text>
+                        </View>
+                        <View style={officialStyles.identitasRow}>
+                          <Text style={officialStyles.identitasLabel}>Jenis Kelamin</Text>
+                          <Text style={officialStyles.identitasSeparator}>:</Text>
+                          <Text style={officialStyles.identitasValue}>
+                            {sanitizePdfText(data.peserta.jenisKelamin || "—")}
+                          </Text>
+                        </View>
+                        <View style={officialStyles.identitasRow}>
+                          <Text style={officialStyles.identitasLabel}>Usia</Text>
+                          <Text style={officialStyles.identitasSeparator}>:</Text>
+                          <Text style={officialStyles.identitasValue}>
+                            {data.peserta.usia ? `${sanitizePdfText(data.peserta.usia)} Tahun` : "—"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Kolom Kanan */}
+                      <View style={officialStyles.identitasCol}>
+                        <View style={officialStyles.identitasRow}>
+                          <Text style={officialStyles.identitasLabel}>Nomor Tiket</Text>
+                          <Text style={officialStyles.identitasSeparator}>:</Text>
+                          <Text style={officialStyles.identitasValueBold}>
+                            {sanitizePdfText(data.noDokumen || "—")}
+                          </Text>
+                        </View>
+                        <View style={officialStyles.identitasRow}>
+                          <Text style={officialStyles.identitasLabel}>Tanggal Pemeriksaan</Text>
+                          <Text style={officialStyles.identitasSeparator}>:</Text>
+                          <Text style={officialStyles.identitasValue}>
+                            {sanitizePdfText(formatIdDate(data.tanggalAsesmen, false))}
+                          </Text>
+                        </View>
+                        <View style={officialStyles.identitasRow}>
+                          <Text style={officialStyles.identitasLabel}>Alat Ukur / Asesmen</Text>
+                          <Text style={officialStyles.identitasSeparator}>:</Text>
+                          <Text style={officialStyles.identitasValueBold}>
+                            {sanitizePdfText(data.judulTes || "—")}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  /* Running Header Halaman Lanjutan */
+                  <View style={officialStyles.runningHeader}>
+                    <Text style={officialStyles.runningHeaderTitle}>
+                      EMPATHIKA PSYCHOLOGICAL SERVICES
+                    </Text>
+                    <Text style={officialStyles.runningHeaderDocNo}>
+                      {sanitizePdfText(data.noDokumen || "")}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* BAGIAN TENGAH: ISI TELAAH KLINIS */}
+              <View style={officialStyles.bodyContainer}>
+                {lines.map((line, lineIdx) => {
+                  if (line.trim() === "") {
+                    return <View key={lineIdx} style={{ height: 5 }} />;
+                  }
+
+                  const leadingSpaces = line.match(/^ +/);
+                  const indentCount = leadingSpaces ? leadingSpaces[0].length : 0;
+                  const indentPt = indentCount > 0 ? Math.min(indentCount * 3.5, 36) : 0;
+
+                  return (
+                    <View
+                      key={lineIdx}
+                      style={{
+                        paddingLeft: indentPt,
+                        marginBottom: 2.5,
+                      }}
+                    >
+                      <Text style={officialStyles.bodyText}>
+                        {parseFormattedText(line.trimStart())}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* BAGIAN BAWAH: TANDA TANGAN (HANYA HALAMAN TERAKHIR) & FOOTER */}
+              <View wrap={false}>
+                {isLastPage && (
+                  <View style={officialStyles.signatureContainer}>
+                    <View style={officialStyles.signatureBox}>
+                      <Text style={officialStyles.signatureDate}>
+                        Bandung, {sanitizePdfText(formatIdDate(data.tanggalReview, true))}
+                      </Text>
+                      <Text style={officialStyles.signatureRole}>Psikolog Pemeriksa,</Text>
+
+                      <View style={officialStyles.signatureBadgeWrapper}>
+                        <View style={officialStyles.signatureBadge}>
+                          <Text style={officialStyles.signatureBadgeText}>
+                            [ Terverifikasi Secara Digital ]
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={officialStyles.signatureName}>
+                        {sanitizePdfText(data.namaPsikolog || "Psikolog Klinis Empathika")}
+                      </Text>
+                      <Text style={officialStyles.signatureSipp}>
+                        Surat Izin Praktik Psikologi (SIPP / SIPPK) Terdaftar
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                <View style={officialStyles.footerContainer}>
+                  <Text style={officialStyles.footerLegal}>
+                    © {new Date().getFullYear()} Empathika Psychological Services • Kerahasiaan Medis Dijamin
+                  </Text>
+                  <Text style={officialStyles.footerPageNum}>
+                    {pageIdx + 1}
+                  </Text>
+                </View>
+              </View>
+            </Page>
+          );
+        })}
+      </Document>
+    );
+  }
+
+  // JIKA BELUM ADA TELAAH PSIKOLOG: Fallback ke template visual skor otomatis
   const { peserta, hasilUtama } = data;
   const profileParts = [
     peserta.usia ? `${peserta.usia} Thn` : null,

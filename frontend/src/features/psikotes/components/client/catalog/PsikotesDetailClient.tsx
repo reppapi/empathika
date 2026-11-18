@@ -125,6 +125,22 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
           return;
         }
 
+        // Simpan token akses ke localStorage agar navigasi laporan aman dan mulus
+        if (res.data.access_token) {
+          try {
+            localStorage.setItem(
+              `empathika_psikotes_token_${res.data.booking_id}`,
+              res.data.access_token
+            );
+            if (res.data.kode_akses) {
+              localStorage.setItem(
+                `empathika_psikotes_token_${res.data.kode_akses}`,
+                res.data.access_token
+              );
+            }
+          } catch {}
+        }
+
         // Teks feedback sesuai status riil tiket
         if (res.data.status_pengerjaan === "MENUNGGU_REVIEW") {
           setTicketSuccess("Asesmen sedang ditelaah oleh psikolog. Mengalihkan ke halaman status hasil...");
