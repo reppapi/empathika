@@ -616,54 +616,14 @@ const officialStyles = StyleSheet.create({
     fontFamily: "Times-Italic",
   },
 
-  // 5. TANDA TANGAN PSIKOLOG RESMI & VERIFIKASI DOKUMEN
+  // 5. TANDA TANGAN PSIKOLOG RESMI
   signatureContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "flex-end",
     marginTop: 8,
     marginBottom: 4,
     paddingTop: 4,
-  },
-  verificationBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FAF8FB",
-    borderWidth: 0.75,
-    borderColor: "#E9D5FF",
-    borderRadius: 6,
-    padding: 6,
-    maxWidth: 260,
-  },
-  qrCodeImage: {
-    width: 52,
-    height: 52,
-    marginRight: 8,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 4,
-    padding: 2,
-  },
-  verificationTextWrapper: {
-    flex: 1,
-  },
-  verificationTitle: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 7.5,
-    color: "#561269",
-    letterSpacing: 0.3,
-    marginBottom: 2,
-  },
-  verificationDesc: {
-    fontFamily: "Helvetica",
-    fontSize: 6.5,
-    color: "#4B5563",
-    lineHeight: 1.25,
-    marginBottom: 3,
-  },
-  verificationDocNum: {
-    fontFamily: "Courier",
-    fontSize: 6.5,
-    color: "#111827",
   },
   signatureBox: {
     width: 220,
@@ -1031,24 +991,6 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
               <View wrap={false}>
                 {isLastPage && (
                   <View style={officialStyles.signatureContainer}>
-                    {/* Kotak Verifikasi QR Code Keaslian Dokumen Resmi */}
-                    <View style={officialStyles.verificationBox}>
-                      {data.qrCodeUrl ? (
-                        <Image src={data.qrCodeUrl} style={officialStyles.qrCodeImage} />
-                      ) : null}
-                      <View style={officialStyles.verificationTextWrapper}>
-                        <Text style={officialStyles.verificationTitle}>
-                          VERIFIKASI KEASLIAN DOKUMEN
-                        </Text>
-                        <Text style={officialStyles.verificationDesc}>
-                          Pindai QR Code untuk memvalidasi integritas dokumen dan keabsahan legalitas telaah psikolog.
-                        </Text>
-                        <Text style={officialStyles.verificationDocNum}>
-                          No: {sanitizePdfText(data.noDokumen)}
-                        </Text>
-                      </View>
-                    </View>
-
                     {/* Tanda Tangan Psikolog Pemeriksa */}
                     <View style={officialStyles.signatureBox}>
                       <Text style={officialStyles.signatureDate}>
@@ -1066,9 +1008,6 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
 
                       <Text style={officialStyles.signatureName}>
                         {sanitizePdfText(data.namaPsikolog || "Psikolog Klinis Empathika")}
-                      </Text>
-                      <Text style={officialStyles.signatureSipp}>
-                        Surat Izin Praktik Psikologi (SIPP / SIPPK) Terdaftar
                       </Text>
                     </View>
                   </View>

@@ -24,14 +24,12 @@ import {
   Save,
   Plus,
   Trash2,
-  Download,
+  ClipboardList,
+  ExternalLink,
 } from "lucide-react";
 import { psikotesService, type ReviewPsikotesItem } from "@/services/psikotes.service";
-import { calculateReviewSla } from "../../utils/reviewSla";
-import {
-  downloadLaporanPsikotesPdf,
-  type LaporanPsikotesPdfData,
-} from "../../utils/downloadLaporanPsikotesPdf";
+import RekapJawabanPasienView from "./RekapJawabanPasienView";
+import ModalRekapJawabanFullscreen from "./ModalRekapJawabanFullscreen";
 
 interface ModalReviewPsikotesProps {
   item: ReviewPsikotesItem | null;
@@ -340,7 +338,6 @@ export default function ModalReviewPsikotes({
   const [activePageIndex, setActivePageIndex] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [draftMessage, setDraftMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -355,6 +352,11 @@ export default function ModalReviewPsikotes({
   // Mode Tampilan Docs
   const [showScoreSidebar, setShowScoreSidebar] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Tab Sidebar: Profil Skor vs Rekap Jawaban Pasien
+  const [sidebarTab, setSidebarTab] = useState<"skor" | "jawaban">("skor");
+  const [sidebarWidthMode, setSidebarWidthMode] = useState<"normal" | "wide">("normal");
+  const [isFullscreenJawaban, setIsFullscreenJawaban] = useState(false);
 
   // Ref Textarea per Halaman A4
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
@@ -405,13 +407,17 @@ export default function ModalReviewPsikotes({
       .then((res) => {
         if (res?.data) {
           setFullDetail(res.data);
-          if (res.data.hasil?.catatan_psikolog && !item.catatan_psikolog) {
+          // Prioritaskan konten telaah: dari database -> jika tidak ada, dari localStorage
+          const dbText = res.data.hasil?.catatan_psikolog;
+          if (dbText && dbText.trim().length > 0) {
             const apiText =
               res.data.hasil.rekomendasi_psikolog &&
-              !res.data.hasil.catatan_psikolog.includes(res.data.hasil.rekomendasi_psikolog)
-                ? `${res.data.hasil.catatan_psikolog}\n\nREKOMENDASI:\n${res.data.hasil.rekomendasi_psikolog}`
-                : res.data.hasil.catatan_psikolog;
+              !dbText.includes(res.data.hasil.rekomendasi_psikolog)
+                ? `${dbText}\n\nREKOMENDASI:\n${res.data.hasil.rekomendasi_psikolog}`
+                : dbText;
             setPages(parseTextToPages(apiText));
+          } else if (cachedDraft && cachedDraft.trim().length > 0) {
+            setPages(parseTextToPages(cachedDraft));
           }
         }
       })
@@ -422,6 +428,17 @@ export default function ModalReviewPsikotes({
         setIsLoadingDetail(false);
       });
   }, [item]);
+
+  // Auto-save draf secara berkala ke localStorage setiap kali ada perubahan teks
+  useEffect(() => {
+    if (!item?.id || !pages.some((p) => p.trim().length > 0)) return;
+    try {
+      const combined = getCombinedCatatan(pages);
+      localStorage.setItem(`empathika_draft_review_${item.id}`, combined);
+    } catch {
+      // Safe catch jika storage quota penuh
+    }
+  }, [pages, item?.id]);
 
   if (!item) return null;
 
@@ -1049,6 +1066,13 @@ export default function ModalReviewPsikotes({
     setSubmitError(null);
     setDraftMessage(null);
 
+    // 1. Simpan langsung ke localStorage browser (Offline-First Guarantee)
+    try {
+      localStorage.setItem(`empathika_draft_review_${item.id}`, combined);
+    } catch {
+      // Safe catch
+    }
+
     try {
       const activePsikologId =
         item.psikolog?.id ||
@@ -1062,18 +1086,32 @@ export default function ModalReviewPsikotes({
         is_draft: true,
       });
 
-      try {
-        localStorage.setItem(`empathika_draft_review_${item.id}`, combined);
-      } catch {
-        // Safe catch jika storage quota penuh
-      }
+      // Update fullDetail local state
+      setFullDetail((prev: any) => ({
+        ...prev,
+        hasil: {
+          ...prev?.hasil,
+          catatan_psikolog: combined,
+        },
+      }));
+
+      // Update parent state
+      onSuccess({
+        ...item,
+        catatan_psikolog: combined,
+      });
 
       setDraftMessage("Draf berhasil disimpan!");
       setTimeout(() => {
         setDraftMessage(null);
       }, 3500);
     } catch (err: any) {
-      setSubmitError(err?.response?.data?.message || err.message || "Gagal menyimpan draf telaah.");
+      console.warn("Gagal simpan draf ke server:", err);
+      // Jika server gagal, draf tetap aman di localStorage
+      setDraftMessage("Draf tersimpan di memori browser!");
+      setTimeout(() => {
+        setDraftMessage(null);
+      }, 3500);
     } finally {
       setIsSavingDraft(false);
     }
@@ -1131,43 +1169,7 @@ export default function ModalReviewPsikotes({
     }
   };
 
-  const handleDownloadPdf = async () => {
-    if (!item) return;
-    try {
-      setIsDownloadingPdf(true);
-      const combined = getCombinedCatatan();
-      const pdfData: LaporanPsikotesPdfData = {
-        noDokumen: item.kode_akses || `DOC-${item.id}`,
-        judulTes: item.nama_paket || "Laporan Hasil Psikotes",
-        tanggalAsesmen: item.tanggal_pengerjaan,
-        masaBerlaku: "Masa Berlaku: 3 Bulan",
-        peserta: {
-          nama: item.nama_peserta || "Peserta",
-          usia: item.usia ?? null,
-          jenisKelamin: item.jenis_kelamin || null,
-        },
-        catatanPsikolog: combined,
-        namaPsikolog:
-          item.psikolog?.nama ||
-          fullDetail?.psikolog?.nama_gelar ||
-          "Psikolog Klinis Empathika",
-        tanggalReview: item.tanggal_review || new Date().toISOString(),
-        hasilUtama: {
-          judul: item.nama_paket || "Laporan Hasil Psikotes",
-          deskripsi: "",
-        },
-      };
-      await downloadLaporanPsikotesPdf(pdfData);
-    } catch (err: any) {
-      console.error("Gagal mengunduh dokumen PDF:", err);
-      alert("Gagal mengunduh dokumen PDF. Silakan coba kembali.");
-    } finally {
-      setIsDownloadingPdf(false);
-    }
-  };
-
   const isSudahReview = item.status_pengerjaan === "SELESAI";
-  const reviewSla = calculateReviewSla(item.tanggal_pengerjaan);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-3 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1222,17 +1224,6 @@ export default function ModalReviewPsikotes({
               </span>
             )}
 
-            {/* SLA Badge */}
-            {!isSudahReview && (
-              <span
-                className={`hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${reviewSla.badgeClass}`}
-                title={`Target SLA: ${reviewSla.deadlineFormatted}`}
-              >
-                <Clock className="w-3 h-3" />
-                {reviewSla.badgeLabel} (SLA 3 Hari Kerja)
-              </span>
-            )}
-
             {/* Toggle Fullscreen */}
             <button
               type="button"
@@ -1260,27 +1251,6 @@ export default function ModalReviewPsikotes({
                 <>
                   <Save className="w-3.5 h-3.5 text-gray-600" />
                   <span>Simpan Draf</span>
-                </>
-              )}
-            </button>
-
-            {/* Tombol Unduh PDF Dokumen Resmi */}
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isDownloadingPdf || isSubmitting || !pages.some((p) => p.trim().length > 0)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/80 hover:bg-purple-100 text-[#561269] text-xs font-semibold shadow-2xs hover:shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
-              title="Unduh dokumen resmi A4 PDF telaah klinis"
-            >
-              {isDownloadingPdf ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#561269]" />
-                  <span>Mengunduh...</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5 text-[#561269]" />
-                  <span>Unduh PDF</span>
                 </>
               )}
             </button>
@@ -1323,218 +1293,301 @@ export default function ModalReviewPsikotes({
         {/* ========================================================================= */}
         <div className="flex-1 flex overflow-hidden">
           {/* ======================================================================= */}
-          {/* A. SIDEBAR REFERENSI SKOR (KIRI) - Bisa di-collapse                     */}
+          {/* A. SIDEBAR REFERENSI SKOR & REKAP JAWABAN (KIRI) - Bisa di-collapse      */}
           {/* ======================================================================= */}
           {showScoreSidebar && (
-            <aside className="w-80 lg:w-96 shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-left duration-200">
-              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/70 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-[#561269]" />
-                  <span className="text-xs font-bold text-gray-900">
-                    Referensi Data Asesmen
-                  </span>
+            <aside
+              className={`${
+                sidebarWidthMode === "wide" || (sidebarTab === "jawaban" && sidebarWidthMode !== "normal")
+                  ? "w-96 lg:w-[480px] xl:w-[540px]"
+                  : sidebarTab === "jawaban"
+                  ? "w-80 lg:w-[420px]"
+                  : "w-80 lg:w-96"
+              } shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-left duration-200 transition-all`}
+            >
+              <div className="px-3 pt-3 pb-2 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between gap-1">
+                {/* Segmented Control Tab */}
+                <div className="inline-flex p-0.5 rounded-xl bg-gray-200/80 text-gray-600 gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setSidebarTab("skor")}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      sidebarTab === "skor"
+                        ? "bg-white text-[#561269] shadow-xs"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Profil Skor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarTab("jawaban")}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      sidebarTab === "jawaban"
+                        ? "bg-white text-[#561269] shadow-xs"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    <ClipboardList className="w-3.5 h-3.5" />
+                    Rekap Jawaban
+                    {Array.isArray(fullDetail?.rekap_jawaban) && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-[#561269] text-[10px] font-mono">
+                        {fullDetail.rekap_jawaban.length}
+                      </span>
+                    )}
+                  </button>
                 </div>
+
                 <div className="flex items-center gap-1">
-                  {isLoadingDetail && <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />}
+                  {isLoadingDetail && <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600 mr-0.5" />}
+
+                  {sidebarTab === "jawaban" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSidebarWidthMode((prev) => (prev === "normal" ? "wide" : "normal"))
+                        }
+                        className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
+                        title={sidebarWidthMode === "wide" ? "Persempit Sidebar" : "Perlebar Sidebar"}
+                      >
+                        {sidebarWidthMode === "wide" ? (
+                          <Minimize2 className="w-3.5 h-3.5" />
+                        ) : (
+                          <Maximize2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsFullscreenJawaban(true)}
+                        className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
+                        title="Buka Lembar Jawaban Layar Penuh"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => setShowScoreSidebar(false)}
                     className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200/80 transition-colors cursor-pointer"
-                    title="Tutup Referensi Skor"
+                    title="Tutup Panel"
                   >
                     <PanelLeftClose className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              {/* Konten Scrollable Sidebar */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs [scrollbar-width:thin]">
-                {/* 1. Indeks Validitas MCMI-IV */}
-                {isMcmi && detailSkor?.validitas && (
-                  <div className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-2xs space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-gray-900 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-purple-700" />
-                        Validitas Profil (MCMI)
-                      </span>
+              {/* Konten Scrollable Sidebar: Tab Skor vs Tab Rekap Jawaban */}
+              {sidebarTab === "jawaban" ? (
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  {isLoadingDetail ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#561269]" />
+                      <p className="text-xs font-semibold text-gray-700">Memuat jawaban pasien dari database...</p>
                     </div>
+                  ) : (
+                    <RekapJawabanPasienView
+                      rekapJawaban={fullDetail?.rekap_jawaban || []}
+                      alatUkurKode={fullDetail?.paket?.alat_ukur?.kode}
+                      namaPaket={item.nama_paket}
+                      snapshotJawaban={fullDetail?.snapshot_jawaban}
+                      onMaximize={() => setIsFullscreenJawaban(true)}
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs [scrollbar-width:thin]">
+                  {/* 1. Indeks Validitas MCMI-IV */}
+                  {isMcmi && detailSkor?.validitas && (
+                    <div className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-2xs space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-purple-700" />
+                          Validitas Profil (MCMI)
+                        </span>
+                      </div>
 
-                    <p className="text-[11px] text-gray-600 leading-relaxed">
-                      {detailSkor.validitas.kesimpulan}
-                    </p>
+                      <p className="text-[11px] text-gray-600 leading-relaxed">
+                        {detailSkor.validitas.kesimpulan}
+                      </p>
 
-                    <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-[10px]">
-                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
-                        <span className="text-gray-400 block text-[9px]">Skala V</span>
-                        <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaV ?? 0}</strong>
-                        <span className="text-[8px] text-gray-400 block">(&le; 1)</span>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
-                        <span className="text-gray-400 block text-[9px]">Skala W</span>
-                        <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaW ?? 0}</strong>
-                        <span className="text-[8px] text-gray-400 block">(&le; 19)</span>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
-                        <span className="text-gray-400 block text-[9px]">Skala X</span>
-                        <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaX ?? 0}</strong>
-                        <span className="text-[8px] text-gray-400 block">(7–114)</span>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100 col-span-1.5">
-                        <span className="text-gray-400 block text-[9px]">Skala Y (Desirability)</span>
-                        <strong className="text-gray-900 text-xs">BR {detailSkor.validitas.skalaY_BR ?? 0}</strong>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100 col-span-1.5">
-                        <span className="text-gray-400 block text-[9px]">Skala Z (Debasement)</span>
-                        <strong className="text-gray-900 text-xs">BR {detailSkor.validitas.skalaZ_BR ?? 0}</strong>
+                      <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-[10px]">
+                        <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                          <span className="text-gray-400 block text-[9px]">Skala V</span>
+                          <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaV ?? 0}</strong>
+                          <span className="text-[8px] text-gray-400 block">(&le; 1)</span>
+                        </div>
+                        <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                          <span className="text-gray-400 block text-[9px]">Skala W</span>
+                          <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaW ?? 0}</strong>
+                          <span className="text-[8px] text-gray-400 block">(&le; 19)</span>
+                        </div>
+                        <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                          <span className="text-gray-400 block text-[9px]">Skala X</span>
+                          <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaX ?? 0}</strong>
+                          <span className="text-[8px] text-gray-400 block">(7–114)</span>
+                        </div>
+                        <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100 col-span-1.5">
+                          <span className="text-gray-400 block text-[9px]">Skala Y (Desirability)</span>
+                          <strong className="text-gray-900 text-xs">BR {detailSkor.validitas.skalaY_BR ?? 0}</strong>
+                        </div>
+                        <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100 col-span-1.5">
+                          <span className="text-gray-400 block text-[9px]">Skala Z (Debasement)</span>
+                          <strong className="text-gray-900 text-xs">BR {detailSkor.validitas.skalaZ_BR ?? 0}</strong>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* 2. Spektrum Pola Kepribadian (15 Skala) - Dropdown Collapsible */}
-                {isMcmi && Array.isArray(detailSkor?.polaKepribadianList) && (
-                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => setShowPolaKepribadian((prev) => !prev)}
-                      className="w-full px-3.5 py-2.5 bg-gray-50/80 hover:bg-gray-100/80 transition-colors flex items-center justify-between text-left cursor-pointer"
-                    >
-                      <span className="font-bold text-gray-900 text-xs">
-                        Pola Kepribadian (15 Skala)
-                      </span>
-                      <div className="flex items-center gap-1.5 text-gray-500">
-                        <span className="text-[10px] text-gray-400">BR Base Rate</span>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform duration-200 ${
-                            showPolaKepribadian ? "rotate-180 text-purple-800" : ""
-                          }`}
-                        />
-                      </div>
-                    </button>
+                  {/* 2. Spektrum Pola Kepribadian (15 Skala) - Dropdown Collapsible */}
+                  {isMcmi && Array.isArray(detailSkor?.polaKepribadianList) && (
+                    <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setShowPolaKepribadian((prev) => !prev)}
+                        className="w-full px-3.5 py-2.5 bg-gray-50/80 hover:bg-gray-100/80 transition-colors flex items-center justify-between text-left cursor-pointer"
+                      >
+                        <span className="font-bold text-gray-900 text-xs">
+                          Pola Kepribadian (15 Skala)
+                        </span>
+                        <div className="flex items-center gap-1.5 text-gray-500">
+                          <span className="text-[10px] text-gray-400">BR Base Rate</span>
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform duration-200 ${
+                              showPolaKepribadian ? "rotate-180 text-purple-800" : ""
+                            }`}
+                          />
+                        </div>
+                      </button>
 
-                    {showPolaKepribadian && (
-                      <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto border-t border-gray-100 [scrollbar-width:thin] animate-in fade-in duration-150">
-                        {detailSkor.polaKepribadianList.map((scale: any) => {
-                          const br = Number(scale.brScore ?? 0);
-                          const isDisorder = br >= 85;
-                          const isType = br >= 75 && br < 85;
-                          const isStyle = br >= 60 && br < 75;
+                      {showPolaKepribadian && (
+                        <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto border-t border-gray-100 [scrollbar-width:thin] animate-in fade-in duration-150">
+                          {detailSkor.polaKepribadianList.map((scale: any) => {
+                            const br = Number(scale.brScore ?? 0);
+                            const isDisorder = br >= 85;
+                            const isType = br >= 75 && br < 85;
+                            const isStyle = br >= 60 && br < 75;
 
-                          return (
-                            <div
-                              key={scale.kode}
-                              className={`p-2 rounded-lg border text-[11px] space-y-1 ${
-                                isDisorder
-                                  ? "bg-rose-50/70 border-rose-200 text-rose-950"
-                                  : isType
-                                  ? "bg-amber-50/70 border-amber-200 text-amber-950"
-                                  : isStyle
-                                  ? "bg-purple-50/60 border-purple-200 text-purple-950"
-                                  : "bg-gray-50/60 border-gray-100 text-gray-600"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-semibold truncate max-w-[190px]">
-                                  {scale.kode}. {scale.nama}
-                                </span>
-                                <span className="font-bold shrink-0">BR {br}</span>
+                            return (
+                              <div
+                                key={scale.kode}
+                                className={`p-2 rounded-lg border text-[11px] space-y-1 ${
+                                  isDisorder
+                                    ? "bg-rose-50/70 border-rose-200 text-rose-950"
+                                    : isType
+                                    ? "bg-amber-50/70 border-amber-200 text-amber-950"
+                                    : isStyle
+                                    ? "bg-purple-50/60 border-purple-200 text-purple-950"
+                                    : "bg-gray-50/60 border-gray-100 text-gray-600"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold truncate max-w-[190px]">
+                                    {scale.kode}. {scale.nama}
+                                  </span>
+                                  <span className="font-bold shrink-0">BR {br}</span>
+                                </div>
+                                <div className="h-1 w-full bg-black/10 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      isDisorder
+                                        ? "bg-rose-600"
+                                        : isType
+                                        ? "bg-amber-600"
+                                        : isStyle
+                                        ? "bg-purple-700"
+                                        : "bg-gray-400"
+                                    }`}
+                                    style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
+                                  />
+                                </div>
                               </div>
-                              <div className="h-1 w-full bg-black/10 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${
-                                    isDisorder
-                                      ? "bg-rose-600"
-                                      : isType
-                                      ? "bg-amber-600"
-                                      : isStyle
-                                      ? "bg-purple-700"
-                                      : "bg-gray-400"
-                                  }`}
-                                  style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
-                                />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3. Sindroma Klinis (10 Skala) - Dropdown Collapsible */}
+                  {isMcmi && Array.isArray(detailSkor?.sindromaKlinisList) && (
+                    <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setShowSindromaKlinis((prev) => !prev)}
+                        className="w-full px-3.5 py-2.5 bg-gray-50/80 hover:bg-gray-100/80 transition-colors flex items-center justify-between text-left cursor-pointer"
+                      >
+                        <span className="font-bold text-gray-900 text-xs">
+                          Sindroma Klinis (10 Skala)
+                        </span>
+                        <div className="flex items-center gap-1.5 text-gray-500">
+                          <span className="text-[10px] text-gray-400">BR Base Rate</span>
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform duration-200 ${
+                              showSindromaKlinis ? "rotate-180 text-purple-800" : ""
+                            }`}
+                          />
+                        </div>
+                      </button>
+
+                      {showSindromaKlinis && (
+                        <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto border-t border-gray-100 [scrollbar-width:thin] animate-in fade-in duration-150">
+                          {detailSkor.sindromaKlinisList.map((scale: any) => {
+                            const br = Number(scale.brScore ?? 0);
+                            const isSevere = br >= 85;
+                            const isMild = br >= 75 && br < 85;
+
+                            return (
+                              <div
+                                key={scale.kode}
+                                className={`p-2 rounded-lg border text-[11px] space-y-1 ${
+                                  isSevere
+                                    ? "bg-rose-50/70 border-rose-200 text-rose-950"
+                                    : isMild
+                                    ? "bg-amber-50/70 border-amber-200 text-amber-950"
+                                    : "bg-gray-50/60 border-gray-100 text-gray-600"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold truncate max-w-[190px]">
+                                    {scale.kode}. {scale.nama}
+                                  </span>
+                                  <span className="font-bold shrink-0">BR {br}</span>
+                                </div>
+                                <div className="h-1 w-full bg-black/10 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      isSevere ? "bg-rose-600" : isMild ? "bg-amber-600" : "bg-gray-400"
+                                    }`}
+                                    style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                {/* 3. Sindroma Klinis (10 Skala) - Dropdown Collapsible */}
-                {isMcmi && Array.isArray(detailSkor?.sindromaKlinisList) && (
-                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => setShowSindromaKlinis((prev) => !prev)}
-                      className="w-full px-3.5 py-2.5 bg-gray-50/80 hover:bg-gray-100/80 transition-colors flex items-center justify-between text-left cursor-pointer"
-                    >
-                      <span className="font-bold text-gray-900 text-xs">
-                        Sindroma Klinis (10 Skala)
-                      </span>
-                      <div className="flex items-center gap-1.5 text-gray-500">
-                        <span className="text-[10px] text-gray-400">BR Base Rate</span>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform duration-200 ${
-                            showSindromaKlinis ? "rotate-180 text-purple-800" : ""
-                          }`}
-                        />
-                      </div>
-                    </button>
-
-                    {showSindromaKlinis && (
-                      <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto border-t border-gray-100 [scrollbar-width:thin] animate-in fade-in duration-150">
-                        {detailSkor.sindromaKlinisList.map((scale: any) => {
-                          const br = Number(scale.brScore ?? 0);
-                          const isSevere = br >= 85;
-                          const isMild = br >= 75 && br < 85;
-
-                          return (
-                            <div
-                              key={scale.kode}
-                              className={`p-2 rounded-lg border text-[11px] space-y-1 ${
-                                isSevere
-                                  ? "bg-rose-50/70 border-rose-200 text-rose-950"
-                                  : isMild
-                                  ? "bg-amber-50/70 border-amber-200 text-amber-950"
-                                  : "bg-gray-50/60 border-gray-100 text-gray-600"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-semibold truncate max-w-[190px]">
-                                  {scale.kode}. {scale.nama}
-                                </span>
-                                <span className="font-bold shrink-0">BR {br}</span>
-                              </div>
-                              <div className="h-1 w-full bg-black/10 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${
-                                    isSevere ? "bg-rose-600" : isMild ? "bg-amber-600" : "bg-gray-400"
-                                  }`}
-                                  style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Alternatif untuk tes non-MCMI */}
-                {!isMcmi && (
-                  <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
-                    <span className="font-bold text-gray-900 block">Hasil Asesmen Standar</span>
-                    <p className="text-gray-700 font-semibold">
-                      Total Skor: {fullDetail?.hasil?.total_skor ?? item.total_skor ?? "—"}
-                    </p>
-                    <p className="text-gray-600 text-[11px] leading-relaxed">
-                      {fullDetail?.hasil?.deskripsi || "Tidak ada rincian profil tambahan."}
-                    </p>
-                  </div>
-                )}
-              </div>
+                  {/* Alternatif untuk tes non-MCMI */}
+                  {!isMcmi && (
+                    <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                      <span className="font-bold text-gray-900 block">Hasil Asesmen Standar</span>
+                      <p className="text-gray-700 font-semibold">
+                        Total Skor: {fullDetail?.hasil?.total_skor ?? item.total_skor ?? "—"}
+                      </p>
+                      <p className="text-gray-600 text-[11px] leading-relaxed">
+                        {fullDetail?.hasil?.deskripsi || "Tidak ada rincian profil tambahan."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </aside>
           )}
 
@@ -1821,9 +1874,6 @@ export default function ModalReviewPsikotes({
                             <p className="font-bold text-gray-900 underline underline-offset-2">
                               {item.psikolog?.nama || "Psikolog Klinis Empathika"}
                             </p>
-                            <p className="text-[11px] text-gray-500">
-                              Surat Izin Praktik Psikologi (SIPP / SIPPK) Terdaftar
-                            </p>
                           </div>
                         </div>
                       )}
@@ -1855,6 +1905,17 @@ export default function ModalReviewPsikotes({
           </main>
         </div>
       </div>
+
+      {/* Modal Lembar Rekap Jawaban Layar Penuh */}
+      <ModalRekapJawabanFullscreen
+        isOpen={isFullscreenJawaban}
+        onClose={() => setIsFullscreenJawaban(false)}
+        rekapJawaban={fullDetail?.rekap_jawaban || []}
+        namaPeserta={item.nama_peserta}
+        namaPaket={item.nama_paket}
+        alatUkurKode={fullDetail?.paket?.alat_ukur?.kode}
+        snapshotJawaban={fullDetail?.snapshot_jawaban}
+      />
     </div>
   );
 }

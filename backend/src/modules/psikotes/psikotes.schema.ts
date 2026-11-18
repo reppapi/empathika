@@ -166,20 +166,46 @@ export type VerifyTicketInput = z.infer<typeof verifyTicketSchema>
 
 // ── 9. Review Psikolog untuk Asesmen Klinis ──
 export const reviewPsikotesQuerySchema = z.object({
-  status: z.enum(['ALL', 'MENUNGGU_REVIEW', 'SELESAI']).optional().default('ALL'),
-  search: z.string().optional(),
+  status: z
+    .preprocess((val) => {
+      if (!val || typeof val !== 'string' || val.trim() === '') return 'ALL'
+      const upper = val.toUpperCase().trim()
+      if (['ALL', 'MENUNGGU_REVIEW', 'KOLAM_BERSAMA', 'SEDANG_DITELAAH', 'SELESAI'].includes(upper)) {
+        return upper
+      }
+      return 'ALL'
+    }, z.enum(['ALL', 'MENUNGGU_REVIEW', 'KOLAM_BERSAMA', 'SEDANG_DITELAAH', 'SELESAI']))
+    .optional()
+    .default('ALL'),
+  search: z.preprocess((val) => {
+    if (!val || typeof val !== 'string') return undefined
+    return val.trim() || undefined
+  }, z.string().optional()),
   page: z.coerce.number().int().optional().default(1),
   limit: z.coerce.number().int().optional().default(50),
 })
 
 export type ReviewPsikotesQueryInput = z.infer<typeof reviewPsikotesQuerySchema>
 
-export const submitReviewPsikotesSchema = z.object({
-  catatan_psikolog: z.string().min(5, 'Catatan dinamika kepribadian psikolog minimal 5 karakter'),
-  rekomendasi_psikolog: z.string().optional().nullable(),
-  id_psikolog: z.string().optional().nullable(),
-  is_draft: z.boolean().optional().nullable(),
-})
+export const submitReviewPsikotesSchema = z
+  .object({
+    catatan_psikolog: z.string(),
+    rekomendasi_psikolog: z.string().optional().nullable(),
+    id_psikolog: z.string().optional().nullable(),
+    is_draft: z.boolean().optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      // Jika draf, izinkan panjang karakter berapapun (termasuk catatan draf awal)
+      if (data.is_draft) return true
+      // Jika hendak menerbitkan laporan resmi, wajib minimal 5 karakter
+      return (data.catatan_psikolog || '').trim().length >= 5
+    },
+    {
+      message: 'Catatan dinamika kepribadian psikolog minimal 5 karakter sebelum menerbitkan laporan resmi',
+      path: ['catatan_psikolog'],
+    }
+  )
 
 export type SubmitReviewPsikotesInput = z.infer<typeof submitReviewPsikotesSchema>
 

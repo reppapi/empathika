@@ -2068,6 +2068,14 @@ export class PsikotesRepository {
                 kategori: true,
               },
             },
+            soal_psikotes: {
+              include: {
+                pilihan_jawaban: true,
+              },
+              orderBy: {
+                urutan: 'asc',
+              },
+            },
             interpretasi_psikotes: true,
           },
         },
@@ -2095,6 +2103,30 @@ export class PsikotesRepository {
             nama_gelar: true,
             kategori: true,
             foto: true,
+          },
+        },
+        jawaban_psikotes: {
+          include: {
+            soal_psikotes: {
+              select: {
+                id: true,
+                urutan: true,
+                pertanyaan: true,
+              },
+            },
+            pilihan_jawaban: {
+              select: {
+                id: true,
+                label: true,
+                teks_jawaban: true,
+                bobot: true,
+              },
+            },
+          },
+          orderBy: {
+            soal_psikotes: {
+              urutan: 'asc',
+            },
           },
         },
         hasil_tes: {
@@ -2151,6 +2183,70 @@ export class PsikotesRepository {
       ? JSON.parse(booking.hasil_tes.detail_skor)
       : booking.hasil_tes.detail_skor
 
+    // Rekonstruksi rekap butir jawaban pasien secara bersih dan akurat sesuai struktur database
+    let rekapJawaban: Array<{
+      nomor: number
+      pertanyaan: string
+      jawaban: string
+      label?: string | null
+      skor: number
+      id_soal?: string
+      id_pilihan?: string
+    }> = []
+
+    const dbJawaban = (booking as any).jawaban_psikotes || []
+    const soalList = (booking.paket as any)?.soal_psikotes || []
+
+    if (Array.isArray(dbJawaban) && dbJawaban.length > 0) {
+      rekapJawaban = dbJawaban.map((jp: any, idx: number) => ({
+        nomor: jp.soal_psikotes?.urutan ?? idx + 1,
+        pertanyaan: jp.soal_psikotes?.pertanyaan ?? `Butir Pertanyaan #${jp.soal_psikotes?.urutan ?? idx + 1}`,
+        jawaban: jp.pilihan_jawaban?.teks_jawaban ?? '-',
+        label: jp.pilihan_jawaban?.label ?? null,
+        skor: typeof jp.skor === 'number' ? jp.skor : (jp.pilihan_jawaban?.bobot ?? 0),
+        id_soal: jp.id_soal_psikotes,
+        id_pilihan: jp.id_pilihan_jawaban,
+      }))
+    } else if (booking.hasil_tes?.snapshot_jawaban) {
+      // Fallback jika jawaban tersimpan dalam format snapshot_jawaban JSON
+      const rawSnapshot = booking.hasil_tes.snapshot_jawaban
+      const snapshotList: any[] = Array.isArray(rawSnapshot)
+        ? rawSnapshot
+        : typeof rawSnapshot === 'object' && rawSnapshot !== null
+        ? Object.entries(rawSnapshot).map(([k, v]) => ({ id_soal: k, ...(typeof v === 'object' ? v : { val: v }) }))
+        : []
+
+      rekapJawaban = snapshotList.map((item: any, idx: number) => {
+        const soal = soalList.find(
+          (s: any) =>
+            s.id === item.id_soal ||
+            s.urutan === idx + 1 ||
+            s.urutan === item.nomor ||
+            (typeof item.id_soal === 'string' && item.id_soal.endsWith(`-${idx + 1}`))
+        )
+        const pilihan = soal?.pilihan_jawaban?.find(
+          (p: any) =>
+            p.id === item.id_pilihan ||
+            p.bobot === item.skor ||
+            (item.label && p.label === item.label) ||
+            (item.teks_jawaban && p.teks_jawaban === item.teks_jawaban)
+        )
+
+        return {
+          nomor: soal?.urutan ?? idx + 1,
+          pertanyaan: soal?.pertanyaan ?? item.pertanyaan ?? `Butir Pertanyaan #${idx + 1}`,
+          jawaban: pilihan?.teks_jawaban ?? item.teks_jawaban ?? item.jawaban ?? (item.val !== undefined ? String(item.val) : '-'),
+          label: pilihan?.label ?? item.label ?? null,
+          skor: typeof item.skor === 'number' ? item.skor : (pilihan?.bobot ?? 0),
+          id_soal: item.id_soal || soal?.id,
+          id_pilihan: item.id_pilihan || pilihan?.id,
+        }
+      })
+    }
+
+    // Urutkan jawaban secara deterministik berdasarkan nomor butir soal
+    rekapJawaban.sort((a, b) => a.nomor - b.nomor)
+
     return {
       id_booking: booking.id,
       id_paket: booking.id_paket,
@@ -2196,6 +2292,9 @@ export class PsikotesRepository {
         tanggal_review: (booking.hasil_tes as any).tanggal_review || null,
       },
       psikolog: (booking as any).psikolog || null,
+      rekap_jawaban: rekapJawaban,
+      total_jawaban: rekapJawaban.length,
+      snapshot_jawaban: booking.hasil_tes.snapshot_jawaban,
     }
   }
 
@@ -2227,6 +2326,12 @@ export class PsikotesRepository {
 
     if (params?.status === 'MENUNGGU_REVIEW') {
       baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+    } else if (params?.status === 'KOLAM_BERSAMA') {
+      baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+      baseWhere.id_psikolog = null
+    } else if (params?.status === 'SEDANG_DITELAAH') {
+      baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+      baseWhere.id_psikolog = { not: null }
     } else if (params?.status === 'SELESAI') {
       baseWhere.status_pengerjaan = 'SELESAI'
     }
@@ -2244,7 +2349,7 @@ export class PsikotesRepository {
       })
     }
 
-    const [totalAntrean, menungguReview, selesaiReview, items] = await Promise.all([
+    const [totalAntrean, kolamBersama, sedangDitelaah, selesaiReview, items] = await Promise.all([
       this.prisma.bookingPsikotes.count({
         where: {
           OR: [
@@ -2263,6 +2368,19 @@ export class PsikotesRepository {
           ],
           hasil_tes: { isNot: null },
           status_pengerjaan: 'MENUNGGU_REVIEW',
+          id_psikolog: null,
+          AND: [nonExpiredFilter],
+        },
+      }),
+      this.prisma.bookingPsikotes.count({
+        where: {
+          OR: [
+            { paket: { perlu_review_psikolog: true } },
+            { status_pengerjaan: 'MENUNGGU_REVIEW' },
+          ],
+          hasil_tes: { isNot: null },
+          status_pengerjaan: 'MENUNGGU_REVIEW',
+          id_psikolog: { not: null },
           AND: [nonExpiredFilter],
         },
       }),
@@ -2294,6 +2412,7 @@ export class PsikotesRepository {
           psikolog: {
             select: {
               id: true,
+              id_account: true,
               nama_gelar: true,
               kategori: true,
               foto: true,
@@ -2316,7 +2435,9 @@ export class PsikotesRepository {
     return {
       summary: {
         total: totalAntrean,
-        menunggu_review: menungguReview,
+        menunggu_review: kolamBersama + sedangDitelaah,
+        kolam_bersama: kolamBersama,
+        sedang_ditelaah: sedangDitelaah,
         selesai_review: selesaiReview,
       },
       items: items.map((b) => {
@@ -2338,9 +2459,17 @@ export class PsikotesRepository {
         }
         const batasReview = addWorkingDays(new Date(tglPengerjaan), 3)
 
+        const isClaimed = b.status_pengerjaan === 'MENUNGGU_REVIEW' && Boolean(b.id_psikolog)
+        const lockAgeMs = b.updatedAt ? Date.now() - new Date(b.updatedAt).getTime() : 0
+        const isStaleClaim = isClaimed && lockAgeMs > 24 * 60 * 60 * 1000
+
         return {
           id: b.id,
           id_paket: b.id_paket,
+          id_psikolog: b.id_psikolog,
+          is_claimed: isClaimed,
+          claimed_at: b.id_psikolog ? b.updatedAt : null,
+          is_stale_claim: isStaleClaim,
           kode_akses: b.kode_akses || b.transaksi?.kode_transaksi || null,
           nama_paket: b.paket.judul,
           jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
@@ -2363,6 +2492,7 @@ export class PsikotesRepository {
           psikolog: (b as any).psikolog
             ? {
                 id: (b as any).psikolog.id,
+                id_account: (b as any).psikolog.id_account,
                 nama: (b as any).psikolog.nama_gelar,
                 kategori: (b as any).psikolog.kategori,
                 foto: (b as any).psikolog.foto,
@@ -2444,6 +2574,22 @@ export class PsikotesRepository {
         if (existing) resolvedPsikologId = existing.id
       }
 
+      // 3.5. Proteksi Konflik Pengerjaan Antar Psikolog (Strict Lock Protection):
+      if (booking.id_psikolog && resolvedPsikologId && booking.id_psikolog !== resolvedPsikologId) {
+        if (userRole !== 'ADMIN') {
+          const lockedPsi = await tx.psikolog.findUnique({
+            where: { id: booking.id_psikolog },
+            select: { nama_gelar: true },
+          })
+          throw Object.assign(
+            new Error(
+              `Tiket asesmen ini sedang aktif dikunci dan ditelaah oleh ${lockedPsi?.nama_gelar || 'rekan psikolog lain'}. Anda tidak dapat menimpa hasil telaah rekan Anda.`
+            ),
+            { statusCode: 409 }
+          )
+        }
+      }
+
       // 4. KEPATUHAN ETIK & HUKUM SIPP:
       // Jika bukan draf (laporan resmi hendak diterbitkan), WAJIB ada identitas psikolog yang terverifikasi.
       // Dilarang keras menggunakan fallback acak psikolog pertama di database.
@@ -2486,6 +2632,145 @@ export class PsikotesRepository {
       return {
         booking: updatedBooking,
         hasil: updatedHasil,
+      }
+    })
+  }
+
+  /**
+   * Mengklaim / mengunci tiket asesmen dari Kolam Bersama (Shared Pool) untuk psikolog yang bersangkutan.
+   * Mencegah tumpang tindih pengerjaan (race condition) antar rekan psikolog.
+   */
+  async claimReviewTicket(bookingId: string, userId?: string, userRole?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.bookingPsikotes.findUnique({
+        where: { id: bookingId },
+        include: {
+          hasil_tes: true,
+          psikolog: { select: { id: true, nama_gelar: true, kategori: true } },
+        },
+      })
+
+      if (!booking) {
+        throw Object.assign(new Error('Data booking atau tiket asesmen tidak ditemukan.'), { statusCode: 404 })
+      }
+
+      if (booking.status_pengerjaan === 'SELESAI') {
+        throw Object.assign(new Error('Asesmen ini sudah selesai ditelaah dan diverifikasi.'), { statusCode: 400 })
+      }
+
+      // Resolusi profil psikolog yang melakukan klaim
+      let resolvedPsikolog: any = null
+      if (userId) {
+        resolvedPsikolog = await tx.psikolog.findFirst({
+          where: {
+            OR: [{ id_account: userId }, { id: userId }],
+          },
+          select: { id: true, nama_gelar: true, kategori: true },
+        })
+      }
+
+      if (!resolvedPsikolog && userRole !== 'ADMIN') {
+        throw Object.assign(
+          new Error('Akses ditolak: Akun Anda tidak terhubung dengan profil psikolog resmi Empathika.'),
+          { statusCode: 403 }
+        )
+      }
+
+      const targetPsikologId = resolvedPsikolog?.id || booking.id_psikolog
+
+      // Jika tiket sudah terkunci oleh psikolog lain (hanya ADMIN yang berhak mengalihkan):
+      if (booking.id_psikolog && booking.id_psikolog !== targetPsikologId) {
+        if (userRole !== 'ADMIN') {
+          const claimedByName = booking.psikolog?.nama_gelar || 'rekan psikolog lain'
+          throw Object.assign(
+            new Error(
+              `Tiket ini sedang aktif ditelaah oleh ${claimedByName}. Anda tidak dapat menimpa tiket yang sedang dikerjakan.`
+            ),
+            { statusCode: 409 }
+          )
+        }
+      }
+
+      // Kunci tiket atas nama psikolog ini
+      const updated = await tx.bookingPsikotes.update({
+        where: { id: bookingId },
+        data: {
+          id_psikolog: targetPsikologId,
+        },
+        include: {
+          psikolog: { select: { id: true, nama_gelar: true, kategori: true, foto: true } },
+        },
+      })
+
+      return {
+        id: updated.id,
+        status_pengerjaan: updated.status_pengerjaan,
+        is_claimed: true,
+        claimed_by: updated.psikolog,
+        claimed_at: updated.updatedAt,
+      }
+    })
+  }
+
+  /**
+   * Mengembalikan tiket asesmen kembali ke Kolam Bersama (Shared Pool)
+   * agar dapat ditinjau oleh 3 rekan psikolog lainnya.
+   */
+  async releaseReviewTicket(bookingId: string, userId?: string, userRole?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.bookingPsikotes.findUnique({
+        where: { id: bookingId },
+        include: {
+          psikolog: { select: { id: true, nama_gelar: true } },
+        },
+      })
+
+      if (!booking) {
+        throw Object.assign(new Error('Data booking atau tiket asesmen tidak ditemukan.'), { statusCode: 404 })
+      }
+
+      if (booking.status_pengerjaan === 'SELESAI') {
+        throw Object.assign(new Error('Tidak dapat melepas tiket asesmen yang sudah selesai diterbitkan.'), {
+          statusCode: 400,
+        })
+      }
+
+      if (!booking.id_psikolog) {
+        return {
+          id: booking.id,
+          message: 'Tiket sudah berada di Kolam Bersama.',
+          is_claimed: false,
+        }
+      }
+
+      // Validasi wewenang: hanya psikolog pemilik lock atau Admin yang boleh melepas tiket
+      if (userRole !== 'ADMIN' && userId) {
+        const callerPsi = await tx.psikolog.findFirst({
+          where: { OR: [{ id_account: userId }, { id: userId }] },
+          select: { id: true },
+        })
+
+        if (!callerPsi || callerPsi.id !== booking.id_psikolog) {
+          throw Object.assign(
+            new Error('Hanya psikolog yang sedang menelaah tiket ini atau Admin yang berhak mengembalikannya ke antrean bersama.'),
+            { statusCode: 403 }
+          )
+        }
+      }
+
+      const updated = await tx.bookingPsikotes.update({
+        where: { id: bookingId },
+        data: {
+          id_psikolog: null,
+        },
+      })
+
+      return {
+        id: updated.id,
+        status_pengerjaan: updated.status_pengerjaan,
+        is_claimed: false,
+        claimed_by: null,
+        message: 'Tiket berhasil dikembalikan ke Kolam Bersama (Shared Pool).',
       }
     })
   }
