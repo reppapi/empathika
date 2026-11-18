@@ -23,6 +23,9 @@ export interface TenagaAhli {
   instagram?: string
   foto: string | null
   keahlian: string[]
+  bankCode?: string
+  nomorRekening?: string
+  namaPemilikRekening?: string
   tanggalBergabung: string
   accountId?: string
   accountAktif?: boolean

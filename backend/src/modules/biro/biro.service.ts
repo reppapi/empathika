@@ -327,6 +327,9 @@ export class BiroService {
         alamat: input.alamat || null,
         deskripsi: input.deskripsi || null,
         no_telepon: input.noTelepon || null,
+        bank_code: input.bank_code ?? input.bankCode ?? null,
+        nomor_rekening: input.nomor_rekening ?? input.nomorRekening ?? null,
+        nama_pemilik_rek: input.nama_pemilik_rek ?? input.namaPemilikRekening ?? null,
         status: "PENDING",
       },
     })
@@ -449,6 +452,15 @@ export class BiroService {
       if (input.logoURI !== undefined) biroUpdateData.logoURI = input.logoURI || null
       if (input.status !== undefined) biroUpdateData.status = input.status
       if (input.noTelepon !== undefined) biroUpdateData.no_telepon = input.noTelepon ? input.noTelepon.trim() : null
+      if (input.bank_code !== undefined || input.bankCode !== undefined) {
+        biroUpdateData.bank_code = input.bank_code ?? input.bankCode ?? null
+      }
+      if (input.nomor_rekening !== undefined || input.nomorRekening !== undefined) {
+        biroUpdateData.nomor_rekening = input.nomor_rekening ?? input.nomorRekening ?? null
+      }
+      if (input.nama_pemilik_rek !== undefined || input.namaPemilikRekening !== undefined) {
+        biroUpdateData.nama_pemilik_rek = input.nama_pemilik_rek ?? input.namaPemilikRekening ?? null
+      }
 
       if (Object.keys(biroUpdateData).length > 0) {
         await this.prisma.biro.update({ where: { id: biro.id }, data: biroUpdateData })
@@ -884,14 +896,14 @@ export class BiroService {
       throw Object.assign(new Error("Layanan tidak ditemukan atau sedang tidak aktif"), { statusCode: 404 })
     }
 
-    // Hitung rincian biaya
+    // Hitung rincian biaya: biaya layanan disesuaikan dengan aturan Empathika
     const dayOfWeek = slot.tanggal.getUTCDay()
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
     let subtotal = isWeekend ? Number(layanan.harga_weekend) : Number(layanan.harga_weekday)
     if (subtotal <= 0) {
       subtotal = Number(slot.psikolog.tarif_per_jam)
     }
-    const biayaAdmin = 5000
+    const biayaAdmin = 0 // Biaya layanan / payment gateway ditangani terpusat di sistem transaksi
     const total = subtotal + biayaAdmin
 
     // Eksekusi transaksi database secara atomik
