@@ -10,7 +10,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import Link from "next/link";
 import {
   ClipboardList,
   Clock,
@@ -20,7 +19,6 @@ import {
   RefreshCw,
   Stethoscope,
   ChevronRight,
-  ExternalLink,
   User,
   Phone,
   Calendar,
@@ -171,10 +169,6 @@ export default function PsikologReviewAsesmenClient() {
       {/* Header Halaman */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-[#561269] text-xs font-bold mb-2">
-            <Stethoscope className="w-3.5 h-3.5" />
-            Portal Profesional Psikolog
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
             Review Asesmen Psikotes
           </h1>
@@ -543,19 +537,6 @@ export default function PsikologReviewAsesmenClient() {
                               <FileText className="w-3.5 h-3.5 text-purple-700" />
                               Lihat / Edit Catatan
                             </button>
-                          )}
-
-                          {/* Tombol Cepat Buka Halaman Hasil Klien */}
-                          {item.id_paket && (
-                            <Link
-                              href={`/psikotes/${item.id_paket}/hasil?bookingId=${item.id}` as any}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 rounded-full text-gray-400 hover:text-purple-700 hover:bg-purple-50 transition-colors"
-                              title="Lihat Laporan Lengkap Pasien di Tab Baru"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </Link>
                           )}
                         </div>
                       </td>

@@ -1267,6 +1267,7 @@ export class PsikotesRepository {
         id: b.id,
         id_paket: b.id_paket,
         nama_paket: b.paket.judul,
+        kode_akses: b.kode_akses || (b.transaksi as any)?.kode_transaksi || null,
         jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
         harga: b.paket.harga,
         nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
@@ -2384,7 +2385,8 @@ export class PsikotesRepository {
   async submitReview(
     bookingId: string,
     input: SubmitReviewPsikotesInput,
-    userId?: string
+    userId?: string,
+    userRole?: string
   ) {
     return this.prisma.$transaction(async (tx) => {
       const booking = await tx.bookingPsikotes.findUnique({
@@ -2411,22 +2413,22 @@ export class PsikotesRepository {
       // Cari record psikolog yang valid di tabel psikolog
       let resolvedPsikologId: string | null = null
 
-      // 1. Cek dari input.id_psikolog (bisa berupa psikolog.id atau account.id)
-      if (input.id_psikolog) {
+      // 1. Prioritas Utama: Jika caller memiliki sesi autentikasi, tautkan langsung ke profil psikolog miliknya (anti-impersonation)
+      if (userId) {
         const found = await tx.psikolog.findFirst({
           where: {
-            OR: [{ id: input.id_psikolog }, { id_account: input.id_psikolog }],
+            OR: [{ id_account: userId }, { id: userId }],
           },
           select: { id: true },
         })
         if (found) resolvedPsikologId = found.id
       }
 
-      // 2. Cek dari userId auth token jika belum ditemukan
-      if (!resolvedPsikologId && userId) {
+      // 2. Jika caller adalah ADMIN dan secara spesifik menugaskan psikolog tertentu
+      if (!resolvedPsikologId && userRole === 'ADMIN' && input.id_psikolog) {
         const found = await tx.psikolog.findFirst({
           where: {
-            OR: [{ id_account: userId }, { id: userId }],
+            OR: [{ id: input.id_psikolog }, { id_account: input.id_psikolog }],
           },
           select: { id: true },
         })
@@ -2442,12 +2444,16 @@ export class PsikotesRepository {
         if (existing) resolvedPsikologId = existing.id
       }
 
-      // 4. Jika bukan draf dan masih belum ada psikolog, ambil default psikolog pertama di database
+      // 4. KEPATUHAN ETIK & HUKUM SIPP:
+      // Jika bukan draf (laporan resmi hendak diterbitkan), WAJIB ada identitas psikolog yang terverifikasi.
+      // Dilarang keras menggunakan fallback acak psikolog pertama di database.
       if (!resolvedPsikologId && !input.is_draft) {
-        const fallback = await tx.psikolog.findFirst({
-          select: { id: true },
-        })
-        if (fallback) resolvedPsikologId = fallback.id
+        throw Object.assign(
+          new Error(
+            'Laporan resmi hanya dapat diterbitkan oleh psikolog klinis yang terdaftar secara sah di sistem. Silakan periksa kredensial akun pemeriksa Anda.'
+          ),
+          { statusCode: 403 }
+        )
       }
 
       // 1. Update HasilTes

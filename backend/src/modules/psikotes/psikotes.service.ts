@@ -78,9 +78,10 @@ export class PsikotesService {
   async submitReview(
     bookingId: string,
     input: SubmitReviewPsikotesInput,
-    userId?: string
+    userId?: string,
+    userRole?: string
   ) {
-    return this.repo.submitReview(bookingId, input, userId)
+    return this.repo.submitReview(bookingId, input, userId, userRole)
   }
 }
 

@@ -172,8 +172,8 @@ export class PsikotesController {
       let isAdmin = hasAllowedDummyToken(request)
       if (!isAdmin && request.headers.authorization) {
         try {
-          await request.jwtVerify()
-          const role = (request.user as any)?.role
+          await (request as any).jwtVerify()
+          const role = ((request as any).user as any)?.role
           isAdmin = role === 'ADMIN' || role === 'BIRO' || role === 'PSIKOLOG'
         } catch {
           isAdmin = false
@@ -238,11 +238,12 @@ export class PsikotesController {
     reply: FastifyReply
   ) => {
     try {
-      const user = request.user as { id?: string } | undefined
+      const user = (request as any).user as { id?: string; role?: string } | undefined
       const data = await this.service.submitReview(
         request.params.bookingId,
         request.body,
-        user?.id
+        user?.id,
+        user?.role
       )
       return reply.code(200).send({
         success: true,
