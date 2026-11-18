@@ -2,6 +2,7 @@
 import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../types/adminPsikotes";
 import { getPesertaReportDetail } from "./adminPsikotesMapper";
 import { evaluateDASS } from "./dassEvaluation";
+import { psikotesService } from "@/services/psikotes.service";
 import {
   downloadLaporanPsikotesPdf,
   tailwindBarToHex,
@@ -16,6 +17,19 @@ export async function printLaporanPsikotes(
   peserta: AdminPsikotesPeserta,
   judulList: JudulPsikotesItem[] = []
 ) {
+  // Ambil data detail hasil terbaru langsung dari server untuk memastikan catatan telaah psikolog terbaru terbawa
+  let apiDetail: any = null;
+  if (peserta.id) {
+    try {
+      const res = await psikotesService.getHasilByBooking(String(peserta.id));
+      if (res?.data) {
+        apiDetail = res.data;
+      }
+    } catch (e) {
+      console.warn("[Admin PDF] Gagal memuat detail hasil langsung dari API:", e);
+    }
+  }
+
   const detail = getPesertaReportDetail(peserta, judulList);
   const paketLower = (peserta.paket || "").toLowerCase();
   const isDASS =
@@ -297,15 +311,37 @@ export async function printLaporanPsikotes(
     }
   }
 
-  const pProfile = peserta.peserta;
-  const noDokumen = `EMP-PSI-${
-    peserta.id ? String(peserta.id).slice(-6).toUpperCase() : "VERIFIED"
-  }`;
+  const pProfile = apiDetail?.peserta || peserta.peserta;
+  const noDokumen =
+    peserta.kodeAkses ||
+    apiDetail?.kode_akses ||
+    `EMP-PSI-${peserta.id ? String(peserta.id).slice(-6).toUpperCase() : "VERIFIED"}`;
+
+  const catatanPsikolog =
+    apiDetail?.hasil?.catatan_psikolog ||
+    peserta.hasil?.catatan_psikolog ||
+    null;
+
+  const rekomendasiPsikolog =
+    apiDetail?.hasil?.rekomendasi_psikolog ||
+    peserta.hasil?.rekomendasi_psikolog ||
+    null;
+
+  const namaPsikolog =
+    apiDetail?.psikolog?.nama_gelar ||
+    peserta.psikolog?.nama_gelar ||
+    peserta.psikolog?.nama ||
+    null;
+
+  const tanggalReview =
+    apiDetail?.hasil?.tanggal_review ||
+    peserta.hasil?.tanggal_review ||
+    null;
 
   const pdfData: LaporanPsikotesPdfData = {
     noDokumen,
-    judulTes: peserta.paket || "Laporan Hasil Psikotes",
-    tanggalAsesmen: peserta.tanggal || "-",
+    judulTes: peserta.paket || apiDetail?.paket?.judul || "Laporan Hasil Psikotes",
+    tanggalAsesmen: peserta.rawTanggal || peserta.tanggal || "-",
     masaBerlaku: "Masa Berlaku: 3 Bulan",
     peserta: {
       nama: pProfile?.nama_lengkap || peserta.nama || "Peserta Asesmen Empathika",
@@ -321,6 +357,10 @@ export async function printLaporanPsikotes(
       namaOrangTua: pProfile?.nama_orang_tua || null,
       noTeleponOrangTua: pProfile?.no_telepon_orang_tua || null,
     },
+    catatanPsikolog,
+    rekomendasiPsikolog,
+    namaPsikolog,
+    tanggalReview,
     hasilUtama: {
       prefix: heroPrefix,
       judul: heroTitle,

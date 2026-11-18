@@ -81,6 +81,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
           isPembeliBerbeda: Boolean(it.is_pembeli_berbeda),
           hasil: it.hasil,
           peserta: it.peserta,
+          psikolog: it.psikolog || null,
         }));
         setPesertaList(mapped);
       }

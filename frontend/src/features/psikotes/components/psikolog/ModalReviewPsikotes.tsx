@@ -1,33 +1,37 @@
-/**
- * Modal Telaah & Verifikasi Klinis Asesmen Psikotes oleh Psikolog.
- * Menampilkan:
- * 1. Profil lengkap & status validitas otomatis hasil tes (MCMI-IV & alat ukur lainnya).
- * 2. Visualisasi spektrum kepribadian, sindroma klinis, atau dimensi tes.
- * 3. Form input catatan dinamika kepribadian & rekomendasi intervensi klinis.
- * 4. Verifikasi dan penerbitan laporan resmi secara instan.
- */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   FileCheck2,
   CheckCircle2,
   AlertTriangle,
-  Sparkles,
-  User,
   Clock,
-  Calendar,
-  Send,
   Loader2,
   Stethoscope,
   BarChart3,
-  BookOpen,
-  HelpCircle,
-  ExternalLink,
+  Maximize2,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeft,
+  Bold,
+  Italic,
+  ListOrdered,
+  List,
+  Indent,
+  Outdent,
+  ChevronDown,
+  Save,
+  Plus,
+  Trash2,
+  Download,
 } from "lucide-react";
 import { psikotesService, type ReviewPsikotesItem } from "@/services/psikotes.service";
-import { calculateReviewSla, REVIEW_MAX_DAYS } from "../../utils/reviewSla";
+import { calculateReviewSla } from "../../utils/reviewSla";
+import {
+  downloadLaporanPsikotesPdf,
+  type LaporanPsikotesPdfData,
+} from "../../utils/downloadLaporanPsikotesPdf";
 
 interface ModalReviewPsikotesProps {
   item: ReviewPsikotesItem | null;
@@ -35,28 +39,365 @@ interface ModalReviewPsikotesProps {
   onSuccess: (updatedItem: ReviewPsikotesItem) => void;
 }
 
+// Standar ukuran Tab & Indentasi seragam (4 spasi persis)
+const TAB_STR = "    ";
+
+// Helper Angka Romawi
+function toRoman(num: number): string {
+  const map: [number, string][] = [
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"],
+  ];
+  let res = "";
+  for (const [v, s] of map) {
+    while (num >= v) {
+      res += s;
+      num -= v;
+    }
+  }
+  return res || "I";
+}
+
+function fromRoman(str: string): number {
+  const map: Record<string, number> = {
+    I: 1,
+    V: 5,
+    X: 10,
+    i: 1,
+    v: 5,
+    x: 10,
+  };
+  let tot = 0;
+  const s = str.trim();
+  for (let i = 0; i < s.length; i++) {
+    const c = map[s[i]] || 0;
+    const n = map[s[i + 1]] || 0;
+    if (c < n) {
+      tot += n - c;
+      i++;
+    } else {
+      tot += c;
+    }
+  }
+  return tot;
+}
+
+function isRomanValid(str: string): boolean {
+  return /^(X{0,3})(IX|IV|V?I{0,3})$/i.test(str.trim());
+}
+
+function findLastNumberBeforeCursor(value: string, cursorIndex: number): number {
+  const textBefore = value.slice(0, cursorIndex);
+  const lines = textBefore.split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    const match = line.match(/^(\s*)(\d+)\./);
+    if (match) {
+      return parseInt(match[2], 10);
+    }
+  }
+  return 0;
+}
+
+function findLastRomanBeforeCursor(value: string, cursorIndex: number): number {
+  const textBefore = value.slice(0, cursorIndex);
+  const lines = textBefore.split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    const match = line.match(/^(\s*)([IVXLCDMivxlcdm]+)\./);
+    if (match && isRomanValid(match[2])) {
+      return fromRoman(match[2]);
+    }
+  }
+  return 0;
+}
+
+function findLastNumberInAllPages(pagesList: string[], upToPageIndex: number): number {
+  for (let p = upToPageIndex; p >= 0; p--) {
+    const text = pagesList[p] || "";
+    const lastNum = findLastNumberBeforeCursor(text, text.length);
+    if (lastNum > 0) return lastNum;
+  }
+  return 0;
+}
+
+function findLastRomanInAllPages(pagesList: string[], upToPageIndex: number): number {
+  for (let p = upToPageIndex; p >= 0; p--) {
+    const text = pagesList[p] || "";
+    const lastRoman = findLastRomanBeforeCursor(text, text.length);
+    if (lastRoman > 0) return lastRoman;
+  }
+  return 0;
+}
+
+// Kapasitas tinggi teks (dalam pixel) per lembar A4 (794px x 1123px)
+// Diberikan safe margin di atas footer agar baris terakhir dan ekor huruf (g, y, p) tidak terpotong
+const PAGE1_FULL_HEIGHT = 760; // Batas aman Halaman 1 (sekitar 30-31 baris, menyisakan margin nyaman sebelum footer)
+const PAGE1_MAX_WITH_SIG = 600; // Batas Halaman 1 jika sekaligus menampung tanda tangan (sekitar 24-25 baris)
+
+// Halaman 2+ (Lanjutan) hanya memiliki running header minimalis
+const SUBSEQUENT_FULL_HEIGHT = 860; // Batas aman Halaman 2+ (sekitar 35-36 baris, dengan margin nyaman sebelum footer)
+const SUBSEQUENT_MAX_WITH_SIG = 700; // Batas Halaman 2+ jika sekaligus menampung tanda tangan (sekitar 28-29 baris)
+
+// Estimasi baris per halaman untuk parser teks awal
+const PAGE1_MAX_LINES = 30; // Halaman 1 isi sampai batas aman
+const SUBSEQUENT_PAGE_MAX_LINES = 35; // Halaman 2+ isi sampai batas aman
+
+// Pengukur tinggi teks presisi pixel menggunakan mirror div offscreen
+function measureTextHeight(text: string, textarea: HTMLTextAreaElement): number {
+  if (typeof document === "undefined") return 0;
+  let mirror = document.getElementById("textarea-mirror-measurer") as HTMLDivElement;
+  if (!mirror) {
+    mirror = document.createElement("div");
+    mirror.id = "textarea-mirror-measurer";
+    mirror.style.position = "fixed";
+    mirror.style.left = "-99999px";
+    mirror.style.top = "-99999px";
+    mirror.style.visibility = "hidden";
+    mirror.style.pointerEvents = "none";
+    mirror.style.whiteSpace = "pre-wrap";
+    mirror.style.wordBreak = "break-word";
+    mirror.style.overflowWrap = "break-word";
+    document.body.appendChild(mirror);
+  }
+  const style = window.getComputedStyle(textarea);
+  mirror.style.width = `${textarea.clientWidth || 680}px`;
+  mirror.style.fontFamily = style.fontFamily;
+  mirror.style.fontSize = style.fontSize;
+  mirror.style.lineHeight = style.lineHeight;
+  mirror.style.padding = style.padding;
+  mirror.style.boxSizing = style.boxSizing;
+  mirror.textContent = text;
+  return mirror.clientHeight;
+}
+
+// Memisahkan teks yang muat di lembar A4 saat ini dan teks yang meluap ke lembar berikutnya
+function splitFittingText(
+  fullText: string,
+  textarea: HTMLTextAreaElement,
+  maxHeight: number
+): { fittingText: string; overflowText: string } {
+  const lines = fullText.split("\n");
+
+  if (lines.length > 1) {
+    let low = 1;
+    let high = lines.length - 1;
+    let best = 1;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = lines.slice(0, mid).join("\n");
+      const h = measureTextHeight(candidate, textarea);
+      if (h <= maxHeight) {
+        best = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    const fittingText = lines.slice(0, best).join("\n");
+    const overflowText = lines.slice(best).join("\n");
+    return { fittingText, overflowText };
+  }
+
+  // Jika teks terdiri dari 1 paragraf panjang tanpa enter yang wrap secara visual
+  const words = fullText.split(" ");
+  if (words.length > 1) {
+    let low = 1;
+    let high = words.length - 1;
+    let best = 1;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = words.slice(0, mid).join(" ");
+      const h = measureTextHeight(candidate, textarea);
+      if (h <= maxHeight) {
+        best = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    const fittingText = words.slice(0, best).join(" ");
+    const overflowText = words.slice(best).join(" ");
+    return { fittingText, overflowText };
+  }
+
+  // Fallback jika satu kata tanpa spasi
+  const half = Math.max(1, Math.floor(fullText.length / 2));
+  return {
+    fittingText: fullText.slice(0, half),
+    overflowText: fullText.slice(half),
+  };
+}
+
+// Algoritma kaskade pagination multi-halaman jika teks meluap
+function paginateAndSpillover(
+  pagesArray: string[],
+  startIdx: number,
+  getTextarea: (idx: number) => HTMLTextAreaElement | null,
+  cursorInfo?: { pageIdx: number; pos: number }
+): { nextPages: string[]; newActivePage?: number; newCursorPos?: number } {
+  const nextPages = [...pagesArray];
+  let currentIdx = startIdx;
+  let newActivePage = cursorInfo?.pageIdx;
+  let newCursorPos = cursorInfo?.pos;
+
+  while (currentIdx < nextPages.length) {
+    const text = nextPages[currentIdx] || "";
+    const textarea = getTextarea(currentIdx);
+    if (!textarea) break;
+
+    const isPage1 = currentIdx === 0;
+    // Saat spillover, lembar selalu diisi sampai kapasitas PENUH mendekati batas bawah kertas
+    const effectiveHeight = isPage1 ? PAGE1_FULL_HEIGHT : SUBSEQUENT_FULL_HEIGHT;
+    const currentHeight = measureTextHeight(text, textarea);
+
+    if (currentHeight > effectiveHeight) {
+      const { fittingText, overflowText } = splitFittingText(text, textarea, effectiveHeight);
+      nextPages[currentIdx] = fittingText;
+
+      if (currentIdx + 1 < nextPages.length) {
+        nextPages[currentIdx + 1] =
+          overflowText + (nextPages[currentIdx + 1] ? "\n" + nextPages[currentIdx + 1] : "");
+      } else {
+        nextPages.push(overflowText);
+      }
+
+      if (cursorInfo && cursorInfo.pageIdx === currentIdx && cursorInfo.pos > fittingText.length) {
+        newActivePage = currentIdx + 1;
+        newCursorPos = Math.max(0, cursorInfo.pos - fittingText.length);
+      }
+
+      currentIdx++;
+    } else {
+      break;
+    }
+  }
+
+  return { nextPages, newActivePage, newCursorPos };
+}
+
+// Memecah teks tunggal menjadi lembaran halaman A4 terpisah
+function parseTextToPages(rawText: string): string[] {
+  if (!rawText || !rawText.trim()) return [""];
+
+  if (rawText.includes("<!-- PAGE_BREAK -->")) {
+    const parts = rawText.split("<!-- PAGE_BREAK -->").map((p) => p.trim());
+    return parts.length > 0 ? parts : [""];
+  }
+
+  if (rawText.includes("--- HALAMAN BARU ---")) {
+    const parts = rawText.split("--- HALAMAN BARU ---").map((p) => p.trim());
+    return parts.length > 0 ? parts : [""];
+  }
+
+  const lines = rawText.split("\n");
+  const pages: string[] = [];
+  let currentLines: string[] = [];
+  let currentVisualLines = 0;
+  let isFirst = true;
+
+  for (const line of lines) {
+    const visualWeight = Math.max(1, Math.ceil(line.length / 75));
+    const maxCapacity = isFirst ? PAGE1_MAX_LINES : SUBSEQUENT_PAGE_MAX_LINES;
+
+    if (currentVisualLines + visualWeight > maxCapacity && currentLines.length > 0) {
+      pages.push(currentLines.join("\n"));
+      currentLines = [line];
+      currentVisualLines = visualWeight;
+      isFirst = false;
+    } else {
+      currentLines.push(line);
+      currentVisualLines += visualWeight;
+    }
+  }
+
+  if (currentLines.length > 0) {
+    pages.push(currentLines.join("\n"));
+  }
+
+  // Jika hasil hanya 1 halaman dan teksnya lebih dari 24 baris (tidak muat bersama tanda tangan):
+  // Tambahkan halaman ke-2 untuk menampung tanda tangan resmi psikolog
+  if (pages.length === 1 && currentVisualLines > 24) {
+    pages.push("");
+  }
+
+  return pages.length > 0 ? pages : [""];
+}
+
 export default function ModalReviewPsikotes({
   item,
   onClose,
   onSuccess,
 }: ModalReviewPsikotesProps) {
-  const [activeTab, setActiveTab] = useState<"profil" | "telaah">("telaah");
-  const [catatan, setCatatan] = useState("");
-  const [rekomendasi, setRekomendasi] = useState("");
+  const [pages, setPages] = useState<string[]>([""]);
+  const [activePageIndex, setActivePageIndex] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [draftMessage, setDraftMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Dropdown Format List
+  const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
+  const listDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Accordion State untuk Sidebar Skor
+  const [showPolaKepribadian, setShowPolaKepribadian] = useState(false);
+  const [showSindromaKlinis, setShowSindromaKlinis] = useState(false);
+
+  // Mode Tampilan Docs
+  const [showScoreSidebar, setShowScoreSidebar] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Ref Textarea per Halaman A4
+  const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
 
   // Full detail dari API jika diperlukan
   const [fullDetail, setFullDetail] = useState<any>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
+  // Auto-close dropdown format list saat klik di luar
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (listDropdownRef.current && !listDropdownRef.current.contains(event.target as Node)) {
+        setIsListDropdownOpen(false);
+      }
+    }
+    if (isListDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isListDropdownOpen]);
+
+  // Gabungkan seluruh isi teks halaman untuk disimpan ke DB / localStorage
+  const getCombinedCatatan = (pagesList: string[] = pages): string => {
+    return pagesList.join("\n\n<!-- PAGE_BREAK -->\n\n");
+  };
+
   useEffect(() => {
     if (!item) return;
 
-    setCatatan(item.catatan_psikolog || "");
-    setRekomendasi(item.rekomendasi_psikolog || "");
+    const cachedDraft =
+      typeof window !== "undefined" ? localStorage.getItem(`empathika_draft_review_${item.id}`) : null;
+
+    const initialText = item.catatan_psikolog
+      ? item.rekomendasi_psikolog && !item.catatan_psikolog.includes(item.rekomendasi_psikolog)
+        ? `${item.catatan_psikolog}\n\nREKOMENDASI:\n${item.rekomendasi_psikolog}`
+        : item.catatan_psikolog
+      : cachedDraft || "";
+
+    setPages(parseTextToPages(initialText));
     setSubmitError(null);
-    setActiveTab(item.status_pengerjaan === "MENUNGGU_REVIEW" ? "telaah" : "profil");
+    setDraftMessage(null);
 
     setIsLoadingDetail(true);
     psikotesService
@@ -65,10 +406,12 @@ export default function ModalReviewPsikotes({
         if (res?.data) {
           setFullDetail(res.data);
           if (res.data.hasil?.catatan_psikolog && !item.catatan_psikolog) {
-            setCatatan(res.data.hasil.catatan_psikolog);
-          }
-          if (res.data.hasil?.rekomendasi_psikolog && !item.rekomendasi_psikolog) {
-            setRekomendasi(res.data.hasil.rekomendasi_psikolog);
+            const apiText =
+              res.data.hasil.rekomendasi_psikolog &&
+              !res.data.hasil.catatan_psikolog.includes(res.data.hasil.rekomendasi_psikolog)
+                ? `${res.data.hasil.catatan_psikolog}\n\nREKOMENDASI:\n${res.data.hasil.rekomendasi_psikolog}`
+                : res.data.hasil.catatan_psikolog;
+            setPages(parseTextToPages(apiText));
           }
         }
       })
@@ -90,54 +433,657 @@ export default function ModalReviewPsikotes({
     item.nama_paket?.toLowerCase().includes("multiaxial")
   );
 
-  // Draft naratif otomatis dari sistem untuk bantuan psikolog
-  const autoDraftCatatan = (() => {
-    if (isMcmi && detailSkor?.laporanNaratif) {
-      const naratifPola = detailSkor.laporanNaratif.polaKepribadian || "";
-      const naratifKlinis = detailSkor.laporanNaratif.klinis || "";
-      return [
-        "Berdasarkan analisis profil MCMI-IV:",
-        naratifPola,
-        naratifKlinis ? `\nManifestasi Kondisi Klinis:\n${naratifKlinis}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-    }
-
-    if (fullDetail?.hasil?.deskripsi) {
-      return fullDetail.hasil.deskripsi;
-    }
-
-    return "";
-  })();
-
-  const handleApplyAutoDraft = () => {
-    if (!autoDraftCatatan) return;
-    if (catatan.trim().length > 0) {
-      if (!window.confirm("Ganti catatan saat ini dengan draf naratif otomatis dari sistem?")) {
-        return;
-      }
-    }
-    setCatatan(autoDraftCatatan);
+  const handleAddPage = (insertIndex?: number) => {
+    setPages((prev) => {
+      const targetIdx = typeof insertIndex === "number" ? insertIndex : prev.length;
+      const next = [...prev];
+      next.splice(targetIdx, 0, "");
+      return next;
+    });
+    const newActiveIdx = typeof insertIndex === "number" ? insertIndex : pages.length;
+    setActivePageIndex(newActiveIdx);
+    setTimeout(() => {
+      textareaRefs.current[newActiveIdx]?.focus();
+    }, 50);
   };
 
-  const handleApplyAutoRekomendasi = () => {
-    const defaultRekomendasi =
-      "1. Disarankan untuk menjadwalkan sesi konseling lanjutan atau psikoterapi berorientasi solusi (Solution-Focused) / CBT guna mengeksplorasi faktor pemicu stres.\n" +
-      "2. Mengembangkan regulasi emosi adaptif dan teknik relaksasi mandiri secara berkala.\n" +
-      "3. Evaluasi berkala setelah 3–6 bulan intervensi untuk melihat perkembangan stabilitas emosional.";
-    if (rekomendasi.trim().length > 0) {
-      if (!window.confirm("Ganti rekomendasi saat ini dengan saran rekomendasi umum?")) {
+  const handleRemovePage = (pageIdx: number) => {
+    if (pages.length <= 1) return;
+    const pageContent = pages[pageIdx]?.trim() || "";
+    if (pageContent.length > 0) {
+      if (!window.confirm(`Hapus Halaman ${pageIdx + 1}? Tulisan pada halaman ini akan ikut terhapus.`)) {
         return;
       }
     }
-    setRekomendasi(defaultRekomendasi);
+    setPages((prev) => prev.filter((_, idx) => idx !== pageIdx));
+    const newActiveIdx = Math.max(0, pageIdx - 1);
+    setActivePageIndex(newActiveIdx);
+    setTimeout(() => {
+      textareaRefs.current[newActiveIdx]?.focus();
+    }, 50);
+  };
+
+  // =========================================================================
+  // GAYA GOOGLE DOCS: SMART FORMATTING, AUTO-PAGINATION & KEYBOARD EVENTS
+  // =========================================================================
+
+  // Memindahkan prefiks daftar / kursor ke lembar halaman berikutnya secara otomatis
+  const moveNextPrefixToNextPage = (fromPageIdx: number, nextPrefix: string) => {
+    const targetIdx = fromPageIdx + 1;
+    setPages((prev) => {
+      const next = [...prev];
+      if (targetIdx < next.length) {
+        next[targetIdx] = nextPrefix + (next[targetIdx] ? "\n" + next[targetIdx] : "");
+      } else {
+        next.push(nextPrefix);
+      }
+      return next;
+    });
+
+    setActivePageIndex(targetIdx);
+    setTimeout(() => {
+      const nextTa = textareaRefs.current[targetIdx];
+      if (nextTa) {
+        nextTa.focus();
+        nextTa.selectionStart = nextPrefix.length;
+        nextTa.selectionEnd = nextPrefix.length;
+      }
+      const sheetEl = document.getElementById(`page-sheet-${targetIdx}`);
+      sheetEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 50);
+  };
+
+  // Handler perubahan teks per halaman dengan deteksi auto-spillover jika melebihi tinggi lembar A4
+  const handlePageChange = (pageIdx: number, newVal: string, cursorPos?: number) => {
+    const textarea = textareaRefs.current[pageIdx];
+    if (!textarea) {
+      setPages((prev) => {
+        const next = [...prev];
+        next[pageIdx] = newVal;
+        return next;
+      });
+      return;
+    }
+
+    const isPage1 = pageIdx === 0;
+    const fullCapacity = isPage1 ? PAGE1_FULL_HEIGHT : SUBSEQUENT_FULL_HEIGHT;
+    const sigCapacity = isPage1 ? PAGE1_MAX_WITH_SIG : SUBSEQUENT_MAX_WITH_SIG;
+    const textHeight = measureTextHeight(newVal, textarea);
+
+    // 1. JIKA TEKS MELEBIHI KAPASITAS PENUH LEMBAR A4 (nyampe batas paling bawah A4):
+    // Alirkan sisa teks ke lembar halaman berikutnya secara otomatis
+    if (textHeight > fullCapacity) {
+      const tempPages = [...pages];
+      tempPages[pageIdx] = newVal;
+      const { nextPages, newActivePage, newCursorPos } = paginateAndSpillover(
+        tempPages,
+        pageIdx,
+        (idx) => textareaRefs.current[idx],
+        typeof cursorPos === "number" ? { pageIdx, pos: cursorPos } : undefined
+      );
+
+      setPages(nextPages);
+
+      if (typeof newActivePage === "number" && newActivePage !== pageIdx) {
+        setActivePageIndex(newActivePage);
+        setTimeout(() => {
+          const targetTa = textareaRefs.current[newActivePage];
+          if (targetTa) {
+            targetTa.focus();
+            if (typeof newCursorPos === "number") {
+              targetTa.selectionStart = newCursorPos;
+              targetTa.selectionEnd = newCursorPos;
+            }
+            const sheetEl = document.getElementById(`page-sheet-${newActivePage}`);
+            sheetEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }, 50);
+      }
+      return;
+    }
+
+    // 2. JIKA TEKS MASIH MUAT DI LEMBAR INI:
+    // Cek kebutuhan pemindahan tanda tangan jika halaman ini adalah halaman terakhir
+    const isLast = pageIdx === pages.length - 1;
+
+    if (isLast) {
+      // Jika teks melebihi kapasitas bersama tanda tangan, buat lembar baru di bawahnya khusus untuk tanda tangan,
+      // TETAPI pengguna tetap fokus dan bebas mengetik di halaman ini sampai penuh (PAGE1_FULL_HEIGHT / SUBSEQUENT_FULL_HEIGHT)
+      if (textHeight > sigCapacity) {
+        setPages((prev) => {
+          const next = [...prev];
+          next[pageIdx] = newVal;
+          next.push("");
+          return next;
+        });
+        return;
+      }
+    } else if (pageIdx === pages.length - 2) {
+      // Jika halaman berikutnya kosong dan teks di halaman ini menyusut kembali sehingga muat bersama tanda tangan
+      const nextSheetText = pages[pages.length - 1] || "";
+      if (nextSheetText.trim() === "" && textHeight <= sigCapacity) {
+        setPages((prev) => {
+          const next = [...prev];
+          next[pageIdx] = newVal;
+          next.pop(); // Tarik tanda tangan kembali ke halaman ini
+          return next;
+        });
+        return;
+      }
+    }
+
+    // Pembaruan teks standar jika masih muat normal
+    setPages((prev) => {
+      const next = [...prev];
+      next[pageIdx] = newVal;
+      return next;
+    });
+  };
+
+  const applyFormat = (
+    type: "bold" | "italic" | "number" | "roman" | "bullet" | "indent" | "outdent"
+  ) => {
+    const curIdx = activePageIndex;
+    const textarea = textareaRefs.current[curIdx] || textareaRefs.current[0];
+    if (!textarea) return;
+
+    const { selectionStart, selectionEnd, value } = textarea;
+    const selectedText = value.slice(selectionStart, selectionEnd);
+
+    const updateCurrentPage = (newValue: string, newStart: number, newEnd: number) => {
+      handlePageChange(curIdx, newValue, newStart);
+      setTimeout(() => {
+        const ta = textareaRefs.current[curIdx] || textarea;
+        ta.focus();
+        ta.selectionStart = newStart;
+        ta.selectionEnd = newEnd;
+      }, 0);
+    };
+
+    if (type === "bold") {
+      const wrapped = `**${selectedText || "teks tebal"}**`;
+      const newValue = value.slice(0, selectionStart) + wrapped + value.slice(selectionEnd);
+      updateCurrentPage(newValue, selectionStart + 2, selectionStart + 2 + (selectedText.length || 10));
+      return;
+    }
+
+    if (type === "italic") {
+      const wrapped = `*${selectedText || "teks miring"}*`;
+      const newValue = value.slice(0, selectionStart) + wrapped + value.slice(selectionEnd);
+      updateCurrentPage(newValue, selectionStart + 1, selectionStart + 1 + (selectedText.length || 11));
+      return;
+    }
+
+    if (type === "number") {
+      let lastNum = findLastNumberBeforeCursor(value, selectionStart);
+      if (lastNum === 0 && curIdx > 0) {
+        lastNum = findLastNumberInAllPages(pages, curIdx - 1);
+      }
+      const nextNum = lastNum > 0 ? lastNum + 1 : 1;
+      const needsNewline = selectionStart > 0 && value[selectionStart - 1] !== "\n";
+      const prefix = needsNewline ? `\n${nextNum}.${TAB_STR}` : `${nextNum}.${TAB_STR}`;
+      const newValue = value.slice(0, selectionStart) + prefix + value.slice(selectionEnd);
+      updateCurrentPage(newValue, selectionStart + prefix.length, selectionStart + prefix.length);
+      return;
+    }
+
+    if (type === "roman") {
+      let lastRoman = findLastRomanBeforeCursor(value, selectionStart);
+      if (lastRoman === 0 && curIdx > 0) {
+        lastRoman = findLastRomanInAllPages(pages, curIdx - 1);
+      }
+      const nextRomanVal = lastRoman > 0 ? lastRoman + 1 : 1;
+      const nextRomanStr = toRoman(nextRomanVal);
+      const needsNewline = selectionStart > 0 && value[selectionStart - 1] !== "\n";
+      const prefix = needsNewline ? `\n${nextRomanStr}.${TAB_STR}` : `${nextRomanStr}.${TAB_STR}`;
+      const newValue = value.slice(0, selectionStart) + prefix + value.slice(selectionEnd);
+      updateCurrentPage(newValue, selectionStart + prefix.length, selectionStart + prefix.length);
+      return;
+    }
+
+    if (type === "bullet") {
+      const needsNewline = selectionStart > 0 && value[selectionStart - 1] !== "\n";
+      const prefix = needsNewline ? `\n•${TAB_STR}` : `•${TAB_STR}`;
+      const newValue = value.slice(0, selectionStart) + prefix + value.slice(selectionEnd);
+      updateCurrentPage(newValue, selectionStart + prefix.length, selectionStart + prefix.length);
+      return;
+    }
+
+    if (type === "indent") {
+      const newValue = value.slice(0, selectionStart) + TAB_STR + value.slice(selectionEnd);
+      updateCurrentPage(newValue, selectionStart + TAB_STR.length, selectionStart + TAB_STR.length);
+      return;
+    }
+
+    if (type === "outdent") {
+      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+      const currentLine = value.slice(lineStart);
+      const matchSpaces = currentLine.match(/^ {1,4}/);
+      if (matchSpaces) {
+        const removeCount = matchSpaces[0].length;
+        const newValue = value.slice(0, lineStart) + currentLine.slice(removeCount);
+        updateCurrentPage(
+          newValue,
+          Math.max(lineStart, selectionStart - removeCount),
+          Math.max(lineStart, selectionStart - removeCount)
+        );
+      }
+      return;
+    }
+  };
+
+  const handleKeyDownOnPage = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    pageIdx: number
+  ) => {
+    setActivePageIndex(pageIdx);
+    const textarea = textareaRefs.current[pageIdx];
+    if (!textarea) return;
+
+    const { selectionStart, selectionEnd, value } = textarea;
+
+    const setPageText = (newVal: string, newStart?: number, newEnd?: number) => {
+      handlePageChange(pageIdx, newVal, newStart);
+      if (typeof newStart === "number") {
+        setTimeout(() => {
+          const ta = textareaRefs.current[pageIdx] || textarea;
+          ta.focus();
+          ta.selectionStart = newStart;
+          ta.selectionEnd = typeof newEnd === "number" ? newEnd : newStart;
+        }, 0);
+      }
+    };
+
+    // 0. SHORTCUT CTRL+ENTER: TAMBAH LEMBAR HALAMAN BARU DI BAWAHNYA
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleAddPage(pageIdx + 1);
+      return;
+    }
+
+    // 1. SHORTCUTS CTRL+B & CTRL+I
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      applyFormat("bold");
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
+      e.preventDefault();
+      applyFormat("italic");
+      return;
+    }
+
+    // 2. BACKSPACE PADA AWAL LEMBAR HALAMAN (JIKA BUKAN HALAMAN 1)
+    if (e.key === "Backspace" && selectionStart === 0 && selectionEnd === 0 && pageIdx > 0) {
+      e.preventDefault();
+      if (value.trim() === "") {
+        handleRemovePage(pageIdx);
+      } else {
+        // Lompat ke akhir lembar halaman sebelumnya
+        const prevIdx = pageIdx - 1;
+        setActivePageIndex(prevIdx);
+        setTimeout(() => {
+          const prevTa = textareaRefs.current[prevIdx];
+          if (prevTa) {
+            prevTa.focus();
+            prevTa.selectionStart = prevTa.value.length;
+            prevTa.selectionEnd = prevTa.value.length;
+            const prevSheet = document.getElementById(`page-sheet-${prevIdx}`);
+            prevSheet?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }, 30);
+      }
+      return;
+    }
+
+    // 3. TOMBOL TAB (INDENTASI 4 SPASI SERAGAM) & SHIFT+TAB (OUTDENT)
+    if (e.key === "Tab") {
+      e.preventDefault();
+
+      if (selectionStart === selectionEnd) {
+        try {
+          if (!document.execCommand("insertText", false, TAB_STR)) {
+            throw new Error();
+          }
+        } catch {
+          const newValue = value.slice(0, selectionStart) + TAB_STR + value.slice(selectionEnd);
+          setPageText(newValue, selectionStart + TAB_STR.length);
+        }
+      } else {
+        const startLine = value.lastIndexOf("\n", selectionStart - 1) + 1;
+        const endLine = value.indexOf("\n", selectionEnd);
+        const effectiveEnd = endLine === -1 ? value.length : endLine;
+        const selectedText = value.slice(startLine, effectiveEnd);
+        const lines = selectedText.split("\n");
+
+        if (e.shiftKey) {
+          const unindentedLines = lines.map((l) =>
+            l.startsWith(TAB_STR) ? l.slice(TAB_STR.length) : l.replace(/^\s{1,3}/, "")
+          );
+          const newBlock = unindentedLines.join("\n");
+          const diff = selectedText.length - newBlock.length;
+          const newValue = value.slice(0, startLine) + newBlock + value.slice(effectiveEnd);
+          setPageText(newValue, startLine, Math.max(startLine, selectionEnd - diff));
+        } else {
+          const indentedLines = lines.map((l) => TAB_STR + l);
+          const newBlock = indentedLines.join("\n");
+          const diff = newBlock.length - selectedText.length;
+          const newValue = value.slice(0, startLine) + newBlock + value.slice(effectiveEnd);
+          setPageText(newValue, startLine, selectionEnd + diff);
+        }
+      }
+      return;
+    }
+
+    // 4. SMART AUTO-CONVERT SAAT MENEKAN TOMBOL SPASI (Spacebar)
+    if (e.key === " " && selectionStart === selectionEnd) {
+      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+      const currentLine = value.slice(lineStart, selectionStart);
+
+      // Angka Romawi: misal "I." atau "II."
+      const romanMatch = currentLine.match(/^(\s*)([IVXLCDMivxlcdm]+)\.$/);
+      if (romanMatch && isRomanValid(romanMatch[2])) {
+        e.preventDefault();
+        const indent = romanMatch[1];
+        const romanUpper = romanMatch[2].toUpperCase();
+        const replaceText = `${indent}${romanUpper}.${TAB_STR}`;
+        const newValue = value.slice(0, lineStart) + replaceText + value.slice(selectionEnd);
+        setPageText(newValue, lineStart + replaceText.length);
+        return;
+      }
+
+      // Angka Desimal: misal "1.", "2."
+      const numPattern = currentLine.match(/^(\s*)(\d+)\.$/);
+      if (numPattern) {
+        e.preventDefault();
+        const indent = numPattern[1];
+        const num = numPattern[2];
+        const replaceText = `${indent}${num}.${TAB_STR}`;
+        const newValue = value.slice(0, lineStart) + replaceText + value.slice(selectionEnd);
+        setPageText(newValue, lineStart + replaceText.length);
+        return;
+      }
+
+      // Bullet: "-" atau "*"
+      const bulletPattern = currentLine.match(/^(\s*)([\-\*])$/);
+      if (bulletPattern) {
+        e.preventDefault();
+        const indent = bulletPattern[1];
+        const replaceText = `${indent}•${TAB_STR}`;
+        const newValue = value.slice(0, lineStart) + replaceText + value.slice(selectionEnd);
+        setPageText(newValue, lineStart + replaceText.length);
+        return;
+      }
+
+      // Abjad: "a.", "b."
+      const letterPattern = currentLine.match(/^(\s*)([a-zA-Z])\.$/);
+      if (letterPattern) {
+        e.preventDefault();
+        const indent = letterPattern[1];
+        const letter = letterPattern[2];
+        const replaceText = `${indent}${letter}.${TAB_STR}`;
+        const newValue = value.slice(0, lineStart) + replaceText + value.slice(selectionEnd);
+        setPageText(newValue, lineStart + replaceText.length);
+        return;
+      }
+    }
+
+    // 5. SMART AUTO NUMBERING / BULLET / ROMAWI PADA TOMBOL ENTER & AUTO-PAGE OVERFLOW
+    if (e.key === "Enter" && !e.shiftKey) {
+      const isCursorNearEnd = selectionStart >= value.length - 1;
+      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+      const currentLine = value.slice(lineStart, selectionStart);
+
+      // Helper untuk memprediksi apakah penambahan baris baru ini akan benar-benar meluap melebihi batas A4
+      const willOverflow = (insertPrefix: string): boolean => {
+        const isPage1 = pageIdx === 0;
+        const maxCapacity = isPage1 ? PAGE1_FULL_HEIGHT : SUBSEQUENT_FULL_HEIGHT;
+        const predictedText = value.slice(0, selectionStart) + "\n" + insertPrefix + value.slice(selectionEnd);
+        const predictedHeight = measureTextHeight(predictedText, textarea);
+        return predictedHeight > maxCapacity;
+      };
+
+      // A. Cek list Romawi aktif ("I.    ", "II.    ")
+      const romanListMatch = currentLine.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s+)(.*)$/);
+      if (romanListMatch && isRomanValid(romanListMatch[2])) {
+        if (!romanListMatch[4].trim()) {
+          e.preventDefault();
+          const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
+          setPageText(newValue, lineStart);
+          return;
+        }
+
+        const indent = romanListMatch[1];
+        const curVal = fromRoman(romanListMatch[2]);
+        const nextRomanStr = toRoman(curVal + 1);
+        const nextPrefix = `${indent}${nextRomanStr}.${TAB_STR}`;
+
+        if (isCursorNearEnd && willOverflow(nextPrefix)) {
+          e.preventDefault();
+          moveNextPrefixToNextPage(pageIdx, nextPrefix);
+          return;
+        }
+
+        e.preventDefault();
+        const insertText = `\n${nextPrefix}`;
+        try {
+          if (!document.execCommand("insertText", false, insertText)) {
+            throw new Error();
+          }
+        } catch {
+          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
+          setPageText(newValue, selectionStart + insertText.length);
+        }
+        return;
+      }
+
+      // B. Cek list Angka biasa ("1.    ", "2.    ")
+      const numberMatch = currentLine.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
+      if (numberMatch) {
+        if (!numberMatch[4].trim()) {
+          e.preventDefault();
+          const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
+          setPageText(newValue, lineStart);
+          return;
+        }
+
+        const indent = numberMatch[1];
+        const nextNum = parseInt(numberMatch[2], 10) + 1;
+        const nextPrefix = `${indent}${nextNum}.${TAB_STR}`;
+
+        if (isCursorNearEnd && willOverflow(nextPrefix)) {
+          e.preventDefault();
+          moveNextPrefixToNextPage(pageIdx, nextPrefix);
+          return;
+        }
+
+        e.preventDefault();
+        const insertText = `\n${nextPrefix}`;
+        try {
+          if (!document.execCommand("insertText", false, insertText)) {
+            throw new Error();
+          }
+        } catch {
+          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
+          setPageText(newValue, selectionStart + insertText.length);
+        }
+        return;
+      }
+
+      // C. Cek list Bullet ("•    ")
+      const bulletMatch = currentLine.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
+      if (bulletMatch) {
+        if (!bulletMatch[4].trim()) {
+          e.preventDefault();
+          const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
+          setPageText(newValue, lineStart);
+          return;
+        }
+
+        const indent = bulletMatch[1];
+        const nextPrefix = `${indent}•${TAB_STR}`;
+
+        if (isCursorNearEnd && willOverflow(nextPrefix)) {
+          e.preventDefault();
+          moveNextPrefixToNextPage(pageIdx, nextPrefix);
+          return;
+        }
+
+        e.preventDefault();
+        const insertText = `\n${nextPrefix}`;
+        try {
+          if (!document.execCommand("insertText", false, insertText)) {
+            throw new Error();
+          }
+        } catch {
+          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
+          setPageText(newValue, selectionStart + insertText.length);
+        }
+        return;
+      }
+
+      // D. Cek list Abjad ("a.    ")
+      const letterMatch = currentLine.match(/^(\s*)([a-zA-Z])\.(\s+)(.*)$/);
+      if (letterMatch) {
+        if (!letterMatch[4].trim()) {
+          e.preventDefault();
+          const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
+          setPageText(newValue, lineStart);
+          return;
+        }
+
+        const indent = letterMatch[1];
+        const nextChar = String.fromCharCode(letterMatch[2].charCodeAt(0) + 1);
+        const nextPrefix = `${indent}${nextChar}.${TAB_STR}`;
+
+        if (isCursorNearEnd && willOverflow(nextPrefix)) {
+          e.preventDefault();
+          moveNextPrefixToNextPage(pageIdx, nextPrefix);
+          return;
+        }
+
+        e.preventDefault();
+        const insertText = `\n${nextPrefix}`;
+        try {
+          if (!document.execCommand("insertText", false, insertText)) {
+            throw new Error();
+          }
+        } catch {
+          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
+          setPageText(newValue, selectionStart + insertText.length);
+        }
+        return;
+      }
+
+      // E. Kelanjutan paragraf ke list berikutnya
+      const textBefore = value.slice(0, lineStart);
+      const prevLines = textBefore.trimEnd().split("\n");
+      const lastLineAbove = prevLines[prevLines.length - 1] || "";
+      const matchAboveNumber = lastLineAbove.match(/^(\s*)(\d+)\./);
+      const matchAboveRoman = lastLineAbove.match(/^(\s*)([IVXLCDMivxlcdm]+)\./);
+
+      if (matchAboveNumber && currentLine.trim().length > 0) {
+        const nextNum = parseInt(matchAboveNumber[2], 10) + 1;
+        const nextPrefix = `${nextNum}.${TAB_STR}`;
+
+        if (isCursorNearEnd && willOverflow(nextPrefix)) {
+          e.preventDefault();
+          moveNextPrefixToNextPage(pageIdx, nextPrefix);
+          return;
+        }
+
+        e.preventDefault();
+        const insertText = `\n${nextPrefix}`;
+        try {
+          if (!document.execCommand("insertText", false, insertText)) {
+            throw new Error();
+          }
+        } catch {
+          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
+          setPageText(newValue, selectionStart + insertText.length);
+        }
+        return;
+      }
+
+      if (matchAboveRoman && isRomanValid(matchAboveRoman[2]) && currentLine.trim().length > 0) {
+        const curRomanVal = fromRoman(matchAboveRoman[2]);
+        const nextRomanStr = toRoman(curRomanVal + 1);
+        const nextPrefix = `${nextRomanStr}.${TAB_STR}`;
+
+        if (isCursorNearEnd && willOverflow(nextPrefix)) {
+          e.preventDefault();
+          moveNextPrefixToNextPage(pageIdx, nextPrefix);
+          return;
+        }
+
+        e.preventDefault();
+        const insertText = `\n${nextPrefix}`;
+        try {
+          if (!document.execCommand("insertText", false, insertText)) {
+            throw new Error();
+          }
+        } catch {
+          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
+          setPageText(newValue, selectionStart + insertText.length);
+        }
+        return;
+      }
+
+      // F. Enter biasa saat lembar halaman sudah penuh di ujung bawah
+      if (isCursorNearEnd && willOverflow("")) {
+        e.preventDefault();
+        moveNextPrefixToNextPage(pageIdx, "");
+        return;
+      }
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    const combined = getCombinedCatatan(pages);
+    if (!pages.some((p) => p.trim().length > 0)) {
+      setSubmitError("Ketik isi telaah terlebih dahulu sebelum menyimpan draf.");
+      return;
+    }
+
+    setIsSavingDraft(true);
+    setSubmitError(null);
+    setDraftMessage(null);
+
+    try {
+      const activePsikologId =
+        item.psikolog?.id ||
+        localStorage.getItem("active_psikolog_id") ||
+        sessionStorage.getItem("active_psikolog_id");
+
+      await psikotesService.submitReview(item.id, {
+        catatan_psikolog: combined,
+        rekomendasi_psikolog: null,
+        id_psikolog: activePsikologId || null,
+        is_draft: true,
+      });
+
+      try {
+        localStorage.setItem(`empathika_draft_review_${item.id}`, combined);
+      } catch {
+        // Safe catch jika storage quota penuh
+      }
+
+      setDraftMessage("Draf berhasil disimpan!");
+      setTimeout(() => {
+        setDraftMessage(null);
+      }, 3500);
+    } catch (err: any) {
+      setSubmitError(err?.response?.data?.message || err.message || "Gagal menyimpan draf telaah.");
+    } finally {
+      setIsSavingDraft(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!catatan.trim()) {
-      setSubmitError("Catatan dinamika kepribadian psikolog wajib diisi sebelum menerbitkan laporan.");
+    const combined = getCombinedCatatan(pages);
+    if (!pages.some((p) => p.trim().length > 0)) {
+      setSubmitError("Catatan telaah psikolog wajib diisi sebelum menerbitkan laporan.");
       return;
     }
 
@@ -146,19 +1092,27 @@ export default function ModalReviewPsikotes({
 
     try {
       const activePsikologId =
-        localStorage.getItem("active_psikolog_id") || sessionStorage.getItem("active_psikolog_id");
+        item.psikolog?.id ||
+        localStorage.getItem("active_psikolog_id") ||
+        sessionStorage.getItem("active_psikolog_id");
 
       const res = await psikotesService.submitReview(item.id, {
-        catatan_psikolog: catatan.trim(),
-        rekomendasi_psikolog: rekomendasi.trim() || null,
+        catatan_psikolog: combined,
+        rekomendasi_psikolog: null,
         id_psikolog: activePsikologId || null,
       });
+
+      try {
+        localStorage.removeItem(`empathika_draft_review_${item.id}`);
+      } catch {
+        // Safe catch
+      }
 
       const updated: ReviewPsikotesItem = {
         ...item,
         status_pengerjaan: "SELESAI",
-        catatan_psikolog: catatan.trim(),
-        rekomendasi_psikolog: rekomendasi.trim() || null,
+        catatan_psikolog: combined,
+        rekomendasi_psikolog: null,
         tanggal_review: new Date().toISOString(),
         psikolog: res.data?.booking?.psikolog
           ? {
@@ -177,503 +1131,730 @@ export default function ModalReviewPsikotes({
     }
   };
 
+  const handleDownloadPdf = async () => {
+    if (!item) return;
+    try {
+      setIsDownloadingPdf(true);
+      const combined = getCombinedCatatan();
+      const pdfData: LaporanPsikotesPdfData = {
+        noDokumen: item.kode_akses || `DOC-${item.id}`,
+        judulTes: item.nama_paket || "Laporan Hasil Psikotes",
+        tanggalAsesmen: item.tanggal_pengerjaan,
+        masaBerlaku: "Masa Berlaku: 3 Bulan",
+        peserta: {
+          nama: item.nama_peserta || "Peserta",
+          usia: item.usia ?? null,
+          jenisKelamin: item.jenis_kelamin || null,
+        },
+        catatanPsikolog: combined,
+        namaPsikolog:
+          item.psikolog?.nama ||
+          fullDetail?.psikolog?.nama_gelar ||
+          "Psikolog Klinis Empathika",
+        tanggalReview: item.tanggal_review || new Date().toISOString(),
+        hasilUtama: {
+          judul: item.nama_paket || "Laporan Hasil Psikotes",
+          deskripsi: "",
+        },
+      };
+      await downloadLaporanPsikotesPdf(pdfData);
+    } catch (err: any) {
+      console.error("Gagal mengunduh dokumen PDF:", err);
+      alert("Gagal mengunduh dokumen PDF. Silakan coba kembali.");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
   const isSudahReview = item.status_pengerjaan === "SELESAI";
   const reviewSla = calculateReviewSla(item.tanggal_pengerjaan);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-white rounded-3xl shadow-2xl border border-purple-100 overflow-hidden font-poppins text-gray-800">
-        {/* Header Modal */}
-        <div className="shrink-0 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-50/60 to-white flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-[#561269] text-white">
-                <Stethoscope className="w-5 h-5" />
-              </span>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 truncate">
-                  Telaah & Catatan Klinis Psikolog
-                </h2>
-                <p className="text-xs text-gray-500">
-                  {item.nama_paket} • Tiket: <span className="font-mono font-semibold text-purple-900">{item.kode_akses || "—"}</span>
-                </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-3 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div
+        className={`relative w-full flex flex-col bg-[#F3F4F6] transition-all duration-300 font-sans text-gray-800 overflow-hidden ${
+          isFullscreen
+            ? "h-screen w-screen rounded-none"
+            : "max-w-7xl h-[94vh] rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-300/80"
+        }`}
+      >
+        {/* ========================================================================= */}
+        {/* 1. TOP TOOLBAR DOKUMEN (Clean Workspace Header)                           */}
+        {/* ========================================================================= */}
+        <header className="shrink-0 px-4 sm:px-6 py-2.5 bg-white border-b border-gray-200 flex items-center justify-between gap-3 shadow-xs">
+          {/* Sisi Kiri: Judul Dokumen & Tombol Buka Panel jika sedang tertutup */}
+          <div className="flex items-center gap-3 min-w-0">
+            {!showScoreSidebar && (
+              <button
+                type="button"
+                onClick={() => setShowScoreSidebar(true)}
+                className="p-1.5 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 text-[#561269] transition-colors cursor-pointer shrink-0"
+                title="Buka Referensi Skor Asesmen"
+              >
+                <PanelLeft className="w-4 h-4" />
+              </button>
+            )}
+            <span className="p-2 rounded-xl bg-[#561269] text-white shrink-0 shadow-xs">
+              <Stethoscope className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-bold text-gray-900 truncate">
+                  Lembar Telaah Klinis Psikolog
+                </h1>
+                <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-md bg-purple-50 text-purple-900 border border-purple-200 font-mono font-medium">
+                  {item.kode_akses || "DOC-KLINIS"}
+                </span>
               </div>
+              <p className="text-[11px] text-gray-500 truncate">
+                {item.nama_paket} &bull; Klien: <span className="font-semibold text-gray-800">{item.nama_peserta}</span>
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Sisi Kanan: Kontrol Toolbar, Simpan Draf & Aksi Terbitkan */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Status Notifikasi Simpan Draf */}
+            {draftMessage && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-in fade-in duration-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                {draftMessage}
+              </span>
+            )}
+
+            {/* SLA Badge */}
+            {!isSudahReview && (
+              <span
+                className={`hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${reviewSla.badgeClass}`}
+                title={`Target SLA: ${reviewSla.deadlineFormatted}`}
+              >
+                <Clock className="w-3 h-3" />
+                {reviewSla.badgeLabel} (SLA 3 Hari Kerja)
+              </span>
+            )}
+
+            {/* Toggle Fullscreen */}
+            <button
+              type="button"
+              onClick={() => setIsFullscreen((prev) => !prev)}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors cursor-pointer"
+              title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
+            {/* Tombol Simpan Draf */}
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={isSavingDraft || isSubmitting || !pages.some((p) => p.trim().length > 0)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 text-xs font-semibold shadow-2xs hover:shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+              title="Simpan draf telaah sementara"
+            >
+              {isSavingDraft ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-700" />
+                  <span>Menyimpan Draf...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5 text-gray-600" />
+                  <span>Simpan Draf</span>
+                </>
+              )}
+            </button>
+
+            {/* Tombol Unduh PDF Dokumen Resmi */}
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={isDownloadingPdf || isSubmitting || !pages.some((p) => p.trim().length > 0)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50/80 hover:bg-purple-100 text-[#561269] text-xs font-semibold shadow-2xs hover:shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+              title="Unduh dokumen resmi A4 PDF telaah klinis"
+            >
+              {isDownloadingPdf ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#561269]" />
+                  <span>Mengunduh...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5 text-[#561269]" />
+                  <span>Unduh PDF</span>
+                </>
+              )}
+            </button>
+
+            {/* Tombol Terbitkan Laporan */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || isSavingDraft || !pages.some((p) => p.trim().length > 0)}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <>
+                  <FileCheck2 className="w-3.5 h-3.5" />
+                  <span>{isSudahReview ? "Perbarui Telaah" : "Terbitkan Laporan"}</span>
+                </>
+              )}
+            </button>
+
+            {/* Tombol Tutup */}
             <button
               type="button"
               onClick={onClose}
-              disabled={isSubmitting}
-              className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-              title="Tutup Modal"
+              disabled={isSubmitting || isSavingDraft}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer ml-1"
+              title="Tutup (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Ringkasan Sub-Header: Identitas Peserta & Status */}
-        <div className="shrink-0 px-6 py-3 bg-purple-50/40 border-b border-purple-100/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-1.5 text-gray-700">
-              <User className="w-4 h-4 text-purple-700" />
-              <span className="font-semibold text-gray-900">{item.nama_peserta}</span>
-              {item.usia ? <span className="text-gray-500">• {item.usia} Th</span> : null}
-              {item.jenis_kelamin ? <span className="text-gray-500">• {item.jenis_kelamin}</span> : null}
-            </div>
-            <div className="flex items-center gap-1.5 text-gray-500">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>
-                Selesai:{" "}
-                {new Date(item.tanggal_pengerjaan).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                isSudahReview
-                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                  : "bg-amber-100 text-amber-800 border border-amber-200"
-              }`}
-            >
-              {isSudahReview ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  Laporan Terbit
-                </>
-              ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  Menunggu Telaah
-                </>
-              )}
-            </span>
-
-            {!isSudahReview && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border ${reviewSla.badgeClass}`}
-                title={`Target Deadline SLA: ${reviewSla.deadlineFormatted}`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                {reviewSla.badgeLabel} (SLA Maks. 3 Hari)
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Navigasi Tab */}
-        <div className="shrink-0 px-6 pt-3 border-b border-gray-100 bg-white flex gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab("telaah")}
-            className={`pb-2.5 px-4 text-xs sm:text-sm font-semibold transition-all relative ${
-              activeTab === "telaah"
-                ? "text-[#561269] border-b-2 border-[#561269]"
-                : "text-gray-500 hover:text-gray-800"
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <FileCheck2 className="w-4 h-4" />
-              Form Telaah & Rekomendasi
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("profil")}
-            className={`pb-2.5 px-4 text-xs sm:text-sm font-semibold transition-all relative ${
-              activeTab === "profil"
-                ? "text-[#561269] border-b-2 border-[#561269]"
-                : "text-gray-500 hover:text-gray-800"
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <BarChart3 className="w-4 h-4" />
-              Profil & Validitas Tes (Sistem)
-            </span>
-          </button>
-        </div>
-
-        {/* Konten Scrollable */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 [scrollbar-width:thin]">
-          {submitError && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
-              <div>
-                <p className="font-bold">Gagal Menyimpan:</p>
-                <p>{submitError}</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "telaah" ? (
-            /* TAB 1: FORM INPUT TELAAH & REKOMENDASI */
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Petunjuk Pengisian & SLA */}
-              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 text-xs text-purple-950 flex items-start gap-3">
-                <BookOpen className="w-5 h-5 text-purple-700 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-bold">Pedoman Profesional Psikolog</p>
-                    <span className="text-[10px] font-bold text-purple-900 bg-purple-200/70 px-2 py-0.5 rounded-md">
-                      SLA Telaah: Maks. {REVIEW_MAX_DAYS} Hari
-                    </span>
-                  </div>
-                  <p className="text-gray-600 leading-relaxed">
-                    Sesuai standar operasional Empathika, telaah klinis diselesaikan maksimal <strong>{REVIEW_MAX_DAYS} hari</strong> sejak pengerjaan peserta{" "}
-                    (Batas akhir: <strong>{reviewSla.deadlineFormatted}</strong>).
-                    Telaah dan rekomendasi klinis ini akan dicantumkan secara resmi pada lembar laporan hasil asesmen peserta
-                    lengkap dengan identitas nama Anda sebagai Psikolog Pemeriksa Terverifikasi.
-                  </p>
+        {/* ========================================================================= */}
+        {/* 2. BODY SPLIT WORKSPACE: SIDEBAR SKOR + LEMBAR DOKUMEN PUTIH POLOSAN      */}
+        {/* ========================================================================= */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* ======================================================================= */}
+          {/* A. SIDEBAR REFERENSI SKOR (KIRI) - Bisa di-collapse                     */}
+          {/* ======================================================================= */}
+          {showScoreSidebar && (
+            <aside className="w-80 lg:w-96 shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-left duration-200">
+              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/70 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-[#561269]" />
+                  <span className="text-xs font-bold text-gray-900">
+                    Referensi Data Asesmen
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {isLoadingDetail && <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />}
+                  <button
+                    type="button"
+                    onClick={() => setShowScoreSidebar(false)}
+                    className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200/80 transition-colors cursor-pointer"
+                    title="Tutup Referensi Skor"
+                  >
+                    <PanelLeftClose className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Field 1: Catatan Dinamika Kepribadian (Wajib) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                    Catatan Dinamika Kepribadian & Gambaran Klinis
-                    <span className="text-rose-500">*</span>
-                  </label>
-                  {autoDraftCatatan && (
+              {/* Konten Scrollable Sidebar */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs [scrollbar-width:thin]">
+                {/* 1. Indeks Validitas MCMI-IV */}
+                {isMcmi && detailSkor?.validitas && (
+                  <div className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-2xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-purple-700" />
+                        Validitas Profil (MCMI)
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-gray-600 leading-relaxed">
+                      {detailSkor.validitas.kesimpulan}
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-[10px]">
+                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                        <span className="text-gray-400 block text-[9px]">Skala V</span>
+                        <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaV ?? 0}</strong>
+                        <span className="text-[8px] text-gray-400 block">(&le; 1)</span>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                        <span className="text-gray-400 block text-[9px]">Skala W</span>
+                        <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaW ?? 0}</strong>
+                        <span className="text-[8px] text-gray-400 block">(&le; 19)</span>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                        <span className="text-gray-400 block text-[9px]">Skala X</span>
+                        <strong className="text-gray-900 text-xs">{detailSkor.validitas.skalaX ?? 0}</strong>
+                        <span className="text-[8px] text-gray-400 block">(7–114)</span>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100 col-span-1.5">
+                        <span className="text-gray-400 block text-[9px]">Skala Y (Desirability)</span>
+                        <strong className="text-gray-900 text-xs">BR {detailSkor.validitas.skalaY_BR ?? 0}</strong>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100 col-span-1.5">
+                        <span className="text-gray-400 block text-[9px]">Skala Z (Debasement)</span>
+                        <strong className="text-gray-900 text-xs">BR {detailSkor.validitas.skalaZ_BR ?? 0}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Spektrum Pola Kepribadian (15 Skala) - Dropdown Collapsible */}
+                {isMcmi && Array.isArray(detailSkor?.polaKepribadianList) && (
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-2xs">
                     <button
                       type="button"
-                      onClick={handleApplyAutoDraft}
-                      className="inline-flex items-center gap-1.5 text-xs text-purple-700 hover:text-purple-900 font-semibold px-2.5 py-1 rounded-lg bg-purple-100/70 hover:bg-purple-100 transition-colors"
-                      title="Salin narasi otomatis dari sistem sebagai draf awal"
+                      onClick={() => setShowPolaKepribadian((prev) => !prev)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50/80 hover:bg-gray-100/80 transition-colors flex items-center justify-between text-left cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Gunakan Draf Naratif Sistem
+                      <span className="font-bold text-gray-900 text-xs">
+                        Pola Kepribadian (15 Skala)
+                      </span>
+                      <div className="flex items-center gap-1.5 text-gray-500">
+                        <span className="text-[10px] text-gray-400">BR Base Rate</span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${
+                            showPolaKepribadian ? "rotate-180 text-purple-800" : ""
+                          }`}
+                        />
+                      </div>
                     </button>
-                  )}
-                </div>
-                <textarea
-                  value={catatan}
-                  onChange={(e) => setCatatan(e.target.value)}
-                  rows={6}
-                  placeholder="Tuliskan uraian analisis klinis kepribadian, kecenderungan afektif, relasi interpersonal, serta mekanisme koping peserta..."
-                  className="w-full rounded-2xl border border-gray-300 p-4 text-xs sm:text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#561269] focus:outline-none focus:ring-2 focus:ring-[#561269]/20 transition-all font-sans leading-relaxed"
-                  required
-                />
-                <p className="text-[11px] text-gray-400">
-                  Minimal 5 karakter. Berikan narasi yang informatif dan suportif bagi perkembangan mental peserta.
-                </p>
-              </div>
 
-              {/* Field 2: Rekomendasi Klinis & Tindak Lanjut */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                    Rekomendasi Klinis & Rencana Intervensi / Konseling
-                    <span className="text-gray-400 font-normal text-xs">(Opsional)</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleApplyAutoRekomendasi}
-                    className="inline-flex items-center gap-1.5 text-xs text-purple-700 hover:text-purple-900 font-semibold px-2.5 py-1 rounded-lg bg-purple-100/70 hover:bg-purple-100 transition-colors"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Contoh Format Rekomendasi
-                  </button>
-                </div>
-                <textarea
-                  value={rekomendasi}
-                  onChange={(e) => setRekomendasi(e.target.value)}
-                  rows={4}
-                  placeholder="Rekomendasikan langkah lanjutan, misal: Psikoterapi CBT, latihan regulasi emosi, konseling keluarga, atau evaluasi psikiatri..."
-                  className="w-full rounded-2xl border border-gray-300 p-4 text-xs sm:text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#561269] focus:outline-none focus:ring-2 focus:ring-[#561269]/20 transition-all font-sans leading-relaxed"
-                />
-              </div>
+                    {showPolaKepribadian && (
+                      <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto border-t border-gray-100 [scrollbar-width:thin] animate-in fade-in duration-150">
+                        {detailSkor.polaKepribadianList.map((scale: any) => {
+                          const br = Number(scale.brScore ?? 0);
+                          const isDisorder = br >= 85;
+                          const isType = br >= 75 && br < 85;
+                          const isStyle = br >= 60 && br < 75;
 
-              {/* Footer Aksi Form */}
-              <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-                <div className="text-xs text-gray-500">
-                  {item.psikolog?.nama ? (
-                    <span>
-                      Pemeriksa: <strong className="text-gray-800">{item.psikolog.nama}</strong>
-                    </span>
-                  ) : (
-                    <span>Akan diverifikasi atas nama akun psikolog yang sedang aktif</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    disabled={isSubmitting}
-                    className="px-5 py-2.5 rounded-full border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-all"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !catatan.trim()}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#561269] hover:bg-[#430c52] text-xs font-bold text-white shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      <>
-                        <FileCheck2 className="w-4 h-4" />
-                        {isSudahReview ? "Perbarui Telaah Laporan" : "Verifikasi & Terbitkan Laporan"}
-                      </>
+                          return (
+                            <div
+                              key={scale.kode}
+                              className={`p-2 rounded-lg border text-[11px] space-y-1 ${
+                                isDisorder
+                                  ? "bg-rose-50/70 border-rose-200 text-rose-950"
+                                  : isType
+                                  ? "bg-amber-50/70 border-amber-200 text-amber-950"
+                                  : isStyle
+                                  ? "bg-purple-50/60 border-purple-200 text-purple-950"
+                                  : "bg-gray-50/60 border-gray-100 text-gray-600"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold truncate max-w-[190px]">
+                                  {scale.kode}. {scale.nama}
+                                </span>
+                                <span className="font-bold shrink-0">BR {br}</span>
+                              </div>
+                              <div className="h-1 w-full bg-black/10 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    isDisorder
+                                      ? "bg-rose-600"
+                                      : isType
+                                      ? "bg-amber-600"
+                                      : isStyle
+                                      ? "bg-purple-700"
+                                      : "bg-gray-400"
+                                  }`}
+                                  style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
-                  </button>
-                </div>
-              </div>
-            </form>
-          ) : (
-            /* TAB 2: PROFIL SKOR & INDEKS VALIDITAS SISTEM */
-            <div className="space-y-6">
-              {isLoadingDetail && (
-                <div className="py-8 flex flex-col items-center justify-center text-xs text-gray-400 gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-purple-700" />
-                  <span>Memuat visualisasi profil klinis lengkap...</span>
-                </div>
-              )}
+                  </div>
+                )}
 
-              {/* Validitas MCMI-IV */}
-              {isMcmi && detailSkor?.validitas && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-purple-700" />
-                      Indeks Validitas & Keterandalan Profil (MCMI-IV)
-                    </h3>
-                    <span
-                      className={`px-3 py-0.5 rounded-full text-xs font-bold ${
-                        detailSkor.validitas.isValid
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-rose-100 text-rose-800"
-                      }`}
+                {/* 3. Sindroma Klinis (10 Skala) - Dropdown Collapsible */}
+                {isMcmi && Array.isArray(detailSkor?.sindromaKlinisList) && (
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setShowSindromaKlinis((prev) => !prev)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50/80 hover:bg-gray-100/80 transition-colors flex items-center justify-between text-left cursor-pointer"
                     >
-                      {detailSkor.validitas.isValid ? "PROFIL VALID" : "PROFIL MERAGUKAN"}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    {detailSkor.validitas.kesimpulan}
-                  </p>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 text-xs">
-                    <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-center">
-                      <span className="text-[11px] text-gray-400 block">Skala V (Validitas)</span>
-                      <strong className="text-gray-900 text-sm">{detailSkor.validitas.skalaV ?? 0}</strong>
-                      <span className="text-[10px] text-gray-400 block">(Batas &le; 1)</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-center">
-                      <span className="text-[11px] text-gray-400 block">Skala W (Inkonsistensi)</span>
-                      <strong className="text-gray-900 text-sm">{detailSkor.validitas.skalaW ?? 0}</strong>
-                      <span className="text-[10px] text-gray-400 block">(Batas &le; 19)</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-center">
-                      <span className="text-[11px] text-gray-400 block">Skala X (Keterbukaan)</span>
-                      <strong className="text-gray-900 text-sm">{detailSkor.validitas.skalaX ?? 0}</strong>
-                      <span className="text-[10px] text-gray-400 block">(7–114)</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-center">
-                      <span className="text-[11px] text-gray-400 block">Skala Y (Desirability)</span>
-                      <strong className="text-gray-900 text-sm">BR {detailSkor.validitas.skalaY_BR ?? 0}</strong>
-                      <span className="text-[10px] text-gray-400 block">Pencitraan Baik</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-center col-span-2 sm:col-span-1">
-                      <span className="text-[11px] text-gray-400 block">Skala Z (Debasement)</span>
-                      <strong className="text-gray-900 text-sm">BR {detailSkor.validitas.skalaZ_BR ?? 0}</strong>
-                      <span className="text-[10px] text-gray-400 block">Dramatisasi Sakit</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Spektrum Kepribadian Klinis MCMI-IV */}
-              {isMcmi && Array.isArray(detailSkor?.polaKepribadianList) && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-purple-700" />
-                      Spektrum Pola Kepribadian (15 Skala)
-                    </h3>
-                    <span className="text-[11px] text-gray-400">
-                      Ambang: Style (&ge;60), Type (&ge;75), Disorder (&ge;85)
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-                    {detailSkor.polaKepribadianList.map((scale: any) => {
-                      const br = Number(scale.brScore ?? 0);
-                      const isDisorder = br >= 85;
-                      const isType = br >= 75 && br < 85;
-                      const isStyle = br >= 60 && br < 75;
-
-                      return (
-                        <div
-                          key={scale.kode}
-                          className={`p-3 rounded-xl border transition-all text-xs space-y-1.5 ${
-                            isDisorder
-                              ? "bg-rose-50/70 border-rose-200 text-rose-950"
-                              : isType
-                              ? "bg-amber-50/70 border-amber-200 text-amber-950"
-                              : isStyle
-                              ? "bg-purple-50/60 border-purple-200 text-purple-950"
-                              : "bg-gray-50/60 border-gray-100 text-gray-700"
+                      <span className="font-bold text-gray-900 text-xs">
+                        Sindroma Klinis (10 Skala)
+                      </span>
+                      <div className="flex items-center gap-1.5 text-gray-500">
+                        <span className="text-[10px] text-gray-400">BR Base Rate</span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${
+                            showSindromaKlinis ? "rotate-180 text-purple-800" : ""
                           }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold">
-                              {scale.kode}. {scale.nama}
-                            </span>
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                isDisorder
-                                  ? "bg-rose-600 text-white"
-                                  : isType
-                                  ? "bg-amber-600 text-white"
-                                  : isStyle
-                                  ? "bg-purple-700 text-white"
-                                  : "bg-gray-200 text-gray-600"
-                              }`}
-                            >
-                              BR {br} • {scale.level}
-                            </span>
-                          </div>
+                        />
+                      </div>
+                    </button>
 
-                          {/* Progress bar BR */}
-                          <div className="h-1.5 w-full bg-black/10 rounded-full overflow-hidden">
+                    {showSindromaKlinis && (
+                      <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto border-t border-gray-100 [scrollbar-width:thin] animate-in fade-in duration-150">
+                        {detailSkor.sindromaKlinisList.map((scale: any) => {
+                          const br = Number(scale.brScore ?? 0);
+                          const isSevere = br >= 85;
+                          const isMild = br >= 75 && br < 85;
+
+                          return (
                             <div
-                              className={`h-full rounded-full transition-all ${
-                                isDisorder
-                                  ? "bg-rose-600"
-                                  : isType
-                                  ? "bg-amber-600"
-                                  : isStyle
-                                  ? "bg-purple-700"
-                                  : "bg-gray-400"
-                              }`}
-                              style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
-                            />
-                          </div>
-
-                          <p className="text-[11px] text-gray-500 leading-tight">
-                            {scale.deskripsi}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Sindroma Klinis MCMI-IV */}
-              {isMcmi && Array.isArray(detailSkor?.sindromaKlinisList) && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-2">
-                      <Stethoscope className="w-4 h-4 text-purple-700" />
-                      Sindroma Klinis & Gangguan Berat (10 Skala)
-                    </h3>
-                    <span className="text-[11px] text-gray-400">
-                      Ambang: Ringan (&ge;75), Berat (&ge;85)
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-                    {detailSkor.sindromaKlinisList.map((scale: any) => {
-                      const br = Number(scale.brScore ?? 0);
-                      const isSevere = br >= 85;
-                      const isMild = br >= 75 && br < 85;
-
-                      return (
-                        <div
-                          key={scale.kode}
-                          className={`p-3 rounded-xl border transition-all text-xs space-y-1.5 ${
-                            isSevere
-                              ? "bg-rose-50/70 border-rose-200 text-rose-950"
-                              : isMild
-                              ? "bg-amber-50/70 border-amber-200 text-amber-950"
-                              : "bg-gray-50/60 border-gray-100 text-gray-700"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold">
-                              {scale.kode}. {scale.nama}
-                            </span>
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              key={scale.kode}
+                              className={`p-2 rounded-lg border text-[11px] space-y-1 ${
                                 isSevere
-                                  ? "bg-rose-600 text-white"
+                                  ? "bg-rose-50/70 border-rose-200 text-rose-950"
                                   : isMild
-                                  ? "bg-amber-600 text-white"
-                                  : "bg-gray-200 text-gray-600"
+                                  ? "bg-amber-50/70 border-amber-200 text-amber-950"
+                                  : "bg-gray-50/60 border-gray-100 text-gray-600"
                               }`}
                             >
-                              BR {br} • {scale.level}
-                            </span>
-                          </div>
-
-                          <div className="h-1.5 w-full bg-black/10 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                isSevere ? "bg-rose-600" : isMild ? "bg-amber-600" : "bg-gray-400"
-                              }`}
-                              style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
-                            />
-                          </div>
-
-                          <p className="text-[11px] text-gray-500 leading-tight">
-                            {scale.deskripsi}
-                          </p>
-                        </div>
-                      );
-                    })}
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold truncate max-w-[190px]">
+                                  {scale.kode}. {scale.nama}
+                                </span>
+                                <span className="font-bold shrink-0">BR {br}</span>
+                              </div>
+                              <div className="h-1 w-full bg-black/10 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    isSevere ? "bg-rose-600" : isMild ? "bg-amber-600" : "bg-gray-400"
+                                  }`}
+                                  style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Tampilan Alternatif untuk Alat Ukur Lain (DASS, PHQ, dll) */}
-              {!isMcmi && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-sm space-y-3">
-                  <h3 className="text-xs sm:text-sm font-bold text-gray-900">
-                    Hasil Pengerjaan Tes
-                  </h3>
-                  <div className="p-4 rounded-xl bg-purple-50/50 border border-purple-100 text-xs text-gray-700 space-y-2">
-                    <p className="font-semibold text-gray-900">
+                {/* Alternatif untuk tes non-MCMI */}
+                {!isMcmi && (
+                  <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                    <span className="font-bold text-gray-900 block">Hasil Asesmen Standar</span>
+                    <p className="text-gray-700 font-semibold">
                       Total Skor: {fullDetail?.hasil?.total_skor ?? item.total_skor ?? "—"}
                     </p>
-                    <p className="leading-relaxed">
-                      {fullDetail?.hasil?.deskripsi || "Tidak ada deskripsi skor otomatis."}
+                    <p className="text-gray-600 text-[11px] leading-relaxed">
+                      {fullDetail?.hasil?.deskripsi || "Tidak ada rincian profil tambahan."}
                     </p>
+                  </div>
+                )}
+              </div>
+            </aside>
+          )}
+
+          {/* ======================================================================= */}
+          {/* B. CANVAS KERTAS DOKUMEN (SEPARATE A4 SHEETS PRINT VIEW)                 */}
+          {/* ======================================================================= */}
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#525659] [scrollbar-width:thin]">
+            <div className="max-w-[820px] mx-auto space-y-8">
+              {/* Notifikasi Error jika submit gagal */}
+              {submitError && (
+                <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 shadow-md">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Gagal Menyimpan Telaah:</p>
+                    <p>{submitError}</p>
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end pt-2">
+              {/* =================================================================== */}
+              {/* GOOGLE DOCS MINIMALIST FORMATTING TOOLBAR                           */}
+              {/* =================================================================== */}
+              <div className="bg-white rounded-xl border border-gray-300 shadow-md px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-sans sticky top-0 z-20">
+                {/* Kontrol Format Teks */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("bold")}
+                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Tebal (Ctrl+B)"
+                  >
+                    <Bold className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("italic")}
+                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Miring (Ctrl+I)"
+                  >
+                    <Italic className="w-4 h-4" />
+                  </button>
+
+                  <div className="h-4 w-px bg-gray-200 mx-1" />
+
+                  {/* Dropdown Format Daftar (Angka, Romawi, Poin) */}
+                  <div className="relative" ref={listDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsListDropdownOpen((prev) => !prev)}
+                      className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 font-medium border text-xs ${
+                        isListDropdownOpen
+                          ? "bg-purple-50 border-purple-300 text-purple-900"
+                          : "bg-white hover:bg-gray-100 border-gray-200/80 text-gray-700"
+                      }`}
+                      title="Pilihan Format Daftar (Angka, Romawi, Poin)"
+                    >
+                      <ListOrdered className="w-3.5 h-3.5 text-purple-800" />
+                      <span>Daftar</span>
+                      <ChevronDown className="w-3 h-3 text-gray-400" />
+                    </button>
+
+                    {isListDropdownOpen && (
+                      <div className="absolute left-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150 font-sans">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            applyFormat("number");
+                            setIsListDropdownOpen(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <span className="font-mono font-bold text-purple-800 w-5">1.2.</span>
+                          <span>Angka (1., 2., 3.)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            applyFormat("roman");
+                            setIsListDropdownOpen(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <span className="font-serif font-black text-purple-900 w-5">I.</span>
+                          <span>Romawi (I., II., III.)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            applyFormat("bullet");
+                            setIsListDropdownOpen(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <span className="text-purple-800 font-bold w-5">•</span>
+                          <span>Poin / Butir</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="h-4 w-px bg-gray-200 mx-1" />
+
+                  {/* Indent / Outdent (Tab) */}
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("outdent")}
+                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Kurangi Indentasi (Shift+Tab)"
+                  >
+                    <Outdent className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyFormat("indent")}
+                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Tambah Indentasi (Tab)"
+                  >
+                    <Indent className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* =================================================================== */}
+              {/* LOOP LEMBARAN KERTAS A4 TERPISAH (SEPARATE PHYSICAL A4 SHEETS)       */}
+              {/* =================================================================== */}
+              {pages.map((pageText, pageIdx) => {
+                const isFirstPage = pageIdx === 0;
+                const isLastPage = pageIdx === pages.length - 1;
+
+                return (
+                  <div
+                    key={pageIdx}
+                    id={`page-sheet-${pageIdx}`}
+                    onClick={() => setActivePageIndex(pageIdx)}
+                    className="relative bg-white rounded-sm shadow-2xl border border-gray-300/90 w-full max-w-[794px] h-[1123px] min-h-[1123px] max-h-[1123px] mx-auto px-8 sm:px-12 py-7 sm:py-8 flex flex-col justify-between text-gray-900 font-sans transition-all overflow-hidden box-border"
+                    style={{ width: "794px", height: "1123px", minHeight: "1123px", maxHeight: "1123px" }}
+                  >
+                    {/* BAGIAN ATAS LEMBAR A4 (HEADER & IDENTITAS) */}
+                    <div className="shrink-0 space-y-3">
+                      {isFirstPage ? (
+                        <>
+                          {/* 1. KOP SURAT RESMI BIRO PSIKOLOGI EMPATHIKA */}
+                          <div className="text-center space-y-1 pb-2 font-sans">
+                            <h1 className="text-xl sm:text-2xl font-black tracking-wider text-gray-900 uppercase">
+                              EMPATHIKA PSYCHOLOGICAL SERVICES
+                            </h1>
+                            <p className="text-xs sm:text-[13px] font-semibold text-gray-700 tracking-wide">
+                              BIRO LAYANAN PSIKOLOGI, ASESMEN KLINIS &amp; KESEHATAN MENTAL TERPADU
+                            </p>
+                            <p className="text-[11px] text-gray-500 font-normal">
+                              Layanan Psikotes Online &bull; Surat Keterangan / Laporan Psikologis Resmi Terverifikasi
+                            </p>
+
+                            {/* Garis Dobel Formal Kop Surat (Klasik Resmi) */}
+                            <div className="pt-2">
+                              <div className="border-b-2 border-gray-900 w-full" />
+                              <div className="border-b border-gray-900 w-full mt-[2px]" />
+                            </div>
+                          </div>
+
+                          {/* 2. IDENTITAS PESERTA (Clean & Resmi Tanpa Kotak-Kotak Warna) */}
+                          <div className="font-sans text-xs sm:text-[13px] text-gray-800 py-2.5 border-b border-gray-300/80">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5">
+                              {/* Kolom Kiri */}
+                              <div className="space-y-1.5">
+                                <div className="flex items-start">
+                                  <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Nama Lengkap</span>
+                                  <span className="w-4 text-gray-500 shrink-0">:</span>
+                                  <span className="font-bold text-gray-900 leading-snug break-words flex-1">{item.nama_peserta}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Jenis Kelamin</span>
+                                  <span className="w-4 text-gray-500 shrink-0">:</span>
+                                  <span className="text-gray-800">{item.jenis_kelamin || "—"}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Usia</span>
+                                  <span className="w-4 text-gray-500 shrink-0">:</span>
+                                  <span className="text-gray-800">{item.usia ? `${item.usia} Tahun` : "—"}</span>
+                                </div>
+                              </div>
+
+                              {/* Kolom Kanan */}
+                              <div className="space-y-1.5">
+                                <div className="flex items-center">
+                                  <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Nomor Tiket</span>
+                                  <span className="w-4 text-gray-500 shrink-0">:</span>
+                                  <span className="font-mono font-bold text-gray-900">{item.kode_akses || "—"}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Tanggal Pemeriksaan</span>
+                                  <span className="w-4 text-gray-500 shrink-0">:</span>
+                                  <span className="text-gray-800">
+                                    {new Date(item.tanggal_pengerjaan).toLocaleDateString("id-ID", {
+                                      day: "numeric",
+                                      month: "long",
+                                      year: "numeric",
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="flex items-start">
+                                  <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Alat Ukur / Asesmen</span>
+                                  <span className="w-4 text-gray-500 shrink-0">:</span>
+                                  <span className="font-semibold text-gray-900 leading-snug break-words flex-1">
+                                    {item.nama_paket}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        /* JIKA HALAMAN 2+: RUNNING HEADER DOKUMEN LANJUTAN RESMI */
+                        <div className="pb-2.5 border-b border-gray-300/80 flex items-center justify-between text-xs text-gray-600 font-sans">
+                          <span className="font-bold text-gray-900 tracking-wider uppercase text-[11px]">
+                            EMPATHIKA PSYCHOLOGICAL SERVICES
+                          </span>
+                          {/* Tombol Hapus Lembar Halaman Ini jika > 1 halaman */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemovePage(pageIdx);
+                            }}
+                            className="p-1 rounded-md text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Hapus lembar halaman ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* AREA KETIK LEMBAR A4 DOKUMEN (GAYA GOOGLE DOCS): FLEX-1 MENGISI PENUH SISA RUANG TANPA SCROLL INTERNAL */}
+                    <div className="flex-1 flex flex-col min-h-0 pt-2 pb-3.5 overflow-hidden">
+                      <textarea
+                        ref={(el) => {
+                          textareaRefs.current[pageIdx] = el;
+                        }}
+                        value={pageText}
+                        onFocus={() => setActivePageIndex(pageIdx)}
+                        onChange={(e) => handlePageChange(pageIdx, e.target.value, e.target.selectionStart)}
+                        onKeyDown={(e) => handleKeyDownOnPage(e, pageIdx)}
+                        onScroll={(e) => {
+                          // Mencegah teks kesekrol ke atas di dalam lembar A4
+                          (e.target as HTMLTextAreaElement).scrollTop = 0;
+                        }}
+                        placeholder={
+                          isFirstPage
+                            ? "Mulai ketik telaah klinis, interpretasi, dan rekomendasi secara leluasa di sini... (Ketik 1. atau I. lalu Spasi untuk auto-list, tekan Enter di batas halaman untuk lanjut ke halaman berikutnya)"
+                            : `Lanjutkan penulisan telaah pada Halaman ${pageIdx + 1}...`
+                        }
+                        className="w-full flex-1 h-full min-h-0 bg-transparent border-0 focus:ring-0 focus:outline-none font-serif text-sm sm:text-base leading-relaxed text-gray-900 placeholder:text-gray-400 placeholder:font-sans resize-none p-0 overflow-hidden"
+                        style={{ tabSize: 4 }}
+                        required={isFirstPage}
+                      />
+                    </div>
+
+                    {/* BAGIAN BAWAH LEMBAR A4 (TANDA TANGAN & FOOTER) */}
+                    <div className="shrink-0 space-y-2 pt-1.5">
+                      {/* JIKA HALAMAN TERAKHIR: TANDA TANGAN & PENGESAHAN PSIKOLOG RESMI */}
+                      {isLastPage && (
+                        <div className="font-sans flex justify-end pt-1">
+                          <div className="text-center w-72 space-y-1 text-xs sm:text-sm text-gray-800">
+                            <p className="text-gray-600">
+                              Bandung,{" "}
+                              {new Date().toLocaleDateString("id-ID", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })}
+                            </p>
+                            <p className="font-semibold text-gray-900">Psikolog Pemeriksa,</p>
+
+                            {/* Ruang Tanda Tangan */}
+                            <div className="h-14 flex items-center justify-center">
+                              <div className="px-3 py-1 rounded-md border border-gray-300 text-[10px] text-gray-400 font-mono italic">
+                                [ Terverifikasi Secara Digital ]
+                              </div>
+                            </div>
+
+                            <p className="font-bold text-gray-900 underline underline-offset-2">
+                              {item.psikolog?.nama || "Psikolog Klinis Empathika"}
+                            </p>
+                            <p className="text-[11px] text-gray-500">
+                              Surat Izin Praktik Psikologi (SIPP / SIPPK) Terdaftar
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer Kertas Dokumen Formal */}
+                      <div className="pt-2 border-t border-gray-200/80 flex flex-col sm:flex-row items-center justify-between gap-2 font-sans text-[11px] text-gray-400">
+                        <p>&copy; {new Date().getFullYear()} Empathika Psychological Services &bull; Kerahasiaan Medis Dijamin</p>
+                        <p className="font-mono font-medium text-gray-600">
+                          {pageIdx + 1}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Tombol Tambah Lembar Halaman di Bawah Dokumen */}
+              <div className="flex justify-center pt-2 pb-6">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("telaah")}
-                  className="px-5 py-2.5 rounded-full bg-[#561269] text-white text-xs font-bold hover:bg-[#430c52] transition-all"
+                  onClick={() => handleAddPage()}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/95 hover:bg-white text-gray-800 hover:text-[#561269] text-xs font-bold shadow-lg hover:shadow-xl border border-gray-300 transition-all cursor-pointer active:scale-95"
                 >
-                  Lanjut Tulis Telaah & Rekomendasi &rarr;
+                  <Plus className="w-4 h-4 text-purple-700" />
+                  <span>Tambah Lembar Halaman Baru (A4)</span>
                 </button>
               </div>
             </div>
-          )}
+          </main>
         </div>
       </div>
     </div>
   );
 }
-

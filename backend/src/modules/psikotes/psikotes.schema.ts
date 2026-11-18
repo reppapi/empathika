@@ -178,6 +178,7 @@ export const submitReviewPsikotesSchema = z.object({
   catatan_psikolog: z.string().min(5, 'Catatan dinamika kepribadian psikolog minimal 5 karakter'),
   rekomendasi_psikolog: z.string().optional().nullable(),
   id_psikolog: z.string().optional().nullable(),
+  is_draft: z.boolean().optional().nullable(),
 })
 
 export type SubmitReviewPsikotesInput = z.infer<typeof submitReviewPsikotesSchema>

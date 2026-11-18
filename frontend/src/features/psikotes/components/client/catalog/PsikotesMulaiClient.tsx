@@ -121,25 +121,52 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     fetchPackage();
   }, [params.testId]);
 
-  // Cegah pengerjaan ulang jika tiket pada sesi ini baru saja diselesaikan (misal akibat back/reload)
+  // Cegah pengerjaan ulang jika tiket sudah selesai atau sudah diterbitkan hasilnya
   useEffect(() => {
     const rawBooking = searchParams.get("bookingId") || searchParams.get("orderId");
     if (!rawBooking) return;
+
+    const savedToken =
+      searchParams.get("token") ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem(`empathika_psikotes_token_${rawBooking}`)
+        : null);
+
+    // 1. Cek dari localStorage jika baru saja menyelesaikan tes di browser ini
     try {
       const completedId = localStorage.getItem(`empathika_psikotes_done_${rawBooking}`);
       if (completedId) {
-        const savedToken =
-          searchParams.get("token") ||
-          localStorage.getItem(`empathika_psikotes_token_${completedId}`) ||
-          localStorage.getItem(`empathika_psikotes_token_${rawBooking}`);
         const tokenParam = savedToken ? `&token=${encodeURIComponent(savedToken)}` : "";
         navigateToPsikotesHasil(
           router,
           params.testId,
           `/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(completedId)}${tokenParam}`
         );
+        return;
       }
     } catch {}
+
+    // 2. Cek langsung ke database server: jika status pengerjaan sudah SELESAI / MENUNGGU_REVIEW, langsung alihkan ke halaman hasil
+    psikotesService
+      .getHasilByBooking(rawBooking, savedToken)
+      .then((res) => {
+        if (res?.success && res?.data) {
+          const status = res.data.status_pengerjaan;
+          const hasHasil = Boolean(res.data.hasil || (res.data as any).hasil_tes);
+          if (status === "SELESAI" || status === "MENUNGGU_REVIEW" || hasHasil) {
+            const canonicalId = res.data.id_booking || rawBooking;
+            const tokenParam = savedToken ? `&token=${encodeURIComponent(savedToken)}` : "";
+            navigateToPsikotesHasil(
+              router,
+              params.testId,
+              `/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(canonicalId)}${tokenParam}`
+            );
+          }
+        }
+      })
+      .catch(() => {
+        // Tiket baru yang belum dikerjakan akan lanjut ke form identitas / soal
+      });
   }, [params.testId, searchParams, router]);
 
   const questions = (dbData?.soal_psikotes && dbData.soal_psikotes.length > 0)
