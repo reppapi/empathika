@@ -19,6 +19,9 @@ import {
   ShoppingBag,
   Send,
   AlertCircle,
+  UserCheck,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../../types/adminPsikotes";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
@@ -234,6 +237,79 @@ Terima kasih telah menjadi bagian dari Empathika.`;
     ? `https://wa.me/${targetPesertaPhone}?text=${encodeURIComponent(waResultMsgPeserta)}`
     : null;
 
+  // --- C. STATUS TELAAH & PEMERIKSA (KLAIM / KEEP OLEH PSIKOLOG) ---
+  const namaPsikolog = peserta.psikolog?.nama_gelar || peserta.psikolog?.nama || null;
+  const noHpPsikolog = peserta.psikolog?.no_telepon || null;
+  const waPsikologDigits = toWaDigits(noHpPsikolog);
+
+  // Waktu klaim / keep tiket oleh psikolog
+  const keepDate = peserta.claimed_at
+    ? new Date(peserta.claimed_at)
+    : peserta.hasil?.tanggal_selesai
+    ? new Date(peserta.hasil.tanggal_selesai)
+    : null;
+
+  const keepDateFormatted = keepDate
+    ? keepDate.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
+  // SLA Standar Penelaahan Psikotes: Maksimal 3 Hari Kerja (72 Jam)
+  const SLA_HOURS = 72;
+  let slaStatus: "ON_TIME" | "NEAR_DEADLINE" | "OVERDUE" = "ON_TIME";
+  let elapsedHours = 0;
+  let remainingHours = SLA_HOURS;
+
+  if (keepDate) {
+    const elapsedMs = Math.max(0, Date.now() - keepDate.getTime());
+    elapsedHours = Math.floor(elapsedMs / (1000 * 60 * 60));
+    remainingHours = SLA_HOURS - elapsedHours;
+
+    if (remainingHours <= 0) {
+      slaStatus = "OVERDUE";
+    } else if (remainingHours <= 24) {
+      slaStatus = "NEAR_DEADLINE";
+    } else {
+      slaStatus = "ON_TIME";
+    }
+  }
+
+  // Pesan WhatsApp Admin ke Psikolog Pemeriksa
+  const statusSlaUrgency =
+    slaStatus === "OVERDUE"
+      ? `telah melewati batas SLA (${Math.abs(remainingHours)} jam terlambat)`
+      : slaStatus === "NEAR_DEADLINE"
+      ? `mendekati batas waktu (sisa ${remainingHours} jam lagi)`
+      : `tersisa sekitar ${Math.ceil(remainingHours / 24)} hari kerja lagi`;
+
+  const waMsgToPsikolog = `Halo Dok / Kak ${namaPsikolog || "Psikolog Empathika"},
+
+Kami dari Admin Empathika ingin menanyakan tindak lanjut hasil asesmen psikotes untuk peserta berikut:
+• Nama Peserta: ${namaPeserta || peserta.nama}
+• Paket Tes: ${peserta.paket}
+• Kode Booking: ${kodeBooking || "—"}
+${keepDateFormatted ? `• Waktu Di-keep: ${keepDateFormatted}` : ""}
+• Status SLA: ${
+    slaStatus === "OVERDUE"
+      ? "⚠️ Melebihi Batas Waktu SLA"
+      : slaStatus === "NEAR_DEADLINE"
+      ? "⏳ Mendekati Batas Waktu SLA"
+      : "Dalam Proses Telaah"
+  } (${statusSlaUrgency})
+
+Mohon kesediaannya untuk menuntaskan telaah klinis dan menerbitkan laporan resminya melalui portal psikolog ya Dok. Apabila ada kendala atau catatan khusus, silakan kabari tim Admin.
+
+Terima kasih banyak atas kerjasamanya! 🙏`;
+
+  const waPsikologUrl = waPsikologDigits
+    ? `https://wa.me/${waPsikologDigits}?text=${encodeURIComponent(waMsgToPsikolog)}`
+    : null;
+
   const usiaPeserta = peserta.peserta?.usia ? `${peserta.peserta.usia} Tahun` : null;
   const genderPeserta = peserta.peserta?.jenis_kelamin || null;
   const tglLahirPeserta = peserta.peserta?.tanggal_lahir
@@ -407,7 +483,166 @@ Terima kasih telah menjadi bagian dari Empathika.`;
           </div>
 
           {/* ───────────────────────────────────────────────────────────── */}
-          {/* BAGIAN 3: HASIL PSIKOTES (Hanya Download PDF & Aksi WA)       */}
+          {/* BAGIAN 3: STATUS TELAAH & PEMERIKSA (KLAIM / KEEP)            */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          <div className="space-y-2.5 pt-1 border-t border-gray-100">
+            <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+              <UserCheck className="w-3.5 h-3.5 text-[#561269]" />
+              Status Telaah &amp; Pemeriksa
+            </h4>
+
+            {isMenungguReview ? (
+              Boolean(peserta.id_psikolog || peserta.psikolog) ? (
+                /* Kasus A: Sedang di-keep oleh psikolog - CLEAN DESIGN */
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-3.5 gap-x-5 p-4 rounded-xl bg-gray-50/70 border border-gray-100 items-start">
+                  <div>
+                    <span className="text-gray-400 block text-[10px] font-medium">Status Keep</span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 mt-1 rounded-full text-xs font-semibold bg-purple-100 text-[#561269]">
+                      Sedang Ditelaah
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-400 block text-[10px] font-medium">Psikolog Pemeriksa</span>
+                    <span className="font-semibold text-gray-900 text-sm mt-0.5 block break-words">
+                      {namaPsikolog || "Psikolog Empathika"}
+                    </span>
+                    <span className="text-[11px] text-purple-700 font-medium">
+                      {peserta.psikolog?.kategori || "Reviewer Psikotes"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-400 block text-[10px] font-medium">Waktu Di-keep</span>
+                    <span className="font-semibold text-gray-800 text-sm mt-0.5 block">
+                      {keepDateFormatted || "—"}
+                    </span>
+                    <span className="text-[11px] text-gray-500">
+                      {elapsedHours > 0 ? `Berjalan ${elapsedHours} jam` : "Baru saja"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-400 block text-[10px] font-medium">Batas Waktu (SLA)</span>
+                    <div className="mt-1">
+                      {slaStatus === "OVERDUE" ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-600">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          Melebihi SLA ({Math.abs(remainingHours)} jam)
+                        </span>
+                      ) : slaStatus === "NEAR_DEADLINE" ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600">
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
+                          Mendekati Batas ({remainingHours} jam)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          Normal (~{Math.ceil(remainingHours / 24)} hari)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-400 block text-[10px] font-medium">Aksi Admin</span>
+                    <div className="mt-1">
+                      {waPsikologUrl ? (
+                        <a
+                          href={waPsikologUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-medium transition shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
+                          title="Hubungi psikolog pemeriksa via WhatsApp"
+                        >
+                          <Phone className="w-3 h-3" />
+                          Hubungi (WA)
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">WA belum tercatat</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Kasus B: Belum di-keep (Kolam Antrean Bersama) - CLEAN DESIGN */
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-y-3.5 gap-x-5 p-4 rounded-xl bg-gray-50/70 border border-gray-100 items-start">
+                  <div>
+                    <span className="text-gray-400 block text-[10px] font-medium">Status Antrean</span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 mt-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                      Belum Di-keep (Kolam)
+                    </span>
+                  </div>
+
+                  <div className="col-span-1 sm:col-span-2">
+                    <span className="text-gray-400 block text-[10px] font-medium">Keterangan</span>
+                    <span className="font-medium text-gray-700 text-xs mt-0.5 block leading-relaxed">
+                      Tes telah selesai dikerjakan dan menunggu diambil oleh salah satu psikolog penelaah berwenang di portal psikolog.
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-400 block text-[10px] font-medium">Waktu Selesai Tes</span>
+                    <span className="font-semibold text-gray-800 text-sm mt-0.5 block">
+                      {keepDateFormatted || peserta.tanggal || "—"}
+                    </span>
+                  </div>
+                </div>
+              )
+            ) : isCompleted ? (
+              /* Kasus C: Selesai Ditelaah & Diterbitkan - CLEAN DESIGN */
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-y-3.5 gap-x-5 p-4 rounded-xl bg-gray-50/70 border border-gray-100 items-start">
+                <div>
+                  <span className="text-gray-400 block text-[10px] font-medium">Status Telaah</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 mt-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                    Selesai Diterbitkan
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-gray-400 block text-[10px] font-medium">Psikolog Pemeriksa</span>
+                  <span className="font-semibold text-gray-900 text-sm mt-0.5 block break-words">
+                    {namaPsikolog || "Psikolog Empathika"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-gray-400 block text-[10px] font-medium">Waktu Terbit</span>
+                  <span className="font-semibold text-gray-800 text-sm mt-0.5 block">
+                    {keepDateFormatted || peserta.tanggal || "—"}
+                  </span>
+                </div>
+
+                {waPsikologUrl ? (
+                  <div>
+                    <span className="text-gray-400 block text-[10px] font-medium">Kontak Pemeriksa</span>
+                    <div className="mt-1">
+                      <a
+                        href={waPsikologUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
+                      >
+                        <Phone className="w-3 h-3" />
+                        WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              /* Kasus D: Belum Mulai Mengerjakan - CLEAN */
+              <div className="p-3.5 rounded-xl bg-gray-50/70 border border-gray-100 flex items-center gap-2 text-gray-500">
+                <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <span className="text-xs">
+                  Peserta belum menyelesaikan tes sehingga belum masuk ke dalam antrean telaah psikolog.
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* BAGIAN 4: HASIL PSIKOTES (Hanya Download PDF & Aksi WA)       */}
           {/* ───────────────────────────────────────────────────────────── */}
           <div className="space-y-2.5 pt-1 border-t border-gray-100">
             <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -416,22 +651,22 @@ Terima kasih telah menjadi bagian dari Empathika.`;
             </h4>
 
             {isMenungguReview ? (
-              <div className="p-4 rounded-xl bg-purple-50/80 border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-3.5 rounded-xl bg-gray-50/70 border border-gray-100 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-purple-100 text-[#561269] flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4 animate-pulse" />
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-[#561269] flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="font-bold text-purple-950 block text-xs">
-                      Menunggu Review &amp; Telaah Psikolog (SLA Maks. 3 Hari)
+                    <span className="font-semibold text-gray-900 block text-xs">
+                      Laporan PDF Belum Terbit
                     </span>
-                    <span className="text-[11px] text-purple-800/80 font-normal">
-                      Peserta telah selesai mengerjakan tes. Laporan PDF resmi akan otomatis aktif setelah psikolog memverifikasi telaah klinis di portal psikolog.
+                    <span className="text-[11px] text-gray-500 font-light block">
+                      Laporan resmi akan otomatis aktif setelah verifikasi telaah klinis selesai.
                     </span>
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-[#561269] border border-purple-200 shrink-0 self-start sm:self-auto">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-[#561269] border border-purple-200/60 shrink-0">
                   Menunggu Review
                 </span>
               </div>

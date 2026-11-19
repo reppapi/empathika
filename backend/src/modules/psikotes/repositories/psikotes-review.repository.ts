@@ -255,13 +255,32 @@ export class PsikotesReviewRepository {
 
       // 1. Prioritas Utama: Jika caller memiliki sesi autentikasi, tautkan langsung ke profil psikolog miliknya (anti-impersonation)
       if (userId) {
-        const found = await tx.psikolog.findFirst({
-          where: {
-            OR: [{ id_account: userId }, { id: userId }],
-          },
-          select: { id: true },
-        })
-        if (found) resolvedPsikologId = found.id
+        let found: any = null
+        try {
+          const rows = await tx.$queryRawUnsafe<any[]>(
+            `SELECT id, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
+            userId
+          )
+          found = rows && rows[0] ? rows[0] : null
+        } catch {
+          found = await tx.psikolog.findFirst({
+            where: {
+              OR: [{ id_account: userId }, { id: userId }],
+            },
+            select: { id: true },
+          })
+        }
+        if (found) {
+          if (userRole !== 'ADMIN' && !found.is_reviewer_psikotes) {
+            throw Object.assign(
+              new Error(
+                'Akses ditolak: Anda belum memiliki wewenang klinis sebagai Reviewer Psikotes. Hubungi Administrator Empathika untuk mengaktifkan hak review.'
+              ),
+              { statusCode: 403 }
+            )
+          }
+          resolvedPsikologId = found.id
+        }
       }
 
       // 2. Jika caller adalah ADMIN dan secara spesifik menugaskan psikolog tertentu
@@ -371,17 +390,34 @@ export class PsikotesReviewRepository {
       // Resolusi profil psikolog yang melakukan klaim
       let resolvedPsikolog: any = null
       if (userId) {
-        resolvedPsikolog = await tx.psikolog.findFirst({
-          where: {
-            OR: [{ id_account: userId }, { id: userId }],
-          },
-          select: { id: true, nama_gelar: true, kategori: true },
-        })
+        try {
+          const rows = await tx.$queryRawUnsafe<any[]>(
+            `SELECT id, nama_gelar, kategori, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
+            userId
+          )
+          resolvedPsikolog = rows && rows[0] ? rows[0] : null
+        } catch {
+          resolvedPsikolog = await tx.psikolog.findFirst({
+            where: {
+              OR: [{ id_account: userId }, { id: userId }],
+            },
+            select: { id: true, nama_gelar: true, kategori: true },
+          })
+        }
       }
 
       if (!resolvedPsikolog && userRole !== 'ADMIN') {
         throw Object.assign(
           new Error('Akses ditolak: Akun Anda tidak terhubung dengan profil psikolog resmi Empathika.'),
+          { statusCode: 403 }
+        )
+      }
+
+      if (userRole !== 'ADMIN' && resolvedPsikolog && !resolvedPsikolog.is_reviewer_psikotes) {
+        throw Object.assign(
+          new Error(
+            'Akses ditolak: Anda belum memiliki wewenang klinis sebagai Reviewer Psikotes. Hubungi Administrator Empathika untuk mengaktifkan hak review.'
+          ),
           { statusCode: 403 }
         )
       }
@@ -416,7 +452,15 @@ export class PsikotesReviewRepository {
         id: updated.id,
         status_pengerjaan: updated.status_pengerjaan,
         is_claimed: true,
-        claimed_by: updated.psikolog,
+        claimed_by: updated.psikolog
+          ? {
+              id: updated.psikolog.id,
+              nama: updated.psikolog.nama_gelar,
+              nama_gelar: updated.psikolog.nama_gelar,
+              kategori: updated.psikolog.kategori,
+              foto: updated.psikolog.foto,
+            }
+          : null,
         claimed_at: updated.updatedAt,
       }
     })

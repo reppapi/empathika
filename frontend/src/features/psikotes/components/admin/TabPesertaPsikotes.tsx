@@ -240,16 +240,42 @@ export default function TabPesertaPsikotes({
           (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI");
 
         return (
-          <AdminStatusBadge
-            variant={isSelesai ? "success" : isMenungguReview ? "info" : "warning"}
-            className="w-36"
-          >
-            {isMenungguReview
-              ? "Menunggu Review"
-              : isSelesai
-              ? "Selesai"
-              : "Menunggu Pengerjaan"}
-          </AdminStatusBadge>
+          <div className="flex flex-col gap-1 items-start">
+            <AdminStatusBadge
+              variant={isSelesai ? "success" : isMenungguReview ? "info" : "warning"}
+              className="w-36"
+            >
+              {isMenungguReview
+                ? "Menunggu Review"
+                : isSelesai
+                ? "Selesai"
+                : "Menunggu Pengerjaan"}
+            </AdminStatusBadge>
+            {isMenungguReview && (
+              <span
+                className={`text-[10px] font-medium leading-tight truncate max-w-[150px] ${
+                  peserta.psikolog ? "text-purple-700" : "text-amber-600"
+                }`}
+                title={
+                  peserta.psikolog
+                    ? `Di-keep oleh ${peserta.psikolog.nama_gelar || peserta.psikolog.nama}`
+                    : "Belum di-keep (Kolam antrean)"
+                }
+              >
+                {peserta.psikolog
+                  ? `Di-keep: ${peserta.psikolog.nama_gelar || peserta.psikolog.nama}`
+                  : "Belum di-keep (Kolam)"}
+              </span>
+            )}
+            {isSelesai && peserta.psikolog && (
+              <span
+                className="text-[10px] font-medium text-gray-500 leading-tight truncate max-w-[150px]"
+                title={`Pemeriksa: ${peserta.psikolog.nama_gelar || peserta.psikolog.nama}`}
+              >
+                Oleh: {peserta.psikolog.nama_gelar || peserta.psikolog.nama}
+              </span>
+            )}
+          </div>
         );
       },
     },

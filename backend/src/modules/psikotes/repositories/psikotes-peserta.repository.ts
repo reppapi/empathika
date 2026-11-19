@@ -120,6 +120,13 @@ export class PsikotesPesertaRepository {
               id: true,
               nama_gelar: true,
               kategori: true,
+              foto: true,
+              account: {
+                select: {
+                  no_telepon: true,
+                  email: true,
+                },
+              },
             },
           },
           hasil_tes: {
@@ -232,12 +239,17 @@ export class PsikotesPesertaRepository {
               }
             })()
           : null,
+        id_psikolog: b.id_psikolog,
+        claimed_at: b.id_psikolog ? b.updatedAt : null,
         psikolog: (b as any).psikolog
           ? {
               id: (b as any).psikolog.id,
               nama: (b as any).psikolog.nama_gelar,
               nama_gelar: (b as any).psikolog.nama_gelar,
               kategori: (b as any).psikolog.kategori,
+              foto: (b as any).psikolog.foto || null,
+              no_telepon: (b as any).psikolog.account?.no_telepon || null,
+              email: (b as any).psikolog.account?.email || null,
             }
           : null,
       })),

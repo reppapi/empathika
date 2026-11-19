@@ -72,6 +72,10 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
           }),
           rawTanggal: it.tanggal,
           status: it.status as "Selesai" | "Menunggu Pengerjaan",
+          status_pengerjaan: it.status_pengerjaan || null,
+          perlu_review_psikolog: Boolean(it.perlu_review_psikolog),
+          id_psikolog: it.id_psikolog || null,
+          claimed_at: it.claimed_at || null,
           skor: it.skor,
           jenisAkses: it.jenis_akses as "Gratis" | "Berbayar",
           usia: it.usia,
@@ -82,7 +86,17 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
           isPembeliBerbeda: Boolean(it.is_pembeli_berbeda),
           hasil: it.hasil,
           peserta: it.peserta,
-          psikolog: it.psikolog || null,
+          psikolog: it.psikolog
+            ? {
+                id: it.psikolog.id,
+                nama: it.psikolog.nama_gelar || it.psikolog.nama,
+                nama_gelar: it.psikolog.nama_gelar || it.psikolog.nama,
+                kategori: it.psikolog.kategori,
+                foto: it.psikolog.foto || null,
+                no_telepon: it.psikolog.no_telepon || null,
+                email: it.psikolog.email || null,
+              }
+            : null,
         }));
         setPesertaList(mapped);
       }

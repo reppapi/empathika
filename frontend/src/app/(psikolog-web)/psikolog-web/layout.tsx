@@ -46,29 +46,43 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
     }
 
     // Sinkronkan juga dari database backend
-    psikologService.getList().then((dbList: any[]) => {
-      if (dbList && dbList.length > 0) {
-        const savedId = localStorage.getItem("active_psikolog_id")
-        const savedName = localStorage.getItem("active_psikolog_name")
-        const isInvalidSaved = !savedName || savedName.toLowerCase().includes("admin")
+    const syncBackend = async () => {
+      try {
+        let matched: any = null
+        if (user?.role === "PSIKOLOG") {
+          try {
+            matched = await psikologService.getMyProfile()
+          } catch {}
+        }
+        if (!matched) {
+          const dbList: any[] = await psikologService.getList({ status: "ALL" })
+          if (dbList && dbList.length > 0) {
+            const savedId = localStorage.getItem("active_psikolog_id")
+            const savedName = localStorage.getItem("active_psikolog_name")
+            const isInvalidSaved = !savedName || savedName.toLowerCase().includes("admin")
 
-        const matched =
-          (user?.role === "PSIKOLOG" && user?.id
-            ? dbList.find((p) => p.id === user.id || p.account?.id === user.id)
-            : null) ||
-          (user?.role === "PSIKOLOG" && user?.email
-            ? dbList.find((p) => p.account?.email?.toLowerCase() === user.email.toLowerCase())
-            : null) ||
-          (user?.role === "PSIKOLOG" && user?.name
-            ? dbList.find((p) => p.nama_gelar?.toLowerCase().includes(user.name.toLowerCase()) || p.account?.nama?.toLowerCase().includes(user.name.toLowerCase()))
-            : null) ||
-          (!isInvalidSaved && savedId ? dbList.find((p) => p.id === savedId || p.account?.id === savedId) : null) ||
-          (!isInvalidSaved && savedName ? dbList.find((p) => p.nama_gelar === savedName) : null)
+            matched =
+              (user?.role === "PSIKOLOG" && user?.id
+                ? dbList.find((p) => p.id === user.id || p.account?.id === user.id)
+                : null) ||
+              (user?.role === "PSIKOLOG" && user?.email
+                ? dbList.find((p) => p.account?.email?.toLowerCase() === user.email.toLowerCase())
+                : null) ||
+              (user?.role === "PSIKOLOG" && user?.name
+                ? dbList.find((p) => p.nama_gelar?.toLowerCase().includes(user.name.toLowerCase()) || p.account?.nama?.toLowerCase().includes(user.name.toLowerCase()))
+                : null) ||
+              (!isInvalidSaved && savedId ? dbList.find((p) => p.id === savedId || p.account?.id === savedId) : null) ||
+              (!isInvalidSaved && savedName ? dbList.find((p) => p.nama_gelar === savedName) : null)
+          }
+        }
 
         if (matched) {
           const resolvedName = matched.nama_gelar || matched.account?.nama || user?.name || "Tenaga Ahli"
           localStorage.setItem("active_psikolog_id", matched.id)
           localStorage.setItem("active_psikolog_name", resolvedName)
+
+          const isReviewerVal = Boolean(matched.is_reviewer_psikotes ?? matched.isReviewerPsikotes ?? false)
+          const isStatusAktif = matched.status !== "INACTIVE" && matched.account?.aktif !== false
 
           setCurrentPsikolog((prev) => ({
             id: matched.id,
@@ -81,7 +95,8 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
                 : "psikolog") as any,
             spesialisasi: matched.spesialisasi?.nama || matched.spesialisasi || "",
             foto: matched.foto || matched.account?.foto || null,
-            statusAkses: "AKTIF",
+            statusAkses: isStatusAktif ? "AKTIF" : "NONAKTIF",
+            isReviewerPsikotes: isReviewerVal,
             noTelepon: matched.account?.no_telepon || prev?.noTelepon || "",
             jumlahSesi: typeof matched.jumlah_sesi === "number" ? matched.jumlah_sesi : (prev?.jumlahSesi ?? 0),
             bio: matched.bio || matched.account?.bio || prev?.bio || "",
@@ -95,8 +110,11 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
             tanggalBergabung: prev?.tanggalBergabung || "Terdaftar",
           }))
         }
+      } catch (e) {
+        console.warn("Gagal sinkron status psikolog dari backend:", e)
       }
-    }).catch(() => { })
+    }
+    syncBackend()
   }
 
   useEffect(() => {
@@ -169,6 +187,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
         <SidebarPsikolog
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
+          isReviewer={Boolean(currentPsikolog?.isReviewerPsikotes)}
         />
 
         {/* Area Konten Kanan */}

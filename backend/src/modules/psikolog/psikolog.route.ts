@@ -123,6 +123,12 @@ export default async function psikologRoutes(fastify: FastifyInstance) {
     handler: controller.update,
   })
 
+  fastify.patch('/:id', {
+    preHandler: [adminGuard],
+    schema: { tags: ['Psikolog - Admin'], security: [{ bearerAuth: [] }] },
+    handler: controller.update,
+  })
+
   fastify.delete('/:id', {
     preHandler: [adminGuard],
     schema: { tags: ['Psikolog - Admin'], security: [{ bearerAuth: [] }] },

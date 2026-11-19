@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem, type ReviewPsikotesListResponse } from "@/services/psikotes.service";
+import { psikologService } from "@/services/psikolog.service";
 import { calculateReviewSla, REVIEW_MAX_DAYS } from "../../utils/reviewSla";
 
 export default function PsikologReviewAsesmenClient() {
@@ -37,6 +38,22 @@ export default function PsikologReviewAsesmenClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isReviewerAccess, setIsReviewerAccess] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (user?.role === "ADMIN") {
+      setIsReviewerAccess(true);
+      return;
+    }
+    psikologService
+      .getMyProfile()
+      .then((profile: any) => {
+        setIsReviewerAccess(Boolean(profile?.is_reviewer_psikotes));
+      })
+      .catch(() => {
+        setIsReviewerAccess(true);
+      });
+  }, [user]);
 
   // Filter & Search (Menunggu Review & Selesai Diterbitkan)
   const [activeTab, setActiveTab] = useState<"MENUNGGU_REVIEW" | "SELESAI">("MENUNGGU_REVIEW");
@@ -89,42 +106,72 @@ export default function PsikologReviewAsesmenClient() {
     fetchData();
   }, [fetchData]);
 
-  // Handler Klaim / Kunci Tiket
-  const handleClaimAndReview = async (item: ReviewPsikotesItem, isTakeover = false) => {
-    if (!item.is_claimed && !isTakeover) {
-      const confirmTake = window.confirm(
-        `Konfirmasi Pengambilan Pasien:\n\nApakah Anda yakin ingin mengambil dan menelaah hasil tes untuk "${item.nama_peserta}"?\n\nSetelah diambil, tiket ini akan menjadi tanggung jawab klinis Anda sampai laporan diterbitkan.`
-      );
-      if (!confirmTake) return;
-    } else if (isTakeover) {
-      const confirmTakeover = window.confirm(
-        `Konfirmasi Ambil Alih:\n\nApakah Anda yakin ingin mengambil alih penelaahan tiket "${item.nama_peserta}"? Tanggung jawab klinis akan dialihkan kepada Anda.`
-      );
-      if (!confirmTakeover) return;
-    }
+  // State Dialog Konfirmasi Kustom (Menggantikan window.confirm default browser)
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    item: ReviewPsikotesItem | null;
+    isTakeover: boolean;
+  }>({
+    isOpen: false,
+    item: null,
+    isTakeover: false,
+  });
 
+  // Handler Klaim / Kunci Tiket
+  const handleClaimAndReview = (item: ReviewPsikotesItem, isTakeover = false) => {
     // Simpan item langsung ke sessionStorage untuk navigasi instan 0ms
     try {
       sessionStorage.setItem(`empathika_active_review_${item.id}`, JSON.stringify(item));
     } catch {}
 
-    // Jika tiket sudah diklaim oleh diri sendiri dan bukan takeover, langsung pindah halaman tanpa tunggu network
+    // Jika tiket sudah diklaim oleh diri sendiri dan bukan takeover, langsung pindah halaman tanpa prompt
     if (item.is_claimed && !isTakeover) {
       router.push(`/psikolog-web/review-asesmen/${item.id}`);
       return;
     }
 
+    // Tampilkan modal konfirmasi kustom yang elegan
+    setConfirmModal({
+      isOpen: true,
+      item,
+      isTakeover,
+    });
+  };
+
+  const executeClaim = async () => {
+    const item = confirmModal.item;
+    const isTakeover = confirmModal.isTakeover;
+    if (!item) return;
+
+    setConfirmModal({ isOpen: false, item: null, isTakeover: false });
     setActionLoadingId(item.id);
+
     try {
       if (!item.is_claimed || isTakeover) {
         const res = await psikotesService.claimReviewTicket(item.id);
         if (res?.data) {
+          const resolvedClaimedName =
+            res.data.claimed_by?.nama ||
+            res.data.claimed_by?.nama_gelar ||
+            (typeof window !== "undefined"
+              ? localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name")
+              : null) ||
+            user?.name ||
+            "";
+
           const updatedItem: ReviewPsikotesItem = {
             ...item,
             id_psikolog: res.data.claimed_by?.id || item.id_psikolog,
             is_claimed: true,
             claimed_at: res.data.claimed_at,
-            psikolog: res.data.claimed_by || item.psikolog,
+            psikolog: res.data.claimed_by
+              ? {
+                  id: res.data.claimed_by.id,
+                  nama: resolvedClaimedName,
+                  kategori: res.data.claimed_by.kategori || "psikolog",
+                  foto: res.data.claimed_by.foto || null,
+                }
+              : item.psikolog,
           };
 
           try {
@@ -158,7 +205,7 @@ export default function PsikologReviewAsesmenClient() {
       }
       router.push(`/psikolog-web/review-asesmen/${item.id}`);
     } catch (err: any) {
-      alert(err?.response?.data?.message || err.message || "Gagal mengklaim tiket.");
+      setErrorMessage(err?.response?.data?.message || err.message || "Gagal mengklaim tiket.");
       fetchData();
     } finally {
       setActionLoadingId(null);
@@ -231,6 +278,24 @@ export default function PsikologReviewAsesmenClient() {
         </div>
       )}
 
+      {/* Toast Notifikasi Kendala / Error */}
+      {errorMessage && (
+        <div className="fixed top-5 right-5 z-50 max-w-md bg-rose-700 text-white p-4 rounded-2xl shadow-xl flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-200" />
+          <div className="flex-1 text-xs">
+            <p className="font-bold">Pemberitahuan</p>
+            <p className="mt-0.5 text-rose-100">{errorMessage}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="text-white/80 hover:text-white font-bold text-base leading-none"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* Header Halaman */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -254,8 +319,28 @@ export default function PsikologReviewAsesmenClient() {
         </button>
       </div>
 
-      {/* Kartu Ringkasan Statistik */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Peringatan Jika Bukan Reviewer */}
+      {isReviewerAccess === false ? (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50/80 p-8 sm:p-10 text-center max-w-xl mx-auto my-12 space-y-4 shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">
+              Wewenang Reviewer Asesmen Belum Aktif
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed">
+              Akun Anda saat ini berstatus <strong>Psikolog Konseling</strong> dan belum memiliki hak klinis untuk mengambil antrean telaah atau menerbitkan laporan asesmen psikotes.
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              Silakan hubungi Administrator Empathika untuk mengaktifkan sakelar <strong>&ldquo;Reviewer Asesmen Psikotes&rdquo;</strong> di menu Manajemen Psikolog.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Kartu Ringkasan Statistik */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Antrean */}
         <div className="p-5 rounded-3xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
           <div>
@@ -603,7 +688,12 @@ export default function PsikologReviewAsesmenClient() {
                       <td className="py-4 px-6 text-gray-700 whitespace-nowrap">
                         {item.id_psikolog ? (
                           <div>
-                            <p className="font-semibold text-gray-900">{item.psikolog?.nama || "Psikolog Empathika"}</p>
+                            <p className="font-semibold text-gray-900">
+                              {item.psikolog?.nama ||
+                                (item.psikolog as any)?.nama_gelar ||
+                                (isClaimedByMe ? (activePsiName || user?.name) : null) ||
+                                "Psikolog Pemeriksa"}
+                            </p>
                             {item.tanggal_review && (
                               <p className="text-[10px] text-gray-400">
                                 Ditelaah:{" "}
@@ -684,6 +774,86 @@ export default function PsikologReviewAsesmenClient() {
           </table>
         </div>
       </div>
+      </>
+      )}
+
+      {/* Modal Dialog Konfirmasi Pengambilan / Telaah Tiket (Pengganti alert/confirm browser) */}
+      {confirmModal.isOpen && confirmModal.item && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="relative w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-100 p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Icon & Title */}
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0">
+                <Stethoscope className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-snug">
+                  {confirmModal.isTakeover
+                    ? "Konfirmasi Ambil Alih Tiket"
+                    : "Konfirmasi Pengambilan Asesmen"}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  {confirmModal.isTakeover
+                    ? "Tanggung jawab telaah klinis tiket ini akan dialihkan kepada Anda."
+                    : "Tiket akan dikunci dan menjadi tanggung jawab klinis Anda."}
+                </p>
+              </div>
+            </div>
+
+            {/* Kotak Info Pasien & Paket */}
+            <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 font-medium">Nama Peserta:</span>
+                <span className="font-bold text-gray-900 font-sans">
+                  {confirmModal.item.nama_peserta}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 font-medium">Alat Ukur / Paket:</span>
+                <span className="font-semibold text-[#561269]">
+                  {confirmModal.item.nama_paket}
+                </span>
+              </div>
+              {confirmModal.item.kode_akses && (
+                <div className="flex items-center justify-between pt-1 border-t border-purple-100/80">
+                  <span className="text-gray-400 font-mono text-[11px]">Kode Akses:</span>
+                  <span className="font-mono text-[11px] text-gray-600 font-medium">
+                    {confirmModal.item.kode_akses}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Keterangan Tanggung Jawab Klinis */}
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Apakah Anda yakin ingin menelaah hasil tes klinis ini? Setelah diambil, tiket akan terkunci sebagai tanggung jawab klinis Anda sampai laporan resmi diterbitkan.
+            </p>
+
+            {/* Tombol Aksi */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() =>
+                  setConfirmModal({ isOpen: false, item: null, isTakeover: false })
+                }
+                className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={executeClaim}
+                className="rounded-full bg-[#561269] hover:bg-[#430c52] px-6 py-2.5 text-xs font-bold text-white shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                {confirmModal.isTakeover ? "Ambil Alih & Tinjau" : "Ambil & Tinjau"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

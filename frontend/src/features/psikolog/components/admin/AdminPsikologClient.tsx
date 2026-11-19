@@ -94,6 +94,9 @@ export default function AdminPsikologClient() {
               ? p.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
               : [],
             tanggalBergabung: matchedLocal?.tanggalBergabung || "Terdaftar di DB",
+            isReviewerPsikotes: Boolean(
+              p.is_reviewer_psikotes ?? p.isReviewerPsikotes ?? matchedLocal?.isReviewerPsikotes ?? false
+            ),
             accountId,
             accountAktif,
             tokenAktivasi: p.tokenAktivasi || p.token_aktivasi || p.account?.token_aktivasi || undefined,
@@ -154,6 +157,32 @@ export default function AdminPsikologClient() {
     }
     // Sync to backend DB
     psikologService.createPsikologBaru({ ...item, statusAkses: newStatus }).catch(() => {})
+  }
+
+  // Toggle Hak Review Psikotes (Aktifkan / Nonaktifkan Wewenang Menelaah Asesmen)
+  const handleToggleReviewer = async (item: TenagaAhli) => {
+    const newStatus = !item.isReviewerPsikotes
+    const updated = dataList.map((d) => (d.id === item.id ? { ...d, isReviewerPsikotes: newStatus } : d))
+    const msg = newStatus
+      ? `Hak review psikotes untuk ${item.nama} berhasil diaktifkan.`
+      : `Hak review psikotes untuk ${item.nama} telah dinonaktifkan.`
+    persistData(updated, msg)
+    if (selectedDetailPsikolog && selectedDetailPsikolog.id === item.id) {
+      setSelectedDetailPsikolog({ ...selectedDetailPsikolog, isReviewerPsikotes: newStatus })
+    }
+
+    try {
+      await psikologService.updatePsikolog(item.id, {
+        is_reviewer_psikotes: newStatus,
+      })
+    } catch {
+      // Fallback
+      psikologService.createPsikologBaru({
+        ...item,
+        isReviewerPsikotes: newStatus,
+        is_reviewer_psikotes: newStatus,
+      }).catch(() => {})
+    }
   }
 
   const handleOpenDetail = (item: TenagaAhli) => {
@@ -420,6 +449,7 @@ export default function AdminPsikologClient() {
         psikolog={selectedDetailPsikolog}
         onEdit={handleOpenEdit}
         onToggleAkses={handleToggleAkses}
+        onToggleReviewer={handleToggleReviewer}
         onUpdated={(next) => {
           if (selectedDetailPsikolog) {
             setSelectedDetailPsikolog({
