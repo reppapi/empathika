@@ -52,8 +52,9 @@ export default function PsikologReviewAsesmenClient() {
       });
   }, [user]);
 
-  // Filter & Search (Menunggu Review & Selesai Diterbitkan)
-  const [activeTab, setActiveTab] = useState<"MENUNGGU_REVIEW" | "SELESAI">("MENUNGGU_REVIEW");
+  // Filter & Search (3 Tab: Menunggu Tinjau, Sedang Ditinjau, Selesai)
+  type TabReview = "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "SELESAI";
+  const [activeTab, setActiveTab] = useState<TabReview>("MENUNGGU_TINJAU");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Toast & Loading State
@@ -213,8 +214,10 @@ export default function PsikologReviewAsesmenClient() {
     if (!data?.items) return [];
     let items = data.items;
 
-    if (activeTab === "MENUNGGU_REVIEW") {
-      items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW");
+    if (activeTab === "MENUNGGU_TINJAU") {
+      items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog);
+    } else if (activeTab === "SEDANG_DITINJAU") {
+      items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && Boolean(i.id_psikolog));
     } else if (activeTab === "SELESAI") {
       items = items.filter((i) => i.status_pengerjaan === "SELESAI");
     }
@@ -231,7 +234,22 @@ export default function PsikologReviewAsesmenClient() {
       );
     }
 
-    return items;
+    // Urutkan berdasarkan sisa batas waktu (Urgency First):
+    // Tiket menunggu review yang paling mepet (deadline terdekat / overdue) tampil di urutan teratas
+    const sorted = [...items].sort((a, b) => {
+      if (a.status_pengerjaan === "MENUNGGU_REVIEW" && b.status_pengerjaan === "MENUNGGU_REVIEW") {
+        const slaA = calculateReviewSla(a.tanggal_pengerjaan);
+        const slaB = calculateReviewSla(b.tanggal_pengerjaan);
+        return slaA.deadlineDate.getTime() - slaB.deadlineDate.getTime();
+      }
+      if (a.status_pengerjaan === "MENUNGGU_REVIEW") return -1;
+      if (b.status_pengerjaan === "MENUNGGU_REVIEW") return 1;
+      const timeA = new Date(a.tanggal_review || a.tanggal_pengerjaan).getTime();
+      const timeB = new Date(b.tanggal_review || b.tanggal_pengerjaan).getTime();
+      return timeB - timeA;
+    });
+
+    return sorted;
   }, [data?.items, activeTab, searchQuery]);
 
   const summary = data?.summary || {
@@ -243,16 +261,33 @@ export default function PsikologReviewAsesmenClient() {
   };
 
   const slaStats = useMemo(() => {
-    if (!data?.items) return { overdueCount: 0, urgentCount: 0 };
+    if (!data?.items) return { overdueCount: 0, urgentCount: 0, kritisCount: 0, prioritasCount: 0, normalCount: 0 };
     const menunggu = data.items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW");
     let overdueCount = 0;
     let urgentCount = 0;
+    let kritisCount = 0;
+    let prioritasCount = 0;
+    let normalCount = 0;
+    const nowMs = Date.now();
+
     for (const item of menunggu) {
       const sla = calculateReviewSla(item.tanggal_pengerjaan);
-      if (sla.isOverdue) overdueCount++;
-      else if (sla.isUrgent) urgentCount++;
+      const diffMs = sla.deadlineDate.getTime() - nowMs;
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (sla.isOverdue) {
+        overdueCount++;
+        kritisCount++;
+      } else if (diffHours <= 24) {
+        urgentCount++;
+        kritisCount++;
+      } else if (diffHours <= 48) {
+        prioritasCount++;
+      } else {
+        normalCount++;
+      }
     }
-    return { overdueCount, urgentCount };
+    return { overdueCount, urgentCount, kritisCount, prioritasCount, normalCount };
   }, [data?.items]);
 
   return (
@@ -336,127 +371,168 @@ export default function PsikologReviewAsesmenClient() {
         </div>
       ) : (
         <>
-          {/* Kartu Ringkasan Statistik */}
+          {/* Kartu Ringkasan Statistik (3 Status) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Total Antrean */}
-        <div className="p-5 rounded-3xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Total Asesmen Klinis
-            </p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
-              {isLoading ? "..." : summary.total}
-            </h3>
-            <p className="text-[11px] text-gray-400 mt-1">
-              Data aktif dalam 90 hari
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#561269] flex items-center justify-center">
-            <ClipboardList className="w-6 h-6" />
-          </div>
-        </div>
+            {/* 1. Menunggu Tinjau */}
+            <div
+              onClick={() => setActiveTab("MENUNGGU_TINJAU")}
+              className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
+                activeTab === "MENUNGGU_TINJAU"
+                  ? "bg-gradient-to-br from-amber-50 to-orange-50/60 border-amber-300 ring-2 ring-amber-500/20"
+                  : "bg-white border-gray-200 hover:border-amber-200"
+              }`}
+            >
+              <div className="relative z-10">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+                    Menunggu Tinjau
+                  </p>
+                  {summary.kolam_bersama > 0 && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                  )}
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-amber-950 mt-1">
+                  {isLoading ? "..." : summary.kolam_bersama}
+                </h3>
+                <p className="text-[11px] text-gray-500 mt-1 font-medium">
+                  Antrean terbuka (belum diambil)
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-100/80 text-amber-700 flex items-center justify-center relative z-10">
+                <Clock className="w-6 h-6" />
+              </div>
+            </div>
 
-        {/* Menunggu Tinjau (Highlight) */}
-        <div
-          onClick={() => setActiveTab("MENUNGGU_REVIEW")}
-          className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
-            activeTab === "MENUNGGU_REVIEW"
-              ? "bg-gradient-to-br from-amber-50 to-orange-50/60 border-amber-300 ring-2 ring-amber-500/20"
-              : "bg-gradient-to-br from-amber-50/90 to-amber-50/40 border-amber-200/80 hover:border-amber-300"
-          }`}
-        >
-          <div className="relative z-10">
-            <div className="flex items-center gap-1.5">
-              <p className="text-xs font-bold text-amber-900 uppercase tracking-wider">
-                Menunggu Tinjau
+            {/* 2. Sedang Ditinjau */}
+            <div
+              onClick={() => setActiveTab("SEDANG_DITINJAU")}
+              className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
+                activeTab === "SEDANG_DITINJAU"
+                  ? "bg-gradient-to-br from-purple-50 to-fuchsia-50/60 border-purple-300 ring-2 ring-purple-500/20"
+                  : "bg-white border-gray-200 hover:border-purple-200"
+              }`}
+            >
+              <div className="relative z-10">
+                <p className="text-xs font-bold text-[#561269] uppercase tracking-wider">
+                  Sedang Ditinjau
+                </p>
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
+                  {isLoading ? "..." : summary.sedang_ditelaah}
+                </h3>
+                <p className="text-[11px] text-gray-500 mt-1 font-medium">
+                  Dalam proses telaah &amp; draf
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#561269] flex items-center justify-center relative z-10">
+                <Stethoscope className="w-6 h-6" />
+              </div>
+            </div>
+
+            {/* 3. Selesai */}
+            <div
+              onClick={() => setActiveTab("SELESAI")}
+              className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between cursor-pointer transition-all hover:scale-[1.01] ${
+                activeTab === "SELESAI"
+                  ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20"
+                  : "bg-white border-gray-200 hover:border-emerald-200"
+              }`}
+            >
+              <div>
+                <p className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+                  Selesai
+                </p>
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
+                  {isLoading ? "..." : summary.selesai_review}
+                </h3>
+                <p className="text-[11px] text-emerald-600 mt-1 font-medium flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Laporan resmi terbit
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+      {/* Banner Prioritas / Paling Mendesak */}
+      {slaStats.kritisCount > 0 && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-600 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-white font-bold">
+              <AlertCircle className="w-5 h-5 text-white animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm sm:text-base tracking-tight">
+                  Prioritas Mendesak: {slaStats.kritisCount} Asesmen Mendekati Batas SLA
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white text-rose-700 text-[10px] font-black uppercase tracking-wider">
+                  ≤ 24 Jam / Overdue
+                </span>
+              </div>
+              <p className="text-xs text-rose-100 mt-0.5 leading-relaxed">
+                Antrean di bawah otomatis diurutkan berdasarkan batas waktu terdekat (<em>Urgency First</em>). Mohon prioritaskan tiket bertanda merah sebelum tenggat berakhir.
               </p>
-              {summary.menunggu_review > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-              )}
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-amber-950 mt-1">
-              {isLoading ? "..." : summary.menunggu_review}
-            </h3>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-              <span className="text-amber-900/90 font-bold bg-amber-200/60 px-2 py-0.5 rounded-md">
-                SLA: Maks. {REVIEW_MAX_DAYS} Hari Kerja
-              </span>
-              {slaStats.overdueCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold border border-rose-200 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {slaStats.overdueCount} Lewat Batas
-                </span>
-              )}
-              {slaStats.urgentCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-200/90 text-amber-950 font-bold">
-                  {slaStats.urgentCount} Segera
-                </span>
-              )}
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-100/80 text-amber-700 flex items-center justify-center relative z-10">
-            <Clock className="w-6 h-6" />
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab(summary.kolam_bersama > 0 ? "MENUNGGU_TINJAU" : "SEDANG_DITINJAU")}
+            className="px-4 py-2 rounded-xl bg-white text-rose-700 hover:bg-rose-50 text-xs font-bold transition-all shadow-sm shrink-0 self-start sm:self-auto cursor-pointer"
+          >
+            Fokus Antrean Mendesak
+          </button>
         </div>
-
-        {/* Laporan Diterbitkan */}
-        <div
-          onClick={() => setActiveTab("SELESAI")}
-          className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between cursor-pointer transition-all hover:scale-[1.01] ${
-            activeTab === "SELESAI"
-              ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20"
-              : "bg-white border-gray-200 hover:border-emerald-200"
-          }`}
-        >
-          <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Laporan Diterbitkan
-            </p>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
-              {isLoading ? "..." : summary.selesai_review}
-            </h3>
-            <p className="text-[11px] text-emerald-600 mt-1 font-medium flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              Terverifikasi resmi
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Kontrol Filter Tabs & Search */}
       <div className="p-4 sm:p-5 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Filter Tabs */}
+          {/* Filter Tabs (3 Tab Utama) */}
           <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl">
+            {/* 1. Menunggu Tinjau */}
             <button
               type="button"
-              onClick={() => setActiveTab("MENUNGGU_REVIEW")}
+              onClick={() => setActiveTab("MENUNGGU_TINJAU")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === "MENUNGGU_REVIEW"
+                activeTab === "MENUNGGU_TINJAU"
                   ? "bg-amber-500 text-white shadow-sm"
-                  : "text-amber-900/80 hover:bg-amber-100/60"
+                  : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
-              {summary.menunggu_review > 0 && (
+              {summary.kolam_bersama > 0 && (
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               )}
-              Menunggu Tinjau ({summary.menunggu_review})
+              Menunggu Tinjau ({summary.kolam_bersama})
             </button>
 
+            {/* 2. Sedang Ditinjau */}
+            <button
+              type="button"
+              onClick={() => setActiveTab("SEDANG_DITINJAU")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === "SEDANG_DITINJAU"
+                  ? "bg-[#561269] text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200/70"
+              }`}
+            >
+              <Stethoscope className="w-3.5 h-3.5" />
+              Sedang Ditinjau ({summary.sedang_ditelaah})
+            </button>
+
+            {/* 3. Selesai */}
             <button
               type="button"
               onClick={() => setActiveTab("SELESAI")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "SELESAI"
-                  ? "bg-[#561269] text-white shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Diterbitkan ({summary.selesai_review})
+              Selesai ({summary.selesai_review})
             </button>
           </div>
 
@@ -519,12 +595,14 @@ export default function PsikologReviewAsesmenClient() {
                       <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center mx-auto">
                         <CheckCircle2 className="w-6 h-6" />
                       </div>
-                      <p className="font-bold text-gray-800 text-sm">Tidak Ada Antrean</p>
+                      <p className="font-bold text-gray-800 text-sm">Tidak Ada Asesmen</p>
                       <p className="text-gray-400 text-xs">
                         {searchQuery
                           ? `Tidak ditemukan asesmen dengan kata kunci "${searchQuery}".`
-                          : activeTab === "MENUNGGU_REVIEW"
-                          ? "Hebat! Semua asesmen klinis saat ini sudah ditelaah dan diterbitkan."
+                          : activeTab === "MENUNGGU_TINJAU"
+                          ? "Hebat! Tidak ada tiket baru yang menunggu di antrean terbuka."
+                          : activeTab === "SEDANG_DITINJAU"
+                          ? "Tidak ada asesmen yang sedang dalam proses telaah saat ini."
                           : "Belum ada laporan asesmen yang diterbitkan."}
                       </p>
                     </div>
@@ -576,22 +654,15 @@ export default function PsikologReviewAsesmenClient() {
                     >
                       {/* Identitas Peserta */}
                       <td className="py-4 px-6">
-                        <div className="flex items-start gap-3">
-                          <div className="w-9 h-9 rounded-full bg-purple-100 text-[#561269] font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
-                            {item.nama_peserta.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-bold text-gray-900 group-hover:text-[#561269] transition-colors">
-                              {item.nama_peserta}
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-gray-900 group-hover:text-[#561269] transition-colors">
+                            {item.nama_peserta}
+                          </p>
+                          {(item.usia || item.jenis_kelamin) && (
+                            <p className="text-gray-500 text-[11px]">
+                              {[item.usia ? `${item.usia} Th` : null, item.jenis_kelamin].filter(Boolean).join(" • ")}
                             </p>
-                            <div className="flex items-center gap-1.5 text-gray-500 text-[11px] mt-0.5">
-                              {item.usia ? <span>{item.usia} Th</span> : null}
-                              {item.jenis_kelamin ? <span>• {item.jenis_kelamin}</span> : null}
-                            </div>
-                            <p className="text-[11px] text-gray-400 font-mono mt-0.5">
-                              {item.no_hp}
-                            </p>
-                          </div>
+                          )}
                         </div>
                       </td>
 
@@ -637,20 +708,35 @@ export default function PsikologReviewAsesmenClient() {
                                 </span>
                               </div>
 
-                              {isMenunggu ? (
-                                <div className="flex items-center gap-1.5">
-                                  <span
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] border ${sla.badgeClass}`}
-                                    title={`Deadline SLA: ${sla.deadlineFormatted}`}
-                                  >
-                                    <Clock className="w-3 h-3" />
-                                    {sla.badgeLabel}
-                                  </span>
-                                  <span className="text-[10px] text-gray-400" title={`Deadline: ${sla.deadlineFormatted}`}>
-                                    Batas: {sla.deadlineFormatted.split(",")[0]}
-                                  </span>
-                                </div>
-                              ) : (
+                              {isMenunggu ? (() => {
+                                const nowMs = Date.now();
+                                const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
+                                const isKritis = sla.isOverdue || diffHours <= 24;
+                                const isPrioritas = !isKritis && diffHours <= 48;
+
+                                return (
+                                  <div className="flex flex-col gap-1 items-start">
+                                    <div className="flex items-center gap-1.5">
+                                      {isKritis ? (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
+                                          🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
+                                        </span>
+                                      ) : isPrioritas ? (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                                          🟡 Prioritas (≤ 48 Jam)
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                          🟢 Normal (&gt; 48 Jam)
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-gray-500 font-medium" title={`Deadline: ${sla.deadlineFormatted}`}>
+                                      Batas: {sla.deadlineFormatted}
+                                    </span>
+                                  </div>
+                                );
+                              })() : (
                                 <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
                                   <CheckCircle2 className="w-3 h-3" />
                                   Tepat Waktu (Selesai)
