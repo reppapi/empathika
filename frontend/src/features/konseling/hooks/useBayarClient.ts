@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { bookingService } from "@/services/booking.service"
 import { layananService } from "@/services/layanan.service"
 import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
+import { useTenantContext } from "@/context/TenantContext"
 
 export const BANK_LIST = [
   { id: "bca", name: "BCA", va: "1234567890123" },
@@ -25,6 +26,7 @@ export const EWALLET_LIST = [
 export function useBayarClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { biroProfile } = useTenantContext()
 
   const [nama, setNama] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
@@ -355,8 +357,12 @@ export function useBayarClient() {
 
     const isAsesmenLayanan = qLayanan.toLowerCase().includes("asesmen") || isAsesmenParam
 
+    const biroIdFromQuery = searchParams.get("biroId") || searchParams.get("id_biro")
+    const effectiveBiroId = biroProfile?.id || biroIdFromQuery || undefined
+
     try {
       const res: any = await bookingService.createBooking({
+        id_biro: effectiveBiroId,
         id_jadwal: qSlotId || undefined,
         id_psikolog: !isAsesmenLayanan ? (qPsikologId || undefined) : undefined,
         tanggal: targetDate || undefined,

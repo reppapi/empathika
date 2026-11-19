@@ -15,6 +15,7 @@ import { TodaySessionItem, RecentTransactionItem } from "../../types"
 import { BiroClientProfile, BiroTenantData } from "../../data/biroDashboardData"
 import { useAuthStore } from "@/store/authStore"
 import { biroAdminService } from "@/services/biro.service"
+import { adminService } from "@/services/admin.service"
 
 const getCleanInitialTenant = (
   userId = "biro",
@@ -137,6 +138,20 @@ export default function AdminBiroDashboardClient() {
               : { ...m, color: finalColor }
           ),
         }))
+
+        // Ambil transaksi pembayaran terbaru khusus biro ini
+        adminService
+          .getDashboardRecentTransactions({ limit: 5 })
+          .then((trxRes: any) => {
+            if (!isMounted || !trxRes?.transactions) return
+            setActiveTenant((prev) => ({
+              ...prev,
+              recentTransactions: trxRes.transactions,
+            }))
+          })
+          .catch((err) => {
+            console.error("AdminBiroDashboard: Gagal memuat transaksi biro:", err)
+          })
       })
       .catch((err) => {
         console.error("AdminBiroDashboard: Gagal memuat data akun biro dari backend:", err)

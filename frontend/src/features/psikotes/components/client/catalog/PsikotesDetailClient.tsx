@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import PhoneInputField from "@/components/shared/PhoneInputField";
 import { useAdminContact } from "@/hooks/useAdminContact";
+import { useTenantContext } from "@/context/TenantContext";
 
 const DEFAULT_GUIDELINES = [
   "Jawab setiap pertanyaan dengan jujur sesuai dengan dirimu. Tidak ada jawaban benar atau salah.",
@@ -42,6 +43,7 @@ const DEFAULT_BANNER = "https://images.unsplash.com/photo-1543269865-cbf427effba
 export default function PsikotesDetailClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { slug } = useTenantContext();
   const { getWhatsAppUrl } = useAdminContact();
   const [apiData, setApiData] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -312,7 +314,8 @@ export default function PsikotesDetailClient({ params }: { params: { testId: str
     paidPackageName: "Laporan Hasil Psikotes Lengkap (PDF)",
   };
 
-  const checkoutUrl = `/psikotes/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title)}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&bannerUrl=${encodeURIComponent(data.image)}`;
+  const biroParam = slug ? `&biro=${encodeURIComponent(slug)}` : "";
+  const checkoutUrl = `/psikotes/checkout?testId=${params.testId}&judul=${encodeURIComponent(data.title)}&harga=${encodeURIComponent(data.formattedPrice)}&kategori=Psikotes&bannerUrl=${encodeURIComponent(data.image)}${biroParam}`;
 
   return (
     <div className="w-full font-sans bg-[#f8f9fa] pb-24">

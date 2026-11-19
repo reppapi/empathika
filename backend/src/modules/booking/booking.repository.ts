@@ -1057,9 +1057,11 @@ export class BookingRepository {
       const prefix = isAsesmen ? 'ASES' : 'KONS'
       const kode_pesanan = generateOrderId(prefix)
       const kode_transaksi = generateTrxId()
+      const effectiveBiroId = (data as any).id_biro || client.id_biro || null
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
+          id_biro_tenant: effectiveBiroId,
           kode_transaksi,
           tipe_transaksi: 'KONSULTASI',
           subtotal: nominal,

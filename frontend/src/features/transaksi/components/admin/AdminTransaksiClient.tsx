@@ -484,12 +484,20 @@ function normalizeTransaksi(raw: any) {
     client.phone ||
     "–"
 
+  const biroNama =
+    raw.biro_tenant?.nama_biro ||
+    client.biro?.nama_biro ||
+    bookingPsikotes.client?.biro?.nama_biro ||
+    bookingEvent.client?.biro?.nama_biro ||
+    null
+
   return {
     id: raw.id,
     orderId: formattedOrderId,
     kodePesanan: formattedKodePesanan,
     kodeTransaksi: rawKodeTransaksi,
     invoiceNomor: raw.invoice?.nomor || "",
+    biroNama,
     orderDate: createdAt.toLocaleString("id-ID", {
       day: "2-digit",
       month: "short",
@@ -1131,6 +1139,11 @@ export default function AdminTransaksiClient() {
                                 Order: {item.kodeTransaksi}
                               </span>
                             )}
+                            {item.biroNama && (
+                              <span className="text-[10px] font-medium text-purple-700 bg-purple-50/70 px-1.5 py-0.5 rounded">
+                                Dari Biro: {item.biroNama}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <span className="font-bold text-gray-900 truncate">{item.clientName}</span>
@@ -1212,6 +1225,11 @@ export default function AdminTransaksiClient() {
                           <span className="text-xs text-gray-500">{activeDetailItem.clientEmail}</span>
                         )}
                         <span className="text-xs text-gray-500">{activeDetailItem.clientPhone}</span>
+                        {activeDetailItem.biroNama && (
+                          <span className="text-xs font-medium text-purple-700 mt-1">
+                            Dari Biro: {activeDetailItem.biroNama}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

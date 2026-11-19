@@ -120,10 +120,14 @@ export class TransaksiService {
             no_telepon: standardizedPhone || null,
             usia: input.usia,
             jenis_kelamin: input.jenis_kelamin,
+            id_biro: input.id_biro || null,
           },
         })
       } else {
         const updateData: any = {}
+        if (input.id_biro && !client.id_biro) {
+          updateData.id_biro = input.id_biro
+        }
         if (standardizedPhone && client.no_telepon !== standardizedPhone) {
           updateData.no_telepon = standardizedPhone
         }
@@ -170,16 +174,17 @@ export class TransaksiService {
           data: { status: 'SUDAH_DIBOOKING' },
         })
 
-        // Hitung rincian biaya (harga dasar, komisi biro, biaya layanan/Xendit fee, total)
+        // Tentukan apakah transaksi terafiliasi biro (dari input eksplisit atau dari data klien yang sudah terafiliasi)
         const metodeBayar = (input.metode_pembayaran || 'QRIS').toUpperCase()
         const tipeSesi = (input.metode_layanan || 'ONLINE').toUpperCase() as 'ONLINE' | 'OFFLINE'
-        const dariBiro = Boolean(input.id_biro)
+        const effectiveBiroId = input.id_biro || client.id_biro || null
+        const dariBiro = Boolean(effectiveBiroId)
         const rincian = hitungTransaksi(hargaDasar, tipeSesi, metodeBayar, dariBiro)
 
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
-            id_biro_tenant: input.id_biro || null,
+            id_biro_tenant: effectiveBiroId,
             kode_transaksi: kodeTransaksi,
             tipe_transaksi: 'KONSULTASI',
             harga_dasar: rincian.hargaDasar,
@@ -304,9 +309,11 @@ export class TransaksiService {
         kodePesanan = generateOrderId('EVT')
         deskripsiTagihan = `Pendaftaran Event: ${event.judul} - ${kodePesanan}`
 
+        const effectiveBiroId = input.id_biro || client.id_biro || null
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
+            id_biro_tenant: effectiveBiroId,
             kode_transaksi: kodeTransaksi,
             tipe_transaksi: 'EVENT',
             subtotal: nominal,
@@ -398,9 +405,11 @@ export class TransaksiService {
         kodePesanan = generateOrderId('PSI')
         deskripsiTagihan = `Tes Psikotes Premium: ${paket.judul} - ${kodePesanan}`
 
+        const effectiveBiroId = input.id_biro || client.id_biro || null
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
+            id_biro_tenant: effectiveBiroId,
             kode_transaksi: kodeTransaksi,
             tipe_transaksi: 'PSIKOTES',
             subtotal: nominal,
