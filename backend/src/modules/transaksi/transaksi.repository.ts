@@ -81,10 +81,7 @@ export class TransaksiRepository {
     }
 
     if (_params?.biroId) {
-      where.client = {
-        ...(where.client || {}),
-        id_biro: _params.biroId,
-      }
+      where.id_biro_tenant = _params.biroId
     }
 
     if (_params?.status) {

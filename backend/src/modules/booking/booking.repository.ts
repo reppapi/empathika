@@ -1,6 +1,7 @@
 import type { PrismaClient, Prisma, StatusBooking, StatusSlot, StatusPembayaran } from '@prisma/client'
 import { parseDateString, timeStringToDate, formatDateToString, formatTimeToString, calculateRefundDeadline } from '../../utils/date-time'
 import { generateOrderId, generateTrxId, normalizePhoneNumber } from '../../utils'
+import { hitungTransaksi } from '../transaksi/transaksi.calc'
 
 export class BookingRepository {
   constructor(private prisma: PrismaClient) { }
@@ -17,7 +18,7 @@ export class BookingRepository {
         {
           OR: [
             { psikolog: { account: { id_biro: biroId } } },
-            { booking_konsultasi: { client: { id_biro: biroId } } },
+            { booking_konsultasi: { transaksi: { id_biro_tenant: biroId } } },
           ],
         },
       ]
@@ -113,8 +114,8 @@ export class BookingRepository {
       ...(biroId
         ? {
             OR: [
+              { transaksi: { id_biro_tenant: biroId } },
               { client: { id_biro: biroId } },
-              { jadwal: { psikolog: { account: { id_biro: biroId } } } },
             ],
           }
         : {}),
@@ -161,7 +162,11 @@ export class BookingRepository {
         jam_selesai: { gt: jam_mulai },
       },
       include: {
-        booking_konsultasi: true,
+        booking_konsultasi: {
+          include: {
+            transaksi: true,
+          },
+        },
       },
       orderBy: [
         { status: 'desc' }, // 'SUDAH_DIBOOKING' prioritized so active bookings are checked first
@@ -234,6 +239,7 @@ export class BookingRepository {
     id_psikolog?: string
     tipe_jadwal?: string
     metode?: string
+    layanan?: string
   }) {
     // Otomatis lepas slot yang ditinggalkan (pending > 30 menit) agar langsung muncul lagi di kalender
     await this.cancelExpiredPendingBookings(30).catch(() => { })
@@ -257,6 +263,26 @@ export class BookingRepository {
     }
 
     const parsedTanggal = params.tanggal ? parseDateString(params.tanggal) : undefined
+
+    let requestedService: any = null
+    if (
+      params.layanan &&
+      params.layanan.trim() &&
+      params.layanan !== 'Semua Layanan Konsultasi' &&
+      params.layanan !== 'Semua Layanan Asesmen' &&
+      params.layanan !== 'Semua Layanan'
+    ) {
+      try {
+        requestedService = await this.prisma.layanan.findFirst({
+          where: {
+            OR: [
+              { nama: { equals: params.layanan.trim(), mode: 'insensitive' } },
+              { nama: { contains: params.layanan.trim(), mode: 'insensitive' } },
+            ],
+          },
+        })
+      } catch {}
+    }
 
     // 1. Kumpulkan seluruh slot yang SUDAH ADA booking aktifnya (bukan CANCELLED)
     const activeBookings = await this.prisma.bookingKonsultasi.findMany({
@@ -374,12 +400,24 @@ export class BookingRepository {
       ],
     })
 
-    // 4. FILTER MUTLAK: Buang slot apa pun yang sudah dibooking atau berbentrok waktu!
+    // 4. FILTER MUTLAK: Buang slot apa pun yang sudah dibooking, berbentrok waktu, atau metodenya tidak didukung layanan!
     return availableCandidates.filter((slot) => {
       if (occupiedSlotIds.has(slot.id)) return false
       const dStr = formatDateToString(slot.tanggal)
       const jStr = formatTimeToString(slot.jam_mulai)
       if (occupiedTimeKeys.has(`${slot.id_psikolog}_${dStr}_${jStr}`)) return false
+
+      if (requestedService && requestedService.metode) {
+        const sMetode = requestedService.metode.toUpperCase()
+        const slotMetode = (slot.metode || 'KEDUANYA').toUpperCase()
+        if (slotMetode === 'OFFLINE' && !sMetode.includes('OFFLINE') && !sMetode.includes('KEDUANYA')) {
+          return false
+        }
+        if (slotMetode === 'ONLINE' && !sMetode.includes('ONLINE') && !sMetode.includes('KEDUANYA')) {
+          return false
+        }
+      }
+
       return true
     })
   }
@@ -471,6 +509,18 @@ export class BookingRepository {
   }
 
   async deleteJadwalSlot(id: string) {
+    const slot = await this.prisma.jadwalSlot.findUnique({
+      where: { id },
+      include: { booking_konsultasi: true },
+    })
+
+    if (slot?.booking_konsultasi) {
+      return this.prisma.jadwalSlot.update({
+        where: { id },
+        data: { status: 'TERSEDIA' },
+      })
+    }
+
     return this.prisma.jadwalSlot.delete({
       where: { id },
     })
@@ -495,6 +545,7 @@ export class BookingRepository {
     }
   }) {
     return this.prisma.$transaction(async (tx) => {
+      const resolvedBiroId: string | null = null
       // 1. Buat atau cari Klien berdasarkan kombinasi nomor telepon DAN nama (case-insensitive)
       // Satu nomor bisa dipakai beberapa klien berbeda (misal keluarga/anak), sehingga profil dicocokkan berdasarkan kombinasi nomor + nama.
       const inputName = (data.klien.nama || '').trim()
@@ -539,10 +590,14 @@ export class BookingRepository {
             no_telepon: standardizedPhone || null,
             usia: data.klien.usia,
             jenis_kelamin: data.klien.jenis_kelamin,
+            id_biro: resolvedBiroId || null,
           },
         })
       } else {
         const updateData: Prisma.ClientUpdateInput = {}
+        if (resolvedBiroId && !client.id_biro) {
+          updateData.biro = { connect: { id: resolvedBiroId } }
+        }
         if (standardizedPhone && client.no_telepon !== standardizedPhone) {
           updateData.no_telepon = standardizedPhone
         }
@@ -675,6 +730,8 @@ export class BookingRepository {
     deskripsi_trauma?: string
     metode_pembayaran?: string
     channel_pembayaran?: string
+    id_biro?: string
+    biro_slug?: string
     klien: {
       nama: string
       no_telepon: string
@@ -684,6 +741,34 @@ export class BookingRepository {
     }
   }) {
     return this.prisma.$transaction(async (tx) => {
+      // 0. Resolusi Biro Tenant jika booking berasal dari link website biro
+      let resolvedBiroId: string | null = null
+      if (data.id_biro && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.id_biro)) {
+        const biroFound = await tx.biro.findUnique({
+          where: { id: data.id_biro },
+          select: { id: true },
+        })
+        if (biroFound) resolvedBiroId = biroFound.id
+      }
+      if (!resolvedBiroId && (data.biro_slug || data.id_biro)) {
+        const candidateSlug = (data.biro_slug || data.id_biro || '').trim().toLowerCase()
+        const alternateSlug = candidateSlug.startsWith('biro-')
+          ? candidateSlug.replace(/^biro-/, '')
+          : `biro-${candidateSlug}`
+
+        const biroFound = await tx.biro.findFirst({
+          where: {
+            OR: [
+              { slug: { equals: candidateSlug, mode: 'insensitive' } },
+              { slug: { equals: alternateSlug, mode: 'insensitive' } },
+              { nama_biro: { contains: candidateSlug.replace(/[-_]/g, ' '), mode: 'insensitive' } },
+            ],
+          },
+          select: { id: true },
+        })
+        if (biroFound) resolvedBiroId = biroFound.id
+      }
+
       // 1. Verifikasi atau cari slot ketersediaan
       let slot: any = null
       const isUuid = data.id_jadwal && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.id_jadwal)
@@ -707,7 +792,7 @@ export class BookingRepository {
           (slot.booking_konsultasi && slot.booking_konsultasi.status !== 'CANCELLED'))
       ) {
         throw Object.assign(
-          new Error('Slot jadwal ini sudah dibooking oleh klien lain. Silakan pilih jadwal sesi lainnya.'),
+          new Error('Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya.'),
           { statusCode: 409 }
         )
       }
@@ -808,7 +893,7 @@ export class BookingRepository {
 
           if (!isSameClient) {
             throw Object.assign(
-              new Error('Slot jadwal ini sudah dibooking oleh klien lain. Silakan pilih jadwal atau waktu lain.'),
+              new Error('Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya.'),
               { statusCode: 409 }
             )
           }
@@ -847,7 +932,7 @@ export class BookingRepository {
 
         if (slot.status === 'SUDAH_DIBOOKING' && (!existingBooking || existingBooking.status !== 'CANCELLED')) {
           throw Object.assign(
-            new Error('Slot jadwal ini sudah dibooking oleh klien lain. Silakan pilih jadwal atau waktu lain.'),
+            new Error('Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya.'),
             { statusCode: 409 }
           )
         }
@@ -925,10 +1010,14 @@ export class BookingRepository {
             no_telepon: standardizedPhone || null,
             usia: data.klien.usia,
             jenis_kelamin: data.klien.jenis_kelamin,
+            id_biro: resolvedBiroId || null,
           },
         })
       } else {
         const updateData: Prisma.ClientUpdateInput = {}
+        if (resolvedBiroId && !client.id_biro) {
+          updateData.biro = { connect: { id: resolvedBiroId } }
+        }
         if (standardizedPhone && client.no_telepon !== standardizedPhone) {
           updateData.no_telepon = standardizedPhone
         }
@@ -1057,43 +1146,69 @@ export class BookingRepository {
       const prefix = isAsesmen ? 'ASES' : 'KONS'
       const kode_pesanan = generateOrderId(prefix)
       const kode_transaksi = generateTrxId()
+
+      const metodeBayar = (data.metode_pembayaran || 'QRIS').toUpperCase()
+      const tipeSesi = (data.metode || 'ONLINE').toUpperCase() as 'ONLINE' | 'OFFLINE'
+      const dariBiro = Boolean(resolvedBiroId)
+      const rincian = hitungTransaksi(nominal, tipeSesi, metodeBayar, dariBiro)
+
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
+          id_biro_tenant: resolvedBiroId || null,
           kode_transaksi,
           tipe_transaksi: 'KONSULTASI',
-          subtotal: nominal,
-          biaya_admin: 0,
-          total: nominal,
-          metode_pembayaran: (data.metode_pembayaran || 'QRIS').toUpperCase(),
+          harga_dasar: rincian.hargaDasar,
+          biaya_layanan: rincian.biayaLayanan,
+          komisi_biro: rincian.komisiBiro,
+          subtotal: rincian.subtotalKlien,
+          biaya_admin: rincian.biayaLayanan,
+          total: rincian.total,
+          metode_pembayaran: metodeBayar,
           channel_pembayaran: data.channel_pembayaran || null,
           status_pembayaran: paymentStatus,
         } as any,
       })
 
       // 6. Buat BookingKonsultasi (terhubung langsung ke JadwalSlot dan Transaksi)
-      const booking = await tx.bookingKonsultasi.create({
-        data: {
-          kode_pesanan,
-          id_client: client.id,
-          id_layanan: resolvedLayananId,
-          id_jadwal: slot.id,
-          id_transaksi: transaksi.id,
-          metode: (data.metode || 'ONLINE').toUpperCase(),
-          deskripsi_trauma: data.deskripsi_trauma,
-          status: finalStatus,
-        } as any,
-        include: {
-          client: true,
-          layanan: true,
-          transaksi: true,
-          jadwal: {
-            include: {
-              psikolog: true,
+      // Tangani race condition jika ada klien lain yang menekan tombol bayar di milidetik yang sama
+      let booking: any
+      try {
+        booking = await tx.bookingKonsultasi.create({
+          data: {
+            kode_pesanan,
+            id_client: client.id,
+            id_layanan: resolvedLayananId,
+            id_jadwal: slot.id,
+            id_transaksi: transaksi.id,
+            metode: (data.metode || 'ONLINE').toUpperCase(),
+            deskripsi_trauma: data.deskripsi_trauma,
+            status: finalStatus,
+          } as any,
+          include: {
+            client: true,
+            layanan: true,
+            transaksi: true,
+            jadwal: {
+              include: {
+                psikolog: true,
+              },
             },
           },
-        },
-      })
+        })
+      } catch (err: any) {
+        if (
+          err?.code === 'P2002' ||
+          err?.message?.includes('P2002') ||
+          (err?.meta?.target && String(err.meta.target).includes('id_jadwal'))
+        ) {
+          throw Object.assign(
+            new Error('Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya.'),
+            { statusCode: 409, code: 'P2002' }
+          )
+        }
+        throw err
+      }
 
       return booking
     })
@@ -1171,11 +1286,12 @@ export class BookingRepository {
 
   async updateBookingStatus(id: string, status: StatusBooking) {
     return this.prisma.$transaction(async (tx) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
       let existing = await tx.bookingKonsultasi.findFirst({
         where: {
           OR: [
-            { id },
-            { id_jadwal: id },
+            ...(isUuid ? [{ id }, { id_jadwal: id }] : []),
+            { kode_pesanan: id },
           ],
         },
         include: {
@@ -1189,7 +1305,7 @@ export class BookingRepository {
         },
       })
 
-      if (!existing) {
+      if (!existing && isUuid) {
         // Cek jika ID yang dikirim merupakan ID dari JadwalSlot
         const slot = await tx.jadwalSlot.findUnique({
           where: { id },
@@ -1224,6 +1340,34 @@ export class BookingRepository {
               layanan: { nama: '-' },
             } as any
           }
+        }
+      }
+
+      if (!existing) {
+        // Cek apakah ID yang dikirim merupakan ID transaksi atau kode transaksi
+        const trx = await tx.transaksi.findFirst({
+          where: {
+            OR: [
+              ...(isUuid ? [{ id }] : []),
+              { kode_transaksi: id },
+            ],
+          },
+          include: {
+            booking_konsultasi: {
+              include: {
+                client: true,
+                layanan: true,
+                jadwal: {
+                  include: {
+                    psikolog: true,
+                  },
+                },
+              },
+            },
+          },
+        })
+        if (trx?.booking_konsultasi) {
+          existing = trx.booking_konsultasi as any
         }
       }
 
@@ -1436,7 +1580,10 @@ export class BookingRepository {
   async findAllBookings(params?: { id_biro?: string; status?: string }) {
     const where: Prisma.BookingKonsultasiWhereInput = {}
     if (params?.id_biro) {
-      where.client = { id_biro: params.id_biro }
+      where.OR = [
+        { transaksi: { id_biro_tenant: params.id_biro } },
+        { client: { id_biro: params.id_biro } },
+      ]
     }
     if (params?.status) {
       where.status = params.status as any
@@ -1531,15 +1678,17 @@ export class BookingRepository {
   // ── 7. Reschedule Booking Konsultasi ──
   async rescheduleBooking(
     idOrSlotId: string,
-    input: { newDate: string; newWaktu: string; alasan?: string }
+    input: { newDate: string; newWaktu: string; alasan?: string },
+    user?: { id: string; role?: string; email?: string }
   ) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Cari booking berdasarkan ID booking atau ID slot jadwal
+      // 1. Cari booking berdasarkan ID booking, ID slot jadwal, atau kode pesanan
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idOrSlotId)
       let booking = await tx.bookingKonsultasi.findFirst({
         where: {
           OR: [
-            { id: idOrSlotId },
-            { id_jadwal: idOrSlotId },
+            ...(isUuid ? [{ id: idOrSlotId }, { id_jadwal: idOrSlotId }] : []),
+            { kode_pesanan: idOrSlotId },
           ],
         },
         include: {
@@ -1557,8 +1706,8 @@ export class BookingRepository {
         },
       })
 
-      // Jika tidak ditemukan langsung, coba cari slotnya terlebih dahulu
-      if (!booking) {
+      // Jika tidak ditemukan langsung dan format UUID, coba cari slotnya terlebih dahulu
+      if (!booking && isUuid) {
         const slot = await tx.jadwalSlot.findUnique({
           where: { id: idOrSlotId },
           include: {
@@ -1585,7 +1734,50 @@ export class BookingRepository {
       }
 
       if (!booking) {
-        throw new Error('Data sesi konsultasi / booking tidak ditemukan untuk dijadwalkan ulang')
+        throw Object.assign(
+          new Error('Data sesi konsultasi / booking tidak ditemukan untuk dijadwalkan ulang'),
+          { statusCode: 404 }
+        )
+      }
+
+      // ── VERIFIKASI OTORISASI KEPEMILIKAN (Pencegahan IDOR) ──
+      // Aturan: Hanya role ADMIN dan PSIKOLOG terkait yang berhak melakukan reschedule
+      if (user) {
+        const role = (user.role || '').toUpperCase()
+
+        if (role !== 'ADMIN' && role !== 'PSIKOLOG') {
+          throw Object.assign(
+            new Error('Akses ditolak: Fitur reschedule hanya dapat diakses oleh Admin atau Tenaga Ahli (Psikolog) terkait.'),
+            { statusCode: 403 }
+          )
+        }
+
+        if (role === 'PSIKOLOG') {
+          const assignedAccountId = booking.jadwal?.psikolog?.id_account
+          const assignedPsikologId = booking.jadwal?.id_psikolog
+
+          let isAssigned = Boolean(
+            (assignedAccountId && assignedAccountId === user.id) ||
+            (assignedPsikologId && assignedPsikologId === user.id)
+          )
+
+          if (!isAssigned) {
+            const psi = await tx.psikolog.findFirst({
+              where: { id_account: user.id },
+              select: { id: true },
+            })
+            if (psi && psi.id === assignedPsikologId) {
+              isAssigned = true
+            }
+          }
+
+          if (!isAssigned) {
+            throw Object.assign(
+              new Error('Akses ditolak: Anda hanya dapat menjadwalkan ulang (reschedule) sesi konsultasi milik Anda sendiri.'),
+              { statusCode: 403 }
+            )
+          }
+        }
       }
 
       // 2. Lepas slot jadwal lama agar kembali TERSEDIA untuk klien lain

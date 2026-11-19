@@ -64,6 +64,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
           nama: it.nama_peserta,
           noHp: it.no_hp ? formatToIndonesianPhone(it.no_hp) : it.no_hp,
           paket: it.nama_paket,
+          kodeAkses: it.kode_akses || it.kodeAkses || null,
           tanggal: new Date(it.tanggal).toLocaleDateString("id-ID", {
             day: "numeric",
             month: "short",

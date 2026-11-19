@@ -25,6 +25,22 @@ export interface AdminLayananItem {
 
 export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
   {
+    id: "konsultasi-individu-01",
+    layanan: "Konsultasi Individu",
+    kategoriId: "01",
+    metode: "Online/Offline",
+    weekday: "Rp 150.000",
+    weekend: "Rp 200.000",
+    status: "Aktif",
+    deskripsi:
+      "Sesi konsultasi 1 on 1 dengan tenaga profesional untuk mendampingi kesehatan mental Anda baik secara daring (Online) maupun tatap muka (Offline).",
+    tarif_tenaga_ahli: {
+      psikolog: { weekday: 150000, weekend: 200000 },
+      konselor: { weekday: 100000, weekend: 150000 },
+      peer: { weekday: 50000, weekend: 75000 },
+    },
+  },
+  {
     id: "ws-seft-01",
     layanan: "Workshop SEFT",
     kategoriId: "03",
@@ -78,6 +94,57 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
       "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     ],
   },
+  {
+    id: "asesmen-minat-bakat-01",
+    layanan: "Asesmen Minat Bakat",
+    kategoriId: "05",
+    metode: "Online/Offline",
+    weekday: "Rp 400.000",
+    weekend: "Rp 500.000",
+    status: "Aktif",
+    deskripsi:
+      "Pemetaan komprehensif potensi akademik, kecenderungan minat karir, dan profil bakat individu bersama tim profesional Empathika.",
+    tarif_tenaga_ahli: {
+      asesmen: {
+        online: 350000,
+        offline: { weekday: 400000, weekend: 500000 },
+      },
+    } as any,
+  },
+  {
+    id: "asesmen-kesiapan-sekolah-01",
+    layanan: "Asesmen Kesiapan Sekolah",
+    kategoriId: "05",
+    metode: "Online/Offline",
+    weekday: "Rp 350.000",
+    weekend: "Rp 450.000",
+    status: "Aktif",
+    deskripsi:
+      "Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, bahasa, dan regulasi sosio-emosional.",
+    tarif_tenaga_ahli: {
+      asesmen: {
+        online: 300000,
+        offline: { weekday: 350000, weekend: 450000 },
+      },
+    } as any,
+  },
+  {
+    id: "asesmen-klinis-01",
+    layanan: "Asesmen Klinis",
+    kategoriId: "05",
+    metode: "Online/Offline",
+    weekday: "Rp 350.000",
+    weekend: "Rp 450.000",
+    status: "Aktif",
+    deskripsi:
+      "Pemeriksaan diagnostik psikologis mendalam untuk mengidentifikasi dinamika kepribadian, regulasi emosi, dan kesehatan mental.",
+    tarif_tenaga_ahli: {
+      asesmen: {
+        online: 350000,
+        offline: { weekday: 350000, weekend: 450000 },
+      },
+    } as any,
+  },
 ]
 
 const STORAGE_KEY = "empathika_admin_layanan_data"
@@ -89,11 +156,17 @@ export function getStoredLayanan(): AdminLayananItem[] {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const hasKonsultasi = parsed.some((p: any) => p.kategoriId === "01" || p.kategori === "KONSULTASI")
         const hasWs = parsed.some((p: any) => p.kategoriId === "03" || p.kategori === "WORKSHOP")
         const hasSm = parsed.some((p: any) => p.kategoriId === "04" || p.kategori === "SEMINAR")
-        if (!hasWs || !hasSm) {
+        const hasAsesmen = parsed.some((p: any) => p.kategoriId === "05" || p.kategori === "ASESMEN")
+        if (!hasKonsultasi || !hasWs || !hasSm || !hasAsesmen) {
           const defaultsToAdd = INITIAL_ADMIN_LAYANAN.filter(
-            (init) => (!hasWs && init.kategoriId === "03") || (!hasSm && init.kategoriId === "04")
+            (init) =>
+              (!hasKonsultasi && init.kategoriId === "01") ||
+              (!hasWs && init.kategoriId === "03") ||
+              (!hasSm && init.kategoriId === "04") ||
+              (!hasAsesmen && init.kategoriId === "05")
           )
           const merged = [...parsed, ...defaultsToAdd]
           saveStoredLayanan(merged)

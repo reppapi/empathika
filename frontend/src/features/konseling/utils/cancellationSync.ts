@@ -286,6 +286,25 @@ export function recordRescheduledSession(record: {
 }
 
 /**
+ * Menghapus status reschedule pada slot tertentu ketika slot tersebut dibuka kembali atau diganti.
+ */
+export function removeRescheduledSession(filter: { id?: string; date?: string; waktu?: string }): void {
+  if (typeof window === "undefined") return
+  try {
+    const current = getRescheduledSessions()
+    const updated = current.filter((r) => {
+      if (filter.id && r.id && filter.id === r.id) return false
+      if (filter.date && filter.waktu && r.date === filter.date && r.waktu === filter.waktu) return false
+      return true
+    })
+    localStorage.setItem(RESCHEDULE_STORAGE_KEY, JSON.stringify(updated))
+    window.dispatchEvent(new Event("storage"))
+  } catch (err) {
+    console.warn("Gagal menghapus sesi dari daftar reschedule:", err)
+  }
+}
+
+/**
  * Mencari data reschedule sesi pada TANGGAL & JAM AWAL (sebelum dipindahkan).
  * Digunakan agar kartu pada tanggal awal tetap ditampilkan dengan badge 'Reschedule'
  * dan teks tercoret (line-through).

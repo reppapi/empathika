@@ -50,8 +50,8 @@ export class AdminRepository {
         ...(biroId
           ? {
               OR: [
+                { transaksi: { id_biro_tenant: biroId } },
                 { client: { id_biro: biroId } },
-                { jadwal: { psikolog: { account: { id_biro: biroId } } } },
               ],
             }
           : {}),
@@ -82,7 +82,14 @@ export class AdminRepository {
       ],
     }
 
-    const biroFilter = biroId ? { client: { id_biro: biroId } } : {}
+    const biroFilter = biroId
+      ? {
+          OR: [
+            { id_biro_tenant: biroId },
+            { client: { id_biro: biroId } },
+          ],
+        }
+      : {}
 
     const paidTransactionsThisMonth = await this.prisma.transaksi.findMany({
       where: {
@@ -133,15 +140,30 @@ export class AdminRepository {
       0
     )
 
-    // 2. Total Klien Aktif (Hanya klien biro jika biroId tersedia)
+    // 2. Total Klien Aktif (Klien yang bertransaksi lewat web biro atau terdaftar di bawah biro jika biroId tersedia)
     const activeClientWhere: Prisma.ClientWhereInput = {
-      ...(biroId ? { id_biro: biroId } : {}),
-      OR: [
-        { transaksi: { some: { status_pembayaran: 'PAID' } } },
-        { booking_konsultasi: { some: { NOT: { status: 'CANCELLED' } } } },
-        { booking_psikotes: { some: {} } },
-        { booking_event: { some: { NOT: { status: 'CANCELLED' } } } },
-      ],
+      ...(biroId
+        ? {
+            OR: [
+              {
+                transaksi: {
+                  some: {
+                    id_biro_tenant: biroId,
+                    status_pembayaran: 'PAID',
+                  },
+                },
+              },
+              { id_biro: biroId },
+            ],
+          }
+        : {
+            OR: [
+              { transaksi: { some: { status_pembayaran: 'PAID' } } },
+              { booking_konsultasi: { some: { NOT: { status: 'CANCELLED' } } } },
+              { booking_psikotes: { some: {} } },
+              { booking_event: { some: { NOT: { status: 'CANCELLED' } } } },
+            ],
+          }),
     }
 
     const totalClients = await this.prisma.client.count({
@@ -163,8 +185,8 @@ export class AdminRepository {
         ...(biroId
           ? {
               OR: [
+                { transaksi: { id_biro_tenant: biroId } },
                 { client: { id_biro: biroId } },
-                { jadwal: { psikolog: { account: { id_biro: biroId } } } },
               ],
             }
           : {}),
@@ -186,7 +208,14 @@ export class AdminRepository {
           status: { in: ['UPCOMING', 'ONGOING'] },
         },
         NOT: { status: 'CANCELLED' },
-        ...(biroId ? { client: { id_biro: biroId } } : {}),
+        ...(biroId
+          ? {
+              OR: [
+                { transaksi: { id_biro_tenant: biroId } },
+                { client: { id_biro: biroId } },
+              ],
+            }
+          : {}),
       },
       select: { jumlah_peserta: true },
     })
@@ -207,7 +236,11 @@ export class AdminRepository {
     const pendingPaymentCount = await this.prisma.transaksi.count({
       where: {
         status_pembayaran: 'PENDING',
-        ...(biroId ? { client: { id_biro: biroId } } : {}),
+        ...(biroId
+          ? {
+              id_biro_tenant: biroId,
+            }
+          : {}),
         OR: [
           { booking_konsultasi: { isNot: null } },
           { booking_psikotes: { isNot: null } },
@@ -250,8 +283,8 @@ export class AdminRepository {
       ...(biroId
         ? {
             OR: [
+              { transaksi: { id_biro_tenant: biroId } },
               { client: { id_biro: biroId } },
-              { jadwal: { psikolog: { account: { id_biro: biroId } } } },
             ],
           }
         : {}),
@@ -298,7 +331,14 @@ export class AdminRepository {
    */
   async findDashboardRecentTransactions(limit: number = 5, biroId?: string) {
     const where: Prisma.TransaksiWhereInput = {
-      ...(biroId ? { client: { id_biro: biroId } } : {}),
+      ...(biroId
+        ? {
+            OR: [
+              { id_biro_tenant: biroId },
+              { client: { id_biro: biroId } },
+            ],
+          }
+        : {}),
       OR: [
         { booking_konsultasi: { isNot: null } },
         { booking_psikotes: { isNot: null } },
@@ -362,8 +402,8 @@ export class AdminRepository {
           ...(biroId
             ? {
                 OR: [
+                  { transaksi: { id_biro_tenant: biroId } },
                   { client: { id_biro: biroId } },
-                  { jadwal: { psikolog: { account: { id_biro: biroId } } } },
                 ],
               }
             : {}),
@@ -383,7 +423,14 @@ export class AdminRepository {
       this.prisma.transaksi.findMany({
         where: {
           status_pembayaran: 'PENDING',
-          ...(biroId ? { client: { id_biro: biroId } } : {}),
+          ...(biroId
+            ? {
+                OR: [
+                  { id_biro_tenant: biroId },
+                  { client: { id_biro: biroId } },
+                ],
+              }
+            : {}),
           OR: [
             { booking_konsultasi: { isNot: null } },
             { booking_psikotes: { isNot: null } },

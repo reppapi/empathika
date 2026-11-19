@@ -72,7 +72,24 @@ export class AdminController {
 
   private async resolveBiroId(request: FastifyRequest): Promise<string | undefined> {
     const user = (request as any).user
-    let biroId: string | undefined = (request.query as any)?.biroId || (request.headers['x-biro-id'] as string)
+    let biroId: string | undefined =
+      (request.query as any)?.biroId ||
+      (request.query as any)?.id_biro ||
+      (request.headers['x-biro-id'] as string)
+
+    // Jika biroId belum dapat, coba cek dari header atau query slug biro
+    const slug =
+      (request.headers['x-biro-slug'] as string) ||
+      (request.query as any)?.slug ||
+      (request.query as any)?.biro
+    if (!biroId && slug) {
+      const biro = await (this.fastify as any).prisma.biro.findFirst({
+        where: { slug: String(slug).toLowerCase() },
+        select: { id: true },
+      })
+      if (biro) biroId = biro.id
+    }
+
     if (user?.role === 'BIRO') {
       const userBiroId = await this.getBiroIdForUser(user.id)
       if (userBiroId) {

@@ -1,4 +1,4 @@
-import type { PrismaClient, Prisma } from '@prisma/client'
+import { type PrismaClient, type Prisma, StatusBooking } from '@prisma/client'
 
 /** Select akun yang dibutuhkan FE — tidak termasuk field sensitif password */
 const ACCOUNT_PUBLIC_SELECT = {
@@ -37,13 +37,20 @@ const getJadwalSlotInclude = (takeCount: number = 30) => {
     where: {
       status: 'TERSEDIA' as const,
       tipe_jadwal: 'KONSULTASI' as const,
-      booking_konsultasi: null,
-      NOT: { id: { startsWith: 'slot-' } },
       OR: [
-        { tanggal: { gt: today } },
+        { booking_konsultasi: null },
+        { booking_konsultasi: { is: { status: StatusBooking.CANCELLED } } },
+      ],
+      NOT: { id: { startsWith: 'slot-' } },
+      AND: [
         {
-          tanggal: today,
-          jam_mulai: { gte: currentTimeToday },
+          OR: [
+            { tanggal: { gt: today } },
+            {
+              tanggal: today,
+              jam_mulai: { gte: currentTimeToday },
+            },
+          ],
         },
       ],
     },

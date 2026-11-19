@@ -1163,18 +1163,15 @@ export class PsikotesRepository {
     }
 
     if (params?.id_biro) {
-      where.client = {
-        ...where.client,
-        id_biro: params.id_biro,
-      }
+      where.transaksi = { id_biro_tenant: params.id_biro }
     }
 
     const baseCountWhere: any = {
       paket: { is: { jenis_akses: 'BERBAYAR' } },
+      ...(params?.id_biro ? { transaksi: { id_biro_tenant: params.id_biro } } : {}),
       client: {
         is: {
           nama: { not: 'Tamu Anonim' },
-          ...(params?.id_biro ? { id_biro: params.id_biro } : {}),
         },
       },
       OR: [
@@ -1528,6 +1525,7 @@ export class PsikotesRepository {
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
+          id_biro_tenant: idBiro || null,
           kode_transaksi: kodeTransaksi,
           tipe_transaksi: 'PSIKOTES',
           subtotal: nominal,

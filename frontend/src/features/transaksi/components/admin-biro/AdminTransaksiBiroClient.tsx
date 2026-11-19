@@ -126,6 +126,22 @@ export default function AdminTransaksiBiroClient() {
     fetchData()
   }, [fetchData])
 
+  // Tutup dropdown jika tombol Escape ditekan
+  useEffect(() => {
+    if (!isFilterOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsFilterOpen(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isFilterOpen])
+
   // ── Filter & Sort ──
   const filteredTransaksi = useMemo(() => {
     const list = allTransaksi.filter((item) => {
@@ -281,14 +297,8 @@ export default function AdminTransaksiBiroClient() {
               <button
                 type="button"
                 ref={filterBtnRef}
-                onClick={() => {
-                  if (!isFilterOpen && filterBtnRef.current) {
-                    const rect = filterBtnRef.current.getBoundingClientRect()
-                    setFilterDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
-                  }
-                  setIsFilterOpen((prev) => !prev)
-                }}
-                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] hover:text-[#561269] transition shadow-sm"
+                onClick={() => setIsFilterOpen((prev) => !prev)}
+                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:border-[#561269] hover:text-[#561269] transition shadow-sm cursor-pointer"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.41A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
@@ -301,10 +311,9 @@ export default function AdminTransaksiBiroClient() {
 
               {isFilterOpen && (
                 <>
-                  <div className="fixed inset-0 z-20" onClick={() => setIsFilterOpen(false)} />
+                  <div className="fixed inset-0 z-10" onClick={() => setIsFilterOpen(false)} />
                   <div
-                    className="fixed z-[9999] w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl"
-                    style={filterDropdownPos ? { top: filterDropdownPos.top, right: filterDropdownPos.right } : {}}
+                    className="absolute right-0 top-full mt-2 z-20 w-56 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-150"
                   >
                     {LAYANAN_OPTIONS.map((opt) => (
                       <button

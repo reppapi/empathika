@@ -11,6 +11,8 @@ export default function AsesmenClient() {
     selectedAsesmen,
     metode,
     setMetode,
+    allowsOnline,
+    allowsOffline,
     selectedDate,
     setSelectedDate,
     selectedOfflinePlan,
@@ -38,6 +40,8 @@ export default function AsesmenClient() {
         setMetode={setMetode}
         selectedAsesmen={selectedAsesmen}
         withBiro={withBiro}
+        allowsOnline={allowsOnline}
+        allowsOffline={allowsOffline}
       />
 
       {/* ── 3. RINCIAN HARGA & KONTEN SESUAI METODE TERPILIH ── */}

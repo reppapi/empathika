@@ -67,14 +67,29 @@ export class BookingController {
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.createClientBooking(request.body)
+      const input = { ...request.body }
+      if (!input.biro_slug && request.headers['x-biro-slug']) {
+        input.biro_slug = request.headers['x-biro-slug'] as string
+      }
+      if (!input.id_biro && request.headers['x-biro-id']) {
+        input.id_biro = request.headers['x-biro-id'] as string
+      }
+      const data = await this.service.createClientBooking(input)
       reply.code(201).send(data)
     } catch (err: any) {
-      const statusCode = err.statusCode || (err.code === 'P2002' ? 409 : 400)
+      const isRaceCondition =
+        err?.code === 'P2002' ||
+        err?.statusCode === 409 ||
+        err?.message?.includes('P2002') ||
+        (err?.meta?.target && String(err.meta.target).includes('id_jadwal'))
+
+      const statusCode = isRaceCondition ? 409 : (err.statusCode || 400)
       const message =
-        err.code === 'P2002'
-          ? 'Slot jadwal ini sudah dibooking oleh klien lain. Silakan pilih jadwal lain.'
-          : err.message
+        err?.code === 'P2002' ||
+        err?.message?.includes('P2002') ||
+        (err?.meta?.target && String(err.meta.target).includes('id_jadwal'))
+          ? 'Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya.'
+          : (err.message || 'Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya.')
       reply.code(statusCode).send({ message })
     }
   }
@@ -116,7 +131,7 @@ export class BookingController {
       const data = await this.service.createPsikologJadwalSlot(request.body, user?.id)
       reply.code(201).send(data)
     } catch (err: any) {
-      reply.code(400).send({ message: err.message })
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 
@@ -129,7 +144,7 @@ export class BookingController {
       await this.service.deleteJadwalSlot(request.params.id, user?.id, user?.role)
       reply.code(204).send()
     } catch (err: any) {
-      reply.code(400).send({ message: err.message })
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 
@@ -163,7 +178,7 @@ export class BookingController {
       const data = await this.service.createAdminJadwalSlot(request.body)
       reply.code(201).send(data)
     } catch (err: any) {
-      reply.code(400).send({ message: err.message })
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 
@@ -175,7 +190,20 @@ export class BookingController {
       const data = await this.service.createAdminSesi(request.body)
       reply.code(201).send(data)
     } catch (err: any) {
-      reply.code(400).send({ message: err.message })
+      const isRaceCondition =
+        err?.code === 'P2002' ||
+        err?.statusCode === 409 ||
+        err?.message?.includes('P2002') ||
+        (err?.meta?.target && String(err.meta.target).includes('id_jadwal'))
+
+      const statusCode = isRaceCondition ? 409 : (err.statusCode || 400)
+      const message =
+        err?.code === 'P2002' ||
+        err?.message?.includes('P2002') ||
+        (err?.meta?.target && String(err.meta.target).includes('id_jadwal'))
+          ? 'Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya.'
+          : err.message
+      reply.code(statusCode).send({ message })
     }
   }
 
@@ -187,7 +215,7 @@ export class BookingController {
       const data = await this.service.updateBookingStatus(request.params.id, request.body.status)
       reply.send(data)
     } catch (err: any) {
-      reply.code(400).send({ message: err.message })
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 
@@ -199,7 +227,7 @@ export class BookingController {
       const data = await this.service.updateBookingStatus(request.params.id, 'CANCELLED')
       reply.send(data)
     } catch (err: any) {
-      reply.code(400).send({ message: err.message })
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 
@@ -228,7 +256,7 @@ export class BookingController {
       const data = await this.service.cleanExpiredPendingBookings(maxAge)
       reply.send(data)
     } catch (err: any) {
-      reply.code(400).send({ message: err.message })
+      reply.code(err.statusCode || 400).send({ message: err.message })
     }
   }
 
@@ -237,14 +265,28 @@ export class BookingController {
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.rescheduleBooking(request.params.id, request.body)
+      const user = (request as any).user
+      const data = await this.service.rescheduleBooking(request.params.id, request.body, user)
       reply.send({
         statusCode: 200,
         message: 'Sesi konsultasi berhasil dijadwalkan ulang (reschedule)',
         data,
       })
     } catch (err: any) {
-      reply.code(err.statusCode || 400).send({ message: err.message })
+      const isRaceCondition =
+        err?.code === 'P2002' ||
+        err?.statusCode === 409 ||
+        err?.message?.includes('P2002') ||
+        (err?.meta?.target && String(err.meta.target).includes('id_jadwal'))
+
+      const statusCode = isRaceCondition ? 409 : (err.statusCode || 400)
+      const message =
+        err?.code === 'P2002' ||
+        err?.message?.includes('P2002') ||
+        (err?.meta?.target && String(err.meta.target).includes('id_jadwal'))
+          ? 'Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya.'
+          : err.message
+      reply.code(statusCode).send({ message })
     }
   }
 }

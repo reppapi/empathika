@@ -6,6 +6,7 @@ export const getJadwalTersediaQuerySchema = z.object({
   id_psikolog: z.string().optional(),
   tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).default('KONSULTASI'),
   metode: z.string().optional(),
+  layanan: z.string().optional(),
 })
 
 // ── 2. Jadwal Milik Psikolog (Portal Psikolog) ──
@@ -23,6 +24,7 @@ export const createJadwalSlotSchema = z.object({
   tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).default('KONSULTASI'),
   metode: z.string().optional().default('ONLINE'),
   layanan: z.string().optional(),
+  force_release: z.boolean().optional(),
 })
 
 // ── 3. Jadwal & Sesi Konsultasi di Admin ──
@@ -42,6 +44,7 @@ export const createAdminJadwalSlotSchema = z.object({
   tipe_jadwal: z.string().optional().default('ASESMEN'),
   metode: z.string().optional().default('OFFLINE'),
   layanan: z.string().optional(),
+  force_release: z.boolean().optional(),
 })
 
 export const createAdminSesiSchema = z.object({
@@ -85,6 +88,8 @@ export const createClientBookingSchema = z.object({
   deskripsi_trauma: z.string().optional(),
   metode_pembayaran: z.string().optional(),
   channel_pembayaran: z.string().optional(),
+  id_biro: z.string().optional(),
+  biro_slug: z.string().optional(),
   klien: z.object({
     nama: z.string().min(1, 'Nama klien wajib diisi'),
     no_telepon: z.string().min(8, 'Nomor WhatsApp minimal 8 digit'),
