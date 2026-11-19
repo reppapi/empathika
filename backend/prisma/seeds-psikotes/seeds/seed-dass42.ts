@@ -142,6 +142,7 @@ export async function seedDASS42(prisma: PrismaClient) {
     tentang_tes:
       'Setiap orang bisa mengalami tekanan emosional dengan cara yang berbeda. Tes ini membantu memberikan gambaran tentang tiga aspek, yaitu depresi, kecemasan, dan stres. Kamu dapat mengenali pengalaman seperti perasaan sedih, ketegangan, kekhawatiran, hingga kesulitan untuk merasa tenang dalam menghadapi berbagai situasi.',
     status: 'PUBLISHED',
+    perlu_review_psikolog: false,
   }
 
   if (paketDASS42) {

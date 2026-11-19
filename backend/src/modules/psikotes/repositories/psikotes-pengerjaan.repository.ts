@@ -43,9 +43,15 @@ export class PsikotesPengerjaanRepository {
 
       // Deteksi apakah paket memerlukan telaah klinis psikolog (misal: MCMI-IV / klinis berbayar)
       const isNeedReview = Boolean(
-        (paket as any).perlu_review_psikolog ||
+        !Boolean(
+          paket.alat_ukur?.kode === 'DASS-42' ||
+          paket.alat_ukur?.kode === 'DASS_42' ||
+          paket.judul?.toLowerCase().includes('dass') ||
+          paket.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
+        ) &&
+        ((paket as any).perlu_review_psikolog ||
         paket.alat_ukur?.kode === 'MCMI_4' ||
-        paket.judul?.toLowerCase().includes('mcmi')
+        paket.judul?.toLowerCase().includes('mcmi'))
       )
       const targetStatusPengerjaan = isNeedReview ? 'MENUNGGU_REVIEW' : 'SELESAI'
 

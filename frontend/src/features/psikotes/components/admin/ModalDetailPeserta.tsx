@@ -23,12 +23,14 @@ export interface ModalDetailPesertaProps {
   judulList?: JudulPsikotesItem[];
   onClose: () => void;
   onDownloadPdf: (peserta: AdminPsikotesPeserta) => Promise<void> | void;
+  isBiroContext?: boolean;
 }
 
 export default function ModalDetailPeserta({
   peserta,
   onClose,
   onDownloadPdf,
+  isBiroContext = false,
 }: ModalDetailPesertaProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -45,9 +47,20 @@ export default function ModalDetailPeserta({
 
   if (!peserta || !mounted) return null;
 
+  const isDass = Boolean(
+    peserta.paket?.toLowerCase().includes("dass") ||
+    peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+  );
+  const isNeedReview = !isDass && Boolean(
+    peserta.perlu_review_psikolog ||
+    peserta.paket?.toLowerCase().includes("mcmi")
+  );
+
   const isMenungguReview =
-    peserta.status === "Menunggu Review" ||
-    (peserta as any).status_pengerjaan === "MENUNGGU_REVIEW";
+    isNeedReview && (
+      peserta.status === "Menunggu Review" ||
+      (peserta as any).status_pengerjaan === "MENUNGGU_REVIEW"
+    );
   const isCompleted =
     !isMenungguReview &&
     (peserta.status === "Selesai" || Boolean(peserta.hasil));
@@ -329,13 +342,13 @@ Terima kasih atas dedikasi dan profesionalitas rekan-rekan! 🙏`
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 bg-white text-gray-800 text-xs">
 
           {/* ───────────────────────────────────────────────────────────── */}
-          {/* A. STATUS TELAAH & REVIEWER (HERO BANNER RINGKAS & BERSIH)    */}
+          {/* A. STATUS TELAAH & REVIEWER (HERO BANNER RINGKAS & KONSISTEN) */}
           {/* ───────────────────────────────────────────────────────────── */}
           {isMenungguReview ? (
             Boolean(peserta.id_psikolog || peserta.psikolog) ? (
               /* Sudah di-keep oleh psikolog */
               <div className="p-4 rounded-xl bg-purple-50/50 border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700">
                       Psikolog Pemeriksa
@@ -356,16 +369,21 @@ Terima kasih atas dedikasi dan profesionalitas rekan-rekan! 🙏`
                   </p>
                 </div>
 
-                {waPsikologUrl && (
-                  <a
-                    href={waPsikologUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition active:scale-95 shadow-2xs hover:shadow-xs shrink-0 self-start sm:self-auto cursor-pointer"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    Hubungi Psikolog
-                  </a>
+                {!isBiroContext && (
+                  <div className="flex items-center gap-2">
+                    {waPsikologUrl && (
+                      <a
+                        href={waPsikologUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 shrink-0 cursor-pointer"
+                        title="Hubungi psikolog pemeriksa via WhatsApp"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        Hubungi Psikolog
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             ) : (
@@ -386,41 +404,51 @@ Terima kasih atas dedikasi dan profesionalitas rekan-rekan! 🙏`
                   <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-amber-100 text-amber-800 shrink-0">
                     Antrean Terbuka
                   </span>
-                  <a
-                    href={waBroadcastUrlTimPsikolog}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition active:scale-95 shrink-0"
-                    title="Kirim pemberitahuan ke grup WhatsApp psikolog"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    Broadcast WA Tim
-                  </a>
+                  {!isBiroContext && (
+                    <a
+                      href={waBroadcastUrlTimPsikolog}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 shrink-0 cursor-pointer"
+                      title="Kirim pemberitahuan ke grup WhatsApp psikolog"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      Broadcast WA Tim
+                    </a>
+                  )}
                 </div>
               </div>
             )
-          ) : isCompleted ? (
-            /* Sudah Selesai */
-            <div className="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-between gap-3">
+          ) : isCompleted && isNeedReview ? (
+            /* Sudah Selesai (Hanya untuk Asesmen Klinis yang Ditelaah Psikolog) */
+            <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 block">
                   Laporan Resmi Diterbitkan
                 </span>
-                <p className="font-semibold text-gray-900 text-xs sm:text-sm">
-                  Ditelaah &amp; Disahkan oleh: <span className="text-emerald-950 font-bold">{namaPsikolog || "Psikolog Empathika"}</span>
+                <p className="font-semibold text-gray-900 text-sm">
+                  Ditelaah oleh: <span className="text-emerald-950 font-bold">{namaPsikolog || "Psikolog Empathika"}</span>
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  Selesai telaah {peserta.hasil?.tanggal_review ? new Date(peserta.hasil.tanggal_review).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : keepDateFormatted || peserta.tanggal} • Dokumen resmi terbit
                 </p>
               </div>
 
-              {waPsikologUrl && (
-                <a
-                  href={waPsikologUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline shrink-0"
-                >
-                  <Phone className="w-3 h-3" />
-                  WA Pemeriksa
-                </a>
+              {!isBiroContext && (
+                <div className="flex items-center gap-2">
+                  {waPsikologUrl && (
+                    <a
+                      href={waPsikologUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 shrink-0 cursor-pointer"
+                      title="Hubungi psikolog pemeriksa via WhatsApp"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      WA Pemeriksa
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           ) : null}
@@ -626,8 +654,8 @@ Terima kasih atas dedikasi dan profesionalitas rekan-rekan! 🙏`
                     )
                   )}
                 </>
-              ) : isMenungguReview ? (
-                /* Menunggu Review */
+              ) : !isBiroContext && isMenungguReview ? (
+                /* Menunggu Review (Hanya untuk Admin Utama Empathika) */
                 namaPsikolog ? (
                   <a
                     href={waPsikologUrl}

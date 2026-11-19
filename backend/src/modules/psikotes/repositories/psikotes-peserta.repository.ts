@@ -80,7 +80,7 @@ export class PsikotesPesertaRepository {
         { hasil_tes: { isNot: null } },
         { peserta_psikotes: { isNot: null } },
       ],
-      AND: [nonExpiredFilter],
+      AND: [nonExpiredFilter, ...biroFilter],
     }
 
     const [totalBerbayar, totalSelesai, totalMenungguReview, totalGratis, items] = await Promise.all([
@@ -223,14 +223,35 @@ export class PsikotesPesertaRepository {
           }
           : null,
         tanggal: b.createdAt,
-        status:
-          b.status_pengerjaan === 'MENUNGGU_REVIEW'
-            ? 'Menunggu Review'
-            : b.status_pengerjaan === 'SELESAI' || b.hasil_tes
-            ? 'Selesai'
-            : 'Menunggu Pengerjaan',
-        status_pengerjaan: b.status_pengerjaan,
-        perlu_review_psikolog: (b.paket as any).perlu_review_psikolog,
+        status: (() => {
+          const isDass = Boolean(
+            b.paket?.judul?.toLowerCase().includes('dass') ||
+            b.paket?.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
+          )
+          const effectivePerluReview = !isDass && Boolean(
+            (b.paket as any)?.perlu_review_psikolog ||
+            b.paket?.judul?.toLowerCase().includes('mcmi')
+          )
+          if (effectivePerluReview && b.status_pengerjaan === 'MENUNGGU_REVIEW') {
+            return 'Menunggu Review'
+          }
+          if (b.status_pengerjaan === 'SELESAI' || b.hasil_tes) {
+            return 'Selesai'
+          }
+          return 'Menunggu Pengerjaan'
+        })(),
+        status_pengerjaan: (() => {
+          const isDass = Boolean(
+            b.paket?.judul?.toLowerCase().includes('dass') ||
+            b.paket?.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
+          )
+          if (isDass && b.hasil_tes) return 'SELESAI'
+          return b.status_pengerjaan
+        })(),
+        perlu_review_psikolog: !Boolean(
+          b.paket?.judul?.toLowerCase().includes('dass') ||
+          b.paket?.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
+        ) && Boolean((b.paket as any).perlu_review_psikolog),
         id_biro: (b.client as any)?.id_biro || (b.transaksi as any)?.id_biro_tenant || null,
         nama_biro: (b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro || 'Empathika (Pusat)',
         is_biro: Boolean((b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro),

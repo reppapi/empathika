@@ -314,6 +314,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
             ).filter(Boolean)}
             isLoading={isLoadingPeserta}
             onSelectPeserta={setSelectedPeserta}
+            isBiroContext={isBiroContext}
           />
         </div>
       ) : (
@@ -345,6 +346,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         judulList={judulList}
         onClose={() => setSelectedPeserta(null)}
         onDownloadPdf={(peserta) => printLaporanPsikotes(peserta, judulList)}
+        isBiroContext={isBiroContext}
       />
 
       {/* ── 5. Modal Konfirmasi Hapus Paket Psikotes (Khusus Admin Utama) ── */}

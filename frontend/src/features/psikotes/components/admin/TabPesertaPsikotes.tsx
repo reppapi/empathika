@@ -30,6 +30,7 @@ export interface TabPesertaPsikotesProps {
   paketOptions?: string[];
   isLoading: boolean;
   onSelectPeserta: (peserta: AdminPsikotesPeserta) => void;
+  isBiroContext?: boolean;
 }
 
 export default function TabPesertaPsikotes({
@@ -41,6 +42,7 @@ export default function TabPesertaPsikotes({
   paketOptions = [],
   isLoading,
   onSelectPeserta,
+  isBiroContext = false,
 }: TabPesertaPsikotesProps) {
   // Local state jika prop eksternal tidak dipass
   const [localSelectedPaket, setLocalSelectedPaket] = useState<string>("ALL");
@@ -66,8 +68,17 @@ export default function TabPesertaPsikotes({
     const nowMs = Date.now();
 
     for (const p of baseBerbayarList) {
-      const isMenunggu = p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW";
-      const isSelesai = !isMenunggu && (p.status === "Selesai" || p.status_pengerjaan === "SELESAI");
+      const isDass = Boolean(
+        p.paket?.toLowerCase().includes("dass") ||
+        p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+      );
+      const isNeedReview = !isDass && Boolean(
+        p.perlu_review_psikolog ||
+        p.paket?.toLowerCase().includes("mcmi")
+      );
+
+      const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
+      const isSelesai = !isMenunggu && (p.status === "Selesai" || p.status_pengerjaan === "SELESAI" || Boolean(p.hasil));
 
       if (isMenunggu) {
         menungguCount++;
@@ -94,7 +105,15 @@ export default function TabPesertaPsikotes({
   const urgentTickets = useMemo(() => {
     const nowMs = Date.now();
     return baseBerbayarList.filter((p) => {
-      const isMenunggu = p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW";
+      const isDass = Boolean(
+        p.paket?.toLowerCase().includes("dass") ||
+        p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+      );
+      const isNeedReview = !isDass && Boolean(
+        p.perlu_review_psikolog ||
+        p.paket?.toLowerCase().includes("mcmi")
+      );
+      const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
       if (!isMenunggu || !p.psikolog) return false;
       const sla = calculateReviewSla(p.rawTanggal || p.tanggal);
       const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
@@ -177,21 +196,26 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
     }
 
     // Filter cepat Status / Urgensi SLA
+    const isDass = Boolean(
+      peserta.paket?.toLowerCase().includes("dass") ||
+      peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+    );
+    const isNeedReview = !isDass && Boolean(
+      peserta.perlu_review_psikolog ||
+      peserta.paket?.toLowerCase().includes("mcmi")
+    );
+    const isMenungguReview = isNeedReview && (peserta.status === "Menunggu Review" || peserta.status_pengerjaan === "MENUNGGU_REVIEW");
+    const isSelesaiStatus = !isMenungguReview && (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI" || Boolean(peserta.hasil));
+
     if (statusFilter === "MENUNGGU_REVIEW") {
-      const isMenunggu = peserta.status === "Menunggu Review" || peserta.status_pengerjaan === "MENUNGGU_REVIEW";
-      if (!isMenunggu) return false;
+      if (!isMenungguReview) return false;
     } else if (statusFilter === "MENDEKATI_SLA") {
-      const isMenunggu = peserta.status === "Menunggu Review" || peserta.status_pengerjaan === "MENUNGGU_REVIEW";
-      if (!isMenunggu) return false;
+      if (!isMenungguReview) return false;
       const sla = calculateReviewSla(peserta.rawTanggal || peserta.tanggal);
       const diffHours = (sla.deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60);
       if (!sla.isOverdue && diffHours > 24) return false;
     } else if (statusFilter === "SELESAI") {
-      const isSelesai =
-        (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI") &&
-        peserta.status !== "Menunggu Review" &&
-        peserta.status_pengerjaan !== "MENUNGGU_REVIEW";
-      if (!isSelesai) return false;
+      if (!isSelesaiStatus) return false;
     }
 
     if (!searchQuery) return true;
@@ -282,44 +306,43 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
       header: "Nama Peserta",
       render: (peserta: AdminPsikotesPeserta) => {
         const hasPeserta = Boolean(peserta.peserta && peserta.peserta.nama_lengkap);
+        const displayName = hasPeserta
+          ? peserta.peserta?.nama_lengkap
+          : peserta.nama || "Belum Mengisi Identitas";
+
+        const rawPhone = peserta.noHp || peserta.noHpPemesan || "";
+        const cleanDigits = rawPhone ? rawPhone.replace(/\D/g, "") : "";
+        const waPhone = cleanDigits
+          ? cleanDigits.startsWith("0")
+            ? `62${cleanDigits.slice(1)}`
+            : cleanDigits.startsWith("62")
+            ? cleanDigits
+            : `62${cleanDigits}`
+          : "";
+        const formattedPhone =
+          rawPhone && rawPhone !== "—"
+            ? formatToIndonesianPhone(rawPhone)
+            : null;
+
         return (
           <div className="flex flex-col">
             <span className="font-extrabold text-gray-900 leading-tight">
-              {hasPeserta ? peserta.peserta?.nama_lengkap : "Belum Mengisi Identitas"}
+              {displayName}
             </span>
-            {hasPeserta ? (
-              <div className="flex flex-wrap items-center gap-1 text-[11px] text-gray-500 font-medium mt-0.5">
-                {peserta.peserta?.usia ? <span>{peserta.peserta.usia} tahun</span> : null}
-                {peserta.peserta?.jenis_kelamin ? <span>• {peserta.peserta.jenis_kelamin}</span> : null}
-                {peserta.peserta?.status_pernikahan ? <span>• {peserta.peserta.status_pernikahan}</span> : null}
-                {peserta.isPembeliBerbeda && peserta.namaPemesan ? (
-                  <span className="text-gray-400 font-normal">
-                    • Dipesan: {peserta.namaPemesan}
-                  </span>
-                ) : null}
-              </div>
+            {formattedPhone && waPhone ? (
+              <a
+                href={`https://wa.me/${waPhone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gray-500 hover:text-emerald-700 font-mono mt-0.5 hover:underline transition-colors w-fit"
+                title="Buka WhatsApp"
+              >
+                {formattedPhone}
+              </a>
             ) : (
-              <div className="flex items-center gap-1 text-[11px] text-amber-700 font-medium mt-0.5">
-                <span>Dipesan oleh: {peserta.namaPemesan || peserta.nama}</span>
-              </div>
+              <span className="text-xs text-gray-400 italic mt-0.5">—</span>
             )}
           </div>
-        );
-      },
-    },
-    {
-      key: "kontak",
-      header: "Kontak WhatsApp",
-      headerClassName: "whitespace-nowrap",
-      className: "whitespace-nowrap",
-      render: (peserta: AdminPsikotesPeserta) => {
-        if (!peserta.noHp || peserta.noHp === "—") {
-          return <span className="text-gray-400 italic text-xs whitespace-nowrap">—</span>;
-        }
-        return (
-          <span className="text-gray-700 font-mono text-xs whitespace-nowrap">
-            {formatToIndonesianPhone(peserta.noHp)}
-          </span>
         );
       },
     },
@@ -334,14 +357,34 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
       key: "status",
       header: "Status",
       render: (peserta: AdminPsikotesPeserta) => {
+        const isDass = Boolean(
+          peserta.paket?.toLowerCase().includes("dass") ||
+          peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+        );
+        const isNeedReview = !isDass && Boolean(
+          peserta.perlu_review_psikolog ||
+          peserta.paket?.toLowerCase().includes("mcmi")
+        );
         const isMenungguReview =
-          peserta.status === "Menunggu Review" ||
-          peserta.status_pengerjaan === "MENUNGGU_REVIEW";
+          isNeedReview && (
+            peserta.status === "Menunggu Review" ||
+            peserta.status_pengerjaan === "MENUNGGU_REVIEW"
+          );
         const isSelesai =
           !isMenungguReview &&
-          (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI");
+          (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI" || Boolean(peserta.hasil));
 
         if (isMenungguReview) {
+          if (isBiroContext) {
+            return (
+              <div className="flex flex-col gap-1 items-start">
+                <AdminStatusBadge variant="info" className="w-36">
+                  Menunggu Review
+                </AdminStatusBadge>
+              </div>
+            );
+          }
+
           const sla = calculateReviewSla(peserta.rawTanggal || peserta.tanggal);
           const nowMs = Date.now();
           const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
@@ -373,21 +416,6 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
                   {sla.isOverdue ? "🚨 Lewat Batas SLA" : "🔥 Hampir Habis Batas"}
                 </span>
               )}
-
-              <span
-                className={`text-[10px] font-medium leading-tight truncate max-w-[150px] ${
-                  peserta.psikolog ? "text-purple-700" : "text-amber-700"
-                }`}
-                title={
-                  peserta.psikolog
-                    ? `Di-keep oleh ${peserta.psikolog.nama_gelar || peserta.psikolog.nama}`
-                    : "Belum di-keep (Kolam antrean)"
-                }
-              >
-                {peserta.psikolog
-                  ? `Di-keep: ${peserta.psikolog.nama_gelar || peserta.psikolog.nama}`
-                  : "Belum di-keep (Kolam)"}
-              </span>
             </div>
           );
         }
@@ -400,26 +428,90 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
             >
               {isSelesai ? "Selesai" : "Menunggu Pengerjaan"}
             </AdminStatusBadge>
-            {isSelesai && peserta.psikolog && (
-              <span
-                className="text-[10px] font-medium text-gray-500 leading-tight truncate max-w-[150px]"
-                title={`Pemeriksa: ${peserta.psikolog.nama_gelar || peserta.psikolog.nama}`}
-              >
-                Oleh: {peserta.psikolog.nama_gelar || peserta.psikolog.nama}
-              </span>
-            )}
           </div>
         );
       },
     },
     {
       key: "tanggal",
-      header: "Tanggal",
-      render: (peserta: AdminPsikotesPeserta) => (
-        <span className="text-gray-600 font-medium text-xs sm:text-sm">
-          {peserta.tanggal}
-        </span>
-      ),
+      header: "Waktu & Batas Review (Maks 3 Hari)",
+      render: (peserta: AdminPsikotesPeserta) => {
+        const rawDate = peserta.rawTanggal || peserta.tanggal;
+        const dateObj = new Date(rawDate);
+        const isValidDate = !isNaN(dateObj.getTime());
+        const dateFormatted = isValidDate
+          ? dateObj.toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })
+          : peserta.tanggal;
+        const timeFormatted = isValidDate
+          ? `${dateObj.toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })} WIB`
+          : "";
+
+        const isMenungguReview =
+          peserta.status === "Menunggu Review" ||
+          peserta.status === "MENUNGGU_REVIEW";
+        const isSelesai =
+          peserta.status === "Selesai" ||
+          peserta.status === "SELESAI";
+
+        const sla = calculateReviewSla(rawDate);
+
+        return (
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-gray-700 text-xs sm:text-sm">
+              <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <span>{dateFormatted}</span>
+              {timeFormatted && (
+                <span className="text-[10px] text-gray-400">
+                  {timeFormatted}
+                </span>
+              )}
+            </div>
+
+            {isMenungguReview ? (() => {
+              const nowMs = Date.now();
+              const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
+              const isKritis = sla.isOverdue || diffHours <= 24;
+              const isPrioritas = !isKritis && diffHours <= 48;
+
+              return (
+                <div className="flex flex-col gap-1 items-start">
+                  {isKritis ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
+                        🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
+                      </span>
+                    </div>
+                  ) : isPrioritas ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                        🟡 Prioritas (≤ 48 Jam)
+                      </span>
+                    </div>
+                  ) : null}
+                  <span
+                    className="text-[10px] text-gray-500 font-medium"
+                    title={`Deadline: ${sla.deadlineFormatted}`}
+                  >
+                    Batas: {sla.deadlineFormatted}
+                  </span>
+                </div>
+              );
+            })() : isSelesai ? (
+              <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                Tepat Waktu (Selesai)
+              </span>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       key: "aksi",
@@ -440,8 +532,8 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
 
   return (
     <AdminTableContainer>
-      {/* 1. Reminder Otomatis Admin: Peringatan SLA Kritis (H-1 / <= 24 Jam) */}
-      {urgentTickets.length > 0 && (
+      {/* 1. Reminder Otomatis Admin: Peringatan SLA Kritis (H-1 / <= 24 Jam) - Hanya untuk Admin Utama Empathika */}
+      {!isBiroContext && urgentTickets.length > 0 && (
         <div className="mb-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-50 via-rose-50/80 to-amber-50 border border-rose-200/90 shadow-2xs space-y-3 animate-in fade-in duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-100 pb-2.5">
             <div className="flex items-center gap-2">
@@ -601,18 +693,20 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
           Menunggu Review ({statusStats.menunggu})
         </button>
 
-        <button
-          type="button"
-          onClick={() => setStatusFilter("MENDEKATI_SLA")}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
-            statusFilter === "MENDEKATI_SLA"
-              ? "bg-rose-600 text-white shadow-2xs font-bold"
-              : "bg-white text-rose-800 border border-rose-200 hover:bg-rose-50"
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-          Mendekati Batas SLA ({statusStats.mendekatiSla})
-        </button>
+        {!isBiroContext && (
+          <button
+            type="button"
+            onClick={() => setStatusFilter("MENDEKATI_SLA")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+              statusFilter === "MENDEKATI_SLA"
+                ? "bg-rose-600 text-white shadow-2xs font-bold"
+                : "bg-white text-rose-800 border border-rose-200 hover:bg-rose-50"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            Mendekati Batas SLA ({statusStats.mendekatiSla})
+          </button>
+        )}
 
         <button
           type="button"

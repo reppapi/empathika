@@ -24,13 +24,20 @@ export class PsikotesReviewRepository {
       ],
     }
 
+    const nonDassFilter: any = {
+      NOT: [
+        { paket: { judul: { contains: 'dass', mode: 'insensitive' } } },
+        { paket: { judul: { contains: 'depresi, kecemasan, dan stres', mode: 'insensitive' } } },
+      ],
+    }
+
     const baseWhere: any = {
       OR: [
         { paket: { perlu_review_psikolog: true } },
         { status_pengerjaan: 'MENUNGGU_REVIEW' },
       ],
       hasil_tes: { isNot: null },
-      AND: [nonExpiredFilter],
+      AND: [nonExpiredFilter, nonDassFilter],
     }
 
     if (params?.status === 'MENUNGGU_REVIEW') {
@@ -66,7 +73,7 @@ export class PsikotesReviewRepository {
             { status_pengerjaan: 'MENUNGGU_REVIEW' },
           ],
           hasil_tes: { isNot: null },
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -78,7 +85,7 @@ export class PsikotesReviewRepository {
           hasil_tes: { isNot: null },
           status_pengerjaan: 'MENUNGGU_REVIEW',
           id_psikolog: null,
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -90,7 +97,7 @@ export class PsikotesReviewRepository {
           hasil_tes: { isNot: null },
           status_pengerjaan: 'MENUNGGU_REVIEW',
           id_psikolog: { not: null },
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -101,7 +108,7 @@ export class PsikotesReviewRepository {
           ],
           hasil_tes: { isNot: null },
           status_pengerjaan: 'SELESAI',
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.findMany({

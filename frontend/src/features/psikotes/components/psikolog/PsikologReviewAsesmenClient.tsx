@@ -27,6 +27,7 @@ import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem, type ReviewPsikotesListResponse } from "@/services/psikotes.service";
 import { psikologService } from "@/services/psikolog.service";
 import { calculateReviewSla, REVIEW_MAX_DAYS } from "../../utils/reviewSla";
+import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge";
 
 export default function PsikologReviewAsesmenClient() {
   const router = useRouter();
@@ -716,21 +717,19 @@ export default function PsikologReviewAsesmenClient() {
 
                                 return (
                                   <div className="flex flex-col gap-1 items-start">
-                                    <div className="flex items-center gap-1.5">
-                                      {isKritis ? (
+                                    {isKritis ? (
+                                      <div className="flex items-center gap-1.5">
                                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
                                           🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
                                         </span>
-                                      ) : isPrioritas ? (
+                                      </div>
+                                    ) : isPrioritas ? (
+                                      <div className="flex items-center gap-1.5">
                                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
                                           🟡 Prioritas (≤ 48 Jam)
                                         </span>
-                                      ) : (
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                          🟢 Normal (&gt; 48 Jam)
-                                        </span>
-                                      )}
-                                    </div>
+                                      </div>
+                                    ) : null}
                                     <span className="text-[10px] text-gray-500 font-medium" title={`Deadline: ${sla.deadlineFormatted}`}>
                                       Batas: {sla.deadlineFormatted}
                                     </span>
@@ -749,28 +748,27 @@ export default function PsikologReviewAsesmenClient() {
 
                       {/* Status Laporan */}
                       <td className="py-4 px-6 whitespace-nowrap">
-                        {isMenunggu ? (
-                          !item.id_psikolog ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                              Menunggu Tinjau
-                            </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          {isMenunggu ? (
+                            !item.id_psikolog ? (
+                              <AdminStatusBadge variant="warning" className="w-36">
+                                Menunggu Tinjau
+                              </AdminStatusBadge>
+                            ) : (
+                              <AdminStatusBadge variant="info" className="w-36">
+                                Sedang Ditinjau
+                              </AdminStatusBadge>
+                            )
+                          ) : isSelesai ? (
+                            <AdminStatusBadge variant="success" className="w-36">
+                              Selesai
+                            </AdminStatusBadge>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-purple-100 text-[#561269] border border-purple-200">
-                              <span className="w-2 h-2 rounded-full bg-[#561269]" />
-                              Sedang Ditinjau
-                            </span>
-                          )
-                        ) : isSelesai ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Diterbitkan
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600">
-                            {item.status_pengerjaan}
-                          </span>
-                        )}
+                            <AdminStatusBadge variant="neutral" className="w-36">
+                              {item.status_pengerjaan}
+                            </AdminStatusBadge>
+                          )}
+                        </div>
                       </td>
 
                       {/* Psikolog Pemeriksa */}
