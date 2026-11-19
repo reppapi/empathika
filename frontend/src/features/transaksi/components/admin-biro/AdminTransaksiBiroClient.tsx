@@ -271,7 +271,24 @@ export default function AdminTransaksiBiroClient() {
     fetchTransaksi()
   }, [fetchTransaksi])
 
-  // Filter & Sort
+  // Tutup dropdown jika tombol Escape ditekan
+  useEffect(() => {
+    if (!isFilterOpen && !isStatusFilterOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsFilterOpen(false)
+        setIsStatusFilterOpen(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isFilterOpen, isStatusFilterOpen])
+
+  // ── Filter & Sort ──
   const filteredTransaksi = useMemo(() => {
     const list = allTransaksi.filter((item) => {
       if (selectedStatus !== "semua" && item.status !== selectedStatus) return false

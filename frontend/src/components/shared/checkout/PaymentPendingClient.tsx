@@ -13,12 +13,14 @@ import { PendingStatusSection } from "./payment-pending/PendingStatusSection"
 import { PendingTicketCard } from "./payment-pending/PendingTicketCard"
 import { PendingBottomWarning } from "./payment-pending/PendingBottomWarning"
 import { formatOrderId } from "@/lib/utils"
+import { useTenantContext } from "@/context/TenantContext"
 
 export type { PaymentPendingType }
 
 function PendingContent({ type }: { type: PaymentPendingType }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { isBiro, biroProfile } = useTenantContext()
   const config = CONFIGS[type] || CONFIGS.event
 
   const nama = searchParams.get("nama") ?? "PESERTA"
@@ -41,7 +43,7 @@ function PendingContent({ type }: { type: PaymentPendingType }) {
     Boolean(searchParams.get("hari"))
   )
   const judul = searchParams.get("judul") ?? (isAsesmen ? "Layanan Asesmen Offline" : config.defaultJudul)
-  const subjudul = searchParams.get("subjudul") ?? (isAsesmen ? "Sesi Asesmen Klinis di Klinik Empathika" : config.defaultSubjudul)
+  const subjudul = searchParams.get("subjudul") ?? (isAsesmen ? (isBiro && biroProfile?.nama_biro ? `Sesi Asesmen Klinis di Klinik ${biroProfile.nama_biro}` : "Sesi Asesmen Klinis di Klinik Empathika") : config.defaultSubjudul)
   const testId = searchParams.get("testId")
   const kategori = searchParams.get("kategori") ?? (type === "konseling" ? "Konseling" : "Seminar")
   const harga = searchParams.get("harga") ?? config.defaultHarga

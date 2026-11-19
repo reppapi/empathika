@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { BookingController } from './booking.controller'
 import { adminGuard } from '../../middlewares/admin-guard'
 import { authGuard } from '../../middlewares/auth-guard'
-import { psikologGuard } from '../../middlewares/psikolog-guard'
+import { psikologGuard, adminBiroOrPsikologGuard } from '../../middlewares/account-guard'
 import { createRateLimiter } from '../../middlewares/rate-limit'
 import {
   getJadwalTersediaQuerySchema,
@@ -183,7 +183,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   })
 
   fastify.patch('/:id/status', {
-    preHandler: [adminGuard],
+    preHandler: [adminBiroOrPsikologGuard],
     schema: {
       tags: ['Booking & Jadwal - Admin'],
       summary: 'Update status booking konsultasi',
@@ -194,7 +194,7 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   })
 
   fastify.patch('/:id/cancel', {
-    preHandler: [adminGuard],
+    preHandler: [adminBiroOrPsikologGuard],
     schema: {
       tags: ['Booking & Jadwal - Admin'],
       summary: 'Batalkan sesi booking konsultasi',
@@ -204,10 +204,10 @@ export default async function bookingRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:id/reschedule', {
-    preHandler: [authGuard],
+    preHandler: [psikologGuard],
     schema: {
       tags: ['Booking & Jadwal'],
-      summary: 'Reschedule sesi booking konsultasi ke tanggal & jam baru',
+      summary: 'Reschedule sesi booking konsultasi ke tanggal & jam baru (Hanya Admin dan Psikolog terkait)',
       security: [{ bearerAuth: [] }],
       body: rescheduleBookingSchema,
     },

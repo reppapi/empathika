@@ -188,41 +188,9 @@ export default function JadwalMingguanGrid({
                         item.status === "COMPLETED" ||
                         (!isUnbooked && isPastTime)
 
-                      // 1. DIBATALKAN
+                      // 1. DIBATALKAN (Jika dibatalkan dan tidak ada klien aktif, hapus keterangannya dan jangan render kartu)
                       if (isCancelled) {
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={() => onSelectSession && onSelectSession(item)}
-                            className="rounded-xl p-2.5 flex flex-col gap-1.5 shadow-2xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-rose-50/80 border border-rose-200/90 text-gray-600 opacity-90 overflow-hidden"
-                          >
-                            <div className="flex items-center justify-between gap-1 flex-wrap">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 rounded-full shrink-0 bg-rose-500" />
-                                <span className="text-[11px] sm:text-xs font-bold text-rose-700 line-through whitespace-nowrap">
-                                  {item.waktu}
-                                </span>
-                              </div>
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
-                                Dibatalkan
-                              </span>
-                            </div>
-                            <p className="text-xs font-bold leading-tight mt-0.5 text-gray-700 line-through line-clamp-1">
-                              {item.layanan}
-                            </p>
-                            <div className="text-[10px] flex flex-col mt-0.5 leading-tight text-gray-600 gap-0.5">
-                              {item.namaKlien && (
-                                <span className="truncate">
-                                  Klien: <strong className="text-gray-700">{item.namaKlien}</strong>
-                                </span>
-                              )}
-                              {showPsikolog && <span className="truncate">Tenaga: {item.psikolog}</span>}
-                              <span className="text-[9px] text-gray-400 italic">
-                                [{item.metode}]
-                              </span>
-                            </div>
-                          </div>
-                        )
+                        return null
                       }
 
                       // 2. RESCHEDULE
@@ -471,10 +439,6 @@ export default function JadwalMingguanGrid({
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
           <span className="text-xs font-bold text-gray-500">Sesi Selesai / Lewat (Riwayat Masa Lalu)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-          <span className="text-xs font-bold text-rose-700">Sesi Dibatalkan</span>
         </div>
         <span className="text-[11px] text-gray-400">
           * Riwayat sesi dan slot masa lalu diabukan secara otomatis. Sesi minggu berikutnya muncul bila ada pemesanan (booking) atau slot dibuka.

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { AdminController } from './admin.controller'
 import { adminGuard, adminOrBiroGuard } from '../../middlewares/admin-guard'
+import { adminBiroOrPsikologGuard } from '../../middlewares/account-guard'
 import {
   getAdminJadwalQuerySchema,
   createAdminJadwalSlotSchema,
@@ -204,7 +205,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.patch('/booking/:id/status', {
-    preHandler: [adminGuard],
+    preHandler: [adminBiroOrPsikologGuard],
     schema: {
       tags: ['Admin - Jadwal'],
       summary: 'Admin memperbarui status sesi booking konsultasi',
@@ -215,7 +216,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/booking/:id/reschedule', {
-    preHandler: [adminGuard],
+    preHandler: [adminBiroOrPsikologGuard],
     schema: {
       tags: ['Admin - Jadwal'],
       summary: 'Admin menjadwalkan ulang (reschedule) sesi booking konsultasi',

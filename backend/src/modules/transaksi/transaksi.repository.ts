@@ -81,9 +81,14 @@ export class TransaksiRepository {
     }
 
     if (_params?.biroId) {
-      where.OR = [
-        { id_biro_tenant: _params.biroId },
-        { client: { id_biro: _params.biroId } },
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { id_biro_tenant: _params.biroId },
+            { client: { id_biro: _params.biroId } },
+          ],
+        },
       ]
     }
 

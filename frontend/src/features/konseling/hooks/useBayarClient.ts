@@ -26,7 +26,7 @@ export const EWALLET_LIST = [
 export function useBayarClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { biroProfile } = useTenantContext()
+  const { isBiro, slug: tenantSlug, biroProfile } = useTenantContext()
 
   const [nama, setNama] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
@@ -361,8 +361,28 @@ export function useBayarClient() {
     const effectiveBiroId = biroProfile?.id || biroIdFromQuery || undefined
 
     try {
+      const resolvedBiroSlug = (isBiro ? tenantSlug : undefined) || searchParams.get("biro") || searchParams.get("tenant") || undefined
+      let resolvedBiroId = biroProfile?.id || undefined
+
+      // Fallback resolusi ID biro dari penyimpanan lokal jika profil biro belum selesai dimuat
+      if (!resolvedBiroId && resolvedBiroSlug && typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem(`biro_profile_${resolvedBiroSlug}`)
+          if (cached) {
+            const parsed = JSON.parse(cached)
+            if (parsed?.id) resolvedBiroId = parsed.id
+          }
+          if (!resolvedBiroId) {
+            const activeBiroId = localStorage.getItem("active_biro_id")
+            if (activeBiroId) resolvedBiroId = activeBiroId
+          }
+        } catch (e) {}
+      }
+
+      const finalBiroId = resolvedBiroId || effectiveBiroId || biroProfile?.id || undefined
+
       const res: any = await bookingService.createBooking({
-        id_biro: effectiveBiroId,
+        id_biro: finalBiroId,
         id_jadwal: qSlotId || undefined,
         id_psikolog: !isAsesmenLayanan ? (qPsikologId || undefined) : undefined,
         tanggal: targetDate || undefined,
@@ -374,6 +394,7 @@ export function useBayarClient() {
         deskripsi_trauma: deskripsi.trim() || (isAsesmenLayanan ? `Sesi ${qLayanan}` : undefined),
         metode_pembayaran: (metodePembayaran || "QRIS").toUpperCase(),
         channel_pembayaran: selectedBank || selectedEwallet || "QRIS",
+        biro_slug: resolvedBiroSlug,
         klien: {
           nama: nama.trim().toUpperCase(),
           no_telepon: whatsapp.trim(),

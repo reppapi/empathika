@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 import { layananService } from "@/services/layanan.service"
@@ -122,9 +122,14 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     }
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("empathika_last_selected_layanan")
-      if (stored && !isProfessionName(stored)) return stored
+      if (stored && !isProfessionName(stored)) {
+        if (mode === "konseling" && stored.toLowerCase().includes("asesmen")) {
+          return "Konsultasi Individu"
+        }
+        return stored
+      }
     }
-    return ""
+    return mode === "konseling" ? "Konsultasi Individu" : ""
   })
 
   const [currentServiceData, setCurrentServiceData] = useState<any>(null)
@@ -220,7 +225,21 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
       } else if (typeof window !== "undefined") {
         const stored = localStorage.getItem("empathika_last_selected_layanan")
         if (stored && !isProfessionName(stored)) {
-          activeServiceName = stored
+          if (mode === "konseling" && stored.toLowerCase().includes("asesmen")) {
+            activeServiceName = "Konsultasi Individu"
+          } else if (mode === "asesmen" && (stored.toLowerCase().includes("konsultasi") || stored.toLowerCase().includes("konseling"))) {
+            activeServiceName = ""
+          } else {
+            activeServiceName = stored
+          }
+        }
+      }
+
+      if (!activeServiceName) {
+        if (mode === "konseling") {
+          activeServiceName = "Konsultasi Individu"
+        } else if (mode === "asesmen") {
+          activeServiceName = options?.asesmenPackage?.title || options?.asesmenPackage?.shortTitle || "Asesmen Minat Bakat"
         }
       }
 
@@ -235,12 +254,17 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
 
         // Fungsi pencocokan cerdas antara nama di database dan target layanan
         const isMatch = (itemNama: string) => {
-          if (!activeNorm) return false
+          if (!itemNama) return false
           const lName = (itemNama || "").toLowerCase().trim()
+          if (!activeNorm) {
+            return mode === "asesmen"
+              ? lName.includes("asesmen") || lName.includes("bakat")
+              : lName.includes("individu") || lName.includes("konsultasi")
+          }
           if (lName === activeNorm) return true
           if (lName.includes(activeNorm) || activeNorm.includes(lName)) return true
-          const lClean = lName.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
-          const tClean = activeNorm.replace(/konsultasi/g, "").replace(/[^a-z0-9]/g, "")
+          const lClean = lName.replace(/konsultasi|asesmen/g, "").replace(/[^a-z0-9]/g, "")
+          const tClean = activeNorm.replace(/konsultasi|asesmen/g, "").replace(/[^a-z0-9]/g, "")
           return Boolean(lClean && tClean && (lClean === tClean || lClean.includes(tClean) || tClean.includes(lClean)))
         }
 
@@ -251,11 +275,28 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         const stored = getStoredLayanan().filter((l) => l.kategoriId === storedCategory)
         const localMatched = stored.find((l) => isMatch(l.layanan))
 
-        targetService = matched || localMatched || (activeNorm ? null : beList[0] || (stored.length > 0 ? stored[0] : null))
+        targetService = matched || localMatched
 
-        // Fallback jika tidak ada yang cocok tapi ada data di database
-        if (!targetService && beList.length > 0) {
-          targetService = beList.find((l: any) => l.aktif !== false) || beList[0]
+        // Fallback jika belum cocok persis
+        if (!targetService) {
+          if (mode === "konseling") {
+            targetService =
+              beList.find((l: any) => l.aktif !== false && (l.nama || "").toLowerCase().includes("individu")) ||
+              stored.find((l: any) => l.status !== "Nonaktif" && (l.layanan || "").toLowerCase().includes("individu")) ||
+              beList.find((l: any) => l.aktif !== false && (l.metode || "").toLowerCase().includes("online")) ||
+              stored.find((l: any) => l.status !== "Nonaktif" && (l.metode || "").toLowerCase().includes("online")) ||
+              beList[0] ||
+              stored[0] ||
+              { nama: "Konsultasi Individu", layanan: "Konsultasi Individu", metode: "Online/Offline", aktif: true }
+          } else {
+            targetService =
+              beList.find((l: any) => l.aktif !== false && isMatch(l.nama)) ||
+              stored.find((l: any) => l.status !== "Nonaktif" && isMatch(l.layanan)) ||
+              beList.find((l: any) => l.aktif !== false) ||
+              stored[0] ||
+              beList[0] ||
+              { nama: activeServiceName, layanan: activeServiceName, metode: "Online/Offline", aktif: true }
+          }
         }
 
         if (targetService) {
@@ -278,22 +319,41 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
           setIsLayananNonaktif(false)
         }
 
-        if (matched?.metode) {
+        if (targetService?.metode) {
+          matchedMetode = targetService.metode
+        } else if (matched?.metode) {
           matchedMetode = matched.metode
         } else if (localMatched?.metode) {
           matchedMetode = localMatched.metode
-        } else if (targetService?.metode) {
-          matchedMetode = targetService.metode
+        } else {
+          matchedMetode = "Online/Offline"
         }
       } catch {
         const storedCategory = mode === "asesmen" ? "05" : "01"
         const stored = getStoredLayanan().filter((l) => l.kategoriId === storedCategory)
         const localMatched = stored.find((l) => {
-          if (!activeNorm) return false
+          if (!activeNorm) {
+            return mode === "asesmen"
+              ? (l.layanan || "").toLowerCase().includes("bakat")
+              : (l.layanan || "").toLowerCase().includes("individu")
+          }
           const lName = (l.layanan || "").toLowerCase().trim()
           return lName.includes(activeNorm) || activeNorm.includes(lName)
         })
-        targetService = localMatched || (stored.length > 0 ? stored[0] : null)
+        targetService =
+          localMatched ||
+          (mode === "asesmen"
+            ? stored.find((l: any) => l.status !== "Nonaktif") || stored[0] || {
+                layanan: activeServiceName || "Asesmen Minat Bakat",
+                metode: "Online/Offline",
+                status: "Aktif",
+              }
+            : stored.find((l: any) => l.status !== "Nonaktif" && (l.layanan || "").toLowerCase().includes("individu")) ||
+              stored[0] || {
+                layanan: "Konsultasi Individu",
+                metode: "Online/Offline",
+                status: "Aktif",
+              })
         if (targetService) {
           setServiceName(targetService.layanan || activeServiceName)
           setCurrentServiceData(targetService)
@@ -302,9 +362,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
           setIsLayananNonaktif(true)
           setNonaktifLayananNama(localMatched.layanan)
         }
-        if (targetService?.metode) {
-          matchedMetode = targetService.metode
-        }
+        matchedMetode = targetService?.metode || "Online/Offline"
       }
 
       if (isCancelled) return
@@ -407,12 +465,21 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         offline: hasOffline,
       })
 
-      // Jika hanya salah satu metode yang didukung, otomatis pilihkan metode yang aktif
-      if (hasOnline && !hasOffline) {
-        setMetode("Online")
-      } else if (!hasOnline && hasOffline) {
-        setMetode("Offline")
-      }
+      // Jika hanya salah satu metode yang didukung, otomatis sesuaikan metode aktif
+      // Namun jika kedua metode didukung (Online & Offline), pertahankan metode yang sedang aktif
+      setMetode((currentMetode) => {
+        if (hasOnline && !hasOffline) {
+          return "Online"
+        } else if (!hasOnline && hasOffline) {
+          return "Offline"
+        } else if (hasOnline && hasOffline) {
+          if (currentMetode === "Online" || currentMetode === "Offline") {
+            return currentMetode
+          }
+          return "Online"
+        }
+        return currentMetode || "Online"
+      })
     }
 
     checkServiceMethod()
@@ -530,6 +597,77 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     }
   }, [psikologIdParam, effectiveTipeJadwal])
 
+  // Helper: Validasi apakah slot ketersediaan sah untuk layanan dan metode yang dipilih klien
+  const isSlotApplicableToService = useCallback(
+    (slot: any, service: any, chosenMetode: string): boolean => {
+      const defaultLayanan = mode === "asesmen" ? (options?.asesmenPackage?.title || "Asesmen Minat Bakat") : "Konsultasi Individu"
+      const defaultAllSlot = mode === "asesmen" ? "semua layanan asesmen" : "semua layanan konsultasi"
+
+      const slotLayanan = (slot.layanan || defaultAllSlot).trim()
+      const serviceNameNorm = ((service?.nama || service?.layanan || serviceName || defaultLayanan) as string)
+        .toLowerCase()
+        .trim()
+      const slotLayananNorm = slotLayanan.toLowerCase()
+
+      // 1. Cek kecocokan Layanan:
+      // Jika slot dibuka untuk "Semua Layanan ...", slot berlaku umum untuk kategori tersebut.
+      // Jika slot dibuka untuk layanan spesifik, namanya harus cocok.
+      const isGenericSlot =
+        !slotLayanan ||
+        slotLayananNorm === defaultAllSlot ||
+        slotLayananNorm === "semua layanan" ||
+        slotLayananNorm === "semua" ||
+        slotLayananNorm === "semua layanan konsultasi" ||
+        slotLayananNorm === "semua layanan asesmen" ||
+        (mode === "konseling" && slotLayananNorm === "konsultasi") ||
+        (mode === "asesmen" && slotLayananNorm === "asesmen")
+
+      if (!isGenericSlot) {
+        const matchSpecific =
+          slotLayananNorm === serviceNameNorm ||
+          slotLayananNorm.includes(serviceNameNorm) ||
+          serviceNameNorm.includes(slotLayananNorm)
+        if (!matchSpecific) {
+          return false
+        }
+      }
+
+      // 2. Cek apakah Layanan yang dipilih klien memang MENDUKUNG metode slot ini (sesuai aturan Admin):
+      const serviceMetode = (service?.metode || "Online/Offline").toLowerCase()
+      const serviceSupportsOnline =
+        serviceMetode.includes("online") || serviceMetode.includes("keduanya") || serviceMetode === "semua"
+      const serviceSupportsOffline =
+        serviceMetode.includes("offline") || serviceMetode.includes("keduanya") || serviceMetode === "semua"
+
+      const slotMetode = (slot.metode || "Keduanya").toLowerCase()
+      const slotIsOnline = slotMetode.includes("online") || slotMetode === "keduanya" || slotMetode === "semua"
+      const slotIsOffline = slotMetode.includes("offline") || slotMetode === "keduanya" || slotMetode === "semua"
+
+      // Jika slot hanya offline, tetapi layanan admin HANYA online (tidak dibuka offline):
+      // SLOT TIDAK BOLEH KEBUKA untuk layanan ini!
+      if (slotMetode === "offline" && !serviceSupportsOffline) {
+        return false
+      }
+
+      // Jika slot hanya online, tetapi layanan admin HANYA offline (tidak dibuka online):
+      // SLOT TIDAK BOLEH KEBUKA untuk layanan ini!
+      if (slotMetode === "online" && !serviceSupportsOnline) {
+        return false
+      }
+
+      // 3. Cek kecocokan dengan metode yang sedang dipilih oleh klien di UI:
+      const targetMetode = chosenMetode.toLowerCase()
+      if (targetMetode === "online") {
+        if (!slotIsOnline || !serviceSupportsOnline) return false
+      } else if (targetMetode === "offline") {
+        if (!slotIsOffline || !serviceSupportsOffline) return false
+      }
+
+      return true
+    },
+    [mode, serviceName, options?.asesmenPackage?.title]
+  )
+
   // Deteksi semua tanggal yang memiliki slot jadwal
   useEffect(() => {
     let isCancelled = false
@@ -550,6 +688,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         if (Array.isArray(slots)) {
           slots.forEach((s) => {
             if (s.tanggal && s.status === "TERSEDIA") {
+              if (!isSlotApplicableToService(s, currentServiceData, metode)) return
               if (s.tanggal > todayKey) {
                 datesFound.add(s.tanggal)
               } else if (s.tanggal === todayKey) {
@@ -613,7 +752,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
       window.removeEventListener("focus", loadAllAvailableDates)
       window.removeEventListener("storage", loadAllAvailableDates)
     }
-  }, [psikologIdParam, psikologNameParam, selectedPsikolog, tanggalParam, today, effectiveTipeJadwal, options?.initialDate])
+  }, [psikologIdParam, psikologNameParam, selectedPsikolog, tanggalParam, today, effectiveTipeJadwal, options?.initialDate, metode, currentServiceData, serviceName, isSlotApplicableToService])
 
   // Fetch slot ketersediaan dari Backend saat tanggal berubah
   useEffect(() => {
@@ -670,14 +809,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
           return
         }
 
-        const slotMetode = (slot.metode || "Keduanya").toLowerCase()
-        const isMatch =
-          slotMetode === "keduanya" ||
-          slotMetode === "online & offline" ||
-          slotMetode === "semua" ||
-          slotMetode === targetMetode
-
-        if (isMatch) {
+        if (isSlotApplicableToService(slot, currentServiceData, metode)) {
           matchingSlots.push(slot)
         }
       })
@@ -710,7 +842,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
       window.removeEventListener("focus", fetchSlots)
       window.removeEventListener("storage", fetchSlots)
     }
-  }, [date, psikologIdParam, metode, psikologNameParam, selectedPsikolog, effectiveTipeJadwal])
+  }, [date, psikologIdParam, metode, psikologNameParam, selectedPsikolog, effectiveTipeJadwal, currentServiceData, serviceName, isSlotApplicableToService])
 
   const selectedSlot = availableSlots.find((s) => s.jam_mulai === waktu)
   const activePsikologName =

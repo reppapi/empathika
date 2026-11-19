@@ -179,6 +179,37 @@ export function useAsesmenClient() {
 
   const activeHeroImage = customBanner || bannerParam || selectedAsesmen.image
 
+  // Batasan metode yang didukung oleh layanan asesmen terpilih (Online / Offline / Keduanya)
+  const allowedMetode = useMemo(() => {
+    try {
+      const list = getStoredLayanan()
+      const targetTitle = selectedAsesmen.title.toLowerCase().trim()
+      const match = list.find((item) => {
+        if (item.status === "Nonaktif" || (item as any).aktif === false) return false
+        const name = (item.layanan || (item as any).nama || "").toLowerCase().trim()
+        return name === targetTitle || name.includes(targetTitle) || targetTitle.includes(name)
+      })
+
+      if (match?.metode) {
+        const m = match.metode.toLowerCase()
+        const online = m.includes("online") || m.includes("keduanya") || m === "semua"
+        const offline = m.includes("offline") || m.includes("keduanya") || m === "semua"
+        return { online, offline }
+      }
+    } catch {}
+
+    return { online: true, offline: true }
+  }, [selectedAsesmen.title])
+
+  // Sinkronkan metode otomatis jika metode aktif tidak didukung oleh pengaturan layanan admin
+  useEffect(() => {
+    if (allowedMetode.online && !allowedMetode.offline) {
+      if (metode !== "online") setMetode("online")
+    } else if (!allowedMetode.online && allowedMetode.offline) {
+      if (metode !== "offline") setMetode("offline")
+    }
+  }, [allowedMetode, metode])
+
   // URL checkout sesi tatap muka (offline) -> diarahkan ke pemilihan jadwal terlebih dahulu
   const offlineCheckoutUrl = useMemo(() => {
     const planName = selectedOfflinePlan === "weekday" ? "weekday" : "weekend"
@@ -204,6 +235,8 @@ export function useAsesmenClient() {
     selectedAsesmen,
     metode,
     setMetode,
+    allowsOnline: allowedMetode.online,
+    allowsOffline: allowedMetode.offline,
     selectedDate,
     setSelectedDate: handleSelectDate,
     selectedOfflinePlan,

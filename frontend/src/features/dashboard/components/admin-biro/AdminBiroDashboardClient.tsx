@@ -106,6 +106,102 @@ export default function AdminBiroDashboardClient() {
   useEffect(() => {
     let isMounted = true
 
+    const loadBiroOperationalData = (targetBiroId?: string) => {
+      const queryParams = targetBiroId ? { biroId: targetBiroId } : undefined
+
+      // 2. Ambil 5 Kartu Ringkasan Operasional Biro real-time dari backend
+      adminService
+        .getDashboardMetrics(queryParams)
+        .then((res: any) => {
+          if (!isMounted || !res?.pendapatanBulanIni) return
+          setActiveTenant((prev) => ({
+            ...prev,
+            metrics: [
+              {
+                title: "Pendapatan Bulan Ini",
+                value: res.pendapatanBulanIni.value,
+                change: res.pendapatanBulanIni.change,
+                icon: Wallet,
+                color: prev.color,
+              },
+              {
+                title: "Klien Aktif Biro",
+                value: res.totalKlienAktif?.value || `${res.menungguReview?.rawValue ?? 0} Klien`,
+                change: res.totalKlienAktif?.change || "Klien aktif terdaftar",
+                icon: UsersIcon,
+                color: prev.color,
+              },
+              {
+                title: "Sesi Konseling Selesai",
+                value: res.sesiKonselingSelesai?.value || "0 Sesi",
+                change: res.sesiKonselingSelesai?.change || "Akumulasi bulan ini",
+                icon: CheckCircle2Icon,
+                color: prev.color,
+              },
+              {
+                title: "Pendaftar Layanan",
+                value: res.pendaftarEvent?.value || res.pendaftarWorkshop?.value || "0 Peserta",
+                change: res.pendaftarEvent?.change || "Program biro aktif",
+                icon: Sparkles,
+                color: prev.color,
+              },
+              {
+                title: "Menunggu Pembayaran",
+                value: res.menungguPembayaran?.value || "0 Transaksi",
+                change: res.menungguPembayaran?.change || "Tagihan tertunda",
+                icon: Clock,
+                color: "#D97706",
+              },
+            ],
+          }))
+        })
+        .catch((err) => {
+          console.error("AdminBiroDashboard: Gagal memuat metrik ringkasan operasional:", err)
+        })
+
+      // 3. Ambil Sesi Konseling Hari Ini Biro (top 5 sesi terdekat)
+      adminService
+        .getDashboardTodaySessions({ limit: 5, ...(targetBiroId ? { biroId: targetBiroId } : {}) })
+        .then((res: any) => {
+          if (!isMounted || !Array.isArray(res?.sessions)) return
+          setActiveTenant((prev) => ({
+            ...prev,
+            todaySessions: res.sessions,
+          }))
+        })
+        .catch((err) => {
+          console.error("AdminBiroDashboard: Gagal memuat sesi hari ini:", err)
+        })
+
+      // 4. Ambil Transaksi Pembayaran Terbaru Biro (top 5 transaksi)
+      adminService
+        .getDashboardRecentTransactions({ limit: 5, ...(targetBiroId ? { biroId: targetBiroId } : {}) })
+        .then((res: any) => {
+          if (!isMounted || !Array.isArray(res?.transactions)) return
+          setActiveTenant((prev) => ({
+            ...prev,
+            recentTransactions: res.transactions,
+          }))
+        })
+        .catch((err) => {
+          console.error("AdminBiroDashboard: Gagal memuat transaksi terbaru:", err)
+        })
+
+      // 5. Ambil Grafik Reservasi Sesi Biro
+      adminService
+        .getDashboardChart(queryParams)
+        .then((res: any) => {
+          if (!isMounted || !res?.minggu || !res?.bulan) return
+          setActiveTenant((prev) => ({
+            ...prev,
+            chartData: res,
+          }))
+        })
+        .catch((err) => {
+          console.error("AdminBiroDashboard: Gagal memuat chart reservasi:", err)
+        })
+    }
+
     // 1. Ambil akun dan profil biro yang sedang login dari backend
     biroAdminService
       .getMyAccount()
@@ -119,6 +215,8 @@ export default function AdminBiroDashboardClient() {
           (typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null) ||
           "#561269"
 
+        const resolvedBiroId = beBiro?.id || (res.data as any)?.id_biro || res.data.id
+
         if (beBiro?.warna_tema && typeof window !== "undefined") {
           localStorage.setItem("biro_theme_color", beBiro.warna_tema)
           document.documentElement.style.setProperty("--biro-theme-color", beBiro.warna_tema)
@@ -127,7 +225,7 @@ export default function AdminBiroDashboardClient() {
 
         setActiveTenant((prev) => ({
           ...prev,
-          biroId: beBiro?.id || res.data.id || prev.biroId,
+          biroId: resolvedBiroId || prev.biroId,
           biroName: finalName,
           biroSlug: finalSlug,
           tagline: `Dashboard Layanan & Klien ${finalName}`,
@@ -139,28 +237,35 @@ export default function AdminBiroDashboardClient() {
           ),
         }))
 
-        // Ambil transaksi pembayaran terbaru khusus biro ini
-        adminService
-          .getDashboardRecentTransactions({ limit: 5 })
-          .then((trxRes: any) => {
-            if (!isMounted || !trxRes?.transactions) return
-            setActiveTenant((prev) => ({
-              ...prev,
-              recentTransactions: trxRes.transactions,
-            }))
-          })
-          .catch((err) => {
-            console.error("AdminBiroDashboard: Gagal memuat transaksi biro:", err)
-          })
+        // Muat data operasional khusus biro ini
+        loadBiroOperationalData(resolvedBiroId)
       })
       .catch((err) => {
         console.error("AdminBiroDashboard: Gagal memuat data akun biro dari backend:", err)
+        loadBiroOperationalData((user as any)?.id_biro || user?.id)
       })
+
+    // Listener reaktif saat ada booking baru atau perubahan data di tab lain
+    const handleSync = () => {
+      const activeId = activeTenant.biroId || (user as any)?.id_biro || user?.id
+      loadBiroOperationalData(activeId)
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("empathika_booking_created", handleSync)
+      window.addEventListener("storage", handleSync)
+      window.addEventListener("focus", handleSync)
+    }
 
     return () => {
       isMounted = false
+      if (typeof window !== "undefined") {
+        window.removeEventListener("empathika_booking_created", handleSync)
+        window.removeEventListener("storage", handleSync)
+        window.removeEventListener("focus", handleSync)
+      }
     }
-  }, [user])
+  }, [user, activeTenant.biroId])
 
   const currentTenant: BiroTenantData = activeTenant
 

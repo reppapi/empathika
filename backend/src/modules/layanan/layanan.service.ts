@@ -29,6 +29,24 @@ export class LayananService {
 
   private async ensureDefaultPartnershipServices() {
     try {
+      const kCount = await this.repo.countByKategori('KONSULTASI')
+      if (kCount === 0) {
+        await this.repo.create({
+          nama: 'Konsultasi Individu',
+          kategori: 'KONSULTASI',
+          metode: 'Online/Offline',
+          deskripsi: 'Sesi konsultasi psikologi privat secara one-on-one untuk membantu mengatasi kecemasan, stres, trauma, serta pengembangan potensi diri baik secara online maupun offline.',
+          harga_weekday: 150000,
+          harga_weekend: 200000,
+          tarif_tenaga_ahli: {
+            psikolog: { weekday: '150.000', weekend: '200.000' },
+            konselor: { weekday: '100.000', weekend: '150.000' },
+            peer: { weekday: '50.000', weekend: '75.000' },
+          },
+          aktif: true,
+        })
+      }
+
       const wsCount = await this.repo.countByKategori('WORKSHOP')
       if (wsCount === 0) {
         await this.repo.create({
@@ -84,6 +102,24 @@ export class LayananService {
               'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
               'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
             ],
+          },
+          aktif: true,
+        })
+      }
+      const asCount = await this.repo.countByKategori('ASESMEN')
+      if (asCount === 0) {
+        await this.repo.create({
+          nama: 'Asesmen Minat Bakat',
+          kategori: 'ASESMEN',
+          metode: 'Online/Offline',
+          deskripsi: 'Pemetaan komprehensif potensi akademik, kecenderungan minat karir, dan profil bakat individu bersama tim profesional Empathika.',
+          harga_weekday: 400000,
+          harga_weekend: 500000,
+          tarif_tenaga_ahli: {
+            asesmen: {
+              online: 350000,
+              offline: { weekday: 400000, weekend: 500000 },
+            },
           },
           aktif: true,
         })
