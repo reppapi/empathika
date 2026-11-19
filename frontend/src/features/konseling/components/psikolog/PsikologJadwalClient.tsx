@@ -1660,51 +1660,6 @@ export default function PsikologJadwalClient() {
                     <span>Keduanya</span>
                   </button>
                 </div>
-
-                {/* Info Helper: Cakupan Layanan berdasarkan Metode Terpilih */}
-                {selectedLayanan === "Semua Layanan Konsultasi" && (
-                  <div className="mt-2.5 pt-2 border-t border-purple-200/60 text-[11px] leading-relaxed">
-                    {(() => {
-                      const applicable = serviceItems.filter((s) => {
-                        const m = (s.metode || "Online/Offline").toLowerCase()
-                        if (selectedMetode === "Online") return m.includes("online") || m.includes("keduanya") || m === "semua"
-                        if (selectedMetode === "Offline") return m.includes("offline") || m.includes("keduanya") || m === "semua"
-                        return true
-                      })
-                      const excluded = serviceItems.filter((s) => {
-                        const m = (s.metode || "Online/Offline").toLowerCase()
-                        if (selectedMetode === "Online") return !m.includes("online") && !m.includes("keduanya") && m !== "semua"
-                        if (selectedMetode === "Offline") return !m.includes("offline") && !m.includes("keduanya") && m !== "semua"
-                        return false
-                      })
-
-                      if (excluded.length > 0) {
-                        return (
-                          <div className="bg-amber-50/90 text-amber-900 border border-amber-200 p-2 rounded-xl flex items-start gap-1.5">
-                            <span className="shrink-0 text-amber-600 font-bold">ℹ️</span>
-                            <span>
-                              Slot <strong>{selectedMetode}</strong> ini hanya berlaku untuk layanan yang mendukung {selectedMetode}:{" "}
-                              <strong className="text-gray-900">{applicable.map((s) => s.nama || s.layanan).join(", ") || "Konsultasi Individu"}</strong>.
-                              <br />
-                              <span className="text-amber-800/80">
-                                Layanan <em>{excluded.map((s) => s.nama || s.layanan).join(", ")}</em> tidak dibuka untuk slot ini karena diatur {selectedMetode === "Offline" ? "hanya Online" : "hanya Offline"} oleh Admin.
-                              </span>
-                            </span>
-                          </div>
-                        )
-                      }
-
-                      return (
-                        <div className="text-purple-700 font-medium flex items-center gap-1.5 px-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                          <span>
-                            Slot <strong>{selectedMetode}</strong> ini berlaku untuk seluruh layanan konsultasi aktif yang mendukung metode ini.
-                          </span>
-                        </div>
-                      )
-                    })()}
-                  </div>
-                )}
               </div>
 
               <p className="text-xs text-gray-500 mb-2.5">
