@@ -7,9 +7,10 @@ import { removeAuthCookie } from "@/lib/cookie"
 interface SidebarPsikologProps {
   isOpen?: boolean
   onClose?: () => void
+  isReviewer?: boolean
 }
 
-export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
+export function SidebarPsikolog({ isOpen, onClose, isReviewer = false }: SidebarPsikologProps) {
   const pathname = usePathname()
 
   const isActive = (path: string) => {
@@ -20,7 +21,7 @@ export function SidebarPsikolog({ isOpen, onClose }: SidebarPsikologProps) {
   const navItems = [
     { name: "Beranda", path: "/psikolog-web/beranda" },
     { name: "Jadwal & Sesi", path: "/psikolog-web/jadwal" },
-    { name: "Review Asesmen", path: "/psikolog-web/review-asesmen" },
+    ...(isReviewer ? [{ name: "Review Asesmen", path: "/psikolog-web/review-asesmen" }] : []),
   ]
 
   return (

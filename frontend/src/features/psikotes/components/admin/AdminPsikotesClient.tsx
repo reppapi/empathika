@@ -72,6 +72,13 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
           }),
           rawTanggal: it.tanggal,
           status: it.status as "Selesai" | "Menunggu Pengerjaan",
+          status_pengerjaan: it.status_pengerjaan || null,
+          perlu_review_psikolog: Boolean(it.perlu_review_psikolog),
+          namaBiro: it.nama_biro || "Empathika (Pusat)",
+          nama_biro: it.nama_biro || "Empathika (Pusat)",
+          is_biro: Boolean(it.is_biro),
+          id_psikolog: it.id_psikolog || null,
+          claimed_at: it.claimed_at || null,
           skor: it.skor,
           jenisAkses: it.jenis_akses as "Gratis" | "Berbayar",
           usia: it.usia,
@@ -82,7 +89,17 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
           isPembeliBerbeda: Boolean(it.is_pembeli_berbeda),
           hasil: it.hasil,
           peserta: it.peserta,
-          psikolog: it.psikolog || null,
+          psikolog: it.psikolog
+            ? {
+                id: it.psikolog.id,
+                nama: it.psikolog.nama_gelar || it.psikolog.nama,
+                nama_gelar: it.psikolog.nama_gelar || it.psikolog.nama,
+                kategori: it.psikolog.kategori,
+                foto: it.psikolog.foto || null,
+                no_telepon: it.psikolog.no_telepon || null,
+                email: it.psikolog.email || null,
+              }
+            : null,
         }));
         setPesertaList(mapped);
       }
@@ -282,8 +299,17 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
             onSelectPaketChange={setSelectedPaketPeserta}
             paketOptions={Array.from(
               new Set([
-                ...judulList.map((j) => j.judul),
-                ...pesertaList.map((p) => p.paket).filter(Boolean),
+                ...judulList
+                  .filter((j) =>
+                    j.paketList?.some(
+                      (p) => p.jenisAkses === "Berbayar" || p.numericHarga > 0
+                    )
+                  )
+                  .map((j) => j.judul),
+                ...pesertaList
+                  .filter((p) => p.jenisAkses === "Berbayar")
+                  .map((p) => p.paket)
+                  .filter(Boolean),
               ])
             ).filter(Boolean)}
             isLoading={isLoadingPeserta}

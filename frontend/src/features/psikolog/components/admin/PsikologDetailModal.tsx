@@ -18,6 +18,7 @@ import {
   Edit,
   ShieldCheck,
   UserCheck,
+  ClipboardCheck,
 } from "lucide-react"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
 
@@ -27,6 +28,7 @@ interface PsikologDetailModalProps {
   psikolog: TenagaAhli | null
   onEdit: (psikolog: TenagaAhli) => void
   onToggleAkses: (psikolog: TenagaAhli, newStatus: StatusAkses) => void
+  onToggleReviewer?: (psikolog: TenagaAhli) => void
   onUpdated?: (next: {
     tokenAktivasi?: string | null
     tokenExpiredAt?: string | null
@@ -42,6 +44,7 @@ export default function PsikologDetailModal({
   psikolog,
   onEdit,
   onToggleAkses,
+  onToggleReviewer,
   onUpdated,
   onRefreshFromServer,
 }: PsikologDetailModalProps) {
@@ -185,6 +188,11 @@ export default function PsikologDetailModal({
                   <span className="rounded-full bg-purple-100 px-3 py-0.5 text-xs font-semibold text-[#561269] capitalize">
                     {psikolog.kategori.replace("-", " ")}
                   </span>
+                  {Boolean(psikolog.isReviewerPsikotes) && (
+                    <span className="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-0.5 text-xs font-semibold">
+                      Reviewer Psikotes
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">
                   {psikolog.spesialisasi}
@@ -252,6 +260,60 @@ export default function PsikologDetailModal({
                   </>
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* 2.5 Kartu Pengaturan Wewenang Reviewer Asesmen Psikotes */}
+          <div className="p-5 rounded-3xl bg-gradient-to-r from-purple-50/70 to-white border border-purple-100 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck className="w-4 h-4 text-[#561269]" />
+                  <h5 className="text-sm font-bold text-gray-900">
+                    Wewenang Reviewer Asesmen Psikotes
+                  </h5>
+                  <AdminStatusBadge
+                    variant={Boolean(psikolog.isReviewerPsikotes) ? "success" : "neutral"}
+                    className="ml-1"
+                  >
+                    {Boolean(psikolog.isReviewerPsikotes) ? "Reviewer Aktif" : "Non-Reviewer"}
+                  </AdminStatusBadge>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {Boolean(psikolog.isReviewerPsikotes)
+                    ? "Psikolog ini memiliki hak klinis untuk mengambil antrean telaah, mengisi interpretasi, dan menerbitkan laporan resmi asesmen psikotes."
+                    : "Psikolog konseling biasa. Tidak memiliki hak untuk mengambil antrean telaah atau menerbitkan laporan psikotes."}
+                </p>
+              </div>
+
+              {/* Sakelar Toggle ON / OFF */}
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onToggleReviewer && onToggleReviewer(psikolog)}
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors cursor-pointer ${
+                    Boolean(psikolog.isReviewerPsikotes) ? "bg-[#561269]" : "bg-gray-200"
+                  }`}
+                  title={
+                    Boolean(psikolog.isReviewerPsikotes)
+                      ? `Klik untuk menonaktifkan wewenang reviewer dari ${psikolog.nama}`
+                      : `Klik untuk mengaktifkan wewenang reviewer bagi ${psikolog.nama}`
+                  }
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                      Boolean(psikolog.isReviewerPsikotes) ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+                <span
+                  className={`text-xs font-bold ${
+                    Boolean(psikolog.isReviewerPsikotes) ? "text-[#561269]" : "text-gray-400"
+                  }`}
+                >
+                  {Boolean(psikolog.isReviewerPsikotes) ? "ON" : "OFF"}
+                </span>
+              </div>
             </div>
           </div>
 

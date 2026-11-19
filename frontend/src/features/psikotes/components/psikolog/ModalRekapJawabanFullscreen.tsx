@@ -10,6 +10,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import type { RekapJawabanItem } from "@/services/psikotes.service";
+import { isAnswerTrue, isAnswerFalse } from "./RekapJawabanPasienView";
 
 interface ModalRekapJawabanFullscreenProps {
   isOpen: boolean;
@@ -44,12 +45,7 @@ export default function ModalRekapJawabanFullscreen({
     let criticalCount = 0;
 
     for (const it of rekapJawaban) {
-      const isTrue =
-        it.jawaban.toLowerCase().includes("sesuai") ||
-        it.jawaban.toLowerCase().includes("benar") ||
-        it.jawaban.toLowerCase().includes("true") ||
-        it.jawaban.trim() === "+" ||
-        it.skor === 1;
+      const isTrue = isAnswerTrue(it);
 
       if (isTrue) trueCount++;
       else falseCount++;
@@ -79,33 +75,12 @@ export default function ModalRekapJawabanFullscreen({
     let list = rekapJawaban;
 
     if (activeFilter === "TRUE") {
-      list = list.filter((it) => {
-        return (
-          it.jawaban.toLowerCase().includes("sesuai") ||
-          it.jawaban.toLowerCase().includes("benar") ||
-          it.jawaban.toLowerCase().includes("true") ||
-          it.jawaban.trim() === "+" ||
-          it.skor > 0
-        );
-      });
+      list = list.filter((it) => isAnswerTrue(it));
     } else if (activeFilter === "FALSE") {
-      list = list.filter((it) => {
-        return (
-          it.jawaban.toLowerCase().includes("tidak sesuai") ||
-          it.jawaban.toLowerCase().includes("salah") ||
-          it.jawaban.toLowerCase().includes("false") ||
-          it.jawaban.trim() === "-" ||
-          it.skor === 0
-        );
-      });
+      list = list.filter((it) => isAnswerFalse(it));
     } else if (activeFilter === "CRITICAL") {
       list = list.filter((it) => {
-        const isTrue =
-          it.jawaban.toLowerCase().includes("sesuai") ||
-          it.jawaban.toLowerCase().includes("benar") ||
-          it.jawaban.toLowerCase().includes("true") ||
-          it.jawaban.trim() === "+" ||
-          it.skor === 1;
+        const isTrue = isAnswerTrue(it);
 
         return (
           (it.nomor === 40 && isTrue) ||
@@ -222,7 +197,7 @@ export default function ModalRekapJawabanFullscreen({
                       : "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
                   }`}
                 >
-                  True (+) ({stats.trueCount})
+                  Sesuai (+) ({stats.trueCount})
                 </button>
                 <button
                   type="button"
@@ -233,7 +208,7 @@ export default function ModalRekapJawabanFullscreen({
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
-                  False (-) ({stats.falseCount})
+                  Tidak Sesuai (-) ({stats.falseCount})
                 </button>
               </>
             )}
@@ -266,12 +241,7 @@ export default function ModalRekapJawabanFullscreen({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {filteredItems.map((item) => {
-                const isTrue =
-                  item.jawaban.toLowerCase().includes("sesuai") ||
-                  item.jawaban.toLowerCase().includes("benar") ||
-                  item.jawaban.toLowerCase().includes("true") ||
-                  item.jawaban.trim() === "+" ||
-                  item.skor === 1;
+                const isTrue = isAnswerTrue(item);
 
                 const isCritical =
                   (item.nomor === 40 && isTrue) ||
@@ -325,16 +295,12 @@ export default function ModalRekapJawabanFullscreen({
                         isTrue ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold text-xs">
                             <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
-                            {item.jawaban.includes("Sesuai")
-                              ? item.jawaban
-                              : "(+) Sesuai / Benar (True)"}
+                            (+) Sesuai
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 border border-gray-300 text-gray-700 font-medium text-xs">
                             <X className="w-3.5 h-3.5 text-gray-500" />
-                            {item.jawaban.includes("Tidak Sesuai")
-                              ? item.jawaban
-                              : "(-) Tidak Sesuai / Salah (False)"}
+                            (-) Tidak Sesuai
                           </span>
                         )
                       ) : (

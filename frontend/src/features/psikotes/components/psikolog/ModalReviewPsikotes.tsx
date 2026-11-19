@@ -25,7 +25,10 @@ import {
   Trash2,
   ClipboardList,
   ExternalLink,
+  ArrowLeft,
+  Lock,
 } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem } from "@/services/psikotes.service";
 import RekapJawabanPasienView from "./RekapJawabanPasienView";
 import ModalRekapJawabanFullscreen from "./ModalRekapJawabanFullscreen";
@@ -34,6 +37,8 @@ interface ModalReviewPsikotesProps {
   item: ReviewPsikotesItem | null;
   onClose: () => void;
   onSuccess: (updatedItem: ReviewPsikotesItem) => void;
+  isStandalonePage?: boolean;
+  initialDetail?: any;
 }
 
 // Standar ukuran Tab & Indentasi seragam (4 spasi persis)
@@ -128,6 +133,89 @@ function findLastRomanInAllPages(pagesList: string[], upToPageIndex: number): nu
     if (lastRoman > 0) return lastRoman;
   }
   return 0;
+}
+
+interface PrecedingListItem {
+  type: "number" | "roman" | "letter" | "bullet";
+  indent: string;
+  val?: number;
+  char?: string;
+  bullet?: string;
+  spacing: string;
+}
+
+// Mencari item list terakhir di atas posisi kursor untuk melanjutkan penomoran/poin setelah paragraf
+function findPrecedingListItem(
+  value: string,
+  lineStart: number,
+  pagesList?: string[],
+  pageIdx?: number
+): PrecedingListItem | null {
+  const linesBefore = value.slice(0, lineStart).split("\n");
+  for (let i = linesBefore.length - 1; i >= 0; i--) {
+    const line = linesBefore[i];
+
+    // Cek angka biasa: "1.    " atau "  2.    "
+    const numMatch = line.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
+    if (numMatch) {
+      return {
+        type: "number",
+        indent: numMatch[1],
+        val: parseInt(numMatch[2], 10),
+        spacing: numMatch[3],
+      };
+    }
+
+    // Cek angka romawi: "I.    " atau "II.    "
+    const romanMatch = line.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s+)(.*)$/);
+    if (romanMatch && isRomanValid(romanMatch[2])) {
+      return {
+        type: "roman",
+        indent: romanMatch[1],
+        val: fromRoman(romanMatch[2]),
+        spacing: romanMatch[3],
+      };
+    }
+
+    // Cek abjad: "a.    ", "b.    "
+    const letterMatch = line.match(/^(\s*)([a-zA-Z])\.(\s+)(.*)$/);
+    if (letterMatch) {
+      return {
+        type: "letter",
+        indent: letterMatch[1],
+        char: letterMatch[2],
+        spacing: letterMatch[3],
+      };
+    }
+
+    // Cek bullet: "•    "
+    const bulletMatch = line.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
+    if (bulletMatch) {
+      return {
+        type: "bullet",
+        indent: bulletMatch[1],
+        bullet: bulletMatch[2],
+        spacing: bulletMatch[3],
+      };
+    }
+
+    // Jika baris ini bukan baris kosong dan tidak memiliki spasi awal (misal judul besar baru yang tidak berindentasi):
+    // List dianggap terputus
+    if (line.trim().length > 0 && !line.startsWith(" ") && !line.startsWith("\t")) {
+      return null;
+    }
+  }
+
+  // Jika tidak ditemukan di lembar ini, dan ada lembar sebelumnya (pageIdx > 0):
+  if (pagesList && typeof pageIdx === "number" && pageIdx > 0) {
+    for (let p = pageIdx - 1; p >= 0; p--) {
+      const prevPageText = pagesList[p] || "";
+      const result = findPrecedingListItem(prevPageText, prevPageText.length);
+      if (result) return result;
+    }
+  }
+
+  return null;
 }
 
 // Kapasitas tinggi teks (dalam pixel) per lembar A4 (794px x 1123px)
@@ -328,10 +416,17 @@ function parseTextToPages(rawText: string): string[] {
   return pages.length > 0 ? pages : [""];
 }
 
+// Menggabungkan seluruh isi teks halaman menjadi satu teks utuh dengan pemisah PAGE_BREAK
+function combinePages(pagesList: string[]): string {
+  return (pagesList || []).join("\n\n<!-- PAGE_BREAK -->\n\n");
+}
+
 export default function ModalReviewPsikotes({
   item,
   onClose,
   onSuccess,
+  isStandalonePage = false,
+  initialDetail = null,
 }: ModalReviewPsikotesProps) {
   const [pages, setPages] = useState<string[]>([""]);
   const [activePageIndex, setActivePageIndex] = useState<number>(0);
@@ -339,6 +434,14 @@ export default function ModalReviewPsikotes({
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftMessage, setDraftMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Modal Konfirmasi Keamanan saat ingin keluar ke Antrean Review
+  const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
+  const [isSavingAndExiting, setIsSavingAndExiting] = useState(false);
+  // Modal Konfirmasi Terbitkan Laporan Resmi (Cek Kembali)
+  const [showPublishConfirmModal, setShowPublishConfirmModal] = useState(false);
+  // Melacak isi konten awal untuk mendeteksi apakah ada perubahan (isDirty)
+  const initialContentRef = useRef<string>("");
 
   // Dropdown Format List
   const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
@@ -361,8 +464,8 @@ export default function ModalReviewPsikotes({
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
 
   // Full detail dari API jika diperlukan
-  const [fullDetail, setFullDetail] = useState<any>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [fullDetail, setFullDetail] = useState<any>(initialDetail);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(!initialDetail);
 
   // Auto-close dropdown format list saat klik di luar
   useEffect(() => {
@@ -381,11 +484,11 @@ export default function ModalReviewPsikotes({
 
   // Gabungkan seluruh isi teks halaman untuk disimpan ke DB / localStorage
   const getCombinedCatatan = (pagesList: string[] = pages): string => {
-    return pagesList.join("\n\n<!-- PAGE_BREAK -->\n\n");
+    return combinePages(pagesList);
   };
 
   useEffect(() => {
-    if (!item) return;
+    if (!item?.id) return;
 
     const cachedDraft =
       typeof window !== "undefined" ? localStorage.getItem(`empathika_draft_review_${item.id}`) : null;
@@ -397,8 +500,29 @@ export default function ModalReviewPsikotes({
       : cachedDraft || "";
 
     setPages(parseTextToPages(initialText));
+    initialContentRef.current = initialText.trim();
     setSubmitError(null);
     setDraftMessage(null);
+
+    // Gunakan initialDetail jika sudah ada dari parent (mencegah double-fetch)
+    if (initialDetail) {
+      setFullDetail(initialDetail);
+      setIsLoadingDetail(false);
+      const dbText = initialDetail.hasil?.catatan_psikolog;
+      if (dbText && dbText.trim().length > 0) {
+        const apiText =
+          initialDetail.hasil.rekomendasi_psikolog &&
+          !dbText.includes(initialDetail.hasil.rekomendasi_psikolog)
+            ? `${dbText}\n\nREKOMENDASI:\n${initialDetail.hasil.rekomendasi_psikolog}`
+            : dbText;
+        setPages(parseTextToPages(apiText));
+        initialContentRef.current = apiText.trim();
+      } else if (cachedDraft && cachedDraft.trim().length > 0) {
+        setPages(parseTextToPages(cachedDraft));
+        initialContentRef.current = cachedDraft.trim();
+      }
+      return;
+    }
 
     setIsLoadingDetail(true);
     psikotesService
@@ -414,9 +538,23 @@ export default function ModalReviewPsikotes({
               !dbText.includes(res.data.hasil.rekomendasi_psikolog)
                 ? `${dbText}\n\nREKOMENDASI:\n${res.data.hasil.rekomendasi_psikolog}`
                 : dbText;
-            setPages(parseTextToPages(apiText));
+            setPages((curPages) => {
+              const curCombined = combinePages(curPages).trim();
+              if (!curCombined || curCombined === initialContentRef.current) {
+                initialContentRef.current = apiText.trim();
+                return parseTextToPages(apiText);
+              }
+              return curPages;
+            });
           } else if (cachedDraft && cachedDraft.trim().length > 0) {
-            setPages(parseTextToPages(cachedDraft));
+            setPages((curPages) => {
+              const curCombined = combinePages(curPages).trim();
+              if (!curCombined || curCombined === initialContentRef.current) {
+                initialContentRef.current = cachedDraft.trim();
+                return parseTextToPages(cachedDraft);
+              }
+              return curPages;
+            });
           }
         }
       })
@@ -426,18 +564,95 @@ export default function ModalReviewPsikotes({
       .finally(() => {
         setIsLoadingDetail(false);
       });
-  }, [item]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item?.id, initialDetail]);
 
   // Auto-save draf secara berkala ke localStorage setiap kali ada perubahan teks
   useEffect(() => {
     if (!item?.id || !pages.some((p) => p.trim().length > 0)) return;
     try {
-      const combined = getCombinedCatatan(pages);
+      const combined = combinePages(pages);
       localStorage.setItem(`empathika_draft_review_${item.id}`, combined);
     } catch {
       // Safe catch jika storage quota penuh
     }
   }, [pages, item?.id]);
+
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "ADMIN";
+
+  const activePsiId =
+    typeof window !== "undefined"
+      ? localStorage.getItem("active_psikolog_id") || sessionStorage.getItem("active_psikolog_id")
+      : null;
+  const activePsiName =
+    typeof window !== "undefined"
+      ? localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name")
+      : null;
+
+  const isClaimedByMe = Boolean(
+    item?.id_psikolog && (
+      isAdmin ||
+      (user?.id && (
+        item.psikolog?.id === user.id ||
+        item.id_psikolog === user.id ||
+        (item.psikolog as any)?.id_account === user.id
+      )) ||
+      (activePsiId && (
+        item.id_psikolog === activePsiId ||
+        item.psikolog?.id === activePsiId
+      )) ||
+      (user?.name && item.psikolog?.nama && (
+        item.psikolog.nama.toLowerCase().includes(user.name.toLowerCase()) ||
+        user.name.toLowerCase().includes(item.psikolog.nama.toLowerCase())
+      )) ||
+      (activePsiName && item.psikolog?.nama && (
+        item.psikolog.nama.toLowerCase().includes(activePsiName.toLowerCase()) ||
+        activePsiName.toLowerCase().includes(item.psikolog.nama.toLowerCase())
+      ))
+    )
+  );
+
+  const isSudahReview = item?.status_pengerjaan === "SELESAI";
+  const isLockedByOther = Boolean(
+    item?.id_psikolog &&
+    !isClaimedByMe &&
+    !isAdmin &&
+    !isSudahReview
+  );
+  const isReadOnly = isSudahReview || isLockedByOther;
+
+  // Handler Keamanan Navigasi Kembali ke Antrean Review:
+  // Hanya munculkan peringatan JIKA kedeteksi ada perubahan (isDirty). Jika tidak ada perubahan, langsung kembali.
+  const handleAttemptBack = () => {
+    const currentContent = combinePages(pages).trim();
+    const hasChanged = currentContent !== initialContentRef.current.trim();
+
+    // Jika tidak ada perubahan atau laporan dalam mode read-only, langsung kembali tanpa notifikasi
+    if (!hasChanged || isReadOnly) {
+      onClose();
+      return;
+    }
+
+    // Jika kedeteksi ada perubahan baru munculkan dialog konfirmasi
+    setShowExitConfirmModal(true);
+  };
+
+  // Proteksi sebelum menutup tab/refresh browser agar ketikan tidak hilang jika ada perubahan
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const currentContent = combinePages(pages).trim();
+      const hasChanged = currentContent !== initialContentRef.current.trim();
+      if (hasChanged && !isReadOnly) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [pages, isReadOnly]);
 
   if (!item) return null;
 
@@ -729,7 +944,60 @@ export default function ModalReviewPsikotes({
       return;
     }
 
-    // 2. BACKSPACE PADA AWAL LEMBAR HALAMAN (JIKA BUKAN HALAMAN 1)
+    // 2. SMART BACKSPACE GAYA GOOGLE DOCS (UNTUK LIST ITEM & INDENTASI SEJAJAR)
+    if (e.key === "Backspace" && selectionStart === selectionEnd && selectionStart > 0) {
+      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+      const endLineIdx = value.indexOf("\n", selectionStart);
+      const lineEnd = endLineIdx === -1 ? value.length : endLineIdx;
+      const lineText = value.slice(lineStart, lineEnd);
+      const textAfterCursor = value.slice(selectionStart, lineEnd);
+
+      // Cek apakah kursor berada di akhir prefix atau spasi indentasi (belum ada teks isi yang diketik di kanan kursor)
+      if (textAfterCursor.trim() === "") {
+        const numMatch = lineText.match(/^(\s*)(\d+)\.(\s*)$/);
+        const romanMatch = lineText.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s*)$/);
+        const letterMatch = lineText.match(/^(\s*)([a-zA-Z])\.(\s*)$/);
+        const bulletMatch = lineText.match(/^(\s*)([•\-\*])(\s*)$/);
+
+        const isListPrefix =
+          numMatch ||
+          (romanMatch && isRomanValid(romanMatch[2])) ||
+          letterMatch ||
+          bulletMatch;
+
+        if (isListPrefix) {
+          e.preventDefault();
+          const precedingItem = findPrecedingListItem(value, lineStart, pages, pageIdx);
+
+          // Jika ada item list di atasnya (misal "1.    Hasil" di atas "2.    "),
+          // ubah "2.    " menjadi spasi dengan panjang yang sama persis ("      ")
+          // sehingga kursor TIDAK MUNDUR, langsung sejajar dengan judul di atasnya tanpa perlu tekan Tab!
+          if (precedingItem) {
+            const replacementSpaces = " ".repeat(lineText.length);
+            const newValue = value.slice(0, lineStart) + replacementSpaces + value.slice(lineEnd);
+            setPageText(newValue, lineStart + replacementSpaces.length);
+            return;
+          }
+
+          // Jika ini nomor pertama (misal baru ketik "1.    " dan belum ada list di atasnya):
+          // Hapus prefix langsung ke kolom 0
+          const newValue = value.slice(0, lineStart) + value.slice(lineEnd);
+          setPageText(newValue, lineStart);
+          return;
+        }
+
+        // Jika baris ini HANYA berisi spasi indentasi (misal setelah backspace pertama dari "2.    "):
+        // Klikan backspace berikutnya akan menghapus seluruh spasi indentasi tersebut kembali ke kolom 0
+        if (/^\s+$/.test(lineText) && selectionStart >= lineStart + lineText.length) {
+          e.preventDefault();
+          const newValue = value.slice(0, lineStart) + value.slice(lineEnd);
+          setPageText(newValue, lineStart);
+          return;
+        }
+      }
+    }
+
+    // 3. BACKSPACE PADA AWAL LEMBAR HALAMAN (JIKA BUKAN HALAMAN 1)
     if (e.key === "Backspace" && selectionStart === 0 && selectionEnd === 0 && pageIdx > 0) {
       e.preventDefault();
       if (value.trim() === "") {
@@ -991,49 +1259,65 @@ export default function ModalReviewPsikotes({
         return;
       }
 
-      // E. Kelanjutan paragraf ke list berikutnya
-      const textBefore = value.slice(0, lineStart);
-      const prevLines = textBefore.trimEnd().split("\n");
-      const lastLineAbove = prevLines[prevLines.length - 1] || "";
-      const matchAboveNumber = lastLineAbove.match(/^(\s*)(\d+)\./);
-      const matchAboveRoman = lastLineAbove.match(/^(\s*)([IVXLCDMivxlcdm]+)\./);
+      // E. Kelanjutan paragraf ke list berikutnya (Gaya Google Docs)
+      // Jika baris saat ini berisi teks (misal paragraf di bawah nomor list), dan kursor berada di akhir baris:
+      // Cari list item di atasnya, lalu otomatis lanjutkan ke nomor/romawi/abjad berikutnya!
+      const endLineIdx = value.indexOf("\n", selectionStart);
+      const lineEnd = endLineIdx === -1 ? value.length : endLineIdx;
+      const isCursorAtEndOfLine = value.slice(selectionStart, lineEnd).trim() === "";
 
-      if (matchAboveNumber && currentLine.trim().length > 0) {
-        const nextNum = parseInt(matchAboveNumber[2], 10) + 1;
-        const nextPrefix = `${nextNum}.${TAB_STR}`;
-
-        if (isCursorNearEnd && willOverflow(nextPrefix)) {
-          e.preventDefault();
-          moveNextPrefixToNextPage(pageIdx, nextPrefix);
-          return;
-        }
-
-        e.preventDefault();
-        const insertText = `\n${nextPrefix}`;
-        try {
-          if (!document.execCommand("insertText", false, insertText)) {
-            throw new Error();
+      if (currentLine.trim().length > 0 && isCursorAtEndOfLine) {
+        const precedingItem = findPrecedingListItem(value, lineStart, pages, pageIdx);
+        if (precedingItem) {
+          let nextPrefix = "";
+          if (precedingItem.type === "number") {
+            const nextNum = (precedingItem.val ?? 0) + 1;
+            nextPrefix = `${precedingItem.indent}${nextNum}.${precedingItem.spacing || TAB_STR}`;
+          } else if (precedingItem.type === "roman") {
+            const nextRomanStr = toRoman((precedingItem.val ?? 0) + 1);
+            nextPrefix = `${precedingItem.indent}${nextRomanStr}.${precedingItem.spacing || TAB_STR}`;
+          } else if (precedingItem.type === "letter") {
+            const charCode = (precedingItem.char || "a").charCodeAt(0) + 1;
+            const nextChar = String.fromCharCode(charCode);
+            nextPrefix = `${precedingItem.indent}${nextChar}.${precedingItem.spacing || TAB_STR}`;
+          } else if (precedingItem.type === "bullet") {
+            nextPrefix = `${precedingItem.indent}${precedingItem.bullet || "•"}${precedingItem.spacing || TAB_STR}`;
           }
-        } catch {
-          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
-          setPageText(newValue, selectionStart + insertText.length);
+
+          if (nextPrefix) {
+            if (isCursorNearEnd && willOverflow(nextPrefix)) {
+              e.preventDefault();
+              moveNextPrefixToNextPage(pageIdx, nextPrefix);
+              return;
+            }
+
+            e.preventDefault();
+            const insertText = `\n${nextPrefix}`;
+            try {
+              if (!document.execCommand("insertText", false, insertText)) {
+                throw new Error();
+              }
+            } catch {
+              const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
+              setPageText(newValue, selectionStart + insertText.length);
+            }
+            return;
+          }
         }
-        return;
       }
 
-      if (matchAboveRoman && isRomanValid(matchAboveRoman[2]) && currentLine.trim().length > 0) {
-        const curRomanVal = fromRoman(matchAboveRoman[2]);
-        const nextRomanStr = toRoman(curRomanVal + 1);
-        const nextPrefix = `${nextRomanStr}.${TAB_STR}`;
-
-        if (isCursorNearEnd && willOverflow(nextPrefix)) {
+      // Jika kursor ditekan Enter di tengah-tengah paragraf berindentasi, pertahankan indentasi baris tersebut
+      const leadingIndentMatch = currentLine.match(/^(\s+)/);
+      if (leadingIndentMatch && !isCursorAtEndOfLine) {
+        const indentStr = leadingIndentMatch[1];
+        if (isCursorNearEnd && willOverflow(indentStr)) {
           e.preventDefault();
-          moveNextPrefixToNextPage(pageIdx, nextPrefix);
+          moveNextPrefixToNextPage(pageIdx, indentStr);
           return;
         }
 
         e.preventDefault();
-        const insertText = `\n${nextPrefix}`;
+        const insertText = `\n${indentStr}`;
         try {
           if (!document.execCommand("insertText", false, insertText)) {
             throw new Error();
@@ -1100,6 +1384,9 @@ export default function ModalReviewPsikotes({
         catatan_psikolog: combined,
       });
 
+      // Update initial content ref agar perubahan dianggap tersimpan
+      initialContentRef.current = combined.trim();
+
       setDraftMessage("Draf berhasil disimpan!");
       setTimeout(() => {
         setDraftMessage(null);
@@ -1116,11 +1403,11 @@ export default function ModalReviewPsikotes({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleExecutePublish = async () => {
     const combined = getCombinedCatatan(pages);
     if (!pages.some((p) => p.trim().length > 0)) {
       setSubmitError("Catatan telaah psikolog wajib diisi sebelum menerbitkan laporan.");
+      setShowPublishConfirmModal(false);
       return;
     }
 
@@ -1159,71 +1446,85 @@ export default function ModalReviewPsikotes({
           : item.psikolog,
       };
 
+      setShowPublishConfirmModal(false);
       onSuccess(updated);
       onClose();
     } catch (err: any) {
-      setSubmitError(err?.response?.data?.message || err.message || "Gagal menyimpan review psikolog.");
+      setSubmitError(err?.response?.data?.message || err.message || "Gagal menerbitkan review psikolog.");
+      setShowPublishConfirmModal(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isSudahReview = item.status_pengerjaan === "SELESAI";
+  const contentJsx = (
+    <div
+      className={`relative w-full flex flex-col bg-[#F3F4F6] transition-all duration-300 font-sans text-gray-800 ${
+        isStandalonePage
+          ? "w-full h-screen overflow-hidden"
+          : isFullscreen
+            ? "h-screen w-screen rounded-none overflow-hidden"
+            : "max-w-7xl h-[94vh] rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-300/80 overflow-hidden"
+      }`}
+    >
+      {/* ========================================================================= */}
+      {/* 1. TOP TOOLBAR DOKUMEN (Clean Workspace Header)                           */}
+      {/* ========================================================================= */}
+      <header className="shrink-0 px-4 sm:px-6 py-2.5 bg-white border-b border-gray-200 flex items-center justify-between gap-3 shadow-xs">
+        {/* Sisi Kiri: Tombol Kembali & Kontrol Buka Sidebar */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Tombol Kembali khusus Halaman Mandiri */}
+          {isStandalonePage && (
+            <button
+              type="button"
+              onClick={handleAttemptBack}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 text-xs font-semibold shadow-2xs transition-all cursor-pointer active:scale-95 shrink-0"
+              title="Kembali ke Daftar Antrean Review"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#561269]" />
+              <span>Kembali</span>
+            </button>
+          )}
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-3 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div
-        className={`relative w-full flex flex-col bg-[#F3F4F6] transition-all duration-300 font-sans text-gray-800 overflow-hidden ${
-          isFullscreen
-            ? "h-screen w-screen rounded-none"
-            : "max-w-7xl h-[94vh] rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-300/80"
-        }`}
-      >
-        {/* ========================================================================= */}
-        {/* 1. TOP TOOLBAR DOKUMEN (Clean Workspace Header)                           */}
-        {/* ========================================================================= */}
-        <header className="shrink-0 px-4 sm:px-6 py-2.5 bg-white border-b border-gray-200 flex items-center justify-between gap-3 shadow-xs">
-          {/* Sisi Kiri: Judul Dokumen & Tombol Buka Panel jika sedang tertutup */}
-          <div className="flex items-center gap-3 min-w-0">
-            {!showScoreSidebar && (
-              <button
-                type="button"
-                onClick={() => setShowScoreSidebar(true)}
-                className="p-1.5 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 text-[#561269] transition-colors cursor-pointer shrink-0"
-                title="Buka Referensi Skor Asesmen"
-              >
-                <PanelLeft className="w-4 h-4" />
-              </button>
-            )}
-            <span className="p-2 rounded-xl bg-[#561269] text-white shrink-0 shadow-xs">
-              <Stethoscope className="w-4 h-4" />
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm font-bold text-gray-900 truncate">
-                  Lembar Telaah Klinis Psikolog
-                </h1>
-                <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-md bg-purple-50 text-purple-900 border border-purple-200 font-mono font-medium">
-                  {item.kode_akses || "DOC-KLINIS"}
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-500 truncate">
-                {item.nama_paket} &bull; Klien: <span className="font-semibold text-gray-800">{item.nama_peserta}</span>
-              </p>
-            </div>
-          </div>
+          {!showScoreSidebar && (
+            <button
+              type="button"
+              onClick={() => setShowScoreSidebar(true)}
+              className="p-1.5 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 text-[#561269] transition-colors cursor-pointer shrink-0"
+              title="Buka Referensi Skor Asesmen"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+          )}
 
-          {/* Sisi Kanan: Kontrol Toolbar, Simpan Draf & Aksi Terbitkan */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Status Notifikasi Simpan Draf */}
-            {draftMessage && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-in fade-in duration-200">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                {draftMessage}
+          {/* Info Pasien & Asal Biro Singkat di Header */}
+          <div className="min-w-0 hidden md:block">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900 text-xs sm:text-sm truncate">
+                {item.nama_peserta}
               </span>
-            )}
+              <span className="text-[11px] text-gray-400 font-mono">
+                ({item.kode_akses || "TIKET"})
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-500 truncate">
+              {item.nama_paket} • <span className="font-medium text-gray-700">{item.nama_biro || "Empathika (Pusat)"}</span>
+            </p>
+          </div>
+        </div>
 
-            {/* Toggle Fullscreen */}
+        {/* Sisi Kanan: Kontrol Toolbar, Simpan Draf & Aksi Terbitkan */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Status Notifikasi Simpan Draf */}
+          {draftMessage && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-in fade-in duration-200">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              {draftMessage}
+            </span>
+          )}
+
+          {/* Toggle Fullscreen (hanya saat mode modal pop-up) */}
+          {!isStandalonePage && (
             <button
               type="button"
               onClick={() => setIsFullscreen((prev) => !prev)}
@@ -1232,60 +1533,87 @@ export default function ModalReviewPsikotes({
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
+          )}
 
-            {/* Tombol Simpan Draf */}
-            <button
-              type="button"
-              onClick={handleSaveDraft}
-              disabled={isSavingDraft || isSubmitting || !pages.some((p) => p.trim().length > 0)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 text-xs font-semibold shadow-2xs hover:shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
-              title="Simpan draf telaah sementara"
+          {/* Aksi Saat Sudah Terbit / Terkunci Oleh Rekan Lain: Badge Status Read-Only */}
+          {isSudahReview ? (
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Laporan Resmi Diterbitkan</span>
+            </span>
+          ) : isLockedByOther ? (
+            <span
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold shadow-2xs"
+              title={`Sedang aktif ditinjau oleh ${item?.psikolog?.nama || "rekan psikolog lain"}`}
             >
-              {isSavingDraft ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-700" />
-                  <span>Menyimpan Draf...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-3.5 h-3.5 text-gray-600" />
-                  <span>Simpan Draf</span>
-                </>
-              )}
-            </button>
+              <Lock className="w-3.5 h-3.5 text-amber-700" />
+              <span>Sedang Ditinjau: {item?.psikolog?.nama || "Psikolog Lain"} (Diproses)</span>
+            </span>
+          ) : (
+            <>
+              {/* Tombol Simpan Draf */}
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isSubmitting || !pages.some((p) => p.trim().length > 0)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 text-xs font-semibold shadow-2xs hover:shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+                title="Simpan draf telaah sementara"
+              >
+                {isSavingDraft ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-700" />
+                    <span>Menyimpan Draf...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5 text-gray-600" />
+                    <span>Simpan Draf</span>
+                  </>
+                )}
+              </button>
 
-            {/* Tombol Terbitkan Laporan */}
+              {/* Tombol Terbitkan Laporan */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!pages.some((p) => p.trim().length > 0)) {
+                    setSubmitError("Catatan telaah psikolog wajib diisi sebelum menerbitkan laporan.");
+                    return;
+                  }
+                  setShowPublishConfirmModal(true);
+                }}
+                disabled={isSubmitting || isSavingDraft || !pages.some((p) => p.trim().length > 0)}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileCheck2 className="w-3.5 h-3.5" />
+                    <span>Terbitkan Laporan</span>
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {/* Tombol Tutup (hanya saat mode modal pop-up) */}
+          {!isStandalonePage && (
             <button
               type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting || isSavingDraft || !pages.some((p) => p.trim().length > 0)}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <>
-                  <FileCheck2 className="w-3.5 h-3.5" />
-                  <span>{isSudahReview ? "Perbarui Telaah" : "Terbitkan Laporan"}</span>
-                </>
-              )}
-            </button>
-
-            {/* Tombol Tutup */}
-            <button
-              type="button"
-              onClick={onClose}
+              onClick={handleAttemptBack}
               disabled={isSubmitting || isSavingDraft}
               className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer ml-1"
               title="Tutup (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
-          </div>
-        </header>
+          )}
+        </div>
+      </header>
 
         {/* ========================================================================= */}
         {/* 2. BODY SPLIT WORKSPACE: SIDEBAR SKOR + LEMBAR DOKUMEN PUTIH POLOSAN      */}
@@ -1609,107 +1937,135 @@ export default function ModalReviewPsikotes({
               {/* =================================================================== */}
               {/* GOOGLE DOCS MINIMALIST FORMATTING TOOLBAR                           */}
               {/* =================================================================== */}
-              <div className="bg-white rounded-xl border border-gray-300 shadow-md px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-sans sticky top-0 z-20">
-                {/* Kontrol Format Teks */}
-                <div className="flex items-center gap-1 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => applyFormat("bold")}
-                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
-                    title="Tebal (Ctrl+B)"
-                  >
-                    <Bold className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyFormat("italic")}
-                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
-                    title="Miring (Ctrl+I)"
-                  >
-                    <Italic className="w-4 h-4" />
-                  </button>
-
-                  <div className="h-4 w-px bg-gray-200 mx-1" />
-
-                  {/* Dropdown Format Daftar (Angka, Romawi, Poin) */}
-                  <div className="relative" ref={listDropdownRef}>
+              {isSudahReview ? (
+                <div className="bg-emerald-50/90 border border-emerald-200/90 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-emerald-900 sticky top-0 z-20 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold">Laporan Telaah Resmi Telah Diterbitkan</span>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-emerald-700">Mode Arsip Medis (Terkunci)</span>
+                  </div>
+                  <span className="text-[11px] text-emerald-700 font-medium hidden sm:inline">
+                    Dokumen resmi telah diserahkan kepada klien
+                  </span>
+                </div>
+              ) : isLockedByOther ? (
+                <div className="bg-amber-50/90 border border-amber-200/90 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-amber-900 sticky top-0 z-20 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span className="font-bold">Tiket Sedang Aktif Ditinjau</span>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-amber-800">
+                      Oleh {item?.psikolog?.nama || "Rekan Psikolog"} (Mode Baca Saja)
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-amber-700 font-medium hidden sm:inline">
+                    Hanya psikolog pemeriksa yang bersangkutan yang dapat mengedit lembar ini
+                  </span>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-300 shadow-md px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-sans sticky top-0 z-20">
+                  {/* Kontrol Format Teks */}
+                  <div className="flex items-center gap-1 flex-wrap">
                     <button
                       type="button"
-                      onClick={() => setIsListDropdownOpen((prev) => !prev)}
-                      className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 font-medium border text-xs ${
-                        isListDropdownOpen
-                          ? "bg-purple-50 border-purple-300 text-purple-900"
-                          : "bg-white hover:bg-gray-100 border-gray-200/80 text-gray-700"
-                      }`}
-                      title="Pilihan Format Daftar (Angka, Romawi, Poin)"
+                      onClick={() => applyFormat("bold")}
+                      className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                      title="Tebal (Ctrl+B)"
                     >
-                      <ListOrdered className="w-3.5 h-3.5 text-purple-800" />
-                      <span>Daftar</span>
-                      <ChevronDown className="w-3 h-3 text-gray-400" />
+                      <Bold className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyFormat("italic")}
+                      className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                      title="Miring (Ctrl+I)"
+                    >
+                      <Italic className="w-4 h-4" />
                     </button>
 
-                    {isListDropdownOpen && (
-                      <div className="absolute left-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150 font-sans">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            applyFormat("number");
-                            setIsListDropdownOpen(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <span className="font-mono font-bold text-purple-800 w-5">1.2.</span>
-                          <span>Angka (1., 2., 3.)</span>
-                        </button>
+                    <div className="h-4 w-px bg-gray-200 mx-1" />
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            applyFormat("roman");
-                            setIsListDropdownOpen(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <span className="font-serif font-black text-purple-900 w-5">I.</span>
-                          <span>Romawi (I., II., III.)</span>
-                        </button>
+                    {/* Dropdown Format Daftar (Angka, Romawi, Poin) */}
+                    <div className="relative" ref={listDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsListDropdownOpen((prev) => !prev)}
+                        className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 font-medium border text-xs ${
+                          isListDropdownOpen
+                            ? "bg-purple-50 border-purple-300 text-purple-900"
+                            : "bg-white hover:bg-gray-100 border-gray-200/80 text-gray-700"
+                        }`}
+                        title="Pilihan Format Daftar (Angka, Romawi, Poin)"
+                      >
+                        <ListOrdered className="w-3.5 h-3.5 text-purple-800" />
+                        <span>Daftar</span>
+                        <ChevronDown className="w-3 h-3 text-gray-400" />
+                      </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            applyFormat("bullet");
-                            setIsListDropdownOpen(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <span className="text-purple-800 font-bold w-5">•</span>
-                          <span>Poin / Butir</span>
-                        </button>
-                      </div>
-                    )}
+                      {isListDropdownOpen && (
+                        <div className="absolute left-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150 font-sans">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              applyFormat("number");
+                              setIsListDropdownOpen(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <span className="font-mono font-bold text-purple-800 w-5">1.2.</span>
+                            <span>Angka (1., 2., 3.)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              applyFormat("roman");
+                              setIsListDropdownOpen(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <span className="font-serif font-black text-purple-900 w-5">I.</span>
+                            <span>Romawi (I., II., III.)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              applyFormat("bullet");
+                              setIsListDropdownOpen(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <span className="text-purple-800 font-bold w-5">•</span>
+                            <span>Poin / Butir</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="h-4 w-px bg-gray-200 mx-1" />
+
+                    {/* Indent / Outdent (Tab) */}
+                    <button
+                      type="button"
+                      onClick={() => applyFormat("outdent")}
+                      className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                      title="Kurangi Indentasi (Shift+Tab)"
+                    >
+                      <Outdent className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyFormat("indent")}
+                      className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                      title="Tambah Indentasi (Tab)"
+                    >
+                      <Indent className="w-4 h-4" />
+                    </button>
                   </div>
-
-                  <div className="h-4 w-px bg-gray-200 mx-1" />
-
-                  {/* Indent / Outdent (Tab) */}
-                  <button
-                    type="button"
-                    onClick={() => applyFormat("outdent")}
-                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
-                    title="Kurangi Indentasi (Shift+Tab)"
-                  >
-                    <Outdent className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyFormat("indent")}
-                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
-                    title="Tambah Indentasi (Tab)"
-                  >
-                    <Indent className="w-4 h-4" />
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* =================================================================== */}
               {/* LOOP LEMBARAN KERTAS A4 TERPISAH (SEPARATE PHYSICAL A4 SHEETS)       */}
@@ -1806,18 +2162,20 @@ export default function ModalReviewPsikotes({
                           <span className="font-bold text-gray-900 tracking-wider uppercase text-[11px]">
                             EMPATHIKA PSYCHOLOGICAL SERVICES
                           </span>
-                          {/* Tombol Hapus Lembar Halaman Ini jika > 1 halaman */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemovePage(pageIdx);
-                            }}
-                            className="p-1 rounded-md text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="Hapus lembar halaman ini"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Tombol Hapus Lembar Halaman Ini jika > 1 halaman dan dokumen dapat diedit */}
+                          {!isReadOnly && pages.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemovePage(pageIdx);
+                              }}
+                              className="p-1 rounded-md text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Hapus lembar halaman ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1829,9 +2187,10 @@ export default function ModalReviewPsikotes({
                           textareaRefs.current[pageIdx] = el;
                         }}
                         value={pageText}
+                        readOnly={isReadOnly}
                         onFocus={() => setActivePageIndex(pageIdx)}
-                        onChange={(e) => handlePageChange(pageIdx, e.target.value, e.target.selectionStart)}
-                        onKeyDown={(e) => handleKeyDownOnPage(e, pageIdx)}
+                        onChange={(e) => !isReadOnly && handlePageChange(pageIdx, e.target.value, e.target.selectionStart)}
+                        onKeyDown={(e) => !isReadOnly && handleKeyDownOnPage(e, pageIdx)}
                         onScroll={(e) => {
                           // Mencegah teks kesekrol ke atas di dalam lembar A4
                           (e.target as HTMLTextAreaElement).scrollTop = 0;
@@ -1841,7 +2200,9 @@ export default function ModalReviewPsikotes({
                             ? "Mulai ketik telaah klinis, interpretasi, dan rekomendasi secara leluasa di sini... (Ketik 1. atau I. lalu Spasi untuk auto-list, tekan Enter di batas halaman untuk lanjut ke halaman berikutnya)"
                             : `Lanjutkan penulisan telaah pada Halaman ${pageIdx + 1}...`
                         }
-                        className="w-full flex-1 h-full min-h-0 bg-transparent border-0 focus:ring-0 focus:outline-none font-serif text-sm sm:text-base leading-relaxed text-gray-900 placeholder:text-gray-400 placeholder:font-sans resize-none p-0 overflow-hidden"
+                        className={`w-full flex-1 h-full min-h-0 bg-transparent border-0 focus:ring-0 focus:outline-none font-serif text-sm sm:text-base leading-relaxed text-gray-900 placeholder:text-gray-400 placeholder:font-sans resize-none p-0 overflow-hidden ${
+                          isReadOnly ? "cursor-default select-text" : ""
+                        }`}
                         style={{ tabSize: 4 }}
                         required={isFirstPage}
                       />
@@ -1864,11 +2225,7 @@ export default function ModalReviewPsikotes({
                             <p className="font-semibold text-gray-900">Psikolog Pemeriksa,</p>
 
                             {/* Ruang Tanda Tangan */}
-                            <div className="h-14 flex items-center justify-center">
-                              <div className="px-3 py-1 rounded-md border border-gray-300 text-[10px] text-gray-400 font-mono italic">
-                                [ Terverifikasi Secara Digital ]
-                              </div>
-                            </div>
+                            <div className="h-14" />
 
                             <p className="font-bold text-gray-900 underline underline-offset-2">
                               {item.psikolog?.nama || "Psikolog Klinis Empathika"}
@@ -1889,21 +2246,36 @@ export default function ModalReviewPsikotes({
                 );
               })}
 
-              {/* Tombol Tambah Lembar Halaman di Bawah Dokumen */}
-              <div className="flex justify-center pt-2 pb-6">
-                <button
-                  type="button"
-                  onClick={() => handleAddPage()}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/95 hover:bg-white text-gray-800 hover:text-[#561269] text-xs font-bold shadow-lg hover:shadow-xl border border-gray-300 transition-all cursor-pointer active:scale-95"
-                >
-                  <Plus className="w-4 h-4 text-purple-700" />
-                  <span>Tambah Lembar Halaman Baru (A4)</span>
-                </button>
-              </div>
+              {/* Tombol Tambah Lembar Halaman di Bawah Dokumen (Hanya saat draf/belum terbit & dapat diedit) */}
+              {!isReadOnly && (
+                <div className="flex justify-center pt-2 pb-6">
+                  <button
+                    type="button"
+                    onClick={() => handleAddPage()}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/95 hover:bg-white text-gray-800 hover:text-[#561269] text-xs font-bold shadow-lg hover:shadow-xl border border-gray-300 transition-all cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4 text-purple-700" />
+                    <span>Tambah Lembar Halaman Baru (A4)</span>
+                  </button>
+                </div>
+              )}
             </div>
           </main>
         </div>
       </div>
+    );
+
+  return (
+    <>
+      {isStandalonePage ? (
+        <div className="w-full h-screen overflow-hidden bg-[#F3F4F6] flex flex-col font-sans text-gray-800">
+          {contentJsx}
+        </div>
+      ) : (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-3 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          {contentJsx}
+        </div>
+      )}
 
       {/* Modal Lembar Rekap Jawaban Layar Penuh */}
       <ModalRekapJawabanFullscreen
@@ -1915,6 +2287,167 @@ export default function ModalReviewPsikotes({
         alatUkurKode={fullDetail?.paket?.alat_ukur?.kode}
         snapshotJawaban={fullDetail?.snapshot_jawaban}
       />
-    </div>
+
+      {/* Modal Peringatan Keamanan: Konfirmasi Simpan Draf Sebelum Keluar (Clean & Minimal) */}
+      {showExitConfirmModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="max-w-sm w-full bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">
+                    Simpan Perubahan?
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Ada perubahan telaah yang belum disimpan.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isSavingAndExiting}
+                onClick={() => setShowExitConfirmModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                title="Batal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Ingin menyimpan tulisan Anda sebagai <strong>Draf</strong> terlebih dahulu sebelum kembali ke antrean?
+            </p>
+
+            <div className="flex flex-col gap-2 pt-1 font-sans">
+              {/* Opsi 1: Simpan Draf & Keluar */}
+              <button
+                type="button"
+                disabled={isSavingAndExiting}
+                onClick={async () => {
+                  setIsSavingAndExiting(true);
+                  try {
+                    await handleSaveDraft();
+                    setShowExitConfirmModal(false);
+                    onClose();
+                  } catch {
+                    setShowExitConfirmModal(false);
+                    onClose();
+                  } finally {
+                    setIsSavingAndExiting(false);
+                  }
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold shadow-xs transition cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                {isSavingAndExiting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menyimpan Draf...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Simpan ke Draf & Keluar</span>
+                  </>
+                )}
+              </button>
+
+              {/* Opsi 2: Langsung Keluar */}
+              <button
+                type="button"
+                disabled={isSavingAndExiting}
+                onClick={() => {
+                  setShowExitConfirmModal(false);
+                  onClose();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-medium transition cursor-pointer active:scale-95 text-center"
+              >
+                Langsung Keluar
+              </button>
+
+              {/* Opsi 3: Batal */}
+              <button
+                type="button"
+                disabled={isSavingAndExiting}
+                onClick={() => setShowExitConfirmModal(false)}
+                className="w-full py-1 text-center text-xs text-gray-400 hover:text-gray-600 font-medium transition cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Terbitkan Laporan Resmi (Simple & Clean) */}
+      {showPublishConfirmModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="max-w-sm w-full bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center shrink-0 border border-purple-200/60">
+                  <FileCheck2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">
+                    Terbitkan Laporan Resmi?
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Pasien: <span className="font-semibold text-gray-800">{item.nama_peserta}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setShowPublishConfirmModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                title="Batal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Pastikan seluruh telaah klinis telah diperiksa dengan seksama. Setelah diterbitkan, laporan resmi akan langsung dapat diakses oleh klien dan <strong>tidak dapat diubah kembali</strong>.
+            </p>
+
+            <div className="flex flex-col gap-2 pt-1 font-sans">
+              {/* Tombol Utama: Terbitkan Sekarang */}
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleExecutePublish}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold shadow-xs transition cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menerbitkan Laporan...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileCheck2 className="w-3.5 h-3.5" />
+                    <span>Ya, Terbitkan Sekarang</span>
+                  </>
+                )}
+              </button>
+
+              {/* Tombol Batal: Periksa Kembali */}
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setShowPublishConfirmModal(false)}
+                className="w-full py-2.5 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-medium transition cursor-pointer active:scale-95 text-center"
+              >
+                Periksa Kembali
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

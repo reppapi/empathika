@@ -12,6 +12,8 @@ export interface TenagaAhli {
   noTelepon: string
   kategori: KategoriTenaga
   statusAkses: StatusAkses // "AKTIF" (Beri Akses) atau "NONAKTIF" (Hapus Akses)
+  isReviewerPsikotes?: boolean // Hak akses menelaah & menerbitkan laporan asesmen psikotes
+  is_reviewer_psikotes?: boolean
   spesialisasi: string
   noStr?: string
   noSipp?: string

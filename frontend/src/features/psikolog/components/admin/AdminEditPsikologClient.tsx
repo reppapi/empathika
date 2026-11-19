@@ -48,6 +48,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
   const [isCopied, setIsCopied] = useState(false)
   const [kategori, setKategori] = useState<KategoriTenaga>("psikolog")
   const [statusAkses, setStatusAkses] = useState<StatusAkses>("AKTIF")
+  const [isReviewerPsikotes, setIsReviewerPsikotes] = useState(false)
   const [spesialisasi, setSpesialisasi] = useState("")
   const [noStr, setNoStr] = useState("")
   const [noSipp, setNoSipp] = useState("")
@@ -227,6 +228,14 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         setKeahlian(keahlianArr)
         setJumlahSesi(jumlahSesiVal)
         setTanggalBergabung(tanggalBergabungVal)
+        setIsReviewerPsikotes(
+          Boolean(
+            backendData?.is_reviewer_psikotes ??
+            backendData?.isReviewerPsikotes ??
+            localData?.isReviewerPsikotes ??
+            false
+          )
+        )
 
         const accId =
           backendData.account?.id ||
@@ -266,6 +275,12 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
               noTelepon: teleponVal,
               kategori: kategoriVal,
               statusAkses: statusAksesVal,
+              isReviewerPsikotes: Boolean(
+                backendData?.is_reviewer_psikotes ??
+                backendData?.isReviewerPsikotes ??
+                localData?.isReviewerPsikotes ??
+                false
+              ),
               spesialisasi: spesialisasiVal,
               noStr: noStrVal || undefined,
               noSipp: noSippVal || undefined,
@@ -357,6 +372,14 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         setKeahlian(keahlianArr)
         setJumlahSesi(jumlahSesiVal)
         setTanggalBergabung(tanggalBergabungVal)
+        setIsReviewerPsikotes(
+          Boolean(
+            backendData?.is_reviewer_psikotes ??
+            backendData?.isReviewerPsikotes ??
+            localData?.isReviewerPsikotes ??
+            false
+          )
+        )
         const accId = localData?.accountId || ""
         if (accId) setRealAccountId(accId)
         const isAktif = Boolean(
@@ -474,6 +497,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       noTelepon: noTelepon.trim(),
       kategori,
       statusAkses,
+      isReviewerPsikotes,
       spesialisasi:
         spesialisasi.trim() ||
         (isPsikolog
@@ -501,7 +525,18 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
     try {
       // 1. Simpan perubahan ke backend database
-      await psikologService.createPsikologBaru(updatedTenaga)
+      await psikologService.createPsikologBaru({
+        ...updatedTenaga,
+        is_reviewer_psikotes: isReviewerPsikotes,
+      })
+      if (effectiveId) {
+        await psikologService
+          .updatePsikolog(effectiveId, {
+            is_reviewer_psikotes: isReviewerPsikotes,
+            status: statusAkses === "NONAKTIF" ? "INACTIVE" : "ACTIVE",
+          })
+          .catch(() => {})
+      }
     } catch (err) {
       console.warn("Gagal update ke backend database:", err)
     }
@@ -939,6 +974,31 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                   </svg>
                 </div>
               </div>
+            </div>
+
+            {/* Wewenang Reviewer Asesmen Psikotes */}
+            <div className="sm:col-span-2 pt-3 border-t border-gray-100 flex items-center justify-between gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-800">
+                  Wewenang Reviewer Asesmen Psikotes
+                </label>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Jika diaktifkan, psikolog ini memiliki hak klinis untuk mengambil antrean telaah, mengisi interpretasi, dan menerbitkan laporan resmi asesmen psikotes.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReviewerPsikotes((prev) => !prev)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                  isReviewerPsikotes ? "bg-[#561269]" : "bg-gray-200"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isReviewerPsikotes ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>

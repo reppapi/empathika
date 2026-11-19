@@ -224,11 +224,28 @@ describe('Psikotes Security Controls', () => {
       psikolog: {
         findFirst: vi.fn().mockImplementation(({ where }: any) => {
           const accId = where?.OR?.[0]?.id_account
-          if (accId === 'acc-psi-1') return Promise.resolve({ id: 'psi-1', nama_gelar: 'Dr. Jane Doe, M.Psi.' })
-          if (accId === 'acc-psi-2') return Promise.resolve({ id: 'psi-2', nama_gelar: 'Galuh Kikiany, M.Psi.' })
+          if (accId === 'acc-psi-1')
+            return Promise.resolve({
+              id: 'psi-1',
+              nama_gelar: 'Dr. Jane Doe, M.Psi.',
+              kategori: 'Psikolog',
+              is_reviewer_psikotes: true,
+            })
+          if (accId === 'acc-psi-2')
+            return Promise.resolve({
+              id: 'psi-2',
+              nama_gelar: 'Galuh Kikiany, M.Psi.',
+              kategori: 'Psikolog',
+              is_reviewer_psikotes: true,
+            })
           return Promise.resolve(null)
         }),
-        findUnique: vi.fn().mockResolvedValue({ id: 'psi-1', nama_gelar: 'Dr. Jane Doe, M.Psi.' }),
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'psi-1',
+          nama_gelar: 'Dr. Jane Doe, M.Psi.',
+          kategori: 'Psikolog',
+          is_reviewer_psikotes: true,
+        }),
       },
     }
 

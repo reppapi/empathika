@@ -108,7 +108,16 @@ export class PsikotesReviewRepository {
       this.prisma.bookingPsikotes.findMany({
         where: baseWhere,
         include: {
-          client: true,
+          client: {
+            include: {
+              biro: {
+                select: {
+                  id: true,
+                  nama_biro: true,
+                },
+              },
+            },
+          },
           paket: {
             select: {
               id: true,
@@ -117,7 +126,16 @@ export class PsikotesReviewRepository {
               perlu_review_psikolog: true,
             },
           },
-          transaksi: true,
+          transaksi: {
+            include: {
+              biro_tenant: {
+                select: {
+                  id: true,
+                  nama_biro: true,
+                },
+              },
+            },
+          },
           peserta_psikotes: true,
           psikolog: {
             select: {
@@ -141,6 +159,12 @@ export class PsikotesReviewRepository {
         skip: ((params?.page || 1) - 1) * (params?.limit || 50),
       }),
     ])
+
+    const claimedRows = items.length > 0 ? await this.prisma.$queryRawUnsafe<Array<{ id: string; claimed_at: Date | null }>>(
+      `SELECT id, claimed_at FROM "booking_psikotes" WHERE id = ANY($1::text[])`,
+      items.map((b) => b.id)
+    ) : []
+    const claimedMap = new Map(claimedRows.map((r) => [r.id, r.claimed_at]))
 
     return {
       summary: {
@@ -178,10 +202,12 @@ export class PsikotesReviewRepository {
           id_paket: b.id_paket,
           id_psikolog: b.id_psikolog,
           is_claimed: isClaimed,
-          claimed_at: b.id_psikolog ? b.updatedAt : null,
+          claimed_at: b.id_psikolog ? (claimedMap.get(b.id) || b.updatedAt) : null,
           is_stale_claim: isStaleClaim,
           kode_akses: b.kode_akses || b.transaksi?.kode_transaksi || null,
           nama_paket: b.paket.judul,
+          nama_biro: (b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro || 'Empathika (Pusat)',
+          is_biro: Boolean((b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro),
           jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
           nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
           no_hp: formatIndonesianPhone(
@@ -255,13 +281,37 @@ export class PsikotesReviewRepository {
 
       // 1. Prioritas Utama: Jika caller memiliki sesi autentikasi, tautkan langsung ke profil psikolog miliknya (anti-impersonation)
       if (userId) {
-        const found = await tx.psikolog.findFirst({
-          where: {
-            OR: [{ id_account: userId }, { id: userId }],
-          },
-          select: { id: true },
-        })
-        if (found) resolvedPsikologId = found.id
+        let found: any = null
+        try {
+          const rows = typeof tx.$queryRawUnsafe === 'function'
+            ? await tx.$queryRawUnsafe<any[]>(
+                `SELECT id, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
+                userId
+              )
+            : null
+          found = rows && rows[0] ? rows[0] : null
+        } catch {
+          found = null
+        }
+        if (!found) {
+          found = await tx.psikolog.findFirst({
+            where: {
+              OR: [{ id_account: userId }, { id: userId }],
+            },
+            select: { id: true, is_reviewer_psikotes: true },
+          })
+        }
+        if (found) {
+          if (userRole !== 'ADMIN' && !found.is_reviewer_psikotes) {
+            throw Object.assign(
+              new Error(
+                'Akses ditolak: Anda belum memiliki wewenang klinis sebagai Reviewer Psikotes. Hubungi Administrator Empathika untuk mengaktifkan hak review.'
+              ),
+              { statusCode: 403 }
+            )
+          }
+          resolvedPsikologId = found.id
+        }
       }
 
       // 2. Jika caller adalah ADMIN dan secara spesifik menugaskan psikolog tertentu
@@ -371,17 +421,39 @@ export class PsikotesReviewRepository {
       // Resolusi profil psikolog yang melakukan klaim
       let resolvedPsikolog: any = null
       if (userId) {
-        resolvedPsikolog = await tx.psikolog.findFirst({
-          where: {
-            OR: [{ id_account: userId }, { id: userId }],
-          },
-          select: { id: true, nama_gelar: true, kategori: true },
-        })
+        try {
+          const rows = typeof tx.$queryRawUnsafe === 'function'
+            ? await tx.$queryRawUnsafe<any[]>(
+                `SELECT id, nama_gelar, kategori, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
+                userId
+              )
+            : null
+          resolvedPsikolog = rows && rows[0] ? rows[0] : null
+        } catch {
+          resolvedPsikolog = null
+        }
+        if (!resolvedPsikolog) {
+          resolvedPsikolog = await tx.psikolog.findFirst({
+            where: {
+              OR: [{ id_account: userId }, { id: userId }],
+            },
+            select: { id: true, nama_gelar: true, kategori: true, is_reviewer_psikotes: true },
+          })
+        }
       }
 
       if (!resolvedPsikolog && userRole !== 'ADMIN') {
         throw Object.assign(
           new Error('Akses ditolak: Akun Anda tidak terhubung dengan profil psikolog resmi Empathika.'),
+          { statusCode: 403 }
+        )
+      }
+
+      if (userRole !== 'ADMIN' && resolvedPsikolog && !resolvedPsikolog.is_reviewer_psikotes) {
+        throw Object.assign(
+          new Error(
+            'Akses ditolak: Anda belum memiliki wewenang klinis sebagai Reviewer Psikotes. Hubungi Administrator Empathika untuk mengaktifkan hak review.'
+          ),
           { statusCode: 403 }
         )
       }
@@ -412,12 +484,43 @@ export class PsikotesReviewRepository {
         },
       })
 
+      // Simpan waktu awal klaim tiket secara permanen jika belum ada
+      if (typeof tx.$executeRawUnsafe === 'function') {
+        try {
+          await tx.$executeRawUnsafe(
+            `UPDATE "booking_psikotes" SET "claimed_at" = COALESCE("claimed_at", NOW()) WHERE id = $1`,
+            bookingId
+          )
+        } catch {}
+      }
+
+      let actualClaimedAt = updated.updatedAt
+      if (typeof tx.$queryRawUnsafe === 'function') {
+        try {
+          const claimedRaw = await tx.$queryRawUnsafe<any[]>(
+            `SELECT "claimed_at" FROM "booking_psikotes" WHERE id = $1 LIMIT 1`,
+            bookingId
+          )
+          if (claimedRaw && claimedRaw[0]?.claimed_at) {
+            actualClaimedAt = claimedRaw[0].claimed_at
+          }
+        } catch {}
+      }
+
       return {
         id: updated.id,
         status_pengerjaan: updated.status_pengerjaan,
         is_claimed: true,
-        claimed_by: updated.psikolog,
-        claimed_at: updated.updatedAt,
+        claimed_by: updated.psikolog
+          ? {
+              id: updated.psikolog.id,
+              nama: updated.psikolog.nama_gelar,
+              nama_gelar: updated.psikolog.nama_gelar,
+              kategori: updated.psikolog.kategori,
+              foto: updated.psikolog.foto,
+            }
+          : null,
+        claimed_at: actualClaimedAt,
       }
     })
   }
@@ -474,6 +577,15 @@ export class PsikotesReviewRepository {
           id_psikolog: null,
         },
       })
+
+      if (typeof tx.$executeRawUnsafe === 'function') {
+        try {
+          await tx.$executeRawUnsafe(
+            `UPDATE "booking_psikotes" SET "claimed_at" = NULL WHERE id = $1`,
+            bookingId
+          )
+        } catch {}
+      }
 
       return {
         id: updated.id,

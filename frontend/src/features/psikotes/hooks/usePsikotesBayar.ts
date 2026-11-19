@@ -4,10 +4,12 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { psikotesService } from "@/services/psikotes.service"
+import { useTenantContext } from "@/context/TenantContext"
 
 export function usePsikotesBayar() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { biroProfile } = useTenantContext()
 
   // State Form Peserta (Hanya Nama & WhatsApp)
   const [nama, setNama] = useState("")
@@ -192,6 +194,7 @@ export function usePsikotesBayar() {
         status_pembayaran: "PAID",
         nama: nama.trim(),
         no_telepon: whatsapp.trim(),
+        id_biro: biroProfile?.id || undefined,
       })
       const createdBookingId = (res?.data as any)?.id_booking || res?.data?.booking?.id
       if (createdBookingId) {

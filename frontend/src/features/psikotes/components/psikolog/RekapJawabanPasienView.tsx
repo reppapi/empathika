@@ -26,19 +26,83 @@ interface CriticalAlert {
   deskripsi: string;
 }
 
+/**
+ * Helper terpusat untuk mendeteksi apakah jawaban bernilai True / Sesuai / Benar (+)
+ * Menghindari bug string includes("sesuai") yang keliru mencocokkan "tidak sesuai".
+ */
+export function isAnswerTrue(it: {
+  jawaban?: string | null;
+  label?: string | null;
+  skor?: number | null;
+}): boolean {
+  // 1. Cek label eksplisit (+ vs -)
+  const label = (it.label || "").trim();
+  if (label === "+") return true;
+  if (label === "-") return false;
+  if (/^true$/i.test(label) || /^t$/i.test(label) || /^ya$/i.test(label)) return true;
+  if (/^false$/i.test(label) || /^f$/i.test(label) || /^tidak$/i.test(label)) return false;
+
+  const text = (it.jawaban || "").trim().toLowerCase();
+
+  // 2. Cek teks jawaban yang secara eksplisit bernada negatif (False / Tidak Sesuai / Salah)
+  // PENTING: Wajib dicek SEBELUM pola "sesuai" / "benar" karena "tidak sesuai" mengandung kata "sesuai"!
+  if (
+    text === "-" ||
+    text.startsWith("tidak") ||
+    text.includes("tidak sesuai") ||
+    text.includes("tidak benar") ||
+    text.includes("tidak setuju") ||
+    text.includes("bukan") ||
+    text.includes("salah") ||
+    text.includes("false") ||
+    text === "0"
+  ) {
+    return false;
+  }
+
+  // 3. Cek teks jawaban yang bernada positif (True / Sesuai / Benar)
+  if (
+    text === "+" ||
+    text === "true" ||
+    text === "sesuai" ||
+    text === "benar" ||
+    text === "ya" ||
+    text === "1" ||
+    text.startsWith("sesuai") ||
+    text.startsWith("benar") ||
+    text.includes("sesuai / benar") ||
+    text.includes("(true)") ||
+    text.includes("sesuai") ||
+    text.includes("benar")
+  ) {
+    return true;
+  }
+
+  // 4. Fallback ke skor numerik (pada MCMI, True memiliki bobot 1, False bobot 0)
+  if (typeof it.skor === "number") {
+    return it.skor > 0;
+  }
+
+  return false;
+}
+
+export function isAnswerFalse(it: {
+  jawaban?: string | null;
+  label?: string | null;
+  skor?: number | null;
+}): boolean {
+  return !isAnswerTrue(it);
+}
+
 function getCriticalItemAlert(
   nomor: number,
   jawabanText: string,
   skor: number,
-  alatUkurKode?: string | null
+  alatUkurKode?: string | null,
+  label?: string | null
 ): CriticalAlert | null {
   const code = (alatUkurKode || "").toUpperCase();
-  const isTrue =
-    jawabanText.toLowerCase().includes("sesuai") ||
-    jawabanText.toLowerCase().includes("benar") ||
-    jawabanText.toLowerCase().includes("true") ||
-    jawabanText.trim() === "+" ||
-    skor === 1;
+  const isTrue = isAnswerTrue({ jawaban: jawabanText, label, skor });
 
   // 1. MCMI-IV
   if (code.includes("MCMI")) {
@@ -162,17 +226,12 @@ export default function RekapJawabanPasienView({
     let criticalCount = 0;
 
     for (const it of rekapJawaban) {
-      const isTrue =
-        it.jawaban.toLowerCase().includes("sesuai") ||
-        it.jawaban.toLowerCase().includes("benar") ||
-        it.jawaban.toLowerCase().includes("true") ||
-        it.jawaban.trim() === "+" ||
-        it.skor === 1;
+      const isTrue = isAnswerTrue(it);
 
       if (isTrue) trueCount++;
       else falseCount++;
 
-      const alert = getCriticalItemAlert(it.nomor, it.jawaban, it.skor, alatUkurKode);
+      const alert = getCriticalItemAlert(it.nomor, it.jawaban, it.skor, alatUkurKode, it.label);
       if (alert) criticalCount++;
     }
 
@@ -190,28 +249,12 @@ export default function RekapJawabanPasienView({
 
     // Filter Kategori
     if (activeFilter === "TRUE") {
-      list = list.filter((it) => {
-        return (
-          it.jawaban.toLowerCase().includes("sesuai") ||
-          it.jawaban.toLowerCase().includes("benar") ||
-          it.jawaban.toLowerCase().includes("true") ||
-          it.jawaban.trim() === "+" ||
-          it.skor > 0
-        );
-      });
+      list = list.filter((it) => isAnswerTrue(it));
     } else if (activeFilter === "FALSE") {
-      list = list.filter((it) => {
-        return (
-          it.jawaban.toLowerCase().includes("tidak sesuai") ||
-          it.jawaban.toLowerCase().includes("salah") ||
-          it.jawaban.toLowerCase().includes("false") ||
-          it.jawaban.trim() === "-" ||
-          it.skor === 0
-        );
-      });
+      list = list.filter((it) => isAnswerFalse(it));
     } else if (activeFilter === "CRITICAL") {
       list = list.filter((it) => {
-        return Boolean(getCriticalItemAlert(it.nomor, it.jawaban, it.skor, alatUkurKode));
+        return Boolean(getCriticalItemAlert(it.nomor, it.jawaban, it.skor, alatUkurKode, it.label));
       });
     }
 
@@ -337,7 +380,7 @@ export default function RekapJawabanPasienView({
                     : "bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
                 }`}
               >
-                True (+) ({stats.trueCount})
+                Sesuai (+) ({stats.trueCount})
               </button>
 
               <button
@@ -349,7 +392,7 @@ export default function RekapJawabanPasienView({
                     : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
                 }`}
               >
-                False (-) ({stats.falseCount})
+                Tidak Sesuai (-) ({stats.falseCount})
               </button>
             </>
           )}
@@ -403,25 +446,14 @@ export default function RekapJawabanPasienView({
           </div>
         ) : (
           filteredItems.map((item) => {
-            const isTrue =
-              item.jawaban.toLowerCase().includes("sesuai") ||
-              item.jawaban.toLowerCase().includes("benar") ||
-              item.jawaban.toLowerCase().includes("true") ||
-              item.jawaban.trim() === "+" ||
-              item.skor === 1;
-
-            const isFalse =
-              item.jawaban.toLowerCase().includes("tidak sesuai") ||
-              item.jawaban.toLowerCase().includes("salah") ||
-              item.jawaban.toLowerCase().includes("false") ||
-              item.jawaban.trim() === "-" ||
-              item.skor === 0;
+            const isTrue = isAnswerTrue(item);
 
             const criticalAlert = getCriticalItemAlert(
               item.nomor,
               item.jawaban,
               item.skor,
-              alatUkurKode
+              alatUkurKode,
+              item.label
             );
 
             return (
@@ -479,16 +511,12 @@ export default function RekapJawabanPasienView({
                     isTrue ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold text-[10px]">
                         <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
-                        {item.jawaban.includes("Sesuai")
-                          ? item.jawaban
-                          : "(+) Sesuai / Benar (True)"}
+                        (+) Sesuai
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-gray-700 font-semibold text-[10px]">
                         <X className="w-3 h-3 text-gray-500" />
-                        {item.jawaban.includes("Tidak Sesuai")
-                          ? item.jawaban
-                          : "(-) Tidak Sesuai / Salah (False)"}
+                        (-) Tidak Sesuai
                       </span>
                     )
                   ) : (

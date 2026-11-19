@@ -154,6 +154,8 @@ export interface ReviewPsikotesItem {
   is_stale_claim?: boolean
   kode_akses: string | null
   nama_paket: string
+  nama_biro?: string | null
+  is_biro?: boolean
   jenis_akses: string
   nama_peserta: string
   no_hp: string

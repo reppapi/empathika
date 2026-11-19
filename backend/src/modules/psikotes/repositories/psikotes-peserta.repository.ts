@@ -25,6 +25,17 @@ export class PsikotesPesertaRepository {
       ],
     }
 
+    const biroFilter = params?.id_biro
+      ? [
+          {
+            OR: [
+              { client: { id_biro: params.id_biro } },
+              { transaksi: { id_biro_tenant: params.id_biro } },
+            ],
+          },
+        ]
+      : []
+
     // 1. Filter: HANYA peserta berbayar resmi (memiliki transaksi atau hasil tes/peserta & bukan tamu anonim)
     const where: any = {
       paket: {
@@ -38,7 +49,7 @@ export class PsikotesPesertaRepository {
         { hasil_tes: { isNot: null } },
         { peserta_psikotes: { isNot: null } },
       ],
-      AND: [nonExpiredFilter],
+      AND: [nonExpiredFilter, ...biroFilter],
     }
 
     if (params?.search) {
@@ -55,19 +66,14 @@ export class PsikotesPesertaRepository {
       where.id_paket = params.id_paket
     }
 
-    if (params?.id_biro) {
-      where.client = {
-        ...where.client,
-        id_biro: params.id_biro,
-      }
-    }
+
+
 
     const baseCountWhere: any = {
       paket: { is: { jenis_akses: 'BERBAYAR' } },
       client: {
         is: {
           nama: { not: 'Tamu Anonim' },
-          ...(params?.id_biro ? { id_biro: params.id_biro } : {}),
         },
       },
       OR: [
@@ -98,12 +104,27 @@ export class PsikotesPesertaRepository {
         where: {
           paket: { is: { jenis_akses: 'GRATIS' } },
           hasil_tes: { isNot: null },
+          client: {
+            is: {
+              nama: { not: 'Tamu Anonim' },
+            },
+          },
+          ...(biroFilter.length > 0 ? { AND: biroFilter } : {}),
         },
       }),
       this.prisma.bookingPsikotes.findMany({
         where,
         include: {
-          client: true,
+          client: {
+            include: {
+              biro: {
+                select: {
+                  id: true,
+                  nama_biro: true,
+                },
+              },
+            },
+          },
           paket: {
             select: {
               id: true,
@@ -113,13 +134,29 @@ export class PsikotesPesertaRepository {
               perlu_review_psikolog: true,
             },
           },
-          transaksi: true,
+          transaksi: {
+            include: {
+              biro_tenant: {
+                select: {
+                  id: true,
+                  nama_biro: true,
+                },
+              },
+            },
+          },
           peserta_psikotes: true,
           psikolog: {
             select: {
               id: true,
               nama_gelar: true,
               kategori: true,
+              foto: true,
+              account: {
+                select: {
+                  no_telepon: true,
+                  email: true,
+                },
+              },
             },
           },
           hasil_tes: {
@@ -147,6 +184,12 @@ export class PsikotesPesertaRepository {
         filteredItems.push(b)
       }
     }
+
+    const claimedRows = filteredItems.length > 0 ? await this.prisma.$queryRawUnsafe<Array<{ id: string; claimed_at: Date | null }>>(
+      `SELECT id, claimed_at FROM "booking_psikotes" WHERE id = ANY($1::text[])`,
+      filteredItems.map((b) => b.id)
+    ) : []
+    const claimedMap = new Map(claimedRows.map((r) => [r.id, r.claimed_at]))
 
     return {
       summary: {
@@ -189,6 +232,9 @@ export class PsikotesPesertaRepository {
             : 'Menunggu Pengerjaan',
         status_pengerjaan: b.status_pengerjaan,
         perlu_review_psikolog: (b.paket as any).perlu_review_psikolog,
+        id_biro: (b.client as any)?.id_biro || (b.transaksi as any)?.id_biro_tenant || null,
+        nama_biro: (b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro || 'Empathika (Pusat)',
+        is_biro: Boolean((b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro),
         nama_pemesan: b.client?.nama || null,
         no_hp_pemesan: b.client?.no_telepon ? formatIndonesianPhone(b.client.no_telepon) : null,
         is_pembeli_berbeda: Boolean(
@@ -232,12 +278,17 @@ export class PsikotesPesertaRepository {
               }
             })()
           : null,
+        id_psikolog: b.id_psikolog,
+        claimed_at: b.id_psikolog ? (claimedMap.get(b.id) || b.updatedAt) : null,
         psikolog: (b as any).psikolog
           ? {
               id: (b as any).psikolog.id,
               nama: (b as any).psikolog.nama_gelar,
               nama_gelar: (b as any).psikolog.nama_gelar,
               kategori: (b as any).psikolog.kategori,
+              foto: (b as any).psikolog.foto || null,
+              no_telepon: (b as any).psikolog.account?.no_telepon || null,
+              email: (b as any).psikolog.account?.email || null,
             }
           : null,
       })),
