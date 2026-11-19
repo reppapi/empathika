@@ -62,12 +62,20 @@ export async function downloadLaporanPsikotesPdf(
   data: LaporanPsikotesPdfData,
   customFileName?: string
 ): Promise<void> {
-  const [{ pdf }, { LaporanPsikotesDocument }, QRCode] = await Promise.all([
+  // Load dependencies secara dinamis
+  const [{ pdf }, { LaporanPsikotesDocument }] = await Promise.all([
     import("@react-pdf/renderer"),
     import("../components/pdf/LaporanPsikotesDocument"),
-    // @ts-ignore
-    import("qrcode").catch(() => null) as Promise<any>,
   ]);
+
+  let QRCode: any = null;
+  try {
+    // Dynamic runtime import agar Webpack bundler Next.js tidak gagal kompilasi jika dependensi qrcode belum diinstall
+    const qrcodeModule = await (Function('return import("qrcode")')().catch(() => null));
+    QRCode = qrcodeModule?.default || qrcodeModule;
+  } catch {
+    QRCode = null;
+  }
 
   // Generate QR Code verifikasi dokumen secara offline & aman
   const verifyTarget =
