@@ -405,6 +405,8 @@ export default function HomeClient() {
                 ? `&hargaBundling=${encodeURIComponent(String(hargaBundlingNum))}&kuotaBundling=${encodeURIComponent(String(kuotaBundling))}&namaBundling=${encodeURIComponent(namaBundling)}`
                 : ""
 
+              const biroParam = slug ? `&biro=${encodeURIComponent(slug)}` : ""
+
               return (
                 <div
                   key={ev.id}
@@ -496,8 +498,8 @@ export default function HomeClient() {
                       </div>
                       <Link
                         href={biroPrefix
-                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}`
-                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}`}
+                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}${biroParam}`
+                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}${biroParam}`}
                         className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
                       >
                         Daftar

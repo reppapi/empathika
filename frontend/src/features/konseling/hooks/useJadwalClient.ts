@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { psikologService, JadwalSlotItem } from "@/services/psikolog.service"
 import { layananService } from "@/services/layanan.service"
 import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
+import { useTenantContext } from "@/context/TenantContext"
 
 export const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -83,6 +84,7 @@ export interface UseJadwalClientOptions {
 
 export function useJadwalClient(options?: UseJadwalClientOptions) {
   const searchParams = useSearchParams()
+  const { slug } = useTenantContext()
 
   const rawMode = options?.mode || searchParams?.get("mode")
   const paketParam = searchParams?.get("paket")
@@ -761,6 +763,8 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
     const monthStr = String(date.getMonth() + 1).padStart(2, "0")
     const timeDisplay = `${waktu.substring(0, 5)} WIB`
 
+    const biroParam = slug ? `&biro=${encodeURIComponent(slug)}` : ""
+
     if (mode === "asesmen") {
       const selectedPrice = activePrice || "Rp 400.000"
       const planName = selectedOfflinePlan === "weekday" ? "Weekday" : "Weekend"
@@ -779,7 +783,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
         bottomDate: `${date.getDate()} ${MONTHS[date.getMonth()].substring(0, 3)} ${date.getFullYear()}`,
         bottomTime: `${timeDisplay} (${metode})`,
       })
-      return `/konseling/bayar?${params.toString()}`
+      return `/konseling/bayar?${params.toString()}${biroParam}`
     }
 
     const psiName = activePsikologName || ""
@@ -798,7 +802,7 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
       bottomDate: `${date.getDate()} ${MONTHS[date.getMonth()].substring(0, 3)} ${date.getFullYear()}`,
       bottomTime: `${timeDisplay} (${metode})${psiName ? ` • ${psiName}` : ""}`,
     })
-    return `/konseling/bayar?${params.toString()}`
+    return `/konseling/bayar?${params.toString()}${biroParam}`
   }
 
   const isSlotReady = Boolean(date && waktu)

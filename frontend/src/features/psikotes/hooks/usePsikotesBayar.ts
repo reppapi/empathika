@@ -184,8 +184,12 @@ export function usePsikotesBayar() {
     setIsSubmitting(true)
 
     // Daftarkan booking psikotes ke backend API
+    const biroIdFromQuery = searchParams.get("biroId") || searchParams.get("id_biro")
+    const effectiveBiroId = biroProfile?.id || biroIdFromQuery || undefined
+
     try {
       const res = await psikotesService.createBooking({
+        id_biro: effectiveBiroId,
         id_paket: testIdParam,
         testId: testIdParam,
         kode_transaksi: orderId,
