@@ -110,35 +110,55 @@ export function removeCancelledSession(filter: { id?: string; date?: string; wak
  * Mengecek apakah suatu sesi termasuk dalam daftar sesi yang telah dibatalkan admin.
  */
 export function isSessionCancelled(
-  session: { id?: string; date?: string; waktu: string; namaKlien?: string },
+  session: { id?: string; date?: string; waktu: string; namaKlien?: string; status?: string; isBooked?: boolean },
   cancelledList?: CancelledSessionRecord[]
 ): boolean {
   const list = cancelledList || getCancelledSessions()
   if (!list || list.length === 0) return false
 
-  return list.some((c) => {
-    // 1. Cocokkan ID jika keduanya ada
-    if (session.id && c.id && session.id === c.id) return true
+  const clientNameStr = (session.namaKlien || "").trim()
+  const hasActiveClient =
+    clientNameStr !== "" &&
+    clientNameStr.toLowerCase() !== "tersedia"
 
-    // 2. Cocokkan waktu
+  const isConfirmedOrPending =
+    session.status === "CONFIRMED" ||
+    session.status === "PENDING" ||
+    session.status === "Aktif" ||
+    session.status === "Terjadwal" ||
+    (session as any).rawStatus === "CONFIRMED" ||
+    (session as any).rawStatus === "PENDING" ||
+    session.isBooked === true
+
+  return list.some((c) => {
+    // 1. Jika keduanya memiliki ID:
+    if (session.id && c.id) {
+      return session.id === c.id
+    }
+
+    // 2. Jika sesi ini memiliki ID resmi dan memiliki booking/klien aktif tetapi tidak cocok dengan c.id,
+    // maka ini adalah booking baru di jam yang sama -> BUKAN sesi yang dibatalkan!
+    if (session.id && (hasActiveClient || isConfirmedOrPending)) {
+      return false
+    }
+
+    // 3. Cocokkan waktu dan tanggal
     const normSessionWaktu = (session.waktu || "").replace(" WIB", "").trim()
     const normCWaktu = (c.waktu || "").replace(" WIB", "").trim()
     if (normSessionWaktu !== normCWaktu) return false
 
-    // 3. Cocokkan tanggal (jika keduanya ada)
     const sameDate = !session.date || !c.date || session.date === c.date
+    if (!sameDate) return false
 
-    // 4. Cocokkan nama klien (jika nama klien ada)
-    const sName = (session.namaKlien || "").trim().toLowerCase()
-    const cName = (c.namaKlien || "").trim().toLowerCase()
-    const sameClient =
-      !sName ||
-      !cName ||
-      sName === cName ||
-      sName.includes(cName) ||
-      cName.includes(sName)
+    // 4. Jika sesi ini memiliki booking aktif baru dan nama klien valid,
+    // jangan pernah anggap dibatalkan oleh record pembatalan lama di slot jam tersebut
+    if (hasActiveClient || isConfirmedOrPending) {
+      const sName = (session.namaKlien || "").trim().toLowerCase()
+      const cName = (c.namaKlien || "").trim().toLowerCase()
+      return Boolean(sName && cName && sName !== "tersedia" && cName !== "tersedia" && sName === cName)
+    }
 
-    return sameDate && sameClient
+    return true
   })
 }
 

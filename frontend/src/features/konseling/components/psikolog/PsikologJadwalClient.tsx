@@ -754,25 +754,30 @@ export default function PsikologJadwalClient() {
             s.booking?.status_booking === "CANCELLED" ||
             s.status === "Dibatalkan"
           const isAvailable = s.status === "TERSEDIA" || isCancelled
+          const hasActiveBooking = Boolean(s.booking && !isCancelled && s.booking.nama_klien && s.booking.nama_klien.toLowerCase() !== "tersedia")
           const clientPhone = s.booking?.no_telepon_klien || s.booking?.kontak || undefined
-          sessionMap.set(mapKey, {
-            id: s.id,
-            date: s.date,
-            waktu: s.waktu,
-            layanan: isAvailable ? "Slot Tersedia" : (s.booking?.layanan || "Konsultasi Psikologi"),
-            metode: (s.booking?.metode
-              ? (s.booking.metode === "OFFLINE" ? "Offline" : "Online")
-              : (s.metode === "OFFLINE" ? "Offline" : s.metode === "KEDUANYA" ? "Keduanya" : "Online")) as MetodeKonsultasi,
-            namaKlien: isAvailable ? "Tersedia" : (s.booking?.nama_klien || "Tersedia"),
-            kontak: isAvailable ? undefined : clientPhone,
-            klienId: isAvailable ? undefined : s.booking?.klien_id,
-            catatan: isAvailable ? undefined : s.booking?.deskripsi_trauma,
-            id_psikolog: res.psikolog?.id || resolvedPsikologId,
-            namaPsikolog: res.psikolog?.nama_gelar || resolvedPsikologName,
-            isAvailableSlot: isAvailable,
-            isCancelled: false,
-            status: isAvailable ? "TERSEDIA" : "Aktif",
-          })
+
+          const existing = sessionMap.get(mapKey)
+          if (!existing || (existing.isAvailableSlot && hasActiveBooking)) {
+            sessionMap.set(mapKey, {
+              id: s.id,
+              date: s.date,
+              waktu: s.waktu,
+              layanan: isAvailable ? "Slot Tersedia" : (s.booking?.layanan || "Konsultasi Psikologi"),
+              metode: (s.booking?.metode
+                ? (s.booking.metode === "OFFLINE" ? "Offline" : "Online")
+                : (s.metode === "OFFLINE" ? "Offline" : s.metode === "KEDUANYA" ? "Keduanya" : "Online")) as MetodeKonsultasi,
+              namaKlien: isAvailable ? "Tersedia" : (s.booking?.nama_klien || "Tersedia"),
+              kontak: isAvailable ? undefined : clientPhone,
+              klienId: isAvailable ? undefined : s.booking?.klien_id,
+              catatan: isAvailable ? undefined : s.booking?.deskripsi_trauma,
+              id_psikolog: res.psikolog?.id || resolvedPsikologId,
+              namaPsikolog: res.psikolog?.nama_gelar || resolvedPsikologName,
+              isAvailableSlot: isAvailable,
+              isCancelled: false,
+              status: isAvailable ? "TERSEDIA" : "Aktif",
+            })
+          }
         })
       }
 
@@ -794,8 +799,11 @@ export default function PsikologJadwalClient() {
 
               if (isMatch && t.tanggal && t.waktuRange) {
                 const mapKey = `${t.tanggal}_${t.waktuRange}`
-                if (!sessionMap.has(mapKey)) {
-                  const isCancelled = t.status === "Dibatalkan" || t.status === "Dibatalkan (Refund)" || Boolean(t.isCancelled)
+                const isCancelled = t.status === "Dibatalkan" || t.status === "Dibatalkan (Refund)" || Boolean(t.isCancelled)
+                const hasActiveBooking = Boolean(t.namaKlien && t.namaKlien.toLowerCase() !== "tersedia") && !isCancelled
+                const existing = sessionMap.get(mapKey)
+
+                if (!existing || (existing.isAvailableSlot && hasActiveBooking)) {
                   sessionMap.set(mapKey, {
                     id: t.id,
                     date: t.tanggal,
@@ -831,13 +839,18 @@ export default function PsikologJadwalClient() {
 
               if (isMatch && w.date && w.timeSlot) {
                 const mapKey = `${w.date}_${w.timeSlot}`
-                if (!sessionMap.has(mapKey)) {
-                  const isBookingCancelled =
-                    w.status === "Dibatalkan" ||
-                    Boolean(w.isCancelled) ||
-                    (w as any).booking_status === "CANCELLED"
-                  const isAvailable = (w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")) || isBookingCancelled
-                  const clientPhone = w.kontak || w.no_telepon || undefined
+                const isBookingCancelled =
+                  w.status === "Dibatalkan" ||
+                  Boolean(w.isCancelled) ||
+                  (w as any).booking_status === "CANCELLED"
+                const hasActiveBooking =
+                  Boolean(w.clientName && w.clientName.toLowerCase() !== "tersedia") &&
+                  !isBookingCancelled
+                const isAvailable = (w.statusSlot === "TERSEDIA" && (!w.clientName || w.clientName === "Tersedia")) || isBookingCancelled
+                const clientPhone = w.kontak || w.no_telepon || undefined
+                const existing = sessionMap.get(mapKey)
+
+                if (!existing || (existing.isAvailableSlot && hasActiveBooking)) {
                   sessionMap.set(mapKey, {
                     id: w.id,
                     date: w.date,

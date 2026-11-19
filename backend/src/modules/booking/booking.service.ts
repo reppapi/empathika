@@ -134,7 +134,32 @@ export class BookingService {
     // 2. Ambil Seluruh Slot & Grid Mingguan
     const allSlots = await this.repo.findJadwalSlots(query)
 
-    const weeklyGrid = allSlots.map((slot) => {
+    // Deduplikasi slot jika terdapat slot lama yang pernah dibatalkan dan slot baru yang dibooking pada jam/tanggal yang sama
+    const slotOverviewMap = new Map<string, any>()
+    allSlots.forEach((slot) => {
+      const key = `${slot.id_psikolog || ''}_${formatDateToString(slot.tanggal)}_${formatTimeToString(slot.jam_mulai)}`
+      const existing = slotOverviewMap.get(key)
+      const isBookingCancelled = slot.booking_konsultasi?.status === 'CANCELLED'
+      const hasActiveBooking = Boolean(slot.booking_konsultasi) && !isBookingCancelled
+
+      if (!existing) {
+        slotOverviewMap.set(key, slot)
+      } else {
+        const existingCancelled = existing.booking_konsultasi?.status === 'CANCELLED'
+        const existingActive = Boolean(existing.booking_konsultasi) && !existingCancelled
+
+        // Prioritaskan slot yang memiliki booking aktif klien daripada slot yang dibatalkan atau slot kosong
+        if (!existingActive && hasActiveBooking) {
+          slotOverviewMap.set(key, slot)
+        } else if (!existingActive && !hasActiveBooking && slot.status === 'TERSEDIA' && existing.status !== 'TERSEDIA') {
+          slotOverviewMap.set(key, slot)
+        }
+      }
+    })
+
+    const prioritizedSlots = Array.from(slotOverviewMap.values())
+
+    const weeklyGrid = prioritizedSlots.map((slot) => {
       const dateStr = formatDateToString(slot.tanggal)
       const jamMulaiStr = formatTimeToString(slot.jam_mulai)
       const jamSelesaiStr = formatTimeToString(slot.jam_selesai)
@@ -724,6 +749,29 @@ export class BookingService {
 
     const slots = await this.repo.findJadwalByPsikologId(psikolog.id, query)
 
+    // Deduplikasi slot jika terdapat slot lama yang pernah dibatalkan dan slot baru yang dibooking pada jam/tanggal yang sama
+    const slotPsikologMap = new Map<string, any>()
+    slots.forEach((slot) => {
+      const key = `${formatDateToString(slot.tanggal)}_${formatTimeToString(slot.jam_mulai)}`
+      const existing = slotPsikologMap.get(key)
+      const isCancelled = slot.booking_konsultasi?.status === 'CANCELLED'
+      const hasActive = Boolean(slot.booking_konsultasi) && !isCancelled
+
+      if (!existing) {
+        slotPsikologMap.set(key, slot)
+      } else {
+        const existingCancelled = existing.booking_konsultasi?.status === 'CANCELLED'
+        const existingActive = Boolean(existing.booking_konsultasi) && !existingCancelled
+        if (!existingActive && hasActive) {
+          slotPsikologMap.set(key, slot)
+        } else if (!existingActive && !hasActive && slot.status === 'TERSEDIA' && existing.status !== 'TERSEDIA') {
+          slotPsikologMap.set(key, slot)
+        }
+      }
+    })
+
+    const prioritizedPsikologSlots = Array.from(slotPsikologMap.values())
+
     return {
       psikolog: {
         id: psikolog.id,
@@ -731,7 +779,7 @@ export class BookingService {
         nama_gelar: psikolog.nama_gelar,
         kategori: psikolog.kategori,
       },
-      slots: slots.map((slot) => {
+      slots: prioritizedPsikologSlots.map((slot) => {
         const isCancelled = slot.booking_konsultasi?.status === 'CANCELLED'
         return {
           id: slot.id,

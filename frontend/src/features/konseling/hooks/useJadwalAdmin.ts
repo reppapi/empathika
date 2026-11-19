@@ -693,7 +693,25 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
         }
 
         if (Array.isArray(res.weeklyGrid)) {
-          const mappedWeekly: BookedAssessment[] = res.weeklyGrid.map((w: any) => {
+          // Deduplikasi weeklyGrid jika terdapat slot duplikat di jam dan tanggal yang sama
+          // Prioritaskan slot yang memiliki booking aktif klien
+          const gridMap = new Map<string, any>()
+          res.weeklyGrid.forEach((w: any) => {
+            const key = `${w.date}_${w.timeSlot}_${w.id_psikolog || ""}`
+            const existing = gridMap.get(key)
+            const hasBooking = Boolean(w.clientName && w.clientName.toLowerCase() !== "tersedia" && w.status !== "Dibatalkan" && !w.isCancelled)
+            if (!existing) {
+              gridMap.set(key, w)
+            } else {
+              const existingHasBooking = Boolean(existing.clientName && existing.clientName.toLowerCase() !== "tersedia" && existing.status !== "Dibatalkan" && !existing.isCancelled)
+              if (!existingHasBooking && hasBooking) {
+                gridMap.set(key, w)
+              }
+            }
+          })
+          const deduplicatedWeekly = Array.from(gridMap.values())
+
+          const mappedWeekly: BookedAssessment[] = deduplicatedWeekly.map((w: any) => {
             const isAsesmen =
               (w.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
               (w.layanan || "").toLowerCase().includes("asesmen")
@@ -707,7 +725,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
             const isResched = Boolean(reschedRecord)
             const isCanc = !isAvailable && !isResched && (
               isSessionCancelled(
-                { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
+                { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName, status: w.status, isBooked: w.isBooked },
                 cancelledList
               ) || w.status === "Dibatalkan" || (w as any).isCancelled
             )
@@ -866,14 +884,20 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     })
 
     bookedSessions.forEach((bs) => {
-      if (
-        !combined.some(
-          (c) =>
-            c.id === bs.id ||
-            (c.date === bs.date && c.waktu === bs.waktu && c.namaKlien === bs.namaKlien)
-        )
-      ) {
+      const existingIdx = combined.findIndex(
+        (c) =>
+          c.id === bs.id ||
+          (c.date === bs.date && c.waktu === bs.waktu && (!c.id_psikolog || !bs.id_psikolog || c.id_psikolog === bs.id_psikolog))
+      )
+      if (existingIdx === -1) {
         combined.push(bs)
+      } else {
+        const existing = combined[existingIdx]
+        const existingIsUnbooked = existing.isAvailableSlot || existing.status === "Tersedia" || !existing.namaKlien || existing.namaKlien.toLowerCase() === "tersedia"
+        const bsHasBooking = Boolean(bs.namaKlien && bs.namaKlien.toLowerCase() !== "tersedia" && bs.status !== "Dibatalkan" && !bs.isCancelled)
+        if (existingIsUnbooked && bsHasBooking) {
+          combined[existingIdx] = bs
+        }
       }
     })
 
