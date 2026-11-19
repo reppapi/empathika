@@ -86,6 +86,9 @@ export type AdminPsikotesPeserta = {
     rekomendasi_psikolog?: string | null;
     tanggal_review?: string | null;
   } | null;
+  namaBiro?: string | null;
+  nama_biro?: string | null;
+  is_biro?: boolean;
   id_psikolog?: string | null;
   claimed_at?: string | null;
   psikolog?: {

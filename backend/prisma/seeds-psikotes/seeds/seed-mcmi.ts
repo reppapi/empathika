@@ -5,8 +5,8 @@
 import { PrismaClient, JenisAksesPsikotes } from '@prisma/client'
 
 export const MCMI_OPSI = [
-  { label: '+', text: 'Sesuai / Benar (True)', bobot: 1 },
-  { label: '-', text: 'Tidak Sesuai / Salah (False)', bobot: 0 },
+  { label: '+', text: 'Sesuai', bobot: 1 },
+  { label: '-', text: 'Tidak Sesuai', bobot: 0 },
 ]
 
 export const MCMI_SOAL: Array<{ no: number; text: string }> = [

@@ -152,6 +152,7 @@ export class PsikotesBookingRepository {
             where: { id: client.id },
             data: {
               ...(normInputPhone && client.no_telepon !== normInputPhone ? { no_telepon: normInputPhone } : {}),
+              ...(idBiro && !client.id_biro ? { id_biro: idBiro } : {}),
               usia: inputUsia ?? client.usia,
               jenis_kelamin: inputGender ?? client.jenis_kelamin,
             },
@@ -190,6 +191,7 @@ export class PsikotesBookingRepository {
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
+          id_biro_tenant: idBiro || client.id_biro || null,
           kode_transaksi: kodeTransaksi,
           tipe_transaksi: 'PSIKOTES',
           subtotal: nominal,
@@ -214,6 +216,9 @@ export class PsikotesBookingRepository {
       })
 
       if (booking) {
+        if (idBiro && (!client.id_biro || client.id_biro !== idBiro)) {
+          await tx.client.update({ where: { id: client.id }, data: { id_biro: idBiro } }).catch(() => {});
+        }
         // Perbarui booking yang belum dikerjakan ini dengan transaksi yang baru
         booking = await tx.bookingPsikotes.update({
           where: { id: booking.id },

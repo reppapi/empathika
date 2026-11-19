@@ -41,11 +41,18 @@ export default function TabPesertaPsikotes({
   // State filter rentang tanggal
   const [selectedTimeRange, setSelectedTimeRange] = useState<"ALL" | "TODAY" | "7DAYS" | "30DAYS">("ALL");
 
-  // Derivasi paketOptions jika tidak dipass dari parent
+  // Derivasi paketOptions jika tidak dipass dari parent (khusus paket berbayar)
   const derivedPaketOptions =
     paketOptions.length > 0
       ? paketOptions
-      : Array.from(new Set(pesertaList.map((p) => p.paket).filter(Boolean)));
+      : Array.from(
+          new Set(
+            pesertaList
+              .filter((p) => p.jenisAkses === "Berbayar")
+              .map((p) => p.paket)
+              .filter(Boolean)
+          )
+        );
 
   // Filter khusus peserta berbayar (non tamu anonim) & filter paket & tanggal & pencarian
   const filteredPeserta = pesertaList.filter((peserta) => {
@@ -317,7 +324,7 @@ export default function TabPesertaPsikotes({
               onChange={(e) => handlePaketChange(e.target.value)}
               className="w-full appearance-none pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition shadow-2xs cursor-pointer truncate"
             >
-              <option value="ALL">Semua Paket Psikotes</option>
+              <option value="ALL">Semua Paket Psikotes Berbayar</option>
               {derivedPaketOptions.map((pkt) => (
                 <option key={pkt} value={pkt}>
                   {pkt}

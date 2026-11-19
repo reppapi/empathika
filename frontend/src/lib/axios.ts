@@ -1,5 +1,6 @@
 import axios from "axios"
 import { getAuthCookie, removeAuthCookie } from "./cookie"
+import { getSubdomainSlug } from "@/hooks/useTenant"
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
@@ -23,6 +24,21 @@ apiClient.interceptors.request.use((config) => {
     }
 
     if (token) config.headers.Authorization = `Bearer ${token}`
+
+    // Otomatis kirim tenant biro ke backend jika client berada di website / subdomain biro
+    const subdomainSlug = getSubdomainSlug()
+    if (subdomainSlug) {
+      config.headers["x-biro-slug"] = subdomainSlug
+      try {
+        const cached = localStorage.getItem(`biro_profile_${subdomainSlug}`)
+        if (cached) {
+          const profile = JSON.parse(cached)
+          if (profile?.id) {
+            config.headers["x-biro-id"] = profile.id
+          }
+        }
+      } catch {}
+    }
   }
   return config
 })

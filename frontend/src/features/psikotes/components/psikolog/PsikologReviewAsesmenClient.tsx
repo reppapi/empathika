@@ -603,9 +603,15 @@ export default function PsikologReviewAsesmenClient() {
                         <p className="font-semibold text-gray-900 line-clamp-1 max-w-xs">
                           {item.nama_paket}
                         </p>
-                        <div className="mt-1">
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                           <span className="inline-block font-mono text-[10px] font-bold text-purple-900 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
                             {item.kode_akses || "TIKET-AUTO"}
+                          </span>
+                          <span
+                            className="text-[10px] text-gray-500 font-medium truncate max-w-[150px]"
+                            title={`Asal: ${item.nama_biro || "Empathika (Pusat)"}`}
+                          >
+                            • {item.nama_biro || "Empathika (Pusat)"}
                           </span>
                         </div>
                       </td>
@@ -815,6 +821,12 @@ export default function PsikologReviewAsesmenClient() {
                 <span className="text-gray-500 font-medium">Alat Ukur / Paket:</span>
                 <span className="font-semibold text-[#561269]">
                   {confirmModal.item.nama_paket}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 font-medium">Asal Biro:</span>
+                <span className="font-semibold text-gray-800">
+                  {confirmModal.item.nama_biro || "Empathika (Pusat)"}
                 </span>
               </div>
               {confirmModal.item.kode_akses && (

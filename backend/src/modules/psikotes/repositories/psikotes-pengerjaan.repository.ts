@@ -274,6 +274,15 @@ export class PsikotesPengerjaanRepository {
           include: { hasil_tes: true, client: true, transaksi: true },
         })
 
+        if (booking && input.id_biro) {
+          if (booking.client && (!booking.client.id_biro || booking.client.id_biro !== input.id_biro)) {
+            await tx.client.update({ where: { id: booking.client.id }, data: { id_biro: input.id_biro } }).catch(() => {});
+          }
+          if (booking.transaksi && (!booking.transaksi.id_biro_tenant || booking.transaksi.id_biro_tenant !== input.id_biro)) {
+            await tx.transaksi.update({ where: { id: booking.transaksi.id }, data: { id_biro_tenant: input.id_biro } }).catch(() => {});
+          }
+        }
+
         if (booking && (booking.status_pengerjaan === 'SELESAI' || booking.hasil_tes)) {
           throw Object.assign(
             new Error('Tes untuk tiket ini sudah selesai dikerjakan dan tidak dapat diulang kembali.'),
@@ -373,6 +382,11 @@ export class PsikotesPengerjaanRepository {
                 id_biro: input.id_biro || null,
               },
             })
+          } else if (input.id_biro && (!client.id_biro || client.id_biro !== input.id_biro)) {
+            client = await tx.client.update({
+              where: { id: client.id },
+              data: { id_biro: input.id_biro },
+            }).catch(() => client)
           }
         }
       }

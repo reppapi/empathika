@@ -596,6 +596,7 @@ model BookingPsikotes {
   riwayat_kesehatan Json?
   id_client         String
   id_psikolog       String?
+  claimed_at        DateTime?         // Waktu tiket mulai diklaim / di-keep psikolog
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

@@ -108,7 +108,16 @@ export class PsikotesReviewRepository {
       this.prisma.bookingPsikotes.findMany({
         where: baseWhere,
         include: {
-          client: true,
+          client: {
+            include: {
+              biro: {
+                select: {
+                  id: true,
+                  nama_biro: true,
+                },
+              },
+            },
+          },
           paket: {
             select: {
               id: true,
@@ -117,7 +126,16 @@ export class PsikotesReviewRepository {
               perlu_review_psikolog: true,
             },
           },
-          transaksi: true,
+          transaksi: {
+            include: {
+              biro_tenant: {
+                select: {
+                  id: true,
+                  nama_biro: true,
+                },
+              },
+            },
+          },
           peserta_psikotes: true,
           psikolog: {
             select: {
@@ -141,6 +159,12 @@ export class PsikotesReviewRepository {
         skip: ((params?.page || 1) - 1) * (params?.limit || 50),
       }),
     ])
+
+    const claimedRows = items.length > 0 ? await this.prisma.$queryRawUnsafe<Array<{ id: string; claimed_at: Date | null }>>(
+      `SELECT id, claimed_at FROM "booking_psikotes" WHERE id = ANY($1::text[])`,
+      items.map((b) => b.id)
+    ) : []
+    const claimedMap = new Map(claimedRows.map((r) => [r.id, r.claimed_at]))
 
     return {
       summary: {
@@ -178,10 +202,12 @@ export class PsikotesReviewRepository {
           id_paket: b.id_paket,
           id_psikolog: b.id_psikolog,
           is_claimed: isClaimed,
-          claimed_at: b.id_psikolog ? b.updatedAt : null,
+          claimed_at: b.id_psikolog ? (claimedMap.get(b.id) || b.updatedAt) : null,
           is_stale_claim: isStaleClaim,
           kode_akses: b.kode_akses || b.transaksi?.kode_transaksi || null,
           nama_paket: b.paket.judul,
+          nama_biro: (b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro || 'Empathika (Pusat)',
+          is_biro: Boolean((b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro),
           jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
           nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
           no_hp: formatIndonesianPhone(
@@ -448,6 +474,18 @@ export class PsikotesReviewRepository {
         },
       })
 
+      // Simpan waktu awal klaim tiket secara permanen jika belum ada
+      await tx.$executeRawUnsafe(
+        `UPDATE "booking_psikotes" SET "claimed_at" = COALESCE("claimed_at", NOW()) WHERE id = $1`,
+        bookingId
+      )
+
+      const claimedRaw = await tx.$queryRawUnsafe<any[]>(
+        `SELECT "claimed_at" FROM "booking_psikotes" WHERE id = $1 LIMIT 1`,
+        bookingId
+      )
+      const actualClaimedAt = claimedRaw && claimedRaw[0]?.claimed_at ? claimedRaw[0].claimed_at : updated.updatedAt
+
       return {
         id: updated.id,
         status_pengerjaan: updated.status_pengerjaan,
@@ -461,7 +499,7 @@ export class PsikotesReviewRepository {
               foto: updated.psikolog.foto,
             }
           : null,
-        claimed_at: updated.updatedAt,
+        claimed_at: actualClaimedAt,
       }
     })
   }
@@ -518,6 +556,11 @@ export class PsikotesReviewRepository {
           id_psikolog: null,
         },
       })
+
+      await tx.$executeRawUnsafe(
+        `UPDATE "booking_psikotes" SET "claimed_at" = NULL WHERE id = $1`,
+        bookingId
+      )
 
       return {
         id: updated.id,

@@ -1496,6 +1496,21 @@ export default function ModalReviewPsikotes({
               <PanelLeft className="w-4 h-4" />
             </button>
           )}
+
+          {/* Info Pasien & Asal Biro Singkat di Header */}
+          <div className="min-w-0 hidden md:block">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900 text-xs sm:text-sm truncate">
+                {item.nama_peserta}
+              </span>
+              <span className="text-[11px] text-gray-400 font-mono">
+                ({item.kode_akses || "TIKET"})
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-500 truncate">
+              {item.nama_paket} • <span className="font-medium text-gray-700">{item.nama_biro || "Empathika (Pusat)"}</span>
+            </p>
+          </div>
         </div>
 
         {/* Sisi Kanan: Kontrol Toolbar, Simpan Draf & Aksi Terbitkan */}
