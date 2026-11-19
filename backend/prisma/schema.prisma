@@ -286,6 +286,7 @@ model Psikolog {
   status            StatusPsikolog @default(ACTIVE)
   jumlah_sesi       Int            @default(0)
   tarif_per_jam     Decimal        @db.Decimal(12, 2)
+  is_reviewer_psikotes Boolean      @default(false) // Hak akses menelaah & menerbitkan laporan resmi asesmen psikotes
   // === Rekening Bank untuk Payout ===
   bank_code          String?  // Kode bank Xendit (mis. BCA, BNI, BRI, MANDIRI)
   nomor_rekening     String?  // Nomor rekening penerima
@@ -595,6 +596,7 @@ model BookingPsikotes {
   riwayat_kesehatan Json?
   id_client         String
   id_psikolog       String?
+  claimed_at        DateTime?         // Waktu tiket mulai diklaim / di-keep psikolog
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

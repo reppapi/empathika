@@ -81,7 +81,15 @@ export class TransaksiRepository {
     }
 
     if (_params?.biroId) {
-      where.id_biro_tenant = _params.biroId
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { id_biro_tenant: _params.biroId },
+            { client: { id_biro: _params.biroId } },
+          ],
+        },
+      ]
     }
 
     if (_params?.status) {
@@ -103,7 +111,24 @@ export class TransaksiRepository {
     }
 
     const include = {
-      client: true,
+      client: {
+        include: {
+          biro: {
+            select: {
+              id: true,
+              nama_biro: true,
+              slug: true,
+            },
+          },
+        },
+      },
+      biro_tenant: {
+        select: {
+          id: true,
+          nama_biro: true,
+          slug: true,
+        },
+      },
       booking_konsultasi: {
         include: {
           layanan: true,
@@ -203,7 +228,24 @@ export class TransaksiRepository {
         OR: [{ id }, { kode_transaksi: id }],
       },
       include: {
-        client: true,
+        client: {
+          include: {
+            biro: {
+              select: {
+                id: true,
+                nama_biro: true,
+                slug: true,
+              },
+            },
+          },
+        },
+        biro_tenant: {
+          select: {
+            id: true,
+            nama_biro: true,
+            slug: true,
+          },
+        },
         booking_konsultasi: {
           include: {
             layanan: true,

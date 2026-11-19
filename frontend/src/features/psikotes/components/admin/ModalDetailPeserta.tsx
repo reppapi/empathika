@@ -1,10 +1,6 @@
 /**
- * Modal Detail Peserta Psikotes (Minimalist & Direct)
- * Sesuai arahan:
- * - Header hanya bertuliskan "Detail Peserta" (tanpa kotak profil avatar, nama, atau badge status)
- * - Bagian 1: Data Peserta (tanpa badge "DEWASA")
- * - Bagian 2: Data Pembeli (tanpa label "Pembeli Berbeda dengan Peserta")
- * - Bagian 3: Hasil Psikotes (hanya tombol download PDF & aksi WA, tanpa teks skor/interpretasi)
+ * Modal Detail Peserta Psikotes (Executive Clean & Professional)
+ * Desain modern, rapi, minimalis, dan bebas dari tumpukan kotak/printilan yang berantakan.
  */
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -19,6 +15,11 @@ import {
   ShoppingBag,
   Send,
   AlertCircle,
+  UserCheck,
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+  Calendar,
 } from "lucide-react";
 import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../../types/adminPsikotes";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
@@ -71,16 +72,7 @@ export default function ModalDetailPeserta({
     }
   };
 
-  // Resolusi data peserta vs data pembeli
-  const hasPesertaData = Boolean(peserta.peserta && peserta.peserta.nama_lengkap);
-
-  const namaPembeli = peserta.namaPemesan || peserta.nama;
-  const noHpPembeli = peserta.noHpPemesan || peserta.noHp;
-  const namaPeserta = peserta.peserta?.nama_lengkap || "";
-
-  // Kode Booking untuk pengerjaan tes
-  const kodeBooking = peserta.kodeAkses || "";
-
+  // Helper nomor WhatsApp
   const toWaDigits = (phone: string | null | undefined): string => {
     if (!phone || phone === "—") return "";
     let digits = phone.replace(/\D/g, "");
@@ -91,7 +83,14 @@ export default function ModalDetailPeserta({
     return digits;
   };
 
-  // Deteksi kategori peserta: Anak/Remaja (< 18 tahun atau memiliki data orang tua) vs Dewasa
+  // Resolusi data peserta vs pembeli
+  const hasPesertaData = Boolean(peserta.peserta && peserta.peserta.nama_lengkap);
+  const namaPembeli = peserta.namaPemesan || peserta.nama;
+  const noHpPembeli = peserta.noHpPemesan || peserta.noHp;
+  const namaPeserta = peserta.peserta?.nama_lengkap || peserta.nama;
+  const kodeBooking = peserta.kodeAkses || "";
+
+  // Deteksi kategori peserta: Anak/Remaja (< 18 tahun atau memiliki data orang tua)
   const usiaNum =
     typeof peserta.peserta?.usia === "number"
       ? peserta.peserta.usia
@@ -107,8 +106,6 @@ export default function ModalDetailPeserta({
   const namaOrangTua = peserta.peserta?.nama_orang_tua?.trim() || "";
   const noHpOrangTua = peserta.peserta?.no_telepon_orang_tua?.trim() || "";
 
-  // Nomor WhatsApp Peserta: Jika peserta anak-anak dan nomornya sama persis dengan nomor orang tua,
-  // maka nomor peserta dianggap kosong (karena anak tidak memiliki nomor sendiri dan form bersifat opsional)
   const rawNoHpPeserta = (peserta.peserta as any)?.no_telepon?.trim() || "";
   const noHpPeserta =
     isAnak && rawNoHpPeserta && noHpOrangTua && toWaDigits(rawNoHpPeserta) === toWaDigits(noHpOrangTua)
@@ -119,8 +116,7 @@ export default function ModalDetailPeserta({
   const waPesertaDigits = toWaDigits(noHpPeserta);
   const waOrangTuaDigits = toWaDigits(noHpOrangTua);
 
-  // --- A. PENGINGAT TES (Belum Mengerjakan) ---
-  // Perhitungan Tanggal Transaksi & Batas Akhir Pengerjaan (3 Bulan / 90 Hari)
+  // Tanggal transaksi & batas akhir
   const parseDateSafe = (val: string | null | undefined): Date => {
     if (!val) return new Date();
     const d = new Date(val);
@@ -141,7 +137,6 @@ export default function ModalDetailPeserta({
     year: "numeric",
   });
 
-  // Ditujukan kepada pemegang tiket pengerjaan (Pembeli)
   const hasDifferentPhones = Boolean(
     hasPesertaData &&
     waPesertaDigits &&
@@ -149,89 +144,152 @@ export default function ModalDetailPeserta({
     waPesertaDigits !== waPembeliDigits
   );
 
+  // Template Pesan WA Reminder
   const waReminderUrlPembeli = waPembeliDigits
     ? `https://wa.me/${waPembeliDigits}?text=${encodeURIComponent(
 `Halo Kak ${namaPembeli}!
 
-Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta.paket} di Empathika telah aktif, tetapi asesmen masih belum diselesaikan.
+Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta.paket} di Empathika telah aktif, namun belum diselesaikan.
 
-Sebagai pengingat, masa akses pengerjaan tes berlaku selama 3 bulan sejak tanggal transaksi.
 - Tanggal transaksi: ${tanggalTransaksiFormatted}
 - Batas akhir pengerjaan: ${batasAkhirFormatted}
-Kami menyarankan Kakak untuk segera menyelesaikan asesmen sebelum batas waktu tersebut agar akses tes tidak kedaluwarsa.
+- Kode Booking: ${kodeBooking || "Cek bukti transaksi"}
+- Nomor WhatsApp: ${formatToIndonesianPhone(noHpPembeli)}
 
-Untuk memulai pengerjaan tes, silakan ikuti langkah berikut:
-1. Buka website Empathika di https://empathika.id, lalu pilih paket ${peserta.paket}.
-2. Masukkan data verifikasi tiket:
-   - Kode Booking: ${kodeBooking || "Cek bukti transaksi Anda"}
-   - Nomor WhatsApp: ${formatToIndonesianPhone(noHpPembeli)}
-3. Klik "Verifikasi & Masuk Tes", lengkapi identitas peserta, dan selesaikan asesmen.
-Apabila Kakak mengalami kendala atau memiliki pertanyaan terkait akses tes, silakan hubungi tim Empathika kembali, ya.
-
-Terima kasih! 😊`
+Silakan buka https://empathika.id untuk menyelesaikan asesmen Kakak ya. Terima kasih! 😊`
       )}`
     : null;
 
   const waReminderUrlPeserta =
     hasDifferentPhones && waPesertaDigits
       ? `https://wa.me/${waPesertaDigits}?text=${encodeURIComponent(
-`Halo Kak ${namaPeserta || namaPembeli}!
+`Halo Kak ${namaPeserta}!
 
-Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta.paket} di Empathika telah aktif, tetapi asesmen masih belum diselesaikan.
+Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta.paket} di Empathika telah aktif, namun belum diselesaikan.
 
-Sebagai pengingat, masa akses pengerjaan tes berlaku selama 3 bulan sejak tanggal transaksi.
 - Tanggal transaksi: ${tanggalTransaksiFormatted}
 - Batas akhir pengerjaan: ${batasAkhirFormatted}
-Kami menyarankan Kakak untuk segera menyelesaikan asesmen sebelum batas waktu tersebut agar akses tes tidak kedaluwarsa.
+- Kode Booking: ${kodeBooking || "Cek bukti transaksi"}
 
-Untuk memulai pengerjaan tes, silakan ikuti langkah berikut:
-1. Buka website Empathika di https://empathika.id, lalu pilih paket ${peserta.paket}.
-2. Masukkan data verifikasi tiket:
-   - Kode Booking: ${kodeBooking || "Cek bukti transaksi Anda"}
-   - Nomor WhatsApp: ${formatToIndonesianPhone(noHpPembeli)}
-3. Klik "Verifikasi & Masuk Tes", lengkapi identitas peserta, dan selesaikan asesmen.
-Apabila Kakak mengalami kendala atau memiliki pertanyaan terkait akses tes, silakan hubungi tim Empathika kembali, ya.
-
-Terima kasih! 😊`
+Silakan buka https://empathika.id untuk memulai asesmen ya. Terima kasih! 😊`
         )}`
       : null;
 
-  // --- B. PENGIRIMAN HASIL TES PDF (Kerahasiaan Medis) ---
-  // Prinsip kerahasiaan: Hasil psikotes hanya dikirim ke pihak yang berhak secara klinis:
-  // - Peserta Dewasa: Dikirim langsung ke WhatsApp Pribadi Peserta
-  // - Peserta Anak/Remaja: Dikirim ke WhatsApp Orang Tua / Wali yang tercatat di form identitas
-  const waResultMsgPeserta =
-`Halo Kak ${namaPeserta},
-
-Terima kasih telah mempercayakan proses asesmen psikologis kepada Empathika.
-
-Melalui pesan ini, kami lampirkan dokumen hasil asesmen psikologis Kakak untuk dapat dibaca dan dipahami lebih lanjut.
-
-Apabila Kakak memiliki pertanyaan atau ingin mendiskusikan hasil asesmen bersama psikolog kami, jangan ragu untuk menghubungi tim Empathika kembali, ya.
-
-Terima kasih telah menjadi bagian dari Empathika.`;
-
-  const waResultMsgOrangTua =
-`Halo Bapak/Ibu ${namaOrangTua || `Wali dari ${namaPeserta}`},
-
-Terima kasih telah mempercayakan proses asesmen psikologis ananda ${namaPeserta} kepada Empathika.
-
-Melalui pesan ini, kami lampirkan dokumen resmi hasil asesmen psikologis ananda untuk dapat dibaca dan dipahami lebih lanjut.
-
-Apabila Bapak/Ibu memiliki pertanyaan atau ingin mendiskusikan hasil asesmen bersama psikolog kami, jangan ragu untuk menghubungi tim Empathika kembali, ya.
-
-Terima kasih telah menjadi bagian dari Empathika.`;
-
-  // URL WhatsApp Pengiriman Hasil
+  // Template Pesan WA Hasil PDF
   const targetOrangTuaPhone = waOrangTuaDigits || (isAnak ? waPesertaDigits || waPembeliDigits : "");
   const waResultUrlOrangTua =
     isAnak && targetOrangTuaPhone
-      ? `https://wa.me/${targetOrangTuaPhone}?text=${encodeURIComponent(waResultMsgOrangTua)}`
+      ? `https://wa.me/${targetOrangTuaPhone}?text=${encodeURIComponent(
+`Halo Bapak/Ibu ${namaOrangTua || `Wali dari ${namaPeserta}`},
+
+Terima kasih telah mempercayakan proses asesmen psikologis ananda ${namaPeserta} kepada Empathika.
+Melalui pesan ini, kami sampaikan dokumen resmi hasil asesmen psikologis ananda.
+
+Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`
+        )}`
       : null;
 
   const targetPesertaPhone = waPesertaDigits || waPembeliDigits;
   const waResultUrlPeserta = targetPesertaPhone
-    ? `https://wa.me/${targetPesertaPhone}?text=${encodeURIComponent(waResultMsgPeserta)}`
+    ? `https://wa.me/${targetPesertaPhone}?text=${encodeURIComponent(
+`Halo Kak ${namaPeserta},
+
+Terima kasih telah mempercayakan proses asesmen psikologis kepada Empathika.
+Melalui pesan ini, kami sampaikan dokumen resmi hasil asesmen psikologis Kakak.
+
+Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`
+        )}`
+      : null;
+
+  // Status Telaah & Psikolog
+  const namaPsikolog = peserta.psikolog?.nama_gelar || peserta.psikolog?.nama || null;
+  const noHpPsikolog = peserta.psikolog?.no_telepon || null;
+  const waPsikologDigits = toWaDigits(noHpPsikolog);
+
+  const keepDate = peserta.claimed_at
+    ? new Date(peserta.claimed_at)
+    : peserta.hasil?.tanggal_selesai
+    ? new Date(peserta.hasil.tanggal_selesai)
+    : null;
+
+  const keepDateFormatted = keepDate
+    ? keepDate.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
+  // SLA 72 Jam (3 Hari Kerja)
+  const SLA_HOURS = 72;
+  let slaStatus: "ON_TIME" | "NEAR_DEADLINE" | "OVERDUE" = "ON_TIME";
+  let elapsedHours = 0;
+  let remainingHours = SLA_HOURS;
+
+  if (keepDate) {
+    const elapsedMs = Math.max(0, Date.now() - keepDate.getTime());
+    elapsedHours = Math.floor(elapsedMs / (1000 * 60 * 60));
+    remainingHours = SLA_HOURS - elapsedHours;
+
+    if (remainingHours <= 0) {
+      slaStatus = "OVERDUE";
+    } else if (remainingHours <= 24) {
+      slaStatus = "NEAR_DEADLINE";
+    } else {
+      slaStatus = "ON_TIME";
+    }
+  }
+
+  // Perhitungan batas telaah psikolog (3 hari kerja: Senin s.d. Sabtu, Minggu libur)
+  const calculateDeadlineDate = (startDate: Date | null): Date | null => {
+    if (!startDate) return null;
+    const result = new Date(startDate.getTime());
+    let added = 0;
+    if (result.getDay() === 0) {
+      result.setDate(result.getDate() + 1);
+    }
+    while (added < 3) {
+      result.setDate(result.getDate() + 1);
+      if (result.getDay() !== 0) {
+        added++;
+      }
+    }
+    return result;
+  };
+
+  const deadlineDate = keepDate ? calculateDeadlineDate(keepDate) : null;
+  const deadlineFormatted = deadlineDate
+    ? deadlineDate.toLocaleDateString("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
+
+  const statusSlaUrgency =
+    slaStatus === "OVERDUE"
+      ? `telah melewati batas SLA (${Math.abs(remainingHours)} jam terlambat)`
+      : slaStatus === "NEAR_DEADLINE"
+      ? `sisa waktu ${remainingHours} jam lagi (Batas: ${deadlineFormatted || "3 hari kerja"})`
+      : `sisa waktu ${Math.ceil(remainingHours / 24)} hari (Batas: ${deadlineFormatted || "3 hari kerja"})`;
+
+  const waMsgToPsikolog = `Halo Dok / Kak ${namaPsikolog || "Psikolog Empathika"},
+
+Kami dari Admin Empathika ingin menanyakan tindak lanjut hasil asesmen psikotes untuk peserta:
+• Nama: ${namaPeserta}
+• Paket: ${peserta.paket}
+• Kode Booking: ${kodeBooking || "—"}
+${keepDateFormatted ? `• Waktu Diambil: ${keepDateFormatted}` : ""}
+${deadlineFormatted ? `• Batas Telaah: ${deadlineFormatted}` : ""}
+• Status SLA: ${statusSlaUrgency}
+
+Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via portal psikolog ya Dok. Terima kasih banyak! 🙏`;
+
+  const waPsikologUrl = waPsikologDigits
+    ? `https://wa.me/${waPsikologDigits}?text=${encodeURIComponent(waMsgToPsikolog)}`
     : null;
 
   const usiaPeserta = peserta.peserta?.usia ? `${peserta.peserta.usia} Tahun` : null;
@@ -254,7 +312,7 @@ Terima kasih telah menjadi bagian dari Empathika.`;
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-gray-100 max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ================================================================= */}
@@ -276,317 +334,339 @@ Terima kasih telah menjadi bagian dari Empathika.`;
         </div>
 
         {/* ================================================================= */}
-        {/* 2. BODY MODAL: Data Peserta, Data Pembeli, & Hasil (Download PDF) */}
+        {/* 2. BODY MODAL: Clean, Streamlined, No Visual Clutter              */}
         {/* ================================================================= */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 bg-white text-gray-800 text-xs">
 
           {/* ───────────────────────────────────────────────────────────── */}
-          {/* BAGIAN 1: DATA PESERTA TES                                    */}
+          {/* A. STATUS TELAAH & REVIEWER (HERO BANNER RINGKAS & BERSIH)    */}
           {/* ───────────────────────────────────────────────────────────── */}
-          <div className="space-y-2.5">
-            <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-[#561269]" />
-              Data Peserta
-            </h4>
+          {isMenungguReview ? (
+            Boolean(peserta.id_psikolog || peserta.psikolog) ? (
+              /* Sudah di-keep oleh psikolog */
+              <div className="p-4 rounded-xl bg-purple-50/50 border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700">
+                      Psikolog Pemeriksa
+                    </span>
+                    {slaStatus === "OVERDUE" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                        <AlertTriangle className="w-3 h-3" />
+                        Terlambat ({Math.abs(remainingHours)}j)
+                      </span>
+                    )}
+                  </div>
 
-            {hasPesertaData ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3.5 gap-x-5 p-4 rounded-xl bg-gray-50/70 border border-gray-100">
-                <div>
-                  <span className="text-gray-400 block text-[10px] font-medium">Nama Peserta</span>
-                  <span className="font-semibold text-gray-900 text-sm mt-0.5 block break-words">
-                    {namaPeserta}
-                  </span>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {namaPsikolog || "Psikolog Empathika"}
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    Diambil pada {keepDateFormatted || "—"}{deadlineFormatted ? ` • Batas telaah: ${deadlineFormatted}` : ""}
+                  </p>
                 </div>
 
-                <div>
-                  <span className="text-gray-400 block text-[10px] font-medium">WhatsApp Peserta</span>
-                  <span className="font-semibold text-emerald-700 text-sm mt-0.5 block font-mono break-all">
-                    {noHpPeserta && noHpPeserta !== "—" ? formatToIndonesianPhone(noHpPeserta) : "—"}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-gray-400 block text-[10px] font-medium">Usia / Gender</span>
-                  <span className="font-semibold text-gray-800 text-sm mt-0.5 block break-words">
-                    {[usiaPeserta, genderPeserta].filter(Boolean).join(" · ") || "—"}
-                  </span>
-                </div>
-
-                {ttlPeserta && (
-                  <div>
-                    <span className="text-gray-400 block text-[10px] font-medium">Tempat, Tgl Lahir</span>
-                    <span className="font-medium text-gray-800 text-sm mt-0.5 block break-words">
-                      {ttlPeserta}
-                    </span>
-                  </div>
-                )}
-
-                {profesiPeserta && (
-                  <div>
-                    <span className="text-gray-400 block text-[10px] font-medium">Pendidikan / Profesi</span>
-                    <span className="font-medium text-gray-800 text-sm mt-0.5 block break-words">
-                      {profesiPeserta}
-                    </span>
-                  </div>
-                )}
-
-                {peserta.peserta?.nama_orang_tua && (
-                  <div>
-                    <span className="text-gray-400 block text-[10px] font-medium">Orang Tua / Wali</span>
-                    <span className="font-medium text-gray-800 text-sm mt-0.5 block break-words">
-                      {peserta.peserta.nama_orang_tua}{" "}
-                      {peserta.peserta.no_telepon_orang_tua
-                        ? `(${formatToIndonesianPhone(peserta.peserta.no_telepon_orang_tua)})`
-                        : ""}
-                    </span>
-                  </div>
+                {waPsikologUrl && (
+                  <a
+                    href={waPsikologUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition active:scale-95 shadow-2xs hover:shadow-xs shrink-0 self-start sm:self-auto cursor-pointer"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    Hubungi Psikolog
+                  </a>
                 )}
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-gray-50/70 border border-dashed border-gray-200 flex items-center gap-3.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="font-bold text-gray-900 block text-xs">
-                    Identitas Peserta Belum Diisi
+              /* Menunggu di-keep (Kolam antrean) */
+              <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100 flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 block">
+                    Status Antrean
                   </span>
-                  <span className="text-[11px] text-gray-500 block leading-relaxed mt-0.5">
-                    Tiket ini baru dibeli dan tes belum dimulai. Data identitas peserta akan muncul secara otomatis setelah peserta memasukkan kode booking dan mengisi formulir awal tes.
-                  </span>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    Kolam Antrean Bersama
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    Selesai tes {keepDateFormatted || peserta.tanggal} • Menunggu diambil oleh psikolog penelaah
+                  </p>
                 </div>
+                <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-amber-100 text-amber-800 shrink-0">
+                  Antrean Terbuka
+                </span>
               </div>
-            )}
-          </div>
+            )
+          ) : isCompleted ? (
+            /* Sudah Selesai */
+            <div className="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 block">
+                  Laporan Resmi Diterbitkan
+                </span>
+                <p className="font-semibold text-gray-900 text-xs sm:text-sm">
+                  Ditelaah &amp; Disahkan oleh: <span className="text-emerald-950 font-bold">{namaPsikolog || "Psikolog Empathika"}</span>
+                </p>
+              </div>
+
+              {waPsikologUrl && (
+                <a
+                  href={waPsikologUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline shrink-0"
+                >
+                  <Phone className="w-3 h-3" />
+                  WA Pemeriksa
+                </a>
+              )}
+            </div>
+          ) : null}
 
           {/* ───────────────────────────────────────────────────────────── */}
-          {/* BAGIAN 2: DATA PEMBELI / PEMESAN TIKET                        */}
+          {/* B. INFORMASI PESERTA & PEMESANAN (2 KOLOM MINIMALIS & RAPI)   */}
           {/* ───────────────────────────────────────────────────────────── */}
-          <div className="space-y-2.5 pt-1 border-t border-gray-100">
-            <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-              <ShoppingBag className="w-3.5 h-3.5 text-[#561269]" />
-              Data Pembeli
-            </h4>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-3.5 gap-x-5 p-4 rounded-xl bg-gray-50/70 border border-gray-100">
-              <div>
-                <span className="text-gray-400 block text-[10px] font-medium">Nama Pembeli</span>
-                <span className="font-semibold text-gray-900 text-sm mt-0.5 block break-words">
-                  {namaPembeli}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Kolom 1: Data Diri Peserta */}
+            <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/40 space-y-3">
+              <div className="flex items-center gap-1.5 pb-2 border-b border-gray-100">
+                <User className="w-3.5 h-3.5 text-[#561269]" />
+                <span className="font-bold text-[11px] uppercase tracking-wider text-gray-600">
+                  Identitas Peserta
                 </span>
               </div>
 
-              <div>
-                <span className="text-gray-400 block text-[10px] font-medium">WhatsApp Pembeli</span>
-                <span className="font-semibold text-emerald-700 text-sm mt-0.5 block font-mono break-all">
-                  {formatToIndonesianPhone(noHpPembeli)}
+              {hasPesertaData ? (
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-gray-400">Nama Peserta</span>
+                    <span className="font-semibold text-gray-900 text-right break-words">
+                      {namaPeserta}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-gray-400">WhatsApp</span>
+                    <span className="font-medium text-emerald-700 font-mono text-right">
+                      {noHpPeserta && noHpPeserta !== "—" ? formatToIndonesianPhone(noHpPeserta) : "—"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-gray-400">Usia &amp; Gender</span>
+                    <span className="font-medium text-gray-800 text-right">
+                      {[usiaPeserta, genderPeserta].filter(Boolean).join(" · ") || "—"}
+                    </span>
+                  </div>
+
+                  {ttlPeserta && (
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-gray-400">Tempat, Tgl Lahir</span>
+                      <span className="font-medium text-gray-800 text-right">
+                        {ttlPeserta}
+                      </span>
+                    </div>
+                  )}
+
+                  {profesiPeserta && (
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-gray-400">Profesi / Edukasi</span>
+                      <span className="font-medium text-gray-800 text-right">
+                        {profesiPeserta}
+                      </span>
+                    </div>
+                  )}
+
+                  {peserta.peserta?.nama_orang_tua && (
+                    <div className="flex items-start justify-between gap-2 pt-1 border-t border-gray-100">
+                      <span className="text-gray-400">Orang Tua / Wali</span>
+                      <span className="font-medium text-gray-800 text-right">
+                        {peserta.peserta.nama_orang_tua}{" "}
+                        {peserta.peserta.no_telepon_orang_tua
+                          ? `(${formatToIndonesianPhone(peserta.peserta.no_telepon_orang_tua)})`
+                          : ""}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-400 italic text-xs py-2">
+                  Peserta belum memulai tes / belum mengisi data identitas.
+                </p>
+              )}
+            </div>
+
+            {/* Kolom 2: Detail Transaksi & Pemesan */}
+            <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/40 space-y-3">
+              <div className="flex items-center gap-1.5 pb-2 border-b border-gray-100">
+                <ShoppingBag className="w-3.5 h-3.5 text-[#561269]" />
+                <span className="font-bold text-[11px] uppercase tracking-wider text-gray-600">
+                  Informasi Pembelian
                 </span>
               </div>
 
-              <div>
-                <span className="text-gray-400 block text-[10px] font-medium">Kode Booking</span>
-                <span className="font-semibold text-purple-900 text-sm mt-0.5 block font-mono select-all">
-                  {kodeBooking || "—"}
-                </span>
-              </div>
+              <div className="space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-gray-400">Paket Tes</span>
+                  <span className="font-semibold text-gray-900 text-right break-words max-w-[200px]">
+                    {peserta.paket}
+                  </span>
+                </div>
 
-              <div>
-                <span className="text-gray-400 block text-[10px] font-medium">Paket Dibeli</span>
-                <span className="font-medium text-gray-800 text-sm mt-0.5 block break-words leading-snug">
-                  {peserta.paket}
-                </span>
-              </div>
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-gray-400">Nama Pembeli</span>
+                  <span className="font-medium text-gray-900 text-right">
+                    {namaPembeli}
+                  </span>
+                </div>
 
-              <div>
-                <span className="text-gray-400 block text-[10px] font-medium">Tanggal Transaksi</span>
-                <span className="font-medium text-gray-700 text-sm mt-0.5 block break-words">
-                  {peserta.tanggal}
-                </span>
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-gray-400">WhatsApp Pembeli</span>
+                  <span className="font-medium text-emerald-700 font-mono text-right">
+                    {formatToIndonesianPhone(noHpPembeli)}
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-gray-400">Kode Booking</span>
+                  <span className="font-mono font-semibold text-purple-900 text-right select-all">
+                    {kodeBooking || "—"}
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-gray-400">Tgl Transaksi</span>
+                  <span className="font-medium text-gray-800 text-right">
+                    {peserta.tanggal}
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between gap-2 pt-1 border-t border-gray-100">
+                  <span className="text-gray-400">Masa Berlaku Tes</span>
+                  <span className="text-gray-600 text-right">
+                    s/d {batasAkhirFormatted}
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-gray-400">Asal Biro</span>
+                  <span className="font-semibold text-gray-800 text-right break-words max-w-[200px]">
+                    {peserta.namaBiro || (peserta as any).nama_biro || "Empathika (Pusat)"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* ───────────────────────────────────────────────────────────── */}
-          {/* BAGIAN 3: HASIL PSIKOTES (Hanya Download PDF & Aksi WA)       */}
+          {/* C. AKSI LAPORAN RESMI & DOKUMEN (CLEAN ACTION BAR)             */}
           {/* ───────────────────────────────────────────────────────────── */}
-          <div className="space-y-2.5 pt-1 border-t border-gray-100">
-            <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-[#561269]" />
-              Hasil Psikotes
-            </h4>
+          <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <p className="font-semibold text-gray-900 text-xs">
+                Dokumen Laporan Hasil Psikotes
+              </p>
+              <p className="text-[11px] text-gray-500">
+                {isCompleted
+                  ? "Laporan resmi PDF sudah diverifikasi dan siap diunduh atau dikirimkan ke peserta."
+                  : isMenungguReview
+                  ? "Laporan PDF akan otomatis aktif setelah psikolog menuntaskan telaah."
+                  : "Dokumen akan tersedia secara otomatis setelah peserta menyelesaikan tes."}
+              </p>
+            </div>
 
-            {isMenungguReview ? (
-              <div className="p-4 rounded-xl bg-purple-50/80 border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-purple-100 text-[#561269] flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4 animate-pulse" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-purple-950 block text-xs">
-                      Menunggu Review &amp; Telaah Psikolog (SLA Maks. 3 Hari)
-                    </span>
-                    <span className="text-[11px] text-purple-800/80 font-normal">
-                      Peserta telah selesai mengerjakan tes. Laporan PDF resmi akan otomatis aktif setelah psikolog memverifikasi telaah klinis di portal psikolog.
-                    </span>
-                  </div>
-                </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {isCompleted ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleDownloadClick}
+                    disabled={isDownloading}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-60"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Membuat PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" />
+                        Download PDF
+                      </>
+                    )}
+                  </button>
 
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-[#561269] border border-purple-200 shrink-0 self-start sm:self-auto">
-                  Menunggu Review
-                </span>
-              </div>
-            ) : isCompleted ? (
-              <div className="p-4 rounded-xl bg-gray-50/80 border border-gray-100 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-purple-50 text-[#561269] flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-900 text-xs block">
-                      Laporan Hasil Asesmen
-                    </span>
-                    <span className="text-[11px] text-gray-500 font-light block">
-                      Format PDF resmi
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleDownloadClick}
-                  disabled={isDownloading}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isDownloading ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Membuat PDF...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-3.5 h-3.5" />
-                      Download PDF
-                    </>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                  <div>
-                    <span className="font-semibold text-amber-950 block text-xs">
-                      Peserta Belum Mengerjakan Tes
-                    </span>
-                    <span className="text-[11px] text-amber-800/80 font-light">
-                      Laporan PDF akan tersedia setelah tes diselesaikan.
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {waReminderUrlPembeli && (
-                    <a
-                      href={waReminderUrlPembeli}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-semibold transition shrink-0 cursor-pointer shadow-xs hover:shadow-md"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      {hasDifferentPhones ? "Ingatkan Pembeli (WA)" : "Ingatkan via WA"}
-                    </a>
-                  )}
-
-                  {hasDifferentPhones && waReminderUrlPeserta && (
-                    <a
-                      href={waReminderUrlPeserta}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs font-semibold transition shrink-0 cursor-pointer shadow-xs hover:shadow-md"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      Ingatkan Peserta (WA)
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Global Error Notice if PDF creation fails */}
-            {pdfError && (
-              <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {pdfError}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPdfError(null)}
-                  className="text-red-500 hover:text-red-800 font-bold"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ================================================================= */}
-        {/* 3. FOOTER MODAL: Aksi WhatsApp & Tutup                            */}
-        {/* ================================================================= */}
-        <div className="px-6 py-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50 shrink-0">
-          <div className="flex flex-wrap items-center gap-3">
-            {isCompleted && (
-              <>
-                {isAnak ? (
-                  <>
-                    {waResultUrlOrangTua && (
+                  {/* Tombol Kirim WA Hasil */}
+                  {isAnak ? (
+                    waResultUrlOrangTua && (
                       <a
                         href={waResultUrlOrangTua}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        Kirim Hasil ke Orang Tua (WA)
+                        Kirim ke Orang Tua
                       </a>
-                    )}
-
-                    {waPesertaDigits && waPesertaDigits !== waOrangTuaDigits && waResultUrlPeserta && (
+                    )
+                  ) : (
+                    waResultUrlPeserta && (
                       <a
                         href={waResultUrlPeserta}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-700 hover:text-purple-800 hover:underline cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        Kirim Hasil ke Peserta (WA)
+                        Kirim ke Peserta
                       </a>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {waResultUrlPeserta && (
-                      <a
-                        href={waResultUrlPeserta}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        Kirim Hasil ke Peserta (WA)
-                      </a>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+                    )
+                  )}
+                </>
+              ) : !isMenungguReview ? (
+                /* Belum Mulai Tes */
+                waReminderUrlPembeli && (
+                  <a
+                    href={waReminderUrlPembeli}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    Ingatkan Peserta (WA)
+                  </a>
+                )
+              ) : null}
+            </div>
           </div>
 
+          {/* Alert Error jika download gagal */}
+          {pdfError && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-medium">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {pdfError}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPdfError(null)}
+                className="text-rose-500 hover:text-rose-800 font-bold ml-2"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ================================================================= */}
+        {/* 3. FOOTER MODAL: Bersih, Cuma Tombol Tutup                        */}
+        {/* ================================================================= */}
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end bg-gray-50/50 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-gray-100 transition active:scale-95 cursor-pointer ml-auto"
+            className="px-5 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 transition active:scale-95 cursor-pointer shadow-2xs"
           >
             Tutup
           </button>

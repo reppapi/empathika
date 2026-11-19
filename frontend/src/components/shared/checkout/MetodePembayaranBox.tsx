@@ -94,6 +94,7 @@ export interface MetodePembayaranBoxProps {
   biayaLabel?: string
   biayaNominal?: string
   totalNominal?: string
+  showKetentuanReservasi?: boolean
   isSubmitDisabled?: boolean
   submitButtonText?: string
   submittingButtonText?: string
@@ -114,6 +115,7 @@ export default function MetodePembayaranBox({
   biayaLabel = "Biaya Konsultasi",
   biayaNominal = "Rp 350.000",
   totalNominal = "Rp 350.000",
+  showKetentuanReservasi = false,
   isSubmitDisabled,
   submitButtonText = "Bayar Sekarang",
   submittingButtonText = "Memproses Booking...",
@@ -363,13 +365,15 @@ export default function MetodePembayaranBox({
           <span className="text-sm font-extrabold text-[#561269]">{totalNominal}</span>
         </div>
 
-        {/* Info Ketentuan Pembatalan & DP Hangus */}
-        <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-xl text-[11px] text-gray-600 leading-relaxed">
-          <p className="font-semibold text-gray-800 mb-0.5">Ketentuan Pembatalan & Reservasi:</p>
-          <p>
-            Apabila terjadi pembatalan atau klien tidak hadir tanpa pemberitahuan, biaya reservasi sebesar <strong className="text-gray-900">Rp 150.000</strong> ditahan untuk operasional layanan dan sisanya akan dikembalikan.
-          </p>
-        </div>
+        {/* Info Ketentuan Pembatalan & Reservasi (Hanya untuk Layanan Konseling) */}
+        {showKetentuanReservasi && (
+          <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-xl text-[11px] text-gray-600 leading-relaxed">
+            <p className="font-semibold text-gray-800 mb-0.5">Ketentuan Reservasi & Penjadwalan:</p>
+            <p>
+              Untuk memastikan komitmen jadwal bersama tenaga ahli, pembatalan atau ketidakhadiran tanpa konfirmasi sebelumnya akan dikenakan biaya komitmen reservasi sebesar <strong className="text-gray-900">Rp 150.000</strong>, dan sisa pembayaran akan dikembalikan kepada Anda.
+            </p>
+          </div>
+        )}
 
         {attemptedSubmit && Object.keys(errors).some((k) => errors[k as keyof typeof errors]) && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-center gap-2 text-red-600 text-xs font-semibold animate-in fade-in duration-150">

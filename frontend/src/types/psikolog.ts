@@ -30,6 +30,7 @@ export interface Psikolog {
   status: 'ACTIVE' | 'INACTIVE';
   jumlah_sesi: number;
   tarif_per_jam: number; 
+  is_reviewer_psikotes?: boolean; 
   
   // Relasi (Biasanya di-include saat fetching Prisma)
   spesialisasi?: Spesialisasi;

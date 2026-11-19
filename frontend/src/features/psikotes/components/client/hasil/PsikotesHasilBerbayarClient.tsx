@@ -5,26 +5,13 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
-  Calendar, 
-  Info, 
-  CheckCircle2, 
   Download, 
-  HeartHandshake, 
   ShieldCheck,
   AlertTriangle,
-  Compass,
   Loader2,
-  User,
   WifiOff,
-  RefreshCw,
-  Clock,
-  Stethoscope,
-  Copy,
-  Check,
-  FileText,
-  Sparkles,
 } from "lucide-react";
-import { calculateReviewSla, getEstimatedReviewClientText, REVIEW_MAX_DAYS } from "@/features/psikotes/utils/reviewSla";
+import { calculateReviewSla } from "@/features/psikotes/utils/reviewSla";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
 import {
@@ -41,125 +28,14 @@ import {
 } from "@/features/psikotes/utils/downloadLaporanPsikotesPdf";
 import { useAdminContact } from "@/hooks/useAdminContact";
 import PsikotesRekomendasiSection from "./PsikotesRekomendasiSection";
-
-const PAGE1_MAX_LINES = 30;
-const SUBSEQUENT_PAGE_MAX_LINES = 35;
-
-/** Memecah teks dokumen klinis menjadi lembaran A4 terpisah sesuai format editor psikolog */
-function parseTextToPages(rawText: string): string[] {
-  if (!rawText || !rawText.trim()) return [""];
-
-  if (rawText.includes("<!-- PAGE_BREAK -->")) {
-    const parts = rawText.split("<!-- PAGE_BREAK -->").map((p) => p.trim());
-    return parts.length > 0 ? parts : [""];
-  }
-
-  if (rawText.includes("--- HALAMAN BARU ---")) {
-    const parts = rawText.split("--- HALAMAN BARU ---").map((p) => p.trim());
-    return parts.length > 0 ? parts : [""];
-  }
-
-  const lines = rawText.split("\n");
-  const pages: string[] = [];
-  let currentLines: string[] = [];
-  let currentVisualLines = 0;
-  let isFirst = true;
-
-  for (const line of lines) {
-    const visualWeight = Math.max(1, Math.ceil(line.length / 75));
-    const maxCapacity = isFirst ? PAGE1_MAX_LINES : SUBSEQUENT_PAGE_MAX_LINES;
-
-    if (currentVisualLines + visualWeight > maxCapacity && currentLines.length > 0) {
-      pages.push(currentLines.join("\n"));
-      currentLines = [line];
-      currentVisualLines = visualWeight;
-      isFirst = false;
-    } else {
-      currentLines.push(line);
-      currentVisualLines += visualWeight;
-    }
-  }
-
-  if (currentLines.length > 0) {
-    pages.push(currentLines.join("\n"));
-  }
-
-  if (pages.length === 1 && currentVisualLines > 24) {
-    pages.push("");
-  }
-
-  return pages.length > 0 ? pages : [""];
-}
-
-function renderInlineFormatting(line: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(line)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(line.slice(lastIndex, match.index));
-    }
-    const token = match[0];
-    if (token.startsWith("**") && token.endsWith("**")) {
-      parts.push(
-        <strong key={match.index} className="font-bold text-gray-950 font-sans">
-          {token.slice(2, -2)}
-        </strong>
-      );
-    } else if (token.startsWith("*") && token.endsWith("*")) {
-      parts.push(
-        <em key={match.index} className="italic text-gray-900">
-          {token.slice(1, -1)}
-        </em>
-      );
-    }
-    lastIndex = match.index + token.length;
-  }
-  if (lastIndex < line.length) {
-    parts.push(line.slice(lastIndex));
-  }
-  return parts.length > 0 ? parts : [line];
-}
-
-function FormattedSheetContent({ text }: { text: string }) {
-  if (!text || !text.trim()) {
-    return <div className="h-full min-h-[100px]" />;
-  }
-
-  const lines = text.split("\n");
-
-  return (
-    <div className="font-serif text-[13.5px] sm:text-[15px] leading-relaxed text-gray-900 space-y-1">
-      {lines.map((line, idx) => {
-        if (!line.trim()) {
-          return <div key={idx} className="h-2.5 sm:h-3" />;
-        }
-
-        const indentMatch = line.match(/^(\s+)/);
-        const indentLength = indentMatch ? indentMatch[1].length : 0;
-        const indentClass =
-          indentLength >= 8 ? "pl-8 sm:pl-10" : indentLength >= 4 ? "pl-4 sm:pl-5" : "";
-
-        const content = renderInlineFormatting(line.trimStart());
-
-        return (
-          <p key={idx} className={`leading-relaxed text-gray-900 ${indentClass}`}>
-            {content}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
+import HasilMenungguReviewView from "./components/HasilMenungguReviewView";
+import HasilLaporanTerbitView from "./components/HasilLaporanTerbitView";
+import HasilAnalisisScorecardView from "./components/HasilAnalisisScorecardView";
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { getWhatsAppUrl } = useAdminContact();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
   const [dbPackage, setDbPackage] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoadingDb, setIsLoadingDb] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -175,7 +51,13 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
       searchParams.get("kontak") ||
       "";
     const rawParamEmail = searchParams.get("email") || searchParams.get("user_email") || "";
-    const rawBookingId = searchParams.get("bookingId") || searchParams.get("orderId") || "";
+    const rawBookingId =
+      searchParams.get("bookingId") ||
+      searchParams.get("orderId") ||
+      searchParams.get("kode") ||
+      searchParams.get("ticket") ||
+      searchParams.get("kode_akses") ||
+      "";
     const rawUmur = searchParams.get("umur") || "";
     const rawGender = searchParams.get("gender") || searchParams.get("jenisKelamin") || "";
     const rawPendidikan = searchParams.get("pendidikan") || "";
@@ -282,7 +164,12 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     tanggalSelesai?: string | null;
   } | null>(null);
 
-  const paramBookingId = searchParams.get("bookingId") || searchParams.get("orderId");
+  const paramBookingId =
+    searchParams.get("bookingId") ||
+    searchParams.get("orderId") ||
+    searchParams.get("kode") ||
+    searchParams.get("ticket") ||
+    searchParams.get("kode_akses");
   const paramToken = (() => {
     const urlToken = searchParams.get("token");
     if (urlToken) return urlToken;
@@ -470,25 +357,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     bookingReport?.catatanPsikolog && bookingReport.catatanPsikolog.trim().length > 0
   );
 
-  const fullReportText =
-    bookingReport?.rekomendasiPsikolog &&
-    bookingReport.catatanPsikolog &&
-    !bookingReport.catatanPsikolog.includes(bookingReport.rekomendasiPsikolog.trim())
-      ? `${bookingReport.catatanPsikolog}\n\n**REKOMENDASI:**\n${bookingReport.rekomendasiPsikolog}`
-      : bookingReport?.catatanPsikolog || "";
-
-  const docPages = parseTextToPages(fullReportText);
-
   // Informasi SLA batas waktu telaah psikolog (maksimal 3 hari kerja)
   const slaInfo = calculateReviewSla(bookingReport?.tanggalSelesai || peserta.tanggal);
-
-  const handleCopyLink = () => {
-    if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    }
-  };
 
   const mcmiResult =
     (isMCMI || bookingReport?.detailSkor?.validitas) &&
@@ -650,6 +520,55 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     : null;
 
   const catsFungsi = isCATS ? bookingReport?.detailSkor?.fungsiPsikososial : null;
+
+  const genericSubscales = rcmasSubscales
+    ? rcmasSubscales.map((s) => ({
+        name: s.label,
+        score: s.score,
+        maxScore: s.max,
+        percentage: s.max > 0 ? Math.round((s.score / s.max) * 100) : 0,
+        grade: `${s.score} / ${s.max}`,
+        deskripsi: s.deskripsi,
+        colorHex: s.colorHex,
+      }))
+    : cdiSubscales
+      ? cdiSubscales.map((s) => ({
+          name: s.label,
+          score: s.score,
+          maxScore: s.max,
+          percentage: s.max > 0 ? Math.round((s.score / s.max) * 100) : 0,
+          grade: `${s.score} / ${s.max}`,
+          deskripsi: s.deskripsi,
+          colorHex: s.colorHex,
+        }))
+      : catsSubscales
+        ? catsSubscales.map((s) => ({
+            name: s.label,
+            score: s.score,
+            maxScore: s.max,
+            percentage: s.max > 0 ? Math.round((s.score / s.max) * 100) : 0,
+            grade: `${s.score} / ${s.max}`,
+            deskripsi: s.deskripsi,
+            colorHex: s.colorHex,
+          }))
+        : undefined;
+
+  const genericSubscalesTitle = rcmasSubscales
+    ? "Profil Tiga Dimensi Kecemasan RCMAS"
+    : cdiSubscales
+      ? "Profil Lima Dimensi Depresi CDI"
+      : catsSubscales
+        ? "Profil Empat Klaster Gejala PTSD (DSM-5)"
+        : undefined;
+
+  const genericSubscalesMaxNote = rcmasSubscales
+    ? "Skor mentah per dimensi (tanpa cutoff terpisah)"
+    : cdiSubscales
+      ? "Skor mentah per dimensi (cut-off klinis total >= 19)"
+      : catsSubscales
+        ? "Skor mentah per klaster (cut-off klinis total >= 21)"
+        : undefined;
+
 
   // ── Dynamic interpretation from database ──────────────────────────────────
   const dbInterpretasi = (() => {
@@ -1139,8 +1058,8 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
 
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Header Bersih & Profesional (Hanya tampil saat laporan resmi sudah terbit) */}
-        {!isMenungguReview && (
+        {/* Header Bersih & Profesional (Hanya tampil saat laporan analitik non-telaah psikolog) */}
+        {!isMenungguReview && !(hasCatatanPsikolog || isKlinisPerluReview) && (
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
             <div>
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -1195,1175 +1114,42 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         <div id="laporan-berbayar-container" className="space-y-6">
 
           {/* Percabangan Tampilan: Menunggu Review vs Dokumen Telaah Psikolog A4 vs Fallback Scorecard */}
+          {/* Percabangan Tampilan: Menunggu Review vs Laporan Terbit vs Fallback Scorecard */}
           {isMenungguReview ? (
-            <div className="bg-white p-6 sm:p-10 rounded-2xl border border-gray-200/80 shadow-xs">
-              <div className="py-8 sm:py-12 px-3 sm:px-6 max-w-xl mx-auto text-center space-y-6">
-                {/* Icon Elegan & Tenang */}
-                <div className="inline-flex items-center justify-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-purple-50 text-[#561269] flex items-center justify-center border border-purple-100 shadow-xs">
-                    <Clock className="w-8 h-8 sm:w-10 sm:h-10 text-[#561269]" />
-                  </div>
-                </div>
-
-                {/* Judul & Penjelasan Ringkas */}
-                <div className="space-y-2">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-                    Asesmen Berhasil Diselesaikan!
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-md mx-auto">
-                    Terima kasih telah menyelesaikan asesmen <strong>{displayTestName}</strong>. Jawaban Anda berhasil disimpan. Selanjutnya, hasil asesmen akan melalui proses penelaahan oleh psikolog Empathika sebelum laporan diterbitkan.
-                  </p>
-                </div>
-
-                {/* Ringkasan Data Asesmen: Simpel & Bersih */}
-                <div className="bg-gray-50/80 rounded-2xl border border-gray-200/80 p-4 sm:p-5 text-left text-xs sm:text-sm space-y-2.5">
-                  <h3 className="font-bold text-gray-900 text-sm pb-2 border-b border-gray-200">
-                    Informasi Asesmen
-                  </h3>
-                  <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
-                    <span className="text-gray-500">Nama Peserta</span>
-                    <span className="font-bold text-gray-900 truncate max-w-[200px] text-right">
-                      {peserta.nama || "Peserta Asesmen"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
-                    <span className="text-gray-500">Kode Tiket</span>
-                    <span className="font-mono font-bold text-[#561269] bg-white px-2 py-0.5 rounded border border-gray-200">
-                      {peserta.bookingId || "PSI-VERIFIED"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
-                    <span className="text-gray-500">Tanggal Tes</span>
-                    <span className="font-medium text-gray-800">{peserta.tanggal}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
-                    <span className="text-gray-500">Status</span>
-                    <span className="font-medium text-gray-800 text-right">
-                      Dalam Proses Telaah Psikolog
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-gray-500">Estimasi Laporan Selesai</span>
-                    <span className="font-medium text-gray-800 text-right">
-                      Maksimal {REVIEW_MAX_DAYS} hari kerja, yaitu {slaInfo.deadlineDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Informasi Hasil */}
-                <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100/80 text-left text-xs text-purple-950 flex items-start gap-2.5">
-                  <Info className="w-4 h-4 text-[#561269] shrink-0 mt-0.5" />
-                  <p className="leading-relaxed text-gray-700">
-                    <strong className="text-gray-900 font-bold">Informasi Hasil:</strong> Laporan hasil asesmen dalam format PDF akan dikirimkan oleh admin melalui WhatsApp yang terdaftar. Anda juga dapat mengecek dan mengunduh laporan secara mandiri melalui website Empathika menggunakan kode tiket setelah proses penelaahan selesai.
-                  </p>
-                </div>
-
-                {/* Aksi Sederhana */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleCopyLink}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#6e1886] text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-xs transition active:scale-98 cursor-pointer"
-                  >
-                    {copiedLink ? (
-                      <>
-                        <Check className="w-4 h-4 text-emerald-300" />
-                        <span>Link Berhasil Disalin!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        <span>Salin Link Hasil</span>
-                      </>
-                    )}
-                  </button>
-
-                  <Link
-                    href="/psikotes"
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition"
-                  >
-                    Kembali ke Katalog Tes
-                  </Link>
-                </div>
-
-                {/* Pertanyaan & Kontak Admin WhatsApp */}
-                <div className="pt-2 text-xs text-gray-500 space-y-1">
-                  <p>Ada pertanyaan mengenai hasil asesmen?</p>
-                  <p>
-                    Silakan hubungi Admin Empathika melalui WhatsApp.{" "}
-                    <a
-                      href={getWhatsAppUrl(`Halo Admin Empathika, saya ingin bertanya mengenai status review asesmen psikotes saya (Tiket: ${peserta.bookingId || "PSI-VERIFIED"})`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#561269] font-bold hover:underline inline-flex items-center gap-1"
-                    >
-                      Hubungi Admin WhatsApp
-                    </a>
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : hasCatatanPsikolog ? (
-            <div className="space-y-8">
-              {/* CANVAS DOKUMEN FISIK A4 (1:1 SESUAI DOKUMEN RESMI REVIEW PSIKOLOG) */}
-              <div className="a4-sheet-canvas bg-[#525659] p-3 sm:p-6 lg:p-8 rounded-2xl shadow-inner overflow-x-auto">
-                <div className="max-w-[820px] mx-auto space-y-8 min-w-0">
-                  {docPages.map((pageText, pageIdx) => {
-                    const isFirstPage = pageIdx === 0;
-                    const isLastPage = pageIdx === docPages.length - 1;
-
-                    return (
-                      <div
-                        key={pageIdx}
-                        id={`page-sheet-${pageIdx}`}
-                        className="a4-print-sheet relative bg-white rounded-sm shadow-2xl border border-gray-300/90 w-full max-w-[794px] min-h-[1123px] mx-auto px-6 sm:px-12 py-7 sm:py-8 flex flex-col justify-between text-gray-900 font-sans transition-all box-border"
-                        style={{ minHeight: "1123px" }}
-                      >
-                        {/* BAGIAN ATAS LEMBAR A4 (HEADER & IDENTITAS) */}
-                        <div className="shrink-0 space-y-3">
-                          {isFirstPage ? (
-                            <>
-                              {/* 1. KOP SURAT RESMI BIRO PSIKOLOGI EMPATHIKA */}
-                              <div className="text-center space-y-1 pb-2 font-sans">
-                                <h1 className="text-xl sm:text-2xl font-black tracking-wider text-gray-900 uppercase">
-                                  EMPATHIKA PSYCHOLOGICAL SERVICES
-                                </h1>
-                                <p className="text-xs sm:text-[13px] font-semibold text-gray-700 tracking-wide">
-                                  BIRO LAYANAN PSIKOLOGI, ASESMEN KLINIS &amp; KESEHATAN MENTAL TERPADU
-                                </p>
-                                <p className="text-[11px] text-gray-500 font-normal">
-                                  Layanan Psikotes Online &bull; Surat Keterangan / Laporan Psikologis Resmi Terverifikasi
-                                </p>
-
-                                {/* Garis Dobel Formal Kop Surat (Klasik Resmi) */}
-                                <div className="pt-2">
-                                  <div className="border-b-2 border-gray-900 w-full" />
-                                  <div className="border-b border-gray-900 w-full mt-[2px]" />
-                                </div>
-                              </div>
-
-                              {/* 2. IDENTITAS PESERTA (2 Kolom Bersih & Resmi) */}
-                              <div className="font-sans text-xs sm:text-[13px] text-gray-800 py-2.5 border-b border-gray-300/80">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5">
-                                  {/* Kolom Kiri */}
-                                  <div className="space-y-1.5">
-                                    <div className="flex items-start">
-                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Nama Lengkap</span>
-                                      <span className="w-4 text-gray-500 shrink-0">:</span>
-                                      <span className="font-bold text-gray-900 leading-snug break-words flex-1">
-                                        {peserta.nama || "Peserta Asesmen Empathika"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center">
-                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Jenis Kelamin</span>
-                                      <span className="w-4 text-gray-500 shrink-0">:</span>
-                                      <span className="text-gray-800">{peserta.jenisKelamin || "—"}</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Usia</span>
-                                      <span className="w-4 text-gray-500 shrink-0">:</span>
-                                      <span className="text-gray-800">{peserta.usia ? `${peserta.usia} Tahun` : "—"}</span>
-                                    </div>
-                                  </div>
-
-                                  {/* Kolom Kanan */}
-                                  <div className="space-y-1.5">
-                                    <div className="flex items-center">
-                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Nomor Tiket</span>
-                                      <span className="w-4 text-gray-500 shrink-0">:</span>
-                                      <span className="font-mono font-bold text-gray-900">
-                                        {peserta.bookingId || "—"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center">
-                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Tanggal Pemeriksaan</span>
-                                      <span className="w-4 text-gray-500 shrink-0">:</span>
-                                      <span className="text-gray-800">
-                                        {peserta.tanggal ||
-                                          new Date().toLocaleDateString("id-ID", {
-                                            day: "numeric",
-                                            month: "long",
-                                            year: "numeric",
-                                          })}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-start">
-                                      <span className="w-32 sm:w-36 text-gray-600 font-medium shrink-0">Alat Ukur / Asesmen</span>
-                                      <span className="w-4 text-gray-500 shrink-0">:</span>
-                                      <span className="font-semibold text-gray-900 leading-snug break-words flex-1">
-                                        {displayTestName}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            /* JIKA HALAMAN 2+: RUNNING HEADER DOKUMEN LANJUTAN RESMI */
-                            <div className="pb-2.5 border-b border-gray-300/80 flex items-center justify-between text-xs text-gray-600 font-sans">
-                              <span className="font-bold text-gray-900 tracking-wider uppercase text-[11px]">
-                                EMPATHIKA PSYCHOLOGICAL SERVICES
-                              </span>
-                              <span className="font-mono text-[10px] text-gray-500">
-                                {peserta.bookingId ? `No. Tiket: ${peserta.bookingId}` : ""}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* AREA TEKS LEMBAR A4 DOKUMEN (GAYA RESMI KLINIS) */}
-                        <div className="flex-1 flex flex-col min-h-0 pt-3 pb-3.5">
-                          <FormattedSheetContent text={pageText} />
-                        </div>
-
-                        {/* BAGIAN BAWAH LEMBAR A4 (TANDA TANGAN & FOOTER) */}
-                        <div className="shrink-0 space-y-2 pt-1.5">
-                          {/* JIKA HALAMAN TERAKHIR: TANDA TANGAN & PENGESAHAN PSIKOLOG RESMI */}
-                          {isLastPage && (
-                            <div className="font-sans flex justify-end pt-1">
-                              <div className="text-center w-72 space-y-1 text-xs sm:text-sm text-gray-800">
-                                <p className="text-gray-600">
-                                  Bandung,{" "}
-                                  {bookingReport?.tanggalReview
-                                    ? new Date(bookingReport.tanggalReview).toLocaleDateString("id-ID", {
-                                        day: "numeric",
-                                        month: "long",
-                                        year: "numeric",
-                                      })
-                                    : peserta.tanggal ||
-                                      new Date().toLocaleDateString("id-ID", {
-                                        day: "numeric",
-                                        month: "long",
-                                        year: "numeric",
-                                      })}
-                                </p>
-                                <p className="font-semibold text-gray-900">Psikolog Pemeriksa,</p>
-
-                                {/* Ruang Tanda Tangan */}
-                                <div className="h-14 flex items-center justify-center">
-                                  <div className="px-3 py-1 rounded-md border border-gray-300 text-[10px] text-gray-400 font-mono italic">
-                                    [ Terverifikasi Secara Digital ]
-                                  </div>
-                                </div>
-
-                                <p className="font-bold text-gray-900 underline underline-offset-2">
-                                  {bookingReport?.psikolog?.nama_gelar ||
-                                    bookingReport?.psikolog?.nama ||
-                                    "Psikolog Klinis Empathika"}
-                                </p>
-                                <p className="text-[11px] text-gray-500">
-                                  Surat Izin Praktik Psikologi (SIPP / SIPPK) Terdaftar
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Footer Kertas Dokumen Formal */}
-                          <div className="pt-2 border-t border-gray-200/80 flex flex-col sm:flex-row items-center justify-between gap-2 font-sans text-[11px] text-gray-400">
-                            <p>&copy; {new Date().getFullYear()} Empathika Psychological Services &bull; Kerahasiaan Medis Dijamin</p>
-                            <p className="font-mono font-medium text-gray-600">
-                              {pageIdx + 1}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* PANEL AKSI & INFORMASI PASCA TERBIT */}
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/80 shadow-xs space-y-6 print:hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
-                  <div className="space-y-1">
-                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                      Dokumen Laporan Resmi Telah Terbit
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Laporan ini merupakan dokumen psikologis resmi yang telah diverifikasi dan disahkan oleh Psikolog Empathika.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={handleDownloadPdf}
-                      disabled={isDownloading}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-60"
-                    >
-                      {isDownloading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Mengunduh Dokumen...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-4 h-4" />
-                          <span>Unduh Dokumen Lengkap (PDF)</span>
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleCopyLink}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer"
-                    >
-                      {copiedLink ? (
-                        <>
-                          <Check className="w-4 h-4 text-emerald-600" />
-                          <span>Link Disalin!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          <span>Salin Link Hasil</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Konsultasi & Dukungan */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                  <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-100/90 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <HeartHandshake className="w-4 h-4 text-[#561269]" />
-                      <span className="text-xs font-bold text-[#561269]">Butuh Konsultasi Mendalam?</span>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">
-                      Ingin mendiskusikan hasil telaah klinis ini lebih lanjut dengan psikolog? Anda dapat menjadwalkan sesi konseling privat secara online maupun tatap muka.
-                    </p>
-                    <Link
-                      href="/konseling"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#561269] hover:underline pt-1"
-                    >
-                      <span>Jadwalkan Sesi Konseling</span>
-                      <Compass className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Info className="w-4 h-4 text-gray-700" />
-                      <span className="text-xs font-bold text-gray-900">Bantuan &amp; Verifikasi Tiket</span>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">
-                      Ada kendala saat mengunduh dokumen atau ingin menanyakan validitas sertifikat hasil asesmen?
-                    </p>
-                    <a
-                      href={getWhatsAppUrl(`Halo Admin Empathika, saya ingin bertanya mengenai laporan hasil asesmen psikotes saya (No Tiket: ${peserta.bookingId || "PSI-VERIFIED"})`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:underline pt-1"
-                    >
-                      <span>Hubungi Admin WhatsApp</span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HasilMenungguReviewView
+              displayTestName={displayTestName}
+              peserta={peserta}
+              slaInfo={slaInfo}
+              getWhatsAppUrl={getWhatsAppUrl}
+            />
+          ) : (hasCatatanPsikolog || isKlinisPerluReview) ? (
+            <HasilLaporanTerbitView
+              displayTestName={displayTestName}
+              peserta={peserta}
+              bookingReport={bookingReport}
+              isDownloading={isDownloading}
+              onDownloadPdf={handleDownloadPdf}
+              getWhatsAppUrl={getWhatsAppUrl}
+            />
           ) : (
-            <div className="space-y-6 bg-white p-4 sm:p-8 rounded-2xl border border-gray-200/80 shadow-xs">
-              {/* Kop Surat Resmi Empathika khusus Dokumen PDF */}
-              <div
-                id="laporan-pdf-header"
-                style={{ display: "none" }}
-                className="pb-4 mb-5 border-b-2 border-[#561269]"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="text-xl font-black text-[#561269] tracking-tight">EMPATHIKA</div>
-                    <div className="text-[10px] font-medium text-gray-500 mt-0.5">Pusat Layanan Asesmen &amp; Konsultasi Psikologi Digital</div>
-                    <div className="text-[9px] text-gray-400 mt-0.5">www.empathika.id • info@empathika.id</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#561269]">
-                      Laporan Hasil Asesmen Psikotes
-                    </div>
-                    <div className="text-sm font-bold text-gray-900 mt-0.5">{displayTestName}</div>
-                    <div className="text-[9px] font-medium text-gray-500 mt-0.5">
-                      No. Dokumen: <span className="font-mono font-bold text-gray-800">EMP-PSI-{peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card Identitas Peserta Asesmen */}
-              <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-7 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-gray-100 gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
-                      <User className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 leading-tight">
-                    Identitas Peserta Asesmen
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Data resmi peserta pengerjaan asesmen psikotes
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-[#561269] border border-purple-200" title="Sesuai standar validitas klinis asesmen psikologi, laporan ini berlaku 3 bulan sejak tanggal tes">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Masa Berlaku: 3 Bulan
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Terverifikasi Resmi
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pdf-grid-4">
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                  Nama Lengkap
-                </span>
-                <span className="font-extrabold text-sm text-gray-900 block truncate">
-                  {peserta.nama || "Peserta Asesmen Empathika"}
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                  Kontak WhatsApp
-                </span>
-                <span className="font-bold text-sm text-emerald-700 block truncate">
-                  {peserta.noHp || "—"}
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                  Profil Peserta
-                </span>
-                <span className="font-bold text-sm text-gray-800 block truncate">
-                  {[
-                    peserta.usia ? `${peserta.usia} Thn` : null,
-                    peserta.jenisKelamin || null,
-                    peserta.kategori ? `(${peserta.kategori})` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" • ") || "—"}
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                  Tanggal Asesmen
-                </span>
-                <span className="font-bold text-sm text-gray-800 block truncate">
-                  {peserta.tanggal}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* 1. Hasil Utama (Clean & Modern Card) */}
-          <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-[#FAF8FB] rounded-xl border border-purple-200/70 p-6 sm:p-8 shadow-xs text-center border-l-4 border-l-[#561269]">
-            {dynamicResult.prefix && (
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{dynamicResult.prefix}</p>
-            )}
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#561269] tracking-tight mb-2">
-              {dynamicResult.value}
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              {isDASS && dassEvaluation
-                ? dassEvaluation.introText
-                : isMCMI
-                ? "Laporan resmi evaluasi klinis multiaxial kepribadian. Seluruh telaah dinamika kepribadian, indikator psikologis, dan rekomendasi disusun secara personal oleh Psikolog Empathika."
-                : berbayarDetail.deskripsi}
-            </p>
-          </section>
-
-          {/* 2. Grid Konten: Kolom Kiri (Analisis) & Kolom Kanan (Sidebar) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* Kolom Kiri: Analisis Lengkap */}
-            <div id="laporan-kolom-kiri" className="lg:col-span-8 space-y-8 print:w-full print:col-span-12">
-              
-              {/* Profil 3 Dimensi DASS-42 (Depresi, Kecemasan, Stres) */}
-              {dassEvaluation && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-[#561269]" />
-                      Profil 3 Dimensi: Depresi, Kecemasan, &amp; Stres
-                    </h3>
-                    <span className="text-xs font-semibold text-gray-400">Maks. 42 / dimensi</span>
-                  </div>
-
-                  <div className="space-y-4">
-                    {dassEvaluation.subscalesList.map((sub, idx) => (
-                      <div key={idx} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full ${sub.barColor} shrink-0`} />
-                            <span className="font-bold text-sm text-gray-900">{sub.name}</span>
-                          </div>
-                          <span className="text-xs font-bold text-gray-700">
-                            {sub.score} <span className="text-gray-400 font-normal">/ {sub.maxScore}</span>
-                          </span>
-                        </div>
-
-                        <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${sub.barColor} rounded-full transition-all duration-500`}
-                            style={{ width: `${sub.score > 0 ? Math.max(6, sub.percentage) : 0}%` }}
-                          />
-                        </div>
-
-                        <p className="text-xs text-gray-600 leading-relaxed pt-0.5">
-                          {sub.deskripsi}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Profil 9 Skala Kepribadian PBQ (Tanpa Skor Total & Tanpa Kategori Interpretasi) */}
-              {pbqProfile && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-[#561269]" />
-                      Profil Skor Mentah 9 Skala Kepribadian (PBQ)
-                    </h3>
-                    <span className="text-xs font-semibold text-gray-400">Maks. 56 / skala (tanpa skor total)</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {pbqProfile.subscalesList.map((sub: any) => {
-                      const score = Number(sub.skor ?? 0);
-                      const maxScore = Number(sub.max_skor ?? 56);
-                      const pct = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
-
-                      return (
-                        <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <div>
-                              <span className="font-bold text-sm text-gray-900 block">{sub.nama}</span>
-                              <span className="text-[11px] text-gray-500">Butir {sub.rentangButir}</span>
-                            </div>
-                            <span className="text-xs font-bold text-[#561269]">
-                              {score} <span className="text-gray-400 font-normal">/ {maxScore}</span>
-                            </span>
-                          </div>
-
-                          <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[#561269] rounded-full transition-all duration-500"
-                              style={{ width: `${Math.max(score > 0 ? 4 : 0, pct)}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <p className="text-xs text-amber-900 bg-amber-50/80 border border-amber-200/80 rounded-xl p-3 leading-relaxed">
-                    Catatan: Skor ditampilkan sebagai skor mentah per skala (rentang 0–56). Kategori interpretasi dan Z-score normatif belum ditampilkan sambil menunggu acuan resmi.
-                  </p>
-                </section>
-              )}
-
-              {/* Laporan Hasil Multiaxial MCMI-IV (15 Spektrum Kepribadian, 10 Sindroma Klinis, & 5 Skala Validitas) */}
-              {mcmiResult && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-                  {/* Header Multiaxial */}
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-4 flex-wrap gap-2">
-                    <div>
-                      <span className="text-[10px] font-bold tracking-wider uppercase text-[#561269] bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">
-                        CONFIDENTIAL • FOR PROFESSIONAL USE ONLY
-                      </span>
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mt-1 flex items-center gap-2">
-                        <Compass className="w-5 h-5 text-[#561269]" />
-                        Millon Clinical Multiaxial Inventory-IV (MCMI-IV)
-                      </h3>
-                    </div>
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                      mcmiResult.validitas?.isValid
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-red-50 text-red-700 border-red-200"
-                    }`}>
-                      {mcmiResult.validitas?.isValid ? "✓ Hasil Valid" : "⚠ Hasil Tidak Valid"}
-                    </span>
-                  </div>
-
-                  {/* A. Bagian Validitas */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-[#561269] text-white text-xs flex items-center justify-center font-bold">A</span>
-                      <span>Validitas Asesmen</span>
-                    </h4>
-                    <div className={`p-4 rounded-2xl border ${
-                      mcmiResult.validitas?.isValid
-                        ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-950"
-                        : "bg-red-50/80 border-red-200 text-red-950"
-                    }`}>
-                      <p className="text-xs sm:text-sm font-bold">
-                        {mcmiResult.laporanNaratif?.validitas || (mcmiResult.validitas?.isValid ? "Hasil tes ini akurat dan dapat dipercaya." : "Hasil tes ini tidak akurat dan tidak dapat diinterpretasi.")}
-                      </p>
-                      {mcmiResult.validitas?.alasanInvalid && mcmiResult.validitas.alasanInvalid.length > 0 && (
-                        <ul className="mt-2 space-y-1 text-xs list-disc list-inside text-red-800">
-                          {mcmiResult.validitas.alasanInvalid.map((alasan: string, idx: number) => (
-                            <li key={idx}>{alasan}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-
-                    {/* Grid Indeks Validitas */}
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
-                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala V</span>
-                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaV ?? 0}</span>
-                        <span className="text-[10px] text-gray-500 block">Maks 1</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
-                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala W</span>
-                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaW ?? 0}</span>
-                        <span className="text-[10px] text-gray-500 block">Maks 19</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
-                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala X</span>
-                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaX ?? 0}</span>
-                        <span className="text-[10px] text-gray-500 block">7 – 114</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
-                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala Y (BR)</span>
-                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaY_BR ?? 0}</span>
-                        <span className="text-[10px] text-gray-500 block">&gt; 75 Desirable</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center col-span-2 sm:col-span-1">
-                        <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala Z (BR)</span>
-                        <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaZ_BR ?? 0}</span>
-                        <span className="text-[10px] text-gray-500 block">&gt; 75 Debasement</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* B. Bagian Pola Spektrum Kepribadian (15 Skala) */}
-                  <div className="space-y-3 pt-3 border-t border-gray-100">
-                    <h4 className="text-sm font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-[#561269] text-white text-xs flex items-center justify-center font-bold">B</span>
-                      <span>Pola Spektrum Kepribadian</span>
-                    </h4>
-                    <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
-                      <p className="font-semibold text-gray-900 mb-1">Deskripsi Kesimpulan Kepribadian:</p>
-                      <p>{mcmiResult.laporanNaratif?.polaKepribadian || "Tidak dapat diinterpretasi."}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                      {mcmiResult.polaKepribadianList?.map((scale: any) => {
-                        const br = Number(scale.brScore ?? 0);
-                        const isDisorder = br >= 85;
-                        const isType = br >= 75 && br < 85;
-                        const isStyle = br >= 60 && br < 75;
-
-                        return (
-                          <div
-                            key={scale.kode}
-                            className={`p-3.5 rounded-2xl border space-y-2 transition-all ${
-                              isDisorder
-                                ? "bg-rose-50/70 border-rose-200"
-                                : isType
-                                  ? "bg-amber-50/70 border-amber-200"
-                                  : isStyle
-                                    ? "bg-purple-50/50 border-purple-100"
-                                    : "bg-gray-50/60 border-gray-100"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <span className="font-bold text-xs sm:text-sm text-gray-900 block leading-tight">{scale.nama}</span>
-                                <span className={`text-[10px] font-bold uppercase tracking-wider inline-block mt-0.5 px-2 py-0.5 rounded-md ${
-                                  isDisorder
-                                    ? "bg-rose-100 text-rose-800"
-                                    : isType
-                                      ? "bg-amber-100 text-amber-800"
-                                      : isStyle
-                                        ? "bg-purple-100 text-purple-800"
-                                        : "bg-gray-200 text-gray-600"
-                                }`}>
-                                  {scale.level}
-                                </span>
-                              </div>
-                              <span className="text-xs font-extrabold text-[#561269] shrink-0">
-                                BR {br} <span className="text-[10px] text-gray-400 font-normal">/ 115</span>
-                              </span>
-                            </div>
-
-                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  isDisorder ? "bg-rose-600" : isType ? "bg-amber-500" : "bg-[#561269]"
-                                }`}
-                                style={{ width: `${Math.min(100, Math.round((br / 115) * 100))}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* C. Bagian Sindroma Klinis (10 Skala) */}
-                  <div className="space-y-3 pt-3 border-t border-gray-100">
-                    <h4 className="text-sm font-extrabold text-gray-900 tracking-wide uppercase flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-[#561269] text-white text-xs flex items-center justify-center font-bold">C</span>
-                      <span>Sindroma Klinis</span>
-                    </h4>
-                    <div className="p-4 rounded-2xl bg-[#FAF8FB] border border-purple-100/80 text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
-                      <p className="font-semibold text-gray-900 mb-1">Deskripsi Kesimpulan Klinis:</p>
-                      <p>{mcmiResult.laporanNaratif?.klinis || "Tidak dapat diinterpretasi."}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                      {mcmiResult.sindromaKlinisList?.map((scale: any) => {
-                        const br = Number(scale.brScore ?? 0);
-                        const isSevere = br >= 85;
-                        const isMild = br >= 75 && br < 85;
-
-                        return (
-                          <div
-                            key={scale.kode}
-                            className={`p-3.5 rounded-2xl border space-y-2 transition-all ${
-                              isSevere
-                                ? "bg-rose-50/70 border-rose-200"
-                                : isMild
-                                  ? "bg-amber-50/70 border-amber-200"
-                                  : "bg-gray-50/60 border-gray-100"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <span className="font-bold text-xs sm:text-sm text-gray-900 block leading-tight">{scale.nama}</span>
-                                <span className={`text-[10px] font-bold uppercase tracking-wider inline-block mt-0.5 px-2 py-0.5 rounded-md ${
-                                  isSevere
-                                    ? "bg-rose-100 text-rose-800"
-                                    : isMild
-                                      ? "bg-amber-100 text-amber-800"
-                                      : "bg-gray-200 text-gray-600"
-                                }`}>
-                                  {scale.level}
-                                </span>
-                              </div>
-                              <span className="text-xs font-extrabold text-[#561269] shrink-0">
-                                BR {br} <span className="text-[10px] text-gray-400 font-normal">/ 115</span>
-                              </span>
-                            </div>
-
-                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  isSevere ? "bg-rose-600" : isMild ? "bg-amber-500" : "bg-[#561269]"
-                                }`}
-                                style={{ width: `${Math.min(100, Math.round((br / 115) * 100))}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Profil Tiga Dimensi Kecemasan RCMAS (tanpa Lie Scale & tanpa cutoff buatan) */}
-              {rcmasSubscales && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-[#561269]" />
-                      Profil Tiga Dimensi Kecemasan RCMAS
-                    </h3>
-                    <span className="text-xs font-semibold text-gray-400">Skor mentah per dimensi</span>
-                  </div>
-
-                  <div className="space-y-3.5">
-                    {rcmasSubscales.map((sub) => {
-                      const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
-                      return (
-                        <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-bold text-sm text-gray-900">{sub.label}</span>
-                            <span className="text-xs font-bold text-[#561269]">
-                              {sub.score} <span className="text-gray-400 font-normal">/ {sub.max}</span>
-                            </span>
-                          </div>
-                          <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[#561269] rounded-full transition-all duration-500"
-                              style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-gray-600 leading-relaxed">{sub.deskripsi}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-
-              {/* Hasil Skrining Trauma & PTSD Anak/Remaja (CATS) */}
-              {isCATS && (
-                <div className="space-y-6">
-                  {/* Profil Empat Klaster Gejala PTSD DSM-5 */}
-                  {catsSubscales && (
-                    <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                          <Compass className="w-5 h-5 text-[#561269]" />
-                          Profil Empat Klaster Gejala PTSD (DSM-5)
-                        </h3>
-                        <span className="text-xs font-semibold text-gray-400">Skor mentah per klaster (cut-off total ≥ 21)</span>
-                      </div>
-
-                      <div className="space-y-3.5">
-                        {catsSubscales.map((sub) => {
-                          const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
-                          return (
-                            <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-bold text-sm text-gray-900">{sub.label}</span>
-                                <span className="text-xs font-bold text-[#561269]">
-                                  {sub.score} <span className="text-gray-400 font-normal">/ {sub.max}</span>
-                                </span>
-                              </div>
-                              <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-[#561269] rounded-full transition-all duration-500"
-                                  style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
-                                />
-                              </div>
-                              <p className="text-xs text-gray-600 leading-relaxed">{sub.deskripsi}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Dampak terhadap Fungsi Psikososial */}
-                  {catsFungsi && (
-                    <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-4">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                          <Compass className="w-5 h-5 text-[#561269]" />
-                          Dampak terhadap Fungsi Psikososial
-                        </h3>
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                          {catsFungsi.totalTerganggu} dari 5 Area Terganggu
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                        {catsFungsi.rincian?.map((r: any, idx: number) => (
-                          <div
-                            key={idx}
-                            className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs font-medium ${
-                              r.terganggu
-                                ? "bg-rose-50/70 border-rose-200 text-rose-900"
-                                : "bg-emerald-50/50 border-emerald-200 text-emerald-800"
-                            }`}
-                          >
-                            <span>{r.nama}</span>
-                            <span className="font-bold px-2.5 py-0.5 rounded text-[11px]">
-                              {r.terganggu ? "Terganggu (Ya)" : "Tidak"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-                </div>
-              )}
-
-              {/* Profil Lima Dimensi Depresi CDI */}
-              {cdiSubscales && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-[#561269]" />
-                      Profil Lima Dimensi Depresi CDI
-                    </h3>
-                    <span className="text-xs font-semibold text-gray-400">Skor mentah per dimensi (cut-off total ≥ 19)</span>
-                  </div>
-
-                  <div className="space-y-3.5">
-                    {cdiSubscales.map((sub) => {
-                      const pct = sub.max > 0 ? Math.round((sub.score / sub.max) * 100) : 0;
-                      return (
-                        <div key={sub.key} className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-bold text-sm text-gray-900">{sub.label}</span>
-                            <span className="text-xs font-bold text-[#561269]">
-                              {sub.score} <span className="text-gray-400 font-normal">/ {sub.max}</span>
-                            </span>
-                          </div>
-                          <div className="w-full h-2.5 bg-gray-200/80 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[#561269] rounded-full transition-all duration-500"
-                              style={{ width: `${sub.score > 0 ? Math.max(4, pct) : 0}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-gray-600 leading-relaxed">{sub.deskripsi}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-
-              {/* Interpretasi Hasil & Implikasi Strategis (Hanya untuk instrumen non-klinis dengan interpretasi template) */}
-              {!isMCMI && berbayarDetail.deskripsi && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-                      <Info className="w-5 h-5 text-[#561269]" />
-                      Interpretasi Hasil
-                    </h3>
-                    <div className="space-y-3.5 text-sm text-gray-600 leading-relaxed">
-                      {String(berbayarDetail.deskripsi || "")
-                        .split(/\r?\n\s*\r?\n/)
-                        .map((p: string) => p.trim())
-                        .filter(Boolean)
-                        .map((para: string, i: number) => (
-                          <p key={i}>{para}</p>
-                        ))}
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Analisis Karakteristik & Dinamika Diri */}
-              {(berbayarDetail.kekuatanUtama.length > 0 || berbayarDetail.blindspots.length > 0) && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-                      <ShieldCheck className="w-5 h-5 text-[#561269]" />
-                      Analisis Karakteristik &amp; Dinamika Diri
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Pemetaan potensi keunggulan serta area pengembangan diri untuk berkembang optimal:
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pdf-grid-2">
-                    {/* Potensi atau Kekuatan Utama */}
-                    {berbayarDetail.kekuatanUtama.length > 0 && (
-                      <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
-                        <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                          <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
-                            {berbayarDetail.judulKekuatan || "Potensi atau Kekuatan Utama"}
-                          </span>
-                        </div>
-                        <ul className="space-y-2.5 text-xs text-emerald-950">
-                          {berbayarDetail.kekuatanUtama.map((point: string, pIdx: number) => (
-                            <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
-                              <span>{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Area yang Perlu Dikembangkan */}
-                    {berbayarDetail.blindspots.length > 0 && (
-                      <div className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200/70">
-                        <div className="flex items-center gap-2 mb-3">
-                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                          <span className="text-xs font-bold text-rose-900 uppercase tracking-wider">
-                            {berbayarDetail.judulBlindspots || "Area yang Perlu Dikembangkan"}
-                          </span>
-                        </div>
-                        <ul className="space-y-2.5 text-xs text-rose-950">
-                          {berbayarDetail.blindspots.map((point: string, pIdx: number) => (
-                            <li key={pIdx} className="flex items-start gap-2 leading-relaxed">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
-                              <span>{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {/* Kondisi atau Lingkungan yang Mendukung */}
-              {berbayarDetail.lingkunganOptimal.length > 0 && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-[#561269]" />
-                      {berbayarDetail.judulLingkungan || "Kondisi atau Lingkungan yang Mendukung"}
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Kondisi eksternal yang paling mendukung performa optimal dan kesejahteraan emosionalmu:
-                    </p>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-amber-50/40 border border-amber-200/70">
-                    <ul className="space-y-2.5 text-xs text-gray-800">
-                      {berbayarDetail.lingkunganOptimal.map((ling, lIdx) => (
-                        <li key={lIdx} className="flex items-start gap-2 leading-relaxed">
-                          <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                          <span>{ling}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </section>
-              )}
-
-              {/* Tips & Langkah Pengembangan Diri */}
-              {berbayarDetail.saranList.length > 0 && (
-                <section style={{ breakInside: "avoid", pageBreakInside: "avoid" }} className="pdf-card bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-                      <HeartHandshake className="w-5 h-5 text-[#561269]" />
-                      Langkah Pengembangan Diri
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Saran praktis untuk memaksimalkan potensi dan menjaga keseimbangan energimu:
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {berbayarDetail.saranList.map((tip: any, index: number) => (
-                      <div key={index} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <CheckCircle2 className="w-5 h-5 text-[#561269]" />
-                        </div>
-                        <div>
-                          {typeof tip === "string" ? (
-                            <p className="text-xs text-gray-600 leading-relaxed">{tip}</p>
-                          ) : (
-                            <>
-                              {tip.title && <h4 className="text-sm font-bold text-gray-900">{tip.title}</h4>}
-                              {tip.desc && <p className="mt-0.5 text-xs text-gray-600 leading-relaxed">{tip.desc}</p>}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-            </div>
-
-            {/* Kolom Kanan: Sidebar Aksi & Konsultasi (TIDAK MASUK KE PDF / PRINT) */}
-            <div id="laporan-sidebar-aksi" className="lg:col-span-4 space-y-6 sticky top-[120px] print:hidden">
-              
-              {/* Card Ringkasan Asesmen */}
-              <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4">
-                <h4 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">
-                  Informasi Asesmen
-                </h4>
-                <div className="space-y-3 text-xs">
-                  <div className="flex justify-between items-center text-gray-600">
-                    <span>Status Tes</span>
-                    <span className="font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Selesai</span>
-                  </div>
-                  <div className="flex justify-between items-center text-gray-600">
-                    <span>Cakupan Laporan</span>
-                    <span className="font-semibold text-[#561269]">
-                      {isMCMI ? "Telaah Klinis Psikolog" : "Analisis Komprehensif"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-gray-600">
-                    <span>Validitas Respon</span>
-                    <span className="font-semibold text-gray-900">
-                      {isMCMI
-                        ? mcmiResult?.validitas?.isValid
-                          ? "Valid & Terpercaya"
-                          : "Indikasi Tidak Valid"
-                        : "Konsisten"}
-                    </span>
-                  </div>
-                  {dassEvaluation && (
-                    <div className="pt-3 border-t border-gray-100 space-y-2">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-                        Rincian Skor Dimensi
-                      </span>
-                      <div className="flex justify-between items-center text-gray-600">
-                        <span>Depresi</span>
-                        <span className="font-semibold text-gray-800">{dassEvaluation.depression.score} / 42</span>
-                      </div>
-                      <div className="flex justify-between items-center text-gray-600">
-                        <span>Kecemasan</span>
-                        <span className="font-semibold text-gray-800">{dassEvaluation.anxiety.score} / 42</span>
-                      </div>
-                      <div className="flex justify-between items-center text-gray-600">
-                        <span>Stres</span>
-                        <span className="font-semibold text-gray-800">{dassEvaluation.stress.score} / 42</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Card Ajakan Konsultasi */}
-              <div className="bg-gradient-to-br from-[#561269] to-[#763E8B] text-white rounded-3xl p-6 sm:p-7 shadow-md space-y-4">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#EAB308] block">
-                  Konsultasi Psikolog
-                </span>
-                <h4 className="text-lg font-bold leading-snug">
-                  Ingin Membahas Hasil Ini Secara Mendalam?
-                </h4>
-                <p className="text-xs text-purple-100 leading-relaxed">
-                  Konsultasikan hasil analisismu bersama psikolog berlisensi Empathika untuk panduan karir dan pengembangan diri yang personal.
-                </p>
-                <Link href="/konseling" className="block pt-1">
-                  <button className="w-full py-3 rounded-xl bg-[#EAB308] hover:bg-[#FACC15] text-black font-extrabold text-xs flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer">
-                    <Calendar className="w-4 h-4" />
-                    <span>Jadwalkan Sesi Konsultasi</span>
-                  </button>
-                </Link>
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Footer Resmi Asesor khusus Dokumen PDF */}
-          <div
-            id="laporan-pdf-footer"
-            style={{ display: "none" }}
-            className="pt-4 border-t border-dashed border-gray-300 mt-6 bg-white"
-          >
-            <div className="flex justify-between items-end">
-              <div className="text-[9px] text-gray-400 leading-relaxed max-w-xs">
-                <strong>Catatan Resmi:</strong> Dokumen ini bersifat rahasia (confidential) dan diterbitkan sebagai hasil asesmen psikometri resmi Empathika.
-                <br />
-                Verifikasi Dokumen: <span className="font-mono text-gray-600">EMP-PSI-{peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"}</span>
-              </div>
-              <div className="text-center w-52">
-                <div className="text-[10px] text-gray-600 mb-8">
-                  Bandung, {peserta.tanggal}
-                  <br />
-                  Tim Asesor Asesmen Psikologi,
-                </div>
-                <div className="text-xs font-extrabold text-gray-900 border-t border-gray-900 pt-1">
-                  Empathika Psychological Center
-                </div>
-              </div>
-            </div>
-          </div>
-
-          </div>
+            <HasilAnalisisScorecardView
+              displayTestName={displayTestName}
+              peserta={peserta}
+              dynamicResult={dynamicResult}
+              isDASS={isDASS}
+              isMCMI={isMCMI}
+              dassEvaluation={dassEvaluation}
+              pbqProfile={pbqProfile}
+              mcmiResult={mcmiResult}
+              berbayarDetail={berbayarDetail}
+              subscales={genericSubscales}
+              subscalesTitle={genericSubscalesTitle}
+              subscalesMaxNote={genericSubscalesMaxNote}
+              isDownloading={isDownloading}
+              onDownloadPdf={handleDownloadPdf}
+              getWhatsAppUrl={getWhatsAppUrl}
+            />
           )}
-
         </div>
 
         {/* Rekomendasi Tes Dinamis dari Database (TIDAK MASUK KE PRINT) */}

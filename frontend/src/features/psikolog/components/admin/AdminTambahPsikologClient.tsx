@@ -43,6 +43,7 @@ export default function AdminTambahPsikologClient() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
   const [kategori, setKategori] = useState<KategoriTenaga>("psikolog")
   const [statusAkses, setStatusAkses] = useState<StatusAkses>("AKTIF")
+  const [isReviewerPsikotes, setIsReviewerPsikotes] = useState(false)
   const [spesialisasi, setSpesialisasi] = useState("")
   const [noStr, setNoStr] = useState("")
   const [noSipp, setNoSipp] = useState("")
@@ -229,6 +230,8 @@ export default function AdminTambahPsikologClient() {
       noTelepon: noTelepon.trim(),
       kategori,
       statusAkses,
+      isReviewerPsikotes,
+      is_reviewer_psikotes: isReviewerPsikotes,
       spesialisasi:
         spesialisasi.trim() ||
         (isPsikolog
@@ -685,6 +688,31 @@ export default function AdminTambahPsikologClient() {
                   </svg>
                 </div>
               </div>
+            </div>
+
+            {/* Wewenang Reviewer Asesmen Psikotes */}
+            <div className="sm:col-span-2 pt-3 border-t border-gray-100 flex items-center justify-between gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-800">
+                  Wewenang Reviewer Asesmen Psikotes
+                </label>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Jika diaktifkan, psikolog ini memiliki hak klinis untuk mengambil antrean telaah, mengisi interpretasi, dan menerbitkan laporan resmi asesmen psikotes.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReviewerPsikotes((prev) => !prev)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                  isReviewerPsikotes ? "bg-[#561269]" : "bg-gray-200"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isReviewerPsikotes ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>

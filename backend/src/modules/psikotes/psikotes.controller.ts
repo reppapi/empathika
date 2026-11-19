@@ -87,12 +87,121 @@ export class PsikotesController {
     request: FastifyRequest<{ Params: { id: string }; Body: SubmitPsikotesInput }>,
     reply: FastifyReply
   ) => {
-    const data = await this.service.submit(request.params.id, request.body)
+    const resolvedBiroId = await this.resolveBiroIdFromRequest(request)
+    const payload: SubmitPsikotesInput = {
+      ...request.body,
+      ...(resolvedBiroId ? { id_biro: resolvedBiroId } : {}),
+    }
+    const data = await this.service.submit(request.params.id, payload)
     return reply.code(201).send({
       success: true,
       message: 'Berhasil mengirimkan jawaban psikotes dan menghitung hasil asesmen',
       data,
     })
+  }
+
+  private async getBiroIdForUser(userId?: string): Promise<string | undefined> {
+    if (!userId) return undefined
+    try {
+      const account = await (this.fastify as any).prisma.account.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          id_biro: true,
+          biro: { select: { id: true } },
+          owned_biro: { select: { id: true } },
+        },
+      })
+      if (!account) {
+        const directBiro = await (this.fastify as any).prisma.biro.findUnique({
+          where: { id: userId },
+          select: { id: true },
+        })
+        return directBiro?.id
+      }
+      if (account.owned_biro && account.owned_biro.length > 0) {
+        return account.owned_biro[0].id
+      }
+      if (account.id_biro) {
+        return account.id_biro
+      }
+      if (account.biro?.id) {
+        return account.biro.id
+      }
+      const biroFound = await (this.fastify as any).prisma.biro.findFirst({
+        where: {
+          OR: [
+            { id_account: userId },
+            { id: userId },
+          ],
+        },
+        select: { id: true },
+      })
+      return biroFound?.id
+    } catch {
+      return undefined
+    }
+  }
+
+  private async resolveBiroIdFromRequest(request: FastifyRequest): Promise<string | undefined> {
+    // 1. Cek query atau body langsung jika ada id_biro
+    const bodyBiro = (request.body as any)?.id_biro
+    const queryBiro = (request.query as any)?.id_biro
+    if (bodyBiro && typeof bodyBiro === 'string' && bodyBiro.trim()) return bodyBiro.trim()
+    if (queryBiro && typeof queryBiro === 'string' && queryBiro.trim()) return queryBiro.trim()
+
+    // 2. Cek headers: x-biro-id atau x-biro-slug
+    const headerBiroId = request.headers['x-biro-id']
+    if (headerBiroId && typeof headerBiroId === 'string' && headerBiroId.trim()) return headerBiroId.trim()
+
+    const rawSlug = (
+      request.headers['x-biro-slug'] ||
+      (request.body as any)?.slug ||
+      (request.body as any)?.biro_slug ||
+      (request.query as any)?.slug ||
+      (request.query as any)?.biro ||
+      (request.query as any)?.tenant
+    ) as string | undefined
+
+    if (rawSlug && typeof rawSlug === 'string' && rawSlug.trim()) {
+      const biro = await (this.fastify as any).prisma.biro.findFirst({
+        where: { slug: { equals: rawSlug.trim(), mode: 'insensitive' } },
+        select: { id: true },
+      })
+      if (biro?.id) return biro.id
+    }
+
+    // 3. Cek referer atau origin header jika berasal dari subdomain biro (misal: bina-insan.empathika.com atau ugm.localhost:3000)
+    const referer = (request.headers.referer || request.headers.origin) as string | undefined
+    if (referer && typeof referer === 'string') {
+      try {
+        const url = new URL(referer)
+        const hostname = url.hostname.toLowerCase()
+        let detectedSlug: string | null = null
+        if (hostname.endsWith('.localhost')) {
+          const parts = hostname.replace(/\.localhost$/, '').split('.')
+          const sub = parts[parts.length - 1]
+          if (sub && sub !== 'www') detectedSlug = sub
+        } else if (hostname.endsWith('.lvh.me')) {
+          const parts = hostname.replace(/\.lvh.me$/, '').split('.')
+          const sub = parts[parts.length - 1]
+          if (sub && sub !== 'www') detectedSlug = sub
+        } else {
+          const parts = hostname.split('.')
+          if (parts.length > 2 && parts[0] !== 'www') detectedSlug = parts[0]
+        }
+
+        if (detectedSlug) {
+          const biro = await (this.fastify as any).prisma.biro.findFirst({
+            where: { slug: { equals: detectedSlug, mode: 'insensitive' } },
+            select: { id: true },
+          })
+          if (biro?.id) return biro.id
+        }
+      } catch {}
+    }
+
+    return undefined
   }
 
   getPeserta = async (
@@ -101,12 +210,26 @@ export class PsikotesController {
   ) => {
     const user = (request as any).user
     let id_biro = request.query?.id_biro
+
     if (user?.role === 'BIRO') {
-      const account = await (this.fastify as any).prisma.account.findUnique({
-        where: { id: user.id },
-        select: { id_biro: true, owned_biro: { select: { id: true } } },
-      })
-      id_biro = account?.owned_biro?.[0]?.id || account?.id_biro || undefined
+      const biroId = await this.getBiroIdForUser(user.id)
+      if (!biroId) {
+        return reply.code(200).send({
+          success: true,
+          message: 'Berhasil mengambil daftar peserta psikotes',
+          data: {
+            summary: {
+              total_peserta: 0,
+              total_gratis: 0,
+              total_berbayar: 0,
+              total_selesai: 0,
+              total_menunggu_review: 0,
+            },
+            items: [],
+          },
+        })
+      }
+      id_biro = biroId
     }
 
     const data = await this.service.getPeserta({
@@ -125,7 +248,12 @@ export class PsikotesController {
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.createBooking(request.body)
+      const resolvedBiroId = await this.resolveBiroIdFromRequest(request)
+      const payload: CreateBookingPsikotesInput = {
+        ...request.body,
+        ...(resolvedBiroId ? { id_biro: resolvedBiroId } : {}),
+      }
+      const data = await this.service.createBooking(payload)
       return reply.code(201).send({
         success: true,
         message: 'Berhasil mencatat transaksi dan booking paket psikotes berbayar',
@@ -172,8 +300,8 @@ export class PsikotesController {
       let isAdmin = hasAllowedDummyToken(request)
       if (!isAdmin && request.headers.authorization) {
         try {
-          await request.jwtVerify()
-          const role = (request.user as any)?.role
+          await (request as any).jwtVerify()
+          const role = ((request as any).user as any)?.role
           isAdmin = role === 'ADMIN' || role === 'BIRO' || role === 'PSIKOLOG'
         } catch {
           isAdmin = false
@@ -238,11 +366,12 @@ export class PsikotesController {
     reply: FastifyReply
   ) => {
     try {
-      const user = request.user as { id?: string } | undefined
+      const user = (request as any).user as { id?: string; role?: string } | undefined
       const data = await this.service.submitReview(
         request.params.bookingId,
         request.body,
-        user?.id
+        user?.id,
+        user?.role
       )
       return reply.code(200).send({
         success: true,
@@ -254,6 +383,70 @@ export class PsikotesController {
       return reply.code(statusCode).send({
         success: false,
         message: err.message || 'Gagal menyimpan telaah klinis psikolog',
+      })
+    }
+  }
+
+  claimReviewTicket = async (
+    request: FastifyRequest<{ Params: { bookingId: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      let user = (request as any).user as { id?: string; role?: string } | undefined
+      if (!user && (request as any).jwtVerify) {
+        try {
+          await (request as any).jwtVerify()
+          user = (request as any).user
+        } catch {}
+      }
+
+      const data = await this.service.claimReviewTicket(
+        request.params.bookingId,
+        user?.id,
+        user?.role
+      )
+      return reply.code(200).send({
+        success: true,
+        message: 'Tiket asesmen berhasil diklaim dan dikunci untuk Anda.',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal mengklaim tiket asesmen.',
+      })
+    }
+  }
+
+  releaseReviewTicket = async (
+    request: FastifyRequest<{ Params: { bookingId: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      let user = (request as any).user as { id?: string; role?: string } | undefined
+      if (!user && (request as any).jwtVerify) {
+        try {
+          await (request as any).jwtVerify()
+          user = (request as any).user
+        } catch {}
+      }
+
+      const data = await this.service.releaseReviewTicket(
+        request.params.bookingId,
+        user?.id,
+        user?.role
+      )
+      return reply.code(200).send({
+        success: true,
+        message: 'Tiket asesmen berhasil dikembalikan ke Kolam Bersama.',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal melepas tiket asesmen.',
       })
     }
   }

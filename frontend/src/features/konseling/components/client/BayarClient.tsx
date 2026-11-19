@@ -207,6 +207,7 @@ export default function BayarClient() {
           biayaLabel={isAsesmen ? `Biaya Asesmen${qHari ? ` (${qHari})` : ""}` : "Biaya Konsultasi"}
           biayaNominal={isAsesmen ? qHarga : (hargaNominal || qHarga)}
           totalNominal={isAsesmen ? qHarga : (hargaNominal || qHarga)}
+          showKetentuanReservasi={!isAsesmen}
           isSubmitDisabled={isSlotUnavailable || isLayananNonaktif}
           submitButtonText={isLayananNonaktif ? "Layanan Nonaktif" : isSlotUnavailable ? "Jadwal Telah Dibatalkan" : "Bayar Sekarang"}
           submittingButtonText="Memproses Booking..."

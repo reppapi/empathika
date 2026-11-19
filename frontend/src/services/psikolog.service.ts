@@ -56,6 +56,9 @@ export const psikologService = {
   createPsikologBaru: (payload: any) =>
     apiClient.post("/psikolog/tambah", payload).then((r) => r.data),
 
+  updatePsikolog: (id: string, payload: any) =>
+    apiClient.put(`/psikolog/${id}`, payload).then((r) => r.data),
+
   deletePsikolog: (id: string) =>
     apiClient.delete(`/psikolog/${id}`).then((r) => r.data),
 

@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTenantContext } from "@/context/TenantContext";
 import { usePsikotesTest } from "@/features/psikotes/hooks/usePsikotesTest";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { useAuthStore } from "@/store/authStore";
@@ -18,8 +19,39 @@ import {
   isGAD as checkGAD,
   isIGDS as checkIGDS,
   isPHQ as checkPHQ,
+  isMCMI as checkMCMI,
   isPackagePaid,
 } from "@/features/psikotes/utils/instrumentDetector";
+
+/**
+ * Format teks opsi jawaban untuk web pengguna.
+ * Untuk MCMI-IV, menyederhanakan teks yang panjang/bergaris miring menjadi "Sesuai" dan "Tidak Sesuai".
+ */
+function cleanOptionText(text: string, isMcmiTest?: boolean): string {
+  if (!text) return text;
+  const lower = text.toLowerCase().trim();
+  if (
+    lower === "sesuai / benar (true)" ||
+    lower === "(+) sesuai / benar (true)" ||
+    lower === "sesuai (true)" ||
+    lower === "benar (true)" ||
+    lower === "benar" ||
+    (isMcmiTest && (lower.includes("sesuai") && !lower.includes("tidak")))
+  ) {
+    return "Sesuai";
+  }
+  if (
+    lower === "tidak sesuai / salah (false)" ||
+    lower === "(-) tidak sesuai / salah (false)" ||
+    lower === "tidak sesuai (false)" ||
+    lower === "salah (false)" ||
+    lower === "salah" ||
+    (isMcmiTest && (lower.includes("tidak sesuai") || lower.includes("salah")))
+  ) {
+    return "Tidak Sesuai";
+  }
+  return text;
+}
 
 // Helper pengecekan kelengkapan data identitas peserta berbayar
 const isIdentityFullyCompleted = (data: IdentityData) => {
@@ -55,6 +87,7 @@ const isIdentityFullyCompleted = (data: IdentityData) => {
 export default function PsikotesMulaiClient({ params }: { params: { testId: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { biroProfile } = useTenantContext();
   const [dbData, setDbData] = useState<PaketPsikotesApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -222,6 +255,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const isCDI = checkCDI(dbData, params.testId);
   const isCATS = checkCATS(dbData, params.testId);
   const isCHOCI = checkCHOCI(dbData, params.testId);
+  const isMCMI = checkMCMI(dbData, params.testId);
 
   const isPaidFlow = Boolean(
     (dbData
@@ -846,6 +880,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         choci_isian: isCHOCI ? chociIsian : undefined,
         id_booking: bookingIdParam,
         bookingId: bookingIdParam,
+        id_biro: biroProfile?.id || undefined,
         orderId: searchParams.get("orderId") || undefined,
         kode_akses: searchParams.get("orderId") || undefined,
         nama: isPaidFlow ? (identityData.nama.trim() || pesertaNama || undefined) : (pesertaNama || undefined),
@@ -1516,6 +1551,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                 <div className="flex flex-col gap-3">
                   {currentQuestion.options.map((opt, idx) => {
                     const isSelected = answers[currentIndex] === idx;
+                    const displayLabel = cleanOptionText(opt, isMCMI);
                     return (
                       <button
                         key={idx}
@@ -1535,7 +1571,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                         <span className={`text-sm sm:text-base font-medium leading-relaxed transition-colors duration-200 ${
                           isSelected ? "text-[#561269]" : "text-gray-700"
                         }`}>
-                          {opt}
+                          {displayLabel}
                         </span>
                       </button>
                     );

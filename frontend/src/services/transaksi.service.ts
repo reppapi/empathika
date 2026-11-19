@@ -3,6 +3,7 @@ import apiClient from "@/lib/axios"
 export interface CreateCheckoutInput {
   tipe: "KONSELING" | "EVENT" | "PSIKOTES"
   id_item: string
+  id_biro?: string
   nama: string
   email?: string
   no_telepon: string

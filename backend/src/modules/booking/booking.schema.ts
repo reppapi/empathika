@@ -12,8 +12,8 @@ export const getJadwalTersediaQuerySchema = z.object({
 // ── 2. Jadwal Milik Psikolog (Portal Psikolog) ──
 export const getJadwalPsikologMeQuerySchema = z.object({
   id_psikolog: z.string().optional(),
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  start_date: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal('')]).optional(),
+  end_date: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal('')]).optional(),
 })
 
 export const createJadwalSlotSchema = z.object({

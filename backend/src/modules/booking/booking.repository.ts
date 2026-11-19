@@ -1146,16 +1146,16 @@ export class BookingRepository {
       const prefix = isAsesmen ? 'ASES' : 'KONS'
       const kode_pesanan = generateOrderId(prefix)
       const kode_transaksi = generateTrxId()
-
+      const effectiveBiroId = resolvedBiroId || (data as any).id_biro || client.id_biro || null
       const metodeBayar = (data.metode_pembayaran || 'QRIS').toUpperCase()
       const tipeSesi = (data.metode || 'ONLINE').toUpperCase() as 'ONLINE' | 'OFFLINE'
-      const dariBiro = Boolean(resolvedBiroId)
+      const dariBiro = Boolean(effectiveBiroId)
       const rincian = hitungTransaksi(nominal, tipeSesi, metodeBayar, dariBiro)
 
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
-          id_biro_tenant: resolvedBiroId || null,
+          id_biro_tenant: effectiveBiroId,
           kode_transaksi,
           tipe_transaksi: 'KONSULTASI',
           harga_dasar: rincian.hargaDasar,

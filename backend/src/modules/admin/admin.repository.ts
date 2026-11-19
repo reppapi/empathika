@@ -333,17 +333,29 @@ export class AdminRepository {
     const where: Prisma.TransaksiWhereInput = {
       ...(biroId
         ? {
-            OR: [
-              { id_biro_tenant: biroId },
-              { client: { id_biro: biroId } },
+            AND: [
+              {
+                OR: [
+                  { id_biro_tenant: biroId },
+                  { client: { id_biro: biroId } },
+                ],
+              },
+              {
+                OR: [
+                  { booking_konsultasi: { isNot: null } },
+                  { booking_psikotes: { isNot: null } },
+                  { booking_event: { isNot: null } },
+                ],
+              },
             ],
           }
-        : {}),
-      OR: [
-        { booking_konsultasi: { isNot: null } },
-        { booking_psikotes: { isNot: null } },
-        { booking_event: { isNot: null } },
-      ],
+        : {
+            OR: [
+              { booking_konsultasi: { isNot: null } },
+              { booking_psikotes: { isNot: null } },
+              { booking_event: { isNot: null } },
+            ],
+          }),
     }
 
     const [totalCount, rawTransactions] = await Promise.all([

@@ -357,6 +357,9 @@ export function useBayarClient() {
 
     const isAsesmenLayanan = qLayanan.toLowerCase().includes("asesmen") || isAsesmenParam
 
+    const biroIdFromQuery = searchParams.get("biroId") || searchParams.get("id_biro")
+    const effectiveBiroId = biroProfile?.id || biroIdFromQuery || undefined
+
     try {
       const resolvedBiroSlug = (isBiro ? tenantSlug : undefined) || searchParams.get("biro") || searchParams.get("tenant") || undefined
       let resolvedBiroId = biroProfile?.id || undefined
@@ -376,7 +379,10 @@ export function useBayarClient() {
         } catch (e) {}
       }
 
+      const finalBiroId = resolvedBiroId || effectiveBiroId || biroProfile?.id || undefined
+
       const res: any = await bookingService.createBooking({
+        id_biro: finalBiroId,
         id_jadwal: qSlotId || undefined,
         id_psikolog: !isAsesmenLayanan ? (qPsikologId || undefined) : undefined,
         tanggal: targetDate || undefined,
@@ -388,7 +394,6 @@ export function useBayarClient() {
         deskripsi_trauma: deskripsi.trim() || (isAsesmenLayanan ? `Sesi ${qLayanan}` : undefined),
         metode_pembayaran: (metodePembayaran || "QRIS").toUpperCase(),
         channel_pembayaran: selectedBank || selectedEwallet || "QRIS",
-        id_biro: resolvedBiroId,
         biro_slug: resolvedBiroSlug,
         klien: {
           nama: nama.trim().toUpperCase(),

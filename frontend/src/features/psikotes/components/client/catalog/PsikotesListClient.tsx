@@ -5,9 +5,11 @@ import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service"
+import { useTenantContext } from "@/context/TenantContext"
 import { Loader2, WifiOff, RefreshCw } from "lucide-react"
 
 export default function PsikotesListClient() {
+  const { slug } = useTenantContext()
   const [tests, setTests] = useState<PaketPsikotesApiResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -139,7 +141,7 @@ export default function PsikotesListClient() {
 
                     <div className="mt-auto pt-2">
                       <Link
-                        href={`/psikotes/${test.id}` as any}
+                        href={(slug ? `/psikotes/${test.id}?biro=${encodeURIComponent(slug)}` : `/psikotes/${test.id}`) as any}
                         className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
                       >
                         Ikuti Tes

@@ -134,7 +134,26 @@ export class PsikologService {
   }
 
   async update(id: string, data: UpdatePsikologInput) {
-    return this.repo.update(id, data as any)
+    let targetId = id
+    try {
+      const found = await this.repo.findById(id)
+      if (found) targetId = found.id
+    } catch {}
+
+    const rawVal = (data as any).is_reviewer_psikotes ?? (data as any).isReviewerPsikotes
+    if (rawVal !== undefined) {
+      const val = Boolean(rawVal)
+      try {
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE "psikologs" SET "is_reviewer_psikotes" = $1 WHERE "id" = $2 OR "id_account" = $2`,
+          val,
+          targetId
+        )
+      } catch (e) {
+        console.warn('Direct SQL update for is_reviewer_psikotes failed:', e)
+      }
+    }
+    return this.repo.update(targetId, data as any)
   }
 
   async delete(id: string) {
@@ -384,6 +403,10 @@ export class PsikologService {
       psikologUpdateData.video_duration = body.video_duration
     if (profilLengkapStr !== undefined) psikologUpdateData.profil_lengkap = profilLengkapStr
     if (body.tarif_per_jam !== undefined) psikologUpdateData.tarif_per_jam = body.tarif_per_jam
+    const reviewerFlag = body.is_reviewer_psikotes !== undefined ? body.is_reviewer_psikotes : body.isReviewerPsikotes
+    if (reviewerFlag !== undefined && reviewerFlag !== null) {
+      psikologUpdateData.is_reviewer_psikotes = Boolean(reviewerFlag)
+    }
 
     const updated = await this.prisma.psikolog.update({
       where: { id: psikolog.id },
@@ -538,6 +561,9 @@ export class PsikologService {
           video_duration: videoDuration,
           profil_lengkap: profilLengkap,
           status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
+          ...(body.is_reviewer_psikotes !== undefined || body.isReviewerPsikotes !== undefined
+            ? { is_reviewer_psikotes: Boolean(body.is_reviewer_psikotes ?? body.isReviewerPsikotes) }
+            : {}),
           bank_code: body.bank_code ?? body.bankCode ?? undefined,
           nomor_rekening: body.nomor_rekening ?? body.nomorRekening ?? undefined,
           nama_pemilik_rek: body.nama_pemilik_rek ?? body.namaPemilikRekening ?? undefined,
@@ -613,7 +639,10 @@ export class PsikologService {
             video_duration: videoDuration,
             profil_lengkap: profilLengkap,
             status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
-          bank_code: body.bank_code ?? body.bankCode ?? undefined,
+            ...(body.is_reviewer_psikotes !== undefined || body.isReviewerPsikotes !== undefined
+              ? { is_reviewer_psikotes: Boolean(body.is_reviewer_psikotes ?? body.isReviewerPsikotes) }
+              : {}),
+            bank_code: body.bank_code ?? body.bankCode ?? undefined,
           nomor_rekening: body.nomor_rekening ?? body.nomorRekening ?? undefined,
           nama_pemilik_rek: body.nama_pemilik_rek ?? body.namaPemilikRekening ?? undefined,
             tarif_per_jam: tarif,
@@ -646,7 +675,10 @@ export class PsikologService {
             video_duration: videoDuration,
             profil_lengkap: profilLengkap,
             status: body.statusAkses === 'NONAKTIF' ? 'INACTIVE' : 'ACTIVE',
-          bank_code: body.bank_code ?? body.bankCode ?? undefined,
+            ...(body.is_reviewer_psikotes !== undefined || body.isReviewerPsikotes !== undefined
+              ? { is_reviewer_psikotes: Boolean(body.is_reviewer_psikotes ?? body.isReviewerPsikotes) }
+              : {}),
+            bank_code: body.bank_code ?? body.bankCode ?? undefined,
           nomor_rekening: body.nomor_rekening ?? body.nomorRekening ?? undefined,
           nama_pemilik_rek: body.nama_pemilik_rek ?? body.namaPemilikRekening ?? undefined,
             tarif_per_jam: tarif,
