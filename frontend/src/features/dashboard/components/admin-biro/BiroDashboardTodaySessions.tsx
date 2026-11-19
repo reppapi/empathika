@@ -46,7 +46,7 @@ export default function BiroDashboardTodaySessions({
           </button>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 max-h-[320px] overflow-y-auto pr-1.5 admin-table-scrollbar">
           {sessions.length === 0 ? (
             <div className="py-8 text-center text-xs text-gray-400">
               Belum ada sesi konseling yang dijadwalkan hari ini untuk biro ini.
