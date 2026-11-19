@@ -198,7 +198,6 @@ export function usePsikotesBayar() {
         status_pembayaran: "PAID",
         nama: nama.trim(),
         no_telepon: whatsapp.trim(),
-        id_biro: biroProfile?.id || undefined,
       })
       const createdBookingId = (res?.data as any)?.id_booking || res?.data?.booking?.id
       if (createdBookingId) {
