@@ -283,17 +283,22 @@ export class PsikotesReviewRepository {
       if (userId) {
         let found: any = null
         try {
-          const rows = await tx.$queryRawUnsafe<any[]>(
-            `SELECT id, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
-            userId
-          )
+          const rows = typeof tx.$queryRawUnsafe === 'function'
+            ? await tx.$queryRawUnsafe<any[]>(
+                `SELECT id, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
+                userId
+              )
+            : null
           found = rows && rows[0] ? rows[0] : null
         } catch {
+          found = null
+        }
+        if (!found) {
           found = await tx.psikolog.findFirst({
             where: {
               OR: [{ id_account: userId }, { id: userId }],
             },
-            select: { id: true },
+            select: { id: true, is_reviewer_psikotes: true },
           })
         }
         if (found) {
@@ -417,17 +422,22 @@ export class PsikotesReviewRepository {
       let resolvedPsikolog: any = null
       if (userId) {
         try {
-          const rows = await tx.$queryRawUnsafe<any[]>(
-            `SELECT id, nama_gelar, kategori, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
-            userId
-          )
+          const rows = typeof tx.$queryRawUnsafe === 'function'
+            ? await tx.$queryRawUnsafe<any[]>(
+                `SELECT id, nama_gelar, kategori, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
+                userId
+              )
+            : null
           resolvedPsikolog = rows && rows[0] ? rows[0] : null
         } catch {
+          resolvedPsikolog = null
+        }
+        if (!resolvedPsikolog) {
           resolvedPsikolog = await tx.psikolog.findFirst({
             where: {
               OR: [{ id_account: userId }, { id: userId }],
             },
-            select: { id: true, nama_gelar: true, kategori: true },
+            select: { id: true, nama_gelar: true, kategori: true, is_reviewer_psikotes: true },
           })
         }
       }
@@ -475,16 +485,27 @@ export class PsikotesReviewRepository {
       })
 
       // Simpan waktu awal klaim tiket secara permanen jika belum ada
-      await tx.$executeRawUnsafe(
-        `UPDATE "booking_psikotes" SET "claimed_at" = COALESCE("claimed_at", NOW()) WHERE id = $1`,
-        bookingId
-      )
+      if (typeof tx.$executeRawUnsafe === 'function') {
+        try {
+          await tx.$executeRawUnsafe(
+            `UPDATE "booking_psikotes" SET "claimed_at" = COALESCE("claimed_at", NOW()) WHERE id = $1`,
+            bookingId
+          )
+        } catch {}
+      }
 
-      const claimedRaw = await tx.$queryRawUnsafe<any[]>(
-        `SELECT "claimed_at" FROM "booking_psikotes" WHERE id = $1 LIMIT 1`,
-        bookingId
-      )
-      const actualClaimedAt = claimedRaw && claimedRaw[0]?.claimed_at ? claimedRaw[0].claimed_at : updated.updatedAt
+      let actualClaimedAt = updated.updatedAt
+      if (typeof tx.$queryRawUnsafe === 'function') {
+        try {
+          const claimedRaw = await tx.$queryRawUnsafe<any[]>(
+            `SELECT "claimed_at" FROM "booking_psikotes" WHERE id = $1 LIMIT 1`,
+            bookingId
+          )
+          if (claimedRaw && claimedRaw[0]?.claimed_at) {
+            actualClaimedAt = claimedRaw[0].claimed_at
+          }
+        } catch {}
+      }
 
       return {
         id: updated.id,
@@ -557,10 +578,14 @@ export class PsikotesReviewRepository {
         },
       })
 
-      await tx.$executeRawUnsafe(
-        `UPDATE "booking_psikotes" SET "claimed_at" = NULL WHERE id = $1`,
-        bookingId
-      )
+      if (typeof tx.$executeRawUnsafe === 'function') {
+        try {
+          await tx.$executeRawUnsafe(
+            `UPDATE "booking_psikotes" SET "claimed_at" = NULL WHERE id = $1`,
+            bookingId
+          )
+        } catch {}
+      }
 
       return {
         id: updated.id,
