@@ -3,7 +3,6 @@ import type { PrismaClient } from '@prisma/client'
 import type { PesertaQueryInput } from '../psikotes.schema'
 import { formatIndonesianPhone } from '../../../utils'
 import { determineKategoriPeserta } from './peserta-kategori.helper'
-import { purgeExpiredPsikotesData } from './retensi-psikotes.helper'
 
 export class PsikotesPesertaRepository {
   constructor(private prisma: PrismaClient) {}
@@ -274,6 +273,7 @@ export class PsikotesPesertaRepository {
                 detail_skor: b.hasil_tes.detail_skor,
                 catatan_psikolog: (b.hasil_tes as any).catatan_psikolog || null,
                 rekomendasi_psikolog: (b.hasil_tes as any).rekomendasi_psikolog || null,
+                draft_saved_at: (b.hasil_tes as any)?.draft_saved_at || null,
                 tanggal_review: (b.hasil_tes as any).tanggal_review || null,
               }
             })()

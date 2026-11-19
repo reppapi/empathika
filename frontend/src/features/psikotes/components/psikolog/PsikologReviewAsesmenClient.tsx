@@ -19,10 +19,7 @@ import {
   Search,
   RefreshCw,
   Stethoscope,
-  User,
   Calendar,
-  FileText,
-  Filter,
   Loader2,
   Lock,
 } from "lucide-react";
@@ -700,7 +697,7 @@ export default function PsikologReviewAsesmenClient() {
                                 (isClaimedByMe ? (activePsiName || user?.name) : null) ||
                                 "Psikolog Pemeriksa"}
                             </p>
-                            {item.tanggal_review && (
+                            {item.status_pengerjaan === "SELESAI" && item.tanggal_review ? (
                               <p className="text-[10px] text-gray-400">
                                 Ditelaah:{" "}
                                 {new Date(item.tanggal_review).toLocaleDateString("id-ID", {
@@ -709,7 +706,15 @@ export default function PsikologReviewAsesmenClient() {
                                   year: "numeric",
                                 })}
                               </p>
-                            )}
+                            ) : item.draft_saved_at ? (
+                              <p className="text-[10px] text-purple-600 font-medium">
+                                Draf:{" "}
+                                {new Date(item.draft_saved_at).toLocaleTimeString("id-ID", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            ) : null}
                           </div>
                         ) : (
                           <span className="text-gray-400 italic text-[11px]">

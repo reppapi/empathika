@@ -2,7 +2,6 @@
 import type { PrismaClient } from '@prisma/client'
 import type { SubmitPsikotesInput } from '../psikotes.schema'
 import {
-  getAlatUkur,
   hitungSkorAlatUkur,
 } from '../alat-ukur'
 import { createHasilAccessToken } from '../hasil-token'

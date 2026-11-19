@@ -167,6 +167,7 @@ export interface ReviewPsikotesItem {
   perlu_review_psikolog: boolean
   catatan_psikolog?: string | null
   rekomendasi_psikolog?: string | null
+  draft_saved_at?: string | null
   tanggal_review?: string | null
   psikolog?: {
     id: string
@@ -340,6 +341,7 @@ export const psikotesService = {
             deskripsi?: string | null
             catatan_psikolog?: string | null
             rekomendasi_psikolog?: string | null
+            draft_saved_at?: string | null
             tanggal_review?: string | null
           }
           psikolog?: {

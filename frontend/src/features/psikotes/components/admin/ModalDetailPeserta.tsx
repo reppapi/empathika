@@ -6,20 +6,14 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
-  FileText,
   Download,
   Phone,
-  Clock,
   Loader2,
   User,
   ShoppingBag,
   Send,
   AlertCircle,
-  UserCheck,
   AlertTriangle,
-  CheckCircle2,
-  ExternalLink,
-  Calendar,
 } from "lucide-react";
 import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../../types/adminPsikotes";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
@@ -137,13 +131,6 @@ export default function ModalDetailPeserta({
     year: "numeric",
   });
 
-  const hasDifferentPhones = Boolean(
-    hasPesertaData &&
-    waPesertaDigits &&
-    waPembeliDigits &&
-    waPesertaDigits !== waPembeliDigits
-  );
-
   // Template Pesan WA Reminder
   const waReminderUrlPembeli = waPembeliDigits
     ? `https://wa.me/${waPembeliDigits}?text=${encodeURIComponent(
@@ -159,21 +146,6 @@ Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta
 Silakan buka https://empathika.id untuk menyelesaikan asesmen Kakak ya. Terima kasih! 😊`
       )}`
     : null;
-
-  const waReminderUrlPeserta =
-    hasDifferentPhones && waPesertaDigits
-      ? `https://wa.me/${waPesertaDigits}?text=${encodeURIComponent(
-`Halo Kak ${namaPeserta}!
-
-Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta.paket} di Empathika telah aktif, namun belum diselesaikan.
-
-- Tanggal transaksi: ${tanggalTransaksiFormatted}
-- Batas akhir pengerjaan: ${batasAkhirFormatted}
-- Kode Booking: ${kodeBooking || "Cek bukti transaksi"}
-
-Silakan buka https://empathika.id untuk memulai asesmen ya. Terima kasih! 😊`
-        )}`
-      : null;
 
   // Template Pesan WA Hasil PDF
   const targetOrangTuaPhone = waOrangTuaDigits || (isAnak ? waPesertaDigits || waPembeliDigits : "");

@@ -178,7 +178,6 @@ export default function TabPesertaPsikotes({
       key: "peserta",
       header: "Nama Peserta",
       render: (peserta: AdminPsikotesPeserta) => {
-        const isSelesai = peserta.status === "Selesai";
         const hasPeserta = Boolean(peserta.peserta && peserta.peserta.nama_lengkap);
         return (
           <div className="flex flex-col">

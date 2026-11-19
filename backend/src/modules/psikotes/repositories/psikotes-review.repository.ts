@@ -5,7 +5,6 @@ import type {
   SubmitReviewPsikotesInput,
 } from '../psikotes.schema'
 import { formatIndonesianPhone } from '../../../utils'
-import { determineKategoriPeserta } from './peserta-kategori.helper'
 import { purgeExpiredPsikotesData } from './retensi-psikotes.helper'
 
 export class PsikotesReviewRepository {
@@ -224,6 +223,7 @@ export class PsikotesReviewRepository {
           perlu_review_psikolog: (b.paket as any).perlu_review_psikolog,
           catatan_psikolog: (b.hasil_tes as any)?.catatan_psikolog || null,
           rekomendasi_psikolog: (b.hasil_tes as any)?.rekomendasi_psikolog || null,
+          draft_saved_at: (b.hasil_tes as any)?.draft_saved_at || null,
           tanggal_review: (b.hasil_tes as any)?.tanggal_review || null,
           psikolog: (b as any).psikolog
             ? {
@@ -363,12 +363,15 @@ export class PsikotesReviewRepository {
       }
 
       // 1. Update HasilTes
+      const now = new Date()
       const updatedHasil = await tx.hasilTes.update({
         where: { id: booking.hasil_tes.id },
         data: {
           catatan_psikolog: input.catatan_psikolog.trim(),
           rekomendasi_psikolog: input.rekomendasi_psikolog?.trim() || null,
-          tanggal_review: new Date(),
+          ...(input.is_draft
+            ? ({ draft_saved_at: now } as any)
+            : { tanggal_review: now }),
         },
       })
 
