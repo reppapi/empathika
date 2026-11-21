@@ -5,12 +5,7 @@ import { usePathname } from "next/navigation"
 import SidebarAdmin from "@/components/layout/SidebarAdmin"
 import AdminNavbar from "@/components/layout/AdminNavbar"
 
-import dynamic from "next/dynamic"
-
-const AuthGuard = dynamic(
-  () => import("@/components/shared/AuthGuard").then((mod) => mod.AuthGuard),
-  { ssr: false }
-)
+import { AuthGuard } from "@/components/shared/AuthGuard"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)

@@ -113,3 +113,5 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   return <>{children}</>
 }
 
+export default AuthGuard
+

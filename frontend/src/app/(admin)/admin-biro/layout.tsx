@@ -7,12 +7,7 @@ import AdminNavbar from "@/components/layout/AdminNavbar"
 import { useAuthStore } from "@/store/authStore"
 import { biroAdminService } from "@/services/biro.service"
 
-import dynamic from "next/dynamic"
-
-const AuthGuard = dynamic(
-  () => import("@/components/shared/AuthGuard").then((mod) => mod.AuthGuard),
-  { ssr: false }
-)
+import { AuthGuard } from "@/components/shared/AuthGuard"
 
 export default function AdminBiroLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
