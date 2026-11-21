@@ -106,60 +106,6 @@ export class LayananService {
           aktif: true,
         })
       }
-      const defaultAsesmens = [
-        {
-          nama: 'Asesmen Minat Bakat',
-          kategori: 'ASESMEN' as KategoriLayanan,
-          metode: 'Online/Offline',
-          deskripsi: 'Pemetaan komprehensif potensi akademik, kecenderungan minat karir, dan profil bakat individu bersama tim profesional Empathika.',
-          harga_weekday: 400000,
-          harga_weekend: 500000,
-          tarif_tenaga_ahli: {
-            asesmen: {
-              online: 350000,
-              offline: { weekday: 400000, weekend: 500000 },
-            },
-          },
-          aktif: true,
-        },
-        {
-          nama: 'Asesmen Kesiapan Sekolah',
-          kategori: 'ASESMEN' as KategoriLayanan,
-          metode: 'Online/Offline',
-          deskripsi: 'Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, bahasa, dan regulasi sosio-emosional.',
-          harga_weekday: 350000,
-          harga_weekend: 450000,
-          tarif_tenaga_ahli: {
-            asesmen: {
-              online: 300000,
-              offline: { weekday: 350000, weekend: 450000 },
-            },
-          },
-          aktif: true,
-        },
-        {
-          nama: 'Asesmen Klinis',
-          kategori: 'ASESMEN' as KategoriLayanan,
-          metode: 'Online/Offline',
-          deskripsi: 'Pemeriksaan diagnostik psikologis mendalam untuk mengidentifikasi dinamika kepribadian, regulasi emosi, dan kesehatan mental.',
-          harga_weekday: 350000,
-          harga_weekend: 450000,
-          tarif_tenaga_ahli: {
-            asesmen: {
-              online: 350000,
-              offline: { weekday: 350000, weekend: 450000 },
-            },
-          },
-          aktif: true,
-        },
-      ]
-
-      for (const item of defaultAsesmens) {
-        const exist = await this.repo.findByNama(item.nama)
-        if (!exist) {
-          await this.repo.create(item)
-        }
-      }
     } catch (e) {
       // Ignored if db not connected or migration in progress
     }
