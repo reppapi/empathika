@@ -11,11 +11,21 @@ export interface RegisterPayload {
   password: string
 }
 
+export interface AuthBiroData {
+  id: string
+  nama_biro: string
+  slug: string
+  warna_tema?: string | null
+  logoURI?: string | null
+}
+
 export interface AuthUserData {
   id: string
   nama: string
   email: string
   role: "ADMIN" | "BIRO" | "PSIKOLOG" | string
+  id_biro?: string | null
+  biro?: AuthBiroData | null
 }
 
 export interface AuthResponse {

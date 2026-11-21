@@ -13,19 +13,30 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { user } = useAuthStore()
-  const [biroName, setBiroName] = useState<string>(user?.name || "")
+  const [biroName, setBiroName] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("biro_name")
+      if (cached) return cached
+    }
+    return user?.name || ""
+  })
   const [biroColor, setBiroColor] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      const cached = localStorage.getItem("biro_theme_color")
+      const cached = localStorage.getItem("biro_theme_color") || sessionStorage.getItem("biro_theme_color")
       if (cached) return cached
     }
     return "#561269"
   })
-  const [biroLogo, setBiroLogo] = useState<string | null>(null)
+  const [biroLogo, setBiroLogo] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("biro_logo") || null
+    }
+    return null
+  })
 
   useEffect(() => {
     let isMounted = true
-    if (user?.name) {
+    if (user?.name && !biroName) {
       setBiroName(user.name)
     }
 
@@ -37,17 +48,27 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
           const beBiro = (res.data as any).owned_biro?.[0] || res.data.biro
           if (beBiro?.nama_biro) {
             setBiroName(beBiro.nama_biro)
+            if (typeof window !== "undefined") {
+              localStorage.setItem("biro_name", beBiro.nama_biro)
+            }
           } else if (res.data.nama) {
             setBiroName(res.data.nama)
+            if (typeof window !== "undefined") {
+              localStorage.setItem("biro_name", res.data.nama)
+            }
           }
           if (beBiro?.warna_tema) {
             setBiroColor(beBiro.warna_tema)
             if (typeof window !== "undefined") {
               localStorage.setItem("biro_theme_color", beBiro.warna_tema)
+              sessionStorage.setItem("biro_theme_color", beBiro.warna_tema)
             }
           }
           if (beBiro?.logoURI) {
             setBiroLogo(beBiro.logoURI)
+            if (typeof window !== "undefined") {
+              localStorage.setItem("biro_logo", beBiro.logoURI)
+            }
           }
         })
         .catch((err) => {
@@ -94,7 +115,11 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
 
   return (
     <AuthGuard allowedRoles={["BIRO"]}>
-      <div className="min-h-screen bg-[#FBFBFC] font-poppins text-gray-800 flex">
+      <div 
+        className="min-h-screen bg-[#FBFBFC] font-poppins text-gray-800 flex"
+        data-biro-theme="true"
+        style={{ "--biro-theme-color": biroColor } as React.CSSProperties}
+      >
         {/* 1. Sidebar Navigasi Biro */}
         <SidebarBiro
           isOpen={isSidebarOpen}
