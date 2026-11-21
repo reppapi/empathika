@@ -17,15 +17,16 @@ interface WorkshopDetailClientProps {
 }
 
 export default function WorkshopDetailClient({ slug }: WorkshopDetailClientProps) {
-  const { withBiro } = useTenantContext()
+  const { withBiro, isBiro, biroProfile } = useTenantContext()
+  const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"
 
   // Fallback data jika slug belum ada di static data
   const fallbackData: WorkshopContentData = WORKSHOP_DETAILS_DATA[slug] || {
     slug,
-    title: slug === "seft" ? "Workshop SEFT" : slug === "peer-helper" ? "Pelatihan & Workshop Konselor Sebaya" : "Workshop Empathika",
+    title: slug === "seft" ? "Workshop SEFT" : slug === "peer-helper" ? "Pelatihan & Workshop Konselor Sebaya" : `Workshop ${brandName}`,
     subtitle: slug === "seft" ? "Spiritual Emotional Freedom Technique" : slug === "peer-helper" ? "Peer Helper Training Program" : "Program Workshop & Pelatihan",
     intro:
-      "Workshop pengembangan diri dan interaktif dari Empathika untuk membantu peserta mengasah keterampilan psikologis, regulasi emosi, serta kesehatan mental.",
+      `Workshop pengembangan diri dan interaktif dari ${brandName} untuk membantu peserta mengasah keterampilan psikologis, regulasi emosi, serta kesehatan mental.`,
     benefits: [
       "Membantu meredakan stres, kecemasan berlebih, dan ketegangan emosional",
       "Meningkatkan ketenangan batin, kejernihan pikiran, dan kesadaran diri (self-awareness)",
@@ -37,7 +38,7 @@ export default function WorkshopDetailClient({ slug }: WorkshopDetailClientProps
       "Program terbuka bagi individu, komunitas, institusi pendidikan, maupun perusahaan yang ingin menciptakan lingkungan sehat mental.",
     heroImage:
       "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80",
-    heroImageAlt: "Hero Dokumentasi Workshop Empathika",
+    heroImageAlt: `Hero Dokumentasi Workshop ${brandName}`,
     gallery: [
       {
         src: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
@@ -198,7 +199,7 @@ export default function WorkshopDetailClient({ slug }: WorkshopDetailClientProps
       <section className="pt-4 pb-20 sm:pb-24 text-center px-4">
         <div className="max-w-xl mx-auto flex flex-col items-center">
           <p className="text-base sm:text-lg font-bold text-[#561269] mb-4">
-            Tertarik Mengadakan {title} Bersama Empathika?
+            Tertarik Mengadakan {title} Bersama {brandName}?
           </p>
           <Link
             href={withBiro("/kerja-sama") as any}

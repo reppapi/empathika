@@ -47,6 +47,7 @@ export const psikologService = {
     tipe_jadwal?: string
     metode?: string
     layanan?: string
+    force_release?: boolean
   }) => apiClient.post("/psikolog/me/jadwal-slots", payload).then((r) => r.data),
 
   deleteJadwalSlot: (slotId: string) =>

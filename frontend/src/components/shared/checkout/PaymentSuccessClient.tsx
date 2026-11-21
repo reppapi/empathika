@@ -8,6 +8,7 @@ import { adminService } from "@/services/admin.service"
 import { formatOrderId } from "@/lib/utils"
 import { Video, MessageCircle, ExternalLink, KeyRound, Copy, Check } from "lucide-react"
 import { clearPsikotesDetailOrigin } from "@/features/psikotes/utils/navigationHistory"
+import { useTenantContext } from "@/context/TenantContext"
 
 // ─── Konfigurasi per tipe pembayaran ──────────────────────────────────────────
 export type PaymentType = "konseling" | "event" | "psikotes"
@@ -73,6 +74,8 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const router = useRouter()
   const cfg = CONFIGS[type]
   const searchParams = useSearchParams()
+  const { isBiro, biroProfile } = useTenantContext()
+  const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"
 
   const nama = searchParams.get("nama") ?? "PESERTA"
   const rawOrderId = searchParams.get("orderId") ?? "W-EMP-0000"
@@ -86,13 +89,13 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
     (searchParams.get("kategori") && searchParams.get("kategori")!.toLowerCase().includes("asesmen"))
   )
   const judul =
-    rawJudul === "Tes Psikotes Empathika"
+    rawJudul === "Tes Psikotes Empathika" || (rawJudul && rawJudul.toLowerCase().includes("tes psikotes"))
       ? "Paket Psikotes"
-      : (rawJudul ?? (isAsesmen ? "Layanan Asesmen Offline" : (type === "konseling" ? "Layanan Konsultasi" : type === "psikotes" ? "Paket Psikotes" : "Event Empathika")))
+      : (rawJudul ?? (isAsesmen ? "Layanan Asesmen Offline" : (type === "konseling" ? "Layanan Konsultasi" : type === "psikotes" ? "Paket Psikotes" : `Event ${brandName}`)))
   const subjudul =
     searchParams.get("subjudul") === "Tes Psikotes Empathika"
       ? ""
-      : (searchParams.get("subjudul") ?? (isAsesmen ? "Sesi Asesmen Klinis di Klinik Empathika" : (type === "konseling" ? "Psikolog Profesional Empathika" : "")))
+      : (searchParams.get("subjudul") ?? (isAsesmen ? `Sesi Asesmen Klinis di Klinik ${brandName}` : (type === "konseling" ? `Psikolog Profesional ${brandName}` : "")))
   const bottomDate = searchParams.get("bottomDate") ?? `${tanggal} ${tahun}`
   const bottomTime = searchParams.get("bottomTime") ?? `${waktu} WIB`
   const metode = searchParams.get("metode") ?? "qris"
@@ -225,7 +228,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://empathika.id"
   const psikotesAccessUrl = testId ? `${baseUrl}/psikotes/${testId}?kode=${orderId}` : `${baseUrl}/psikotes?kode=${orderId}`
-  const shareWhatsAppText = `Halo! Ini adalah kode akses untuk tes psikotes di Empathika:
+  const shareWhatsAppText = `Halo! Ini adalah kode akses untuk tes psikotes di ${brandName}:
 *Paket:* ${judul}
 *Kode Akses:* ${orderId}
 *Pemesan:* ${nama}
@@ -317,7 +320,7 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
       ? `E-Wallet ${ewallet ?? ""}`
       : "QRIS"
 
-  const waMessage = `Halo Admin Empathika, saya baru saja melakukan pembayaran untuk ${judul}. Order ID: ${orderId} atas nama ${nama}`
+  const waMessage = `Halo Admin ${brandName}, saya baru saja melakukan pembayaran untuk ${judul}. Order ID: ${orderId} atas nama ${nama}`
   const waAdminUrl = `https://wa.me/${finalWaNumber}?text=${encodeURIComponent(waMessage)}`
 
   const handleDownload = () => {

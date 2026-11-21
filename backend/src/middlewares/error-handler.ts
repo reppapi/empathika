@@ -13,6 +13,24 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
     })
   }
 
+  // Prisma unique constraint violation (P2002 / Race Condition)
+  if ((error as any).code === "P2002") {
+    const target = (error as any).meta?.target
+    const isSlotRaceCondition =
+      !target ||
+      (Array.isArray(target) && target.some((t: string) => t.includes("jadwal") || t.includes("slot"))) ||
+      String(target).includes("jadwal") ||
+      String(target).includes("slot")
+
+    return reply.code(409).send({
+      error: "Conflict",
+      errorCode: "P2002",
+      message: isSlotRaceCondition
+        ? "Mohon maaf, slot sesi ini baru saja dipesan oleh klien lain. Silakan pilih jadwal sesi lainnya."
+        : "Data yang Anda kirimkan sudah terdaftar atau terjadi konflik data. Silakan periksa kembali.",
+    })
+  }
+
   // Known HTTP errors
   if (error.statusCode) {
     const extra = error as FastifyError & {

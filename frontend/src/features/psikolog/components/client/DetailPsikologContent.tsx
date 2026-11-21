@@ -12,9 +12,10 @@ interface DetailContentProps {
 }
 
 export function DetailPsikologContent({ psikolog }: DetailContentProps) {
-  const { withBiro } = useTenant();
+  const { isBiro, withBiro } = useTenant();
   const searchParams = useSearchParams();
   const qLayanan = searchParams?.get('layanan');
+  const resolvedLayanan = qLayanan && !qLayanan.toLowerCase().includes("asesmen") ? qLayanan : "Konsultasi Individu";
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   const initial = psikolog.nama_gelar ? psikolog.nama_gelar.charAt(0) : 'P';
 
@@ -44,7 +45,14 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
       {/* 1. Curved Purple Hero Banner (Menyatu langsung dari top 0px ke bawah arch) */}
       <div className="w-full overflow-hidden">
         <div 
-          className="w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
+          className="curved-hero-banner w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
+          style={
+            isBiro
+              ? {
+                  backgroundImage: `linear-gradient(to bottom, color-mix(in srgb, var(--biro-theme-color, #561269) 82%, white) 0%, var(--biro-theme-color, #561269) 50%, color-mix(in srgb, var(--biro-theme-color, #561269) 55%, black) 100%)`,
+                }
+              : undefined
+          }
         >
           <div className="max-w-4xl mx-auto overflow-hidden">
             <h1 
@@ -53,7 +61,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
             >
               {titleHeader}
             </h1>
-            <p className="mt-2 text-purple-200 text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light transition-all duration-500 ease-out">
+            <p className={`mt-2 ${isBiro ? "text-white/80" : "text-purple-200"} text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light transition-all duration-500 ease-out`}>
               Kenali lebih dekat profesional yang akan mendampingi perjalanan kesehatan mental Anda.
             </p>
           </div>
@@ -284,7 +292,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
               )?.map((jadwal: { waktu: string }, idx: number) => (
                 <Link 
                   key={idx}
-                  href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}${qLayanan ? `&layanan=${encodeURIComponent(qLayanan)}` : ""}`) as any}
+                  href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}&layanan=${encodeURIComponent(resolvedLayanan)}`) as any}
                   className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800 hover:bg-[#F3E8F7] hover:border-purple-300 transition-all cursor-pointer shadow-2xs hover:scale-105"
                 >
                   {jadwal.waktu}
@@ -337,7 +345,7 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
 
           <div>
             <Link
-              href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}${qLayanan ? `&layanan=${encodeURIComponent(qLayanan)}` : ""}`) as any}
+              href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}&layanan=${encodeURIComponent(resolvedLayanan)}`) as any}
               className="inline-block bg-[#EAB308] hover:bg-[#CA9A06] text-black font-bold text-base sm:text-lg md:text-xl px-10 sm:px-14 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Daftar Sesi

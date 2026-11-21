@@ -324,11 +324,308 @@ html[data-biro-theme="true"] .bg-\[\#BFA3C5\],
 }
 
 /* 11. Gradients */
+/* Curved Hero Banners (Halaman Konseling, Booking, Psikolog, Detail Psikolog) */
+html[data-biro-theme="true"] .curved-hero-banner,
+[data-biro-theme="true"] .curved-hero-banner,
+html[data-biro-theme="true"] .from-\[\#8B3A9C\].via-\[\#651877\].to-\[\#400B4D\],
+[data-biro-theme="true"] .from-\[\#8B3A9C\].via-\[\#651877\].to-\[\#400B4D\],
+html[data-biro-theme="true"] .from-\[\#8b3a9c\].via-\[\#651877\].to-\[\#400b4d\],
+[data-biro-theme="true"] .from-\[\#8b3a9c\].via-\[\#651877\].to-\[\#400b4d\] {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 82%, white) 0%,
+    var(--biro-theme-color, #561269) 50%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 55%, black) 100%
+  ) !important;
+}
+
+/* Quote Banner di Halaman Psikolog */
+html[data-biro-theme="true"] .from-\[\#8E44AD\].via-\[\#7D3C98\].to-\[\#6C3483\],
+[data-biro-theme="true"] .from-\[\#8E44AD\].via-\[\#7D3C98\].to-\[\#6C3483\],
+html[data-biro-theme="true"] .from-\[\#8e44ad\].via-\[\#7d3c98\].to-\[\#6c3483\],
+[data-biro-theme="true"] .from-\[\#8e44ad\].via-\[\#7d3c98\].to-\[\#6c3483\] {
+  background-image: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 85%, white) 0%,
+    var(--biro-theme-color, #561269) 50%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 65%, black) 100%
+  ) !important;
+}
+
+/* Avatar Fallback & Small Gradient Cards */
+html[data-biro-theme="true"] .from-\[\#8B3A9C\].to-\[\#561269\],
+[data-biro-theme="true"] .from-\[\#8B3A9C\].to-\[\#561269\],
+html[data-biro-theme="true"] .from-\[\#8b3a9c\].to-\[\#561269\],
+[data-biro-theme="true"] .from-\[\#8b3a9c\].to-\[\#561269\],
+html[data-biro-theme="true"] .from-\[\#8B3A9C\].to-\[\#651877\],
+[data-biro-theme="true"] .from-\[\#8B3A9C\].to-\[\#651877\] {
+  background-image: linear-gradient(
+    to bottom right,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 85%, white) 0%,
+    var(--biro-theme-color, #561269) 100%
+  ) !important;
+}
+
+/* Hasil Psikotes Gradient Cards */
+html[data-biro-theme="true"] .from-\[\#561269\].to-\[\#763E8B\],
+[data-biro-theme="true"] .from-\[\#561269\].to-\[\#763E8B\],
+html[data-biro-theme="true"] .from-\[\#561269\].to-\[\#763e8b\],
+[data-biro-theme="true"] .from-\[\#561269\].to-\[\#763e8b\] {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--biro-theme-color, #561269) 0%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 75%, white) 100%
+  ) !important;
+}
+
+html[data-biro-theme="true"] .from-\[\#561269\].to-\[\#3b0a48\],
+[data-biro-theme="true"] .from-\[\#561269\].to-\[\#3b0a48\],
+html[data-biro-theme="true"] .from-\[\#561269\].to-\[\#3b074b\],
+[data-biro-theme="true"] .from-\[\#561269\].to-\[\#3b074b\] {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--biro-theme-color, #561269) 0%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 60%, black) 100%
+  ) !important;
+}
+
+/* Kerja Sama Gradient Accent */
+html[data-biro-theme="true"] .from-\[\#561269\].via-\[\#8e4a9e\].to-\[\#ba68c8\],
+[data-biro-theme="true"] .from-\[\#561269\].via-\[\#8e4a9e\].to-\[\#ba68c8\] {
+  background-image: linear-gradient(
+    to right,
+    var(--biro-theme-color, #561269) 0%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 80%, white) 50%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 60%, white) 100%
+  ) !important;
+}
+
+html[data-biro-theme="true"] .from-\[\#561269\].to-\[\#8e4a9e\],
+[data-biro-theme="true"] .from-\[\#561269\].to-\[\#8e4a9e\] {
+  background-image: linear-gradient(
+    to right,
+    var(--biro-theme-color, #561269) 0%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 75%, white) 100%
+  ) !important;
+}
+
+/* Event Detail Background Gradient */
+html[data-biro-theme="true"] .from-white.via-\[\#F3E8F5\].to-\[\#B583C2\],
+[data-biro-theme="true"] .from-white.via-\[\#F3E8F5\].to-\[\#B583C2\],
+html[data-biro-theme="true"] .from-white.via-\[\#f3e8f5\].to-\[\#b583c2\],
+[data-biro-theme="true"] .from-white.via-\[\#f3e8f5\].to-\[\#b583c2\] {
+  background-image: linear-gradient(
+    to bottom,
+    white 0%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 10%, white) 45%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 35%, white) 100%
+  ) !important;
+}
+
+/* Event & Workshop Detail Image Overlays */
+html[data-biro-theme="true"] .from-\[\#561269\].to-transparent,
+[data-biro-theme="true"] .from-\[\#561269\].to-transparent {
+  background-image: linear-gradient(
+    to bottom,
+    var(--biro-theme-color, #561269) 0%,
+    transparent 100%
+  ) !important;
+}
+
+html[data-biro-theme="true"] .from-\[\#561269\]\/95.via-\[\#561269\]\/80.to-transparent,
+[data-biro-theme="true"] .from-\[\#561269\]\/95.via-\[\#561269\]\/80.to-transparent {
+  background-image: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 95%, transparent) 0%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 80%, transparent) 50%,
+    transparent 100%
+  ) !important;
+}
+
+/* Individual Gradient Stops (Universal Tailwind Variables Override) */
+html[data-biro-theme="true"] .from-\[\#8B3A9C\],
+[data-biro-theme="true"] .from-\[\#8B3A9C\],
+html[data-biro-theme="true"] .from-\[\#8b3a9c\],
+[data-biro-theme="true"] .from-\[\#8b3a9c\],
+html[data-biro-theme="true"] .from-\[\#8E44AD\],
+[data-biro-theme="true"] .from-\[\#8E44AD\],
+html[data-biro-theme="true"] .from-\[\#8e44ad\],
+[data-biro-theme="true"] .from-\[\#8e44ad\] {
+  --tw-gradient-from: color-mix(in srgb, var(--biro-theme-color, #561269) 82%, white) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 75%, black) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
 html[data-biro-theme="true"] .from-\[\#561269\],
 [data-biro-theme="true"] .from-\[\#561269\] {
   --tw-gradient-from: var(--biro-theme-color, #561269) var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 80%, black) var(--tw-gradient-to-position) !important;
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 75%, black) var(--tw-gradient-to-position) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .from-\[\#561269\]\/95,
+[data-biro-theme="true"] .from-\[\#561269\]\/95 {
+  --tw-gradient-from: color-mix(in srgb, var(--biro-theme-color, #561269) 95%, transparent) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: transparent var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .from-\[\#F8EFFF\],
+[data-biro-theme="true"] .from-\[\#F8EFFF\],
+html[data-biro-theme="true"] .from-\[\#f8efff\],
+[data-biro-theme="true"] .from-\[\#f8efff\],
+html[data-biro-theme="true"] .from-\[\#FAF5FD\],
+[data-biro-theme="true"] .from-\[\#FAF5FD\],
+html[data-biro-theme="true"] .from-\[\#faf5fd\],
+[data-biro-theme="true"] .from-\[\#faf5fd\] {
+  --tw-gradient-from: color-mix(in srgb, var(--biro-theme-color, #561269) 12%, white) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 4%, white) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .from-\[\#E6D9E9\]\/50,
+[data-biro-theme="true"] .from-\[\#E6D9E9\]\/50 {
+  --tw-gradient-from: color-mix(in srgb, var(--biro-theme-color, #561269) 18%, transparent) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: transparent var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .via-\[\#651877\],
+[data-biro-theme="true"] .via-\[\#651877\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 75%, black) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--biro-theme-color, #561269) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .via-\[\#7D3C98\],
+[data-biro-theme="true"] .via-\[\#7D3C98\],
+html[data-biro-theme="true"] .via-\[\#7d3c98\],
+[data-biro-theme="true"] .via-\[\#7d3c98\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 75%, black) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--biro-theme-color, #561269) 90%, black) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .via-\[\#8e4a9e\],
+[data-biro-theme="true"] .via-\[\#8e4a9e\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 70%, white) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--biro-theme-color, #561269) 80%, white) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .via-\[\#561269\]\/80,
+[data-biro-theme="true"] .via-\[\#561269\]\/80 {
+  --tw-gradient-to: transparent var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--biro-theme-color, #561269) 80%, transparent) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .via-\[\#F3E8F5\],
+[data-biro-theme="true"] .via-\[\#F3E8F5\],
+html[data-biro-theme="true"] .via-\[\#f3e8f5\],
+[data-biro-theme="true"] .via-\[\#f3e8f5\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 10%, white) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--biro-theme-color, #561269) 15%, white) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+html[data-biro-theme="true"] .to-\[\#400B4D\],
+[data-biro-theme="true"] .to-\[\#400B4D\],
+html[data-biro-theme="true"] .to-\[\#400b4d\],
+[data-biro-theme="true"] .to-\[\#400b4d\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 55%, black) var(--tw-gradient-to-position) !important;
+}
+
+html[data-biro-theme="true"] .to-\[\#6C3483\],
+[data-biro-theme="true"] .to-\[\#6C3483\],
+html[data-biro-theme="true"] .to-\[\#6c3483\],
+[data-biro-theme="true"] .to-\[\#6c3483\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 65%, black) var(--tw-gradient-to-position) !important;
+}
+
+html[data-biro-theme="true"] .to-\[\#561269\],
+[data-biro-theme="true"] .to-\[\#561269\] {
+  --tw-gradient-to: var(--biro-theme-color, #561269) var(--tw-gradient-to-position) !important;
+}
+
+html[data-biro-theme="true"] .to-\[\#651877\],
+[data-biro-theme="true"] .to-\[\#651877\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 80%, black) var(--tw-gradient-to-position) !important;
+}
+
+html[data-biro-theme="true"] .to-\[\#763E8B\],
+[data-biro-theme="true"] .to-\[\#763E8B\],
+html[data-biro-theme="true"] .to-\[\#763e8b\],
+[data-biro-theme="true"] .to-\[\#763e8b\],
+html[data-biro-theme="true"] .to-\[\#7a2291\],
+[data-biro-theme="true"] .to-\[\#7a2291\],
+html[data-biro-theme="true"] .to-\[\#8e4a9e\],
+[data-biro-theme="true"] .to-\[\#8e4a9e\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 75%, white) var(--tw-gradient-to-position) !important;
+}
+
+html[data-biro-theme="true"] .to-\[\#ba68c8\],
+[data-biro-theme="true"] .to-\[\#ba68c8\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 60%, white) var(--tw-gradient-to-position) !important;
+}
+
+html[data-biro-theme="true"] .to-\[\#3b0a48\],
+[data-biro-theme="true"] .to-\[\#3b0a48\],
+html[data-biro-theme="true"] .to-\[\#3b074b\],
+[data-biro-theme="true"] .to-\[\#3b074b\],
+html[data-biro-theme="true"] .to-\[\#3B074B\],
+[data-biro-theme="true"] .to-\[\#3B074B\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 60%, black) var(--tw-gradient-to-position) !important;
+}
+
+html[data-biro-theme="true"] .to-\[\#B583C2\],
+[data-biro-theme="true"] .to-\[\#B583C2\],
+html[data-biro-theme="true"] .to-\[\#b583c2\],
+[data-biro-theme="true"] .to-\[\#b583c2\],
+html[data-biro-theme="true"] .to-\[\#EBDCF4\],
+[data-biro-theme="true"] .to-\[\#EBDCF4\],
+html[data-biro-theme="true"] .to-\[\#F5EDF9\],
+[data-biro-theme="true"] .to-\[\#F5EDF9\] {
+  --tw-gradient-to: color-mix(in srgb, var(--biro-theme-color, #561269) 30%, white) var(--tw-gradient-to-position) !important;
+}
+
+/* Light Purple Text Classes */
+html[data-biro-theme="true"] .text-purple-100,
+[data-biro-theme="true"] .text-purple-100 {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 18%, white) !important;
+}
+
+html[data-biro-theme="true"] .text-purple-200,
+[data-biro-theme="true"] .text-purple-200 {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 30%, white) !important;
+}
+
+html[data-biro-theme="true"] .text-purple-300,
+[data-biro-theme="true"] .text-purple-300 {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 45%, white) !important;
+}
+
+html[data-biro-theme="true"] .text-purple-400,
+[data-biro-theme="true"] .text-purple-400 {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 65%, white) !important;
+}
+
+html[data-biro-theme="true"] .text-purple-500,
+[data-biro-theme="true"] .text-purple-500 {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 85%, white) !important;
+}
+
+/* Background Soft Tints */
+html[data-biro-theme="true"] .bg-\[\#F8EFFF\],
+[data-biro-theme="true"] .bg-\[\#F8EFFF\],
+html[data-biro-theme="true"] .bg-\[\#f8efff\],
+[data-biro-theme="true"] .bg-\[\#f8efff\] {
+  background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 10%, white) !important;
+}
+
+html[data-biro-theme="true"] .border-purple-300,
+[data-biro-theme="true"] .border-purple-300 {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 45%, transparent) !important;
+}
+
+html[data-biro-theme="true"] .text-\[\#400B4D\]\/40,
+[data-biro-theme="true"] .text-\[\#400B4D\]\/40 {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 40%, transparent) !important;
 }
 
 /* 12. Dashboard Metric Summary Cards (Aksen Kotak & Ikon Metrik) */
@@ -417,8 +714,3 @@ html[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#b385c0\],
 [data-biro-theme="true"] .group:hover .group-hover\:text-\[\#b385c0\] {
   color: color-mix(in srgb, var(--biro-theme-color, #561269) 80%, white) !important;
 }
-
-
-
-
-

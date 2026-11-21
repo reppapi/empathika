@@ -498,9 +498,11 @@ export class PsikotesPengerjaanRepository {
           (input as any).kode_transaksi ||
           booking.kode_akses ||
           `PSI-${generateOrderId()}`
+        const effectiveBiroId = (input as any).id_biro || client.id_biro || null
         const newTrx = await tx.transaksi.create({
           data: {
             id_client: client.id,
+            id_biro_tenant: effectiveBiroId,
             kode_transaksi: kodeTrx,
             tipe_transaksi: 'PSIKOTES',
             subtotal: nominal,
