@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Stethoscope,
+  ArrowRight,
 } from "lucide-react";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 import { calculateReviewSla } from "../../utils/reviewSla";
@@ -629,7 +630,38 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         </div>
       )}
 
-      {/* 2. Kontrol Filter Dropdown & Pencarian */}
+      {/* 2. Banner Pemberitahuan Asesmen Menunggu Tinjauan Psikolog (Clean & Profesional) */}
+      {isSelectedPaketNeedReview && statusStats.menungguTinjau > 0 && (
+        <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50/90 via-fuchsia-50/30 to-white border border-purple-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
+              <Clock className="w-4 h-4 text-[#561269]" />
+            </div>
+            <div>
+              <p className="font-bold text-xs sm:text-sm text-gray-900 tracking-tight">
+                {statusStats.menungguTinjau} Asesmen Klinis Menunggu Tinjauan
+              </p>
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                Terdapat asesmen yang belum diambil oleh psikolog pemeriksa di ruang telaah.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
+            className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs shrink-0 cursor-pointer active:scale-95 self-start sm:self-auto ${
+              statusFilter === "MENUNGGU_TINJAU"
+                ? "bg-purple-100 text-[#561269] border border-purple-300 font-semibold"
+                : "bg-[#561269] hover:bg-[#430c52] text-white"
+            }`}
+          >
+            <span>{statusFilter === "MENUNGGU_TINJAU" ? "Sedang Difilter" : "Lihat Antrean"}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* 3. Kontrol Filter Dropdown & Pencarian */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 flex-wrap">
           {/* Dropdown Filter per Paket Psikotes */}

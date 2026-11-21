@@ -42,11 +42,18 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
   // Judul List & Peserta List
   const [judulList, setJudulList] = useState<JudulPsikotesItem[]>([]);
   const [pesertaList, setPesertaList] = useState<AdminPsikotesPeserta[]>([]);
-  const [pesertaSummary, setPesertaSummary] = useState({
+  const [pesertaSummary, setPesertaSummary] = useState<{
+    total_peserta: number;
+    total_gratis: number;
+    total_berbayar: number;
+    total_selesai: number;
+    total_menunggu_review?: number;
+  }>({
     total_peserta: 0,
     total_gratis: 0,
     total_berbayar: 0,
     total_selesai: 0,
+    total_menunggu_review: 0,
   });
   const [isLoadingPeserta, setIsLoadingPeserta] = useState(false);
   const [isLoadingPaket, setIsLoadingPaket] = useState(false);

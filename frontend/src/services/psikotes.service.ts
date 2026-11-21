@@ -221,6 +221,7 @@ export const psikotesService = {
             total_gratis: number
             total_berbayar: number
             total_selesai: number
+            total_menunggu_review?: number
           }
           items: Array<{
             id: string
