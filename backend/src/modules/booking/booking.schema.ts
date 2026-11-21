@@ -56,6 +56,8 @@ export const createAdminSesiSchema = z.object({
   metode: z.enum(['ONLINE', 'OFFLINE']).default('OFFLINE'),
   tipe_jadwal: z.enum(['KONSULTASI', 'ASESMEN']).optional(),
   deskripsi_trauma: z.string().optional(),
+  id_biro: z.string().optional(),
+  biroId: z.string().optional(),
   klien: z.object({
     nama: z.string().min(1, 'Nama klien wajib diisi'),
     no_telepon: z.string().min(8, 'Nomor telepon minimal 8 digit'),

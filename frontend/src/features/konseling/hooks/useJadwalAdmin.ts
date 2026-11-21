@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { adminService } from "@/services/admin.service"
+import { biroAdminService } from "@/services/biro.service"
 import { bookingService } from "@/services/booking.service"
 import {
   recordCancelledSession,
@@ -584,16 +585,11 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
   // Muat data jadwal & sesi riil langsung dari Database PostgreSQL
   const fetchJadwalData = useCallback(async () => {
-    if (isBiroContext) {
-      // Data jadwal biro belum diatur, jangan ambil data jadwal dari Admin Utama
-      setTodaySessions([])
-      setBookedSessions([])
-      setIsLoading(false)
-      return
-    }
     setIsLoading(true)
     try {
-      const res: any = await adminService.getJadwal({ date: datePickerValue })
+      const res: any = isBiroContext
+        ? await biroAdminService.getJadwal({ date: datePickerValue })
+        : await adminService.getJadwal({ date: datePickerValue })
       const rescheduledList = getRescheduledSessions()
       const cancelledList = getCancelledSessions()
 

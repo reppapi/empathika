@@ -17,8 +17,41 @@ export class BookingRepository {
         ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
         {
           OR: [
-            { psikolog: { account: { id_biro: biroId } } },
-            { booking_konsultasi: { transaksi: { id_biro_tenant: biroId } } },
+            // 1. Slot yang dibooking oleh klien biro ini (transaksi atau klien terdaftar di biro ini)
+            {
+              booking_konsultasi: {
+                status: { not: 'CANCELLED' },
+                OR: [
+                  { transaksi: { id_biro_tenant: biroId } },
+                  {
+                    AND: [
+                      { client: { id_biro: biroId } },
+                      {
+                        OR: [
+                          { id_transaksi: null },
+                          { transaksi: { id_biro_tenant: biroId } },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+            // 2. Slot ketersediaan milik tenaga ahli/psikolog biro ini (yang belum dibooking atau booking dibatalkan)
+            {
+              psikolog: {
+                account: {
+                  OR: [
+                    { id_biro: biroId },
+                    { owned_biro: { some: { id: biroId } } },
+                  ],
+                },
+              },
+              OR: [
+                { booking_konsultasi: null },
+                { booking_konsultasi: { status: 'CANCELLED' } },
+              ],
+            },
           ],
         },
       ]
@@ -88,6 +121,7 @@ export class BookingRepository {
           include: {
             client: true,
             layanan: true,
+            transaksi: true,
           },
         },
       },
@@ -115,7 +149,17 @@ export class BookingRepository {
         ? {
             OR: [
               { transaksi: { id_biro_tenant: biroId } },
-              { client: { id_biro: biroId } },
+              {
+                AND: [
+                  { client: { id_biro: biroId } },
+                  {
+                    OR: [
+                      { id_transaksi: null },
+                      { transaksi: { id_biro_tenant: biroId } },
+                    ],
+                  },
+                ],
+              },
             ],
           }
         : {}),
@@ -537,6 +581,7 @@ export class BookingRepository {
     metode: string
     tipe_jadwal?: string
     deskripsi_trauma?: string
+    id_biro?: string
     klien: {
       nama: string
       no_telepon: string
@@ -545,7 +590,7 @@ export class BookingRepository {
     }
   }) {
     return this.prisma.$transaction(async (tx) => {
-      const resolvedBiroId: string | null = null
+      const resolvedBiroId: string | null = data.id_biro || null
       // 1. Buat atau cari Klien berdasarkan kombinasi nomor telepon DAN nama (case-insensitive)
       // Satu nomor bisa dipakai beberapa klien berbeda (misal keluarga/anak), sehingga profil dicocokkan berdasarkan kombinasi nomor + nama.
       const inputName = (data.klien.nama || '').trim()

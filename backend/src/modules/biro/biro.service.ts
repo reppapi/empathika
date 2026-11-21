@@ -1,9 +1,12 @@
 import type { PrismaClient, Prisma } from "@prisma/client"
+import type { FastifyInstance } from "fastify"
 import { withActivationAccount, issueActivationToken } from "../../utils/activation"
 import bcrypt from "bcrypt"
 import type { CreateBiroInput, UpdateBiroProfileInput } from "./biro.schema"
 import { parseDateString, formatDateToString, formatTimeToString } from "../../utils/date-time"
 import { generateOrderId, normalizePhoneNumber } from "../../utils"
+import { BookingService } from "../booking/booking.service"
+import type { GetAdminJadwalQuery } from "../booking/booking.schema"
 import type {
   UpdateBiroAccountInput,
   GetPublicBiroPsikologQuery,
@@ -14,7 +17,11 @@ import type {
 } from "./biro.schema"
 
 export class BiroService {
-  constructor(private prisma: PrismaClient) {}
+  private bookingService: BookingService
+
+  constructor(private prisma: PrismaClient, fastify?: FastifyInstance) {
+    this.bookingService = new BookingService(fastify || ({ prisma } as any))
+  }
 
   // ==========================================
   // MANAJEMEN AKUN INTERNAL BIRO (PORTAL/ADMIN)
@@ -142,6 +149,57 @@ export class BiroService {
       success: true,
       data: withActivationAccount(account),
     }
+  }
+
+  async resolveBiroIdFromAccount(accountId: string): Promise<string> {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: {
+        id: true,
+        id_biro: true,
+        biro: { select: { id: true } },
+        owned_biro: { select: { id: true } },
+      },
+    })
+
+    if (account?.owned_biro && account.owned_biro.length > 0) {
+      return account.owned_biro[0].id
+    }
+    if (account?.id_biro) {
+      return account.id_biro
+    }
+    if (account?.biro?.id) {
+      return account.biro.id
+    }
+
+    const biro = await this.prisma.biro.findFirst({
+      where: {
+        OR: [
+          { id_account: accountId },
+          { id: accountId },
+        ],
+      },
+      select: { id: true },
+    })
+
+    if (!biro) {
+      throw Object.assign(new Error("Data biro tidak ditemukan untuk akun ini"), { statusCode: 404 })
+    }
+
+    return biro.id
+  }
+
+  /**
+   * Mengambil sesi hari ini dan grid slot jadwal KHUSUS biro yang login.
+   * Klien Empathika dan klien biro lain secara murni terisolasi dan tidak akan masuk.
+   */
+  async getBiroJadwal(accountId: string, query: GetAdminJadwalQuery) {
+    const biroId = await this.resolveBiroIdFromAccount(accountId)
+    return this.bookingService.getJadwalOverview({
+      ...query,
+      biroId,
+      id_biro: biroId,
+    })
   }
 
   async getAllBiroAccounts() {

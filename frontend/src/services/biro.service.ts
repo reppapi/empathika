@@ -182,4 +182,8 @@ export const biroAdminService = {
   /** Biro memperbarui profil lembaga miliknya sendiri */
   updateMyProfile: (payload: UpdateBiroPayload) =>
     api.put<{ success: boolean; message: string; data?: any }>("/biro/profile", payload).then((r) => r.data),
+
+  /** Mengambil data sesi hari ini dan grid jadwal khusus biro yang sedang login */
+  getJadwal: (params?: { date?: string; layanan?: string; status?: string }) =>
+    api.get("/biro/jadwal", { params }).then((r) => r.data),
 }

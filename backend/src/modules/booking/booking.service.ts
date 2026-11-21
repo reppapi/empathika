@@ -164,39 +164,48 @@ export class BookingService {
       const jamMulaiStr = formatTimeToString(slot.jam_mulai)
       const jamSelesaiStr = formatTimeToString(slot.jam_selesai)
       const timeSlot = `${jamMulaiStr} - ${jamSelesaiStr}`
+      const targetBiroId = query.id_biro || query.biroId
+      const isBookingForThisBiro =
+        !targetBiroId ||
+        Boolean(
+          slot.booking_konsultasi &&
+            ((slot.booking_konsultasi.transaksi?.id_biro_tenant === targetBiroId) ||
+              (slot.booking_konsultasi.client?.id_biro === targetBiroId))
+        )
+
       const isBookingCancelled = slot.booking_konsultasi?.status === 'CANCELLED'
-      const hasActiveBooking = Boolean(slot.booking_konsultasi) && !isBookingCancelled
-      const isBooked = (slot.status === 'SUDAH_DIBOOKING' || hasActiveBooking) && !isBookingCancelled
-      const clientName = slot.booking_konsultasi?.client?.nama || undefined
-      const clientPhone = slot.booking_konsultasi?.client?.no_telepon || null
-      const clientId = slot.booking_konsultasi?.client?.id || null
+      const hasActiveBooking = Boolean(slot.booking_konsultasi) && !isBookingCancelled && isBookingForThisBiro
+      const isBooked = (slot.status === 'SUDAH_DIBOOKING' || hasActiveBooking) && !isBookingCancelled && isBookingForThisBiro
+      const clientName = isBookingForThisBiro ? (slot.booking_konsultasi?.client?.nama || undefined) : undefined
+      const clientPhone = isBookingForThisBiro ? (slot.booking_konsultasi?.client?.no_telepon || null) : null
+      const clientId = isBookingForThisBiro ? (slot.booking_konsultasi?.client?.id || null) : null
       const isAsesmen =
         slot.tipe_jadwal === 'ASESMEN' ||
         (slot.booking_konsultasi?.layanan?.nama || '').toLowerCase().includes('asesmen')
 
       return {
         id: slot.id,
-        id_booking: slot.booking_konsultasi?.id || null,
-        booking_id: slot.booking_konsultasi?.id || null,
+        id_booking: (isBookingForThisBiro && slot.booking_konsultasi?.id) || null,
+        booking_id: (isBookingForThisBiro && slot.booking_konsultasi?.id) || null,
         date: dateStr,
         timeSlot,
-        statusSlot: isBookingCancelled ? 'TERSEDIA' : slot.status,
+        statusSlot: isBookingCancelled || (!isBookingForThisBiro && slot.status === 'SUDAH_DIBOOKING') ? 'TERSEDIA' : slot.status,
         tipe_jadwal: slot.tipe_jadwal,
         isBooked,
         isCancelled: false,
-        clientName: isBookingCancelled ? undefined : clientName,
-        namaKlien: isBookingCancelled ? undefined : clientName,
-        kontak: isBookingCancelled ? null : clientPhone,
-        no_telepon: isBookingCancelled ? null : clientPhone,
-        klienId: isBookingCancelled ? null : clientId,
-        catatan: isBookingCancelled ? null : (slot.booking_konsultasi?.deskripsi_trauma || null),
-        status: isBookingCancelled ? 'Tersedia' : (slot.status === 'TERSEDIA' ? 'Tersedia' : 'Aktif'),
+        clientName: isBookingCancelled || !isBookingForThisBiro ? undefined : clientName,
+        namaKlien: isBookingCancelled || !isBookingForThisBiro ? undefined : clientName,
+        kontak: isBookingCancelled || !isBookingForThisBiro ? null : clientPhone,
+        no_telepon: isBookingCancelled || !isBookingForThisBiro ? null : clientPhone,
+        klienId: isBookingCancelled || !isBookingForThisBiro ? null : clientId,
+        catatan: isBookingCancelled || !isBookingForThisBiro ? null : (slot.booking_konsultasi?.deskripsi_trauma || null),
+        status: isBookingCancelled || !isBookingForThisBiro ? 'Tersedia' : (slot.status === 'TERSEDIA' ? 'Tersedia' : 'Aktif'),
         psikologName: isAsesmen ? '' : (slot.psikolog?.nama_gelar || (slot.psikolog as any)?.account?.nama || ''),
         id_psikolog: slot.id_psikolog || null,
         noTeleponPsikolog: (slot.psikolog as any)?.account?.no_telepon || null,
         cancelled_by: null,
         layanan:
-          isBookingCancelled
+          isBookingCancelled || !isBookingForThisBiro
             ? (isAsesmen ? 'Asesmen Tersedia' : 'Slot Tersedia')
             : (slot.booking_konsultasi?.layanan?.nama ||
               (slot.status === 'TERSEDIA'
@@ -206,7 +215,7 @@ export class BookingService {
                 : isAsesmen
                   ? 'Asesmen Terjadwal'
                   : 'Terjadwal')),
-        metode: slot.booking_konsultasi?.metode
+        metode: slot.booking_konsultasi?.metode && isBookingForThisBiro
           ? (slot.booking_konsultasi.metode.toUpperCase().includes('KEDUANYA')
             ? 'Keduanya'
             : slot.booking_konsultasi.metode.toUpperCase().includes('OFFLINE')
@@ -469,6 +478,7 @@ export class BookingService {
         metode: input.metode,
         tipe_jadwal: input.tipe_jadwal,
         deskripsi_trauma: input.deskripsi_trauma,
+        id_biro: (input as any).id_biro || (input as any).biroId,
         klien: input.klien,
       })
 
