@@ -199,8 +199,8 @@ export default function JadwalAsesmenPicker({
               Pilih slot jam yang ingin Anda buka (bisa pilih beberapa sekaligus):
             </p>
 
-            {/* Checkbox List Slot Waktu */}
-            <div className="flex flex-col gap-2.5 mb-6">
+            {/* Checkbox List Slot Waktu (Scrollable sama seperti di Website Psikolog) */}
+            <div className="flex flex-col gap-2.5 mb-3 max-h-[125px] overflow-y-auto pr-1.5 custom-scrollbar [scrollbar-width:thin] [scrollbar-color:#c4b0cb_#f8fafc] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-purple-200 hover:[&::-webkit-scrollbar-thumb]:bg-purple-300 [&::-webkit-scrollbar-track]:bg-gray-50">
               {availableSlots.map((time, idx) => (
                 <JadwalSlotItem
                   key={idx}
@@ -213,8 +213,10 @@ export default function JadwalAsesmenPicker({
                   onDeleteCustom={() => handleDeleteCustomSlot(time)}
                 />
               ))}
+            </div>
 
-              {/* Opsi Tambahan: Tentukan Jam Kustom Sendiri */}
+            {/* Opsi Tambahan: Tentukan Jam Kustom Sendiri (Di luar scroll list agar leluasa) */}
+            <div className="mb-4">
               <JadwalCustomTimeSection
                 isCustomTime={isCustomTime}
                 setIsCustomTime={setIsCustomTime}
