@@ -84,7 +84,7 @@ export function useAdminContact(): AdminContactInfo {
           }
         } catch {}
       })
-  }, [isBiro, biroProfile])
+  }, [])
 
   useEffect(() => {
     syncPhone()
