@@ -19,10 +19,12 @@ export function SidebarPsikolog({ isOpen, onClose, isReviewer = false, reviewBad
     return pathname?.startsWith(path)
   }
 
+  const isReviewerActive = Boolean(isReviewer || pathname?.startsWith("/psikolog-web/review-asesmen"))
+
   const navItems = [
     { name: "Beranda", path: "/psikolog-web/beranda" },
     { name: "Jadwal & Sesi", path: "/psikolog-web/jadwal" },
-    ...(isReviewer ? [{ name: "Review Psikotes", path: "/psikolog-web/review-asesmen", badge: reviewBadgeCount }] : []),
+    ...(isReviewerActive ? [{ name: "Review Psikotes", path: "/psikolog-web/review-asesmen", badge: reviewBadgeCount }] : []),
   ]
 
   return (

@@ -89,6 +89,17 @@ export function AdminNavbar({
   const [adminFoto, setAdminFoto] = useState<string | null>(null)
 
   useEffect(() => {
+    if (adminName) {
+      setCurrentAdminName(adminName)
+    }
+  }, [adminName])
+
+  useEffect(() => {
+    // Jangan overwrite profil jika berada di konteks psikolog-web atau admin-biro
+    if (pathname?.startsWith("/psikolog-web") || pathname?.startsWith("/admin-biro")) {
+      return
+    }
+
     const loadProfile = () => {
       try {
         const saved = localStorage.getItem("empathika_admin_profile")
@@ -117,7 +128,7 @@ export function AdminNavbar({
       window.removeEventListener("storage", loadProfile)
       window.removeEventListener("empathika_admin_profile_updated", loadProfile)
     }
-  }, [])
+  }, [pathname])
 
   // Otomatis deteksi konfigurasi route aktif
   const matchedConfig = pathname ? PAGE_CONFIG.find((c) => c.match(pathname)) : undefined
@@ -176,10 +187,10 @@ export function AdminNavbar({
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center gap-2.5 sm:gap-3.5 rounded-full p-1.5 transition-colors hover:bg-gray-50 focus:outline-none"
         >
-          {/* Info Teks Admin (tersembunyi di layar sangat kecil, tampak di sm ke atas) */}
-          <div className="hidden sm:block text-right leading-tight">
-            <p className="text-sm font-bold text-gray-900">{currentAdminName}</p>
-            <p className="text-[11px] text-gray-400 font-medium">{subtitle}</p>
+          {/* Info Teks Admin / Psikolog */}
+          <div className="flex flex-col text-right leading-tight max-w-[140px] sm:max-w-[220px]">
+            <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{currentAdminName}</p>
+            <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium truncate">{subtitle}</p>
           </div>
 
           {/* Avatar Bulat Inisial / Foto */}

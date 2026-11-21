@@ -428,19 +428,13 @@ export default function PsikologReviewAsesmenClient() {
         </div>
       )}
 
-      {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-            Review Psikotes
-          </h1>
-        </div>
-
+      {/* Header Halaman (Aksi Refresh) */}
+      <div className="flex items-center justify-end">
         <button
           type="button"
           onClick={() => fetchData(true)}
           disabled={isRefreshing || isLoading}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:border-purple-200 shadow-sm transition-all active:scale-95 disabled:opacity-50 self-start sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:border-purple-200 shadow-sm transition-all active:scale-95 disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-purple-700" : ""}`} />
           <span>{isRefreshing ? "Menyinkronkan..." : "Perbarui Data"}</span>
