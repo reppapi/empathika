@@ -35,7 +35,7 @@ export class PsikotesRepository {
   private reviewRepo: PsikotesReviewRepository
   private pesertaRepo: PsikotesPesertaRepository
 
-  constructor(private prisma: PrismaClient) {
+  constructor(prisma: PrismaClient) {
     this.paketRepo = new PsikotesPaketRepository(prisma)
     this.pengerjaanRepo = new PsikotesPengerjaanRepository(prisma)
     this.bookingRepo = new PsikotesBookingRepository(prisma)

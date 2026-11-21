@@ -4,7 +4,6 @@
 import React, { useState } from "react";
 import { AlertCircle, ShieldCheck, ArrowRight } from "lucide-react";
 import PhoneInputField from "@/components/shared/PhoneInputField";
-import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 
 export interface IdentityData {
   nama: string;
@@ -38,7 +37,6 @@ export default function PsikotesFormIdentitas({
 
   const numUmur = parseInt(data.umur || "", 10);
   const isUnderAge = !isNaN(numUmur) && numUmur > 0 && numUmur < 18;
-  const isDewasa = !isNaN(numUmur) && numUmur >= 18;
 
   // Kalkulasi umur otomatis berdasarkan tanggal lahir yang dipilih
   const handleTanggalLahirChange = (val: string) => {

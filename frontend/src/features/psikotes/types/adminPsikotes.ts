@@ -84,6 +84,7 @@ export type AdminPsikotesPeserta = {
     detail_skor?: any;
     catatan_psikolog?: string | null;
     rekomendasi_psikolog?: string | null;
+    draft_saved_at?: string | null;
     tanggal_review?: string | null;
   } | null;
   namaBiro?: string | null;

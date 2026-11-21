@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Loader2,
-  Stethoscope,
   BarChart3,
   Maximize2,
   Minimize2,
@@ -16,7 +15,6 @@ import {
   Bold,
   Italic,
   ListOrdered,
-  List,
   Indent,
   Outdent,
   ChevronDown,
@@ -1370,11 +1368,13 @@ export default function ModalReviewPsikotes({
       });
 
       // Update fullDetail local state
+      const nowIso = new Date().toISOString();
       setFullDetail((prev: any) => ({
         ...prev,
         hasil: {
           ...prev?.hasil,
           catatan_psikolog: combined,
+          draft_saved_at: nowIso,
         },
       }));
 
@@ -1382,6 +1382,7 @@ export default function ModalReviewPsikotes({
       onSuccess({
         ...item,
         catatan_psikolog: combined,
+        draft_saved_at: nowIso,
       });
 
       // Update initial content ref agar perubahan dianggap tersimpan
@@ -1509,6 +1510,11 @@ export default function ModalReviewPsikotes({
             </div>
             <p className="text-[11px] text-gray-500 truncate">
               {item.nama_paket} • <span className="font-medium text-gray-700">{item.nama_biro || "Empathika (Pusat)"}</span>
+              {(fullDetail?.hasil?.draft_saved_at || item.draft_saved_at) && !isSudahReview && (
+                <span className="text-purple-700 font-medium ml-1.5">
+                  • Draf tersimpan: {new Date(fullDetail?.hasil?.draft_saved_at || item.draft_saved_at!).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
             </p>
           </div>
         </div>

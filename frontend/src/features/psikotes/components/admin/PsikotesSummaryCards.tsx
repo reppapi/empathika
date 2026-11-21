@@ -13,7 +13,6 @@ export interface PsikotesSummaryProps {
 
 export default function PsikotesSummaryCards({ summary }: PsikotesSummaryProps) {
   const sedangBerjalan = Math.max(0, summary.total_berbayar - summary.total_selesai);
-  const totalPeserta = summary.total_peserta || (summary.total_berbayar + summary.total_gratis);
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 font-poppins">

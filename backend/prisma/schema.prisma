@@ -577,6 +577,7 @@ model HasilTes {
   snapshot_jawaban     Json?
   catatan_psikolog     String?  @db.Text
   rekomendasi_psikolog String?  @db.Text
+  draft_saved_at       DateTime? // Waktu terakhir kali draf telaah disimpan oleh psikolog
   tanggal_review       DateTime?
   tanggal_selesai      DateTime @default(now())
   createdAt            DateTime @default(now())

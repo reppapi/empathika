@@ -70,7 +70,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
             month: "short",
             year: "numeric",
           }),
-          rawTanggal: it.tanggal,
+          rawTanggal: it.tanggal_pengerjaan || it.tanggal,
           status: it.status as "Selesai" | "Menunggu Pengerjaan",
           status_pengerjaan: it.status_pengerjaan || null,
           perlu_review_psikolog: Boolean(it.perlu_review_psikolog),
@@ -314,6 +314,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
             ).filter(Boolean)}
             isLoading={isLoadingPeserta}
             onSelectPeserta={setSelectedPeserta}
+            isBiroContext={isBiroContext}
           />
         </div>
       ) : (
@@ -345,6 +346,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         judulList={judulList}
         onClose={() => setSelectedPeserta(null)}
         onDownloadPdf={(peserta) => printLaporanPsikotes(peserta, judulList)}
+        isBiroContext={isBiroContext}
       />
 
       {/* ── 5. Modal Konfirmasi Hapus Paket Psikotes (Khusus Admin Utama) ── */}

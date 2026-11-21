@@ -3,7 +3,6 @@ import type { PrismaClient } from '@prisma/client'
 import type { PesertaQueryInput } from '../psikotes.schema'
 import { formatIndonesianPhone } from '../../../utils'
 import { determineKategoriPeserta } from './peserta-kategori.helper'
-import { purgeExpiredPsikotesData } from './retensi-psikotes.helper'
 
 export class PsikotesPesertaRepository {
   constructor(private prisma: PrismaClient) {}
@@ -81,7 +80,7 @@ export class PsikotesPesertaRepository {
         { hasil_tes: { isNot: null } },
         { peserta_psikotes: { isNot: null } },
       ],
-      AND: [nonExpiredFilter],
+      AND: [nonExpiredFilter, ...biroFilter],
     }
 
     const [totalBerbayar, totalSelesai, totalMenungguReview, totalGratis, items] = await Promise.all([
@@ -191,6 +190,21 @@ export class PsikotesPesertaRepository {
     ) : []
     const claimedMap = new Map(claimedRows.map((r) => [r.id, r.claimed_at]))
 
+    const addWorkingDays = (startDate: Date, workingDays: number): Date => {
+      const result = new Date(startDate.getTime())
+      let added = 0
+      if (result.getDay() === 0) {
+        result.setDate(result.getDate() + 1)
+      }
+      while (added < workingDays) {
+        result.setDate(result.getDate() + 1)
+        if (result.getDay() !== 0) {
+          added++
+        }
+      }
+      return result
+    }
+
     return {
       summary: {
         total_peserta: totalBerbayar + totalGratis,
@@ -199,39 +213,67 @@ export class PsikotesPesertaRepository {
         total_selesai: totalSelesai,
         total_menunggu_review: totalMenungguReview,
       },
-      items: filteredItems.map((b) => ({
-        id: b.id,
-        id_paket: b.id_paket,
-        nama_paket: b.paket.judul,
-        kode_akses: b.kode_akses || (b.transaksi as any)?.kode_transaksi || null,
-        jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
-        harga: b.paket.harga,
-        nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
-        no_hp: formatIndonesianPhone(
-          (b as any).peserta_psikotes?.no_telepon ||
-          (b as any).peserta_psikotes?.no_telepon_orang_tua ||
-          b.client.no_telepon ||
-          '—'
-        ),
-        usia: (b as any).peserta_psikotes?.usia ?? b.client.usia,
-        jenis_kelamin: (b as any).peserta_psikotes?.jenis_kelamin || b.client.jenis_kelamin,
-        peserta: (b as any).peserta_psikotes
-          ? {
-            ...(b as any).peserta_psikotes,
-            kategori_peserta:
-              (b as any).peserta_psikotes.kategori_peserta ||
-              determineKategoriPeserta((b as any).peserta_psikotes.usia ?? b.client.usia),
+      items: filteredItems.map((b) => {
+        const tglPengerjaan = b.hasil_tes?.tanggal_selesai || b.createdAt
+        const batasReview = addWorkingDays(new Date(tglPengerjaan), 3)
+
+        return {
+          id: b.id,
+          id_paket: b.id_paket,
+          nama_paket: b.paket.judul,
+          kode_akses: b.kode_akses || (b.transaksi as any)?.kode_transaksi || null,
+          jenis_akses: b.paket.jenis_akses === 'GRATIS' ? 'Gratis' : 'Berbayar',
+          harga: b.paket.harga,
+          nama_peserta: (b as any).peserta_psikotes?.nama_lengkap || b.client.nama,
+          no_hp: formatIndonesianPhone(
+            (b as any).peserta_psikotes?.no_telepon ||
+            (b as any).peserta_psikotes?.no_telepon_orang_tua ||
+            b.client.no_telepon ||
+            '—'
+          ),
+          usia: (b as any).peserta_psikotes?.usia ?? b.client.usia,
+          jenis_kelamin: (b as any).peserta_psikotes?.jenis_kelamin || b.client.jenis_kelamin,
+          peserta: (b as any).peserta_psikotes
+            ? {
+              ...(b as any).peserta_psikotes,
+              kategori_peserta:
+                (b as any).peserta_psikotes.kategori_peserta ||
+                determineKategoriPeserta((b as any).peserta_psikotes.usia ?? b.client.usia),
+            }
+            : null,
+          tanggal: tglPengerjaan,
+          tanggal_pengerjaan: tglPengerjaan,
+          batas_review: batasReview,
+        status: (() => {
+          const isDass = Boolean(
+            b.paket?.judul?.toLowerCase().includes('dass') ||
+            b.paket?.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
+          )
+          const effectivePerluReview = !isDass && Boolean(
+            (b.paket as any)?.perlu_review_psikolog ||
+            b.paket?.judul?.toLowerCase().includes('mcmi')
+          )
+          if (effectivePerluReview && b.status_pengerjaan === 'MENUNGGU_REVIEW') {
+            return 'Menunggu Review'
           }
-          : null,
-        tanggal: b.createdAt,
-        status:
-          b.status_pengerjaan === 'MENUNGGU_REVIEW'
-            ? 'Menunggu Review'
-            : b.status_pengerjaan === 'SELESAI' || b.hasil_tes
-            ? 'Selesai'
-            : 'Menunggu Pengerjaan',
-        status_pengerjaan: b.status_pengerjaan,
-        perlu_review_psikolog: (b.paket as any).perlu_review_psikolog,
+          if (b.status_pengerjaan === 'SELESAI' || b.hasil_tes) {
+            return 'Selesai'
+          }
+          return 'Menunggu Pengerjaan'
+        })(),
+        status_pengerjaan: (() => {
+          const isDass = Boolean(
+            b.paket?.judul?.toLowerCase().includes('dass') ||
+            b.paket?.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
+          )
+          if (isDass && b.hasil_tes) return 'SELESAI'
+          return b.status_pengerjaan
+        })(),
+        perlu_review_psikolog:
+          !(
+            b.paket?.judul?.toLowerCase().includes('dass') ||
+            b.paket?.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
+          ) && Boolean((b.paket as any).perlu_review_psikolog),
         id_biro: (b.client as any)?.id_biro || (b.transaksi as any)?.id_biro_tenant || null,
         nama_biro: (b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro || 'Empathika (Pusat)',
         is_biro: Boolean((b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro),
@@ -274,6 +316,7 @@ export class PsikotesPesertaRepository {
                 detail_skor: b.hasil_tes.detail_skor,
                 catatan_psikolog: (b.hasil_tes as any).catatan_psikolog || null,
                 rekomendasi_psikolog: (b.hasil_tes as any).rekomendasi_psikolog || null,
+                draft_saved_at: (b.hasil_tes as any)?.draft_saved_at || null,
                 tanggal_review: (b.hasil_tes as any).tanggal_review || null,
               }
             })()
@@ -291,7 +334,8 @@ export class PsikotesPesertaRepository {
               email: (b as any).psikolog.account?.email || null,
             }
           : null,
-      })),
+        }
+      }),
     }
   }
 

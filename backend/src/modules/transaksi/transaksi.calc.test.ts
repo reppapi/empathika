@@ -3,7 +3,7 @@
 // Unit test untuk fungsi perhitungan transaksi (vitest)
 // =====================================================================
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // ── Mock config sebelum import calc ──────────────────────────────────
 vi.mock('../../config/transaksi.config', () => ({

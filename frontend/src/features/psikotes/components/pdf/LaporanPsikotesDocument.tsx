@@ -1424,14 +1424,11 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
 
         {/* Footer Tanda Tangan & Catatan Resmi */}
         <View style={styles.signatureSection} wrap={false}>
-          {data.qrCodeUrl ? (
-            <Image src={data.qrCodeUrl} style={{ width: 44, height: 44, marginRight: 8, borderRadius: 4 }} />
-          ) : null}
           <Text style={styles.legalNote}>
             <Text style={styles.legalBold}>Catatan Resmi: </Text>
             Dokumen ini bersifat rahasia (confidential) dan diterbitkan secara
             digital sebagai hasil asesmen psikometri resmi Empathika.
-            {"\n"}Pindai QR Code untuk memvalidasi keaslian dokumen: {sanitizePdfText(data.noDokumen)}
+            {"\n"}Nomor Dokumen: {sanitizePdfText(data.noDokumen)}
           </Text>
           <View style={styles.signatureBox}>
             <Text style={styles.signatureDate}>

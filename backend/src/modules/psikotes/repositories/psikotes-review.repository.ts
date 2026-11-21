@@ -5,7 +5,6 @@ import type {
   SubmitReviewPsikotesInput,
 } from '../psikotes.schema'
 import { formatIndonesianPhone } from '../../../utils'
-import { determineKategoriPeserta } from './peserta-kategori.helper'
 import { purgeExpiredPsikotesData } from './retensi-psikotes.helper'
 
 export class PsikotesReviewRepository {
@@ -25,13 +24,20 @@ export class PsikotesReviewRepository {
       ],
     }
 
+    const nonDassFilter: any = {
+      NOT: [
+        { paket: { judul: { contains: 'dass', mode: 'insensitive' } } },
+        { paket: { judul: { contains: 'depresi, kecemasan, dan stres', mode: 'insensitive' } } },
+      ],
+    }
+
     const baseWhere: any = {
       OR: [
         { paket: { perlu_review_psikolog: true } },
         { status_pengerjaan: 'MENUNGGU_REVIEW' },
       ],
       hasil_tes: { isNot: null },
-      AND: [nonExpiredFilter],
+      AND: [nonExpiredFilter, nonDassFilter],
     }
 
     if (params?.status === 'MENUNGGU_REVIEW') {
@@ -67,7 +73,7 @@ export class PsikotesReviewRepository {
             { status_pengerjaan: 'MENUNGGU_REVIEW' },
           ],
           hasil_tes: { isNot: null },
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -79,7 +85,7 @@ export class PsikotesReviewRepository {
           hasil_tes: { isNot: null },
           status_pengerjaan: 'MENUNGGU_REVIEW',
           id_psikolog: null,
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -91,7 +97,7 @@ export class PsikotesReviewRepository {
           hasil_tes: { isNot: null },
           status_pengerjaan: 'MENUNGGU_REVIEW',
           id_psikolog: { not: null },
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -102,7 +108,7 @@ export class PsikotesReviewRepository {
           ],
           hasil_tes: { isNot: null },
           status_pengerjaan: 'SELESAI',
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.findMany({
@@ -224,6 +230,7 @@ export class PsikotesReviewRepository {
           perlu_review_psikolog: (b.paket as any).perlu_review_psikolog,
           catatan_psikolog: (b.hasil_tes as any)?.catatan_psikolog || null,
           rekomendasi_psikolog: (b.hasil_tes as any)?.rekomendasi_psikolog || null,
+          draft_saved_at: (b.hasil_tes as any)?.draft_saved_at || null,
           tanggal_review: (b.hasil_tes as any)?.tanggal_review || null,
           psikolog: (b as any).psikolog
             ? {
@@ -363,12 +370,15 @@ export class PsikotesReviewRepository {
       }
 
       // 1. Update HasilTes
+      const now = new Date()
       const updatedHasil = await tx.hasilTes.update({
         where: { id: booking.hasil_tes.id },
         data: {
           catatan_psikolog: input.catatan_psikolog.trim(),
           rekomendasi_psikolog: input.rekomendasi_psikolog?.trim() || null,
-          tanggal_review: new Date(),
+          ...(input.is_draft
+            ? ({ draft_saved_at: now } as any)
+            : { tanggal_review: now }),
         },
       })
 
