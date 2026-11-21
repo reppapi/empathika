@@ -348,6 +348,7 @@ export default function TambahLayananView() {
     setTimeout(() => {
       if (typeof window !== "undefined") {
         localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
+        window.dispatchEvent(new Event("layanan_updated"))
       }
       router.push(`/admin/layanan?category=${selectedCategory}`)
     }, 1200)

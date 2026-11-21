@@ -51,6 +51,7 @@ export default function AsesmenClient() {
           selectedOfflinePlan={selectedOfflinePlan}
           setSelectedOfflinePlan={setSelectedOfflinePlan}
           offlineCheckoutUrl={offlineCheckoutUrl}
+          allowsOffline={allowsOffline}
         />
       ) : (
         <AsesmenOnlineView
@@ -59,6 +60,7 @@ export default function AsesmenClient() {
           setSelectedOnlinePlan={setSelectedOnlinePlan}
           onlineCheckoutUrl={onlineCheckoutUrl}
           withBiro={withBiro}
+          allowsOnline={allowsOnline}
         />
       )}
     </div>
