@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify"
 import { BiroController } from "./biro.controller"
 import { authGuard } from "../../middlewares/auth-guard"
+import { getAdminJadwalQuerySchema } from "../booking/booking.schema"
 import {
   biroAccountIdParamsSchema,
   updateBiroAccountSchema,
@@ -96,6 +97,18 @@ export default async function biroRoutes(fastify: FastifyInstance) {
       body: updateBiroProfileSchema,
     },
     handler: controller.updateMyBiroProfile,
+  })
+
+  // GET /biro/jadwal - Mendapatkan sesi dan slot jadwal khusus biro yang sedang login
+  fastify.get("/jadwal", {
+    preHandler: [authGuard],
+    schema: {
+      tags: ["Biro - Admin"],
+      summary: "Mendapatkan sesi hari ini dan slot jadwal khusus untuk biro yang sedang login",
+      security: [{ bearerAuth: [] }],
+      querystring: getAdminJadwalQuerySchema,
+    },
+    handler: controller.getBiroJadwal,
   })
 
 

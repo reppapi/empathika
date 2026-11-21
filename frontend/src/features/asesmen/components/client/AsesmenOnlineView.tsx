@@ -16,6 +16,7 @@ interface AsesmenOnlineViewProps {
   setSelectedOnlinePlan: (p: "gratis" | "berbayar") => void
   onlineCheckoutUrl: string
   withBiro: (path: string) => string
+  allowsOnline?: boolean
 }
 
 export function AsesmenOnlineView({
@@ -24,9 +25,20 @@ export function AsesmenOnlineView({
   setSelectedOnlinePlan,
   onlineCheckoutUrl,
   withBiro,
+  allowsOnline = true,
 }: AsesmenOnlineViewProps) {
   return (
     <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mt-8 animate-fade-in">
+      {/* Peringatan jika metode online tidak dibuka oleh admin */}
+      {!allowsOnline && (
+        <div className="mb-6 p-4 rounded-2xl bg-gray-100 border border-gray-300 text-gray-700 text-xs sm:text-sm font-medium flex items-center gap-3">
+          <span className="text-xl">⚠️</span>
+          <div>
+            <p className="font-bold text-gray-800">Metode Digital (Online) Tidak Dibuka oleh Admin</p>
+            <p className="text-gray-500 text-xs mt-0.5">Pengerjaan asesmen online saat ini tidak diaktifkan oleh admin. Silakan beralih ke opsi Tatap Muka (Offline) pada pilihan format pelaksanaan di atas.</p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
         {/* Kolom Kiri: Detail Asesmen Online & Panduan */}
         <div className="lg:w-2/3 bg-white rounded-[2.5rem] p-6 sm:p-10 md:p-12 shadow-sm border border-gray-100 flex flex-col gap-10">
@@ -265,13 +277,23 @@ export function AsesmenOnlineView({
                   ))}
                 </div>
 
-                <Link
-                  href={onlineCheckoutUrl as any}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 sm:py-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
-                >
-                  <span>Lanjut ke Pembayaran</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                {!allowsOnline ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 py-3.5 sm:py-4 rounded-xl bg-gray-200 text-gray-400 font-extrabold text-sm sm:text-base cursor-not-allowed border border-gray-300"
+                  >
+                    <span>Metode Online Ditutup</span>
+                  </button>
+                ) : (
+                  <Link
+                    href={onlineCheckoutUrl as any}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 sm:py-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
+                  >
+                    <span>Lanjut ke Pembayaran</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="flex flex-col gap-5 p-5 rounded-2xl bg-emerald-50/40 border border-emerald-100">

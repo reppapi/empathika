@@ -106,24 +106,6 @@ export class LayananService {
           aktif: true,
         })
       }
-      const asCount = await this.repo.countByKategori('ASESMEN')
-      if (asCount === 0) {
-        await this.repo.create({
-          nama: 'Asesmen Minat Bakat',
-          kategori: 'ASESMEN',
-          metode: 'Online/Offline',
-          deskripsi: 'Pemetaan komprehensif potensi akademik, kecenderungan minat karir, dan profil bakat individu bersama tim profesional Empathika.',
-          harga_weekday: 400000,
-          harga_weekend: 500000,
-          tarif_tenaga_ahli: {
-            asesmen: {
-              online: 350000,
-              offline: { weekday: 400000, weekend: 500000 },
-            },
-          },
-          aktif: true,
-        })
-      }
     } catch (e) {
       // Ignored if db not connected or migration in progress
     }
@@ -132,7 +114,24 @@ export class LayananService {
   public enrichLayanan(item: any) {
     if (!item) return item
     const isKonsultasi = (item.kategori || '').toUpperCase() === 'KONSULTASI'
+    const isAsesmen = (item.kategori || '').toUpperCase() === 'ASESMEN'
     const profesiTersedia: string[] = []
+
+    if (isAsesmen) {
+      const t = item.tarif_tenaga_ahli || {}
+      const onlinePrice = t?.asesmen?.online ?? t?.online ?? 0
+      const offlineWk = t?.asesmen?.offline?.weekday ?? t?.offline?.weekday ?? item.harga_weekday
+      const offlineWknd = t?.asesmen?.offline?.weekend ?? t?.offline?.weekend ?? item.harga_weekend
+
+      return {
+        ...item,
+        tarif_asesmen: {
+          online: Number(onlinePrice),
+          offline_weekday: Number(offlineWk),
+          offline_weekend: Number(offlineWknd),
+        },
+      }
+    }
 
     if (isKonsultasi) {
       const t = item.tarif_tenaga_ahli
@@ -356,21 +355,22 @@ export class LayananService {
       updateData.aktif = this.normalizeAktif(input.aktif, input.status)
     }
 
-    const updated = await this.repo.update(id, updateData)
+    const updated = await this.repo.update(existing.id, updateData)
     return this.enrichLayanan(updated)
   }
 
   async delete(id: string) {
     const existing = await this.repo.findById(id)
     if (!existing) {
-      throw Object.assign(new Error('Layanan tidak ditemukan'), { statusCode: 404 })
+      // Idempotent: jika sudah terhapus langsung dari DB, tetap berikan respons sukses
+      return { success: true, message: 'Layanan sudah tidak ada di database (sudah terhapus)' }
     }
 
     if ((existing as any)._count && (existing as any)._count.booking_konsultasi > 0) {
       // Soft delete jika sudah ada riwayat booking konsultasi
-      return this.repo.update(id, { aktif: false })
+      return this.repo.update(existing.id, { aktif: false })
     }
 
-    return this.repo.delete(id)
+    return this.repo.delete(existing.id)
   }
 }

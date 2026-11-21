@@ -638,9 +638,20 @@ export default function AdminTransaksiBiroClient() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
-            <div className="w-6 h-6 border-2 border-[#561269] border-t-transparent rounded-full animate-spin mr-3" />
-            Memuat data transaksi...
+          <div className="flex flex-col items-center justify-center py-20 text-sm font-poppins">
+            <div 
+              className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-3"
+              style={{
+                borderColor: "rgba(0,0,0,0.08)",
+                borderTopColor: "var(--biro-theme-color, #561269)",
+              }}
+            />
+            <span 
+              className="text-xs font-semibold animate-pulse"
+              style={{ color: "var(--biro-theme-color, #561269)" }}
+            >
+              Memuat data transaksi biro...
+            </span>
           </div>
         ) : fetchError ? (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-6 text-sm font-semibold text-center">

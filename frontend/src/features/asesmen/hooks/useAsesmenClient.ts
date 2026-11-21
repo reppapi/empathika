@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { useTenantContext } from "@/context/TenantContext"
-import { ASESMEN_PACKAGES, type AsesmenPackage } from "../data/asesmenData"
-import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
+import { buildAsesmenPackageFromLayanan, type AsesmenPackage } from "../data/asesmenData"
+import { layananService, type LayananApiResponse } from "@/services/layanan.service"
 
 export function useAsesmenClient() {
   const searchParams = useSearchParams()
@@ -14,10 +14,93 @@ export function useAsesmenClient() {
   const bannerParam = searchParams.get("banner")
   const { withBiro } = useTenantContext()
 
-  // State asesmen aktif
-  const [selectedAsesmenId, setSelectedAsesmenId] = useState<string>("asesmen-minat-bakat")
   // State metode pelaksanaan: "offline" | "online"
   const [metode, setMetode] = useState<"offline" | "online">("offline")
+
+  // State layanan dari backend database
+  const [backendLayanan, setBackendLayanan] = useState<LayananApiResponse[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isError, setIsError] = useState<boolean>(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  // Ambil nama paket / layanan target dari search parameters
+  const rawTargetName = useMemo(() => {
+    const fromParam =
+      searchParams.get("paket") ||
+      searchParams.get("layanan") ||
+      searchParams.get("title") ||
+      searchParams.get("nama") ||
+      ""
+    return fromParam.trim()
+  }, [searchParams])
+
+  // Fetch real-time data layanan kategori ASESMEN dari backend database
+  const fetchBackendAsesmen = useCallback(() => {
+    setIsLoading(true)
+    setIsError(false)
+    setErrorMessage(null)
+
+    layananService
+      .getAll({ kategori: "ASESMEN" })
+      .then((res: any) => {
+        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        setBackendLayanan(list)
+
+        const activeList = list.filter(
+          (item: any) => item.aktif !== false && item.status !== "Nonaktif"
+        )
+
+        if (activeList.length === 0) {
+          setIsError(true)
+          setErrorMessage("Belum ada layanan asesmen yang aktif di database.")
+          return
+        }
+
+        if (rawTargetName) {
+          const targetQuery = rawTargetName.toLowerCase().trim()
+          const cleanTarget = targetQuery.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+          const exists = activeList.some((item: any) => {
+            const name = (item.nama || item.layanan || "").toLowerCase().trim()
+            const id = String(item.id || "").toLowerCase().trim()
+            if (id === targetQuery || name === targetQuery) return true
+            if (name.includes(targetQuery) || targetQuery.includes(name)) return true
+            const cleanName = name.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+            if (cleanTarget && cleanName && (cleanName.includes(cleanTarget) || cleanTarget.includes(cleanName))) return true
+            return false
+          })
+
+          if (!exists) {
+            setIsError(true)
+            setErrorMessage(`Layanan asesmen "${rawTargetName}" tidak ditemukan atau telah dinonaktifkan oleh admin.`)
+          }
+        }
+      })
+      .catch((err: any) => {
+        console.warn("useAsesmenClient: Gagal memuat layanan asesmen dari backend:", err?.message)
+        setIsError(true)
+        setErrorMessage("Terjadi kendala saat menghubungkan ke database server. Silakan muat ulang atau periksa koneksi Anda.")
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [rawTargetName])
+
+  useEffect(() => {
+    fetchBackendAsesmen()
+
+    const handleUpdated = () => {
+      fetchBackendAsesmen()
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", handleUpdated)
+      window.addEventListener("layanan_updated", handleUpdated)
+      return () => {
+        window.removeEventListener("storage", handleUpdated)
+        window.removeEventListener("layanan_updated", handleUpdated)
+      }
+    }
+  }, [fetchBackendAsesmen])
 
   // State tanggal sesi tatap muka (offline)
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
@@ -33,8 +116,25 @@ export function useAsesmenClient() {
   )
   // State paket online: "gratis" | "berbayar"
   const [selectedOnlinePlan, setSelectedOnlinePlan] = useState<"gratis" | "berbayar">("berbayar")
-  // State banner kustom dari dashboard admin layanan
+  // State banner kustom
   const [customBanner, setCustomBanner] = useState<string | null>(bannerParam || null)
+
+  // Inisialisasi metode & hari dari search parameters
+  useEffect(() => {
+    if (metodeParam) {
+      const m = metodeParam.toLowerCase()
+      if (m === "online" || m === "offline") {
+        setMetode(m)
+      }
+    }
+
+    if (hariParam) {
+      const h = hariParam.toLowerCase()
+      if (h === "weekday" || h === "weekend") {
+        setSelectedOfflinePlan(h)
+      }
+    }
+  }, [metodeParam, hariParam])
 
   // Handler memilih tanggal & sinkronisasi otomatis ke paket harga
   const handleSelectDate = (newDate: Date) => {
@@ -65,141 +165,68 @@ export function useAsesmenClient() {
     }
   }
 
-  // Inisialisasi paket asesmen, metode, & hari dari search parameters
+  // Temukan item konfigurasi layanan dari Backend database murni
+  const matchedService = useMemo(() => {
+    if (backendLayanan.length === 0) return null
+
+    const activeList = backendLayanan.filter(
+      (item: any) => item.aktif !== false && item.status !== "Nonaktif"
+    )
+    if (activeList.length === 0) return null
+
+    if (!rawTargetName) {
+      return activeList[0]
+    }
+
+    const targetQuery = rawTargetName.toLowerCase().trim()
+    const cleanTarget = targetQuery.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+
+    const found = activeList.find((item: any) => {
+      const name = (item.nama || item.layanan || "").toLowerCase().trim()
+      const id = String(item.id || "").toLowerCase().trim()
+      if (id === targetQuery || name === targetQuery) return true
+      if (name.includes(targetQuery) || targetQuery.includes(name)) return true
+      const cleanName = name.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+      if (cleanTarget && cleanName && (cleanName.includes(cleanTarget) || cleanTarget.includes(cleanName))) return true
+      return false
+    })
+
+    return found || null
+  }, [backendLayanan, rawTargetName])
+
+  // Dapatkan data detail paket asesmen terpilih (murni dibangun dari database)
+  const selectedAsesmen: AsesmenPackage | null = useMemo(() => {
+    if (!matchedService) return null
+    return buildAsesmenPackageFromLayanan(matchedService)
+  }, [matchedService])
+
+  // Update banner kustom jika ada di database
   useEffect(() => {
-    if (paketParam) {
-      const normalized = paketParam.toLowerCase().replace(/\s+/g, "-")
-      const matched = ASESMEN_PACKAGES.find(
-        (a) =>
-          a.id.toLowerCase() === normalized ||
-          a.title.toLowerCase() === paketParam.toLowerCase() ||
-          a.title.toLowerCase().includes(paketParam.toLowerCase()) ||
-          a.shortTitle.toLowerCase() === paketParam.toLowerCase()
-      )
-      if (matched) {
-        setSelectedAsesmenId(matched.id)
-      }
+    const rawBanner = (matchedService as any)?.banner_url || (matchedService as any)?.bannerUrl
+    if (typeof rawBanner === "string" && rawBanner.trim()) {
+      setCustomBanner(rawBanner.trim())
+      return
     }
-
-    if (metodeParam) {
-      const m = metodeParam.toLowerCase()
-      if (m === "online" || m === "offline") {
-        setMetode(m)
-      }
+    if (bannerParam) {
+      setCustomBanner(bannerParam)
+      return
     }
+    setCustomBanner(null)
+  }, [matchedService, bannerParam])
 
-    if (hariParam) {
-      const h = hariParam.toLowerCase()
-      if (h === "weekday" || h === "weekend") {
-        setSelectedOfflinePlan(h)
-      }
-    }
-  }, [paketParam, metodeParam, hariParam])
-
-  // Dapatkan data detail paket asesmen terpilih
-  const selectedAsesmen: AsesmenPackage = useMemo(() => {
-    const base =
-      ASESMEN_PACKAGES.find((a) => a.id === selectedAsesmenId) ||
-      ASESMEN_PACKAGES[0]
-
-    try {
-      const list = getStoredLayanan()
-      const targetTitle = base.title.toLowerCase().trim()
-      const match = list.find((item) => {
-        if (item.status === "Nonaktif" || (item as any).aktif === false) return false
-        const name = (item.layanan || (item as any).nama || "").toLowerCase().trim()
-        return name === targetTitle || name.includes(targetTitle) || targetTitle.includes(name)
-      })
-
-      if (match) {
-        const t = (match as any).tarif_tenaga_ahli
-        const onlineVal = t?.asesmen?.online ?? t?.online
-        const offlineWk = t?.asesmen?.offline?.weekday ?? t?.offline?.weekday ?? match.weekday
-        const offlineWknd = t?.asesmen?.offline?.weekend ?? t?.offline?.weekend ?? match.weekend
-
-        return {
-          ...base,
-          onlinePrice: onlineVal
-            ? String(onlineVal).startsWith("Rp")
-              ? String(onlineVal)
-              : `Rp ${Number(onlineVal).toLocaleString("id-ID")}`
-            : base.onlinePrice,
-          weekday: offlineWk
-            ? String(offlineWk).startsWith("Rp")
-              ? String(offlineWk)
-              : `Rp ${Number(offlineWk).toLocaleString("id-ID")}`
-            : base.weekday,
-          weekend: offlineWknd
-            ? String(offlineWknd).startsWith("Rp")
-              ? String(offlineWknd)
-              : `Rp ${Number(offlineWknd).toLocaleString("id-ID")}`
-            : base.weekend,
-        }
-      }
-    } catch {}
-
-    return base
-  }, [selectedAsesmenId])
-
-  // Cek apakah Admin telah memasukkan foto awal / banner khusus di dashboard admin layanan
-  useEffect(() => {
-    const syncAdminBanner = () => {
-      try {
-        const list = getStoredLayanan()
-        const targetTitle = selectedAsesmen.title.toLowerCase().trim()
-        const match = list.find((item) => {
-          if (item.status === "Nonaktif" || (item as any).aktif === false) return false
-          const name = item.layanan.toLowerCase().trim()
-          return name === targetTitle || name.includes(targetTitle) || targetTitle.includes(name)
-        })
-
-        if (match?.bannerUrl?.trim()) {
-          setCustomBanner(match.bannerUrl.trim())
-          return
-        }
-      } catch (err) {
-        console.error("Gagal memuat banner kustom admin:", err)
-      }
-
-      if (bannerParam) {
-        setCustomBanner(bannerParam)
-        return
-      }
-
-      setCustomBanner(null)
-    }
-
-    syncAdminBanner()
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("storage", syncAdminBanner)
-      return () => window.removeEventListener("storage", syncAdminBanner)
-    }
-  }, [selectedAsesmen.title, bannerParam])
-
-  const activeHeroImage = customBanner || bannerParam || selectedAsesmen.image
+  const activeHeroImage = customBanner || bannerParam || selectedAsesmen?.image || ""
 
   // Batasan metode yang didukung oleh layanan asesmen terpilih (Online / Offline / Keduanya)
+  // Sepenuhnya mencerminkan inputan Admin di database
   const allowedMetode = useMemo(() => {
-    try {
-      const list = getStoredLayanan()
-      const targetTitle = selectedAsesmen.title.toLowerCase().trim()
-      const match = list.find((item) => {
-        if (item.status === "Nonaktif" || (item as any).aktif === false) return false
-        const name = (item.layanan || (item as any).nama || "").toLowerCase().trim()
-        return name === targetTitle || name.includes(targetTitle) || targetTitle.includes(name)
-      })
-
-      if (match?.metode) {
-        const m = match.metode.toLowerCase()
-        const online = m.includes("online") || m.includes("keduanya") || m === "semua"
-        const offline = m.includes("offline") || m.includes("keduanya") || m === "semua"
-        return { online, offline }
-      }
-    } catch {}
-
+    if (matchedService?.metode) {
+      const m = String(matchedService.metode).toLowerCase().trim()
+      const hasOnline = m.includes("online") || m.includes("keduanya") || m === "semua"
+      const hasOffline = m.includes("offline") || m.includes("keduanya") || m === "semua"
+      return { online: hasOnline, offline: hasOffline }
+    }
     return { online: true, offline: true }
-  }, [selectedAsesmen.title])
+  }, [matchedService])
 
   // Sinkronkan metode otomatis jika metode aktif tidak didukung oleh pengaturan layanan admin
   useEffect(() => {
@@ -212,27 +239,28 @@ export function useAsesmenClient() {
 
   // URL checkout sesi tatap muka (offline) -> diarahkan ke pemilihan jadwal terlebih dahulu
   const offlineCheckoutUrl = useMemo(() => {
+    if (!selectedAsesmen) return "#"
     const planName = selectedOfflinePlan === "weekday" ? "weekday" : "weekend"
+    const priceVal = selectedOfflinePlan === "weekday" ? selectedAsesmen.weekday : selectedAsesmen.weekend
     return withBiro(
-      `/asesmen/jadwal?paket=${encodeURIComponent(selectedAsesmen.id)}&layanan=${encodeURIComponent(selectedAsesmen.title)}&hari=${encodeURIComponent(planName)}&metode=offline`
+      `/asesmen/jadwal?paket=${encodeURIComponent(selectedAsesmen.id)}&layanan=${encodeURIComponent(selectedAsesmen.title)}&hari=${encodeURIComponent(planName)}&harga=${encodeURIComponent(priceVal)}&weekday=${encodeURIComponent(selectedAsesmen.weekday)}&weekend=${encodeURIComponent(selectedAsesmen.weekend)}&metode=offline`
     )
-  }, [selectedAsesmen.id, selectedAsesmen.title, selectedOfflinePlan, withBiro])
+  }, [selectedAsesmen, selectedOfflinePlan, withBiro])
 
   // URL checkout sesi digital (online)
   const onlineCheckoutUrl = useMemo(() => {
+    if (!selectedAsesmen) return "#"
     return withBiro(
       `/psikotes/checkout?testId=${selectedAsesmen.id}&judul=${encodeURIComponent(selectedAsesmen.title + " (Online)")}&harga=${encodeURIComponent(selectedAsesmen.onlinePrice)}&kategori=Asesmen&subjudul=${encodeURIComponent(selectedAsesmen.subtitle)}`
     )
-  }, [
-    selectedAsesmen.id,
-    selectedAsesmen.title,
-    selectedAsesmen.onlinePrice,
-    selectedAsesmen.subtitle,
-    withBiro,
-  ])
+  }, [selectedAsesmen, withBiro])
 
   return {
     selectedAsesmen,
+    isLoading,
+    isError,
+    errorMessage,
+    refetch: fetchBackendAsesmen,
     metode,
     setMetode,
     allowsOnline: allowedMetode.online,
@@ -249,4 +277,3 @@ export function useAsesmenClient() {
     withBiro,
   }
 }
-

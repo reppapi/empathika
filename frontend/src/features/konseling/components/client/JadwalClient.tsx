@@ -1,8 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { BookingJadwalShared } from "@/components/shared/BookingJadwalShared"
-import { ASESMEN_PACKAGES } from "@/features/asesmen/data/asesmenData"
+import { buildAsesmenPackageFromLayanan, type AsesmenPackage } from "@/features/asesmen/data/asesmenData"
+import { layananService } from "@/services/layanan.service"
 
 export default function JadwalClient() {
   const searchParams = useSearchParams()
@@ -15,27 +17,36 @@ export default function JadwalClient() {
   const mode = isAsesmen ? "asesmen" : "konseling"
   const hariParam = searchParams?.get("hari") === "weekend" ? "weekend" : "weekday"
 
-  const selectedAsesmen = (isAsesmen || paketParam)
-    ? (paketParam
-        ? ASESMEN_PACKAGES.find(
-            (p) =>
-              p.id.toLowerCase() === paketParam.toLowerCase() ||
-              p.title.toLowerCase().includes(paketParam.toLowerCase()) ||
-              paketParam.toLowerCase().includes(p.id.toLowerCase())
-          )
-        : (layananParam
-            ? ASESMEN_PACKAGES.find(
-                (p) =>
-                  p.title.toLowerCase().includes(layananParam.toLowerCase()) ||
-                  layananParam.toLowerCase().includes(p.title.toLowerCase())
-              )
-            : undefined)) || ASESMEN_PACKAGES[0]
-    : undefined
+  const [asesmenPackage, setAsesmenPackage] = useState<AsesmenPackage | undefined>(undefined)
+
+  useEffect(() => {
+    if (!isAsesmen && !paketParam) return
+
+    layananService
+      .getAll({ kategori: "ASESMEN" })
+      .then((res: any) => {
+        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        const activeList = list.filter((item: any) => item.aktif !== false && item.status !== "Nonaktif")
+        if (activeList.length === 0) return
+
+        const target = (paketParam || layananParam || "").toLowerCase().trim()
+        const matched = activeList.find((item: any) => {
+          const name = (item.nama || item.layanan || "").toLowerCase().trim()
+          const id = String(item.id || "").toLowerCase().trim()
+          return id === target || name === target || name.includes(target) || target.includes(name)
+        }) || activeList[0]
+
+        if (matched) {
+          setAsesmenPackage(buildAsesmenPackageFromLayanan(matched))
+        }
+      })
+      .catch(() => {})
+  }, [isAsesmen, paketParam, layananParam])
 
   return (
     <BookingJadwalShared
       mode={mode}
-      asesmenPackage={selectedAsesmen}
+      asesmenPackage={asesmenPackage}
       initialOfflinePlan={hariParam}
     />
   )

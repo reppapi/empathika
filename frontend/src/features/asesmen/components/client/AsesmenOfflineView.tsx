@@ -9,6 +9,7 @@ interface AsesmenOfflineViewProps {
   selectedOfflinePlan: "weekday" | "weekend"
   setSelectedOfflinePlan: (plan: "weekday" | "weekend") => void
   offlineCheckoutUrl: string
+  allowsOffline?: boolean
 }
 
 export function AsesmenOfflineView({
@@ -16,6 +17,7 @@ export function AsesmenOfflineView({
   selectedOfflinePlan,
   setSelectedOfflinePlan,
   offlineCheckoutUrl,
+  allowsOffline = true,
 }: AsesmenOfflineViewProps) {
   const isWeekday = selectedOfflinePlan === "weekday"
   const selectedPrice = isWeekday ? selectedAsesmen.weekday : selectedAsesmen.weekend
@@ -24,6 +26,16 @@ export function AsesmenOfflineView({
   return (
     <div className="max-w-[950px] mx-auto px-4 sm:px-6 lg:px-8 mt-8 animate-fade-in">
       <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-10 border border-[#DCD0E1]">
+        {/* Peringatan jika metode offline tidak dibuka oleh admin */}
+        {!allowsOffline && (
+          <div className="mb-6 p-4 rounded-2xl bg-gray-100 border border-gray-300 text-gray-700 text-xs sm:text-sm font-medium flex items-center gap-3">
+            <span className="text-xl">⚠️</span>
+            <div>
+              <p className="font-bold text-gray-800">Metode Tatap Muka (Offline) Tidak Dibuka oleh Admin</p>
+              <p className="text-gray-500 text-xs mt-0.5">Sesi tatap muka di klinik saat ini tidak diaktifkan oleh admin. Silakan beralih ke opsi Online pada pilihan format pelaksanaan di atas.</p>
+            </div>
+          </div>
+        )}
         {/* Header Rincian */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-gray-100 gap-4">
           <div>
@@ -188,13 +200,23 @@ export function AsesmenOfflineView({
             </span>
           </div>
 
-          <Link
-            href={offlineCheckoutUrl as any}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base px-8 sm:px-12 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-          >
-            <span>Lanjut Pembayaran</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          {!allowsOffline ? (
+            <button
+              type="button"
+              disabled
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-extrabold text-sm sm:text-base px-8 sm:px-12 py-3.5 sm:py-4 rounded-full cursor-not-allowed border border-gray-300"
+            >
+              <span>Metode Offline Ditutup</span>
+            </button>
+          ) : (
+            <Link
+              href={offlineCheckoutUrl as any}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm sm:text-base px-8 sm:px-12 py-3.5 sm:py-4 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+            >
+              <span>Lanjut Pembayaran</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
 
         <p className="text-[11px] text-gray-400 text-center sm:text-right mt-3">

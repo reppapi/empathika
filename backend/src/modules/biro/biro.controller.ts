@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify"
 import { BiroService } from "./biro.service"
+import type { GetAdminJadwalQuery } from "../booking/booking.schema"
 import type {
   UpdateBiroAccountInput,
   CreateBiroInput,
@@ -18,7 +19,7 @@ export class BiroController {
   private service: BiroService
 
   constructor(fastify: FastifyInstance) {
-    this.service = new BiroService(fastify.prisma)
+    this.service = new BiroService(fastify.prisma, fastify)
   }
 
   // ==========================================
@@ -99,6 +100,31 @@ export class BiroController {
     try {
       const { accountId } = request.params
       const result = await this.service.updateBiroProfile(accountId, request.body)
+      return reply.code(200).send(result)
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({ error: "Bad Request", message: err.message })
+    }
+  }
+
+  /**
+   * GET /biro/jadwal
+   * Mengambil sesi hari ini dan grid slot jadwal khusus biro yang sedang login.
+   * Klien biro lain dan klien Empathika dijamin tidak masuk.
+   */
+  getBiroJadwal = async (
+    request: FastifyRequest<{ Querystring: GetAdminJadwalQuery }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = (request as any).user
+      const accountId = user?.id || (request.headers["x-account-id"] as string)
+
+      if (!accountId) {
+        return reply.code(401).send({ error: "Unauthorized", message: "ID akun tidak ditemukan" })
+      }
+
+      const result = await this.service.getBiroJadwal(accountId, request.query)
       return reply.code(200).send(result)
     } catch (err: any) {
       const statusCode = err.statusCode || 400

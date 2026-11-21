@@ -512,6 +512,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
         if (typeof window !== "undefined") {
           localStorage.setItem("empathika_admin_layanan_category", selectedCategory)
           sessionStorage.removeItem("empathika_edit_item")
+          window.dispatchEvent(new Event("layanan_updated"))
         }
         router.push(`/admin/layanan?category=${selectedCategory}`)
       }, 1000)

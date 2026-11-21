@@ -11,12 +11,7 @@ import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { psikologService } from "@/services/psikolog.service"
 import { psikotesService } from "@/services/psikotes.service"
 import { useAuthStore } from "@/store/authStore"
-import dynamic from "next/dynamic"
-
-const AuthGuard = dynamic(
-  () => import("@/components/shared/AuthGuard").then((mod) => mod.AuthGuard),
-  { ssr: false }
-)
+import { AuthGuard } from "@/components/shared/AuthGuard"
 
 export default function PsikologWebLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)

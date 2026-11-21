@@ -12,6 +12,18 @@ import {
   withActivationAccount,
 } from "../../utils/activation"
 
+function extractBiroData(account: any) {
+  const beBiro = account?.owned_biro?.[0] || account?.biro || null
+  if (!beBiro) return null
+  return {
+    id: beBiro.id,
+    nama_biro: beBiro.nama_biro,
+    slug: beBiro.slug,
+    warna_tema: beBiro.warna_tema || null,
+    logoURI: beBiro.logoURI || null,
+  }
+}
+
 export class AuthService {
   private repo: AuthRepository
 
@@ -92,12 +104,16 @@ export class AuthService {
       { expiresIn }
     )
 
+    const biroData = extractBiroData(account)
+
     return {
       user: {
         id: account.id,
         nama: account.nama,
         email: account.email,
         role: account.role,
+        id_biro: account.id_biro || biroData?.id || null,
+        biro: biroData,
       },
       accessToken: token,
     }
@@ -154,12 +170,16 @@ export class AuthService {
       { expiresIn }
     )
 
+    const biroData = extractBiroData(account)
+
     return {
       user: {
         id: account.id,
         nama: account.nama,
         email: account.email,
         role: account.role,
+        id_biro: account.id_biro || biroData?.id || null,
+        biro: biroData,
       },
       accessToken: token,
     }
@@ -249,6 +269,8 @@ export class AuthService {
       { expiresIn }
     )
 
+    const biroData = extractBiroData(account)
+
     return {
       success: true,
       message: "Kata sandi berhasil dibuat dan akun Anda telah aktif.",
@@ -258,6 +280,8 @@ export class AuthService {
         nama: account.nama,
         email: account.email,
         role: account.role,
+        id_biro: account.id_biro || biroData?.id || null,
+        biro: biroData,
       },
     }
   }
@@ -332,12 +356,15 @@ export class AuthService {
     if (!user) {
       throw Object.assign(new Error("User tidak ditemukan"), { statusCode: 404 })
     }
+    const biroData = extractBiroData(user)
     return {
       user: {
         id: user.id,
         nama: user.nama,
         email: user.email,
         role: user.role,
+        id_biro: user.id_biro || biroData?.id || null,
+        biro: biroData,
       },
     }
   }

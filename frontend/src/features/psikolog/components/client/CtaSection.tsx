@@ -2,9 +2,12 @@
 
 import Link from "next/link"
 import { useTenant } from "@/hooks/useTenant"
+import { useTenantContext } from "@/context/TenantContext"
 
 export function CtaSection() {
   const { withBiro } = useTenant()
+  const { isBiro, biroProfile } = useTenantContext()
+  const themeColor = isBiro ? (biroProfile?.warna_tema || "#651877") : "#651877"
 
   return (
     <section className="w-full bg-[#EFE9F3] py-16 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8 mt-16 text-center">
@@ -12,7 +15,7 @@ export function CtaSection() {
         <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#3B074B] leading-tight">
           Satu cerita bisa menjadi awal dari perubahan.
           <br className="hidden sm:inline" />
-          <span className="text-[#651877]"> Mulai konsultasimu hari ini.</span>
+          <span style={{ color: themeColor }}> Mulai konsultasimu hari ini.</span>
         </h2>
 
         <p className="text-gray-600 text-sm sm:text-base md:text-lg max-w-2xl mx-auto font-medium">

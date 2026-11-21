@@ -33,8 +33,27 @@ export class LayananRepository {
   }
 
   async findById(id: string) {
-    return this.prisma.layanan.findUnique({
+    const byId = await this.prisma.layanan.findUnique({
       where: { id },
+      include: {
+        _count: {
+          select: { booking_konsultasi: true },
+        },
+      },
+    })
+    if (byId) return byId
+
+    // Fallback: pencarian by slug / nama jika id bukan UUID (misal "asesmen-minat-bakat-01" atau "asesmen-minat-bakat")
+    const cleanQuery = id
+      .toLowerCase()
+      .replace(/-\d+$/, '')
+      .replace(/-/g, ' ')
+      .trim()
+
+    return this.prisma.layanan.findFirst({
+      where: {
+        nama: { contains: cleanQuery, mode: 'insensitive' },
+      },
       include: {
         _count: {
           select: { booking_konsultasi: true },

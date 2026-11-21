@@ -141,7 +141,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-gray-600 leading-relaxed font-medium min-h-[44px]">
-              {isBiro && biroProfile?.deskripsi ? biroProfile.deskripsi : "Platform psikologi dan kesehatan mental."}
+              Platform psikologi dan kesehatan mental.
             </p>
             <p className="text-[#3B074B] font-semibold text-lg max-w-sm leading-snug min-h-[56px]">
               &quot;Menemani setiap langkahmu untuk memahami diri, bertumbuh, dan menjadi lebih baik.&quot;

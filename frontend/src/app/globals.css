@@ -177,6 +177,32 @@ html[data-biro-theme="true"] .border-\[\#763E8B\],
   border-color: var(--biro-theme-color, #561269) !important;
 }
 
+/* Spinner & Directional Border Tema Biro */
+html[data-biro-theme="true"] .border-t-\[\#561269\],
+[data-biro-theme="true"] .border-t-\[\#561269\] {
+  border-top-color: var(--biro-theme-color, #561269) !important;
+}
+html[data-biro-theme="true"] .border-b-\[\#561269\],
+[data-biro-theme="true"] .border-b-\[\#561269\] {
+  border-bottom-color: var(--biro-theme-color, #561269) !important;
+}
+html[data-biro-theme="true"] .border-r-\[\#561269\],
+[data-biro-theme="true"] .border-r-\[\#561269\] {
+  border-right-color: var(--biro-theme-color, #561269) !important;
+}
+html[data-biro-theme="true"] .border-l-\[\#561269\],
+[data-biro-theme="true"] .border-l-\[\#561269\] {
+  border-left-color: var(--biro-theme-color, #561269) !important;
+}
+html[data-biro-theme="true"] .border-t-transparent,
+[data-biro-theme="true"] .border-t-transparent {
+  border-top-color: transparent !important;
+}
+html[data-biro-theme="true"] .border-b-transparent,
+[data-biro-theme="true"] .border-b-transparent {
+  border-bottom-color: transparent !important;
+}
+
 /* 4. Hover States */
 html[data-biro-theme="true"] .hover\:text-\[\#561269\]:hover,
 html[data-biro-theme="true"] .hover\:text-\[\#763E8B\]:hover,

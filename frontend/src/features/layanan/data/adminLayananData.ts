@@ -94,57 +94,6 @@ export const INITIAL_ADMIN_LAYANAN: AdminLayananItem[] = [
       "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     ],
   },
-  {
-    id: "asesmen-minat-bakat-01",
-    layanan: "Asesmen Minat Bakat",
-    kategoriId: "05",
-    metode: "Online/Offline",
-    weekday: "Rp 400.000",
-    weekend: "Rp 500.000",
-    status: "Aktif",
-    deskripsi:
-      "Pemetaan komprehensif potensi akademik, kecenderungan minat karir, dan profil bakat individu bersama tim profesional Empathika.",
-    tarif_tenaga_ahli: {
-      asesmen: {
-        online: 350000,
-        offline: { weekday: 400000, weekend: 500000 },
-      },
-    } as any,
-  },
-  {
-    id: "asesmen-kesiapan-sekolah-01",
-    layanan: "Asesmen Kesiapan Sekolah",
-    kategoriId: "05",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Pemeriksaan psikologis perkembangan anak untuk mengukur kematangan kognitif, motorik, bahasa, dan regulasi sosio-emosional.",
-    tarif_tenaga_ahli: {
-      asesmen: {
-        online: 300000,
-        offline: { weekday: 350000, weekend: 450000 },
-      },
-    } as any,
-  },
-  {
-    id: "asesmen-klinis-01",
-    layanan: "Asesmen Klinis",
-    kategoriId: "05",
-    metode: "Online/Offline",
-    weekday: "Rp 350.000",
-    weekend: "Rp 450.000",
-    status: "Aktif",
-    deskripsi:
-      "Pemeriksaan diagnostik psikologis mendalam untuk mengidentifikasi dinamika kepribadian, regulasi emosi, dan kesehatan mental.",
-    tarif_tenaga_ahli: {
-      asesmen: {
-        online: 350000,
-        offline: { weekday: 350000, weekend: 450000 },
-      },
-    } as any,
-  },
 ]
 
 const STORAGE_KEY = "empathika_admin_layanan_data"
@@ -156,23 +105,14 @@ export function getStoredLayanan(): AdminLayananItem[] {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const hasKonsultasi = parsed.some((p: any) => p.kategoriId === "01" || p.kategori === "KONSULTASI")
-        const hasWs = parsed.some((p: any) => p.kategoriId === "03" || p.kategori === "WORKSHOP")
-        const hasSm = parsed.some((p: any) => p.kategoriId === "04" || p.kategori === "SEMINAR")
-        const hasAsesmen = parsed.some((p: any) => p.kategoriId === "05" || p.kategori === "ASESMEN")
-        if (!hasKonsultasi || !hasWs || !hasSm || !hasAsesmen) {
-          const defaultsToAdd = INITIAL_ADMIN_LAYANAN.filter(
-            (init) =>
-              (!hasKonsultasi && init.kategoriId === "01") ||
-              (!hasWs && init.kategoriId === "03") ||
-              (!hasSm && init.kategoriId === "04") ||
-              (!hasAsesmen && init.kategoriId === "05")
-          )
-          const merged = [...parsed, ...defaultsToAdd]
-          saveStoredLayanan(merged)
-          return merged
+        // Bersihkan item 'Pendidikan' jika masih tersimpan di cache
+        const cleaned = parsed.filter(
+          (p: any) => String(p?.layanan || p?.nama || "").trim().toLowerCase() !== "pendidikan"
+        )
+        if (cleaned.length !== parsed.length) {
+          saveStoredLayanan(cleaned)
         }
-        return parsed
+        return cleaned
       }
     }
   } catch (e) {

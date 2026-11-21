@@ -100,7 +100,8 @@ export default function AdminBiroDashboardClient() {
 
   const [activeTenant, setActiveTenant] = useState<BiroTenantData>(() => {
     const cachedColor = typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null
-    return getCleanInitialTenant(user?.id, user?.name, cachedColor || "#561269")
+    const cachedName = typeof window !== "undefined" ? localStorage.getItem("biro_name") : null
+    return getCleanInitialTenant(user?.id, cachedName || user?.name || "Biro Mitra", cachedColor || "#561269")
   })
 
   useEffect(() => {

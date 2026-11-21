@@ -52,7 +52,7 @@ export function Navbar() {
   const navLinks = [
     { name: "home", path: withBiro("/") },
     { name: "layanan", path: withBiro("/layanan") },
-    { name: "konseling", path: withBiro("/konseling") },
+    { name: "konsultasi", path: withBiro("/konseling") },
     { name: "psikolog", path: withBiro("/psikolog") },
     { name: "event", path: withBiro("/event") },
     { name: "kerja sama", path: withBiro("/kerja-sama") },

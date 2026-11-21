@@ -1,7 +1,7 @@
 "use client"
 
 /* eslint-disable @next/next/no-img-element */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { CtaSection } from '@/features/psikolog/components/client/CtaSection'
 import { useTenantContext } from '@/context/TenantContext'
@@ -11,42 +11,89 @@ import {
   type TentangKamiContent,
 } from '@/services/tentang-kami.service'
 
-function renderNilaiIcon(iconName?: string) {
+/**
+ * Generator turunan warna harmonis untuk 4 pilar chevron Tentang Kami
+ * secara dinamis berdasarkan warna identitas resmi Biro.
+ */
+function generateBiroColorShades(baseHex: string) {
+  let hex = baseHex ? baseHex.replace("#", "").trim() : "561269"
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
+  }
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+    hex = "561269"
+  }
+
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+
+  const clamp = (val: number) => Math.max(0, Math.min(255, Math.round(val)))
+  const toHex = (num: number) => clamp(num).toString(16).padStart(2, "0")
+  const rgbToHex = (cr: number, cg: number, cb: number) => `#${toHex(cr)}${toHex(cg)}${toHex(cb)}`
+
+  // 1. Pilar 1: Deep rich base shade (gelap berbobot ~18%)
+  const pilar1 = rgbToHex(r * 0.82, g * 0.82, b * 0.82)
+
+  // 2. Pilar 2: Medium base shade (agak terang ~22% ke putih)
+  const pilar2 = rgbToHex(r + (255 - r) * 0.22, g + (255 - g) * 0.22, b + (255 - b) * 0.22)
+
+  // 3. Pilar 3: Medium-light shade (terang lembut ~48% ke putih)
+  const pilar3 = rgbToHex(r + (255 - r) * 0.48, g + (255 - g) * 0.48, b + (255 - b) * 0.48)
+
+  // 4. Pilar 4: Ultra-light pastel tint (~92% ke putih)
+  const pilar4 = rgbToHex(r + (255 - r) * 0.92, g + (255 - g) * 0.92, b + (255 - b) * 0.92)
+
+  // Warna teks & ikon untuk Pilar 4 kontras tinggi menggunakan warna dasar gelap
+  const pilar4Text = pilar1
+
+  return {
+    themeColor: `#${hex}`,
+    pilar1,
+    pilar2,
+    pilar3,
+    pilar4,
+    pilar4Text,
+  }
+}
+
+function renderNilaiIcon(iconName?: string, customColor?: string) {
+  const iconColor = customColor || "currentColor"
   switch (iconName) {
     case 'star':
       return (
-        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style={{ color: iconColor }} className="w-7 h-7 lg:w-8 lg:h-8 drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
         </svg>
       )
     case 'shield':
       return (
-        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-[#491c68] drop-shadow-sm relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style={{ color: iconColor }} className="w-7 h-7 lg:w-8 lg:h-8 drop-shadow-sm relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
       )
     case 'users':
       return (
-        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-[#491c68] drop-shadow-sm relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style={{ color: iconColor }} className="w-7 h-7 lg:w-8 lg:h-8 drop-shadow-sm relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
       )
     case 'lightbulb':
       return (
-        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style={{ color: iconColor }} className="w-7 h-7 lg:w-8 lg:h-8 drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
       )
     case 'award':
       return (
-        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style={{ color: iconColor }} className="w-7 h-7 lg:w-8 lg:h-8 drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
         </svg>
       )
     case 'heart':
     default:
       return (
-        <svg className="w-7 h-7 lg:w-8 lg:h-8 text-white drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style={{ color: iconColor }} className="w-7 h-7 lg:w-8 lg:h-8 drop-shadow-lg relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
       )
@@ -95,6 +142,15 @@ export default function TentangKamiClient() {
   const { isBiro, biroProfile, withBiro } = useTenantContext()
   const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"
 
+  const rawThemeColor = isBiro
+    ? (biroProfile?.warna_tema ||
+        (typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null) ||
+        "#561269")
+    : "#561269"
+
+  const shades = useMemo(() => generateBiroColorShades(rawThemeColor), [rawThemeColor])
+  const themeColor = shades.themeColor
+
   const [content, setContent] = useState<TentangKamiContent>(DEFAULT_TENTANG_KAMI)
 
   useEffect(() => {
@@ -130,7 +186,7 @@ export default function TentangKamiClient() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center text-center">
 
           <h1 className="text-4xl md:text-5xl lg:text-[4.5rem] font-extrabold text-[#2a0835] mb-6 leading-[1.1] tracking-tight">
-            Tentang <span className="text-[#561269]">{brandName}</span>
+            Tentang <span style={{ color: themeColor }}>{brandName}</span>
           </h1>
 
           <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg lg:text-xl font-light mb-16 md:mb-24 leading-relaxed">
@@ -284,7 +340,7 @@ export default function TentangKamiClient() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-start lg:items-center">
             <div className="lg:w-5/12">
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#561269] leading-[1.1] tracking-tight">
+              <h2 style={{ color: themeColor }} className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight">
                 {content.berkenalan.judul}
               </h2>
             </div>
@@ -302,7 +358,7 @@ export default function TentangKamiClient() {
       <section className="w-full py-16 md:py-24 bg-[#fbfbfb] relative overflow-hidden">
         {/* Title Container (Constrained) */}
         <div className="max-w-[1200px] mx-auto px-4 md:px-8 text-center mb-12 md:mb-16">
-          <h2 className="text-3xl md:text-5xl font-extrabold text-[#561269] mb-4 drop-shadow-sm">
+          <h2 style={{ color: themeColor }} className="text-3xl md:text-5xl font-extrabold mb-4 drop-shadow-sm">
             {content.nilai.judulSection}
           </h2>
           <p className="text-gray-500 max-w-2xl mx-auto">
@@ -315,7 +371,9 @@ export default function TentangKamiClient() {
 
           {/* Block 1: Pilar 1 */}
           <div className="relative flex-1 z-40 drop-shadow-[0_8px_15px_rgba(0,0,0,0.15)] lg:drop-shadow-[10px_0_15px_rgba(0,0,0,0.18)] group">
-            <div className="w-full h-full bg-[#491c68] relative
+            <div
+              style={{ backgroundColor: shades.pilar1 }}
+              className="w-full h-full relative
               [clip-path:polygon(0_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
               lg:[clip-path:polygon(0_0,calc(100%-2.5rem)_0,calc(100%-2.5rem)_42%,100%_50%,calc(100%-2.5rem)_58%,calc(100%-2.5rem)_100%,0_100%)]
               transition-transform duration-500 hover:scale-[1.015] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
@@ -328,7 +386,7 @@ export default function TentangKamiClient() {
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
                 <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-md border-[2px] border-white/25 mb-4 lg:mb-5 group-hover:-translate-y-1.5 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  {renderNilaiIcon(nilaiItems[0]?.icon)}
+                  {renderNilaiIcon(nilaiItems[0]?.icon, "#ffffff")}
                 </div>
                 <h3 className="font-black text-2xl lg:text-[1.65rem] text-white mb-2.5 drop-shadow-sm tracking-tight leading-tight">
                   {nilaiItems[0]?.judul}
@@ -342,7 +400,9 @@ export default function TentangKamiClient() {
 
           {/* Block 2: Pilar 2 */}
           <div className="relative flex-1 z-30 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.12)] lg:drop-shadow-[10px_0_15px_rgba(0,0,0,0.15)] group">
-            <div className="w-full h-full bg-[#6d3283] relative
+            <div
+              style={{ backgroundColor: shades.pilar2 }}
+              className="w-full h-full relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
               lg:[clip-path:polygon(0_0,calc(100%-2.5rem)_0,calc(100%-2.5rem)_42%,100%_50%,calc(100%-2.5rem)_58%,calc(100%-2.5rem)_100%,0_100%,0_58%,2.5rem_50%,0_42%)]
               transition-transform duration-500 hover:scale-[1.015] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
@@ -355,7 +415,7 @@ export default function TentangKamiClient() {
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
                 <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-md border-[2px] border-white/25 mb-4 lg:mb-5 group-hover:-translate-y-1.5 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  {renderNilaiIcon(nilaiItems[1]?.icon)}
+                  {renderNilaiIcon(nilaiItems[1]?.icon, "#ffffff")}
                 </div>
                 <h3 className="font-black text-2xl lg:text-[1.65rem] text-white mb-2.5 drop-shadow-sm tracking-tight leading-tight">
                   {nilaiItems[1]?.judul}
@@ -369,7 +429,9 @@ export default function TentangKamiClient() {
 
           {/* Block 3: Pilar 3 */}
           <div className="relative flex-1 z-20 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.1)] lg:drop-shadow-[10px_0_15px_rgba(0,0,0,0.12)] group">
-            <div className="w-full h-full bg-[#9b58b4] relative
+            <div
+              style={{ backgroundColor: shades.pilar3 }}
+              className="w-full h-full relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_calc(100%-2.5rem),58%_calc(100%-2.5rem),50%_100%,42%_calc(100%-2.5rem),0_calc(100%-2.5rem))] 
               lg:[clip-path:polygon(0_0,calc(100%-2.5rem)_0,calc(100%-2.5rem)_42%,100%_50%,calc(100%-2.5rem)_58%,calc(100%-2.5rem)_100%,0_100%,0_58%,2.5rem_50%,0_42%)]
               transition-transform duration-500 hover:scale-[1.015] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
@@ -382,7 +444,7 @@ export default function TentangKamiClient() {
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
                 <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-md border-[2px] border-white/30 mb-4 lg:mb-5 group-hover:-translate-y-1.5 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/25 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  {renderNilaiIcon(nilaiItems[2]?.icon)}
+                  {renderNilaiIcon(nilaiItems[2]?.icon, "#ffffff")}
                 </div>
                 <h3 className="font-black text-2xl lg:text-[1.65rem] text-white mb-2.5 drop-shadow-sm tracking-tight leading-tight">
                   {nilaiItems[2]?.judul}
@@ -396,7 +458,9 @@ export default function TentangKamiClient() {
 
           {/* Block 4: Pilar 4 */}
           <div className="relative flex-1 z-10 -mt-10 lg:-mt-0 lg:-ml-10 drop-shadow-[0_8px_15px_rgba(0,0,0,0.06)] lg:drop-shadow-[10px_0_15px_rgba(0,0,0,0.08)] group">
-            <div className="w-full h-full bg-[#f4e8f7] relative
+            <div
+              style={{ backgroundColor: shades.pilar4 }}
+              className="w-full h-full relative
               [clip-path:polygon(0_0,42%_0,50%_2.5rem,58%_0,100%_0,100%_100%,0_100%)] 
               lg:[clip-path:polygon(0_0,100%_0,100%_100%,0_100%,0_58%,2.5rem_50%,0_42%)]
               transition-transform duration-500 hover:scale-[1.015] flex flex-col items-center text-center lg:items-start lg:text-left justify-center
@@ -409,12 +473,18 @@ export default function TentangKamiClient() {
               <div className="relative z-10 flex flex-col items-center lg:items-start w-full">
                 <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-[1.2rem] bg-white/80 backdrop-blur-xl flex items-center justify-center shadow-md border-[2px] border-white/80 mb-4 lg:mb-5 group-hover:-translate-y-1.5 transition-transform duration-500 relative">
                   <div className="absolute inset-0 bg-white/60 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  {renderNilaiIcon(nilaiItems[3]?.icon)}
+                  {renderNilaiIcon(nilaiItems[3]?.icon, shades.pilar4Text)}
                 </div>
-                <h3 className="font-black text-2xl lg:text-[1.65rem] text-[#491c68] mb-2.5 drop-shadow-xs tracking-tight leading-tight">
+                <h3
+                  style={{ color: shades.pilar4Text }}
+                  className="font-black text-2xl lg:text-[1.65rem] mb-2.5 drop-shadow-xs tracking-tight leading-tight"
+                >
                   {nilaiItems[3]?.judul}
                 </h3>
-                <p className="text-[#491c68]/90 text-[0.925rem] lg:text-[1.025rem] leading-relaxed font-normal max-w-xs">
+                <p
+                  style={{ color: shades.pilar4Text, opacity: 0.9 }}
+                  className="text-[0.925rem] lg:text-[1.025rem] leading-relaxed font-normal max-w-xs"
+                >
                   {nilaiItems[3]?.deskripsi}
                 </p>
               </div>
@@ -436,7 +506,10 @@ export default function TentangKamiClient() {
               className="lg:w-1/2 w-full relative h-[320px] sm:h-[420px] md:h-[500px] lg:h-[550px] flex items-center justify-center group"
               style={{ perspective: '1200px' }}
             >
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] sm:w-[300px] h-[240px] sm:h-[300px] bg-[#561269]/15 blur-[80px] rounded-full z-0 transition-colors duration-700 group-hover:bg-[#d97706]/15"></div>
+              <div
+                style={{ backgroundColor: themeColor }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] sm:w-[300px] h-[240px] sm:h-[300px] opacity-15 blur-[80px] rounded-full z-0 transition-colors duration-700"
+              ></div>
 
               <div 
                 className="relative w-[90%] sm:w-[80%] h-[85%] rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-700 ease-out z-10 border-[6px] sm:border-[8px] border-white group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.2)] group-hover:-translate-y-2 group-hover:rotate-1"
@@ -464,7 +537,7 @@ export default function TentangKamiClient() {
 
             {/* Right: Typography Content */}
             <div className="lg:w-1/2">
-              <h2 className="text-3xl md:text-5xl font-extrabold text-[#561269] mb-8 leading-tight">
+              <h2 style={{ color: themeColor }} className="text-3xl md:text-5xl font-extrabold mb-8 leading-tight">
                 {content.kenapaHadir.judul}
               </h2>
               <div className="space-y-6 text-gray-600 text-base md:text-lg leading-relaxed font-light">
@@ -484,7 +557,7 @@ export default function TentangKamiClient() {
       <section className="w-full py-16 lg:py-20 bg-white">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 lg:mb-20">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#561269] mb-6">
+            <h2 style={{ color: themeColor }} className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-6">
               {content.layananSection?.judul || "Ada untuk Setiap Langkahmu"}
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto text-base md:text-lg font-light leading-relaxed">
@@ -497,7 +570,11 @@ export default function TentangKamiClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1100px] mx-auto mt-10 md:mt-12">
             
             {/* 1. Konsultasi (Span 2) - Dark Theme */}
-            <Link href={withBiro("/layanan?category=01") as any} className="md:col-span-2 bg-[#491c68] rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group block">
+            <Link
+              href={withBiro("/layanan?category=01") as any}
+              style={{ backgroundColor: shades.pilar1 }}
+              className="md:col-span-2 rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group block"
+            >
               <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] bg-white/10 backdrop-blur-md text-white flex items-center justify-center mb-6 border border-white/20 relative z-10 group-hover:scale-110 transition-transform">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path></svg>

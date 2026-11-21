@@ -52,7 +52,7 @@ export function AsesmenMetodeSelector({
             onClick={() => allowsOffline && setMetode("offline")}
             className={`p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col justify-between relative overflow-hidden group ${
               !allowsOffline
-                ? "border-gray-200 bg-gray-100/70 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                ? "border-gray-300 bg-gray-100/90 text-gray-400 cursor-not-allowed pointer-events-none select-none shadow-none opacity-85"
                 : metode === "offline"
                 ? "border-[#561269] bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 shadow-md ring-2 ring-[#561269]/10 cursor-pointer"
                 : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50 cursor-pointer"
@@ -63,7 +63,7 @@ export function AsesmenMetodeSelector({
                 <div
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
                     !allowsOffline
-                      ? "bg-gray-200 text-gray-400"
+                      ? "bg-gray-200 text-gray-400 border border-gray-300"
                       : metode === "offline"
                       ? "bg-[#561269] text-white shadow-sm"
                       : "bg-gray-100 text-gray-600 group-hover:bg-purple-100 group-hover:text-[#561269]"
@@ -73,8 +73,8 @@ export function AsesmenMetodeSelector({
                 </div>
 
                 {!allowsOffline ? (
-                  <span className="text-[11px] font-semibold text-gray-400 bg-gray-200/80 px-2.5 py-0.5 rounded-full">
-                    Tidak Tersedia Offline
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 bg-gray-200/90 px-3 py-1 rounded-full border border-gray-300">
+                    Metode Tidak Dibuka oleh Admin
                   </span>
                 ) : metode === "offline" ? (
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-[#561269] bg-purple-100 px-3 py-1 rounded-full">
@@ -87,17 +87,12 @@ export function AsesmenMetodeSelector({
                 )}
               </div>
 
-              <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
+              <h4 className={`text-base sm:text-lg font-bold mb-1 ${!allowsOffline ? "text-gray-400" : "text-gray-900"}`}>
                 Offline (Tatap Muka di Klinik)
               </h4>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className={`text-xs leading-relaxed ${!allowsOffline ? "text-gray-400" : "text-gray-500"}`}>
                 Pemeriksaan langsung dengan lembar tes fisik dan observasi tatap muka bersama asesor di {isBiro && biroProfile?.nama_biro ? `klinik ${biroProfile.nama_biro}` : "klinik Empathika"}.
               </p>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <span className="text-gray-400 font-medium">Biaya Mulai:</span>
-              <span className="font-extrabold text-[#561269]">{selectedAsesmen.weekday}</span>
             </div>
           </div>
 
@@ -106,7 +101,7 @@ export function AsesmenMetodeSelector({
             onClick={() => allowsOnline && setMetode("online")}
             className={`p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col justify-between relative overflow-hidden group ${
               !allowsOnline
-                ? "border-gray-200 bg-gray-100/70 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                ? "border-gray-300 bg-gray-100/90 text-gray-400 cursor-not-allowed pointer-events-none select-none shadow-none opacity-85"
                 : metode === "online"
                 ? "border-[#561269] bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 shadow-md ring-2 ring-[#561269]/10 cursor-pointer"
                 : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50 cursor-pointer"
@@ -117,7 +112,7 @@ export function AsesmenMetodeSelector({
                 <div
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
                     !allowsOnline
-                      ? "bg-gray-200 text-gray-400"
+                      ? "bg-gray-200 text-gray-400 border border-gray-300"
                       : metode === "online"
                       ? "bg-[#561269] text-white shadow-sm"
                       : "bg-gray-100 text-gray-600 group-hover:bg-purple-100 group-hover:text-[#561269]"
@@ -127,8 +122,8 @@ export function AsesmenMetodeSelector({
                 </div>
 
                 {!allowsOnline ? (
-                  <span className="text-[11px] font-semibold text-gray-400 bg-gray-200/80 px-2.5 py-0.5 rounded-full">
-                    Tidak Tersedia Online
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 bg-gray-200/90 px-3 py-1 rounded-full border border-gray-300">
+                    Metode Tidak Dibuka oleh Admin
                   </span>
                 ) : metode === "online" ? (
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-[#561269] bg-purple-100 px-3 py-1 rounded-full">
@@ -141,17 +136,12 @@ export function AsesmenMetodeSelector({
                 )}
               </div>
 
-              <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
+              <h4 className={`text-base sm:text-lg font-bold mb-1 ${!allowsOnline ? "text-gray-400" : "text-gray-900"}`}>
                 Online (Pengerjaan Digital)
               </h4>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className={`text-xs leading-relaxed ${!allowsOnline ? "text-gray-400" : "text-gray-500"}`}>
                 Pengerjaan asesmen mandiri fleksibel dari mana saja via gadget/laptop dengan hasil psikogram digital.
               </p>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <span className="text-gray-400 font-medium">Biaya Paket:</span>
-              <span className="font-extrabold text-[#561269]">{selectedAsesmen.onlinePrice}</span>
             </div>
           </div>
         </div>

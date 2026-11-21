@@ -6,6 +6,14 @@ export const loginSchema = z.object({
   rememberMe: z.boolean().optional(),
 })
 
+export const biroInfoSchema = z.object({
+  id: z.string(),
+  nama_biro: z.string(),
+  slug: z.string(),
+  warna_tema: z.string().nullable().optional(),
+  logoURI: z.string().nullable().optional(),
+})
+
 export const loginResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
@@ -15,6 +23,8 @@ export const loginResponseSchema = z.object({
       nama: z.string(),
       email: z.string(),
       role: z.string(),
+      id_biro: z.string().nullable().optional(),
+      biro: biroInfoSchema.nullable().optional(),
     }),
     accessToken: z.string(),
   }),
@@ -29,6 +39,8 @@ export const userProfileResponseSchema = z.object({
       nama: z.string(),
       email: z.string(),
       role: z.string(),
+      id_biro: z.string().nullable().optional(),
+      biro: biroInfoSchema.nullable().optional(),
     }),
   }),
 })

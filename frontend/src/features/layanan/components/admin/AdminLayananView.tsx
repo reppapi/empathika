@@ -200,11 +200,17 @@ export default function AdminLayananView() {
     try {
       const res: any = await layananService.getAll()
       const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-      const mapped = list.map(mapBackendLayananToAdmin)
+      const mapped: AdminLayananItem[] = list
+        .map(mapBackendLayananToAdmin)
+        .filter((l: AdminLayananItem) => l.layanan.trim().toLowerCase() !== "pendidikan")
       setLayananList(mapped)
       saveStoredLayanan(mapped)
     } catch (err) {
       console.warn("Gagal memuat layanan dari server database:", err)
+      const stored = getStoredLayanan().filter(
+        (l: AdminLayananItem) => l.layanan.trim().toLowerCase() !== "pendidikan"
+      )
+      setLayananList(stored)
       setIsError(true)
     } finally {
       setIsLoading(false)
@@ -212,6 +218,25 @@ export default function AdminLayananView() {
   }
 
   useEffect(() => {
+    // Bersihkan sisa data 'Pendidikan' dari localStorage jika sebelumnya ada
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("empathika_admin_layanan_data")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter(
+              (l: any) => String(l?.layanan || l?.nama || "").trim().toLowerCase() !== "pendidikan"
+            )
+            if (filtered.length !== parsed.length) {
+              localStorage.setItem("empathika_admin_layanan_data", JSON.stringify(filtered))
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
     fetchLayanan()
   }, [])
 
@@ -249,9 +274,25 @@ export default function AdminLayananView() {
     if (!itemToDelete) return
     setIsDeleting(true)
     try {
-      await layananService.delete(String(itemToDelete.id))
+      try {
+        await layananService.delete(String(itemToDelete.id))
+      } catch (backendErr: any) {
+        // Jika item sudah terhapus langsung dari database sebelumnya (404 / tidak ditemukan),
+        // jangan gagalkan penghapusan lokal agar UI dan localStorage tetap bersih
+        const msg = String(backendErr?.message || "").toLowerCase()
+        const isNotFound =
+          msg.includes("tidak ditemukan") ||
+          msg.includes("not found") ||
+          backendErr?.status === 404 ||
+          backendErr?.statusCode === 404
+        if (!isNotFound) {
+          throw backendErr
+        }
+        console.warn("Item sudah tidak ada di backend, tetap menghapus dari state & local storage:", backendErr)
+      }
+
       deleteLayananById(itemToDelete.id)
-      setLayananList((prev) => prev.filter((l) => l.id !== itemToDelete.id))
+      setLayananList((prev) => prev.filter((l) => String(l.id) !== String(itemToDelete.id)))
       setToastMsg(`Layanan "${itemToDelete.layanan}" telah dihapus.`)
       setTimeout(() => setToastMsg(null), 3000)
       setItemToDelete(null)

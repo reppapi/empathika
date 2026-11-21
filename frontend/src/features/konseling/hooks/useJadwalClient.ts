@@ -856,9 +856,42 @@ export function useJadwalClient(options?: UseJadwalClientOptions) {
 
   const activePrice = useMemo(() => {
     if (mode === "asesmen") {
-      return selectedOfflinePlan === "weekday"
-        ? options?.asesmenPackage?.weekday || "Rp 400.000"
-        : options?.asesmenPackage?.weekend || "Rp 500.000"
+      const isWeekend = selectedOfflinePlan === "weekend"
+
+      // 1. Ambil dari asesmenPackage dinamis yang dikirimkan oleh halaman
+      if (options?.asesmenPackage) {
+        const pkgPrice = isWeekend ? options.asesmenPackage.weekend : options.asesmenPackage.weekday
+        if (pkgPrice && pkgPrice.trim()) return pkgPrice.trim()
+      }
+
+      // 2. Ambil dari data database backend jika ada
+      if (currentServiceData) {
+        const t = (currentServiceData as any).tarif_tenaga_ahli || {}
+        const bePrice = isWeekend
+          ? (currentServiceData as any).tarif_asesmen?.offline_weekend ??
+            t?.asesmen?.offline?.weekend ??
+            t?.offline?.weekend ??
+            currentServiceData.harga_weekend
+          : (currentServiceData as any).tarif_asesmen?.offline_weekday ??
+            t?.asesmen?.offline?.weekday ??
+            t?.offline?.weekday ??
+            currentServiceData.harga_weekday
+
+        if (bePrice !== undefined && bePrice !== null && bePrice !== "") {
+          const num = Number(String(bePrice).replace(/[^\d]/g, ""))
+          if (!isNaN(num) && num > 0) {
+            return `Rp ${num.toLocaleString("id-ID")}`
+          }
+        }
+      }
+
+      // 3. Fallback ke search params jika membawa harga
+      const qHarga = searchParams?.get("harga")
+      if (qHarga && qHarga.startsWith("Rp")) {
+        return qHarga
+      }
+
+      return isWeekend ? "Rp 500.000" : "Rp 400.000"
     }
 
     if (!currentServiceData || !date) return null

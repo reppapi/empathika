@@ -59,8 +59,8 @@ export function LoginForm() {
   }, [searchParams]);
 
   // Helper untuk menyimpan token & redirect sesuai role user
-  const handleSuccessLogin = (
-    user: { id: string; nama: string; email: string; role: string },
+  const handleSuccessLogin = async (
+    user: { id: string; nama: string; email: string; role: string; biro?: any },
     accessToken: string
   ) => {
     if (rememberMe) {
@@ -109,6 +109,41 @@ export function LoginForm() {
     } else if (user.role === "ADMIN") {
       router.push("/admin");
     } else if (user.role === "BIRO") {
+      // Persiapkan tema warna biro seketika sebelum navigasi agar 0% jeda / flicker warna
+      let biroColor = (user as any)?.biro?.warna_tema || null;
+      let biroName = (user as any)?.biro?.nama_biro || user.nama;
+      let biroLogo = (user as any)?.biro?.logoURI || null;
+
+      // Jika data biro belum lengkap di objek user, fetch cepat myAccount
+      if (!biroColor && typeof window !== "undefined") {
+        try {
+          const myAcc = await biroAdminService.getMyAccount();
+          if (myAcc?.data) {
+            const beBiro = (myAcc.data as any).owned_biro?.[0] || myAcc.data.biro;
+            if (beBiro?.warna_tema) biroColor = beBiro.warna_tema;
+            if (beBiro?.nama_biro) biroName = beBiro.nama_biro;
+            if (beBiro?.logoURI) biroLogo = beBiro.logoURI;
+          }
+        } catch (e) {
+          console.warn("Gagal mengambil data tema biro saat login:", e);
+        }
+      }
+
+      if (typeof window !== "undefined") {
+        if (biroColor) {
+          localStorage.setItem("biro_theme_color", biroColor);
+          sessionStorage.setItem("biro_theme_color", biroColor);
+          document.documentElement.style.setProperty("--biro-theme-color", biroColor);
+          document.documentElement.setAttribute("data-biro-theme", "true");
+        }
+        if (biroName) {
+          localStorage.setItem("biro_name", biroName);
+        }
+        if (biroLogo) {
+          localStorage.setItem("biro_logo", biroLogo);
+        }
+      }
+
       router.push("/admin-biro");
     } else {
       router.push("/");
@@ -125,7 +160,7 @@ export function LoginForm() {
     try {
       const response = await authService.loginGoogle(credential, rememberMe);
       if (response.success && response.data?.accessToken) {
-        handleSuccessLogin(response.data.user, response.data.accessToken);
+        await handleSuccessLogin(response.data.user, response.data.accessToken);
         return;
       }
       setError("Login Google gagal. Silakan coba kembali.");
@@ -260,7 +295,7 @@ export function LoginForm() {
         });
 
         if (response.success && response.data?.accessToken) {
-          handleSuccessLogin(response.data.user, response.data.accessToken);
+          await handleSuccessLogin(response.data.user, response.data.accessToken);
           return;
         }
       } catch (authErr: any) {
@@ -294,7 +329,11 @@ export function LoginForm() {
               rememberMe,
             });
             if (biroLogin.success && biroLogin.data?.accessToken) {
-              handleSuccessLogin(biroLogin.data.user, biroLogin.data.accessToken);
+              const u = biroLogin.data.user as any;
+              if (!u.biro && matchedBiro.owned_biro?.[0]) {
+                u.biro = matchedBiro.owned_biro[0];
+              }
+              await handleSuccessLogin(u, biroLogin.data.accessToken);
               return;
             }
           } catch {
@@ -321,7 +360,7 @@ export function LoginForm() {
 
         if (matched) {
           const psikologName = matched.nama_gelar || matched.account?.nama || "Psikolog Empathika";
-          handleSuccessLogin(
+          await handleSuccessLogin(
             {
               id: matched.id,
               nama: psikologName,

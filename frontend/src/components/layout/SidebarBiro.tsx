@@ -128,6 +128,9 @@ export function SidebarBiro({
                 sessionStorage.removeItem("access_token")
                 localStorage.removeItem("empathika-auth")
                 localStorage.removeItem("biro_theme_color")
+                sessionStorage.removeItem("biro_theme_color")
+                localStorage.removeItem("biro_name")
+                localStorage.removeItem("biro_logo")
                 if (typeof document !== "undefined") {
                   document.documentElement.removeAttribute("data-biro-theme")
                   document.documentElement.style.removeProperty("--biro-theme-color")

@@ -47,7 +47,7 @@ export default function DashboardRecentTransactions({
         </Link>
       </div>
 
-      <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1 admin-table-scrollbar">
         {isLoading ? (
           <div className="flex flex-col gap-3 animate-pulse">
             {[1, 2, 3].map((i) => (

@@ -14,6 +14,16 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const [isMounted, setIsMounted] = useState<boolean>(false)
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false)
 
+  // Deteksi warna tema khusus jika sedang dalam konteks portal biro
+  const [themeColor, setThemeColor] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const isBiroPath = window.location.pathname.startsWith("/admin-biro")
+      const cached = localStorage.getItem("biro_theme_color") || sessionStorage.getItem("biro_theme_color")
+      if (isBiroPath && cached) return cached
+    }
+    return "#561269"
+  })
+
   // Stabilkan dependensi allowedRoles agar tidak memicu re-running di setiap re-render
   const rolesKey = allowedRoles ? allowedRoles.slice().sort().join(",") : ""
 
@@ -102,9 +112,17 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   if (!isMounted || !isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FBFBFC]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-[#561269] border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-gray-500 font-medium">Memverifikasi sesi login...</p>
+        <div className="flex flex-col items-center gap-3 font-poppins">
+          <div
+            className="w-9 h-9 border-4 border-t-transparent rounded-full animate-spin"
+            style={{
+              borderColor: `${themeColor}25`,
+              borderTopColor: themeColor,
+            }}
+          />
+          <p className="text-xs text-gray-500 font-medium animate-pulse">
+            Memverifikasi sesi login...
+          </p>
         </div>
       </div>
     )
@@ -112,4 +130,6 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
   return <>{children}</>
 }
+
+export default AuthGuard
 

@@ -13,18 +13,30 @@ export class AuthRepository {
           { email },
         ],
       },
+      include: {
+        biro: true,
+        owned_biro: true,
+      },
     })
   }
 
   async findById(id: string) {
     return this.prisma.account.findUnique({
       where: { id },
+      include: {
+        biro: true,
+        owned_biro: true,
+      },
     })
   }
 
   async findByActivationToken(token: string) {
     return this.prisma.account.findUnique({
       where: { token_aktivasi: token },
+      include: {
+        biro: true,
+        owned_biro: true,
+      },
     })
   }
 
