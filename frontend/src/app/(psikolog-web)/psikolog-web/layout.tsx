@@ -19,11 +19,29 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   const { user } = useAuthStore()
 
   // Ambil data tenaga ahli aktif yang sedang login dari database
-  const [currentPsikolog, setCurrentPsikolog] = useState<TenagaAhli | null>(null)
+  const [currentPsikolog, setCurrentPsikolog] = useState<TenagaAhli | null>(() => {
+    if (typeof window === "undefined") return null
+    try {
+      const isReviewerCached = localStorage.getItem("active_psikolog_is_reviewer") === "true"
+      const savedName = localStorage.getItem("active_psikolog_name")
+      const savedId = localStorage.getItem("active_psikolog_id")
+      if (savedName || savedId) {
+        return {
+          id: savedId || "",
+          nama: savedName || "Psikolog Empathika",
+          isReviewerPsikotes: isReviewerCached,
+          statusAkses: "AKTIF",
+          kategori: "psikolog",
+        } as any
+      }
+    } catch {}
+    return null
+  })
   const [isCheckingAccess, setIsCheckingAccess] = useState(true)
 
   const syncPsikologData = () => {
     try {
+      const isReviewerCached = typeof window !== "undefined" ? localStorage.getItem("active_psikolog_is_reviewer") === "true" : false
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
       const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
       const savedName = localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name")
@@ -34,9 +52,17 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
         (user?.role === "PSIKOLOG" && user?.name ? list.find((item) => item.nama.toLowerCase().includes(user.name.toLowerCase())) : null) ||
         (!isInvalidSaved && savedName ? list.find((item) => item.nama === savedName) : null) ||
         (!isInvalidSaved && savedId ? list.find((item) => item.id === savedId) : null)
-      setCurrentPsikolog(found || null)
+      
+      setCurrentPsikolog((prev) => ({
+        ...(found || {}),
+        id: found?.id || prev?.id || savedId || "",
+        nama: found?.nama || prev?.nama || savedName || "Psikolog Empathika",
+        isReviewerPsikotes: prev?.isReviewerPsikotes ?? isReviewerCached,
+        statusAkses: prev?.statusAkses || "AKTIF",
+        kategori: found?.kategori || prev?.kategori || "psikolog",
+      } as any))
     } catch {
-      setCurrentPsikolog(null)
+      // Pertahankan state sebelumnya agar tidak berkedip
     } finally {
       setIsCheckingAccess(false)
     }
@@ -78,6 +104,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
           localStorage.setItem("active_psikolog_name", resolvedName)
 
           const isReviewerVal = Boolean(matched.is_reviewer_psikotes ?? matched.isReviewerPsikotes ?? false)
+          localStorage.setItem("active_psikolog_is_reviewer", String(isReviewerVal))
           const isStatusAktif = matched.status !== "INACTIVE" && matched.account?.aktif !== false
 
           setCurrentPsikolog((prev) => ({

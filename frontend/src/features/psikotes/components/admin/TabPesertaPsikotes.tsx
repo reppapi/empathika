@@ -661,8 +661,8 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
             onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
             className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs shrink-0 cursor-pointer active:scale-95 self-start sm:self-auto ${
               statusFilter === "MENUNGGU_TINJAU"
-                ? "bg-purple-100 text-[#561269] border border-purple-300 font-semibold"
-                : "bg-[#561269] hover:bg-[#430c52] text-white"
+                ? "bg-[#EAB308]/20 text-yellow-900 border border-yellow-400 font-bold"
+                : "bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950"
             }`}
           >
             <span>{statusFilter === "MENUNGGU_TINJAU" ? "Sedang Difilter" : "Lihat Antrean"}</span>
@@ -757,12 +757,16 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 statusFilter === "MENUNGGU_TINJAU"
-                  ? "bg-amber-500 text-white shadow-sm"
+                  ? "bg-[#EAB308] text-gray-950 shadow-sm"
                   : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
               {statusStats.menungguTinjau > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    statusFilter === "MENUNGGU_TINJAU" ? "bg-gray-950" : "bg-[#D97706]"
+                  } animate-pulse`}
+                />
               )}
               Menunggu Tinjau ({statusStats.menungguTinjau})
             </button>
