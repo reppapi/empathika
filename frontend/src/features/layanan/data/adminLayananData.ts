@@ -156,23 +156,14 @@ export function getStoredLayanan(): AdminLayananItem[] {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const hasKonsultasi = parsed.some((p: any) => p.kategoriId === "01" || p.kategori === "KONSULTASI")
-        const hasWs = parsed.some((p: any) => p.kategoriId === "03" || p.kategori === "WORKSHOP")
-        const hasSm = parsed.some((p: any) => p.kategoriId === "04" || p.kategori === "SEMINAR")
-        const hasAsesmen = parsed.some((p: any) => p.kategoriId === "05" || p.kategori === "ASESMEN")
-        if (!hasKonsultasi || !hasWs || !hasSm || !hasAsesmen) {
-          const defaultsToAdd = INITIAL_ADMIN_LAYANAN.filter(
-            (init) =>
-              (!hasKonsultasi && init.kategoriId === "01") ||
-              (!hasWs && init.kategoriId === "03") ||
-              (!hasSm && init.kategoriId === "04") ||
-              (!hasAsesmen && init.kategoriId === "05")
-          )
-          const merged = [...parsed, ...defaultsToAdd]
-          saveStoredLayanan(merged)
-          return merged
+        // Bersihkan item 'Pendidikan' jika masih tersimpan di cache
+        const cleaned = parsed.filter(
+          (p: any) => String(p?.layanan || p?.nama || "").trim().toLowerCase() !== "pendidikan"
+        )
+        if (cleaned.length !== parsed.length) {
+          saveStoredLayanan(cleaned)
         }
-        return parsed
+        return cleaned
       }
     }
   } catch (e) {

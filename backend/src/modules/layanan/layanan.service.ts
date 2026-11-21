@@ -362,7 +362,8 @@ export class LayananService {
   async delete(id: string) {
     const existing = await this.repo.findById(id)
     if (!existing) {
-      throw Object.assign(new Error('Layanan tidak ditemukan'), { statusCode: 404 })
+      // Idempotent: jika sudah terhapus langsung dari DB, tetap berikan respons sukses
+      return { success: true, message: 'Layanan sudah tidak ada di database (sudah terhapus)' }
     }
 
     if ((existing as any)._count && (existing as any)._count.booking_konsultasi > 0) {
