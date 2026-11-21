@@ -433,18 +433,18 @@ export default function PsikologReviewAsesmenClient() {
       <div className="p-4 sm:p-5 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Filter Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl">
+          <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-gray-100/90 rounded-2xl w-fit border border-gray-200/80 shadow-inner">
             <button
               type="button"
               onClick={() => setActiveTab("MENUNGGU_REVIEW")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "MENUNGGU_REVIEW"
-                  ? "bg-amber-500 text-white shadow-sm"
-                  : "text-amber-900/80 hover:bg-amber-100/60"
+                  ? "bg-[#EAB308] text-gray-950 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
               }`}
             >
               {summary.menunggu_review > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span className={`w-1.5 h-1.5 rounded-full ${activeTab === "MENUNGGU_REVIEW" ? "bg-gray-950" : "bg-[#D97706]"} animate-pulse`} />
               )}
               Menunggu Tinjau ({summary.menunggu_review})
             </button>
@@ -454,8 +454,8 @@ export default function PsikologReviewAsesmenClient() {
               onClick={() => setActiveTab("SELESAI")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "SELESAI"
-                  ? "bg-[#561269] text-white shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-[#EAB308] text-gray-950 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
