@@ -18,7 +18,14 @@ export default function LayananClient() {
   const { withBiro } = useTenantContext()
   const searchParams = useSearchParams()
   const categoryQuery = searchParams.get("category")
-  const [activeCategory, setActiveCategory] = useState(categoryQuery || "01") // Default ke Konsultasi
+  const [activeCategory, setActiveCategory] = useState<string>(() => {
+    if (categoryQuery) return categoryQuery
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("empathika_client_selected_category")
+      if (saved) return saved
+    }
+    return "01"
+  })
   const [storedAdminLayanan, setStoredAdminLayanan] = useState<AdminLayananItem[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -68,6 +75,14 @@ export default function LayananClient() {
   useEffect(() => {
     if (categoryQuery) {
       setActiveCategory(categoryQuery)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("empathika_client_selected_category", categoryQuery)
+      }
+    } else if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("empathika_client_selected_category")
+      if (saved && saved !== activeCategory) {
+        setActiveCategory(saved)
+      }
     }
   }, [categoryQuery])
 
@@ -75,7 +90,8 @@ export default function LayananClient() {
     if (id === activeCategory) return
     setActiveCategory(id)
     if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", withBiro(`/layanan?category=${id}`))
+      sessionStorage.setItem("empathika_client_selected_category", id)
+      window.history.pushState(null, "", withBiro(`/layanan?category=${id}`))
     }
     // Reset scroll posisi konten ke paling atas secara instan & rapi
     scrollRef.current?.scrollTo({ top: 0, behavior: "instant" })
@@ -178,8 +194,11 @@ export default function LayananClient() {
           <Link
             href={destinationHref as any}
             onClick={() => {
-              if (typeof window !== "undefined" && service.bottomTitle) {
-                localStorage.setItem("empathika_last_selected_layanan", service.bottomTitle)
+              if (typeof window !== "undefined") {
+                sessionStorage.setItem("empathika_client_selected_category", activeCategory)
+                if (service.bottomTitle) {
+                  localStorage.setItem("empathika_last_selected_layanan", service.bottomTitle)
+                }
               }
             }}
             className="block group-hover:text-[#561269] transition-colors"
@@ -192,8 +211,11 @@ export default function LayananClient() {
             <Link
               href={destinationHref as any}
               onClick={() => {
-                if (typeof window !== "undefined" && service.bottomTitle) {
-                  localStorage.setItem("empathika_last_selected_layanan", service.bottomTitle)
+                if (typeof window !== "undefined") {
+                  sessionStorage.setItem("empathika_client_selected_category", activeCategory)
+                  if (service.bottomTitle) {
+                    localStorage.setItem("empathika_last_selected_layanan", service.bottomTitle)
+                  }
                 }
               }}
               className="w-full flex items-center justify-center py-2.5 sm:py-3 rounded-full bg-[#EAB308] text-black font-bold text-xs sm:text-sm hover:bg-yellow-500 transition-colors shadow-sm"
