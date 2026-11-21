@@ -242,27 +242,27 @@ export function Footer() {
               <div className="flex items-start gap-3 text-gray-600 min-h-[64px]">
                 <MapPin className="w-5 h-5 shrink-0 mt-0.5 text-[#561269]/70" />
                 <span className="text-sm font-medium whitespace-pre-line leading-relaxed">
-                  {isBiro && biroProfile?.alamat ? biroProfile.alamat : contact.alamat}
+                  {contact.alamat}
                 </span>
               </div>
               <a
-                href={`mailto:${isBiro && biroProfile?.owner?.email ? biroProfile.owner.email : contact.email}`}
+                href={`mailto:${contact.email}`}
                 className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group"
               >
                 <Mail className="w-5 h-5 shrink-0 text-[#561269]/70 group-hover:text-[#561269]" />
                 <span className="text-sm font-medium">
-                  {isBiro && biroProfile?.owner?.email ? biroProfile.owner.email : contact.email}
+                  {contact.email}
                 </span>
               </a>
               <a
-                href={`https://wa.me/${(isBiro && biroProfile?.no_telepon ? biroProfile.no_telepon : waNumber).replace(/\D/g, "")}`}
+                href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-gray-600 hover:text-[#561269] transition-colors group"
               >
                 <Phone className="w-5 h-5 shrink-0 text-[#561269]/70 group-hover:text-[#561269]" />
                 <span className="text-sm font-medium">
-                  {isBiro && biroProfile?.no_telepon ? biroProfile.no_telepon : contact.noTelepon}
+                  {contact.noTelepon}
                 </span>
               </a>
             </div>

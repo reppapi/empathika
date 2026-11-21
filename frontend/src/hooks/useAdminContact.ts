@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { adminService } from "@/services/admin.service"
-import { useTenantContext } from "@/context/TenantContext"
 
 export interface AdminContactInfo {
   phone: string
@@ -35,13 +34,8 @@ export function formatToWhatsAppNumber(raw?: string | null): string {
  * otomatis menggunakan nomor terbaru.
  */
 export function useAdminContact(): AdminContactInfo {
-  const { isBiro, biroProfile } = useTenantContext()
   const [phone, setPhone] = useState<string>(() => {
-    // 1. Jika dalam konteks subdomain biro
-    if (isBiro && biroProfile?.no_telepon) {
-      return biroProfile.no_telepon
-    }
-    // 2. Cek cache lokal profil admin (instan)
+    // 1. Cek cache lokal profil admin (instan)
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("empathika_admin_profile")
@@ -58,12 +52,6 @@ export function useAdminContact(): AdminContactInfo {
   })
 
   const syncPhone = useCallback(() => {
-    // Jika dalam portal biro spesifik, utamakan kontak biro
-    if (isBiro && biroProfile?.no_telepon) {
-      setPhone(biroProfile.no_telepon)
-      return
-    }
-
     // Ambil dari backend profil admin publik terbaru
     adminService
       .getPublicProfile()

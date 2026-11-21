@@ -133,17 +133,6 @@ export default function HomeClient() {
   }, [])
 
   useEffect(() => {
-    if (isBiro && biroProfile) {
-      setAdminProfile((prev) => ({
-        ...prev,
-        alamat: biroProfile.alamat || prev.alamat,
-        email: biroProfile.owner?.email || prev.email,
-        noTelepon: biroProfile.no_telepon || prev.noTelepon,
-      }))
-    }
-  }, [isBiro, biroProfile])
-
-  useEffect(() => {
     // Ambil data psikolog aktif langsung dari database
     const fetchHomePsychologists = async () => {
       try {
@@ -837,7 +826,7 @@ export default function HomeClient() {
             </div>
             
             <div className="w-full lg:w-1/3 flex flex-col justify-center">
-              <h3 className="font-bold text-2xl text-gray-900 mb-4">{isBiro && biroProfile?.nama_biro ? `Kantor / Klinik ${biroProfile.nama_biro}` : "Klinik Empathika"}</h3>
+              <h3 className="font-bold text-2xl text-gray-900 mb-4">Klinik Empathika</h3>
               
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-10 h-10 rounded-full bg-[#1c352d]/10 flex items-center justify-center text-[#1c352d] shrink-0 mt-1">
