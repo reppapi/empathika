@@ -62,39 +62,19 @@ export async function downloadLaporanPsikotesPdf(
   data: LaporanPsikotesPdfData,
   customFileName?: string
 ): Promise<void> {
-  const [{ pdf }, { LaporanPsikotesDocument }, QRCode] = await Promise.all([
+  const [{ pdf }, { LaporanPsikotesDocument }] = await Promise.all([
     import("@react-pdf/renderer"),
     import("../components/pdf/LaporanPsikotesDocument"),
-    import("qrcode"),
   ]);
 
-  // Generate QR Code verifikasi dokumen secara offline & aman
   const verifyTarget =
     data.verificationUrl ||
     (typeof window !== "undefined"
       ? `${window.location.origin}/psikotes?verify=${encodeURIComponent(data.noDokumen)}`
       : `https://empathika.id/psikotes?verify=${encodeURIComponent(data.noDokumen)}`);
 
-  let qrDataUrl = data.qrCodeUrl;
-  if (!qrDataUrl) {
-    try {
-      qrDataUrl = await QRCode.toDataURL(verifyTarget, {
-        width: 140,
-        margin: 1,
-        color: {
-          dark: "#561269",
-          light: "#FFFFFF",
-        },
-        errorCorrectionLevel: "M",
-      });
-    } catch (qrErr) {
-      console.warn("Gagal membuat QR Code verifikasi:", qrErr);
-    }
-  }
-
   const enrichedData: LaporanPsikotesPdfData = {
     ...data,
-    qrCodeUrl: qrDataUrl,
     verificationUrl: verifyTarget,
   };
 

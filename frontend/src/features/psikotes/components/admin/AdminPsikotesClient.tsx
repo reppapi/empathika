@@ -70,7 +70,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
             month: "short",
             year: "numeric",
           }),
-          rawTanggal: it.tanggal,
+          rawTanggal: it.tanggal_pengerjaan || it.tanggal,
           status: it.status as "Selesai" | "Menunggu Pengerjaan",
           status_pengerjaan: it.status_pengerjaan || null,
           perlu_review_psikolog: Boolean(it.perlu_review_psikolog),

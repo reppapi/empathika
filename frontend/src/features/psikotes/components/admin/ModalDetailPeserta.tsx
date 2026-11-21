@@ -401,9 +401,6 @@ Terima kasih atas dedikasi dan profesionalitas rekan-rekan! 🙏`
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-amber-100 text-amber-800 shrink-0">
-                    Antrean Terbuka
-                  </span>
                   {!isBiroContext && (
                     <a
                       href={waBroadcastUrlTimPsikolog}

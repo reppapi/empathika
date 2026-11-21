@@ -16,6 +16,7 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Stethoscope,
 } from "lucide-react";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 import { calculateReviewSla } from "../../utils/reviewSla";
@@ -53,21 +54,61 @@ export default function TabPesertaPsikotes({
   const [selectedTimeRange, setSelectedTimeRange] = useState<"ALL" | "TODAY" | "7DAYS" | "30DAYS">("ALL");
 
   // State Quick Pill Filter Status / Urgensi SLA
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "MENUNGGU_REVIEW" | "MENDEKATI_SLA" | "SELESAI">("ALL");
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "MENDEKATI_SLA" | "SELESAI"
+  >("ALL");
 
-  // Base list peserta berbayar (non tamu anonim)
-  const baseBerbayarList = useMemo(() => {
-    return pesertaList.filter((p) => p.jenisAkses === "Berbayar" && p.nama !== "Tamu Anonim");
-  }, [pesertaList]);
+  // Filter awal: Peserta berbayar yang disaring berdasarkan Paket dan Rentang Tanggal
+  const scopedPesertaList = useMemo(() => {
+    return pesertaList.filter((peserta) => {
+      const isBerbayar = peserta.jenisAkses === "Berbayar" && peserta.nama !== "Tamu Anonim";
+      if (!isBerbayar) return false;
 
-  // Statistik untuk Quick Pills
+      // Filter berdasarkan paket psikotes
+      if (selectedPaket && selectedPaket !== "ALL") {
+        const pNama = (peserta.paket || "").toLowerCase().trim();
+        const target = selectedPaket.toLowerCase().trim();
+        if (!pNama.includes(target) && !target.includes(pNama)) {
+          return false;
+        }
+      }
+
+      // Filter berdasarkan rentang tanggal
+      if (selectedTimeRange !== "ALL") {
+        const dateVal = peserta.rawTanggal || peserta.tanggal;
+        const parsedTime = new Date(dateVal).getTime();
+        if (!isNaN(parsedTime)) {
+          const now = Date.now();
+          const diffDays = (now - parsedTime) / (1000 * 60 * 60 * 24);
+          if (selectedTimeRange === "TODAY") {
+            const pDate = new Date(dateVal);
+            const nowDate = new Date();
+            const isSameDay =
+              pDate.getDate() === nowDate.getDate() &&
+              pDate.getMonth() === nowDate.getMonth() &&
+              pDate.getFullYear() === nowDate.getFullYear();
+            if (!isSameDay) return false;
+          } else if (selectedTimeRange === "7DAYS") {
+            if (diffDays > 7.5 || diffDays < -0.5) return false;
+          } else if (selectedTimeRange === "30DAYS") {
+            if (diffDays > 30.5 || diffDays < -0.5) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [pesertaList, selectedPaket, selectedTimeRange]);
+
+  // Statistik untuk Quick Pills (mengikuti filter paket dan rentang tanggal yang aktif)
   const statusStats = useMemo(() => {
-    let menungguCount = 0;
+    let menungguTinjauCount = 0;
+    let sedangDitinjauCount = 0;
     let mendekatiSlaCount = 0;
     let selesaiCount = 0;
     const nowMs = Date.now();
 
-    for (const p of baseBerbayarList) {
+    for (const p of scopedPesertaList) {
       const isDass = Boolean(
         p.paket?.toLowerCase().includes("dass") ||
         p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
@@ -81,7 +122,11 @@ export default function TabPesertaPsikotes({
       const isSelesai = !isMenunggu && (p.status === "Selesai" || p.status_pengerjaan === "SELESAI" || Boolean(p.hasil));
 
       if (isMenunggu) {
-        menungguCount++;
+        if (p.id_psikolog || p.psikolog) {
+          sedangDitinjauCount++;
+        } else {
+          menungguTinjauCount++;
+        }
         const sla = calculateReviewSla(p.rawTanggal || p.tanggal);
         const diffMs = sla.deadlineDate.getTime() - nowMs;
         const diffHours = diffMs / (1000 * 60 * 60);
@@ -94,17 +139,18 @@ export default function TabPesertaPsikotes({
     }
 
     return {
-      total: baseBerbayarList.length,
-      menunggu: menungguCount,
+      total: scopedPesertaList.length,
+      menungguTinjau: menungguTinjauCount,
+      sedangDitinjau: sedangDitinjauCount,
       mendekatiSla: mendekatiSlaCount,
       selesai: selesaiCount,
     };
-  }, [baseBerbayarList]);
+  }, [scopedPesertaList]);
 
   // List tiket kritis untuk Admin Deadline Reminder Cards (H-1 / <= 24 jam)
   const urgentTickets = useMemo(() => {
     const nowMs = Date.now();
-    return baseBerbayarList.filter((p) => {
+    return scopedPesertaList.filter((p) => {
       const isDass = Boolean(
         p.paket?.toLowerCase().includes("dass") ||
         p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
@@ -119,7 +165,7 @@ export default function TabPesertaPsikotes({
       const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
       return sla.isOverdue || diffHours <= 24;
     });
-  }, [baseBerbayarList]);
+  }, [scopedPesertaList]);
 
   // Template Pesan Pengingat WhatsApp ke Psikolog Pemeriksa
   const generateWhatsAppReminderPsikolog = (p: AdminPsikotesPeserta) => {
@@ -158,74 +204,43 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
           )
         );
 
-  // Filter khusus peserta berbayar (non tamu anonim) & filter paket & tanggal & pencarian
-  const filteredPeserta = pesertaList.filter((peserta) => {
-    const isBerbayar = peserta.jenisAkses === "Berbayar" && peserta.nama !== "Tamu Anonim";
-    if (!isBerbayar) return false;
+  // Filter akhir: Menerapkan Filter Tab Status & Pencarian Nama/Paket/NoHp
+  const filteredPeserta = useMemo(() => {
+    return scopedPesertaList.filter((peserta) => {
+      // Filter cepat Status / Urgensi SLA
+      const isDass = Boolean(
+        peserta.paket?.toLowerCase().includes("dass") ||
+        peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+      );
+      const isNeedReview = !isDass && Boolean(
+        peserta.perlu_review_psikolog ||
+        peserta.paket?.toLowerCase().includes("mcmi")
+      );
+      const isMenungguReview = isNeedReview && (peserta.status === "Menunggu Review" || peserta.status_pengerjaan === "MENUNGGU_REVIEW");
+      const isSelesaiStatus = !isMenungguReview && (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI" || Boolean(peserta.hasil));
 
-    // Filter berdasarkan paket psikotes
-    if (selectedPaket && selectedPaket !== "ALL") {
-      const pNama = (peserta.paket || "").toLowerCase().trim();
-      const target = selectedPaket.toLowerCase().trim();
-      if (!pNama.includes(target) && !target.includes(pNama)) {
-        return false;
+      if (statusFilter === "MENUNGGU_TINJAU") {
+        if (!isMenungguReview || Boolean(peserta.id_psikolog || peserta.psikolog)) return false;
+      } else if (statusFilter === "SEDANG_DITINJAU") {
+        if (!isMenungguReview || !Boolean(peserta.id_psikolog || peserta.psikolog)) return false;
+      } else if (statusFilter === "MENDEKATI_SLA") {
+        if (!isMenungguReview) return false;
+        const sla = calculateReviewSla(peserta.rawTanggal || peserta.tanggal);
+        const diffHours = (sla.deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60);
+        if (!sla.isOverdue && diffHours > 24) return false;
+      } else if (statusFilter === "SELESAI") {
+        if (!isSelesaiStatus) return false;
       }
-    }
 
-    // Filter berdasarkan rentang tanggal
-    if (selectedTimeRange !== "ALL") {
-      const dateVal = peserta.rawTanggal || peserta.tanggal;
-      const parsedTime = new Date(dateVal).getTime();
-      if (!isNaN(parsedTime)) {
-        const now = Date.now();
-        const diffDays = (now - parsedTime) / (1000 * 60 * 60 * 24);
-        if (selectedTimeRange === "TODAY") {
-          const pDate = new Date(dateVal);
-          const nowDate = new Date();
-          const isSameDay =
-            pDate.getDate() === nowDate.getDate() &&
-            pDate.getMonth() === nowDate.getMonth() &&
-            pDate.getFullYear() === nowDate.getFullYear();
-          if (!isSameDay) return false;
-        } else if (selectedTimeRange === "7DAYS") {
-          if (diffDays > 7.5 || diffDays < -0.5) return false;
-        } else if (selectedTimeRange === "30DAYS") {
-          if (diffDays > 30.5 || diffDays < -0.5) return false;
-        }
-      }
-    }
-
-    // Filter cepat Status / Urgensi SLA
-    const isDass = Boolean(
-      peserta.paket?.toLowerCase().includes("dass") ||
-      peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
-    );
-    const isNeedReview = !isDass && Boolean(
-      peserta.perlu_review_psikolog ||
-      peserta.paket?.toLowerCase().includes("mcmi")
-    );
-    const isMenungguReview = isNeedReview && (peserta.status === "Menunggu Review" || peserta.status_pengerjaan === "MENUNGGU_REVIEW");
-    const isSelesaiStatus = !isMenungguReview && (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI" || Boolean(peserta.hasil));
-
-    if (statusFilter === "MENUNGGU_REVIEW") {
-      if (!isMenungguReview) return false;
-    } else if (statusFilter === "MENDEKATI_SLA") {
-      if (!isMenungguReview) return false;
-      const sla = calculateReviewSla(peserta.rawTanggal || peserta.tanggal);
-      const diffHours = (sla.deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60);
-      if (!sla.isOverdue && diffHours > 24) return false;
-    } else if (statusFilter === "SELESAI") {
-      if (!isSelesaiStatus) return false;
-    }
-
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      peserta.nama.toLowerCase().includes(q) ||
-      (peserta.paket || "").toLowerCase().includes(q) ||
-      (peserta.noHp || "").includes(q)
-    );
-  });
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        peserta.nama.toLowerCase().includes(q) ||
+        (peserta.paket || "").toLowerCase().includes(q) ||
+        (peserta.noHp || "").includes(q)
+      );
+    });
+  }, [scopedPesertaList, statusFilter, searchQuery]);
 
   // Handler Export Data Peserta ke CSV
   const handleExportCsv = () => {
@@ -375,11 +390,15 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
           (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI" || Boolean(peserta.hasil));
 
         if (isMenungguReview) {
+          const isSedangDitinjau = Boolean(peserta.id_psikolog || peserta.psikolog);
+          const badgeVariant = isSedangDitinjau ? "info" : "warning";
+          const badgeText = isSedangDitinjau ? "Sedang Ditinjau" : "Menunggu Tinjau";
+
           if (isBiroContext) {
             return (
               <div className="flex flex-col gap-1 items-start">
-                <AdminStatusBadge variant="info" className="w-36">
-                  Menunggu Review
+                <AdminStatusBadge variant={badgeVariant} className="w-36">
+                  {badgeText}
                 </AdminStatusBadge>
               </div>
             );
@@ -392,15 +411,15 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
           const hoursSincePengerjaan = !isNaN(pengerjaanTime) ? (nowMs - pengerjaanTime) / (1000 * 60 * 60) : 0;
 
           // 1. Indikator Belum Ada yang Ambil: Kolam antrean > 24 jam belum diklaim
-          const isBelumAdaYangAmbil = !peserta.psikolog && hoursSincePengerjaan >= 24;
+          const isBelumAdaYangAmbil = !isSedangDitinjau && hoursSincePengerjaan >= 24;
 
           // 2. Indikator Hampir Habis Batas: Sudah di-keep tapi mendekati batas SLA (<= 24 jam) atau telat
-          const isHampirHabisBatas = peserta.psikolog && (sla.isOverdue || diffHours <= 24);
+          const isHampirHabisBatas = isSedangDitinjau && (sla.isOverdue || diffHours <= 24);
 
           return (
             <div className="flex flex-col gap-1 items-start">
-              <AdminStatusBadge variant="info" className="w-36">
-                Menunggu Review
+              <AdminStatusBadge variant={badgeVariant} className="w-36">
+                {badgeText}
               </AdminStatusBadge>
 
               {isBelumAdaYangAmbil && (
@@ -666,55 +685,75 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         </div>
       </div>
 
-      {/* 3. Filter Cepat (Quick Pill Filter) "Perlu Tindak Lanjut" */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-4 [scrollbar-width:none]">
+      {/* 3. Filter Tabs (Desain Konsisten dengan Portal Psikolog) */}
+      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl w-fit mb-4">
+        {/* 1. Semua */}
         <button
           type="button"
           onClick={() => setStatusFilter("ALL")}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
             statusFilter === "ALL"
-              ? "bg-[#561269] text-white shadow-2xs font-bold"
-              : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+              ? "bg-[#561269] text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-200/70"
           }`}
         >
           Semua ({statusStats.total})
         </button>
 
+        {/* 2. Menunggu Tinjau */}
         <button
           type="button"
-          onClick={() => setStatusFilter("MENUNGGU_REVIEW")}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
-            statusFilter === "MENUNGGU_REVIEW"
-              ? "bg-amber-600 text-white shadow-2xs font-bold"
-              : "bg-white text-amber-800 border border-amber-200 hover:bg-amber-50"
+          onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            statusFilter === "MENUNGGU_TINJAU"
+              ? "bg-amber-500 text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-200/70"
           }`}
         >
-          <Clock className="w-3.5 h-3.5" />
-          Menunggu Review ({statusStats.menunggu})
+          {statusStats.menungguTinjau > 0 && (
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          )}
+          Menunggu Tinjau ({statusStats.menungguTinjau})
         </button>
 
+        {/* 3. Sedang Ditinjau */}
+        <button
+          type="button"
+          onClick={() => setStatusFilter("SEDANG_DITINJAU")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            statusFilter === "SEDANG_DITINJAU"
+              ? "bg-[#561269] text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-200/70"
+          }`}
+        >
+          <Stethoscope className="w-3.5 h-3.5" />
+          Sedang Ditinjau ({statusStats.sedangDitinjau})
+        </button>
+
+        {/* 4. Mendekati Batas SLA (Hanya untuk Admin Utama) */}
         {!isBiroContext && (
           <button
             type="button"
             onClick={() => setStatusFilter("MENDEKATI_SLA")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               statusFilter === "MENDEKATI_SLA"
-                ? "bg-rose-600 text-white shadow-2xs font-bold"
-                : "bg-white text-rose-800 border border-rose-200 hover:bg-rose-50"
+                ? "bg-rose-600 text-white shadow-sm"
+                : "text-rose-700 hover:bg-rose-100/70"
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
             Mendekati Batas SLA ({statusStats.mendekatiSla})
           </button>
         )}
 
+        {/* 5. Selesai */}
         <button
           type="button"
           onClick={() => setStatusFilter("SELESAI")}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
             statusFilter === "SELESAI"
-              ? "bg-emerald-600 text-white shadow-2xs font-bold"
-              : "bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
+              ? "bg-emerald-600 text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-200/70"
           }`}
         >
           <CheckCircle2 className="w-3.5 h-3.5" />
