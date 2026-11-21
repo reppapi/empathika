@@ -94,13 +94,6 @@ export function AsesmenMetodeSelector({
                 Pemeriksaan langsung dengan lembar tes fisik dan observasi tatap muka bersama asesor di {isBiro && biroProfile?.nama_biro ? `klinik ${biroProfile.nama_biro}` : "klinik Empathika"}.
               </p>
             </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <span className="text-gray-400 font-medium">Biaya Mulai:</span>
-              <span className={!allowsOffline ? "font-bold text-gray-400" : "font-extrabold text-[#561269]"}>
-                {!allowsOffline ? "Metode Tidak Dibuka" : selectedAsesmen.weekday}
-              </span>
-            </div>
           </div>
 
           {/* Kartu Pilihan 2: Online (Digital) */}
@@ -149,13 +142,6 @@ export function AsesmenMetodeSelector({
               <p className={`text-xs leading-relaxed ${!allowsOnline ? "text-gray-400" : "text-gray-500"}`}>
                 Pengerjaan asesmen mandiri fleksibel dari mana saja via gadget/laptop dengan hasil psikogram digital.
               </p>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <span className="text-gray-400 font-medium">Biaya Paket:</span>
-              <span className={!allowsOnline ? "font-bold text-gray-400" : "font-extrabold text-[#561269]"}>
-                {!allowsOnline ? "Metode Tidak Dibuka" : selectedAsesmen.onlinePrice}
-              </span>
             </div>
           </div>
         </div>
