@@ -488,14 +488,12 @@ export default function ModalReviewPsikotes({
   useEffect(() => {
     if (!item?.id) return;
 
-    const cachedDraft =
-      typeof window !== "undefined" ? localStorage.getItem(`empathika_draft_review_${item.id}`) : null;
-
+    // Utamakan data dari props jika ada
     const initialText = item.catatan_psikolog
       ? item.rekomendasi_psikolog && !item.catatan_psikolog.includes(item.rekomendasi_psikolog)
         ? `${item.catatan_psikolog}\n\nREKOMENDASI:\n${item.rekomendasi_psikolog}`
         : item.catatan_psikolog
-      : cachedDraft || "";
+      : "";
 
     setPages(parseTextToPages(initialText));
     initialContentRef.current = initialText.trim();
@@ -515,9 +513,13 @@ export default function ModalReviewPsikotes({
             : dbText;
         setPages(parseTextToPages(apiText));
         initialContentRef.current = apiText.trim();
-      } else if (cachedDraft && cachedDraft.trim().length > 0) {
-        setPages(parseTextToPages(cachedDraft));
-        initialContentRef.current = cachedDraft.trim();
+      } else {
+        // Jika di DB kosong (draft di-reset saat tiket dilepas), bersihkan cache browser
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(`empathika_draft_review_${item.id}`);
+        }
+        setPages([""]);
+        initialContentRef.current = "";
       }
       return;
     }
@@ -528,7 +530,7 @@ export default function ModalReviewPsikotes({
       .then((res) => {
         if (res?.data) {
           setFullDetail(res.data);
-          // Prioritaskan konten telaah: dari database -> jika tidak ada, dari localStorage
+          // Prioritaskan konten telaah dari database resmi
           const dbText = res.data.hasil?.catatan_psikolog;
           if (dbText && dbText.trim().length > 0) {
             const apiText =
@@ -544,15 +546,13 @@ export default function ModalReviewPsikotes({
               }
               return curPages;
             });
-          } else if (cachedDraft && cachedDraft.trim().length > 0) {
-            setPages((curPages) => {
-              const curCombined = combinePages(curPages).trim();
-              if (!curCombined || curCombined === initialContentRef.current) {
-                initialContentRef.current = cachedDraft.trim();
-                return parseTextToPages(cachedDraft);
-              }
-              return curPages;
-            });
+          } else {
+            // Database kosong -> bersihkan cache browser & kosongkan lembar telaah
+            if (typeof window !== "undefined") {
+              localStorage.removeItem(`empathika_draft_review_${item.id}`);
+            }
+            setPages([""]);
+            initialContentRef.current = "";
           }
         }
       })
@@ -1497,26 +1497,6 @@ export default function ModalReviewPsikotes({
               <PanelLeft className="w-4 h-4" />
             </button>
           )}
-
-          {/* Info Pasien & Asal Biro Singkat di Header */}
-          <div className="min-w-0 hidden md:block">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-gray-900 text-xs sm:text-sm truncate">
-                {item.nama_peserta}
-              </span>
-              <span className="text-[11px] text-gray-400 font-mono">
-                ({item.kode_akses || "TIKET"})
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-500 truncate">
-              {item.nama_paket} • <span className="font-medium text-gray-700">{item.nama_biro || "Empathika (Pusat)"}</span>
-              {(fullDetail?.hasil?.draft_saved_at || item.draft_saved_at) && !isSudahReview && (
-                <span className="text-purple-700 font-medium ml-1.5">
-                  • Draf tersimpan: {new Date(fullDetail?.hasil?.draft_saved_at || item.draft_saved_at!).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              )}
-            </p>
-          </div>
         </div>
 
         {/* Sisi Kanan: Kontrol Toolbar, Simpan Draf & Aksi Terbitkan */}
@@ -2294,29 +2274,25 @@ export default function ModalReviewPsikotes({
         snapshotJawaban={fullDetail?.snapshot_jawaban}
       />
 
-      {/* Modal Peringatan Keamanan: Konfirmasi Simpan Draf Sebelum Keluar (Clean & Minimal) */}
+      {/* Modal Peringatan Keamanan: Konfirmasi Simpan Draf Sebelum Keluar (Clean & No Icon) */}
       {showExitConfirmModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="max-w-sm w-full bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">
-                    Simpan Perubahan?
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Ada perubahan telaah yang belum disimpan.
-                  </p>
-                </div>
+          <div className="max-w-sm w-full bg-white rounded-3xl p-6 border border-gray-100 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            {/* Header Clean without icon */}
+            <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 tracking-tight">
+                  Simpan Perubahan?
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Ada perubahan telaah yang belum disimpan.
+                </p>
               </div>
               <button
                 type="button"
                 disabled={isSavingAndExiting}
                 onClick={() => setShowExitConfirmModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-xl hover:bg-gray-100 transition cursor-pointer shrink-0"
                 title="Batal"
               >
                 <X className="w-4 h-4" />
@@ -2353,10 +2329,7 @@ export default function ModalReviewPsikotes({
                     <span>Menyimpan Draf...</span>
                   </>
                 ) : (
-                  <>
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Simpan ke Draf & Keluar</span>
-                  </>
+                  <span>Simpan ke Draf & Keluar</span>
                 )}
               </button>
 
@@ -2387,68 +2360,63 @@ export default function ModalReviewPsikotes({
         </div>
       )}
 
-      {/* Modal Konfirmasi Terbitkan Laporan Resmi (Simple & Clean) */}
+      {/* Modal Konfirmasi Terbitkan Laporan Resmi (Clean & No Icon) */}
       {showPublishConfirmModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="max-w-sm w-full bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center shrink-0 border border-purple-200/60">
-                  <FileCheck2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">
-                    Terbitkan Laporan Resmi?
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Pasien: <span className="font-semibold text-gray-800">{item.nama_peserta}</span>
-                  </p>
-                </div>
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-7 border border-gray-100 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            {/* Header Modal Clean without icon */}
+            <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 tracking-tight">
+                  Terbitkan Laporan Resmi?
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Harap periksa kembali sebelum melanjutkan
+                </p>
               </div>
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => setShowPublishConfirmModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-xl hover:bg-gray-100 transition cursor-pointer shrink-0"
                 title="Batal"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Pastikan seluruh telaah klinis telah diperiksa dengan seksama. Setelah diterbitkan, laporan resmi akan langsung dapat diakses oleh klien dan <strong>tidak dapat diubah kembali</strong>.
-            </p>
+            {/* Peringatan Dokumen Terkunci Permanen */}
+            <div className="flex items-start gap-2.5 py-1 text-xs text-gray-600 leading-relaxed">
+              <Lock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+              <p>
+                Pastikan seluruh catatan, dinamika psikologis, dan rekomendasi klinis sudah diperiksa dengan teliti. Setelah diterbitkan, dokumen ini <strong className="text-gray-800 font-semibold">terkunci permanen dan tidak dapat diubah kembali</strong>.
+              </p>
+            </div>
 
-            <div className="flex flex-col gap-2 pt-1 font-sans">
-              {/* Tombol Utama: Terbitkan Sekarang */}
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={handleExecutePublish}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold shadow-xs transition cursor-pointer active:scale-95 disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Menerbitkan Laporan...</span>
-                  </>
-                ) : (
-                  <>
-                    <FileCheck2 className="w-3.5 h-3.5" />
-                    <span>Ya, Terbitkan Sekarang</span>
-                  </>
-                )}
-              </button>
-
-              {/* Tombol Batal: Periksa Kembali */}
+            {/* Aksi Tombol */}
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => setShowPublishConfirmModal(false)}
-                className="w-full py-2.5 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-medium transition cursor-pointer active:scale-95 text-center"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-semibold transition cursor-pointer active:scale-95 text-center"
               >
                 Periksa Kembali
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleExecutePublish}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-sm hover:shadow transition cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menerbitkan...</span>
+                  </>
+                ) : (
+                  <span>Ya, Terbitkan Laporan</span>
+                )}
               </button>
             </div>
           </div>

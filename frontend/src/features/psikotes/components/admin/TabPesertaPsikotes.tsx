@@ -11,12 +11,12 @@ import { ActionButtonDetail } from "@/components/shared/TableActionButtons";
 import {
   Filter,
   MessageCircle,
-  Download,
   Calendar,
   Clock,
   CheckCircle2,
   AlertCircle,
   Stethoscope,
+  ArrowRight,
 } from "lucide-react";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 import { calculateReviewSla } from "../../utils/reviewSla";
@@ -31,6 +31,7 @@ export interface TabPesertaPsikotesProps {
   paketOptions?: string[];
   isLoading: boolean;
   onSelectPeserta: (peserta: AdminPsikotesPeserta) => void;
+  onToggleWaStatus?: (bookingId: string, currentSent?: boolean) => void;
   isBiroContext?: boolean;
 }
 
@@ -43,6 +44,7 @@ export default function TabPesertaPsikotes({
   paketOptions = [],
   isLoading,
   onSelectPeserta,
+  onToggleWaStatus,
   isBiroContext = false,
 }: TabPesertaPsikotesProps) {
   // Local state jika prop eksternal tidak dipass
@@ -55,7 +57,7 @@ export default function TabPesertaPsikotes({
 
   // State Quick Pill Filter Status / Urgensi SLA
   const [statusFilter, setStatusFilter] = useState<
-    "ALL" | "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "MENDEKATI_SLA" | "SELESAI"
+    "ALL" | "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "SELESAI"
   >("ALL");
 
   // Filter awal: Peserta berbayar yang disaring berdasarkan Paket dan Rentang Tanggal
@@ -99,6 +101,39 @@ export default function TabPesertaPsikotes({
       return true;
     });
   }, [pesertaList, selectedPaket, selectedTimeRange]);
+
+  // Deteksi apakah paket yang sedang aktif difilter memerlukan review psikolog
+  const isSelectedPaketNeedReview = useMemo(() => {
+    if (!selectedPaket || selectedPaket === "ALL") {
+      // Jika "ALL", hanya tampilkan bar review jika memang ada tiket yang butuh review klinis
+      return scopedPesertaList.some((p) => {
+        const isDass = Boolean(
+          p.paket?.toLowerCase().includes("dass") ||
+          p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+        );
+        return !isDass && Boolean(p.perlu_review_psikolog || p.paket?.toLowerCase().includes("mcmi"));
+      });
+    }
+    const lower = selectedPaket.toLowerCase();
+    const isDass = lower.includes("dass") || lower.includes("depresi, kecemasan, dan stres");
+    if (isDass) return false;
+
+    // Cek dari data peserta yang cocok dengan paket ini
+    const match = scopedPesertaList.find(
+      (p) => (p.paket || "").toLowerCase().includes(lower) || lower.includes((p.paket || "").toLowerCase())
+    );
+    if (match) {
+      return Boolean(match.perlu_review_psikolog || match.paket?.toLowerCase().includes("mcmi"));
+    }
+    return lower.includes("mcmi");
+  }, [selectedPaket, scopedPesertaList]);
+
+  // Reset status filter ke ALL jika paket yang dipilih tidak memerlukan review klinis
+  React.useEffect(() => {
+    if (!isSelectedPaketNeedReview && statusFilter !== "ALL") {
+      setStatusFilter("ALL");
+    }
+  }, [isSelectedPaketNeedReview, statusFilter]);
 
   // Statistik untuk Quick Pills (mengikuti filter paket dan rentang tanggal yang aktif)
   const statusStats = useMemo(() => {
@@ -223,11 +258,6 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         if (!isMenungguReview || Boolean(peserta.id_psikolog || peserta.psikolog)) return false;
       } else if (statusFilter === "SEDANG_DITINJAU") {
         if (!isMenungguReview || !Boolean(peserta.id_psikolog || peserta.psikolog)) return false;
-      } else if (statusFilter === "MENDEKATI_SLA") {
-        if (!isMenungguReview) return false;
-        const sla = calculateReviewSla(peserta.rawTanggal || peserta.tanggal);
-        const diffHours = (sla.deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60);
-        if (!sla.isOverdue && diffHours > 24) return false;
       } else if (statusFilter === "SELESAI") {
         if (!isSelesaiStatus) return false;
       }
@@ -241,79 +271,6 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
       );
     });
   }, [scopedPesertaList, statusFilter, searchQuery]);
-
-  // Handler Export Data Peserta ke CSV
-  const handleExportCsv = () => {
-    if (filteredPeserta.length === 0) return;
-
-    const headers = [
-      "No",
-      "Nama Peserta",
-      "Kontak WhatsApp",
-      "Paket Psikotes",
-      "Tanggal Asesmen",
-      "Status",
-      "Hasil / Grade",
-      "Total Skor",
-      "Usia",
-      "Jenis Kelamin",
-      "Tempat, Tanggal Lahir",
-      "Status Pernikahan",
-      "Pendidikan",
-      "Pekerjaan",
-    ];
-
-    const escapeCsv = (val: any) => {
-      if (val === null || val === undefined) return '""';
-      const str = String(val).replace(/"/g, '""');
-      return `"${str}"`;
-    };
-
-    const rows = filteredPeserta.map((p, idx) => [
-      idx + 1,
-      escapeCsv(p.nama),
-      escapeCsv(p.noHp ? `'${p.noHp}` : "—"),
-      escapeCsv(p.paket),
-      escapeCsv(p.tanggal),
-      escapeCsv(p.status),
-      escapeCsv(p.hasil?.grade || p.skor || "—"),
-      escapeCsv(p.totalSkor ?? "—"),
-      escapeCsv(p.usia ? `${p.usia} th` : "—"),
-      escapeCsv(p.jenisKelamin || p.peserta?.jenis_kelamin || "—"),
-      escapeCsv(
-        [
-          p.peserta?.tempat_lahir,
-          p.peserta?.tanggal_lahir
-            ? new Date(p.peserta.tanggal_lahir).toLocaleDateString("id-ID", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })
-            : null,
-        ]
-          .filter(Boolean)
-          .join(", ") || "—"
-      ),
-      escapeCsv(p.peserta?.status_pernikahan || "—"),
-      escapeCsv(p.peserta?.pendidikan || "—"),
-      escapeCsv(p.peserta?.pekerjaan || "—"),
-    ]);
-
-    const csvContent =
-      "\uFEFF" +
-      [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const dateStr = new Date().toISOString().split("T")[0];
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Data_Peserta_Psikotes_Empathika_${dateStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
 
   const columns: ColumnDef<AdminPsikotesPeserta>[] = [
     {
@@ -423,9 +380,12 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               </AdminStatusBadge>
 
               {isBelumAdaYangAmbil && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-                  ⚠️ Belum Ada yang Ambil
+                <span className="text-[11px] font-bold text-amber-700 mt-0.5 flex items-center gap-1.5 animate-pulse">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                  </span>
+                  <span>⚠️ Belum Ada yang Ambil</span>
                 </span>
               )}
 
@@ -451,9 +411,88 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         );
       },
     },
+    ...(statusFilter !== "SEDANG_DITINJAU" && statusFilter !== "MENUNGGU_TINJAU" && isSelectedPaketNeedReview
+      ? [
+          {
+            key: "status_wa",
+            header: "Pengiriman WA",
+            align: "center" as const,
+            render: (peserta: AdminPsikotesPeserta) => {
+              const isDass = Boolean(
+                peserta.paket?.toLowerCase().includes("dass") ||
+                peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+              );
+              if (isDass) {
+                return (
+                  <span
+                    className="text-gray-300 text-xs font-mono select-none"
+                    title="Hasil tes otomatis tampil di web untuk peserta (tidak perlu dikirim WA)"
+                  >
+                    —
+                  </span>
+                );
+              }
+
+              const isMenungguReview =
+                peserta.status === "Menunggu Review" ||
+                peserta.status === "MENUNGGU_REVIEW";
+              const isSelesai =
+                !isMenungguReview &&
+                (peserta.status === "Selesai" ||
+                  peserta.status === "SELESAI" ||
+                  Boolean(peserta.hasil));
+
+              if (!isSelesai) {
+                return (
+                  <span
+                    className="text-gray-300 text-xs font-mono select-none"
+                    title="Pengiriman WA aktif setelah tes/laporan selesai"
+                  >
+                    —
+                  </span>
+                );
+              }
+
+              const isSent = Boolean(peserta.is_wa_sent || peserta.wa_sent_at);
+
+              return (
+                <div className="flex items-center justify-center">
+                  <label
+                    className="inline-flex items-center justify-center cursor-pointer select-none p-1 rounded-lg hover:bg-gray-100 transition"
+                    title={
+                      isSent
+                        ? `Laporan telah dikirim via WA (${
+                            peserta.wa_sent_at
+                              ? new Date(peserta.wa_sent_at).toLocaleDateString("id-ID", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }) + " WIB"
+                              : "Terkirim"
+                          }). Klik untuk batalkan tanda.`
+                        : "Klik kotak ini jika Anda sudah mengirimkan chat hasil asesmen via WhatsApp."
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSent}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onToggleWaStatus && onToggleWaStatus(String(peserta.id), isSent);
+                      }}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer transition shrink-0"
+                    />
+                  </label>
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
     {
       key: "tanggal",
-      header: "Waktu & Batas Review (Maks 3 Hari)",
+      header: isSelectedPaketNeedReview ? "Waktu & Batas Review (Maks 3 Hari)" : "Waktu Pengerjaan",
       render: (peserta: AdminPsikotesPeserta) => {
         const rawDate = peserta.rawTanggal || peserta.tanggal;
         const dateObj = new Date(rawDate);
@@ -497,23 +536,16 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               const nowMs = Date.now();
               const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
               const isKritis = sla.isOverdue || diffHours <= 24;
-              const isPrioritas = !isKritis && diffHours <= 48;
 
               return (
                 <div className="flex flex-col gap-1 items-start">
-                  {isKritis ? (
+                  {isKritis && (
                     <div className="flex items-center gap-1.5">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
                         🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
                       </span>
                     </div>
-                  ) : isPrioritas ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                        🟡 Prioritas (≤ 48 Jam)
-                      </span>
-                    </div>
-                  ) : null}
+                  )}
                   <span
                     className="text-[10px] text-gray-500 font-medium"
                     title={`Deadline: ${sla.deadlineFormatted}`}
@@ -608,7 +640,38 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         </div>
       )}
 
-      {/* 2. Kontrol Filter Dropdown & Pencarian */}
+      {/* 2. Banner Pemberitahuan Asesmen Menunggu Tinjauan Psikolog (Clean & Profesional) */}
+      {isSelectedPaketNeedReview && statusStats.menungguTinjau > 0 && (
+        <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50/90 via-fuchsia-50/30 to-white border border-purple-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
+              <Clock className="w-4 h-4 text-[#561269]" />
+            </div>
+            <div>
+              <p className="font-bold text-xs sm:text-sm text-gray-900 tracking-tight">
+                {statusStats.menungguTinjau} Asesmen Klinis Menunggu Tinjauan
+              </p>
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                Terdapat asesmen yang belum diambil oleh psikolog pemeriksa di ruang telaah.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
+            className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs shrink-0 cursor-pointer active:scale-95 self-start sm:self-auto ${
+              statusFilter === "MENUNGGU_TINJAU"
+                ? "bg-purple-100 text-[#561269] border border-purple-300 font-semibold"
+                : "bg-[#561269] hover:bg-[#430c52] text-white"
+            }`}
+          >
+            <span>{statusFilter === "MENUNGGU_TINJAU" ? "Sedang Difilter" : "Lihat Antrean"}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* 3. Kontrol Filter Dropdown & Pencarian */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 flex-wrap">
           {/* Dropdown Filter per Paket Psikotes */}
@@ -668,97 +731,71 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               className="!w-full lg:!w-full"
             />
           </div>
-
-          {/* Tombol Export CSV */}
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            disabled={filteredPeserta.length === 0}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs sm:text-sm transition-all shadow-2xs shrink-0 cursor-pointer ${
-              filteredPeserta.length === 0 ? "opacity-50 cursor-not-allowed" : "hover:border-gray-300"
-            }`}
-            title="Export data peserta ke file Excel / CSV"
-          >
-            <Download className="w-4 h-4 text-gray-500" />
-            <span className="hidden sm:inline">Export CSV</span>
-          </button>
         </div>
       </div>
 
-      {/* 3. Filter Tabs (Desain Konsisten dengan Portal Psikolog) */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl w-fit mb-4">
-        {/* 1. Semua */}
-        <button
-          type="button"
-          onClick={() => setStatusFilter("ALL")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            statusFilter === "ALL"
-              ? "bg-[#561269] text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-200/70"
-          }`}
-        >
-          Semua ({statusStats.total})
-        </button>
+      {/* 4. Filter Tabs Status */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 flex-wrap">
+        {isSelectedPaketNeedReview && (
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl w-fit">
+            {/* 1. Semua */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("ALL")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                statusFilter === "ALL"
+                  ? "bg-[#561269] text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200/70"
+              }`}
+            >
+              Semua ({statusStats.total})
+            </button>
 
-        {/* 2. Menunggu Tinjau */}
-        <button
-          type="button"
-          onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            statusFilter === "MENUNGGU_TINJAU"
-              ? "bg-amber-500 text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-200/70"
-          }`}
-        >
-          {statusStats.menungguTinjau > 0 && (
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-          )}
-          Menunggu Tinjau ({statusStats.menungguTinjau})
-        </button>
+            {/* 2. Menunggu Tinjau */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                statusFilter === "MENUNGGU_TINJAU"
+                  ? "bg-amber-500 text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200/70"
+              }`}
+            >
+              {statusStats.menungguTinjau > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              )}
+              Menunggu Tinjau ({statusStats.menungguTinjau})
+            </button>
 
-        {/* 3. Sedang Ditinjau */}
-        <button
-          type="button"
-          onClick={() => setStatusFilter("SEDANG_DITINJAU")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            statusFilter === "SEDANG_DITINJAU"
-              ? "bg-[#561269] text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-200/70"
-          }`}
-        >
-          <Stethoscope className="w-3.5 h-3.5" />
-          Sedang Ditinjau ({statusStats.sedangDitinjau})
-        </button>
+            {/* 3. Sedang Ditinjau */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("SEDANG_DITINJAU")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                statusFilter === "SEDANG_DITINJAU"
+                  ? "bg-[#561269] text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200/70"
+              }`}
+            >
+              <Stethoscope className="w-3.5 h-3.5" />
+              Sedang Ditinjau ({statusStats.sedangDitinjau})
+            </button>
 
-        {/* 4. Mendekati Batas SLA (Hanya untuk Admin Utama) */}
-        {!isBiroContext && (
-          <button
-            type="button"
-            onClick={() => setStatusFilter("MENDEKATI_SLA")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              statusFilter === "MENDEKATI_SLA"
-                ? "bg-rose-600 text-white shadow-sm"
-                : "text-rose-700 hover:bg-rose-100/70"
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-            Mendekati Batas SLA ({statusStats.mendekatiSla})
-          </button>
+            {/* 4. Selesai */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("SELESAI")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                statusFilter === "SELESAI"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200/70"
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Selesai ({statusStats.selesai})
+            </button>
+          </div>
         )}
-
-        {/* 5. Selesai */}
-        <button
-          type="button"
-          onClick={() => setStatusFilter("SELESAI")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            statusFilter === "SELESAI"
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-200/70"
-          }`}
-        >
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          Selesai ({statusStats.selesai})
-        </button>
       </div>
 
       <AdminDataTable

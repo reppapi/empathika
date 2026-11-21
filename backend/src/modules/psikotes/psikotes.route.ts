@@ -213,5 +213,16 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
     },
     handler: controller.releaseReviewTicket,
   })
+
+  // 11. Admin & Biro: Tandai / batalkan status pengiriman laporan hasil via WhatsApp
+  fastify.patch('/booking/:bookingId/toggle-wa', {
+    preHandler: [adminOrBiroGuard],
+    schema: {
+      tags: ['Psikotes'],
+      summary: 'Tandai atau batalkan tanda pengiriman hasil laporan psikotes via WhatsApp ke peserta',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.toggleWaStatus,
+  })
 }
 

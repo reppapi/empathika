@@ -88,9 +88,13 @@ export class PsikotesRepository {
   }
 
   // ── 4. Domain Review / Telaah Klinis Psikolog ─────────────────────────────────
-  async getReviewList(params?: ReviewPsikotesQueryInput) {
+  async getReviewList(
+    params?: ReviewPsikotesQueryInput,
+    userId?: string,
+    userRole?: string
+  ) {
     this.purgeExpiredPsikotesData().catch(() => {})
-    return this.reviewRepo.getReviewList(params)
+    return this.reviewRepo.getReviewList(params, userId, userRole)
   }
 
   async submitReview(
@@ -123,5 +127,9 @@ export class PsikotesRepository {
 
   async purgeExpiredPsikotesData(daysOld: number = 90) {
     return this.pesertaRepo.purgeExpiredPsikotesData(daysOld)
+  }
+
+  async toggleWaSentStatus(bookingId: string, forcedSent?: boolean) {
+    return this.pesertaRepo.toggleWaSentStatus(bookingId, forcedSent)
   }
 }

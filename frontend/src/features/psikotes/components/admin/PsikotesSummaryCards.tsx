@@ -1,6 +1,6 @@
 /** Kartu ringkasan statistik jumlah peserta, tes gratis, berbayar, dan yang sudah selesai. */
 import React from "react";
-import { Users, CheckCircle2, Clock, Activity } from "lucide-react";
+import { Users, CheckCircle2, Clock, Activity, FileSearch } from "lucide-react";
 
 export interface PsikotesSummaryProps {
   summary: {
@@ -8,6 +8,7 @@ export interface PsikotesSummaryProps {
     total_gratis: number;
     total_berbayar: number;
     total_selesai: number;
+    total_menunggu_review?: number;
   };
 }
 
@@ -16,21 +17,21 @@ export default function PsikotesSummaryCards({ summary }: PsikotesSummaryProps) 
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 font-poppins">
-      {/* 1. Klien Terdaftar */}
+      {/* 1. Menunggu Tinjau */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-2xs flex items-center justify-between gap-3 hover:border-purple-200 transition-all">
         <div className="min-w-0">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block truncate">
-            Klien Terdaftar
+            Menunggu Tinjau
           </span>
           <span className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#561269] mt-0.5 block tracking-tight">
-            {summary.total_berbayar}
+            {summary.total_menunggu_review ?? 0}
           </span>
           <span className="text-[11px] text-gray-500 mt-0.5 block truncate">
-            Peserta tiket resmi
+            Perlu telaah psikolog
           </span>
         </div>
         <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-purple-50 text-[#561269] flex items-center justify-center font-bold shrink-0">
-          <Users className="w-5 h-5" />
+          <FileSearch className="w-5 h-5" />
         </div>
       </div>
 

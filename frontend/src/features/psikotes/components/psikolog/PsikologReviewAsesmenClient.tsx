@@ -22,6 +22,8 @@ import {
   Calendar,
   Loader2,
   Lock,
+  ArrowRight,
+  X,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem, type ReviewPsikotesListResponse } from "@/services/psikotes.service";
@@ -53,8 +55,8 @@ export default function PsikologReviewAsesmenClient() {
       });
   }, [user]);
 
-  // Filter & Search (3 Tab: Menunggu Tinjau, Sedang Ditinjau, Selesai)
-  type TabReview = "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "SELESAI";
+  // Filter & Search (4 Tab: Semua, Menunggu Tinjau, Sedang Ditinjau, Selesai)
+  type TabReview = "ALL" | "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "SELESAI";
   const [activeTab, setActiveTab] = useState<TabReview>("MENUNGGU_TINJAU");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -175,6 +177,9 @@ export default function PsikologReviewAsesmenClient() {
 
           try {
             sessionStorage.setItem(`empathika_active_review_${item.id}`, JSON.stringify(updatedItem));
+            if (!item.catatan_psikolog && typeof window !== "undefined") {
+              localStorage.removeItem(`empathika_draft_review_${item.id}`);
+            }
           } catch {}
 
           setData((prev) => {
@@ -211,18 +216,62 @@ export default function PsikologReviewAsesmenClient() {
     }
   };
 
+  // Helper untuk memvalidasi apakah suatu tiket review merupakan milik/tanggung jawab psikolog yang sedang login
+  const isMyItem = useCallback(
+    (item: ReviewPsikotesItem) => {
+      if (!item.id_psikolog) return false;
+      if (user?.role === "ADMIN") return true;
+      if (claimedTicketIds.has(item.id)) return true;
+
+      if (
+        user?.id &&
+        (item.psikolog?.id === user.id ||
+          item.id_psikolog === user.id ||
+          (item.psikolog as any)?.id_account === user.id)
+      ) {
+        return true;
+      }
+
+      const activePsiId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("active_psikolog_id") || sessionStorage.getItem("active_psikolog_id")
+          : null;
+      if (activePsiId && (item.id_psikolog === activePsiId || item.psikolog?.id === activePsiId)) {
+        return true;
+      }
+
+      const activePsiName =
+        typeof window !== "undefined"
+          ? localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name")
+          : null;
+      if (
+        user?.name &&
+        item.psikolog?.nama &&
+        (item.psikolog.nama.toLowerCase().includes(user.name.toLowerCase()) ||
+          user.name.toLowerCase().includes(item.psikolog.nama.toLowerCase()))
+      ) {
+        return true;
+      }
+      if (
+        activePsiName &&
+        item.psikolog?.nama &&
+        (item.psikolog.nama.toLowerCase().includes(activePsiName.toLowerCase()) ||
+          activePsiName.toLowerCase().includes(item.psikolog.nama.toLowerCase()))
+      ) {
+        return true;
+      }
+
+      return false;
+    },
+    [user, claimedTicketIds]
+  );
+
   const filteredItems = useMemo(() => {
     if (!data?.items) return [];
+
     let items = data.items;
 
-    if (activeTab === "MENUNGGU_TINJAU") {
-      items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog);
-    } else if (activeTab === "SEDANG_DITINJAU") {
-      items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && Boolean(i.id_psikolog));
-    } else if (activeTab === "SELESAI") {
-      items = items.filter((i) => i.status_pengerjaan === "SELESAI");
-    }
-
+    // 1. Jika ada kata kunci pencarian, cari di SELURUH data (semua tabel & status)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       items = items.filter(
@@ -231,8 +280,29 @@ export default function PsikologReviewAsesmenClient() {
           i.nama_paket?.toLowerCase().includes(q) ||
           i.kode_akses?.toLowerCase().includes(q) ||
           i.no_hp?.includes(q) ||
-          i.psikolog?.nama?.toLowerCase().includes(q)
+          i.psikolog?.nama?.toLowerCase().includes(q) ||
+          (i.psikolog as any)?.nama_gelar?.toLowerCase().includes(q) ||
+          i.nama_biro?.toLowerCase().includes(q)
       );
+    } else {
+      // 2. Jika tidak ada pencarian, saring berdasarkan tab yang aktif
+      if (activeTab === "MENUNGGU_TINJAU") {
+        // Kolam antrean bersama: Semua peserta baru yang belum diambil oleh psikolog manapun
+        items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog);
+      } else if (activeTab === "SEDANG_DITINJAU") {
+        // Ruang kerja pribadi: Hanya tiket yang sedang ditinjau oleh psikolog yang login
+        items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && isMyItem(i));
+      } else if (activeTab === "SELESAI") {
+        // Arsip pribadi: Hanya laporan yang diselesaikan oleh psikolog yang login
+        items = items.filter((i) => i.status_pengerjaan === "SELESAI" && isMyItem(i));
+      } else {
+        // Tab ALL: Tampilkan antrean terbuka + tugas pribadi
+        items = items.filter(
+          (i) =>
+            (i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog) ||
+            isMyItem(i)
+        );
+      }
     }
 
     // Urutkan berdasarkan sisa batas waktu (Urgency First):
@@ -251,19 +321,42 @@ export default function PsikologReviewAsesmenClient() {
     });
 
     return sorted;
-  }, [data?.items, activeTab, searchQuery]);
+  }, [data?.items, activeTab, searchQuery, isMyItem]);
 
-  const summary = data?.summary || {
-    total: 0,
-    menunggu_review: 0,
-    kolam_bersama: 0,
-    sedang_ditelaah: 0,
-    selesai_review: 0,
-  };
+  // Statistik masing-masing tab sesuai kepemilikan psikolog yang login
+  const myCounts = useMemo(() => {
+    if (!data?.items) {
+      return {
+        total: 0,
+        kolam_bersama: data?.summary?.kolam_bersama || 0,
+        sedang_ditinjau: 0,
+        selesai: 0,
+      };
+    }
+    const kolam_bersama =
+      data.summary?.kolam_bersama ??
+      data.items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog).length;
+    const sedang_ditinjau = data.items.filter(
+      (i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && isMyItem(i)
+    ).length;
+    const selesai = data.items.filter(
+      (i) => i.status_pengerjaan === "SELESAI" && isMyItem(i)
+    ).length;
+
+    return {
+      total: kolam_bersama + sedang_ditinjau + selesai,
+      kolam_bersama,
+      sedang_ditinjau,
+      selesai,
+    };
+  }, [data?.items, data?.summary, isMyItem]);
 
   const slaStats = useMemo(() => {
     if (!data?.items) return { overdueCount: 0, urgentCount: 0, kritisCount: 0, prioritasCount: 0, normalCount: 0 };
-    const menunggu = data.items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW");
+    // SLA stats fokus pada kolam terbuka + tugas pribadi yang belum selesai
+    const menunggu = data.items.filter(
+      (i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && (!i.id_psikolog || isMyItem(i))
+    );
     let overdueCount = 0;
     let urgentCount = 0;
     let kritisCount = 0;
@@ -289,7 +382,13 @@ export default function PsikologReviewAsesmenClient() {
       }
     }
     return { overdueCount, urgentCount, kritisCount, prioritasCount, normalCount };
-  }, [data?.items]);
+  }, [data?.items, isMyItem]);
+
+  // Hitung jumlah tugas yang sedang ditinjau dan menjadi tanggung jawab psikolog yang sedang login
+  const myIncompleteReviews = useMemo(() => {
+    if (!data?.items) return [];
+    return data.items.filter((item) => item.status_pengerjaan === "MENUNGGU_REVIEW" && isMyItem(item));
+  }, [data?.items, isMyItem]);
 
   return (
     <div className="space-y-6 sm:space-y-8 font-poppins pb-12">
@@ -333,12 +432,8 @@ export default function PsikologReviewAsesmenClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-            Review Asesmen Psikotes
+            Review Psikotes
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-2xl leading-relaxed">
-            Tinjau hasil pengerjaan asesmen klinis (MCMI-IV & alat ukur lainnya), telaah spektrum
-            kepribadian, berikan catatan dinamika psikologis, dan terbitkan laporan terverifikasi resmi.
-          </p>
         </div>
 
         <button
@@ -388,12 +483,12 @@ export default function PsikologReviewAsesmenClient() {
                   <p className="text-xs font-bold text-amber-900 uppercase tracking-wider">
                     Menunggu Tinjau
                   </p>
-                  {summary.kolam_bersama > 0 && (
+                  {myCounts.kolam_bersama > 0 && (
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
                   )}
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-amber-950 mt-1">
-                  {isLoading ? "..." : summary.kolam_bersama}
+                  {isLoading ? "..." : myCounts.kolam_bersama}
                 </h3>
                 <p className="text-[11px] text-gray-500 mt-1 font-medium">
                   Antrean terbuka (belum diambil)
@@ -418,7 +513,7 @@ export default function PsikologReviewAsesmenClient() {
                   Sedang Ditinjau
                 </p>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
-                  {isLoading ? "..." : summary.sedang_ditelaah}
+                  {isLoading ? "..." : myCounts.sedang_ditinjau}
                 </h3>
                 <p className="text-[11px] text-gray-500 mt-1 font-medium">
                   Dalam proses telaah &amp; draf
@@ -443,7 +538,7 @@ export default function PsikologReviewAsesmenClient() {
                   Selesai
                 </p>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
-                  {isLoading ? "..." : summary.selesai_review}
+                  {isLoading ? "..." : myCounts.selesai}
                 </h3>
                 <p className="text-[11px] text-emerald-600 mt-1 font-medium flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
@@ -455,6 +550,33 @@ export default function PsikologReviewAsesmenClient() {
               </div>
             </div>
           </div>
+
+      {/* Banner Pengingat Tugas yang Sedang Ditinjau oleh Psikolog Ini (Clean Purple Palette) */}
+      {myIncompleteReviews.length > 0 && (
+        <div className="p-4 sm:p-5 rounded-3xl border border-purple-200/80 bg-gradient-to-r from-purple-50/90 via-fuchsia-50/40 to-white shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-[#561269]/10 border border-purple-200 flex items-center justify-center shrink-0 text-[#561269]">
+              <Clock className="w-5 h-5 text-[#561269]" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm sm:text-base text-gray-900 tracking-tight">
+                Tugas Anda: <span className="text-[#561269] font-extrabold">{myIncompleteReviews.length} Asesmen</span> Sedang Ditinjau Belum Selesai
+              </h3>
+              <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                Anda memiliki {myIncompleteReviews.length} tiket asesmen yang sedang Anda tinjau. Mohon selesaikan dan serahkan laporan sebelum batas waktu berakhir.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab("SEDANG_DITINJAU")}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] active:scale-95 text-white text-xs font-bold shadow-xs hover:shadow transition-all shrink-0 cursor-pointer self-start sm:self-auto"
+          >
+            <span>Lanjutkan Tinjauan</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Banner Prioritas / Paling Mendesak */}
       {slaStats.kritisCount > 0 && (
@@ -479,7 +601,7 @@ export default function PsikologReviewAsesmenClient() {
           </div>
           <button
             type="button"
-            onClick={() => setActiveTab(summary.kolam_bersama > 0 ? "MENUNGGU_TINJAU" : "SEDANG_DITINJAU")}
+            onClick={() => setActiveTab(myCounts.kolam_bersama > 0 ? "MENUNGGU_TINJAU" : "SEDANG_DITINJAU")}
             className="px-4 py-2 rounded-xl bg-white text-rose-700 hover:bg-rose-50 text-xs font-bold transition-all shadow-sm shrink-0 self-start sm:self-auto cursor-pointer"
           >
             Fokus Antrean Mendesak
@@ -490,9 +612,22 @@ export default function PsikologReviewAsesmenClient() {
       {/* Kontrol Filter Tabs & Search */}
       <div className="p-4 sm:p-5 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Filter Tabs (3 Tab Utama) */}
+          {/* Filter Tabs (4 Tab: Semua, Menunggu Tinjau, Sedang Ditinjau, Selesai) */}
           <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl">
-            {/* 1. Menunggu Tinjau */}
+            {/* 1. Semua */}
+            <button
+              type="button"
+              onClick={() => setActiveTab("ALL")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === "ALL"
+                  ? "bg-[#561269] text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200/70"
+              }`}
+            >
+              Semua ({myCounts.total})
+            </button>
+
+            {/* 2. Menunggu Tinjau */}
             <button
               type="button"
               onClick={() => setActiveTab("MENUNGGU_TINJAU")}
@@ -502,13 +637,13 @@ export default function PsikologReviewAsesmenClient() {
                   : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
-              {summary.kolam_bersama > 0 && (
+              {myCounts.kolam_bersama > 0 && (
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               )}
-              Menunggu Tinjau ({summary.kolam_bersama})
+              Menunggu Tinjau ({myCounts.kolam_bersama})
             </button>
 
-            {/* 2. Sedang Ditinjau */}
+            {/* 3. Sedang Ditinjau */}
             <button
               type="button"
               onClick={() => setActiveTab("SEDANG_DITINJAU")}
@@ -519,10 +654,10 @@ export default function PsikologReviewAsesmenClient() {
               }`}
             >
               <Stethoscope className="w-3.5 h-3.5" />
-              Sedang Ditinjau ({summary.sedang_ditelaah})
+              Sedang Ditinjau ({myCounts.sedang_ditinjau})
             </button>
 
-            {/* 3. Selesai */}
+            {/* 4. Selesai */}
             <button
               type="button"
               onClick={() => setActiveTab("SELESAI")}
@@ -533,7 +668,7 @@ export default function PsikologReviewAsesmenClient() {
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Selesai ({summary.selesai_review})
+              Selesai ({myCounts.selesai})
             </button>
           </div>
 
@@ -543,15 +678,22 @@ export default function PsikologReviewAsesmenClient() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama, tiket, atau paket..."
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchQuery(val);
+                if (val.trim() && activeTab !== "ALL") {
+                  setActiveTab("ALL");
+                }
+              }}
+              placeholder="Cari di semua antrean (nama, tiket, HP)..."
               className="w-full pl-9 pr-4 py-2 rounded-full border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition-all font-sans"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer font-bold"
+                title="Hapus pencarian"
               >
                 &times;
               </button>
@@ -592,10 +734,7 @@ export default function PsikologReviewAsesmenClient() {
               ) : filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-16 text-center">
-                    <div className="max-w-xs mx-auto space-y-2">
-                      <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center mx-auto">
-                        <CheckCircle2 className="w-6 h-6" />
-                      </div>
+                    <div className="max-w-xs mx-auto space-y-1.5">
                       <p className="font-bold text-gray-800 text-sm">Tidak Ada Asesmen</p>
                       <p className="text-gray-400 text-xs">
                         {searchQuery
@@ -614,39 +753,11 @@ export default function PsikologReviewAsesmenClient() {
                   const isMenunggu = item.status_pengerjaan === "MENUNGGU_REVIEW";
                   const isSelesai = item.status_pengerjaan === "SELESAI";
 
-                  const activePsiId =
-                    typeof window !== "undefined"
-                      ? localStorage.getItem("active_psikolog_id") || sessionStorage.getItem("active_psikolog_id")
-                      : null;
+                  const isClaimedByMe = isMyItem(item);
                   const activePsiName =
                     typeof window !== "undefined"
                       ? localStorage.getItem("active_psikolog_name") || sessionStorage.getItem("active_psikolog_name")
                       : null;
-                  const isAdmin = user?.role === "ADMIN";
-
-                  const isClaimedByMe = Boolean(
-                    item.id_psikolog && (
-                      isAdmin ||
-                      claimedTicketIds.has(item.id) ||
-                      (user?.id && (
-                        item.psikolog?.id === user.id ||
-                        item.id_psikolog === user.id ||
-                        item.psikolog?.id_account === user.id
-                      )) ||
-                      (activePsiId && (
-                        item.id_psikolog === activePsiId ||
-                        item.psikolog?.id === activePsiId
-                      )) ||
-                      (user?.name && item.psikolog?.nama && (
-                        item.psikolog.nama.toLowerCase().includes(user.name.toLowerCase()) ||
-                        user.name.toLowerCase().includes(item.psikolog.nama.toLowerCase())
-                      )) ||
-                      (activePsiName && item.psikolog?.nama && (
-                        item.psikolog.nama.toLowerCase().includes(activePsiName.toLowerCase()) ||
-                        activePsiName.toLowerCase().includes(item.psikolog.nama.toLowerCase())
-                      ))
-                    )
-                  );
 
                   return (
                     <tr
@@ -713,23 +824,16 @@ export default function PsikologReviewAsesmenClient() {
                                 const nowMs = Date.now();
                                 const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
                                 const isKritis = sla.isOverdue || diffHours <= 24;
-                                const isPrioritas = !isKritis && diffHours <= 48;
 
                                 return (
                                   <div className="flex flex-col gap-1 items-start">
-                                    {isKritis ? (
+                                    {isKritis && (
                                       <div className="flex items-center gap-1.5">
                                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
                                           🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
                                         </span>
                                       </div>
-                                    ) : isPrioritas ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                                          🟡 Prioritas (≤ 48 Jam)
-                                        </span>
-                                      </div>
-                                    ) : null}
+                                    )}
                                     <span className="text-[10px] text-gray-500 font-medium" title={`Deadline: ${sla.deadlineFormatted}`}>
                                       Batas: {sla.deadlineFormatted}
                                     </span>
@@ -802,7 +906,7 @@ export default function PsikologReviewAsesmenClient() {
                           </div>
                         ) : (
                           <span className="text-gray-400 italic text-[11px]">
-                            Belum ditentukan
+                            Belum ada penelaah
                           </span>
                         )}
                       </td>
@@ -872,54 +976,61 @@ export default function PsikologReviewAsesmenClient() {
       </>
       )}
 
-      {/* Modal Dialog Konfirmasi Pengambilan / Telaah Tiket (Pengganti alert/confirm browser) */}
+      {/* Modal Dialog Konfirmasi Pengambilan / Telaah Tiket (Clean & Professional, No Icon) */}
       {confirmModal.isOpen && confirmModal.item && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div
-            className="relative w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-100 p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-100 p-6 sm:p-7 space-y-4 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header Icon & Title */}
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0">
-                <Stethoscope className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-snug">
+            {/* Header Title (Clean without icon) */}
+            <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
                   {confirmModal.isTakeover
                     ? "Konfirmasi Ambil Alih Tiket"
                     : "Konfirmasi Pengambilan Asesmen"}
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {confirmModal.isTakeover
                     ? "Tanggung jawab telaah klinis tiket ini akan dialihkan kepada Anda."
                     : "Tiket akan dikunci dan menjadi tanggung jawab klinis Anda."}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setConfirmModal({ isOpen: false, item: null, isTakeover: false })
+                }
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-xl hover:bg-gray-100 transition cursor-pointer shrink-0"
+                title="Tutup"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Kotak Info Pasien & Paket */}
-            <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-2.5 text-xs">
+              <div className="grid grid-cols-[105px_1fr] items-start gap-2.5">
                 <span className="text-gray-500 font-medium">Nama Peserta:</span>
                 <span className="font-bold text-gray-900 font-sans">
                   {confirmModal.item.nama_peserta}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-500 font-medium">Alat Ukur / Paket:</span>
-                <span className="font-semibold text-[#561269]">
+              <div className="grid grid-cols-[105px_1fr] items-start gap-2.5">
+                <span className="text-gray-500 font-medium">Paket Asesmen:</span>
+                <span className="font-semibold text-[#561269] leading-relaxed">
                   {confirmModal.item.nama_paket}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-[105px_1fr] items-start gap-2.5">
                 <span className="text-gray-500 font-medium">Asal Biro:</span>
                 <span className="font-semibold text-gray-800">
                   {confirmModal.item.nama_biro || "Empathika (Pusat)"}
                 </span>
               </div>
               {confirmModal.item.kode_akses && (
-                <div className="flex items-center justify-between pt-1 border-t border-purple-100/80">
+                <div className="grid grid-cols-[105px_1fr] items-start gap-2.5 pt-2 border-t border-gray-200/60">
                   <span className="text-gray-400 font-mono text-[11px]">Kode Akses:</span>
                   <span className="font-mono text-[11px] text-gray-600 font-medium">
                     {confirmModal.item.kode_akses}
@@ -934,20 +1045,20 @@ export default function PsikologReviewAsesmenClient() {
             </p>
 
             {/* Tombol Aksi */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() =>
                   setConfirmModal({ isOpen: false, item: null, isTakeover: false })
                 }
-                className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-semibold transition cursor-pointer active:scale-95"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={executeClaim}
-                className="rounded-full bg-[#561269] hover:bg-[#430c52] px-6 py-2.5 text-xs font-bold text-white shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-xs font-bold text-white shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
               >
                 {confirmModal.isTakeover ? "Ambil Alih & Tinjau" : "Ambil & Tinjau"}
               </button>

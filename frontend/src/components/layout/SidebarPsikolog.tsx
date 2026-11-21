@@ -22,7 +22,7 @@ export function SidebarPsikolog({ isOpen, onClose, isReviewer = false, reviewBad
   const navItems = [
     { name: "Beranda", path: "/psikolog-web/beranda" },
     { name: "Jadwal & Sesi", path: "/psikolog-web/jadwal" },
-    ...(isReviewer ? [{ name: "Review Asesmen", path: "/psikolog-web/review-asesmen", badge: reviewBadgeCount }] : []),
+    ...(isReviewer ? [{ name: "Review Psikotes", path: "/psikolog-web/review-asesmen", badge: reviewBadgeCount }] : []),
   ]
 
   return (
