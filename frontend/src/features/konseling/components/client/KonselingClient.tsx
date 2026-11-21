@@ -48,7 +48,20 @@ export default function KonselingClient() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const layananList = (rawData || []).filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
+  // Fallback lokal jika data dari API belum tersedia
+  const fallbackLayanan = getStoredLayanan()
+    .filter((l) => l.kategoriId === "01" && l.status === "Aktif")
+    .map((l) => ({
+      id: String(l.id),
+      nama: l.layanan,
+      deskripsi: l.deskripsi,
+      metode: l.metode,
+      aktif: l.status === "Aktif",
+      status: l.status,
+    }))
+
+  const rawList = Array.isArray(rawData) && rawData.length > 0 ? rawData : fallbackLayanan
+  const layananList = rawList.filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
 
   useEffect(() => {
     const handleSync = () => {

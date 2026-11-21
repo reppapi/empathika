@@ -10,6 +10,7 @@ import { mapDbPsikologToUI } from "@/features/psikolog/utils/mapPsikolog"
 import { PsikologUI } from "@/types/psikolog"
 import { layananService } from "@/services/layanan.service"
 import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
+import { useTenantContext } from "@/context/TenantContext"
 
 const DAFTAR_HARGA = [
   {
@@ -36,6 +37,7 @@ const DAFTAR_HARGA = [
 ]
 
 export default function BookingClient() {
+  const { isBiro, slug, biroProfile, withBiro } = useTenantContext()
   const searchParams = useSearchParams()
   const initialLayanan = searchParams?.get("layanan") || ""
 
@@ -293,14 +295,21 @@ export default function BookingClient() {
       {/* Background Shape & Hero Section (Lebih kecil dan proporsional) */}
       <div className="w-full overflow-hidden">
         <div
-          className="w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
+          className="curved-hero-banner w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
+          style={
+            isBiro
+              ? {
+                  backgroundImage: `linear-gradient(to bottom, color-mix(in srgb, var(--biro-theme-color, #561269) 82%, white) 0%, var(--biro-theme-color, #561269) 50%, color-mix(in srgb, var(--biro-theme-color, #561269) 55%, black) 100%)`,
+                }
+              : undefined
+          }
         >
           <div className="max-w-4xl mx-auto">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wide drop-shadow-sm leading-tight">
               Jadwalkan Sesi Konsultasi Anda
             </h1>
-            <p className="mt-2 text-purple-200 text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light">
-              Temukan profesional yang tepat dan mulai perjalanan pemulihan Anda bersama Empathika.
+            <p className={`mt-2 ${isBiro ? 'text-white/80' : 'text-purple-200'} text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light`}>
+              Temukan profesional yang tepat dan mulai perjalanan pemulihan Anda bersama {isBiro ? (biroProfile?.nama_biro || (slug ? slug.replace(/^biro-/, '').toUpperCase() : "Biro")) : "Empathika"}.
             </p>
           </div>
         </div>
@@ -473,7 +482,7 @@ export default function BookingClient() {
                 Tutup
               </button>
               <Link
-                href="/layanan"
+                href={withBiro("/layanan") as any}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#561269] text-white font-bold text-xs sm:text-sm hover:bg-[#430e52] transition shadow-xs"
               >
                 Lihat Layanan Lain

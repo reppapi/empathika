@@ -3,12 +3,15 @@
 import Link from "next/link"
 import { Building2, Laptop, CheckCircle2 } from "lucide-react"
 import { type AsesmenPackage } from "../../data/asesmenData"
+import { useTenantContext } from "@/context/TenantContext"
 
 interface AsesmenMetodeSelectorProps {
   metode: "offline" | "online"
   setMetode: (m: "offline" | "online") => void
   selectedAsesmen: AsesmenPackage
   withBiro: (path: string) => string
+  allowsOnline?: boolean
+  allowsOffline?: boolean
 }
 
 export function AsesmenMetodeSelector({
@@ -16,7 +19,10 @@ export function AsesmenMetodeSelector({
   setMetode,
   selectedAsesmen,
   withBiro,
+  allowsOnline = true,
+  allowsOffline = true,
 }: AsesmenMetodeSelectorProps) {
+  const { isBiro, biroProfile } = useTenantContext()
   return (
     <div className="max-w-[950px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 relative z-20">
       <div className="bg-white rounded-3xl shadow-xl p-5 sm:p-7 border border-gray-100">
@@ -43,18 +49,22 @@ export function AsesmenMetodeSelector({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Kartu Pilihan 1: Offline (Tatap Muka di Klinik) */}
           <div
-            onClick={() => setMetode("offline")}
-            className={`p-5 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden group ${
-              metode === "offline"
-                ? "border-[#561269] bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 shadow-md ring-2 ring-[#561269]/10"
-                : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+            onClick={() => allowsOffline && setMetode("offline")}
+            className={`p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col justify-between relative overflow-hidden group ${
+              !allowsOffline
+                ? "border-gray-200 bg-gray-100/70 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                : metode === "offline"
+                ? "border-[#561269] bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 shadow-md ring-2 ring-[#561269]/10 cursor-pointer"
+                : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50 cursor-pointer"
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
-                    metode === "offline"
+                    !allowsOffline
+                      ? "bg-gray-200 text-gray-400"
+                      : metode === "offline"
                       ? "bg-[#561269] text-white shadow-sm"
                       : "bg-gray-100 text-gray-600 group-hover:bg-purple-100 group-hover:text-[#561269]"
                   }`}
@@ -62,7 +72,11 @@ export function AsesmenMetodeSelector({
                   <Building2 className="w-5 h-5" />
                 </div>
 
-                {metode === "offline" ? (
+                {!allowsOffline ? (
+                  <span className="text-[11px] font-semibold text-gray-400 bg-gray-200/80 px-2.5 py-0.5 rounded-full">
+                    Tidak Tersedia Offline
+                  </span>
+                ) : metode === "offline" ? (
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-[#561269] bg-purple-100 px-3 py-1 rounded-full">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Dipilih
                   </span>
@@ -77,7 +91,7 @@ export function AsesmenMetodeSelector({
                 Offline (Tatap Muka di Klinik)
               </h4>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Pemeriksaan langsung dengan lembar tes fisik dan observasi tatap muka bersama asesor di klinik Empathika.
+                Pemeriksaan langsung dengan lembar tes fisik dan observasi tatap muka bersama asesor di {isBiro && biroProfile?.nama_biro ? `klinik ${biroProfile.nama_biro}` : "klinik Empathika"}.
               </p>
             </div>
 
@@ -89,18 +103,22 @@ export function AsesmenMetodeSelector({
 
           {/* Kartu Pilihan 2: Online (Digital) */}
           <div
-            onClick={() => setMetode("online")}
-            className={`p-5 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden group ${
-              metode === "online"
-                ? "border-[#561269] bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 shadow-md ring-2 ring-[#561269]/10"
-                : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+            onClick={() => allowsOnline && setMetode("online")}
+            className={`p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col justify-between relative overflow-hidden group ${
+              !allowsOnline
+                ? "border-gray-200 bg-gray-100/70 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                : metode === "online"
+                ? "border-[#561269] bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 shadow-md ring-2 ring-[#561269]/10 cursor-pointer"
+                : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50 cursor-pointer"
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
-                    metode === "online"
+                    !allowsOnline
+                      ? "bg-gray-200 text-gray-400"
+                      : metode === "online"
                       ? "bg-[#561269] text-white shadow-sm"
                       : "bg-gray-100 text-gray-600 group-hover:bg-purple-100 group-hover:text-[#561269]"
                   }`}
@@ -108,7 +126,11 @@ export function AsesmenMetodeSelector({
                   <Laptop className="w-5 h-5" />
                 </div>
 
-                {metode === "online" ? (
+                {!allowsOnline ? (
+                  <span className="text-[11px] font-semibold text-gray-400 bg-gray-200/80 px-2.5 py-0.5 rounded-full">
+                    Tidak Tersedia Online
+                  </span>
+                ) : metode === "online" ? (
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-[#561269] bg-purple-100 px-3 py-1 rounded-full">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Dipilih
                   </span>

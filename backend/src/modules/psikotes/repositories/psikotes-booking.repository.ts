@@ -188,6 +188,7 @@ export class PsikotesBookingRepository {
       const kodeTransaksi = input.kode_transaksi || `PSI-${generateOrderId()}`
 
       // 7. Simpan Transaksi ke tabel transaksis
+      const effectiveBiroId = idBiro || client.id_biro || null
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,

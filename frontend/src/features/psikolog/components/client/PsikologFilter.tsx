@@ -32,9 +32,9 @@ export function PsikologFilter({
               key={cat.value}
               type="button"
               onClick={() => onKategoriChange(cat.value)}
-              className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer active:scale-95 ${
+              className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer active:scale-95 ${
                 isActive
-                  ? "bg-[#561269] text-white shadow-sm ring-2 ring-[#561269]/20"
+                  ? "bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold shadow-sm ring-2 ring-[#EAB308]/30"
                   : "bg-gray-100/90 text-gray-700 hover:bg-gray-200"
               }`}
             >

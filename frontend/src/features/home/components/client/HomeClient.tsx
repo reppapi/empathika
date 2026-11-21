@@ -405,6 +405,8 @@ export default function HomeClient() {
                 ? `&hargaBundling=${encodeURIComponent(String(hargaBundlingNum))}&kuotaBundling=${encodeURIComponent(String(kuotaBundling))}&namaBundling=${encodeURIComponent(namaBundling)}`
                 : ""
 
+              const biroParam = slug ? `&biro=${encodeURIComponent(slug)}` : ""
+
               return (
                 <div
                   key={ev.id}
@@ -496,8 +498,8 @@ export default function HomeClient() {
                       </div>
                       <Link
                         href={biroPrefix
-                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}`
-                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}`}
+                          ? `${biroPrefix}/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}${biroParam}`
+                          : `/event/checkout?eventId=${encodeURIComponent(ev.id)}&judul=${encodeURIComponent(ev.judul)}&deskripsi=${encodeURIComponent(ev.deskripsi || "")}&pembicara=${encodeURIComponent(ev.nama_pembicara)}&kategori=${encodeURIComponent(ev.jenis_event)}&harga=${encodeURIComponent(hargaTeks)}&lokasi=${encodeURIComponent(ev.lokasi || (isOnline ? "Google Meet (Online)" : "Offline"))}&tanggal=${encodeURIComponent(tanggalTeks)}&waktu=${encodeURIComponent(jamTeks)}&tipe=${encodeURIComponent(isOnline ? "Online" : "Offline")}${ev.link_meet ? `&linkMeet=${encodeURIComponent(ev.link_meet)}` : ""}${ev.link_wa ? `&linkWa=${encodeURIComponent(ev.link_wa)}` : ""}${ev.banner_url ? `&bannerUrl=${encodeURIComponent(ev.banner_url)}` : ""}${bundlingParams}${biroParam}`}
                         className="bg-[#EAB308] hover:bg-yellow-500 text-black text-sm font-bold py-2.5 px-6 rounded-2xl transition-colors shrink-0 shadow-sm"
                       >
                         Daftar
@@ -524,7 +526,7 @@ export default function HomeClient() {
             </p>
             <Link
               href={withBiro("/event?tab=past") as any}
-              className="inline-flex items-center gap-2 bg-[#561269] text-white hover:bg-[#430e52] font-bold text-sm py-2.5 px-6 rounded-full transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold text-sm py-2.5 px-6 rounded-full shadow-md shadow-yellow-200/60 transition-all cursor-pointer active:scale-95"
             >
               Lihat Riwayat &amp; Dokumentasi Kegiatan
             </Link>
@@ -721,7 +723,7 @@ export default function HomeClient() {
       <section id="psikotes" className="w-full max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 scroll-mt-28">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 lg:mb-12 gap-4 sm:gap-6">
           <h2 className="text-2xl md:text-3xl font-semibold text-[#561269] tracking-tight">
-            Kenali Dirimu dengan Psikotes <span className="font-bold">Empathika</span>
+            Kenali Dirimu dengan Psikotes <span className="font-bold">{isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"}</span>
           </h2>
           <Link href={biroPrefix ? `${biroPrefix}/layanan?category=02` : "/layanan?category=02"} className="text-[#561269] font-semibold flex items-center hover:text-[#763E8B] transition-colors whitespace-nowrap">
             Lihat Semua Psikotes
@@ -800,7 +802,7 @@ export default function HomeClient() {
               href={biroPrefix ? `${biroPrefix}/layanan?category=02` : "/layanan?category=02"}
               className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm sm:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95"
             >
-              <span>Pelajari Layanan Psikotes Empathika</span>
+              <span>Pelajari Layanan Psikotes {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"}</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
@@ -835,7 +837,7 @@ export default function HomeClient() {
             </div>
             
             <div className="w-full lg:w-1/3 flex flex-col justify-center">
-              <h3 className="font-bold text-2xl text-gray-900 mb-4">Klinik Empathika</h3>
+              <h3 className="font-bold text-2xl text-gray-900 mb-4">{isBiro && biroProfile?.nama_biro ? `Kantor / Klinik ${biroProfile.nama_biro}` : "Klinik Empathika"}</h3>
               
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-10 h-10 rounded-full bg-[#1c352d]/10 flex items-center justify-center text-[#1c352d] shrink-0 mt-1">

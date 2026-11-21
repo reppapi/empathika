@@ -46,12 +46,13 @@ export function PsikologCard({
 
   const searchParams = useSearchParams()
   const qLayanan = searchParams?.get("layanan")
+  const effectiveLayanan = qLayanan || (mode === "konseling" ? "Konsultasi Individu" : undefined)
 
   // Baik dari daftar psikolog maupun alur konseling: masuk ke profil dulu,
   // baru dari profil bisa lanjut ke pilih jadwal / pembayaran.
   const buttonText = mode === "konseling" ? "Daftar" : "Lihat Detail"
   const buttonHref = withBiro(
-    `/psikolog/${psikolog.id}${qLayanan ? `?layanan=${encodeURIComponent(qLayanan)}` : ""}`
+    `/psikolog/${psikolog.id}${effectiveLayanan ? `?layanan=${encodeURIComponent(effectiveLayanan)}` : ""}`
   )
 
   return (

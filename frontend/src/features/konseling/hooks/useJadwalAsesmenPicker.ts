@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { BookedAssessment } from "@/features/konseling/types"
 import { layananService } from "@/services/layanan.service"
+import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
 
 export const DEFAULT_LAYANAN_ASESMEN = [
   "Semua Layanan Asesmen",
@@ -127,37 +128,55 @@ export function useJadwalAsesmenPicker({
   // Pilihan Layanan Asesmen
   const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan Asesmen")
   const [layananOptions, setLayananOptions] = useState<string[]>(DEFAULT_LAYANAN_ASESMEN)
+  const [serviceItems, setServiceItems] = useState<any[]>([])
 
-  // Ambil daftar layanan kategori ASESMEN dari database / API
+  // Ambil daftar layanan kategori ASESMEN dari database / API & local storage
   useEffect(() => {
     let isMounted = true
     layananService
       .getAll({ kategori: "ASESMEN" })
       .then((res: any) => {
         if (!isMounted) return
-        const raw = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-        const activeNames: string[] = raw
-          .filter((l: any) => l.aktif !== false && l.status !== "Nonaktif")
-          .map((l: any) => (l.nama?.trim() as string))
-          .filter(Boolean)
+        const beList = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+        const activeServices: any[] = []
+        const activeNames: string[] = []
+
+        beList.forEach((l: any) => {
+          if (l.aktif !== false && l.status !== "Nonaktif") {
+            activeServices.push(l)
+            if (l.nama) activeNames.push(l.nama.trim())
+          }
+        })
 
         try {
-          const rawLocal = localStorage.getItem("empathika_admin_layanan_list")
-          if (rawLocal) {
-            const parsed = JSON.parse(rawLocal)
-            if (Array.isArray(parsed)) {
-              parsed.forEach((item: any) => {
-                if (
-                  (item.kategoriId === "02" || (item.kategori || "").toUpperCase() === "ASESMEN") &&
-                  item.status !== "Nonaktif" &&
-                  item.layanan
-                ) {
-                  activeNames.push(item.layanan.trim())
-                }
-              })
+          const stored = getStoredLayanan().filter(
+            (item: any) =>
+              (item.kategoriId === "05" || (item.kategori || "").toUpperCase() === "ASESMEN") &&
+              item.status !== "Nonaktif"
+          )
+          stored.forEach((item: any) => {
+            const itemTitle = (item.layanan || item.nama || "").trim()
+            if (!itemTitle) return
+            const alreadyExists = activeServices.some(
+              (s) => (s.nama || s.layanan || "").trim().toLowerCase() === itemTitle.toLowerCase()
+            )
+            if (!alreadyExists) {
+              activeServices.push(item)
+              activeNames.push(itemTitle)
             }
-          }
+          })
         } catch {}
+
+        if (activeServices.length === 0) {
+          activeServices.push(
+            { id: "asesmen-minat-bakat-01", nama: "Asesmen Minat Bakat", layanan: "Asesmen Minat Bakat", metode: "Online/Offline", status: "Aktif" },
+            { id: "asesmen-kesiapan-sekolah-01", nama: "Asesmen Kesiapan Sekolah", layanan: "Asesmen Kesiapan Sekolah", metode: "Online/Offline", status: "Aktif" },
+            { id: "asesmen-klinis-01", nama: "Asesmen Klinis", layanan: "Asesmen Klinis", metode: "Online/Offline", status: "Aktif" }
+          )
+          activeNames.push("Asesmen Minat Bakat", "Asesmen Kesiapan Sekolah", "Asesmen Klinis")
+        }
+
+        setServiceItems(activeServices)
 
         const uniqueNames: string[] = Array.from(new Set<string>(activeNames))
         if (uniqueNames.length > 0) {
@@ -174,6 +193,52 @@ export function useJadwalAsesmenPicker({
       isMounted = false
     }
   }, [])
+
+  // Menentukan metode asesmen yang diperbolehkan berdasarkan pengaturan layanan di Admin
+  const allowedMetode = useMemo(() => {
+    let targetServices = serviceItems
+    if (selectedLayanan && selectedLayanan !== "Semua Layanan Asesmen") {
+      const found = serviceItems.filter(
+        (s) => (s.nama || s.layanan || "").trim().toLowerCase() === selectedLayanan.trim().toLowerCase()
+      )
+      if (found.length > 0) {
+        targetServices = found
+      }
+    }
+
+    if (targetServices.length === 0) {
+      return { online: true, offline: true, both: true }
+    }
+
+    let hasOnline = false
+    let hasOffline = false
+
+    targetServices.forEach((s) => {
+      const m = (s.metode || "Online/Offline").toLowerCase()
+      if (m.includes("online") || m.includes("keduanya") || m === "semua") {
+        hasOnline = true
+      }
+      if (m.includes("offline") || m.includes("keduanya") || m === "semua") {
+        hasOffline = true
+      }
+    })
+
+    return {
+      online: hasOnline,
+      offline: hasOffline,
+      both: hasOnline && hasOffline,
+    }
+  }, [selectedLayanan, serviceItems])
+
+  // Sinkronkan metode otomatis jika metode aktif tidak didukung oleh layanan asesmen yang dipilih
+  useEffect(() => {
+    if (allowedMetode.both) return
+    if (allowedMetode.online && !allowedMetode.offline) {
+      if (metode !== "Online") setMetode("Online")
+    } else if (!allowedMetode.online && allowedMetode.offline) {
+      if (metode !== "Offline") setMetode("Offline")
+    }
+  }, [allowedMetode, metode])
 
   // Multi-select slot jam & jam kustom
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])
@@ -274,6 +339,8 @@ export function useJadwalAsesmenPicker({
     handleAddCustomTime,
     handleBookingClick,
     isFormValid,
+    allowedMetode,
+    serviceItems,
   }
 }
 

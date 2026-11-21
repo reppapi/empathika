@@ -1,8 +1,11 @@
+import { useTenantContext } from "@/context/TenantContext"
+
 interface HeaderSectionProps {
   kategoriAktif?: string
 }
 
 export function HeaderSection({ kategoriAktif = "semua" }: HeaderSectionProps) {
+  const { isBiro, biroProfile } = useTenantContext()
   const isPeer = kategoriAktif === "peer-konselor"
   const isKonselor = kategoriAktif === "konselor"
 
@@ -16,7 +19,14 @@ export function HeaderSection({ kategoriAktif = "semua" }: HeaderSectionProps) {
     <div className="w-full overflow-hidden">
       {/* Curved Purple Hero Banner (Menyatu dari tepi atas 0px ke bawah arch) */}
       <div 
-        className="w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
+        className="curved-hero-banner w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
+        style={
+          isBiro
+            ? {
+                backgroundImage: `linear-gradient(to bottom, color-mix(in srgb, var(--biro-theme-color, #561269) 82%, white) 0%, var(--biro-theme-color, #561269) 50%, color-mix(in srgb, var(--biro-theme-color, #561269) 55%, black) 100%)`,
+              }
+            : undefined
+        }
       >
         <div className="max-w-4xl mx-auto overflow-hidden">
           <h1 
@@ -25,7 +35,7 @@ export function HeaderSection({ kategoriAktif = "semua" }: HeaderSectionProps) {
           >
             {title}
           </h1>
-          <p className="mt-2 text-purple-200 text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light transition-all duration-500 ease-out">
+          <p className={`mt-2 ${isBiro ? "text-white/80" : "text-purple-200"} text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light transition-all duration-500 ease-out`}>
             Temukan tenaga profesional berlisensi yang siap mendengarkan dan mendampingi perjalanan kesehatan mental Anda.
           </p>
         </div>
@@ -34,7 +44,7 @@ export function HeaderSection({ kategoriAktif = "semua" }: HeaderSectionProps) {
       {/* Description Text below the curved banner */}
       <div className="w-full max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8 mt-8 sm:mt-12 md:mt-14">
         <p className="text-gray-700 text-sm sm:text-base md:text-lg leading-relaxed max-w-4xl mx-auto">
-          Setiap psikolog dan konselor di Empathika telah melewati proses verifikasi kualifikasi profesional serta berkomitmen memberikan ruang yang aman, rahasia, dan bebas stigma.
+          Setiap psikolog dan konselor di {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"} telah melewati proses verifikasi kualifikasi profesional serta berkomitmen memberikan ruang yang aman, rahasia, dan bebas stigma.
         </p>
       </div>
     </div>

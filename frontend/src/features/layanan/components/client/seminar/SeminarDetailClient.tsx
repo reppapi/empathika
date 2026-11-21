@@ -13,7 +13,7 @@ import { SeminarDescriptionSection } from "./SeminarDescriptionSection"
 import { ProgramGallery } from "./ProgramGallery"
 
 export default function SeminarDetailPage() {
-  const { withBiro } = useTenantContext()
+  const { withBiro, isBiro, biroProfile } = useTenantContext()
   const data = SEMINAR_DETAIL_DATA
 
   const [title, setTitle] = useState(data.title)
@@ -134,7 +134,7 @@ export default function SeminarDetailPage() {
       <section className="pt-4 pb-20 sm:pb-24 text-center px-4">
         <div className="max-w-xl mx-auto flex flex-col items-center">
           <p className="text-base sm:text-lg font-bold text-[#561269] mb-4">
-            Tertarik Mengadakan {title} Bersama Empathika?
+            Tertarik Mengadakan {title} Bersama {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika"}?
           </p>
           <Link
             href={withBiro("/kerja-sama") as any}

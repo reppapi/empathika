@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { adminService } from "@/services/admin.service"
+import { bookingService } from "@/services/booking.service"
 import {
   recordCancelledSession,
   getCancelledSessions,
@@ -177,7 +178,11 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     try {
       await adminService.updateBookingStatus(id, "CANCELLED")
     } catch (err: any) {
-      console.warn("Cancel status error:", err?.response?.data?.message || err.message)
+      try {
+        await bookingService.cancelBooking(id)
+      } catch (err2: any) {
+        console.warn("Cancel status backend warning:", err?.response?.data?.message || err2?.message || err.message)
+      }
     }
 
     recordCancelledSession({
@@ -199,6 +204,9 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
           : b
       )
     )
+
+    // Muat ulang data terbaru dari backend agar sinkron 100%
+    fetchJadwalData()
 
     // Kembalikan slot ke localStorage empathika_custom_jadwal_slots agar langsung muncul kembali di halaman client
     try {
@@ -591,7 +599,16 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
       if (res) {
         if (Array.isArray(res.todaySessions)) {
-          const mappedToday: ClientSessionToday[] = res.todaySessions.map((s: any) => {
+          const mappedToday: ClientSessionToday[] = res.todaySessions
+            .filter((s: any) => {
+              const isCanc = isSessionCancelled(
+                { id: s.id, date: s.tanggal, waktu: s.waktuRange, namaKlien: s.namaKlien },
+                cancelledList
+              )
+              // Jika dibatalkan dan tidak ada klien aktif, hapus dari daftar sesi harian
+              return !isCanc && s.status !== "Dibatalkan" && s.status !== "CANCELLED"
+            })
+            .map((s: any) => {
             const isAsesmen =
               (s.tipe_jadwal || "").toUpperCase() === "ASESMEN" ||
               (s.layanan || "").toLowerCase().includes("asesmen")
@@ -599,16 +616,10 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               { id: s.id, date: s.tanggal, waktu: s.waktuRange, namaKlien: s.namaKlien },
               rescheduledList
             )
-            const isCanc = isSessionCancelled(
-              { id: s.id, date: s.tanggal, waktu: s.waktuRange, namaKlien: s.namaKlien },
-              cancelledList
-            )
 
             let finalStatus = s.status as ClientSessionStatus
             if (isResched) {
               finalStatus = "Reschedule"
-            } else if (isCanc) {
-              finalStatus = "Dibatalkan"
             }
 
             return {
@@ -694,9 +705,11 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               rescheduledList
             )
             const isResched = Boolean(reschedRecord)
-            const isCanc = !isAvailable && !isResched && isSessionCancelled(
-              { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
-              cancelledList
+            const isCanc = !isAvailable && !isResched && (
+              isSessionCancelled(
+                { id: w.id, date: w.date, waktu: w.timeSlot, namaKlien: w.clientName },
+                cancelledList
+              ) || w.status === "Dibatalkan" || (w as any).isCancelled
             )
 
             let finalWeeklyStatus = w.status || (w.statusSlot === "TERSEDIA" ? "Tersedia" : "Aktif")
@@ -708,7 +721,10 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               clientName = reschedRecord.namaKlien || clientName || "Klien Terdaftar"
               if (reschedRecord.layanan) layananName = reschedRecord.layanan
             } else if (isCanc) {
-              finalWeeklyStatus = "Dibatalkan"
+              // Jika dibatalkan dan tidak ada klien aktif, slot kembali bersih menjadi Tersedia
+              finalWeeklyStatus = "Tersedia"
+              clientName = undefined
+              layananName = isAsesmen ? "Asesmen Tersedia" : "Slot Tersedia"
             } else if (isAvailable) {
               finalWeeklyStatus = "Tersedia"
             }
@@ -720,16 +736,16 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               layanan: layananName,
               metode: ((reschedRecord?.metode?.includes("Offline") ? "Offline" : reschedRecord?.metode?.includes("Online") ? "Online" : w.metode) || "Online") as "Online" | "Offline",
               namaKlien: clientName,
-              kontak: w.kontak || w.no_telepon || undefined,
-              klienId: w.klienId || undefined,
+              kontak: isCanc ? undefined : (w.kontak || w.no_telepon || undefined),
+              klienId: isCanc ? undefined : (w.klienId || undefined),
               psikolog: isAsesmen ? "" : (reschedRecord?.psikolog || w.psikologName),
               id_psikolog: reschedRecord?.idPsikolog || w.id_psikolog,
               noTeleponPsikolog: w.noTeleponPsikolog,
-              catatan: w.catatan,
+              catatan: isCanc ? undefined : w.catatan,
               status: finalWeeklyStatus,
-              isAvailableSlot: isResched ? false : isAvailable,
+              isAvailableSlot: isResched ? false : (isAvailable || isCanc),
               tipe_jadwal: isAsesmen ? "ASESMEN" : "KONSULTASI",
-              isBooked: isResched
+              isBooked: (isResched || isCanc)
                 ? false
                 : (w.isBooked ??
                   (w.statusSlot === "SUDAH_DIBOOKING" ||
@@ -864,7 +880,14 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     const cancelledList = getCancelledSessions()
     return combined.map((s) => {
       if (s.status === "Dibatalkan" || isSessionCancelled(s, cancelledList)) {
-        return { ...s, status: "Dibatalkan" }
+        return {
+          ...s,
+          status: "Tersedia",
+          namaKlien: undefined,
+          isAvailableSlot: true,
+          isCancelled: false,
+          layanan: (s.layanan && s.layanan.toLowerCase().includes("asesmen")) ? "Asesmen Tersedia" : "Slot Tersedia",
+        }
       }
       return s
     })
@@ -936,6 +959,8 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
       const jamMulai = parts[0]?.substring(0, 5) || "09:00"
       const jamSelesai = parts[1]?.substring(0, 5) || "10:00"
 
+      const isCancelledSlot = isSessionCancelled({ date: tanggalStr, waktu: finalWaktu })
+
       try {
         await adminService.createJadwalSlot({
           tanggal: tanggalStr,
@@ -944,11 +969,30 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
           tipe_jadwal: "ASESMEN",
           metode: metode.toUpperCase(),
           layanan: layanan || "Semua Layanan Asesmen",
+          force_release: isCancelledSlot,
         })
         successCount++
       } catch (err: any) {
-        console.warn(`Gagal membuka slot ${finalWaktu}:`, err?.response?.data?.message || err.message)
-        failErrors.push(err?.response?.data?.message || `${finalWaktu} gagal dibuka`)
+        if (!isCancelledSlot && (err?.message || err?.response?.data?.message || "").includes("bentrok")) {
+          try {
+            await adminService.createJadwalSlot({
+              tanggal: tanggalStr,
+              jam_mulai: jamMulai,
+              jam_selesai: jamSelesai,
+              tipe_jadwal: "ASESMEN",
+              metode: metode.toUpperCase(),
+              layanan: layanan || "Semua Layanan Asesmen",
+              force_release: true,
+            })
+            successCount++
+          } catch (retryErr: any) {
+            console.warn(`Gagal membuka slot ${finalWaktu} (retry):`, retryErr?.response?.data?.message || retryErr.message)
+            failErrors.push(retryErr?.response?.data?.message || `${finalWaktu} gagal dibuka`)
+          }
+        } else {
+          console.warn(`Gagal membuka slot ${finalWaktu}:`, err?.response?.data?.message || err.message)
+          failErrors.push(err?.response?.data?.message || `${finalWaktu} gagal dibuka`)
+        }
       }
       try {
         const raw = localStorage.getItem("empathika_custom_jadwal_slots");

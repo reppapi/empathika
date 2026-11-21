@@ -51,6 +51,8 @@ export default function JadwalAsesmenPicker({
     handleAddCustomTime,
     handleBookingClick,
     isFormValid,
+    allowedMetode,
+    serviceItems,
   } = useJadwalAsesmenPicker({
     date,
     bookedSessions,
@@ -142,7 +144,56 @@ export default function JadwalAsesmenPicker({
             </div>
 
             {/* Pilihan Metode Layanan Asesmen: Online, Offline, atau Keduanya */}
-            <JadwalMetodeSelector metode={metode} setMetode={setMetode} />
+            <JadwalMetodeSelector
+              metode={metode}
+              setMetode={setMetode}
+              allowedMetode={allowedMetode}
+            />
+
+            {/* Info Helper: Cakupan Layanan Asesmen berdasarkan Metode Terpilih */}
+            {selectedLayanan === "Semua Layanan Asesmen" && (
+              <div className="mb-3.5 -mt-2 text-[11px] leading-relaxed">
+                {(() => {
+                  const applicable = serviceItems.filter((s) => {
+                    const m = (s.metode || "Online/Offline").toLowerCase()
+                    if (metode === "Online") return m.includes("online") || m.includes("keduanya") || m === "semua"
+                    if (metode === "Offline") return m.includes("offline") || m.includes("keduanya") || m === "semua"
+                    return true
+                  })
+                  const excluded = serviceItems.filter((s) => {
+                    const m = (s.metode || "Online/Offline").toLowerCase()
+                    if (metode === "Online") return !m.includes("online") && !m.includes("keduanya") && m !== "semua"
+                    if (metode === "Offline") return !m.includes("offline") && !m.includes("keduanya") && m !== "semua"
+                    return false
+                  })
+
+                  if (excluded.length > 0) {
+                    return (
+                      <div className="bg-amber-50/90 text-amber-900 border border-amber-200 p-2.5 rounded-xl flex items-start gap-1.5">
+                        <span className="shrink-0 text-amber-600 font-bold">ℹ️</span>
+                        <span>
+                          Slot <strong>{metode}</strong> ini hanya berlaku untuk layanan asesmen yang mendukung {metode}:{" "}
+                          <strong className="text-gray-900">{applicable.map((s) => s.nama || s.layanan).join(", ") || "Semua Asesmen Aktif"}</strong>.
+                          <br />
+                          <span className="text-amber-800/80">
+                            Layanan <em>{excluded.map((s) => s.nama || s.layanan).join(", ")}</em> tidak dibuka untuk slot ini karena diatur {metode === "Offline" ? "hanya Online" : "hanya Offline"} oleh Admin.
+                          </span>
+                        </span>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div className="text-purple-700 font-medium flex items-center gap-1.5 px-1 py-0.5">
+                      <span className="text-purple-600 font-bold">✓</span>
+                      <span>
+                        Slot <strong>{metode}</strong> ini berlaku untuk seluruh layanan asesmen aktif yang mendukung metode ini.
+                      </span>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
 
             <p className="text-xs text-gray-500 mb-3">
               Pilih slot jam yang ingin Anda buka (bisa pilih beberapa sekaligus):

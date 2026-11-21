@@ -27,6 +27,7 @@ export const adminService = {
     tipe_jadwal?: string
     metode?: "ONLINE" | "OFFLINE" | string
     layanan?: string
+    force_release?: boolean
   }) => apiClient.post("/admin/jadwal-slots", payload).then((r) => r.data),
 
   deleteJadwalSlot: (slotId: string) =>

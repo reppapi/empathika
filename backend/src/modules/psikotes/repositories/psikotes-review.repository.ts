@@ -305,7 +305,7 @@ export class PsikotesReviewRepository {
             where: {
               OR: [{ id_account: userId }, { id: userId }],
             },
-            select: { id: true, is_reviewer_psikotes: true },
+            select: { id: true, ...({ is_reviewer_psikotes: true } as any) },
           })
         }
         if (found) {
@@ -447,7 +447,7 @@ export class PsikotesReviewRepository {
             where: {
               OR: [{ id_account: userId }, { id: userId }],
             },
-            select: { id: true, nama_gelar: true, kategori: true, is_reviewer_psikotes: true },
+            select: { id: true, nama_gelar: true, kategori: true, ...({ is_reviewer_psikotes: true } as any) },
           })
         }
       }

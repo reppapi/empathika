@@ -4,10 +4,12 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { eventService, PaketBundlingItem } from "@/services/event.service"
 import { transaksiService } from "@/services/transaksi.service"
+import { useTenantContext } from "@/context/TenantContext"
 
 export function useEventCheckout() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { biroProfile } = useTenantContext()
 
   const [nama, setNama] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
@@ -403,11 +405,15 @@ export function useEventCheckout() {
       router.push(`/event/pending?${params.toString()}`)
     }
 
+    const biroIdFromQuery = searchParams.get("biroId") || searchParams.get("id_biro")
+    const effectiveBiroId = biroProfile?.id || biroIdFromQuery || undefined
+
     if (eventIdParam && !isPsikotes) {
       transaksiService
         .checkout({
           tipe: "EVENT",
           id_item: eventIdParam,
+          id_biro: effectiveBiroId,
           nama: nama.trim(),
           no_telepon: whatsapp.trim(),
           metode_pembayaran: backendMetode,
