@@ -85,12 +85,11 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
     handler: controller.confirmSimulation,
   })
 
-  // ── Webhook Xendit Callback ─────────────────────────────────────
+  // ── Webhook Callback (Midtrans & Xendit Compatible) ─────────────
   fastify.post('/webhook', {
     schema: {
       tags: ['Transaksi - Webhook'],
-      summary: 'Menerima webhook callback status pembayaran dari Xendit (x-callback-token). Untuk testing: kosongkan header x-callback-token jika XENDIT_WEBHOOK_TOKEN belum diset di .env.',
-      body: webhookXenditSchema,
+      summary: 'Menerima webhook callback status pembayaran dari Midtrans (atau Xendit).',
       response: {
         200: z.object({
           received: z.boolean(),
