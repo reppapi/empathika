@@ -184,11 +184,31 @@ export class PsikotesPesertaRepository {
       }
     }
 
-    const claimedRows = filteredItems.length > 0 ? await this.prisma.$queryRawUnsafe<Array<{ id: string; claimed_at: Date | null }>>(
-      `SELECT id, claimed_at FROM "booking_psikotes" WHERE id = ANY($1::text[])`,
-      filteredItems.map((b) => b.id)
-    ) : []
+    // 2. Ambil data claimed_at dan wa_sent_at secara aman
+    let claimedRows: Array<{ id: string; claimed_at: Date | null; wa_sent_at?: Date | null }> = []
+    if (filteredItems.length > 0) {
+      try {
+        claimedRows = await this.prisma.$queryRawUnsafe<Array<{ id: string; claimed_at: Date | null; wa_sent_at?: Date | null }>>(
+          `SELECT id, claimed_at, wa_sent_at FROM "booking_psikotes" WHERE id = ANY($1::text[])`,
+          filteredItems.map((b) => b.id)
+        )
+      } catch {
+        try {
+          await this.prisma.$executeRawUnsafe(`ALTER TABLE "booking_psikotes" ADD COLUMN IF NOT EXISTS "wa_sent_at" TIMESTAMP(3)`)
+          claimedRows = await this.prisma.$queryRawUnsafe<Array<{ id: string; claimed_at: Date | null; wa_sent_at?: Date | null }>>(
+            `SELECT id, claimed_at, wa_sent_at FROM "booking_psikotes" WHERE id = ANY($1::text[])`,
+            filteredItems.map((b) => b.id)
+          )
+        } catch {
+          claimedRows = await this.prisma.$queryRawUnsafe<Array<{ id: string; claimed_at: Date | null }>>(
+            `SELECT id, claimed_at FROM "booking_psikotes" WHERE id = ANY($1::text[])`,
+            filteredItems.map((b) => b.id)
+          )
+        }
+      }
+    }
     const claimedMap = new Map(claimedRows.map((r) => [r.id, r.claimed_at]))
+    const waSentMap = new Map(claimedRows.map((r) => [r.id, r.wa_sent_at || null]))
 
     const addWorkingDays = (startDate: Date, workingDays: number): Date => {
       const result = new Date(startDate.getTime())
@@ -323,6 +343,8 @@ export class PsikotesPesertaRepository {
           : null,
         id_psikolog: b.id_psikolog,
         claimed_at: b.id_psikolog ? (claimedMap.get(b.id) || b.updatedAt) : null,
+        wa_sent_at: waSentMap.get(b.id) || (b as any).wa_sent_at || null,
+        is_wa_sent: Boolean(waSentMap.get(b.id) || (b as any).wa_sent_at),
         psikolog: (b as any).psikolog
           ? {
               id: (b as any).psikolog.id,
@@ -438,4 +460,47 @@ export class PsikotesPesertaRepository {
     }
   }
 
+  /**
+   * Menandai atau membatalkan tanda pengiriman hasil laporan psikotes via WhatsApp oleh admin.
+   */
+  async toggleWaSentStatus(
+    bookingId: string,
+    forcedSent?: boolean
+  ): Promise<{ id: string; wa_sent_at: Date | null; is_wa_sent: boolean }> {
+    // Pastikan kolom wa_sent_at tersedia
+    try {
+      await this.prisma.$executeRawUnsafe(
+        `ALTER TABLE "booking_psikotes" ADD COLUMN IF NOT EXISTS "wa_sent_at" TIMESTAMP(3)`
+      )
+    } catch {}
+
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ id: string; wa_sent_at: Date | null }>>(
+      `SELECT id, wa_sent_at FROM "booking_psikotes" WHERE id = $1`,
+      bookingId
+    )
+    if (!rows || rows.length === 0) {
+      throw new Error('Data pengerjaan tiket psikotes tidak ditemukan')
+    }
+
+    const currentWaSentAt = rows[0].wa_sent_at
+    let nextWaSentAt: Date | null = null
+
+    if (forcedSent !== undefined) {
+      nextWaSentAt = forcedSent ? new Date() : null
+    } else {
+      nextWaSentAt = currentWaSentAt ? null : new Date()
+    }
+
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE "booking_psikotes" SET "wa_sent_at" = $1, "updatedAt" = NOW() WHERE id = $2`,
+      nextWaSentAt,
+      bookingId
+    )
+
+    return {
+      id: bookingId,
+      wa_sent_at: nextWaSentAt,
+      is_wa_sent: Boolean(nextWaSentAt),
+    }
+  }
 }

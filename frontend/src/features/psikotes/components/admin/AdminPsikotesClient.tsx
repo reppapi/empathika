@@ -86,6 +86,8 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
           is_biro: Boolean(it.is_biro),
           id_psikolog: it.id_psikolog || null,
           claimed_at: it.claimed_at || null,
+          wa_sent_at: it.wa_sent_at || null,
+          is_wa_sent: Boolean(it.is_wa_sent || it.wa_sent_at),
           skor: it.skor,
           jenisAkses: it.jenis_akses as "Gratis" | "Berbayar",
           usia: it.usia,
@@ -233,6 +235,125 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
     }
   };
 
+  // Handler: Tandai atau Batalkan Status Pengiriman Laporan via WhatsApp
+  const handleToggleWaStatus = async (bookingId: string, currentSent?: boolean) => {
+    const nextSent = !currentSent;
+    // Optimistic update
+    setPesertaList((prev) =>
+      prev.map((p) => {
+        if (String(p.id) === String(bookingId)) {
+          return {
+            ...p,
+            is_wa_sent: nextSent,
+            wa_sent_at: nextSent ? new Date().toISOString() : null,
+          };
+        }
+        return p;
+      })
+    );
+    if (selectedPeserta && String(selectedPeserta.id) === String(bookingId)) {
+      setSelectedPeserta((prev) =>
+        prev
+          ? {
+              ...prev,
+              is_wa_sent: nextSent,
+              wa_sent_at: nextSent ? new Date().toISOString() : null,
+            }
+          : null
+      );
+    }
+
+    try {
+      const res = await psikotesService.toggleWaStatus(bookingId, nextSent);
+      if (res && res.success) {
+        setNotification({
+          type: "success",
+          message: nextSent
+            ? "Hasil asesmen berhasil ditandai telah dikirim via WhatsApp."
+            : "Tanda pengiriman WhatsApp berhasil dibatalkan.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Gagal memperbarui status pengiriman WA:", err);
+      // Rollback jika terjadi error
+      setPesertaList((prev) =>
+        prev.map((p) => {
+          if (String(p.id) === String(bookingId)) {
+            return {
+              ...p,
+              is_wa_sent: currentSent,
+              wa_sent_at: currentSent ? p.wa_sent_at : null,
+            };
+          }
+          return p;
+        })
+      );
+      if (selectedPeserta && String(selectedPeserta.id) === String(bookingId)) {
+        setSelectedPeserta((prev) =>
+          prev
+            ? {
+                ...prev,
+                is_wa_sent: currentSent,
+                wa_sent_at: currentSent ? prev.wa_sent_at : null,
+              }
+            : null
+        );
+      }
+      setNotification({
+        type: "error",
+        message: err.response?.data?.message || err.message || "Gagal memperbarui status pengiriman WhatsApp.",
+      });
+    }
+  };
+
+  // Handler: Cabut Tiket Asesmen dari Psikolog dan Kembalikan ke Kolam Antrean Bersama
+  const handleReleaseTicket = async (bookingId: string) => {
+    try {
+      const res = await psikotesService.releaseReviewTicket(bookingId);
+      if (res && res.success) {
+        // Bersihkan cache draft lokal di browser
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(`empathika_draft_review_${bookingId}`);
+          sessionStorage.removeItem(`empathika_active_review_${bookingId}`);
+        }
+        setNotification({
+          type: "success",
+          message: "Tiket asesmen berhasil dicabut dan dikembalikan ke Kolam Antrean Bersama.",
+        });
+        setPesertaList((prev) =>
+          prev.map((p) => {
+            if (String(p.id) === String(bookingId)) {
+              return {
+                ...p,
+                id_psikolog: null,
+                psikolog: null,
+                claimed_at: null,
+              };
+            }
+            return p;
+          })
+        );
+        setSelectedPeserta((prev) =>
+          prev && String(prev.id) === String(bookingId)
+            ? {
+                ...prev,
+                id_psikolog: null,
+                psikolog: null,
+                claimed_at: null,
+              }
+            : null
+        );
+      }
+    } catch (err: any) {
+      console.error("Gagal mengembalikan tiket ke antrean:", err);
+      setNotification({
+        type: "error",
+        message: err.response?.data?.message || err.message || "Gagal mengembalikan tiket ke antrean.",
+      });
+      throw err;
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 font-poppins pb-16">
       {/* Toast Notification */}
@@ -321,6 +442,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
             ).filter(Boolean)}
             isLoading={isLoadingPeserta}
             onSelectPeserta={setSelectedPeserta}
+            onToggleWaStatus={handleToggleWaStatus}
             isBiroContext={isBiroContext}
           />
         </div>
@@ -353,6 +475,8 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         judulList={judulList}
         onClose={() => setSelectedPeserta(null)}
         onDownloadPdf={(peserta) => printLaporanPsikotes(peserta, judulList)}
+        onToggleWaStatus={handleToggleWaStatus}
+        onReleaseTicket={handleReleaseTicket}
         isBiroContext={isBiroContext}
       />
 

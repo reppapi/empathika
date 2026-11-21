@@ -238,6 +238,8 @@ export const psikotesService = {
             skor: string
             total_skor: number | null
             hasil: any
+            wa_sent_at?: string | null
+            is_wa_sent?: boolean
           }>
         }
       }>("/psikotes/peserta", { params })
@@ -414,6 +416,19 @@ export const psikotesService = {
           message: string
         }
       }>(`/psikotes/booking/${bookingId}/release`)
+      .then((r) => r.data),
+
+  toggleWaStatus: (bookingId: string, sent?: boolean) =>
+    apiClient
+      .patch<{
+        success: boolean
+        message: string
+        data: {
+          id: string
+          wa_sent_at: string | null
+          is_wa_sent: boolean
+        }
+      }>(`/psikotes/booking/${bookingId}/toggle-wa`, { sent })
       .then((r) => r.data),
 }
 

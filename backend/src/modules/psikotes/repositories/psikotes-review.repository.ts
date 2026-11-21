@@ -95,7 +95,9 @@ export class PsikotesReviewRepository {
       baseWhere.AND.push({
         OR: [
           { client: { nama: { contains: q, mode: 'insensitive' } } },
+          { client: { no_telepon: { contains: q, mode: 'insensitive' } } },
           { peserta_psikotes: { nama_lengkap: { contains: q, mode: 'insensitive' } } },
+          { peserta_psikotes: { no_telepon: { contains: q, mode: 'insensitive' } } },
           { kode_akses: { contains: q, mode: 'insensitive' } },
           { paket: { judul: { contains: q, mode: 'insensitive' } } },
           { transaksi: { kode_transaksi: { contains: q, mode: 'insensitive' } } },
@@ -639,6 +641,22 @@ export class PsikotesReviewRepository {
             bookingId
           )
         } catch {}
+      }
+
+      // Bersihkan draf telaah psikolog lama agar psikolog baru memulai secara bersih, netral, & independen
+      if (tx.hasilTes && typeof tx.hasilTes.updateMany === 'function') {
+        try {
+          await tx.hasilTes.updateMany({
+            where: { id_booking: bookingId },
+            data: {
+              catatan_psikolog: null,
+              rekomendasi_psikolog: null,
+              draft_saved_at: null,
+            },
+          })
+        } catch (e) {
+          console.warn('[ReleaseReviewTicket] Gagal mereset draft hasil_tes:', e)
+        }
       }
 
       return {

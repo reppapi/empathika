@@ -55,8 +55,8 @@ export default function PsikologReviewAsesmenClient() {
       });
   }, [user]);
 
-  // Filter & Search (3 Tab: Menunggu Tinjau, Sedang Ditinjau, Selesai)
-  type TabReview = "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "SELESAI";
+  // Filter & Search (4 Tab: Semua, Menunggu Tinjau, Sedang Ditinjau, Selesai)
+  type TabReview = "ALL" | "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "SELESAI";
   const [activeTab, setActiveTab] = useState<TabReview>("MENUNGGU_TINJAU");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -177,6 +177,9 @@ export default function PsikologReviewAsesmenClient() {
 
           try {
             sessionStorage.setItem(`empathika_active_review_${item.id}`, JSON.stringify(updatedItem));
+            if (!item.catatan_psikolog && typeof window !== "undefined") {
+              localStorage.removeItem(`empathika_draft_review_${item.id}`);
+            }
           } catch {}
 
           setData((prev) => {
@@ -265,19 +268,10 @@ export default function PsikologReviewAsesmenClient() {
 
   const filteredItems = useMemo(() => {
     if (!data?.items) return [];
+
     let items = data.items;
 
-    if (activeTab === "MENUNGGU_TINJAU") {
-      // 1. Kolam antrean bersama: Semua peserta baru yang belum diambil oleh psikolog manapun
-      items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog);
-    } else if (activeTab === "SEDANG_DITINJAU") {
-      // 2. Ruang kerja pribadi: Hanya tiket yang sedang ditinjau oleh psikolog yang login
-      items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && isMyItem(i));
-    } else if (activeTab === "SELESAI") {
-      // 3. Arsip pribadi: Hanya laporan yang diselesaikan oleh psikolog yang login
-      items = items.filter((i) => i.status_pengerjaan === "SELESAI" && isMyItem(i));
-    }
-
+    // 1. Jika ada kata kunci pencarian, cari di SELURUH data (semua tabel & status)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       items = items.filter(
@@ -286,8 +280,29 @@ export default function PsikologReviewAsesmenClient() {
           i.nama_paket?.toLowerCase().includes(q) ||
           i.kode_akses?.toLowerCase().includes(q) ||
           i.no_hp?.includes(q) ||
-          i.psikolog?.nama?.toLowerCase().includes(q)
+          i.psikolog?.nama?.toLowerCase().includes(q) ||
+          (i.psikolog as any)?.nama_gelar?.toLowerCase().includes(q) ||
+          i.nama_biro?.toLowerCase().includes(q)
       );
+    } else {
+      // 2. Jika tidak ada pencarian, saring berdasarkan tab yang aktif
+      if (activeTab === "MENUNGGU_TINJAU") {
+        // Kolam antrean bersama: Semua peserta baru yang belum diambil oleh psikolog manapun
+        items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog);
+      } else if (activeTab === "SEDANG_DITINJAU") {
+        // Ruang kerja pribadi: Hanya tiket yang sedang ditinjau oleh psikolog yang login
+        items = items.filter((i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && isMyItem(i));
+      } else if (activeTab === "SELESAI") {
+        // Arsip pribadi: Hanya laporan yang diselesaikan oleh psikolog yang login
+        items = items.filter((i) => i.status_pengerjaan === "SELESAI" && isMyItem(i));
+      } else {
+        // Tab ALL: Tampilkan antrean terbuka + tugas pribadi
+        items = items.filter(
+          (i) =>
+            (i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog) ||
+            isMyItem(i)
+        );
+      }
     }
 
     // Urutkan berdasarkan sisa batas waktu (Urgency First):
@@ -312,6 +327,7 @@ export default function PsikologReviewAsesmenClient() {
   const myCounts = useMemo(() => {
     if (!data?.items) {
       return {
+        total: 0,
         kolam_bersama: data?.summary?.kolam_bersama || 0,
         sedang_ditinjau: 0,
         selesai: 0,
@@ -328,6 +344,7 @@ export default function PsikologReviewAsesmenClient() {
     ).length;
 
     return {
+      total: kolam_bersama + sedang_ditinjau + selesai,
       kolam_bersama,
       sedang_ditinjau,
       selesai,
@@ -595,9 +612,22 @@ export default function PsikologReviewAsesmenClient() {
       {/* Kontrol Filter Tabs & Search */}
       <div className="p-4 sm:p-5 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Filter Tabs (3 Tab Utama) */}
+          {/* Filter Tabs (4 Tab: Semua, Menunggu Tinjau, Sedang Ditinjau, Selesai) */}
           <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl">
-            {/* 1. Menunggu Tinjau */}
+            {/* 1. Semua */}
+            <button
+              type="button"
+              onClick={() => setActiveTab("ALL")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === "ALL"
+                  ? "bg-[#561269] text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200/70"
+              }`}
+            >
+              Semua ({myCounts.total})
+            </button>
+
+            {/* 2. Menunggu Tinjau */}
             <button
               type="button"
               onClick={() => setActiveTab("MENUNGGU_TINJAU")}
@@ -613,7 +643,7 @@ export default function PsikologReviewAsesmenClient() {
               Menunggu Tinjau ({myCounts.kolam_bersama})
             </button>
 
-            {/* 2. Sedang Ditinjau */}
+            {/* 3. Sedang Ditinjau */}
             <button
               type="button"
               onClick={() => setActiveTab("SEDANG_DITINJAU")}
@@ -627,7 +657,7 @@ export default function PsikologReviewAsesmenClient() {
               Sedang Ditinjau ({myCounts.sedang_ditinjau})
             </button>
 
-            {/* 3. Selesai */}
+            {/* 4. Selesai */}
             <button
               type="button"
               onClick={() => setActiveTab("SELESAI")}
@@ -648,15 +678,22 @@ export default function PsikologReviewAsesmenClient() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama, tiket, atau paket..."
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchQuery(val);
+                if (val.trim() && activeTab !== "ALL") {
+                  setActiveTab("ALL");
+                }
+              }}
+              placeholder="Cari di semua antrean (nama, tiket, HP)..."
               className="w-full pl-9 pr-4 py-2 rounded-full border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition-all font-sans"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer font-bold"
+                title="Hapus pencarian"
               >
                 &times;
               </button>

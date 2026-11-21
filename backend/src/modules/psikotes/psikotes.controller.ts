@@ -462,6 +462,33 @@ export class PsikotesController {
       })
     }
   }
+
+  toggleWaStatus = async (
+    request: FastifyRequest<{
+      Params: { bookingId: string }
+      Body?: { sent?: boolean }
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const { bookingId } = request.params
+      const forcedSent = request.body?.sent
+      const data = await this.service.toggleWaSentStatus(bookingId, forcedSent)
+      return reply.code(200).send({
+        success: true,
+        message: data.is_wa_sent
+          ? 'Hasil laporan psikotes berhasil ditandai telah dikirim via WhatsApp.'
+          : 'Tanda pengiriman WhatsApp berhasil dibatalkan.',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal memperbarui status pengiriman WhatsApp.',
+      })
+    }
+  }
 }
 
 

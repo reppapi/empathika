@@ -92,6 +92,8 @@ export type AdminPsikotesPeserta = {
   is_biro?: boolean;
   id_psikolog?: string | null;
   claimed_at?: string | null;
+  wa_sent_at?: string | null;
+  is_wa_sent?: boolean;
   psikolog?: {
     id?: string;
     nama?: string;

@@ -128,4 +128,8 @@ export class PsikotesRepository {
   async purgeExpiredPsikotesData(daysOld: number = 90) {
     return this.pesertaRepo.purgeExpiredPsikotesData(daysOld)
   }
+
+  async toggleWaSentStatus(bookingId: string, forcedSent?: boolean) {
+    return this.pesertaRepo.toggleWaSentStatus(bookingId, forcedSent)
+  }
 }

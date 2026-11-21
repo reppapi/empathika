@@ -488,14 +488,12 @@ export default function ModalReviewPsikotes({
   useEffect(() => {
     if (!item?.id) return;
 
-    const cachedDraft =
-      typeof window !== "undefined" ? localStorage.getItem(`empathika_draft_review_${item.id}`) : null;
-
+    // Utamakan data dari props jika ada
     const initialText = item.catatan_psikolog
       ? item.rekomendasi_psikolog && !item.catatan_psikolog.includes(item.rekomendasi_psikolog)
         ? `${item.catatan_psikolog}\n\nREKOMENDASI:\n${item.rekomendasi_psikolog}`
         : item.catatan_psikolog
-      : cachedDraft || "";
+      : "";
 
     setPages(parseTextToPages(initialText));
     initialContentRef.current = initialText.trim();
@@ -515,9 +513,13 @@ export default function ModalReviewPsikotes({
             : dbText;
         setPages(parseTextToPages(apiText));
         initialContentRef.current = apiText.trim();
-      } else if (cachedDraft && cachedDraft.trim().length > 0) {
-        setPages(parseTextToPages(cachedDraft));
-        initialContentRef.current = cachedDraft.trim();
+      } else {
+        // Jika di DB kosong (draft di-reset saat tiket dilepas), bersihkan cache browser
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(`empathika_draft_review_${item.id}`);
+        }
+        setPages([""]);
+        initialContentRef.current = "";
       }
       return;
     }
@@ -528,7 +530,7 @@ export default function ModalReviewPsikotes({
       .then((res) => {
         if (res?.data) {
           setFullDetail(res.data);
-          // Prioritaskan konten telaah: dari database -> jika tidak ada, dari localStorage
+          // Prioritaskan konten telaah dari database resmi
           const dbText = res.data.hasil?.catatan_psikolog;
           if (dbText && dbText.trim().length > 0) {
             const apiText =
@@ -544,15 +546,13 @@ export default function ModalReviewPsikotes({
               }
               return curPages;
             });
-          } else if (cachedDraft && cachedDraft.trim().length > 0) {
-            setPages((curPages) => {
-              const curCombined = combinePages(curPages).trim();
-              if (!curCombined || curCombined === initialContentRef.current) {
-                initialContentRef.current = cachedDraft.trim();
-                return parseTextToPages(cachedDraft);
-              }
-              return curPages;
-            });
+          } else {
+            // Database kosong -> bersihkan cache browser & kosongkan lembar telaah
+            if (typeof window !== "undefined") {
+              localStorage.removeItem(`empathika_draft_review_${item.id}`);
+            }
+            setPages([""]);
+            initialContentRef.current = "";
           }
         }
       })

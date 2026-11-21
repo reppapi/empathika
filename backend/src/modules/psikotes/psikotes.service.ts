@@ -95,6 +95,10 @@ export class PsikotesService {
   async releaseReviewTicket(bookingId: string, userId?: string, userRole?: string) {
     return this.repo.releaseReviewTicket(bookingId, userId, userRole)
   }
+
+  async toggleWaSentStatus(bookingId: string, forcedSent?: boolean) {
+    return this.repo.toggleWaSentStatus(bookingId, forcedSent)
+  }
 }
 
 
