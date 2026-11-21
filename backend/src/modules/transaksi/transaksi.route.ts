@@ -7,7 +7,6 @@ import {
   createCheckoutTransaksiSchema,
   refundTransaksiSchema,
   adminTransaksiQuerySchema,
-  webhookXenditSchema,
 } from './transaksi.schema'
 import { authGuard } from '../../middlewares/auth-guard'
 import { adminGuard, adminOrBiroGuard } from '../../middlewares/admin-guard'
