@@ -527,9 +527,10 @@ export class TransaksiService {
       where: { id: transaksi.id },
       data: {
         data_pembayaran: JSON.stringify({
-          xendit_invoice_id: invoice.id,
-          xendit_invoice_url: invoice.invoice_url,
-          expiry_date: invoice.expiry_date,
+          midtrans_token: invoice.snap_token || invoice.id,
+          midtrans_redirect_url: invoice.invoice_url,
+          invoice_url: invoice.invoice_url,
+          snap_token: invoice.snap_token,
         }),
       },
     })
@@ -538,14 +539,45 @@ export class TransaksiService {
       transaksi,
       invoiceUrl: invoice.invoice_url,
       invoiceId: invoice.id,
+      snapToken: invoice.snap_token,
     }
   }
 
   async handleWebhook(payload: any) {
     return this.prisma.$transaction(async (tx: any) => {
-      const invoiceId = payload.id
-      const externalId = payload.external_id
-      const status = payload.status
+      // Deteksi payload: Midtrans vs Xendit
+      const isMidtrans = Boolean(payload.order_id && payload.transaction_status)
+
+      const externalId = isMidtrans ? payload.order_id : payload.external_id
+      const invoiceId = isMidtrans ? (payload.transaction_id || payload.order_id) : payload.id
+
+      // Status mapping
+      let newStatus: any = 'PENDING'
+      if (isMidtrans) {
+        const trxStatus = payload.transaction_status
+        const fraudStatus = payload.fraud_status
+
+        if (trxStatus === 'capture') {
+          if (fraudStatus === 'challenge') {
+            newStatus = 'PENDING'
+          } else if (fraudStatus === 'accept') {
+            newStatus = 'PAID'
+          }
+        } else if (trxStatus === 'settlement') {
+          newStatus = 'PAID'
+        } else if (trxStatus === 'cancel' || trxStatus === 'deny' || trxStatus === 'expire') {
+          newStatus = 'FAILED'
+        } else if (trxStatus === 'pending') {
+          newStatus = 'PENDING'
+        }
+      } else {
+        const status = payload.status
+        if (status === 'PAID' || status === 'SETTLED') {
+          newStatus = 'PAID'
+        } else if (status === 'EXPIRED') {
+          newStatus = 'FAILED'
+        }
+      }
 
       const transaksi = await tx.transaksi.findFirst({
         where: {
@@ -567,15 +599,8 @@ export class TransaksiService {
       }
 
       // Idempotency guard: jika sudah PAID sebelumnya, skip seluruh pemrosesan
-      if (transaksi.status_pembayaran === 'PAID' && (status === 'PAID' || status === 'SETTLED')) {
+      if (transaksi.status_pembayaran === 'PAID' && newStatus === 'PAID') {
         return
-      }
-
-      let newStatus: any = 'PENDING'
-      if (status === 'PAID' || status === 'SETTLED') {
-        newStatus = 'PAID'
-      } else if (status === 'EXPIRED') {
-        newStatus = 'FAILED'
       }
 
       await tx.transaksi.update({

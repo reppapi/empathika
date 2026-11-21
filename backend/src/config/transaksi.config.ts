@@ -27,29 +27,27 @@ export const KOMISI_BIRO_PERSEN = 0 // TODO: tentukan persentase komisi biro
 // TODO: Konfirmasi ke pemilik bisnis mode mana yang berlaku.
 export const KOMISI_BIRO_MODE: 'ditambah_ke_client' | 'dipotong_empathika' = 'ditambah_ke_client'
 
-// ── Fee Xendit (placeholder, isi dari dashboard/dokumentasi Xendit) ──
-// TODO: Isi tarif aktual dari dashboard Xendit. Semua nilai 0 adalah placeholder.
-// Semua nominal dalam rupiah (integer).
-// Perlu dikonfirmasi apakah sudah termasuk PPN.
-export const XENDIT_FEE: Record<string, { tipe: 'persen' | 'flat'; nilai: number }> = {
-  QRIS:          { tipe: 'persen', nilai: 0 }, // TODO: isi % fee QRIS Xendit (mis. 0.7%)
-  E_WALLET:      { tipe: 'persen', nilai: 0 }, // TODO: isi % fee e-wallet Xendit (mis. 1.5%)
-  TRANSFER_BANK: { tipe: 'flat',   nilai: 0 }, // TODO: isi nominal fee VA Xendit (mis. 4000)
+// ── Fee Midtrans ──
+// Sesuai model bisnis: Biaya layanan sudah include / ditanggung dalam harga sesi,
+// sehingga tidak ada biaya tambahan ke klien (nilai = 0).
+export const MIDTRANS_FEE: Record<string, { tipe: 'persen' | 'flat'; nilai: number }> = {
+  QRIS:          { tipe: 'persen', nilai: 0 },
+  E_WALLET:      { tipe: 'persen', nilai: 0 },
+  TRANSFER_BANK: { tipe: 'flat',   nilai: 0 },
   DEFAULT:       { tipe: 'flat',   nilai: 0 }, // Fallback jika metode tidak dikenali
 }
 
-// Fee payout keluar per transfer (nominal tetap, beda dari fee masuk)
-// TODO: Isi tarif aktual payout Xendit per transfer.
-export const XENDIT_PAYOUT_FLAT = 0 // TODO: isi nominal fee payout Xendit (mis. 25000)
+// Fee payout keluar per transfer (nominal tetap)
+export const MIDTRANS_PAYOUT_FLAT = 0
+
+// Kompatibilitas alias untuk fungsi kalkulasi transaksi
+export const XENDIT_FEE = MIDTRANS_FEE
+export const XENDIT_PAYOUT_FLAT = MIDTRANS_PAYOUT_FLAT
 
 // ── Perlakuan saat DP hangus / refund ──
-// TODO: Konfirmasi ke pemilik bisnis:
-//   - apakah biaya layanan dikembalikan ke client saat refund?
-//   - apakah komisi biro tetap dibayarkan jika DP hangus?
-// Default sementara berdasarkan keputusan awal:
 export const DP_HANGUS_CONFIG = {
-  // Biaya layanan (fee Xendit) TIDAK dikembalikan karena sudah terpotong oleh Xendit
-  kembalikanBiayaLayanan: false, // TODO: konfirmasi
+  // Biaya layanan (fee payment gateway) TIDAK dikembalikan karena sudah terpotong oleh gateway
+  kembalikanBiayaLayanan: false,
   // Komisi biro TIDAK dibayarkan jika transaksi berakhir DP hangus
-  bayarKomisiBiroPadaDPHangus: false, // TODO: konfirmasi
+  bayarKomisiBiroPadaDPHangus: false,
 } as const

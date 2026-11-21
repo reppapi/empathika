@@ -28,8 +28,7 @@ const envSchema = z.object({
   BASE_URL: z.string().optional(), // e.g. http://localhost:3001 - untuk generate URL file upload
   MIDTRANS_SERVER_KEY: z.string().optional(),
   MIDTRANS_CLIENT_KEY: z.string().optional(),
-  XENDIT_SECRET_KEY: z.string().optional(),
-  XENDIT_WEBHOOK_TOKEN: z.string().optional(),
+  MIDTRANS_IS_PRODUCTION: z.enum(["true", "false"]).optional().default("false"),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),
