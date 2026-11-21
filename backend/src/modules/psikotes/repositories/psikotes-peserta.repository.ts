@@ -269,10 +269,11 @@ export class PsikotesPesertaRepository {
           if (isDass && b.hasil_tes) return 'SELESAI'
           return b.status_pengerjaan
         })(),
-        perlu_review_psikolog: !Boolean(
-          b.paket?.judul?.toLowerCase().includes('dass') ||
-          b.paket?.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
-        ) && Boolean((b.paket as any).perlu_review_psikolog),
+        perlu_review_psikolog:
+          !(
+            b.paket?.judul?.toLowerCase().includes('dass') ||
+            b.paket?.judul?.toLowerCase().includes('depresi, kecemasan, dan stres')
+          ) && Boolean((b.paket as any).perlu_review_psikolog),
         id_biro: (b.client as any)?.id_biro || (b.transaksi as any)?.id_biro_tenant || null,
         nama_biro: (b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro || 'Empathika (Pusat)',
         is_biro: Boolean((b.client as any)?.biro?.nama_biro || (b.transaksi as any)?.biro_tenant?.nama_biro),
