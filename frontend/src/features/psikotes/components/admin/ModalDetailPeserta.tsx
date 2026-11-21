@@ -357,7 +357,7 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700">
                       Psikolog Pemeriksa
                     </span>
-                    {slaStatus === "OVERDUE" && (
+                    {!isBiroContext && slaStatus === "OVERDUE" && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
                         <AlertTriangle className="w-3 h-3" />
                         Terlambat ({Math.abs(remainingHours)}j)
@@ -369,7 +369,9 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     {namaPsikolog || "Psikolog Empathika"}
                   </p>
                   <p className="text-[11px] text-gray-500">
-                    Diambil pada {keepDateFormatted || "—"}{deadlineFormatted ? ` • Batas telaah: ${deadlineFormatted}` : ""}
+                    {isBiroContext
+                      ? "Sedang dalam proses telaah dan penyusunan laporan resmi psikotes"
+                      : `Diambil pada ${keepDateFormatted || "—"}${deadlineFormatted ? ` • Batas telaah: ${deadlineFormatted}` : ""}`}
                   </p>
                 </div>
 
@@ -393,13 +395,15 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
               <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 block">
-                    Status Antrean
+                    {isBiroContext ? "Status Telaah" : "Status Antrean"}
                   </span>
                   <p className="font-semibold text-gray-900 text-sm">
-                    Kolam Antrean Bersama
+                    {isBiroContext ? "Sedang Dalam Antrean Telaah" : "Kolam Antrean Bersama"}
                   </p>
                   <p className="text-[11px] text-gray-500">
-                    Selesai tes {keepDateFormatted || peserta.tanggal} • Menunggu diambil oleh psikolog penelaah
+                    {isBiroContext
+                      ? "Tes selesai dikerjakan • Menunggu giliran telaah oleh tim psikolog klinis"
+                      : `Selesai tes ${keepDateFormatted || peserta.tanggal} • Menunggu diambil oleh psikolog penelaah`}
                   </p>
                 </div>
               </div>
@@ -626,9 +630,9 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     )
                   )}
                 </>
-              ) : !isBiroContext && isMenungguReview ? (
-                /* Menunggu Review (Hanya untuk Admin Utama Empathika) */
-                namaPsikolog ? (
+              ) : isMenungguReview ? (
+                /* Menunggu Review (Hanya Admin Utama Empathika yang dapat mengingatkan psikolog) */
+                !isBiroContext && namaPsikolog ? (
                   <a
                     href={waPsikologUrl}
                     target="_blank"

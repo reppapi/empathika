@@ -64,7 +64,7 @@ export const psikologService = {
 
   // ── Profil Psikolog Login ──
   getMyProfile: () =>
-    apiClient.get("/psikolog/me/profile").then((r) => r.data),
+    apiClient.get("/psikolog/me/profile").then((r) => r.data?.data ?? r.data),
 
   updateMyProfile: (payload: any) =>
     apiClient.put("/psikolog/me/profile", payload).then((r) => r.data),

@@ -385,7 +385,7 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
                   </span>
-                  <span>⚠️ Belum Ada yang Ambil</span>
+                  <span>Belum Ada yang Ambil</span>
                 </span>
               )}
 
@@ -640,8 +640,8 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         </div>
       )}
 
-      {/* 2. Banner Pemberitahuan Asesmen Menunggu Tinjauan Psikolog (Clean & Profesional) */}
-      {isSelectedPaketNeedReview && statusStats.menungguTinjau > 0 && (
+      {/* 2. Banner Pemberitahuan Asesmen Menunggu Tinjauan Psikolog (Hanya Admin Utama Empathika) */}
+      {!isBiroContext && isSelectedPaketNeedReview && statusStats.menungguTinjau > 0 && (
         <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50/90 via-fuchsia-50/30 to-white border border-purple-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-300">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">

@@ -47,8 +47,10 @@ export default function PsikologReviewAsesmenClient() {
     }
     psikologService
       .getMyProfile()
-      .then((profile: any) => {
-        setIsReviewerAccess(Boolean(profile?.is_reviewer_psikotes));
+      .then((res: any) => {
+        const profile = res?.data ?? res;
+        const isRev = profile?.is_reviewer_psikotes ?? profile?.isReviewerPsikotes;
+        setIsReviewerAccess(isRev !== undefined && isRev !== null ? Boolean(isRev) : true);
       })
       .catch(() => {
         setIsReviewerAccess(true);
@@ -57,7 +59,7 @@ export default function PsikologReviewAsesmenClient() {
 
   // Filter & Search (4 Tab: Semua, Menunggu Tinjau, Sedang Ditinjau, Selesai)
   type TabReview = "ALL" | "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "SELESAI";
-  const [activeTab, setActiveTab] = useState<TabReview>("MENUNGGU_TINJAU");
+  const [activeTab, setActiveTab] = useState<TabReview>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Toast & Loading State
