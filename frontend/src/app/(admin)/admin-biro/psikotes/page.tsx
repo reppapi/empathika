@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import AdminPsikotesClient from "@/features/psikotes/components/admin/AdminPsikotesClient"
+import BiroLoadingState from "@/components/shared/BiroLoadingState"
 
 export const metadata = {
   title: "Data Klien Psikotes - Admin Biro Empathika",
@@ -9,11 +10,7 @@ export const metadata = {
 export default function BiroPsikotesPage() {
   return (
     <Suspense
-      fallback={
-        <div className="p-8 text-center text-sm text-gray-400 font-poppins">
-          Memuat data peserta psikotes...
-        </div>
-      }
+      fallback={<BiroLoadingState message="Memuat data peserta psikotes biro..." minHeight="min-h-[50vh]" />}
     >
       <AdminPsikotesClient isBiroContext={true} />
     </Suspense>

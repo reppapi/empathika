@@ -364,8 +364,19 @@ export default function ProfilBiroClient() {
       {/* ── LOADING SKELETON ── */}
       {isLoading ? (
         <div className="bg-white rounded-3xl border border-gray-200/90 p-12 shadow-sm flex flex-col items-center justify-center gap-3">
-          <div className="w-8 h-8 border-4 border-[#561269] border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-medium text-gray-500">Memuat profil lembaga biro dari server...</p>
+          <div 
+            className="w-9 h-9 border-4 border-t-transparent rounded-full animate-spin"
+            style={{
+              borderColor: "rgba(0,0,0,0.08)",
+              borderTopColor: "var(--biro-theme-color, #561269)",
+            }}
+          />
+          <p 
+            className="text-xs font-semibold animate-pulse"
+            style={{ color: "var(--biro-theme-color, #561269)" }}
+          >
+            Memuat profil lembaga biro dari server...
+          </p>
         </div>
       ) : (
         <>

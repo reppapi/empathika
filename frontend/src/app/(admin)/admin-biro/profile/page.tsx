@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import ProfilBiroClient from "@/features/profile/components/admin-biro/ProfilBiroClient"
+import BiroLoadingState from "@/components/shared/BiroLoadingState"
 
 export const metadata = {
   title: "Pengaturan Profil Biro - Admin Biro Empathika",
@@ -8,7 +9,7 @@ export const metadata = {
 
 export default function AdminBiroProfilePage() {
   return (
-    <Suspense fallback={<div className="p-6 text-gray-400 font-poppins text-sm">Memuat pengaturan profil...</div>}>
+    <Suspense fallback={<BiroLoadingState message="Memuat pengaturan profil biro..." minHeight="min-h-[50vh]" />}>
       <ProfilBiroClient />
     </Suspense>
   )
