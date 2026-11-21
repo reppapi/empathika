@@ -118,6 +118,8 @@ export function useAsesmenClient() {
       )
       if (matched) {
         setSelectedAsesmenId(matched.id)
+      } else {
+        setSelectedAsesmenId(normalized)
       }
     }
 
@@ -138,47 +140,55 @@ export function useAsesmenClient() {
 
   // Temukan item konfigurasi layanan dari Backend atau LocalStorage
   const matchedService = useMemo(() => {
+    const rawTargetParam = (paketParam || searchParams.get("layanan") || "").toLowerCase().trim()
     const base =
       ASESMEN_PACKAGES.find((a) => a.id === selectedAsesmenId) ||
       ASESMEN_PACKAGES[0]
-    const targetTitle = base.title.toLowerCase().trim()
-    const targetId = base.id.toLowerCase().trim()
+    const targetTitle = base?.title?.toLowerCase()?.trim() || ""
+    const targetId = (selectedAsesmenId || "").toLowerCase().trim()
+
+    const isMatch = (item: any) => {
+      if (!item) return false
+      if (item.aktif === false || item.status === "Nonaktif") return false
+      const name = (item.nama || item.layanan || "").toLowerCase().trim()
+      const id = String(item.id || "").toLowerCase().trim()
+
+      if (rawTargetParam) {
+        if (id === rawTargetParam || name === rawTargetParam) return true
+        if (name.includes(rawTargetParam) || rawTargetParam.includes(name)) return true
+        const cleanRaw = rawTargetParam.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+        const cleanName = name.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+        if (cleanRaw && cleanName && (cleanName.includes(cleanRaw) || cleanRaw.includes(cleanName))) return true
+      }
+
+      if (id === targetId || name === targetTitle) return true
+      if (targetTitle && (name.includes(targetTitle) || targetTitle.includes(name))) return true
+
+      return false
+    }
 
     // 1. Cek di daftar backend database terlebih dahulu
     if (backendLayanan.length > 0) {
-      const found = backendLayanan.find((item: any) => {
-        if (item.aktif === false || item.status === "Nonaktif") return false
-        const name = (item.nama || item.layanan || "").toLowerCase().trim()
-        const id = (item.id || "").toLowerCase().trim()
-        return (
-          id === targetId ||
-          name === targetTitle ||
-          name.includes(targetTitle) ||
-          targetTitle.includes(name)
-        )
-      })
+      const found = backendLayanan.find((item) => isMatch(item))
       if (found) return found
+
+      // Jika hanya ada 1 atau beberapa asesmen di database dan belum cocok persis, ambil yang pertama aktif
+      const firstActive = backendLayanan.find((item: any) => item.aktif !== false && item.status !== "Nonaktif")
+      if (firstActive) return firstActive
     }
 
     // 2. Fallback ke local storage admin data jika database belum siap
     try {
-      const stored = getStoredLayanan()
-      const found = stored.find((item: any) => {
-        if (item.status === "Nonaktif" || item.aktif === false) return false
-        const name = (item.layanan || item.nama || "").toLowerCase().trim()
-        const id = (String(item.id) || "").toLowerCase().trim()
-        return (
-          id === targetId ||
-          name === targetTitle ||
-          name.includes(targetTitle) ||
-          targetTitle.includes(name)
-        )
-      })
+      const stored = getStoredLayanan().filter((l) => l.kategoriId === "05" || (l as any).kategori === "ASESMEN")
+      const found = stored.find((item) => isMatch(item))
       if (found) return found
+
+      const firstActiveStored = stored.find((item: any) => item.status !== "Nonaktif" && item.aktif !== false)
+      if (firstActiveStored) return firstActiveStored
     } catch {}
 
     return null
-  }, [selectedAsesmenId, backendLayanan])
+  }, [selectedAsesmenId, backendLayanan, paketParam, searchParams])
 
   // Dapatkan data detail paket asesmen terpilih (Harga dan Konten selalu mengikuti Inputan Admin)
   const selectedAsesmen: AsesmenPackage = useMemo(() => {
@@ -192,13 +202,15 @@ export function useAsesmenClient() {
     const t = m.tarif_tenaga_ahli || {}
 
     // Ambil harga dari inputan admin:
+    const isOnlyOnline =
+      (m.metode || "").toLowerCase().includes("online") &&
+      !(m.metode || "").toLowerCase().includes("offline")
+
     const onlineVal =
       m.tarif_asesmen?.online ??
       t?.asesmen?.online ??
       t?.online ??
-      ((m.metode || "").toLowerCase().includes("online") && !(m.metode || "").toLowerCase().includes("offline")
-        ? m.harga_weekday
-        : null)
+      (isOnlyOnline ? m.harga_weekday : null)
 
     const offlineWk =
       m.tarif_asesmen?.offline_weekday ??
@@ -223,8 +235,13 @@ export function useAsesmenClient() {
       return `Rp ${num.toLocaleString("id-ID")}`
     }
 
+    const resolvedTitle = m.nama || m.layanan || base.title
+
     return {
       ...base,
+      id: m.id || base.id,
+      title: resolvedTitle,
+      shortTitle: resolvedTitle,
       subtitle: m.deskripsi ? m.deskripsi.split("\n")[0] : base.subtitle,
       description: m.deskripsi || base.description,
       onlinePrice: formatRp(onlineVal, base.onlinePrice),
@@ -275,7 +292,7 @@ export function useAsesmenClient() {
     const planName = selectedOfflinePlan === "weekday" ? "weekday" : "weekend"
     const priceVal = selectedOfflinePlan === "weekday" ? selectedAsesmen.weekday : selectedAsesmen.weekend
     return withBiro(
-      `/asesmen/jadwal?paket=${encodeURIComponent(selectedAsesmen.id)}&layanan=${encodeURIComponent(selectedAsesmen.title)}&hari=${encodeURIComponent(planName)}&harga=${encodeURIComponent(priceVal)}&metode=offline`
+      `/asesmen/jadwal?paket=${encodeURIComponent(selectedAsesmen.id)}&layanan=${encodeURIComponent(selectedAsesmen.title)}&hari=${encodeURIComponent(planName)}&harga=${encodeURIComponent(priceVal)}&weekday=${encodeURIComponent(selectedAsesmen.weekday)}&weekend=${encodeURIComponent(selectedAsesmen.weekend)}&metode=offline`
     )
   }, [selectedAsesmen.id, selectedAsesmen.title, selectedAsesmen.weekday, selectedAsesmen.weekend, selectedOfflinePlan, withBiro])
 

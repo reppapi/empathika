@@ -380,6 +380,7 @@ export default function LayananClient() {
                           itemHref = withBiro("/layanan/seminar")
                           btnText = "Lihat Seminar"
                         } else if (activeCategory === "05") {
+                          itemHref = withBiro(`/asesmen?paket=${encodeURIComponent(item.nama)}`)
                           btnText = "Pilih Asesmen"
                         }
 
