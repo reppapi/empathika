@@ -1,93 +1,123 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { Loader2 } from "lucide-react"
 import { BookingJadwalShared } from "@/components/shared/BookingJadwalShared"
-import { ASESMEN_PACKAGES } from "../../data/asesmenData"
+import { buildAsesmenPackageFromLayanan } from "../../data/asesmenData"
 import { layananService, type LayananApiResponse } from "@/services/layanan.service"
-import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
+import ClientErrorState from "@/components/shared/ClientErrorState"
+import { useTenantContext } from "@/context/TenantContext"
 
 export default function AsesmenJadwalClient() {
   const searchParams = useSearchParams()
-  const paketParam = searchParams?.get("paket") || "asesmen-minat-bakat"
+  const paketParam = searchParams?.get("paket") || ""
   const layananParam = searchParams?.get("layanan") || ""
   const hariParam = searchParams?.get("hari") === "weekend" ? "weekend" : "weekday"
   const hargaParam = searchParams?.get("harga") || ""
   const weekdayParam = searchParams?.get("weekday") || ""
   const weekendParam = searchParams?.get("weekend") || ""
+  const { withBiro } = useTenantContext()
 
   const [backendLayanan, setBackendLayanan] = useState<LayananApiResponse[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isError, setIsError] = useState<boolean>(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  useEffect(() => {
+  const rawTarget = useMemo(() => {
+    return (layananParam || paketParam || "").trim()
+  }, [layananParam, paketParam])
+
+  const fetchLayanan = useCallback(() => {
+    setIsLoading(true)
+    setIsError(false)
+    setErrorMessage(null)
+
     layananService
       .getAll({ kategori: "ASESMEN" })
       .then((res: any) => {
         const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-        if (list.length > 0) {
-          setBackendLayanan(list)
+        setBackendLayanan(list)
+
+        const activeList = list.filter(
+          (item: any) => item.aktif !== false && item.status !== "Nonaktif"
+        )
+
+        if (activeList.length === 0) {
+          setIsError(true)
+          setErrorMessage("Belum ada layanan asesmen yang aktif di database.")
+          return
+        }
+
+        if (rawTarget) {
+          const targetQuery = rawTarget.toLowerCase().trim()
+          const cleanTarget = targetQuery.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+
+          const found = activeList.some((item: any) => {
+            const name = (item.nama || item.layanan || "").toLowerCase().trim()
+            const id = String(item.id || "").toLowerCase().trim()
+            if (id === targetQuery || name === targetQuery) return true
+            if (name.includes(targetQuery) || targetQuery.includes(name)) return true
+            const cleanName = name.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+            if (cleanTarget && cleanName && (cleanName.includes(cleanTarget) || cleanTarget.includes(cleanName))) return true
+            return false
+          })
+
+          if (!found) {
+            setIsError(true)
+            setErrorMessage(`Layanan asesmen "${rawTarget}" tidak ditemukan atau telah dinonaktifkan oleh admin.`)
+          }
         }
       })
-      .catch(() => {})
-  }, [])
+      .catch((err: any) => {
+        console.warn("AsesmenJadwalClient: Gagal memuat layanan asesmen:", err?.message)
+        setIsError(true)
+        setErrorMessage("Terjadi kendala saat memuat jadwal layanan dari database. Silakan muat ulang halaman.")
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [rawTarget])
 
-  const baseAsesmen = useMemo(() => {
-    const rawTarget = (layananParam || paketParam || "").toLowerCase().trim()
-    return (
-      ASESMEN_PACKAGES.find(
-        (p) =>
-          p.id.toLowerCase() === rawTarget ||
-          p.title.toLowerCase().includes(rawTarget) ||
-          rawTarget.includes(p.id.toLowerCase()) ||
-          rawTarget.includes(p.title.toLowerCase())
-      ) || ASESMEN_PACKAGES[0]
-    )
-  }, [layananParam, paketParam])
+  useEffect(() => {
+    fetchLayanan()
+  }, [fetchLayanan])
 
-  // Cari data layanan aktual dari backend atau local storage
+  // Cari data layanan aktual dari backend murni
   const matchedDbService = useMemo(() => {
-    const rawTarget = (layananParam || paketParam || baseAsesmen.title).toLowerCase().trim()
+    if (backendLayanan.length === 0) return null
 
-    const isMatch = (item: any) => {
-      if (!item) return false
-      if (item.aktif === false || item.status === "Nonaktif") return false
+    const activeList = backendLayanan.filter(
+      (item: any) => item.aktif !== false && item.status !== "Nonaktif"
+    )
+    if (activeList.length === 0) return null
+
+    if (!rawTarget) {
+      return activeList[0]
+    }
+
+    const targetQuery = rawTarget.toLowerCase().trim()
+    const cleanTarget = targetQuery.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+
+    const found = activeList.find((item: any) => {
       const name = (item.nama || item.layanan || "").toLowerCase().trim()
       const id = String(item.id || "").toLowerCase().trim()
-      if (id === rawTarget || name === rawTarget) return true
-      if (name.includes(rawTarget) || rawTarget.includes(name)) return true
-      const cRaw = rawTarget.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
-      const cName = name.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
-      return Boolean(cRaw && cName && (cName.includes(cRaw) || cRaw.includes(cName)))
-    }
+      if (id === targetQuery || name === targetQuery) return true
+      if (name.includes(targetQuery) || targetQuery.includes(name)) return true
+      const cleanName = name.replace(/asesmen/g, "").replace(/[^a-z0-9]/g, "")
+      if (cleanTarget && cleanName && (cleanName.includes(cleanTarget) || cleanTarget.includes(cleanName))) return true
+      return false
+    })
 
-    if (backendLayanan.length > 0) {
-      const found = backendLayanan.find(isMatch)
-      if (found) return found
-      const firstActive = backendLayanan.find((i: any) => i.aktif !== false && i.status !== "Nonaktif")
-      if (firstActive) return firstActive
-    }
+    return found || null
+  }, [backendLayanan, rawTarget])
 
-    try {
-      const stored = getStoredLayanan().filter((l) => l.kategoriId === "05" || (l as any).kategori === "ASESMEN")
-      const found = stored.find(isMatch)
-      if (found) return found
-      const firstStored = stored.find((i: any) => i.status !== "Nonaktif" && i.aktif !== false)
-      if (firstStored) return firstStored
-    } catch {}
-
-    return null
-  }, [backendLayanan, layananParam, paketParam, baseAsesmen.title])
-
-  const formatRp = (val: any, fallbackStr: string): string => {
-    if (val === undefined || val === null || val === "") return fallbackStr
-    const str = String(val).trim()
-    if (str.startsWith("Rp")) return str
-    const num = Number(str.replace(/[^\d]/g, ""))
-    if (isNaN(num) || num <= 0) return fallbackStr
-    return `Rp ${num.toLocaleString("id-ID")}`
-  }
-
-  // Paket asesmen dinamis lengkap dengan harga yang ditentukan oleh Admin
+  // Paket asesmen dinamis lengkap dengan harga yang murni dari database
   const dynamicAsesmenPackage = useMemo(() => {
+    if (!matchedDbService) return null
+
+    const basePkg = buildAsesmenPackageFromLayanan(matchedDbService)
     const m = matchedDbService as any
     const t = m?.tarif_tenaga_ahli || {}
 
@@ -96,36 +126,80 @@ export default function AsesmenJadwalClient() {
       t?.asesmen?.offline?.weekday ??
       t?.offline?.weekday ??
       m?.harga_weekday ??
-      m?.weekday
+      0
 
     const dbOfflineWknd =
       m?.tarif_asesmen?.offline_weekend ??
       t?.asesmen?.offline?.weekend ??
       t?.offline?.weekend ??
       m?.harga_weekend ??
-      m?.weekend
+      0
+
+    const formatRp = (val: any, fallbackStr: string): string => {
+      if (val === undefined || val === null || val === "") return fallbackStr
+      const str = String(val).trim()
+      if (str.startsWith("Rp")) return str
+      const num = Number(str.replace(/[^\d]/g, ""))
+      if (isNaN(num) || num <= 0) return fallbackStr
+      return `Rp ${num.toLocaleString("id-ID")}`
+    }
 
     const finalWeekday = formatRp(
       weekdayParam || (hariParam === "weekday" && hargaParam ? hargaParam : undefined) || dbOfflineWk,
-      baseAsesmen.weekday
+      basePkg.weekday
     )
 
     const finalWeekend = formatRp(
       weekendParam || (hariParam === "weekend" && hargaParam ? hargaParam : undefined) || dbOfflineWknd,
-      baseAsesmen.weekend
+      basePkg.weekend
     )
 
-    const resolvedTitle = m?.nama || m?.layanan || layananParam || baseAsesmen.title
+    const resolvedTitle = m?.nama || m?.layanan || rawTarget || basePkg.title
 
     return {
-      ...baseAsesmen,
-      id: m?.id || baseAsesmen.id,
+      ...basePkg,
+      id: m?.id || basePkg.id,
       title: resolvedTitle,
       shortTitle: resolvedTitle,
       weekday: finalWeekday,
       weekend: finalWeekend,
     }
-  }, [matchedDbService, weekdayParam, weekendParam, hariParam, hargaParam, baseAsesmen, layananParam])
+  }, [matchedDbService, weekdayParam, weekendParam, hariParam, hargaParam, rawTarget])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center bg-[#FAFAFA] font-poppins px-4">
+        <Loader2 className="w-9 h-9 animate-spin text-[#561269] mb-3" />
+        <p className="text-sm font-semibold text-gray-500">Memuat jadwal layanan asesmen...</p>
+      </div>
+    )
+  }
+
+  if (isError || !dynamicAsesmenPackage) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center bg-[#FAFAFA] font-poppins px-4 py-16">
+        <div className="max-w-md w-full">
+          <ClientErrorState
+            title="Jadwal Asesmen Tidak Tersedia"
+            message={
+              errorMessage ||
+              "Layanan asesmen yang Anda tuju tidak ditemukan atau belum aktif di database."
+            }
+            onRetry={fetchLayanan}
+            retryText="Muat Ulang"
+          />
+          <div className="mt-6 text-center">
+            <Link
+              href={withBiro("/layanan?category=05") as any}
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#561269] hover:underline"
+            >
+              ← Kembali ke Daftar Layanan Asesmen
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <BookingJadwalShared
@@ -139,4 +213,3 @@ export default function AsesmenJadwalClient() {
     />
   )
 }
-

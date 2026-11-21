@@ -3,14 +3,9 @@
 import { useState, useEffect, useMemo } from "react"
 import { BookedAssessment } from "@/features/konseling/types"
 import { layananService } from "@/services/layanan.service"
-import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
 
 export const DEFAULT_LAYANAN_ASESMEN = [
   "Semua Layanan Asesmen",
-  "Asesmen Psikologi Klinis",
-  "Asesmen Minat Bakat",
-  "Asesmen Perkembangan Anak",
-  "Tes Potensi Akademik & Minat Bakat",
 ]
 
 export interface UseJadwalAsesmenPickerProps {
@@ -147,34 +142,6 @@ export function useJadwalAsesmenPicker({
             if (l.nama) activeNames.push(l.nama.trim())
           }
         })
-
-        try {
-          const stored = getStoredLayanan().filter(
-            (item: any) =>
-              (item.kategoriId === "05" || (item.kategori || "").toUpperCase() === "ASESMEN") &&
-              item.status !== "Nonaktif"
-          )
-          stored.forEach((item: any) => {
-            const itemTitle = (item.layanan || item.nama || "").trim()
-            if (!itemTitle) return
-            const alreadyExists = activeServices.some(
-              (s) => (s.nama || s.layanan || "").trim().toLowerCase() === itemTitle.toLowerCase()
-            )
-            if (!alreadyExists) {
-              activeServices.push(item)
-              activeNames.push(itemTitle)
-            }
-          })
-        } catch {}
-
-        if (activeServices.length === 0) {
-          activeServices.push(
-            { id: "asesmen-minat-bakat-01", nama: "Asesmen Minat Bakat", layanan: "Asesmen Minat Bakat", metode: "Online/Offline", status: "Aktif" },
-            { id: "asesmen-kesiapan-sekolah-01", nama: "Asesmen Kesiapan Sekolah", layanan: "Asesmen Kesiapan Sekolah", metode: "Online/Offline", status: "Aktif" },
-            { id: "asesmen-klinis-01", nama: "Asesmen Klinis", layanan: "Asesmen Klinis", metode: "Online/Offline", status: "Aktif" }
-          )
-          activeNames.push("Asesmen Minat Bakat", "Asesmen Kesiapan Sekolah", "Asesmen Klinis")
-        }
 
         setServiceItems(activeServices)
 
