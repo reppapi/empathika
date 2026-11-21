@@ -787,23 +787,16 @@ export default function PsikologReviewAsesmenClient() {
                                 const nowMs = Date.now();
                                 const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
                                 const isKritis = sla.isOverdue || diffHours <= 24;
-                                const isPrioritas = !isKritis && diffHours <= 48;
 
                                 return (
                                   <div className="flex flex-col gap-1 items-start">
-                                    {isKritis ? (
+                                    {isKritis && (
                                       <div className="flex items-center gap-1.5">
                                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
                                           🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
                                         </span>
                                       </div>
-                                    ) : isPrioritas ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                                          🟡 Prioritas (≤ 48 Jam)
-                                        </span>
-                                      </div>
-                                    ) : null}
+                                    )}
                                     <span className="text-[10px] text-gray-500 font-medium" title={`Deadline: ${sla.deadlineFormatted}`}>
                                       Batas: {sla.deadlineFormatted}
                                     </span>

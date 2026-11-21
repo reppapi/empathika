@@ -277,24 +277,6 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
     ? `https://wa.me/${waPsikologDigits}?text=${encodeURIComponent(waMsgToPsikolog)}`
     : `https://wa.me/?text=${encodeURIComponent(waMsgToPsikolog)}`;
 
-  const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/psikolog-web/review-asesmen` : "https://empathika.id/psikolog-web/review-asesmen";
-  const waBroadcastUrlTimPsikolog = `https://wa.me/?text=${encodeURIComponent(
-`🔔 *ASESMEN KLINIS BARU MEMBUTUHKAN TELAAH*
-
-Halo Rekan Tim Psikolog Empathika,
-Terdapat asesmen klinis yang baru selesai dikerjakan peserta dan membutuhkan telaah resmi:
-
-• *Paket:* ${peserta.paket}
-• *Kode Tiket:* ${kodeBooking || peserta.id}
-• *Peserta:* ${namaPeserta}
-• *Batas Waktu SLA:* ${deadlineFormatted || "3 Hari Kerja"}
-
-Silakan login ke portal psikolog untuk mengklaim dan menelaah tiket ini:
-👉 ${portalUrl}
-
-Terima kasih atas dedikasi dan profesionalitas rekan-rekan! 🙏`
-  )}`;
-
   const usiaPeserta = peserta.peserta?.usia ? `${peserta.peserta.usia} Tahun` : null;
   const genderPeserta = peserta.peserta?.jenis_kelamin || null;
   const tglLahirPeserta = peserta.peserta?.tanggal_lahir
@@ -399,20 +381,6 @@ Terima kasih atas dedikasi dan profesionalitas rekan-rekan! 🙏`
                   <p className="text-[11px] text-gray-500">
                     Selesai tes {keepDateFormatted || peserta.tanggal} • Menunggu diambil oleh psikolog penelaah
                   </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!isBiroContext && (
-                    <a
-                      href={waBroadcastUrlTimPsikolog}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 shrink-0 cursor-pointer"
-                      title="Kirim pemberitahuan ke grup WhatsApp psikolog"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      Broadcast WA Tim
-                    </a>
-                  )}
                 </div>
               </div>
             )
@@ -663,17 +631,7 @@ Terima kasih atas dedikasi dan profesionalitas rekan-rekan! 🙏`
                     <Phone className="w-3.5 h-3.5" />
                     Ingatkan Psikolog (WA)
                   </a>
-                ) : (
-                  <a
-                    href={waBroadcastUrlTimPsikolog}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    Broadcast ke WA Tim Psikolog
-                  </a>
-                )
+                ) : null
               ) : (
                 /* Belum Mulai Tes */
                 waReminderUrlPembeli && (

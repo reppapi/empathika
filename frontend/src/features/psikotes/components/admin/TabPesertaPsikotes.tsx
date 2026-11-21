@@ -55,7 +55,7 @@ export default function TabPesertaPsikotes({
 
   // State Quick Pill Filter Status / Urgensi SLA
   const [statusFilter, setStatusFilter] = useState<
-    "ALL" | "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "MENDEKATI_SLA" | "SELESAI"
+    "ALL" | "MENUNGGU_TINJAU" | "SEDANG_DITINJAU" | "SELESAI"
   >("ALL");
 
   // Filter awal: Peserta berbayar yang disaring berdasarkan Paket dan Rentang Tanggal
@@ -256,11 +256,6 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         if (!isMenungguReview || Boolean(peserta.id_psikolog || peserta.psikolog)) return false;
       } else if (statusFilter === "SEDANG_DITINJAU") {
         if (!isMenungguReview || !Boolean(peserta.id_psikolog || peserta.psikolog)) return false;
-      } else if (statusFilter === "MENDEKATI_SLA") {
-        if (!isMenungguReview) return false;
-        const sla = calculateReviewSla(peserta.rawTanggal || peserta.tanggal);
-        const diffHours = (sla.deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60);
-        if (!sla.isOverdue && diffHours > 24) return false;
       } else if (statusFilter === "SELESAI") {
         if (!isSelesaiStatus) return false;
       }
@@ -530,23 +525,16 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               const nowMs = Date.now();
               const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
               const isKritis = sla.isOverdue || diffHours <= 24;
-              const isPrioritas = !isKritis && diffHours <= 48;
 
               return (
                 <div className="flex flex-col gap-1 items-start">
-                  {isKritis ? (
+                  {isKritis && (
                     <div className="flex items-center gap-1.5">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
                         🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
                       </span>
                     </div>
-                  ) : isPrioritas ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                        🟡 Prioritas (≤ 48 Jam)
-                      </span>
-                    </div>
-                  ) : null}
+                  )}
                   <span
                     className="text-[10px] text-gray-500 font-medium"
                     title={`Deadline: ${sla.deadlineFormatted}`}
@@ -764,23 +752,7 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
             Sedang Ditinjau ({statusStats.sedangDitinjau})
           </button>
 
-          {/* 4. Mendekati Batas SLA (Hanya untuk Admin Utama) */}
-          {!isBiroContext && (
-            <button
-              type="button"
-              onClick={() => setStatusFilter("MENDEKATI_SLA")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                statusFilter === "MENDEKATI_SLA"
-                  ? "bg-rose-600 text-white shadow-sm"
-                  : "text-rose-700 hover:bg-rose-100/70"
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-              Mendekati Batas SLA ({statusStats.mendekatiSla})
-            </button>
-          )}
-
-          {/* 5. Selesai */}
+          {/* 4. Selesai */}
           <button
             type="button"
             onClick={() => setStatusFilter("SELESAI")}
