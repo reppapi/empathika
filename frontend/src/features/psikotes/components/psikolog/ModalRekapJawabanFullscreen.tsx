@@ -4,7 +4,6 @@ import React, { useState, useMemo } from "react";
 import {
   X,
   Search,
-  Printer,
   ClipboardList,
 } from "lucide-react";
 import type { RekapJawabanItem } from "@/services/psikotes.service";
@@ -101,14 +100,6 @@ export default function ModalRekapJawabanFullscreen({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              Cetak / Print
-            </button>
             <button
               type="button"
               onClick={onClose}

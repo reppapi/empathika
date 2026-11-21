@@ -1747,10 +1747,12 @@ export default function ModalReviewPsikotes({
                         <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100 col-span-1.5">
                           <span className="text-gray-400 block text-[9px]">Skala Y (Desirability)</span>
                           <strong className="text-gray-900 text-xs">BR {detailSkor.validitas.skalaY_BR ?? 0}</strong>
+                          <span className="text-[8px] text-gray-400 block">(&le; 75)</span>
                         </div>
                         <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-100 col-span-1.5">
                           <span className="text-gray-400 block text-[9px]">Skala Z (Debasement)</span>
                           <strong className="text-gray-900 text-xs">BR {detailSkor.validitas.skalaZ_BR ?? 0}</strong>
+                          <span className="text-[8px] text-gray-400 block">(&le; 75)</span>
                         </div>
                       </div>
                     </div>
@@ -1798,9 +1800,12 @@ export default function ModalReviewPsikotes({
                                     : "bg-gray-50/60 border-gray-100 text-gray-600"
                                 }`}
                               >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-semibold truncate max-w-[190px]">
-                                    {scale.kode}. {scale.nama}
+                                <div className="flex items-center justify-between gap-2">
+                                  <span
+                                    className="font-semibold truncate flex-1 min-w-0"
+                                    title={`Skala ${scale.kode}: ${(scale.nama || "").replace(/\s*\(Skala\s+[^)]+\)/i, "").trim()}`}
+                                  >
+                                    Skala {scale.kode}: {(scale.nama || "").replace(/\s*\(Skala\s+[^)]+\)/i, "").trim()}
                                   </span>
                                   <span className="font-bold shrink-0">BR {br}</span>
                                 </div>
@@ -1853,6 +1858,7 @@ export default function ModalReviewPsikotes({
                             const br = Number(scale.brScore ?? 0);
                             const isSevere = br >= 85;
                             const isMild = br >= 75 && br < 85;
+                            const isSubclinical = br >= 60 && br < 75;
 
                             return (
                               <div
@@ -1862,19 +1868,30 @@ export default function ModalReviewPsikotes({
                                     ? "bg-rose-50/70 border-rose-200 text-rose-950"
                                     : isMild
                                     ? "bg-amber-50/70 border-amber-200 text-amber-950"
+                                    : isSubclinical
+                                    ? "bg-purple-50/60 border-purple-200 text-purple-950"
                                     : "bg-gray-50/60 border-gray-100 text-gray-600"
                                 }`}
                               >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-semibold truncate max-w-[190px]">
-                                    {scale.kode}. {scale.nama}
+                                <div className="flex items-center justify-between gap-2">
+                                  <span
+                                    className="font-semibold truncate flex-1 min-w-0"
+                                    title={`Skala ${scale.kode}: ${(scale.nama || "").replace(/\s*\(Skala\s+[^)]+\)/i, "").trim()}`}
+                                  >
+                                    Skala {scale.kode}: {(scale.nama || "").replace(/\s*\(Skala\s+[^)]+\)/i, "").trim()}
                                   </span>
                                   <span className="font-bold shrink-0">BR {br}</span>
                                 </div>
                                 <div className="h-1 w-full bg-black/10 rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full ${
-                                      isSevere ? "bg-rose-600" : isMild ? "bg-amber-600" : "bg-gray-400"
+                                      isSevere
+                                        ? "bg-rose-600"
+                                        : isMild
+                                        ? "bg-amber-600"
+                                        : isSubclinical
+                                        ? "bg-purple-700"
+                                        : "bg-gray-400"
                                     }`}
                                     style={{ width: `${Math.min(100, Math.max(5, (br / 115) * 100))}%` }}
                                   />

@@ -336,12 +336,12 @@ export function HasilAnalisisScorecardView({
                   <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
                     <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala V</span>
                     <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaV ?? 0}</span>
-                    <span className="text-[10px] text-gray-500 block">Maks 1</span>
+                    <span className="text-[10px] text-gray-500 block">&le; 1</span>
                   </div>
                   <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
                     <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala W</span>
                     <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaW ?? 0}</span>
-                    <span className="text-[10px] text-gray-500 block">Maks 0</span>
+                    <span className="text-[10px] text-gray-500 block">&le; 19</span>
                   </div>
                   <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
                     <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala X (Raw)</span>
@@ -351,12 +351,12 @@ export function HasilAnalisisScorecardView({
                   <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
                     <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala Y (BR)</span>
                     <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaYBR ?? 0}</span>
-                    <span className="text-[10px] text-gray-500 block">Maks 85</span>
+                    <span className="text-[10px] text-gray-500 block">&le; 75</span>
                   </div>
                   <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-center">
                     <span className="text-[10px] font-bold text-gray-400 block uppercase">Skala Z (BR)</span>
                     <span className="text-sm font-extrabold text-gray-800">{mcmiResult.validitas?.skalaZBR ?? 0}</span>
-                    <span className="text-[10px] text-gray-500 block">Maks 85</span>
+                    <span className="text-[10px] text-gray-500 block">&le; 75</span>
                   </div>
                 </div>
               </div>
@@ -376,6 +376,7 @@ export function HasilAnalisisScorecardView({
                     const br = Number(item.brScore ?? 0);
                     const isGangguan = br >= 85;
                     const isTipe = br >= 75 && br < 85;
+                    const isGaya = br >= 60 && br < 75;
 
                     return (
                       <div
@@ -385,6 +386,8 @@ export function HasilAnalisisScorecardView({
                             ? "bg-rose-50/80 border-rose-200 shadow-2xs"
                             : isTipe
                             ? "bg-amber-50/70 border-amber-200"
+                            : isGaya
+                            ? "bg-purple-50/60 border-purple-200"
                             : "bg-gray-50/70 border-gray-100"
                         }`}
                       >
@@ -394,23 +397,35 @@ export function HasilAnalisisScorecardView({
                               {item.code}
                             </span>
                             <span className="font-bold text-xs sm:text-sm text-gray-900 truncate">
-                              {item.nama}
+                              {(item.nama || "").replace(/\s*\(Skala\s+[^)]+\)/i, "").trim()}
                             </span>
                           </div>
                           <div className="text-right shrink-0">
                             <span className={`text-xs font-extrabold ${
-                              isGangguan ? "text-rose-700" : isTipe ? "text-amber-800" : "text-gray-700"
+                              isGangguan
+                                ? "text-rose-700"
+                                : isTipe
+                                ? "text-amber-800"
+                                : isGaya
+                                ? "text-purple-900"
+                                : "text-gray-700"
                             }`}>
                               BR {br}
                             </span>
                           </div>
                         </div>
 
-                        {/* Progress Bar BR (Cutoff 75 & 85) */}
+                        {/* Progress Bar BR (Cutoff 60, 75 & 85) */}
                         <div className="relative w-full h-2.5 bg-gray-200 rounded-full overflow-hidden my-2">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
-                              isGangguan ? "bg-rose-600" : isTipe ? "bg-amber-500" : "bg-[#561269]"
+                              isGangguan
+                                ? "bg-rose-600"
+                                : isTipe
+                                ? "bg-amber-500"
+                                : isGaya
+                                ? "bg-[#561269]"
+                                : "bg-gray-300"
                             }`}
                             style={{ width: `${Math.min(100, Math.round((br / 115) * 100))}%` }}
                           />
