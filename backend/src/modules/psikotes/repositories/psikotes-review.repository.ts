@@ -10,8 +10,26 @@ import { purgeExpiredPsikotesData } from './retensi-psikotes.helper'
 export class PsikotesReviewRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async getReviewList(params?: ReviewPsikotesQueryInput) {
+  async getReviewList(
+    params?: ReviewPsikotesQueryInput,
+    userId?: string,
+    userRole?: string
+  ) {
     purgeExpiredPsikotesData(this.prisma).catch(() => {})
+
+    // Cari profil psikolog jika pemanggil bukan ADMIN
+    let resolvedPsikologId: string | null = null
+    if (userId) {
+      const psi = await this.prisma.psikolog.findFirst({
+        where: {
+          OR: [{ id_account: userId }, { id: userId }],
+        },
+        select: { id: true },
+      })
+      if (psi) resolvedPsikologId = psi.id
+    }
+
+    const isPsikologPersonal = userRole !== 'ADMIN' && Boolean(resolvedPsikologId)
 
     const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
     const nonExpiredFilter = {
@@ -32,24 +50,44 @@ export class PsikotesReviewRepository {
     }
 
     const baseWhere: any = {
-      OR: [
-        { paket: { perlu_review_psikolog: true } },
-        { status_pengerjaan: 'MENUNGGU_REVIEW' },
-      ],
       hasil_tes: { isNot: null },
       AND: [nonExpiredFilter, nonDassFilter],
     }
 
-    if (params?.status === 'MENUNGGU_REVIEW') {
-      baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
-    } else if (params?.status === 'KOLAM_BERSAMA') {
-      baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
-      baseWhere.id_psikolog = null
-    } else if (params?.status === 'SEDANG_DITELAAH') {
-      baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
-      baseWhere.id_psikolog = { not: null }
-    } else if (params?.status === 'SELESAI') {
-      baseWhere.status_pengerjaan = 'SELESAI'
+    if (isPsikologPersonal) {
+      if (params?.status === 'MENUNGGU_REVIEW' || params?.status === 'KOLAM_BERSAMA') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+        baseWhere.id_psikolog = null
+      } else if (params?.status === 'SEDANG_DITELAAH') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+        baseWhere.id_psikolog = resolvedPsikologId
+      } else if (params?.status === 'SELESAI') {
+        baseWhere.status_pengerjaan = 'SELESAI'
+        baseWhere.id_psikolog = resolvedPsikologId
+      } else {
+        // params?.status === 'ALL' atau default:
+        // Antrean bersama yang belum diklaim siapapun + tiket ruang kerja psikolog yang bersangkutan
+        baseWhere.OR = [
+          { status_pengerjaan: 'MENUNGGU_REVIEW', id_psikolog: null },
+          { id_psikolog: resolvedPsikologId },
+        ]
+      }
+    } else {
+      baseWhere.OR = [
+        { paket: { perlu_review_psikolog: true } },
+        { status_pengerjaan: 'MENUNGGU_REVIEW' },
+      ]
+      if (params?.status === 'MENUNGGU_REVIEW') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+      } else if (params?.status === 'KOLAM_BERSAMA') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+        baseWhere.id_psikolog = null
+      } else if (params?.status === 'SEDANG_DITELAAH') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+        baseWhere.id_psikolog = { not: null }
+      } else if (params?.status === 'SELESAI') {
+        baseWhere.status_pengerjaan = 'SELESAI'
+      }
     }
 
     if (params?.search) {
@@ -68,10 +106,15 @@ export class PsikotesReviewRepository {
     const [totalAntrean, kolamBersama, sedangDitelaah, selesaiReview, items] = await Promise.all([
       this.prisma.bookingPsikotes.count({
         where: {
-          OR: [
-            { paket: { perlu_review_psikolog: true } },
-            { status_pengerjaan: 'MENUNGGU_REVIEW' },
-          ],
+          OR: isPsikologPersonal
+            ? [
+                { status_pengerjaan: 'MENUNGGU_REVIEW', id_psikolog: null },
+                { id_psikolog: resolvedPsikologId! },
+              ]
+            : [
+                { paket: { perlu_review_psikolog: true } },
+                { status_pengerjaan: 'MENUNGGU_REVIEW' },
+              ],
           hasil_tes: { isNot: null },
           AND: [nonExpiredFilter, nonDassFilter],
         },
@@ -96,7 +139,7 @@ export class PsikotesReviewRepository {
           ],
           hasil_tes: { isNot: null },
           status_pengerjaan: 'MENUNGGU_REVIEW',
-          id_psikolog: { not: null },
+          id_psikolog: isPsikologPersonal ? resolvedPsikologId! : { not: null },
           AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
@@ -108,6 +151,7 @@ export class PsikotesReviewRepository {
           ],
           hasil_tes: { isNot: null },
           status_pengerjaan: 'SELESAI',
+          ...(isPsikologPersonal ? { id_psikolog: resolvedPsikologId! } : {}),
           AND: [nonExpiredFilter, nonDassFilter],
         },
       }),

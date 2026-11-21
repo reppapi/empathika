@@ -136,11 +136,13 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
       try {
         const res = await psikotesService.getReviewList({ status: "MENUNGGU_REVIEW" })
         if (isMounted && res.data) {
-          const currentPsiId = currentPsikolog.id
-          const activeOrShared = res.data.items.filter(
-            (i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && (!i.id_psikolog || i.id_psikolog === currentPsiId)
-          ).length
-          setReviewBadgeCount(activeOrShared)
+          const unassignedCount =
+            typeof res.data.summary?.kolam_bersama === "number"
+              ? res.data.summary.kolam_bersama
+              : res.data.items.filter(
+                  (i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog
+                ).length
+          setReviewBadgeCount(unassignedCount)
         }
       } catch {}
     }

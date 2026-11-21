@@ -100,6 +100,39 @@ export default function TabPesertaPsikotes({
     });
   }, [pesertaList, selectedPaket, selectedTimeRange]);
 
+  // Deteksi apakah paket yang sedang aktif difilter memerlukan review psikolog
+  const isSelectedPaketNeedReview = useMemo(() => {
+    if (!selectedPaket || selectedPaket === "ALL") {
+      // Jika "ALL", hanya tampilkan bar review jika memang ada tiket yang butuh review klinis
+      return scopedPesertaList.some((p) => {
+        const isDass = Boolean(
+          p.paket?.toLowerCase().includes("dass") ||
+          p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+        );
+        return !isDass && Boolean(p.perlu_review_psikolog || p.paket?.toLowerCase().includes("mcmi"));
+      });
+    }
+    const lower = selectedPaket.toLowerCase();
+    const isDass = lower.includes("dass") || lower.includes("depresi, kecemasan, dan stres");
+    if (isDass) return false;
+
+    // Cek dari data peserta yang cocok dengan paket ini
+    const match = scopedPesertaList.find(
+      (p) => (p.paket || "").toLowerCase().includes(lower) || lower.includes((p.paket || "").toLowerCase())
+    );
+    if (match) {
+      return Boolean(match.perlu_review_psikolog || match.paket?.toLowerCase().includes("mcmi"));
+    }
+    return lower.includes("mcmi");
+  }, [selectedPaket, scopedPesertaList]);
+
+  // Reset status filter ke ALL jika paket yang dipilih tidak memerlukan review klinis
+  React.useEffect(() => {
+    if (!isSelectedPaketNeedReview && statusFilter !== "ALL") {
+      setStatusFilter("ALL");
+    }
+  }, [isSelectedPaketNeedReview, statusFilter]);
+
   // Statistik untuk Quick Pills (mengikuti filter paket dan rentang tanggal yang aktif)
   const statusStats = useMemo(() => {
     let menungguTinjauCount = 0;
@@ -453,7 +486,7 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
     },
     {
       key: "tanggal",
-      header: "Waktu & Batas Review (Maks 3 Hari)",
+      header: isSelectedPaketNeedReview ? "Waktu & Batas Review (Maks 3 Hari)" : "Waktu Pengerjaan",
       render: (peserta: AdminPsikotesPeserta) => {
         const rawDate = peserta.rawTanggal || peserta.tanggal;
         const dateObj = new Date(rawDate);
@@ -685,81 +718,83 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         </div>
       </div>
 
-      {/* 3. Filter Tabs (Desain Konsisten dengan Portal Psikolog) */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl w-fit mb-4">
-        {/* 1. Semua */}
-        <button
-          type="button"
-          onClick={() => setStatusFilter("ALL")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            statusFilter === "ALL"
-              ? "bg-[#561269] text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-200/70"
-          }`}
-        >
-          Semua ({statusStats.total})
-        </button>
-
-        {/* 2. Menunggu Tinjau */}
-        <button
-          type="button"
-          onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            statusFilter === "MENUNGGU_TINJAU"
-              ? "bg-amber-500 text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-200/70"
-          }`}
-        >
-          {statusStats.menungguTinjau > 0 && (
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-          )}
-          Menunggu Tinjau ({statusStats.menungguTinjau})
-        </button>
-
-        {/* 3. Sedang Ditinjau */}
-        <button
-          type="button"
-          onClick={() => setStatusFilter("SEDANG_DITINJAU")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            statusFilter === "SEDANG_DITINJAU"
-              ? "bg-[#561269] text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-200/70"
-          }`}
-        >
-          <Stethoscope className="w-3.5 h-3.5" />
-          Sedang Ditinjau ({statusStats.sedangDitinjau})
-        </button>
-
-        {/* 4. Mendekati Batas SLA (Hanya untuk Admin Utama) */}
-        {!isBiroContext && (
+      {/* 3. Filter Tabs (Desain Konsisten dengan Portal Psikolog) - Hanya jika ada paket yang memerlukan telaah psikolog */}
+      {isSelectedPaketNeedReview && (
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/80 rounded-2xl w-fit mb-4">
+          {/* 1. Semua */}
           <button
             type="button"
-            onClick={() => setStatusFilter("MENDEKATI_SLA")}
+            onClick={() => setStatusFilter("ALL")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              statusFilter === "MENDEKATI_SLA"
-                ? "bg-rose-600 text-white shadow-sm"
-                : "text-rose-700 hover:bg-rose-100/70"
+              statusFilter === "ALL"
+                ? "bg-[#561269] text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-200/70"
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-            Mendekati Batas SLA ({statusStats.mendekatiSla})
+            Semua ({statusStats.total})
           </button>
-        )}
 
-        {/* 5. Selesai */}
-        <button
-          type="button"
-          onClick={() => setStatusFilter("SELESAI")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            statusFilter === "SELESAI"
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-200/70"
-          }`}
-        >
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          Selesai ({statusStats.selesai})
-        </button>
-      </div>
+          {/* 2. Menunggu Tinjau */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter("MENUNGGU_TINJAU")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              statusFilter === "MENUNGGU_TINJAU"
+                ? "bg-amber-500 text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-200/70"
+            }`}
+          >
+            {statusStats.menungguTinjau > 0 && (
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            )}
+            Menunggu Tinjau ({statusStats.menungguTinjau})
+          </button>
+
+          {/* 3. Sedang Ditinjau */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter("SEDANG_DITINJAU")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              statusFilter === "SEDANG_DITINJAU"
+                ? "bg-[#561269] text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-200/70"
+            }`}
+          >
+            <Stethoscope className="w-3.5 h-3.5" />
+            Sedang Ditinjau ({statusStats.sedangDitinjau})
+          </button>
+
+          {/* 4. Mendekati Batas SLA (Hanya untuk Admin Utama) */}
+          {!isBiroContext && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter("MENDEKATI_SLA")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                statusFilter === "MENDEKATI_SLA"
+                  ? "bg-rose-600 text-white shadow-sm"
+                  : "text-rose-700 hover:bg-rose-100/70"
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              Mendekati Batas SLA ({statusStats.mendekatiSla})
+            </button>
+          )}
+
+          {/* 5. Selesai */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter("SELESAI")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              statusFilter === "SELESAI"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-200/70"
+            }`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Selesai ({statusStats.selesai})
+          </button>
+        </div>
+      )}
 
       <AdminDataTable
         columns={columns}

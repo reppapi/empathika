@@ -344,7 +344,19 @@ export class PsikotesController {
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.getReviewList(request.query)
+      let user = (request as any).user as { id?: string; role?: string } | undefined
+      if (!user && (request as any).jwtVerify) {
+        try {
+          await (request as any).jwtVerify()
+          user = (request as any).user
+        } catch {}
+      }
+
+      const data = await this.service.getReviewList(
+        request.query,
+        user?.id,
+        user?.role
+      )
       return reply.code(200).send({
         success: true,
         message: 'Berhasil mengambil daftar antrean review asesmen psikotes',

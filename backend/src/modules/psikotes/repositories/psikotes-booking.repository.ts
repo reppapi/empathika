@@ -192,7 +192,7 @@ export class PsikotesBookingRepository {
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
-          id_biro_tenant: idBiro || client.id_biro || null,
+          id_biro_tenant: effectiveBiroId,
           kode_transaksi: kodeTransaksi,
           tipe_transaksi: 'PSIKOTES',
           subtotal: nominal,
