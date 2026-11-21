@@ -6,20 +6,15 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
-  FileText,
   Download,
   Phone,
-  Clock,
   Loader2,
   User,
   ShoppingBag,
   Send,
   AlertCircle,
-  UserCheck,
   AlertTriangle,
-  CheckCircle2,
-  ExternalLink,
-  Calendar,
+  RotateCcw,
 } from "lucide-react";
 import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../../types/adminPsikotes";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
@@ -29,15 +24,23 @@ export interface ModalDetailPesertaProps {
   judulList?: JudulPsikotesItem[];
   onClose: () => void;
   onDownloadPdf: (peserta: AdminPsikotesPeserta) => Promise<void> | void;
+  onToggleWaStatus?: (bookingId: string, currentSent?: boolean) => void;
+  onReleaseTicket?: (bookingId: string) => Promise<void> | void;
+  isBiroContext?: boolean;
 }
 
 export default function ModalDetailPeserta({
   peserta,
   onClose,
   onDownloadPdf,
+  onToggleWaStatus,
+  onReleaseTicket,
+  isBiroContext = false,
 }: ModalDetailPesertaProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [showReleaseConfirm, setShowReleaseConfirm] = useState(false);
+  const [isReleasing, setIsReleasing] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -47,13 +50,26 @@ export default function ModalDetailPeserta({
   useEffect(() => {
     setPdfError(null);
     setIsDownloading(false);
+    setShowReleaseConfirm(false);
+    setIsReleasing(false);
   }, [peserta?.id]);
 
   if (!peserta || !mounted) return null;
 
+  const isDass = Boolean(
+    peserta.paket?.toLowerCase().includes("dass") ||
+    peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+  );
+  const isNeedReview = !isDass && Boolean(
+    peserta.perlu_review_psikolog ||
+    peserta.paket?.toLowerCase().includes("mcmi")
+  );
+
   const isMenungguReview =
-    peserta.status === "Menunggu Review" ||
-    (peserta as any).status_pengerjaan === "MENUNGGU_REVIEW";
+    isNeedReview && (
+      peserta.status === "Menunggu Review" ||
+      (peserta as any).status_pengerjaan === "MENUNGGU_REVIEW"
+    );
   const isCompleted =
     !isMenungguReview &&
     (peserta.status === "Selesai" || Boolean(peserta.hasil));
@@ -69,6 +85,19 @@ export default function ModalDetailPeserta({
       setPdfError("Gagal membuat file PDF laporan. Silakan coba lagi.");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleRelease = async () => {
+    if (!peserta || !onReleaseTicket) return;
+    setIsReleasing(true);
+    try {
+      await onReleaseTicket(String(peserta.id));
+      setShowReleaseConfirm(false);
+    } catch (err) {
+      console.error("Gagal melepas tiket:", err);
+    } finally {
+      setIsReleasing(false);
     }
   };
 
@@ -137,13 +166,6 @@ export default function ModalDetailPeserta({
     year: "numeric",
   });
 
-  const hasDifferentPhones = Boolean(
-    hasPesertaData &&
-    waPesertaDigits &&
-    waPembeliDigits &&
-    waPesertaDigits !== waPembeliDigits
-  );
-
   // Template Pesan WA Reminder
   const waReminderUrlPembeli = waPembeliDigits
     ? `https://wa.me/${waPembeliDigits}?text=${encodeURIComponent(
@@ -159,21 +181,6 @@ Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta
 Silakan buka https://empathika.id untuk menyelesaikan asesmen Kakak ya. Terima kasih! 😊`
       )}`
     : null;
-
-  const waReminderUrlPeserta =
-    hasDifferentPhones && waPesertaDigits
-      ? `https://wa.me/${waPesertaDigits}?text=${encodeURIComponent(
-`Halo Kak ${namaPeserta}!
-
-Kami ingin mengingatkan bahwa akses asesmen psikotes Kakak untuk paket ${peserta.paket} di Empathika telah aktif, namun belum diselesaikan.
-
-- Tanggal transaksi: ${tanggalTransaksiFormatted}
-- Batas akhir pengerjaan: ${batasAkhirFormatted}
-- Kode Booking: ${kodeBooking || "Cek bukti transaksi"}
-
-Silakan buka https://empathika.id untuk memulai asesmen ya. Terima kasih! 😊`
-        )}`
-      : null;
 
   // Template Pesan WA Hasil PDF
   const targetOrangTuaPhone = waOrangTuaDigits || (isAnak ? waPesertaDigits || waPembeliDigits : "");
@@ -290,7 +297,7 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
 
   const waPsikologUrl = waPsikologDigits
     ? `https://wa.me/${waPsikologDigits}?text=${encodeURIComponent(waMsgToPsikolog)}`
-    : null;
+    : `https://wa.me/?text=${encodeURIComponent(waMsgToPsikolog)}`;
 
   const usiaPeserta = peserta.peserta?.usia ? `${peserta.peserta.usia} Tahun` : null;
   const genderPeserta = peserta.peserta?.jenis_kelamin || null;
@@ -339,13 +346,13 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 bg-white text-gray-800 text-xs">
 
           {/* ───────────────────────────────────────────────────────────── */}
-          {/* A. STATUS TELAAH & REVIEWER (HERO BANNER RINGKAS & BERSIH)    */}
+          {/* A. STATUS TELAAH & REVIEWER (HERO BANNER RINGKAS & KONSISTEN) */}
           {/* ───────────────────────────────────────────────────────────── */}
           {isMenungguReview ? (
             Boolean(peserta.id_psikolog || peserta.psikolog) ? (
               /* Sudah di-keep oleh psikolog */
               <div className="p-4 rounded-xl bg-purple-50/50 border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700">
                       Psikolog Pemeriksa
@@ -366,21 +373,24 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                   </p>
                 </div>
 
-                {waPsikologUrl && (
-                  <a
-                    href={waPsikologUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition active:scale-95 shadow-2xs hover:shadow-xs shrink-0 self-start sm:self-auto cursor-pointer"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    Hubungi Psikolog
-                  </a>
+                {!isBiroContext && onReleaseTicket && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setShowReleaseConfirm(true)}
+                      disabled={isReleasing}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 shrink-0 cursor-pointer disabled:opacity-60"
+                      title="Cabut tiket dari psikolog ini dan kembalikan ke Kolam Antrean Bersama"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Kembalikan ke Antrean</span>
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
               /* Menunggu di-keep (Kolam antrean) */
-              <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100 flex items-center justify-between gap-3">
+              <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 block">
                     Status Antrean
@@ -392,34 +402,22 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     Selesai tes {keepDateFormatted || peserta.tanggal} • Menunggu diambil oleh psikolog penelaah
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-amber-100 text-amber-800 shrink-0">
-                  Antrean Terbuka
-                </span>
               </div>
             )
-          ) : isCompleted ? (
-            /* Sudah Selesai */
-            <div className="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-between gap-3">
+          ) : isCompleted && isNeedReview ? (
+            /* Sudah Selesai (Hanya untuk Asesmen Klinis yang Ditelaah Psikolog) */
+            <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 block">
                   Laporan Resmi Diterbitkan
                 </span>
-                <p className="font-semibold text-gray-900 text-xs sm:text-sm">
-                  Ditelaah &amp; Disahkan oleh: <span className="text-emerald-950 font-bold">{namaPsikolog || "Psikolog Empathika"}</span>
+                <p className="font-semibold text-gray-900 text-sm">
+                  Ditelaah oleh: <span className="text-emerald-950 font-bold">{namaPsikolog || "Psikolog Empathika"}</span>
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  Selesai telaah {peserta.hasil?.tanggal_review ? new Date(peserta.hasil.tanggal_review).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : keepDateFormatted || peserta.tanggal} • Dokumen resmi terbit
                 </p>
               </div>
-
-              {waPsikologUrl && (
-                <a
-                  href={waPsikologUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline shrink-0"
-                >
-                  <Phone className="w-3 h-3" />
-                  WA Pemeriksa
-                </a>
-              )}
             </div>
           ) : null}
 
@@ -568,7 +566,9 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
               </p>
               <p className="text-[11px] text-gray-500">
                 {isCompleted
-                  ? "Laporan resmi PDF sudah diverifikasi dan siap diunduh atau dikirimkan ke peserta."
+                  ? isDass
+                    ? "Hasil dan analisis tes langsung tampil di layar peserta saat tes diselesaikan."
+                    : "Laporan resmi PDF sudah diverifikasi dan siap diunduh atau dikirimkan ke peserta."
                   : isMenungguReview
                   ? "Laporan PDF akan otomatis aktif setelah psikolog menuntaskan telaah."
                   : "Dokumen akan tersedia secara otomatis setelah peserta menyelesaikan tes."}
@@ -597,34 +597,49 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     )}
                   </button>
 
-                  {/* Tombol Kirim WA Hasil */}
-                  {isAnak ? (
-                    waResultUrlOrangTua && (
-                      <a
-                        href={waResultUrlOrangTua}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        Kirim ke Orang Tua
-                      </a>
-                    )
-                  ) : (
-                    waResultUrlPeserta && (
-                      <a
-                        href={waResultUrlPeserta}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        Kirim ke Peserta
-                      </a>
+                  {/* Tombol Kirim WA Hasil (Hanya jika bukan tes otomatis DASS) */}
+                  {!isDass && (
+                    isAnak ? (
+                      waResultUrlOrangTua && (
+                        <a
+                          href={waResultUrlOrangTua}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          Kirim ke Orang Tua
+                        </a>
+                      )
+                    ) : (
+                      waResultUrlPeserta && (
+                        <a
+                          href={waResultUrlPeserta}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          Kirim ke Peserta
+                        </a>
+                      )
                     )
                   )}
                 </>
-              ) : !isMenungguReview ? (
+              ) : !isBiroContext && isMenungguReview ? (
+                /* Menunggu Review (Hanya untuk Admin Utama Empathika) */
+                namaPsikolog ? (
+                  <a
+                    href={waPsikologUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    Ingatkan Psikolog (WA)
+                  </a>
+                ) : null
+              ) : (
                 /* Belum Mulai Tes */
                 waReminderUrlPembeli && (
                   <a
@@ -637,9 +652,50 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     Ingatkan Peserta (WA)
                   </a>
                 )
-              ) : null}
+              )}
             </div>
           </div>
+
+          {/* Konfirmasi Status Pengiriman WhatsApp (Khusus paket telaah psikolog, tidak untuk DASS) */}
+          {isCompleted && !isDass && (
+            <div
+              className={`p-3.5 sm:p-4 rounded-xl border transition-all ${
+                peserta.is_wa_sent || peserta.wa_sent_at
+                  ? "bg-emerald-50/70 border-emerald-200/90"
+                  : "bg-gray-50/70 border-gray-200/90"
+              }`}
+            >
+              <label className="flex items-start sm:items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={Boolean(peserta.is_wa_sent || peserta.wa_sent_at)}
+                  onChange={() =>
+                    onToggleWaStatus &&
+                    onToggleWaStatus(String(peserta.id), Boolean(peserta.is_wa_sent || peserta.wa_sent_at))
+                  }
+                  className="w-4 h-4 mt-0.5 sm:mt-0 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer shrink-0"
+                />
+                <div>
+                  <span className="text-xs font-bold text-gray-900 block">
+                    Konfirmasi Pengiriman Laporan via WhatsApp
+                  </span>
+                  <span className="text-[11px] text-gray-500 block mt-0.5">
+                    {peserta.is_wa_sent || peserta.wa_sent_at
+                      ? `Laporan hasil telah dikonfirmasi terkirim ke klien (${new Date(
+                          peserta.wa_sent_at || Date.now()
+                        ).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })} WIB)`
+                      : "Centang kotak ini jika Anda sudah mengirimkan chat hasil asesmen / link PDF ke nomor WhatsApp klien."}
+                  </span>
+                </div>
+              </label>
+            </div>
+          )}
 
           {/* Alert Error jika download gagal */}
           {pdfError && (
@@ -672,6 +728,50 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
           </button>
         </div>
       </div>
+
+      {/* Modal Konfirmasi Kembalikan ke Antrean */}
+      {showReleaseConfirm && (
+        <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+              <RotateCcw className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">
+                Kembalikan Tiket ke Antrean Bersama?
+              </h3>
+              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                Tiket asesmen untuk <strong className="text-gray-800">{peserta.peserta?.nama_lengkap || peserta.nama}</strong> akan dicabut dari <strong className="text-gray-800">{namaPsikolog || "Psikolog Pemeriksa"}</strong> dan dikembalikan ke Kolam Antrean Terbuka. Draf telaah sementara akan dibersihkan agar psikolog pengganti dapat menelaah secara bersih dan independen.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowReleaseConfirm(false)}
+                disabled={isReleasing}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleRelease}
+                disabled={isReleasing}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-sm cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+              >
+                {isReleasing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <span>Ya, Kembalikan ke Antrean</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );

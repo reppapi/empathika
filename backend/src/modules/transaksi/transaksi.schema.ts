@@ -52,17 +52,14 @@ export const adminTransaksiQuerySchema = z.object({
   all: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
 })
 
-// ── Webhook Xendit Callback ──────────────────────────────────────────────────
-export const webhookXenditSchema = z.object({
-  id: z.string().describe('ID Invoice dari Xendit (contoh: inv_123456789)'),
-  external_id: z.string().describe('Kode transaksi yang dikirim saat checkout (kode_transaksi)'),
-  status: z.enum(['PAID', 'EXPIRED', 'FAILED', 'SETTLED']).describe('Status pembayaran dari Xendit'),
-  amount: z.number().describe('Nominal tagihan (contoh: 150000)'),
-  paid_amount: z.number().optional().describe('Nominal yang dibayar'),
-  payment_method: z.string().optional().describe('Metode pembayaran (QRIS, BANK_TRANSFER, dll)'),
-  payment_channel: z.string().optional().describe('Channel pembayaran (BCA, GOPAY, QRIS, dll)'),
-  payer_email: z.string().optional(),
-  paid_at: z.string().optional(),
+// ── Webhook Midtrans Callback ────────────────────────────────────────────────
+export const webhookMidtransSchema = z.object({
+  order_id: z.string().describe('Kode transaksi unik Empathika'),
+  transaction_id: z.string().optional().describe('ID Transaksi dari Midtrans'),
+  transaction_status: z.string().describe('Status transaksi Midtrans (settlement, pending, cancel, dll)'),
+  gross_amount: z.string().describe('Nominal pembayaran'),
+  signature_key: z.string().describe('Signature SHA512 untuk validasi keamanan'),
+  payment_type: z.string().optional().describe('Metode pembayaran (qris, bank_transfer, gopay, dll)'),
 })
 
 export type CreateCheckoutTransaksiInput = z.infer<typeof createCheckoutTransaksiSchema>
@@ -71,4 +68,4 @@ export type UpdateTransaksiInput = z.infer<typeof updateTransaksiSchema>
 export type RefundTransaksiInput = z.infer<typeof refundTransaksiSchema>
 export type AdminTransaksiQueryInput = z.input<typeof adminTransaksiQuerySchema>
 export type AdminTransaksiQueryOutput = z.infer<typeof adminTransaksiQuerySchema>
-export type WebhookXenditInput = z.infer<typeof webhookXenditSchema>
+export type WebhookMidtransInput = z.infer<typeof webhookMidtransSchema>

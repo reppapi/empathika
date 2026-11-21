@@ -192,7 +192,7 @@ export class PsikotesBookingRepository {
       const transaksi = await tx.transaksi.create({
         data: {
           id_client: client.id,
-          id_biro_tenant: idBiro || client.id_biro || null,
+          id_biro_tenant: effectiveBiroId,
           kode_transaksi: kodeTransaksi,
           tipe_transaksi: 'PSIKOTES',
           subtotal: nominal,
@@ -826,6 +826,7 @@ export class PsikotesBookingRepository {
       status_pengerjaan: booking.status_pengerjaan,
       catatan_psikolog: (booking.hasil_tes as any)?.catatan_psikolog || null,
       rekomendasi_psikolog: (booking.hasil_tes as any)?.rekomendasi_psikolog || null,
+      draft_saved_at: (booking.hasil_tes as any)?.draft_saved_at || null,
       tanggal_review: (booking.hasil_tes as any)?.tanggal_review || null,
       paket: booking.paket,
       client: booking.client,
@@ -861,6 +862,7 @@ export class PsikotesBookingRepository {
           (detailSkor?.tanpaSkorTotal ? detailSkor?.deskripsi || null : null),
         catatan_psikolog: (booking.hasil_tes as any).catatan_psikolog || null,
         rekomendasi_psikolog: (booking.hasil_tes as any).rekomendasi_psikolog || null,
+        draft_saved_at: (booking.hasil_tes as any)?.draft_saved_at || null,
         tanggal_review: (booking.hasil_tes as any).tanggal_review || null,
       },
       psikolog: (booking as any).psikolog || null,

@@ -577,6 +577,7 @@ model HasilTes {
   snapshot_jawaban     Json?
   catatan_psikolog     String?  @db.Text
   rekomendasi_psikolog String?  @db.Text
+  draft_saved_at       DateTime? // Waktu terakhir kali draf telaah disimpan oleh psikolog
   tanggal_review       DateTime?
   tanggal_selesai      DateTime @default(now())
   createdAt            DateTime @default(now())
@@ -597,6 +598,7 @@ model BookingPsikotes {
   id_client         String
   id_psikolog       String?
   claimed_at        DateTime?         // Waktu tiket mulai diklaim / di-keep psikolog
+  wa_sent_at        DateTime?         // Waktu konfirmasi pengiriman laporan hasil via WhatsApp oleh admin
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

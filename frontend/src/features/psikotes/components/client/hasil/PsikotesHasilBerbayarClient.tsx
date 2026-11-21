@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
   Download, 
@@ -32,7 +32,6 @@ import HasilMenungguReviewView from "./components/HasilMenungguReviewView";
 import HasilLaporanTerbitView from "./components/HasilLaporanTerbitView";
 import HasilAnalisisScorecardView from "./components/HasilAnalisisScorecardView";
 export default function PsikotesHasilBerbayarClient({ params }: { params: { testId: string } }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { getWhatsAppUrl } = useAdminContact();
   const [isDownloading, setIsDownloading] = useState(false);
@@ -518,8 +517,6 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
         ];
       })()
     : null;
-
-  const catsFungsi = isCATS ? bookingReport?.detailSkor?.fungsiPsikososial : null;
 
   const genericSubscales = rcmasSubscales
     ? rcmasSubscales.map((s) => ({

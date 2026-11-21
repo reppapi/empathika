@@ -443,7 +443,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const currentUrutan = currentQuestion.urutan ?? (currentIndex + 1);
   const isCHOCIKebiasaanStep = Boolean(isCHOCI && currentIndex === 10);
   const isCHOCIPikiranStep = Boolean(isCHOCI && currentIndex === 29);
-  const isCHOCIUnifiedStep = isCHOCIKebiasaanStep || isCHOCIPikiranStep;
 
   // Deteksi apakah ada gejala kompulsi (butir 1–10, index 0–9) pada CHOCI
   const chociHasCompulsionSymptoms = useMemo(() => {
@@ -801,8 +800,6 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       // Ambil data diri peserta:
       // Pada psikotes gratis, peserta tidak mengisi formulir identitas (anonim).
       // Data diri hanya diambil jika paket berbayar dari pendaftaran / formulir identitas peserta.
-      const isPaketGratis = !isPaidFlow;
-
       if (isPaidFlow) {
         pesertaNama = identityData.nama.trim();
         pesertaWa = identityData.noTelepon?.trim() || "";

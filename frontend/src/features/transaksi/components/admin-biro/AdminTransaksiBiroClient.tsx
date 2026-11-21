@@ -917,10 +917,12 @@ export default function AdminTransaksiBiroClient() {
                             <span className="font-medium text-gray-800">Rp. {activeDetailItem.komisiBiro.toLocaleString("id-ID")}</span>
                           </div>
                         )}
-                        <div className="flex justify-between text-gray-600">
-                          <span>Biaya Layanan (Xendit)</span>
-                          <span className="font-medium text-gray-800">Rp. {activeDetailItem.biayaLayanan.toLocaleString("id-ID")}</span>
-                        </div>
+                        {activeDetailItem.biayaLayanan > 0 && (
+                          <div className="flex justify-between text-gray-600">
+                            <span>Biaya Layanan</span>
+                            <span className="font-medium text-gray-800">Rp. {activeDetailItem.biayaLayanan.toLocaleString("id-ID")}</span>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <>
@@ -928,10 +930,12 @@ export default function AdminTransaksiBiroClient() {
                           <span>Subtotal</span>
                           <span className="font-medium text-gray-800">Rp. {activeDetailItem.subtotal.toLocaleString("id-ID")}</span>
                         </div>
-                        <div className="flex justify-between text-gray-600">
-                          <span>Biaya Layanan</span>
-                          <span className="font-medium text-gray-800">Rp. {activeDetailItem.biayaLayanan.toLocaleString("id-ID")}</span>
-                        </div>
+                        {activeDetailItem.biayaLayanan > 0 && (
+                          <div className="flex justify-between text-gray-600">
+                            <span>Biaya Layanan</span>
+                            <span className="font-medium text-gray-800">Rp. {activeDetailItem.biayaLayanan.toLocaleString("id-ID")}</span>
+                          </div>
+                        )}
                       </>
                     )}
                     <div className="h-[1px] w-full bg-gray-200 my-1" />

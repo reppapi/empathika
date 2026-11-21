@@ -71,8 +71,12 @@ export class PsikotesService {
     return this.repo.cleanupOldAnonymousGuests(daysOld)
   }
 
-  async getReviewList(params?: ReviewPsikotesQueryInput) {
-    return this.repo.getReviewList(params)
+  async getReviewList(
+    params?: ReviewPsikotesQueryInput,
+    userId?: string,
+    userRole?: string
+  ) {
+    return this.repo.getReviewList(params, userId, userRole)
   }
 
   async submitReview(
@@ -90,6 +94,10 @@ export class PsikotesService {
 
   async releaseReviewTicket(bookingId: string, userId?: string, userRole?: string) {
     return this.repo.releaseReviewTicket(bookingId, userId, userRole)
+  }
+
+  async toggleWaSentStatus(bookingId: string, forcedSent?: boolean) {
+    return this.repo.toggleWaSentStatus(bookingId, forcedSent)
   }
 }
 

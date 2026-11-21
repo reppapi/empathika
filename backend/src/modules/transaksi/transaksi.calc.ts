@@ -11,15 +11,15 @@ import {
   DP_NOMINAL,
   KOMISI_BIRO_PERSEN,
   KOMISI_BIRO_MODE,
-  XENDIT_FEE,
-  XENDIT_PAYOUT_FLAT,
+  MIDTRANS_FEE,
+  MIDTRANS_PAYOUT_FLAT,
 } from '../../config/transaksi.config'
 
 // ── Tipe dasar ────────────────────────────────────────────────────────
 export type TipeSesi = 'OFFLINE' | 'ONLINE'
 
 export interface HasilBiayaLayanan {
-  biayaLayanan: number // Nominal biaya layanan (fee Xendit, dibulatkan ke atas)
+  biayaLayanan: number // Nominal biaya layanan (fee payment gateway, dibulatkan ke atas)
   total: number        // Total yang dibayar client (harga dasar + komisi biro + biaya layanan)
 }
 
@@ -27,7 +27,7 @@ export interface HasilTransaksi {
   hargaDasar: number       // Harga sesi yang tercantum
   komisiBiro: number       // Komisi untuk biro (0 jika bukan dari web biro)
   subtotalKlien: number    // hargaDasar + komisiBiro (sebelum biaya layanan)
-  biayaLayanan: number     // Fee Xendit yang ditanggung client
+  biayaLayanan: number     // Fee payment gateway yang ditanggung client
   total: number            // Total akhir yang dibayar client
   porsiPsikolog: number    // Bagian psikolog dari harga dasar
   porsiEmpathika: number   // Bagian Empathika dari harga dasar (sisa setelah psikolog)
@@ -40,7 +40,7 @@ export interface HasilDPHangus {
   dikembalikanKeClient: number // Sisa yang dikembalikan ke client
 }
 
-// ── Fungsi 1: Hitung biaya layanan (fee Xendit) ───────────────────────
+// ── Fungsi 1: Hitung biaya layanan (fee payment gateway) ──────────────
 // Menerima subtotal klien (harga dasar + komisi biro) dan jumlah payout,
 // mengembalikan { biayaLayanan, total }.
 // Prinsip: fee persen dihitung dengan pembagian (1 - p/100) agar total
@@ -50,8 +50,9 @@ export function hitungBiayaLayanan(
   metodePembayaran: string,
   jumlahPayout: number
 ): HasilBiayaLayanan {
-  const feeConfig = XENDIT_FEE[metodePembayaran.toUpperCase()] ?? XENDIT_FEE['DEFAULT']
-  const payoutFee = XENDIT_PAYOUT_FLAT * jumlahPayout
+  const feeMap = MIDTRANS_FEE || {}
+  const feeConfig = feeMap[metodePembayaran?.toUpperCase()] ?? feeMap['DEFAULT'] ?? { tipe: 'flat', nilai: 0 }
+  const payoutFee = (MIDTRANS_PAYOUT_FLAT || 0) * jumlahPayout
 
   let total: number
   let biayaLayanan: number

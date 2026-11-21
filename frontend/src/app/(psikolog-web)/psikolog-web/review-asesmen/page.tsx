@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import PsikologReviewAsesmenClient from "@/features/psikotes/components/psikolog/PsikologReviewAsesmenClient";
 
 export const metadata = {
-  title: "Review Asesmen Psikotes - Portal Psikolog Empathika",
+  title: "Review Psikotes - Portal Psikolog Empathika",
   description: "Tinjau dan berikan telaah klinis hasil pengerjaan asesmen psikotes.",
 };
 

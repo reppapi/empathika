@@ -5,14 +5,31 @@ import type {
   SubmitReviewPsikotesInput,
 } from '../psikotes.schema'
 import { formatIndonesianPhone } from '../../../utils'
-import { determineKategoriPeserta } from './peserta-kategori.helper'
 import { purgeExpiredPsikotesData } from './retensi-psikotes.helper'
 
 export class PsikotesReviewRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async getReviewList(params?: ReviewPsikotesQueryInput) {
+  async getReviewList(
+    params?: ReviewPsikotesQueryInput,
+    userId?: string,
+    userRole?: string
+  ) {
     purgeExpiredPsikotesData(this.prisma).catch(() => {})
+
+    // Cari profil psikolog jika pemanggil bukan ADMIN
+    let resolvedPsikologId: string | null = null
+    if (userId) {
+      const psi = await this.prisma.psikolog.findFirst({
+        where: {
+          OR: [{ id_account: userId }, { id: userId }],
+        },
+        select: { id: true },
+      })
+      if (psi) resolvedPsikologId = psi.id
+    }
+
+    const isPsikologPersonal = userRole !== 'ADMIN' && Boolean(resolvedPsikologId)
 
     const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
     const nonExpiredFilter = {
@@ -25,25 +42,52 @@ export class PsikotesReviewRepository {
       ],
     }
 
-    const baseWhere: any = {
-      OR: [
-        { paket: { perlu_review_psikolog: true } },
-        { status_pengerjaan: 'MENUNGGU_REVIEW' },
+    const nonDassFilter: any = {
+      NOT: [
+        { paket: { judul: { contains: 'dass', mode: 'insensitive' } } },
+        { paket: { judul: { contains: 'depresi, kecemasan, dan stres', mode: 'insensitive' } } },
       ],
-      hasil_tes: { isNot: null },
-      AND: [nonExpiredFilter],
     }
 
-    if (params?.status === 'MENUNGGU_REVIEW') {
-      baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
-    } else if (params?.status === 'KOLAM_BERSAMA') {
-      baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
-      baseWhere.id_psikolog = null
-    } else if (params?.status === 'SEDANG_DITELAAH') {
-      baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
-      baseWhere.id_psikolog = { not: null }
-    } else if (params?.status === 'SELESAI') {
-      baseWhere.status_pengerjaan = 'SELESAI'
+    const baseWhere: any = {
+      hasil_tes: { isNot: null },
+      AND: [nonExpiredFilter, nonDassFilter],
+    }
+
+    if (isPsikologPersonal) {
+      if (params?.status === 'MENUNGGU_REVIEW' || params?.status === 'KOLAM_BERSAMA') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+        baseWhere.id_psikolog = null
+      } else if (params?.status === 'SEDANG_DITELAAH') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+        baseWhere.id_psikolog = resolvedPsikologId
+      } else if (params?.status === 'SELESAI') {
+        baseWhere.status_pengerjaan = 'SELESAI'
+        baseWhere.id_psikolog = resolvedPsikologId
+      } else {
+        // params?.status === 'ALL' atau default:
+        // Antrean bersama yang belum diklaim siapapun + tiket ruang kerja psikolog yang bersangkutan
+        baseWhere.OR = [
+          { status_pengerjaan: 'MENUNGGU_REVIEW', id_psikolog: null },
+          { id_psikolog: resolvedPsikologId },
+        ]
+      }
+    } else {
+      baseWhere.OR = [
+        { paket: { perlu_review_psikolog: true } },
+        { status_pengerjaan: 'MENUNGGU_REVIEW' },
+      ]
+      if (params?.status === 'MENUNGGU_REVIEW') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+      } else if (params?.status === 'KOLAM_BERSAMA') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+        baseWhere.id_psikolog = null
+      } else if (params?.status === 'SEDANG_DITELAAH') {
+        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
+        baseWhere.id_psikolog = { not: null }
+      } else if (params?.status === 'SELESAI') {
+        baseWhere.status_pengerjaan = 'SELESAI'
+      }
     }
 
     if (params?.search) {
@@ -51,7 +95,9 @@ export class PsikotesReviewRepository {
       baseWhere.AND.push({
         OR: [
           { client: { nama: { contains: q, mode: 'insensitive' } } },
+          { client: { no_telepon: { contains: q, mode: 'insensitive' } } },
           { peserta_psikotes: { nama_lengkap: { contains: q, mode: 'insensitive' } } },
+          { peserta_psikotes: { no_telepon: { contains: q, mode: 'insensitive' } } },
           { kode_akses: { contains: q, mode: 'insensitive' } },
           { paket: { judul: { contains: q, mode: 'insensitive' } } },
           { transaksi: { kode_transaksi: { contains: q, mode: 'insensitive' } } },
@@ -62,12 +108,17 @@ export class PsikotesReviewRepository {
     const [totalAntrean, kolamBersama, sedangDitelaah, selesaiReview, items] = await Promise.all([
       this.prisma.bookingPsikotes.count({
         where: {
-          OR: [
-            { paket: { perlu_review_psikolog: true } },
-            { status_pengerjaan: 'MENUNGGU_REVIEW' },
-          ],
+          OR: isPsikologPersonal
+            ? [
+                { status_pengerjaan: 'MENUNGGU_REVIEW', id_psikolog: null },
+                { id_psikolog: resolvedPsikologId! },
+              ]
+            : [
+                { paket: { perlu_review_psikolog: true } },
+                { status_pengerjaan: 'MENUNGGU_REVIEW' },
+              ],
           hasil_tes: { isNot: null },
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -79,7 +130,7 @@ export class PsikotesReviewRepository {
           hasil_tes: { isNot: null },
           status_pengerjaan: 'MENUNGGU_REVIEW',
           id_psikolog: null,
-          AND: [nonExpiredFilter],
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -90,8 +141,8 @@ export class PsikotesReviewRepository {
           ],
           hasil_tes: { isNot: null },
           status_pengerjaan: 'MENUNGGU_REVIEW',
-          id_psikolog: { not: null },
-          AND: [nonExpiredFilter],
+          id_psikolog: isPsikologPersonal ? resolvedPsikologId! : { not: null },
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.count({
@@ -102,7 +153,8 @@ export class PsikotesReviewRepository {
           ],
           hasil_tes: { isNot: null },
           status_pengerjaan: 'SELESAI',
-          AND: [nonExpiredFilter],
+          ...(isPsikologPersonal ? { id_psikolog: resolvedPsikologId! } : {}),
+          AND: [nonExpiredFilter, nonDassFilter],
         },
       }),
       this.prisma.bookingPsikotes.findMany({
@@ -224,6 +276,7 @@ export class PsikotesReviewRepository {
           perlu_review_psikolog: (b.paket as any).perlu_review_psikolog,
           catatan_psikolog: (b.hasil_tes as any)?.catatan_psikolog || null,
           rekomendasi_psikolog: (b.hasil_tes as any)?.rekomendasi_psikolog || null,
+          draft_saved_at: (b.hasil_tes as any)?.draft_saved_at || null,
           tanggal_review: (b.hasil_tes as any)?.tanggal_review || null,
           psikolog: (b as any).psikolog
             ? {
@@ -363,12 +416,15 @@ export class PsikotesReviewRepository {
       }
 
       // 1. Update HasilTes
+      const now = new Date()
       const updatedHasil = await tx.hasilTes.update({
         where: { id: booking.hasil_tes.id },
         data: {
           catatan_psikolog: input.catatan_psikolog.trim(),
           rekomendasi_psikolog: input.rekomendasi_psikolog?.trim() || null,
-          tanggal_review: new Date(),
+          ...(input.is_draft
+            ? ({ draft_saved_at: now } as any)
+            : { tanggal_review: now }),
         },
       })
 
@@ -585,6 +641,22 @@ export class PsikotesReviewRepository {
             bookingId
           )
         } catch {}
+      }
+
+      // Bersihkan draf telaah psikolog lama agar psikolog baru memulai secara bersih, netral, & independen
+      if (tx.hasilTes && typeof tx.hasilTes.updateMany === 'function') {
+        try {
+          await tx.hasilTes.updateMany({
+            where: { id_booking: bookingId },
+            data: {
+              catatan_psikolog: null,
+              rekomendasi_psikolog: null,
+              draft_saved_at: null,
+            },
+          })
+        } catch (e) {
+          console.warn('[ReleaseReviewTicket] Gagal mereset draft hasil_tes:', e)
+        }
       }
 
       return {

@@ -3,22 +3,27 @@
 // Unit test untuk fungsi perhitungan transaksi (vitest)
 // =====================================================================
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // ── Mock config sebelum import calc ──────────────────────────────────
-vi.mock('../../config/transaksi.config', () => ({
-  PERSEN_PSIKOLOG: { OFFLINE: 60, ONLINE: 50 },
-  DP_NOMINAL: 150_000,
-  KOMISI_BIRO_PERSEN: 10, // Gunakan 10% sebagai contoh untuk tes komisi
-  KOMISI_BIRO_MODE: 'ditambah_ke_client',
-  XENDIT_FEE: {
+vi.mock('../../config/transaksi.config', () => {
+  const feeMock = {
     QRIS:          { tipe: 'persen', nilai: 1 },   // 1% untuk tes (mudah dihitung)
     E_WALLET:      { tipe: 'persen', nilai: 2 },   // 2% untuk tes
     TRANSFER_BANK: { tipe: 'flat',   nilai: 4_000 }, // Rp4.000 flat untuk tes
     DEFAULT:       { tipe: 'flat',   nilai: 0 },
-  },
-  XENDIT_PAYOUT_FLAT: 2_500, // Rp2.500 per payout untuk tes
-}))
+  }
+  return {
+    PERSEN_PSIKOLOG: { OFFLINE: 60, ONLINE: 50 },
+    DP_NOMINAL: 150_000,
+    KOMISI_BIRO_PERSEN: 10,
+    KOMISI_BIRO_MODE: 'ditambah_ke_client',
+    MIDTRANS_FEE: feeMock,
+    XENDIT_FEE: feeMock,
+    MIDTRANS_PAYOUT_FLAT: 2_500,
+    XENDIT_PAYOUT_FLAT: 2_500,
+  }
+})
 
 import {
   hitungBiayaLayanan,

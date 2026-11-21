@@ -421,7 +421,6 @@ export class TransaksiRepository {
       }
 
       const totalTransaksi = Number(transaksi.total)
-      const hargaDasar = transaksi.harga_dasar ? Number(transaksi.harga_dasar) : totalTransaksi
 
       // ── Skema Refund Baru (menggantikan aturan 70/30 yang sudah dihapus) ──────
       // Nominal yang ditahan adalah tetap Rp150.000, berlaku berapa pun harga sesi.

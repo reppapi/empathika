@@ -344,7 +344,19 @@ export class PsikotesController {
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.getReviewList(request.query)
+      let user = (request as any).user as { id?: string; role?: string } | undefined
+      if (!user && (request as any).jwtVerify) {
+        try {
+          await (request as any).jwtVerify()
+          user = (request as any).user
+        } catch {}
+      }
+
+      const data = await this.service.getReviewList(
+        request.query,
+        user?.id,
+        user?.role
+      )
       return reply.code(200).send({
         success: true,
         message: 'Berhasil mengambil daftar antrean review asesmen psikotes',
@@ -447,6 +459,33 @@ export class PsikotesController {
       return reply.code(statusCode).send({
         success: false,
         message: err.message || 'Gagal melepas tiket asesmen.',
+      })
+    }
+  }
+
+  toggleWaStatus = async (
+    request: FastifyRequest<{
+      Params: { bookingId: string }
+      Body?: { sent?: boolean }
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const { bookingId } = request.params
+      const forcedSent = request.body?.sent
+      const data = await this.service.toggleWaSentStatus(bookingId, forcedSent)
+      return reply.code(200).send({
+        success: true,
+        message: data.is_wa_sent
+          ? 'Hasil laporan psikotes berhasil ditandai telah dikirim via WhatsApp.'
+          : 'Tanda pengiriman WhatsApp berhasil dibatalkan.',
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal memperbarui status pengiriman WhatsApp.',
       })
     }
   }

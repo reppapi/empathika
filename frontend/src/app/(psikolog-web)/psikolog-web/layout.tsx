@@ -9,6 +9,7 @@ import { LOCAL_STORAGE_KEY_TENAGA } from "@/features/psikolog/data/initialData"
 import { TenagaAhli } from "@/features/psikolog/types"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { psikologService } from "@/services/psikolog.service"
+import { psikotesService } from "@/services/psikotes.service"
 import { useAuthStore } from "@/store/authStore"
 import { AuthGuard } from "@/components/shared/AuthGuard"
 
@@ -121,6 +122,33 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
     }
   }, [pathname])
 
+  const [reviewBadgeCount, setReviewBadgeCount] = useState<number>(0)
+
+  useEffect(() => {
+    if (!currentPsikolog?.isReviewerPsikotes) return
+    let isMounted = true
+    const fetchBadge = async () => {
+      try {
+        const res = await psikotesService.getReviewList({ status: "MENUNGGU_REVIEW" })
+        if (isMounted && res.data) {
+          const unassignedCount =
+            typeof res.data.summary?.kolam_bersama === "number"
+              ? res.data.summary.kolam_bersama
+              : res.data.items.filter(
+                  (i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog
+                ).length
+          setReviewBadgeCount(unassignedCount)
+        }
+      } catch {}
+    }
+    fetchBadge()
+    const timer = setInterval(fetchBadge, 60000)
+    return () => {
+      isMounted = false
+      clearInterval(timer)
+    }
+  }, [currentPsikolog?.isReviewerPsikotes, currentPsikolog?.id, pathname])
+
   const isDedicatedEditor = Boolean(
     pathname?.startsWith("/psikolog-web/review-asesmen/") && pathname !== "/psikolog-web/review-asesmen"
   )
@@ -131,7 +159,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   } else if (pathname?.startsWith("/psikolog-web/profile") || pathname?.startsWith("/profile") || pathname?.startsWith("/admin/psikolog-web/profile")) {
     pageTitle = "Profil Saya"
   } else if (pathname?.startsWith("/psikolog-web/review-asesmen")) {
-    pageTitle = "Review Asesmen Psikotes"
+    pageTitle = "Review Psikotes"
   } else {
     pageTitle = "Beranda"
   }
@@ -183,6 +211,7 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           isReviewer={Boolean(currentPsikolog?.isReviewerPsikotes)}
+          reviewBadgeCount={reviewBadgeCount}
         />
 
         {/* Area Konten Kanan */}

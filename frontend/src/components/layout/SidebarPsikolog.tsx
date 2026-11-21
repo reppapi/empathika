@@ -8,9 +8,10 @@ interface SidebarPsikologProps {
   isOpen?: boolean
   onClose?: () => void
   isReviewer?: boolean
+  reviewBadgeCount?: number
 }
 
-export function SidebarPsikolog({ isOpen, onClose, isReviewer = false }: SidebarPsikologProps) {
+export function SidebarPsikolog({ isOpen, onClose, isReviewer = false, reviewBadgeCount = 0 }: SidebarPsikologProps) {
   const pathname = usePathname()
 
   const isActive = (path: string) => {
@@ -21,7 +22,7 @@ export function SidebarPsikolog({ isOpen, onClose, isReviewer = false }: Sidebar
   const navItems = [
     { name: "Beranda", path: "/psikolog-web/beranda" },
     { name: "Jadwal & Sesi", path: "/psikolog-web/jadwal" },
-    ...(isReviewer ? [{ name: "Review Asesmen", path: "/psikolog-web/review-asesmen" }] : []),
+    ...(isReviewer ? [{ name: "Review Psikotes", path: "/psikolog-web/review-asesmen", badge: reviewBadgeCount }] : []),
   ]
 
   return (
@@ -65,12 +66,17 @@ export function SidebarPsikolog({ isOpen, onClose, isReviewer = false }: Sidebar
                   href={item.path as any}
                   prefetch={true}
                   onClick={onClose}
-                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${active
+                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors flex items-center justify-between gap-2 [-webkit-tap-highlight-color:transparent] ${active
                       ? "w-full bg-white/25 text-white shadow-sm font-semibold"
                       : "text-white/90 hover:bg-white/10"
                     }`}
                 >
-                  {item.name}
+                  <span className="truncate">{item.name}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500 text-white shadow-xs animate-pulse shrink-0">
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  )}
                 </Link>
               )
             })}
