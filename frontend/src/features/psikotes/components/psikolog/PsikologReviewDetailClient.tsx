@@ -143,7 +143,7 @@ export default function PsikologReviewDetailClient({
             <button
               type="button"
               onClick={() => router.push("/psikolog-web/review-asesmen")}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Kembali ke Daftar Antrean</span>

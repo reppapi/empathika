@@ -570,10 +570,10 @@ export default function PsikologReviewAsesmenClient() {
           <button
             type="button"
             onClick={() => setActiveTab("SEDANG_DITINJAU")}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] active:scale-95 text-white text-xs font-bold shadow-xs hover:shadow transition-all shrink-0 cursor-pointer self-start sm:self-auto"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] active:scale-95 text-gray-950 text-xs font-bold shadow-xs hover:shadow transition-all shrink-0 cursor-pointer self-start sm:self-auto"
           >
             <span>Lanjutkan Tinjauan</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-3.5 h-3.5 text-gray-950" />
           </button>
         </div>
       )}
@@ -920,10 +920,10 @@ export default function PsikologReviewAsesmenClient() {
                                 type="button"
                                 onClick={() => handleClaimAndReview(item)}
                                 disabled={actionLoadingId === item.id}
-                                className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-50 min-w-[76px]"
+                                className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-50 min-w-[76px]"
                               >
                                 {actionLoadingId === item.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-950" />
                                 ) : (
                                   <span>Tinjau</span>
                                 )}
@@ -933,10 +933,10 @@ export default function PsikologReviewAsesmenClient() {
                                 type="button"
                                 onClick={() => handleClaimAndReview(item)}
                                 disabled={actionLoadingId === item.id}
-                                className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-50 min-w-[76px]"
+                                className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer disabled:opacity-50 min-w-[76px]"
                               >
                                 {actionLoadingId === item.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-950" />
                                 ) : (
                                   <span>Lanjutkan</span>
                                 )}
@@ -1058,7 +1058,7 @@ export default function PsikologReviewAsesmenClient() {
               <button
                 type="button"
                 onClick={executeClaim}
-                className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-xs font-bold text-white shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
+                className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-xs font-bold text-gray-950 shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
               >
                 {confirmModal.isTakeover ? "Ambil Alih & Tinjau" : "Ambil & Tinjau"}
               </button>

@@ -1569,7 +1569,7 @@ export default function ModalReviewPsikotes({
                   setShowPublishConfirmModal(true);
                 }}
                 disabled={isSubmitting || isSavingDraft || !pages.some((p) => p.trim().length > 0)}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
               >
                 {isSubmitting ? (
                   <>
@@ -2321,7 +2321,7 @@ export default function ModalReviewPsikotes({
                     setIsSavingAndExiting(false);
                   }
                 }}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold shadow-xs transition cursor-pointer active:scale-95 disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-xs transition cursor-pointer active:scale-95 disabled:opacity-50"
               >
                 {isSavingAndExiting ? (
                   <>
@@ -2407,7 +2407,7 @@ export default function ModalReviewPsikotes({
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleExecutePublish}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-bold shadow-sm hover:shadow transition cursor-pointer active:scale-95 disabled:opacity-50"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-sm hover:shadow transition cursor-pointer active:scale-95 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
