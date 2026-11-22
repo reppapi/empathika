@@ -115,7 +115,12 @@ export default function TabPesertaPsikotes({
           p.paket?.toLowerCase().includes("dass") ||
           p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
         );
-        return !isDass && Boolean(p.perlu_review_psikolog || p.paket?.toLowerCase().includes("mcmi"));
+        return !isDass && Boolean(
+          p.perlu_review_psikolog ||
+          p.paket?.toLowerCase().includes("mcmi") ||
+          p.paket?.toLowerCase().includes("pola klinis") ||
+          p.paket?.toLowerCase().includes("multiaxial")
+        );
       });
     }
     const lower = selectedPaket.toLowerCase();
@@ -127,9 +132,14 @@ export default function TabPesertaPsikotes({
       (p) => (p.paket || "").toLowerCase().includes(lower) || lower.includes((p.paket || "").toLowerCase())
     );
     if (match) {
-      return Boolean(match.perlu_review_psikolog || match.paket?.toLowerCase().includes("mcmi"));
+      return Boolean(
+        match.perlu_review_psikolog ||
+        match.paket?.toLowerCase().includes("mcmi") ||
+        match.paket?.toLowerCase().includes("pola klinis") ||
+        match.paket?.toLowerCase().includes("multiaxial")
+      );
     }
-    return lower.includes("mcmi");
+    return lower.includes("mcmi") || lower.includes("pola klinis") || lower.includes("multiaxial");
   }, [selectedPaket, scopedPesertaList]);
 
   // Reset status filter ke ALL jika paket yang dipilih tidak memerlukan review klinis
@@ -154,7 +164,9 @@ export default function TabPesertaPsikotes({
       );
       const isNeedReview = !isDass && Boolean(
         p.perlu_review_psikolog ||
-        p.paket?.toLowerCase().includes("mcmi")
+        p.paket?.toLowerCase().includes("mcmi") ||
+        p.paket?.toLowerCase().includes("pola klinis") ||
+        p.paket?.toLowerCase().includes("multiaxial")
       );
 
       const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
@@ -196,7 +208,9 @@ export default function TabPesertaPsikotes({
       );
       const isNeedReview = !isDass && Boolean(
         p.perlu_review_psikolog ||
-        p.paket?.toLowerCase().includes("mcmi")
+        p.paket?.toLowerCase().includes("mcmi") ||
+        p.paket?.toLowerCase().includes("pola klinis") ||
+        p.paket?.toLowerCase().includes("multiaxial")
       );
       const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
       if (!isMenunggu || !p.psikolog) return false;
@@ -216,7 +230,9 @@ export default function TabPesertaPsikotes({
       );
       const isNeedReview = !isDass && Boolean(
         p.perlu_review_psikolog ||
-        p.paket?.toLowerCase().includes("mcmi")
+        p.paket?.toLowerCase().includes("mcmi") ||
+        p.paket?.toLowerCase().includes("pola klinis") ||
+        p.paket?.toLowerCase().includes("multiaxial")
       );
       const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
       if (!isMenunggu || p.psikolog || p.id_psikolog) return false;
@@ -273,7 +289,9 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
       );
       const isNeedReview = !isDass && Boolean(
         peserta.perlu_review_psikolog ||
-        peserta.paket?.toLowerCase().includes("mcmi")
+        peserta.paket?.toLowerCase().includes("mcmi") ||
+        peserta.paket?.toLowerCase().includes("pola klinis") ||
+        peserta.paket?.toLowerCase().includes("multiaxial")
       );
       const isMenungguReview = isNeedReview && (peserta.status === "Menunggu Review" || peserta.status_pengerjaan === "MENUNGGU_REVIEW");
       const isSelesaiStatus = !isMenungguReview && (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI" || Boolean(peserta.hasil));

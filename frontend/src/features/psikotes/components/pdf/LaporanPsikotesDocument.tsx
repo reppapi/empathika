@@ -793,6 +793,24 @@ export interface PdfBlock {
   indentLevel: number;
 }
 
+function toRoman(num: number): string {
+  const map: [number, string][] = [
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"],
+  ];
+  let res = "";
+  for (const [v, s] of map) {
+    while (num >= v) {
+      res += s;
+      num -= v;
+    }
+  }
+  return res || "I";
+}
+
 /** Mengekstrak blok-blok konten terstruktur (List, First Line Indent, Hanging Indent, Paragraph, Soft Breaks) */
 export function extractPdfBlocksFromContent(rawPageText: string): PdfBlock[] {
   if (!rawPageText || !rawPageText.trim()) return [{ type: "empty", content: "", indentLevel: 0 }];
@@ -800,15 +818,84 @@ export function extractPdfBlocksFromContent(rawPageText: string): PdfBlock[] {
   const blocks: PdfBlock[] = [];
 
   if (/<[a-z][\s\S]*>/i.test(text)) {
-    // 1. Tangkap setiap blok pembungkus <div> atau <p>
-    const blockRegex = /<(?:div|p)([^>]*)>([\s\S]*?)<\/(?:div|p)>/gi;
+    // 1. Tangkap setiap blok pembungkus: ol, ul, p, atau div
+    const blockRegex = /<(ol|ul|p|div)([^>]*)>([\s\S]*?)<\/\1>/gi;
     let match: RegExpExecArray | null;
     let matchedAny = false;
 
     while ((match = blockRegex.exec(text)) !== null) {
       matchedAny = true;
-      const attrs = match[1] || "";
-      let inner = match[2] || "";
+      const tag = match[1].toLowerCase();
+      const attrs = match[2] || "";
+      let inner = match[3] || "";
+
+      if (tag === "ol") {
+        const isRoman = attrs.includes('type="I"') || attrs.includes("list-roman") || attrs.includes("upper-roman");
+        const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+        let liMatch: RegExpExecArray | null;
+        let itemNum = 1;
+
+        while ((liMatch = liRegex.exec(inner)) !== null) {
+          let liContent = liMatch[1] || "";
+          liContent = liContent.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "$1\n");
+          liContent = liContent.replace(/<br\s*\/?>/gi, "\n");
+          liContent = liContent.replace(/&nbsp;|\u00a0/gi, " ");
+          liContent = liContent
+            .replace(/&amp;/gi, "&")
+            .replace(/&lt;/gi, "<")
+            .replace(/&gt;/gi, ">")
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/gi, "'");
+          liContent = liContent.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
+
+          const cleanText = liContent.replace(/<[^>]+>/g, "").trim();
+          if (!cleanText) continue;
+
+          const markerText = isRoman ? `${toRoman(itemNum)}.` : `${itemNum}.`;
+          const markerWidth = Math.max(16, markerText.length * 7);
+
+          blocks.push({
+            type: "list",
+            marker: markerText,
+            markerWidth,
+            content: liContent.trim(),
+            indentLevel: 0,
+          });
+          itemNum++;
+        }
+        continue;
+      }
+
+      if (tag === "ul") {
+        const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+        let liMatch: RegExpExecArray | null;
+
+        while ((liMatch = liRegex.exec(inner)) !== null) {
+          let liContent = liMatch[1] || "";
+          liContent = liContent.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "$1\n");
+          liContent = liContent.replace(/<br\s*\/?>/gi, "\n");
+          liContent = liContent.replace(/&nbsp;|\u00a0/gi, " ");
+          liContent = liContent
+            .replace(/&amp;/gi, "&")
+            .replace(/&lt;/gi, "<")
+            .replace(/&gt;/gi, ">")
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/gi, "'");
+          liContent = liContent.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
+
+          const cleanText = liContent.replace(/<[^>]+>/g, "").trim();
+          if (!cleanText) continue;
+
+          blocks.push({
+            type: "list",
+            marker: "•",
+            markerWidth: 16,
+            content: liContent.trim(),
+            indentLevel: 0,
+          });
+        }
+        continue;
+      }
 
       // Bersihkan & konversi <br> menjadi newline '\n' (SOFT LINE BREAK DALAM PARAGRAF YANG SAMA)
       inner = inner.replace(/<br\s*\/?>/gi, "\n");
@@ -827,61 +914,7 @@ export function extractPdfBlocksFromContent(rawPageText: string): PdfBlock[] {
         continue;
       }
 
-      // A. First Line Indent (Hanya baris pertama yang menjorok)
-      const isFirstLineIndent =
-        attrs.includes("data-first-line-indent") ||
-        attrs.includes("editor-first-line-indent");
-      if (isFirstLineIndent) {
-        blocks.push({
-          type: "first-line-indent",
-          content: inner.trim(),
-          indentLevel: 0,
-        });
-        continue;
-      }
-
-      // B. List Item (Numbered, Roman, Letter, Bullet dengan Hanging Indent)
-      const isListItem = attrs.includes("editor-list-item");
-      const listMatch = inner.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(?:\t|\s+)([\s\S]*)$/);
-      if (isListItem || listMatch) {
-        const markerRaw = listMatch ? listMatch[2] : "";
-        const content = listMatch ? listMatch[4] : inner;
-        let indentLevel = 0;
-
-        const classLevelMatch = attrs.match(/editor-list-item-(\d+)/i);
-        if (classLevelMatch) {
-          indentLevel = parseInt(classLevelMatch[1], 10);
-        } else if (listMatch && listMatch[1]) {
-          indentLevel = Math.floor(listMatch[1].length / 4);
-        }
-
-        const markerText = markerRaw === "-" || markerRaw === "*" ? "•" : markerRaw;
-        const markerWidth = Math.max(16, (markerText ? markerText.length : 2) * 7);
-
-        blocks.push({
-          type: "list",
-          marker: markerText,
-          markerWidth,
-          content: content.trim(),
-          indentLevel,
-        });
-        continue;
-      }
-
-      // C. Hanging Indent (Non-list)
-      const isHangingIndent =
-        attrs.includes("data-hanging-indent") ||
-        attrs.includes("editor-hanging-indent");
-      if (isHangingIndent) {
-        blocks.push({
-          type: "hanging-indent",
-          content: inner.trim(),
-          indentLevel: 0,
-        });
-        continue;
-      }
-
-      // D. Paragraf Biasa atau Tab Indent
+      // Hitung indentLevel dasar dari atribut tag (data-indent, editor-indent-X, padding-left)
       let indentLevel = 0;
       const dataIndentMatch = attrs.match(/data-indent="(\d+)"/i);
       const classIndentMatch = attrs.match(/editor-indent-(\d+)/i);
@@ -898,6 +931,61 @@ export function extractPdfBlocksFromContent(rawPageText: string): PdfBlock[] {
         }
       }
 
+      // A. First Line Indent (Hanya baris pertama yang menjorok)
+      const isFirstLineIndent =
+        attrs.includes("data-first-line-indent") ||
+        attrs.includes("editor-first-line-indent");
+      if (isFirstLineIndent) {
+        blocks.push({
+          type: "first-line-indent",
+          content: inner.trim(),
+          indentLevel,
+        });
+        continue;
+      }
+
+      // B. List Item (Numbered, Roman, Letter, Bullet dengan Hanging Indent)
+      const isListItem = attrs.includes("editor-list-item");
+      const listMatch = inner.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(?:\t|\s+)([\s\S]*)$/);
+      if (isListItem || listMatch) {
+        const markerRaw = listMatch ? listMatch[2] : "";
+        const content = listMatch ? listMatch[4] : inner;
+        let listIndentLevel = indentLevel;
+
+        const classLevelMatch = attrs.match(/editor-list-item-(\d+)/i);
+        if (classLevelMatch) {
+          listIndentLevel = parseInt(classLevelMatch[1], 10);
+        } else if (listMatch && listMatch[1]) {
+          listIndentLevel = Math.floor(listMatch[1].length / 4);
+        }
+
+        const markerText = markerRaw === "-" || markerRaw === "*" ? "•" : markerRaw;
+        const markerWidth = Math.max(16, (markerText ? markerText.length : 2) * 7);
+
+        blocks.push({
+          type: "list",
+          marker: markerText,
+          markerWidth,
+          content: content.trim(),
+          indentLevel: listIndentLevel,
+        });
+        continue;
+      }
+
+      // C. Hanging Indent (Non-list)
+      const isHangingIndent =
+        attrs.includes("data-hanging-indent") ||
+        attrs.includes("editor-hanging-indent");
+      if (isHangingIndent) {
+        blocks.push({
+          type: "hanging-indent",
+          content: inner.trim(),
+          indentLevel,
+        });
+        continue;
+      }
+
+      // D. Paragraf Biasa atau Tab Indent
       blocks.push({
         type: "paragraph",
         content: inner.trim(),

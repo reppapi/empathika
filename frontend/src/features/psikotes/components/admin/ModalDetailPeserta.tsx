@@ -62,7 +62,9 @@ export default function ModalDetailPeserta({
   );
   const isNeedReview = !isDass && Boolean(
     peserta.perlu_review_psikolog ||
-    peserta.paket?.toLowerCase().includes("mcmi")
+    peserta.paket?.toLowerCase().includes("mcmi") ||
+    peserta.paket?.toLowerCase().includes("pola klinis") ||
+    peserta.paket?.toLowerCase().includes("multiaxial")
   );
 
   const isMenungguReview =

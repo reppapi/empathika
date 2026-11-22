@@ -55,7 +55,7 @@ export function getInstrumentCode(
 
   // 2. Prioritas Kedua: Akronim Spesifik pada Judul
   const j = (data?.judul || "").toUpperCase();
-  if (j.includes("(MCMI") || j.includes("MCMI-IV") || j.includes("MCMI") || j.includes("MILLON") || j.includes("MULTIAXIAL")) return "MCMI";
+  if (j.includes("(MCMI") || j.includes("MCMI-IV") || j.includes("MCMI") || j.includes("MILLON") || j.includes("MULTIAXIAL") || j.includes("POLA KLINIS") || j.includes("KEPRIBADIAN DAN POLA KLINIS")) return "MCMI";
   if (j.includes("(CATS)") || j.includes(" CATS") || j.includes("TRAUMA SCREEN") || j.includes("PENGALAMAN TRAUMATIS") || j.includes("PASCATRAUMA")) return "CATS";
   if (j.includes("(CDI)") || j.includes(" CDI") || j.includes("CHILDREN'S DEPRESSION") || j.includes("DEPRESI ANAK")) return "CDI";
   if (j.includes("(PBQ)") || j.includes(" PBQ") || j.includes("POLA KEYAKINAN KEPRIBADIAN") || j.includes("KEYAKINAN DAN POLA KEPRIBADIAN")) return "PBQ";

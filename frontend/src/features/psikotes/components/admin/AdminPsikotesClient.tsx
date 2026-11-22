@@ -18,7 +18,6 @@ import ModalDetailPeserta from "./ModalDetailPeserta";
 import ModalDetailPaket from "./ModalDetailPaket";
 import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
-import { calculateReviewSla } from "../../utils/reviewSla";
 
 export interface AdminPsikotesClientProps {
   isBiroContext?: boolean;
@@ -111,152 +110,11 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
               }
             : null,
         }));
-        // Cek & pastikan ada contoh data tiket kolam antrean (belum diklaim) yang mendekati batas SLA (H-1)
-        // Cek & pastikan ada contoh data tiket kolam antrean (belum diklaim) yang mendekati batas SLA (H-1)
-        // Hanya diinjeksikan untuk Admin Pusat (bukan Admin Biro)
-        if (!isBiroContext) {
-          const hasUnclaimedUrgent = mapped.some((it) => {
-            if (it.psikolog || it.id_psikolog) return false;
-            const isNeedReview = Boolean(
-              it.perlu_review_psikolog ||
-              it.paket?.toLowerCase().includes("mcmi")
-            );
-            if (!isNeedReview) return false;
-            if (it.status_pengerjaan !== "MENUNGGU_REVIEW" && it.status !== "Menunggu Review") return false;
-            const sla = calculateReviewSla(it.rawTanggal || it.tanggal);
-            const diff = (sla.deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60);
-            return sla.isOverdue || diff <= 24;
-          });
-
-          if (!hasUnclaimedUrgent) {
-            // Tanggal pengerjaan ~2 hari yang lalu sehingga sisa batas SLA masuk H-1 (<= 24 jam)
-            const sampleDate = new Date(Date.now() - 50 * 60 * 60 * 1000);
-            mapped.unshift({
-              id: "sample-unclaimed-urgent-1",
-              nama: "Farhan Mahendra",
-              noHp: "0812-3456-7890",
-              paket: "Tes Kepribadian Klinis dan Sindroma Multiaxial (MCMI-IV)",
-              kodeAkses: "MCMI-SMPL-0921",
-              tanggal: sampleDate.toLocaleDateString("id-ID", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              }),
-              rawTanggal: sampleDate.toISOString(),
-              status: "Menunggu Review" as any,
-              status_pengerjaan: "MENUNGGU_REVIEW",
-              perlu_review_psikolog: true,
-              namaBiro: "Empathika (Pusat)",
-              nama_biro: "Empathika (Pusat)",
-              is_biro: false,
-              id_psikolog: null,
-              psikolog: null,
-              claimed_at: null,
-              wa_sent_at: null,
-              is_wa_sent: false,
-              skor: "-",
-              totalSkor: 0,
-              jenisAkses: "Berbayar",
-              usia: 24,
-              jenisKelamin: "Laki-laki",
-              peserta: {
-                nama_lengkap: "Farhan Mahendra",
-                usia: 24,
-                jenis_kelamin: "Laki-laki",
-              },
-            });
-          }
-        }
-
         setPesertaList(mapped);
       }
     } catch (err) {
       console.error("Gagal membaca data peserta dari server:", err);
-      // Fallback contoh data khusus Admin Pusat (jangan diinjeksikan ke Admin Biro)
-      if (isBiroContext) {
-        setPesertaList([]);
-      } else {
-        const sampleDate = new Date(Date.now() - 50 * 60 * 60 * 1000);
-        const sampleKeepDate = new Date(Date.now() - 52 * 60 * 60 * 1000);
-        setPesertaList([
-          {
-            id: "sample-unclaimed-urgent-1",
-            nama: "Farhan Mahendra",
-            noHp: "0812-3456-7890",
-            paket: "Tes Kepribadian Klinis dan Sindroma Multiaxial (MCMI-IV)",
-            kodeAkses: "MCMI-SMPL-0921",
-            tanggal: sampleDate.toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }),
-            rawTanggal: sampleDate.toISOString(),
-            status: "Menunggu Review" as any,
-            status_pengerjaan: "MENUNGGU_REVIEW",
-            perlu_review_psikolog: true,
-            namaBiro: "Empathika (Pusat)",
-            nama_biro: "Empathika (Pusat)",
-            is_biro: false,
-            id_psikolog: null,
-            psikolog: null,
-            claimed_at: null,
-            wa_sent_at: null,
-            is_wa_sent: false,
-            skor: "-",
-            totalSkor: 0,
-            jenisAkses: "Berbayar",
-            usia: 24,
-            jenisKelamin: "Laki-laki",
-            peserta: {
-              nama_lengkap: "Farhan Mahendra",
-              usia: 24,
-              jenis_kelamin: "Laki-laki",
-            },
-          },
-          {
-            id: "sample-urgent-keep-1",
-            nama: "Niha April",
-            noHp: "0877-6655-4433",
-            paket: "Tes Kepribadian Klinis dan Sindroma Multiaxial (MCMI-IV)",
-            kodeAkses: "MCMI-SMPL-8821",
-            tanggal: sampleKeepDate.toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }),
-            rawTanggal: sampleKeepDate.toISOString(),
-            status: "Menunggu Review" as any,
-            status_pengerjaan: "MENUNGGU_REVIEW",
-            perlu_review_psikolog: true,
-            namaBiro: "Empathika (Pusat)",
-            nama_biro: "Empathika (Pusat)",
-            is_biro: false,
-            id_psikolog: "psi-jane-doe",
-            psikolog: {
-              id: "psi-jane-doe",
-              nama: "Dr. Jane Doe, M.Psi., Psikolog",
-              nama_gelar: "Dr. Jane Doe, M.Psi., Psikolog",
-              kategori: "Psikolog Klinis Dewasa",
-              foto: null,
-              no_telepon: "0812-9876-5432",
-              email: "jane.doe@empathika.test",
-            },
-            claimed_at: sampleKeepDate.toISOString(),
-            wa_sent_at: null,
-            is_wa_sent: false,
-            skor: "-",
-            totalSkor: 0,
-            jenisAkses: "Berbayar",
-            usia: 23,
-            jenisKelamin: "Perempuan",
-            peserta: {
-              nama_lengkap: "Niha April",
-              usia: 23,
-              jenis_kelamin: "Perempuan",
-            },
-          },
-        ]);
-      }
+      setPesertaList([]);
     } finally {
       setIsLoadingPeserta(false);
     }

@@ -353,39 +353,6 @@ export default function PsikologReviewAsesmenClient() {
     };
   }, [data?.items, data?.summary, isMyItem]);
 
-  const slaStats = useMemo(() => {
-    if (!data?.items) return { overdueCount: 0, urgentCount: 0, kritisCount: 0, prioritasCount: 0, normalCount: 0 };
-    // SLA stats fokus pada kolam terbuka + tugas pribadi yang belum selesai
-    const menunggu = data.items.filter(
-      (i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && (!i.id_psikolog || isMyItem(i))
-    );
-    let overdueCount = 0;
-    let urgentCount = 0;
-    let kritisCount = 0;
-    let prioritasCount = 0;
-    let normalCount = 0;
-    const nowMs = Date.now();
-
-    for (const item of menunggu) {
-      const sla = calculateReviewSla(item.tanggal_pengerjaan);
-      const diffMs = sla.deadlineDate.getTime() - nowMs;
-      const diffHours = diffMs / (1000 * 60 * 60);
-
-      if (sla.isOverdue) {
-        overdueCount++;
-        kritisCount++;
-      } else if (diffHours <= 24) {
-        urgentCount++;
-        kritisCount++;
-      } else if (diffHours <= 48) {
-        prioritasCount++;
-      } else {
-        normalCount++;
-      }
-    }
-    return { overdueCount, urgentCount, kritisCount, prioritasCount, normalCount };
-  }, [data?.items, isMyItem]);
-
   // Hitung jumlah tugas yang sedang ditinjau dan menjadi tanggung jawab psikolog yang sedang login
   const myIncompleteReviews = useMemo(() => {
     if (!data?.items) return [];
@@ -576,37 +543,6 @@ export default function PsikologReviewAsesmenClient() {
           >
             <span>Lanjutkan Tinjauan</span>
             <ArrowRight className="w-3.5 h-3.5 text-gray-950" />
-          </button>
-        </div>
-      )}
-
-      {/* Banner Prioritas / Paling Mendesak */}
-      {slaStats.kritisCount > 0 && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-600 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-white font-bold">
-              <AlertCircle className="w-5 h-5 text-white animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm sm:text-base tracking-tight">
-                  Prioritas Mendesak: {slaStats.kritisCount} Asesmen Mendekati Batas SLA
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-white text-rose-700 text-[10px] font-black uppercase tracking-wider">
-                  ≤ 24 Jam / Overdue
-                </span>
-              </div>
-              <p className="text-xs text-rose-100 mt-0.5 leading-relaxed">
-                Antrean di bawah otomatis diurutkan berdasarkan batas waktu terdekat (<em>Urgency First</em>). Mohon prioritaskan tiket bertanda merah sebelum tenggat berakhir.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setActiveTab(myCounts.kolam_bersama > 0 ? "MENUNGGU_TINJAU" : "SEDANG_DITINJAU")}
-            className="px-4 py-2 rounded-xl bg-white text-rose-700 hover:bg-rose-50 text-xs font-bold transition-all shadow-sm shrink-0 self-start sm:self-auto cursor-pointer"
-          >
-            Fokus Antrean Mendesak
           </button>
         </div>
       )}
