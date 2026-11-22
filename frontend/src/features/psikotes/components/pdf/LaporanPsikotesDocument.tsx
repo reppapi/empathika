@@ -615,6 +615,9 @@ const officialStyles = StyleSheet.create({
   bodyItalic: {
     fontFamily: "Times-Italic",
   },
+  bodyUnderline: {
+    textDecoration: "underline",
+  },
 
   // 5. TANDA TANGAN PSIKOLOG RESMI
   signatureContainer: {
@@ -718,10 +721,10 @@ function formatIdDate(val?: string | null, fallbackToNow = false): string {
   return val || "-";
 }
 
-/** Parser inline formatting markdown (tebal & miring) untuk teks telaah */
+/** Parser inline formatting WYSIWYG & markdown (tebal, miring, garis bawah) untuk teks telaah */
 function parseFormattedText(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  const regex = /(<b>[\s\S]*?<\/b>|<strong>[\s\S]*?<\/strong>|<i>[\s\S]*?<\/i>|<em>[\s\S]*?<\/em>|<u>[\s\S]*?<\/u>|\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__)/gi;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -730,16 +733,45 @@ function parseFormattedText(text: string): React.ReactNode[] {
       parts.push(text.slice(lastIndex, match.index));
     }
     const token = match[0];
-    if (token.startsWith("**") && token.endsWith("**")) {
+    if (
+      (/^<b>/i.test(token) && /<\/b>$/i.test(token)) ||
+      (/^<strong>/i.test(token) && /<\/strong>$/i.test(token)) ||
+      (token.startsWith("**") && token.endsWith("**"))
+    ) {
+      const inner = token
+        .replace(/^<(?:b|strong)>/i, "")
+        .replace(/<\/(?:b|strong)>$/i, "")
+        .replace(/^\*\*|\*\*$/g, "");
       parts.push(
         <Text key={match.index} style={officialStyles.bodyBold}>
-          {token.slice(2, -2)}
+          {inner}
         </Text>
       );
-    } else if (token.startsWith("*") && token.endsWith("*")) {
+    } else if (
+      (/^<i>/i.test(token) && /<\/i>$/i.test(token)) ||
+      (/^<em>/i.test(token) && /<\/em>$/i.test(token)) ||
+      (token.startsWith("*") && token.endsWith("*"))
+    ) {
+      const inner = token
+        .replace(/^<(?:i|em)>/i, "")
+        .replace(/<\/(?:i|em)>$/i, "")
+        .replace(/^\*|\*$/g, "");
       parts.push(
         <Text key={match.index} style={officialStyles.bodyItalic}>
-          {token.slice(1, -1)}
+          {inner}
+        </Text>
+      );
+    } else if (
+      (/^<u>/i.test(token) && /<\/u>$/i.test(token)) ||
+      (token.startsWith("__") && token.endsWith("__"))
+    ) {
+      const inner = token
+        .replace(/^<u>/i, "")
+        .replace(/<\/u>$/i, "")
+        .replace(/^__|^__$/g, "");
+      parts.push(
+        <Text key={match.index} style={officialStyles.bodyUnderline}>
+          {inner}
         </Text>
       );
     }
@@ -751,6 +783,277 @@ function parseFormattedText(text: string): React.ReactNode[] {
   }
 
   return parts;
+}
+
+export interface PdfBlock {
+  type: "list" | "first-line-indent" | "hanging-indent" | "paragraph" | "empty";
+  marker?: string;
+  markerWidth?: number;
+  content: string;
+  indentLevel: number;
+}
+
+function toRoman(num: number): string {
+  const map: [number, string][] = [
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"],
+  ];
+  let res = "";
+  for (const [v, s] of map) {
+    while (num >= v) {
+      res += s;
+      num -= v;
+    }
+  }
+  return res || "I";
+}
+
+/** Mengekstrak blok-blok konten terstruktur (List, First Line Indent, Hanging Indent, Paragraph, Soft Breaks) */
+export function extractPdfBlocksFromContent(rawPageText: string): PdfBlock[] {
+  if (!rawPageText || !rawPageText.trim()) return [{ type: "empty", content: "", indentLevel: 0 }];
+  let text = rawPageText;
+  const blocks: PdfBlock[] = [];
+
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    // 1. Tangkap setiap blok pembungkus: ol, ul, p, atau div
+    const blockRegex = /<(ol|ul|p|div)([^>]*)>([\s\S]*?)<\/\1>/gi;
+    let match: RegExpExecArray | null;
+    let matchedAny = false;
+
+    while ((match = blockRegex.exec(text)) !== null) {
+      matchedAny = true;
+      const tag = match[1].toLowerCase();
+      const attrs = match[2] || "";
+      let inner = match[3] || "";
+
+      if (tag === "ol") {
+        const isRoman = attrs.includes('type="I"') || attrs.includes("list-roman") || attrs.includes("upper-roman");
+        const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+        let liMatch: RegExpExecArray | null;
+        let itemNum = 1;
+
+        while ((liMatch = liRegex.exec(inner)) !== null) {
+          let liContent = liMatch[1] || "";
+          liContent = liContent.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "$1\n");
+          liContent = liContent.replace(/<br\s*\/?>/gi, "\n");
+          liContent = liContent.replace(/&nbsp;|\u00a0/gi, " ");
+          liContent = liContent
+            .replace(/&amp;/gi, "&")
+            .replace(/&lt;/gi, "<")
+            .replace(/&gt;/gi, ">")
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/gi, "'");
+          liContent = liContent.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
+
+          const cleanText = liContent.replace(/<[^>]+>/g, "").trim();
+          if (!cleanText) continue;
+
+          const markerText = isRoman ? `${toRoman(itemNum)}.` : `${itemNum}.`;
+          const markerWidth = Math.max(16, markerText.length * 7);
+
+          blocks.push({
+            type: "list",
+            marker: markerText,
+            markerWidth,
+            content: liContent.trim(),
+            indentLevel: 0,
+          });
+          itemNum++;
+        }
+        continue;
+      }
+
+      if (tag === "ul") {
+        const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+        let liMatch: RegExpExecArray | null;
+
+        while ((liMatch = liRegex.exec(inner)) !== null) {
+          let liContent = liMatch[1] || "";
+          liContent = liContent.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "$1\n");
+          liContent = liContent.replace(/<br\s*\/?>/gi, "\n");
+          liContent = liContent.replace(/&nbsp;|\u00a0/gi, " ");
+          liContent = liContent
+            .replace(/&amp;/gi, "&")
+            .replace(/&lt;/gi, "<")
+            .replace(/&gt;/gi, ">")
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/gi, "'");
+          liContent = liContent.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
+
+          const cleanText = liContent.replace(/<[^>]+>/g, "").trim();
+          if (!cleanText) continue;
+
+          blocks.push({
+            type: "list",
+            marker: "•",
+            markerWidth: 16,
+            content: liContent.trim(),
+            indentLevel: 0,
+          });
+        }
+        continue;
+      }
+
+      // Bersihkan & konversi <br> menjadi newline '\n' (SOFT LINE BREAK DALAM PARAGRAF YANG SAMA)
+      inner = inner.replace(/<br\s*\/?>/gi, "\n");
+      inner = inner.replace(/&nbsp;|\u00a0/gi, " ");
+      inner = inner
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'");
+      inner = inner.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
+
+      const cleanText = inner.replace(/<[^>]+>/g, "").trim();
+      if (!cleanText) {
+        blocks.push({ type: "empty", content: "", indentLevel: 0 });
+        continue;
+      }
+
+      // Hitung indentLevel dasar dari atribut tag (data-indent, editor-indent-X, padding-left)
+      let indentLevel = 0;
+      const dataIndentMatch = attrs.match(/data-indent="(\d+)"/i);
+      const classIndentMatch = attrs.match(/editor-indent-(\d+)/i);
+      const padMatch = attrs.match(/padding-left:\s*(\d+)px/i);
+
+      if (dataIndentMatch) {
+        indentLevel = parseInt(dataIndentMatch[1], 10);
+      } else if (classIndentMatch) {
+        indentLevel = parseInt(classIndentMatch[1], 10);
+      } else if (padMatch) {
+        const px = parseInt(padMatch[1], 10);
+        if (px >= 28) {
+          indentLevel = Math.floor(px / 28);
+        }
+      }
+
+      // A. First Line Indent (Hanya baris pertama yang menjorok)
+      const isFirstLineIndent =
+        attrs.includes("data-first-line-indent") ||
+        attrs.includes("editor-first-line-indent");
+      if (isFirstLineIndent) {
+        blocks.push({
+          type: "first-line-indent",
+          content: inner.trim(),
+          indentLevel,
+        });
+        continue;
+      }
+
+      // B. List Item (Numbered, Roman, Letter, Bullet dengan Hanging Indent)
+      const isListItem = attrs.includes("editor-list-item");
+      const listMatch = inner.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(?:\t|\s+)([\s\S]*)$/);
+      if (isListItem || listMatch) {
+        const markerRaw = listMatch ? listMatch[2] : "";
+        const content = listMatch ? listMatch[4] : inner;
+        let listIndentLevel = indentLevel;
+
+        const classLevelMatch = attrs.match(/editor-list-item-(\d+)/i);
+        if (classLevelMatch) {
+          listIndentLevel = parseInt(classLevelMatch[1], 10);
+        } else if (listMatch && listMatch[1]) {
+          listIndentLevel = Math.floor(listMatch[1].length / 4);
+        }
+
+        const markerText = markerRaw === "-" || markerRaw === "*" ? "•" : markerRaw;
+        const markerWidth = Math.max(16, (markerText ? markerText.length : 2) * 7);
+
+        blocks.push({
+          type: "list",
+          marker: markerText,
+          markerWidth,
+          content: content.trim(),
+          indentLevel: listIndentLevel,
+        });
+        continue;
+      }
+
+      // C. Hanging Indent (Non-list)
+      const isHangingIndent =
+        attrs.includes("data-hanging-indent") ||
+        attrs.includes("editor-hanging-indent");
+      if (isHangingIndent) {
+        blocks.push({
+          type: "hanging-indent",
+          content: inner.trim(),
+          indentLevel,
+        });
+        continue;
+      }
+
+      // D. Paragraf Biasa atau Tab Indent
+      blocks.push({
+        type: "paragraph",
+        content: inner.trim(),
+        indentLevel,
+      });
+    }
+
+    if (!matchedAny) {
+      let plain = text.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
+      return extractPdfBlocksFromContent(plain);
+    }
+  } else {
+    // Plain text input
+    const lines = text.split("\n");
+    for (const rawLine of lines) {
+      const line = rawLine.replace(/\r/g, "");
+      const clean = line.trim();
+      if (!clean) {
+        blocks.push({ type: "empty", content: "", indentLevel: 0 });
+        continue;
+      }
+
+      const listMatch = line.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(?:\t|\s+)([\s\S]*)$/);
+      if (listMatch) {
+        const leadingSpaces = listMatch[1] || "";
+        const markerRaw = listMatch[2];
+        const content = listMatch[4];
+        const indentLevel = Math.floor(leadingSpaces.length / 4);
+        const markerText = markerRaw === "-" || markerRaw === "*" ? "•" : markerRaw;
+        const markerWidth = Math.max(16, markerText.length * 7);
+
+        blocks.push({
+          type: "list",
+          marker: markerText,
+          markerWidth,
+          content: content.trim(),
+          indentLevel,
+        });
+        continue;
+      }
+
+      const leadingSpaces = line.match(/^ +/);
+      const indentCount = leadingSpaces ? leadingSpaces[0].length : 0;
+      const indentLevel = Math.floor(indentCount / 4);
+
+      blocks.push({
+        type: "paragraph",
+        content: line.trim(),
+        indentLevel,
+      });
+    }
+  }
+
+  return blocks.filter((b, idx, arr) => {
+    if (b.type === "empty" && idx > 0 && arr[idx - 1].type === "empty") return false;
+    return true;
+  });
+}
+
+/** Mengekstrak baris teks telaah baik dari format HTML WYSIWYG maupun plain/markdown */
+function extractPdfLinesFromContent(rawPageText: string): string[] {
+  const blocks = extractPdfBlocksFromContent(rawPageText);
+  return blocks.map((b) => {
+    if (b.type === "empty") return "";
+    const prefix = b.indentLevel > 0 ? " ".repeat(b.indentLevel * 4) : "";
+    if (b.type === "list") return `${prefix}${b.marker} ${b.content}`;
+    return `${prefix}${b.content}`;
+  });
 }
 
 /** Memecah teks dokumen klinis menjadi lembaran A4 multi-halaman */
@@ -793,7 +1096,7 @@ function parseTextToPages(rawText: string): string[] {
   // Pastikan halaman terakhir muat bersama tanda tangan
   const lastIdx = initialPages.length - 1;
   const lastPageText = initialPages[lastIdx];
-  const lastLines = lastPageText.split("\n");
+  const lastLines = extractPdfLinesFromContent(lastPageText);
   let lastVisualWeight = 0;
   for (const l of lastLines) {
     lastVisualWeight += Math.max(1, Math.ceil(l.length / 75));
@@ -857,8 +1160,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
         {pages.map((pageText, pageIdx) => {
           const isFirstPage = pageIdx === 0;
           const isLastPage = pageIdx === pages.length - 1;
-          const cleanPageText = sanitizePdfText(pageText);
-          const lines = cleanPageText.split("\n");
+          const blocks = extractPdfBlocksFromContent(pageText);
 
           return (
             <Page
@@ -944,7 +1246,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                   /* Running Header Halaman Lanjutan */
                   <View style={officialStyles.runningHeader}>
                     <Text style={officialStyles.runningHeaderTitle}>
-                      EMPATHIKA PSYCHOLOGICAL SERVICES
+                       EMPATHIKA PSYCHOLOGICAL SERVICES
                     </Text>
                     <Text style={officialStyles.runningHeaderDocNo}>
                       {sanitizePdfText(data.noDokumen || "")}
@@ -953,27 +1255,105 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                 )}
               </View>
 
-              {/* BAGIAN TENGAH: ISI TELAAH KLINIS */}
+              {/* BAGIAN TENGAH: ISI TELAAH KLINIS (KEEP LINES TOGETHER & TYPOGRAPHY) */}
               <View style={officialStyles.bodyContainer}>
-                {lines.map((line, lineIdx) => {
-                  if (line.trim() === "") {
-                    return <View key={lineIdx} style={{ height: 5 }} />;
+                {blocks.map((block, blockIdx) => {
+                  if (block.type === "empty") {
+                    return <View key={blockIdx} style={{ height: 5 }} />;
                   }
 
-                  const leadingSpaces = line.match(/^ +/);
-                  const indentCount = leadingSpaces ? leadingSpaces[0].length : 0;
-                  const indentPt = indentCount > 0 ? Math.min(indentCount * 3.5, 36) : 0;
+                  // 1. Deteksi format list (angka, romawi, huruf, atau bullet) untuk Hanging Indent
+                  if (block.type === "list") {
+                    const indentPt = block.indentLevel * 16;
+                    return (
+                      <View
+                        key={blockIdx}
+                        wrap={false}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          paddingLeft: indentPt,
+                          marginBottom: 2.5,
+                        }}
+                      >
+                        <View style={{ width: block.markerWidth || 16 }}>
+                          <Text
+                            style={[
+                              officialStyles.bodyText,
+                              { fontFamily: "Helvetica-Bold" },
+                            ]}
+                          >
+                            {block.marker}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={officialStyles.bodyText}>
+                            {parseFormattedText(block.content)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
 
+                  // 2. First Line Indent: Hanya baris pertama yang menjorok
+                  if (block.type === "first-line-indent") {
+                    const indentPt = block.indentLevel * 16;
+                    return (
+                      <View
+                        key={blockIdx}
+                        wrap={false}
+                        style={{
+                          paddingLeft: indentPt,
+                          marginBottom: 2.5,
+                        }}
+                      >
+                        <Text style={officialStyles.bodyText}>
+                          {"\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0"}
+                          {parseFormattedText(block.content)}
+                        </Text>
+                      </View>
+                    );
+                  }
+
+                  // 3. Hanging Indent (non-list): Baris pertama di margin, baris lanjutan menjorok
+                  if (block.type === "hanging-indent") {
+                    const indentPt = block.indentLevel * 16;
+                    return (
+                      <View
+                        key={blockIdx}
+                        wrap={false}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          paddingLeft: indentPt,
+                          marginBottom: 2.5,
+                        }}
+                      >
+                        <View style={{ width: 16 }}>
+                          <Text style={officialStyles.bodyText}>{"\u00a0"}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={officialStyles.bodyText}>
+                            {parseFormattedText(block.content)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  // 4. Paragraf biasa / paragraf berindentasi (Tab Indent)
+                  const indentPt = block.indentLevel * 16;
                   return (
                     <View
-                      key={lineIdx}
+                      key={blockIdx}
+                      wrap={false}
                       style={{
                         paddingLeft: indentPt,
                         marginBottom: 2.5,
                       }}
                     >
                       <Text style={officialStyles.bodyText}>
-                        {parseFormattedText(line.trimStart())}
+                        {parseFormattedText(block.content)}
                       </Text>
                     </View>
                   );

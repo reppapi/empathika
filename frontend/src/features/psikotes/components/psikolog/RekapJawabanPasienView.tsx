@@ -4,9 +4,7 @@ import React, { useState, useMemo } from "react";
 import {
   Search,
   X,
-  AlertTriangle,
   FileText,
-  Check,
 } from "lucide-react";
 import type { RekapJawabanItem } from "@/services/psikotes.service";
 
@@ -17,13 +15,6 @@ interface RekapJawabanPasienViewProps {
   snapshotJawaban?: any;
   onMaximize?: () => void;
   isMaximized?: boolean;
-}
-
-// Deteksi butir klinis kritis / indikator khusus berdasarkan instrumen psikotes
-interface CriticalAlert {
-  type: "bahaya" | "validitas" | "zat" | "paranoid" | "disosiasi" | "peringatan";
-  label: string;
-  deskripsi: string;
 }
 
 /**
@@ -94,115 +85,6 @@ export function isAnswerFalse(it: {
   return !isAnswerTrue(it);
 }
 
-function getCriticalItemAlert(
-  nomor: number,
-  jawabanText: string,
-  skor: number,
-  alatUkurKode?: string | null,
-  label?: string | null
-): CriticalAlert | null {
-  const code = (alatUkurKode || "").toUpperCase();
-  const isTrue = isAnswerTrue({ jawaban: jawabanText, label, skor });
-
-  // 1. MCMI-IV
-  if (code.includes("MCMI")) {
-    // Skala V (Validitas / Absurditas)
-    if (nomor === 49 && isTrue) {
-      return {
-        type: "validitas",
-        label: "Skala V (Absurditas)",
-        deskripsi: "Pernyataan absurd: mengaku fotonya menghiasi halaman depan majalah.",
-      };
-    }
-    if (nomor === 114 && isTrue) {
-      return {
-        type: "validitas",
-        label: "Skala V (Absurditas)",
-        deskripsi: "Pernyataan absurd: mengaku 2 tahun tidak pernah melihat mobil di jalan raya.",
-      };
-    }
-    if (nomor === 158 && isTrue) {
-      return {
-        type: "validitas",
-        label: "Skala V (Absurditas)",
-        deskripsi: "Pernyataan absurd: mengaku mampu terbang tanpa alat bantuan apapun.",
-      };
-    }
-
-    // Riwayat Menyakiti Diri (Self-Harm) / Suicidality
-    if (nomor === 40 && isTrue) {
-      return {
-        type: "bahaya",
-        label: "Riwayat Menyakiti Diri",
-        deskripsi: "Pernah dengan sengaja melukai diri sendiri di masa lalu.",
-      };
-    }
-
-    // Penyalahgunaan Zat & Alkohol
-    if (nomor === 25 && isTrue) {
-      return {
-        type: "zat",
-        label: "Masalah Alkohol",
-        deskripsi: "Kebiasaan konsumsi alkohol yang membawa dampak masalah bagi diri & keluarga.",
-      };
-    }
-    if (nomor === 36 && isTrue) {
-      return {
-        type: "zat",
-        label: "Penyalahgunaan Narkoba",
-        deskripsi: "Kehilangan pekerjaan akibat pemakaian zat/narkotika.",
-      };
-    }
-    if (nomor === 45 && isTrue) {
-      return {
-        type: "zat",
-        label: "Adiksi Alkohol",
-        deskripsi: "Kesulitan menahan diri agar tidak minum alkohol berlebihan.",
-      };
-    }
-
-    // Ide Referensi & Disregulasi Emosi
-    if (nomor === 13 && isTrue) {
-      return {
-        type: "paranoid",
-        label: "Ide Referensi / Curiga",
-        deskripsi: "Meyakini sekelompok orang sedang membicarakan dirinya saat berpapasan.",
-      };
-    }
-    if (nomor === 18 && isTrue) {
-      return {
-        type: "disosiasi",
-        label: "Disregulasi Emosional",
-        deskripsi: "Kerap merasa seperti hilang kendali atau 'orang gila' saat hidup memburuk.",
-      };
-    }
-  }
-
-  // 2. PHQ-9 (Patient Health Questionnaire - 9)
-  if (code.includes("PHQ")) {
-    if (nomor === 9 && skor > 0) {
-      return {
-        type: "bahaya",
-        label: "Ide Bunuh Diri / Menyakiti Diri",
-        deskripsi: "Muncul pikiran lebih baik mati atau berniat menyakiti diri sendiri.",
-      };
-    }
-  }
-
-  // 3. GAD-7 (Generalized Anxiety Disorder - 7)
-  if (code.includes("GAD")) {
-    if (nomor === 7 && skor >= 2) {
-      return {
-        type: "peringatan",
-        label: "Kepanikan Akut",
-        deskripsi: "Merasa takut luar biasa seolah musibah buruk akan segera menimpa.",
-      };
-    }
-  }
-
-  return null;
-}
-
 export default function RekapJawabanPasienView({
   rekapJawaban,
   alatUkurKode,
@@ -212,7 +94,7 @@ export default function RekapJawabanPasienView({
   isMaximized = false,
 }: RekapJawabanPasienViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "TRUE" | "FALSE" | "CRITICAL">("ALL");
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "TRUE" | "FALSE">("ALL");
 
   const isMcmi =
     Boolean(alatUkurKode?.toUpperCase().includes("MCMI")) ||
@@ -223,25 +105,19 @@ export default function RekapJawabanPasienView({
   const stats = useMemo(() => {
     let trueCount = 0;
     let falseCount = 0;
-    let criticalCount = 0;
 
     for (const it of rekapJawaban) {
       const isTrue = isAnswerTrue(it);
-
       if (isTrue) trueCount++;
       else falseCount++;
-
-      const alert = getCriticalItemAlert(it.nomor, it.jawaban, it.skor, alatUkurKode, it.label);
-      if (alert) criticalCount++;
     }
 
     return {
       total: rekapJawaban.length,
       trueCount,
       falseCount,
-      criticalCount,
     };
-  }, [rekapJawaban, alatUkurKode]);
+  }, [rekapJawaban]);
 
   // Filter dan pencarian butir jawaban secara real-time
   const filteredItems = useMemo(() => {
@@ -252,16 +128,12 @@ export default function RekapJawabanPasienView({
       list = list.filter((it) => isAnswerTrue(it));
     } else if (activeFilter === "FALSE") {
       list = list.filter((it) => isAnswerFalse(it));
-    } else if (activeFilter === "CRITICAL") {
-      list = list.filter((it) => {
-        return Boolean(getCriticalItemAlert(it.nomor, it.jawaban, it.skor, alatUkurKode, it.label));
-      });
     }
 
     // Filter Pencarian kata kunci atau nomor
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      const numQuery = parseInt(q.replace("#", ""), 10);
+      const numQuery = parseInt(q.replace(/^(no\.?|#)\s*/i, ""), 10);
 
       list = list.filter((it) => {
         if (!isNaN(numQuery) && it.nomor === numQuery) return true;
@@ -318,20 +190,10 @@ export default function RekapJawabanPasienView({
       <div className="p-3.5 border-b border-gray-100 bg-gray-50/70 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="px-2 py-0.5 rounded-full bg-purple-100 text-[#561269] text-[10px] font-bold tracking-wide uppercase shrink-0">
+            <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-[#561269] text-[10px] font-bold tracking-wide uppercase shrink-0">
               {alatUkurKode || "Asesmen"}
             </span>
-            <span className="text-xs font-semibold text-gray-700 truncate">
-              {rekapJawaban.length} Butir Soal Terjawab
-            </span>
           </div>
-
-          {stats.criticalCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold shrink-0 animate-pulse">
-              <AlertTriangle className="w-3 h-3 text-rose-600" />
-              {stats.criticalCount} Butir Kritis
-            </span>
-          )}
         </div>
 
         {/* 2. Input Pencarian & Reset */}
@@ -341,7 +203,7 @@ export default function RekapJawabanPasienView({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nomor butir atau kata kunci (contoh: 'tidur', '#40')..."
+            placeholder="Cari nomor butir atau kata kunci (contoh: 'tidur', '40')..."
             className="w-full pl-8 pr-8 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1.5 focus:ring-[#561269] focus:border-[#561269] transition-all"
           />
           {searchQuery && (
@@ -396,20 +258,6 @@ export default function RekapJawabanPasienView({
               </button>
             </>
           )}
-
-          {stats.criticalCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveFilter("CRITICAL")}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer ${
-                activeFilter === "CRITICAL"
-                  ? "bg-rose-600 text-white shadow-2xs"
-                  : "bg-white text-rose-700 border border-rose-200 hover:bg-rose-50"
-              }`}
-            >
-              ⚠️ Kritis ({stats.criticalCount})
-            </button>
-          )}
         </div>
       </div>
 
@@ -448,46 +296,15 @@ export default function RekapJawabanPasienView({
           filteredItems.map((item) => {
             const isTrue = isAnswerTrue(item);
 
-            const criticalAlert = getCriticalItemAlert(
-              item.nomor,
-              item.jawaban,
-              item.skor,
-              alatUkurKode,
-              item.label
-            );
-
             return (
               <div
                 key={item.nomor}
-                className={`p-3 rounded-xl border text-xs transition-all ${
-                  criticalAlert
-                    ? "bg-rose-50/60 border-rose-200 shadow-2xs"
-                    : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-2xs"
-                }`}
+                className="p-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-2xs text-xs transition-all"
               >
                 {/* Header Butir Soal */}
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span
-                      className={`px-1.5 py-0.5 rounded font-mono text-[10px] font-bold ${
-                        criticalAlert
-                          ? "bg-rose-200/80 text-rose-900"
-                          : "bg-purple-100 text-[#561269]"
-                      }`}
-                    >
-                      #{String(item.nomor).padStart(2, "0")}
-                    </span>
-
-                    {criticalAlert && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-100 border border-rose-300 text-rose-800 text-[9px] font-bold">
-                        <AlertTriangle className="w-2.5 h-2.5 text-rose-600 shrink-0" />
-                        {criticalAlert.label}
-                      </span>
-                    )}
-                  </div>
-
-                  <span className="text-[10px] text-gray-400 font-mono shrink-0">
-                    Bobot: {item.skor}
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-[#561269]">
+                    No. {item.nomor}
                   </span>
                 </div>
 
@@ -496,26 +313,17 @@ export default function RekapJawabanPasienView({
                   {item.pertanyaan}
                 </p>
 
-                {/* Indikator Peringatan Klinis */}
-                {criticalAlert && (
-                  <p className="text-[10px] text-rose-700 bg-rose-100/60 p-1.5 rounded-md mt-1.5 leading-snug border border-rose-200/60">
-                    <strong>Catatan Klinis:</strong> {criticalAlert.deskripsi}
-                  </p>
-                )}
-
                 {/* Badge Jawaban Pasien */}
                 <div className="mt-2 pt-2 border-t border-gray-100/80 flex items-center justify-between gap-2">
                   <span className="text-[10px] text-gray-400">Pilihan Pasien:</span>
 
                   {isMcmi ? (
                     isTrue ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold text-[10px]">
-                        <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold text-[10px]">
                         (+) Sesuai
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-gray-700 font-semibold text-[10px]">
-                        <X className="w-3 h-3 text-gray-500" />
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-gray-700 font-semibold text-[10px]">
                         (-) Tidak Sesuai
                       </span>
                     )

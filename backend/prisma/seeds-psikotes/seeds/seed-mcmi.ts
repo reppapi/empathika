@@ -226,7 +226,7 @@ export async function seedMCMI(prisma: PrismaClient) {
   console.log(`    ✓ AlatUkur: ${alatUkur.nama} (${alatUkur.kode})`)
 
   // 2. Produk Paket MCMI-IV (Berbayar)
-  const judulPaket = 'Tes Kepribadian Klinis dan Sindroma Multiaxial (MCMI-IV)'
+  const judulPaket = 'Tes Kepribadian dan Pola Klinis'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
@@ -244,7 +244,7 @@ export async function seedMCMI(prisma: PrismaClient) {
     harga: 75000,
     banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
-      'Millon Clinical Multiaxial Inventory-IV (MCMI-IV) adalah tes psikometri klinis komprehensif yang terdiri dari 195 pernyataan untuk mengevaluasi 15 spektrum kepribadian dan 10 sindroma klinis pada individu dewasa usia 18 tahun ke atas.',
+      'Pernah bertanya-tanya mengapa kamu memiliki cara tertentu dalam berpikir, merasakan sesuatu, atau menjalin hubungan dengan orang lain? Tes ini mengajak kamu mengenali pola kepribadian dan karakteristik psikologis dirimu, mulai dari cara membangun relasi, mengelola emosi, dan memandang diri sendiri, hingga berbagai kecenderungan pola klinis yang mungkin berkaitan dengan kondisi psikologismu.',
     status: 'PUBLISHED',
     perlu_review_psikolog: true,
   }
@@ -259,7 +259,7 @@ export async function seedMCMI(prisma: PrismaClient) {
       data: paketPayload,
     })
   }
-  console.log(`    ✓ Paket: ${paket.judul} (Berbayar - Rp ${paket.harga.toLocaleString('id-ID')})`)
+  console.log(`    ✓ Paket: ${paket.judul} (Berbayar - Rp ${Number(paket.harga).toLocaleString('id-ID')})`)
 
   // 3. 195 Butir Soal & 390 Pilihan Jawaban (+/-)
   const existingSoal = await prisma.soalPsikotes.findMany({
@@ -332,9 +332,16 @@ export async function seedMCMI(prisma: PrismaClient) {
         min_skor: 0,
         max_skor: 1000,
         grade: 'Profil Multiaxial MCMI-IV',
-        judul: 'Laporan Kepribadian Klinis & Sindroma Multiaxial (MCMI-IV)',
+        judul: 'Laporan Kepribadian dan Pola Klinis (MCMI-IV)',
         deskripsi:
           'Hasil asesmen diolah menggunakan profil Base Rate (BR) 15 spektrum kepribadian, 10 sindroma klinis, serta indeks validitas (V, W, X, Y, Z) sesuai panduan diagnostik DSM-5.',
+      },
+    })
+  } else if (existingInter.judul !== 'Laporan Kepribadian dan Pola Klinis (MCMI-IV)') {
+    await prisma.interpretasiPsikotes.update({
+      where: { id: existingInter.id },
+      data: {
+        judul: 'Laporan Kepribadian dan Pola Klinis (MCMI-IV)',
       },
     })
   }

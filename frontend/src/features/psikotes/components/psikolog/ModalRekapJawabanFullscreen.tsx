@@ -4,9 +4,6 @@ import React, { useState, useMemo } from "react";
 import {
   X,
   Search,
-  AlertTriangle,
-  Check,
-  Printer,
   ClipboardList,
 } from "lucide-react";
 import type { RekapJawabanItem } from "@/services/psikotes.service";
@@ -32,7 +29,7 @@ export default function ModalRekapJawabanFullscreen({
   snapshotJawaban,
 }: ModalRekapJawabanFullscreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "TRUE" | "FALSE" | "CRITICAL">("ALL");
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "TRUE" | "FALSE">("ALL");
 
   const isMcmi =
     Boolean(alatUkurKode?.toUpperCase().includes("MCMI")) ||
@@ -42,34 +39,19 @@ export default function ModalRekapJawabanFullscreen({
   const stats = useMemo(() => {
     let trueCount = 0;
     let falseCount = 0;
-    let criticalCount = 0;
 
     for (const it of rekapJawaban) {
       const isTrue = isAnswerTrue(it);
-
       if (isTrue) trueCount++;
       else falseCount++;
-
-      const isCritical =
-        (it.nomor === 40 && isTrue) ||
-        (it.nomor === 25 && isTrue) ||
-        (it.nomor === 36 && isTrue) ||
-        (it.nomor === 45 && isTrue) ||
-        (it.nomor === 49 && isTrue) ||
-        (it.nomor === 114 && isTrue) ||
-        (it.nomor === 158 && isTrue) ||
-        (it.nomor === 9 && alatUkurKode?.includes("PHQ") && it.skor > 0);
-
-      if (isCritical) criticalCount++;
     }
 
     return {
       total: rekapJawaban.length,
       trueCount,
       falseCount,
-      criticalCount,
     };
-  }, [rekapJawaban, alatUkurKode]);
+  }, [rekapJawaban]);
 
   const filteredItems = useMemo(() => {
     let list = rekapJawaban;
@@ -78,26 +60,11 @@ export default function ModalRekapJawabanFullscreen({
       list = list.filter((it) => isAnswerTrue(it));
     } else if (activeFilter === "FALSE") {
       list = list.filter((it) => isAnswerFalse(it));
-    } else if (activeFilter === "CRITICAL") {
-      list = list.filter((it) => {
-        const isTrue = isAnswerTrue(it);
-
-        return (
-          (it.nomor === 40 && isTrue) ||
-          (it.nomor === 25 && isTrue) ||
-          (it.nomor === 36 && isTrue) ||
-          (it.nomor === 45 && isTrue) ||
-          (it.nomor === 49 && isTrue) ||
-          (it.nomor === 114 && isTrue) ||
-          (it.nomor === 158 && isTrue) ||
-          (it.nomor === 9 && alatUkurKode?.includes("PHQ") && it.skor > 0)
-        );
-      });
     }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      const numQuery = parseInt(q.replace("#", ""), 10);
+      const numQuery = parseInt(q.replace(/^(no\.?|#)\s*/i, ""), 10);
       list = list.filter((it) => {
         if (!isNaN(numQuery) && it.nomor === numQuery) return true;
         return (
@@ -127,20 +94,12 @@ export default function ModalRekapJawabanFullscreen({
                 Lembar Rekap Jawaban Pasien: {namaPeserta}
               </h2>
               <p className="text-xs text-gray-500 truncate">
-                {namaPaket} &bull; Total {rekapJawaban.length} Butir Soal Terjawab
+                {namaPaket}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              Cetak / Print
-            </button>
             <button
               type="button"
               onClick={onClose}
@@ -212,19 +171,6 @@ export default function ModalRekapJawabanFullscreen({
                 </button>
               </>
             )}
-            {stats.criticalCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveFilter("CRITICAL")}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all ${
-                  activeFilter === "CRITICAL"
-                    ? "bg-rose-600 text-white"
-                    : "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
-                }`}
-              >
-                ⚠️ Butir Kritis ({stats.criticalCount})
-              </button>
-            )}
           </div>
         </div>
 
@@ -243,45 +189,14 @@ export default function ModalRekapJawabanFullscreen({
               {filteredItems.map((item) => {
                 const isTrue = isAnswerTrue(item);
 
-                const isCritical =
-                  (item.nomor === 40 && isTrue) ||
-                  (item.nomor === 25 && isTrue) ||
-                  (item.nomor === 36 && isTrue) ||
-                  (item.nomor === 45 && isTrue) ||
-                  (item.nomor === 49 && isTrue) ||
-                  (item.nomor === 114 && isTrue) ||
-                  (item.nomor === 158 && isTrue) ||
-                  (item.nomor === 9 && alatUkurKode?.includes("PHQ") && item.skor > 0);
-
                 return (
                   <div
                     key={item.nomor}
-                    className={`p-4 rounded-xl border transition-all ${
-                      isCritical
-                        ? "bg-rose-50/80 border-rose-300 shadow-xs"
-                        : "bg-white border-gray-200 hover:shadow-xs hover:border-purple-200"
-                    }`}
+                    className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-xs hover:border-purple-200 transition-all"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className={`px-2 py-0.5 rounded font-mono text-xs font-bold ${
-                            isCritical
-                              ? "bg-rose-200 text-rose-950"
-                              : "bg-purple-100 text-[#561269]"
-                          }`}
-                        >
-                          #{String(item.nomor).padStart(2, "0")}
-                        </span>
-                        {isCritical && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-100 border border-rose-300 text-rose-800 text-[10px] font-bold">
-                            <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
-                            Butir Kritis
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-gray-400 font-mono">
-                        Skor: {item.skor}
+                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-[#561269]">
+                        No. {item.nomor}
                       </span>
                     </div>
 
@@ -293,13 +208,11 @@ export default function ModalRekapJawabanFullscreen({
                       <span className="text-[11px] text-gray-400">Pilihan Pasien:</span>
                       {isMcmi ? (
                         isTrue ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold text-xs">
-                            <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold text-xs">
                             (+) Sesuai
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 border border-gray-300 text-gray-700 font-medium text-xs">
-                            <X className="w-3.5 h-3.5 text-gray-500" />
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 border border-gray-300 text-gray-700 font-medium text-xs">
                             (-) Tidak Sesuai
                           </span>
                         )

@@ -73,7 +73,8 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
         let matched: any = null
         if (user?.role === "PSIKOLOG") {
           try {
-            matched = await psikologService.getMyProfile()
+            const rawProfile: any = await psikologService.getMyProfile()
+            matched = rawProfile?.data ?? rawProfile
           } catch {}
         }
         if (!matched) {

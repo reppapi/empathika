@@ -62,7 +62,9 @@ export default function ModalDetailPeserta({
   );
   const isNeedReview = !isDass && Boolean(
     peserta.perlu_review_psikolog ||
-    peserta.paket?.toLowerCase().includes("mcmi")
+    peserta.paket?.toLowerCase().includes("mcmi") ||
+    peserta.paket?.toLowerCase().includes("pola klinis") ||
+    peserta.paket?.toLowerCase().includes("multiaxial")
   );
 
   const isMenungguReview =
@@ -184,29 +186,51 @@ Silakan buka https://empathika.id untuk menyelesaikan asesmen Kakak ya. Terima k
 
   // Template Pesan WA Hasil PDF
   const targetOrangTuaPhone = waOrangTuaDigits || (isAnak ? waPesertaDigits || waPembeliDigits : "");
-  const waResultUrlOrangTua =
-    isAnak && targetOrangTuaPhone
-      ? `https://wa.me/${targetOrangTuaPhone}?text=${encodeURIComponent(
-`Halo Bapak/Ibu ${namaOrangTua || `Wali dari ${namaPeserta}`},
+  const templateDassOrangTua = `Halo Bapak/Ibu ${namaOrangTua || `Wali dari ${namaPeserta}`},
+
+Terima kasih telah mempercayakan proses asesmen di Empathika.
+Melalui pesan ini, kami sampaikan dokumen hasil tes ${peserta.paket || "Skrining Kesehatan Mental (DASS)"} ananda ${namaPeserta}.
+
+Lampiran: Dokumen Hasil Asesmen (${peserta.paket || "DASS"})
+
+Apabila ingin mendiskusikan hasil asesmen atau memerlukan sesi konsultasi/konseling psikologis lebih lanjut, silakan hubungi tim Empathika kembali ya. Terima kasih! 😊🙏`;
+
+  const templateNonDassOrangTua = `Halo Bapak/Ibu ${namaOrangTua || `Wali dari ${namaPeserta}`},
 
 Terima kasih telah mempercayakan proses asesmen psikologis ananda ${namaPeserta} kepada Empathika.
 Melalui pesan ini, kami sampaikan dokumen resmi hasil asesmen psikologis ananda.
 
-Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`
+Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`;
+
+  const waResultUrlOrangTua =
+    isAnak && targetOrangTuaPhone
+      ? `https://wa.me/${targetOrangTuaPhone}?text=${encodeURIComponent(
+          isDass ? templateDassOrangTua : templateNonDassOrangTua
         )}`
       : null;
 
   const targetPesertaPhone = waPesertaDigits || waPembeliDigits;
-  const waResultUrlPeserta = targetPesertaPhone
-    ? `https://wa.me/${targetPesertaPhone}?text=${encodeURIComponent(
-`Halo Kak ${namaPeserta},
+  const templateDassPeserta = `Halo Kak ${namaPeserta},
+
+Terima kasih telah mengikuti asesmen di Empathika.
+Melalui pesan ini, kami sampaikan dokumen hasil tes ${peserta.paket || "Skrining Kesehatan Mental (DASS)"} Kakak.
+
+Lampiran: Dokumen Hasil Asesmen (${peserta.paket || "DASS"})
+
+Apabila Kakak memerlukan informasi lebih lanjut atau ingin mendiskusikan hasil tes bersama psikolog kami, silakan hubungi tim Empathika kembali ya. Semoga harimu menyenangkan! 😊🙏`;
+
+  const templateNonDassPeserta = `Halo Kak ${namaPeserta},
 
 Terima kasih telah mempercayakan proses asesmen psikologis kepada Empathika.
 Melalui pesan ini, kami sampaikan dokumen resmi hasil asesmen psikologis Kakak.
 
-Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`
-        )}`
-      : null;
+Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`;
+
+  const waResultUrlPeserta = targetPesertaPhone
+    ? `https://wa.me/${targetPesertaPhone}?text=${encodeURIComponent(
+        isDass ? templateDassPeserta : templateNonDassPeserta
+      )}`
+    : null;
 
   // Status Telaah & Psikolog
   const namaPsikolog = peserta.psikolog?.nama_gelar || peserta.psikolog?.nama || null;
@@ -357,7 +381,7 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700">
                       Psikolog Pemeriksa
                     </span>
-                    {slaStatus === "OVERDUE" && (
+                    {!isBiroContext && slaStatus === "OVERDUE" && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
                         <AlertTriangle className="w-3 h-3" />
                         Terlambat ({Math.abs(remainingHours)}j)
@@ -369,7 +393,9 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     {namaPsikolog || "Psikolog Empathika"}
                   </p>
                   <p className="text-[11px] text-gray-500">
-                    Diambil pada {keepDateFormatted || "—"}{deadlineFormatted ? ` • Batas telaah: ${deadlineFormatted}` : ""}
+                    {isBiroContext
+                      ? "Sedang dalam proses telaah dan penyusunan laporan resmi psikotes"
+                      : `Diambil pada ${keepDateFormatted || "—"}${deadlineFormatted ? ` • Batas telaah: ${deadlineFormatted}` : ""}`}
                   </p>
                 </div>
 
@@ -393,13 +419,15 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
               <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 block">
-                    Status Antrean
+                    {isBiroContext ? "Status Telaah" : "Status Antrean"}
                   </span>
                   <p className="font-semibold text-gray-900 text-sm">
-                    Kolam Antrean Bersama
+                    {isBiroContext ? "Sedang Dalam Antrean Telaah" : "Kolam Antrean Bersama"}
                   </p>
                   <p className="text-[11px] text-gray-500">
-                    Selesai tes {keepDateFormatted || peserta.tanggal} • Menunggu diambil oleh psikolog penelaah
+                    {isBiroContext
+                      ? "Tes selesai dikerjakan • Menunggu giliran telaah oleh tim psikolog klinis"
+                      : `Selesai tes ${keepDateFormatted || peserta.tanggal} • Menunggu diambil oleh psikolog penelaah`}
                   </p>
                 </div>
               </div>
@@ -567,7 +595,7 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
               <p className="text-[11px] text-gray-500">
                 {isCompleted
                   ? isDass
-                    ? "Hasil dan analisis tes langsung tampil di layar peserta saat tes diselesaikan."
+                    ? "Laporan hasil tes DASS siap diunduh atau dikirimkan ke nomor WhatsApp peserta."
                     : "Laporan resmi PDF sudah diverifikasi dan siap diunduh atau dikirimkan ke peserta."
                   : isMenungguReview
                   ? "Laporan PDF akan otomatis aktif setelah psikolog menuntaskan telaah."
@@ -597,38 +625,36 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     )}
                   </button>
 
-                  {/* Tombol Kirim WA Hasil (Hanya jika bukan tes otomatis DASS) */}
-                  {!isDass && (
-                    isAnak ? (
-                      waResultUrlOrangTua && (
-                        <a
-                          href={waResultUrlOrangTua}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          Kirim ke Orang Tua
-                        </a>
-                      )
-                    ) : (
-                      waResultUrlPeserta && (
-                        <a
-                          href={waResultUrlPeserta}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          Kirim ke Peserta
-                        </a>
-                      )
+                  {/* Tombol Kirim WA Hasil */}
+                  {isAnak ? (
+                    waResultUrlOrangTua && (
+                      <a
+                        href={waResultUrlOrangTua}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Kirim ke Orang Tua
+                      </a>
+                    )
+                  ) : (
+                    waResultUrlPeserta && (
+                      <a
+                        href={waResultUrlPeserta}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Kirim ke Peserta
+                      </a>
                     )
                   )}
                 </>
-              ) : !isBiroContext && isMenungguReview ? (
-                /* Menunggu Review (Hanya untuk Admin Utama Empathika) */
-                namaPsikolog ? (
+              ) : isMenungguReview ? (
+                /* Menunggu Review (Hanya Admin Utama Empathika yang dapat mengingatkan psikolog) */
+                !isBiroContext && namaPsikolog ? (
                   <a
                     href={waPsikologUrl}
                     target="_blank"
@@ -656,8 +682,8 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
             </div>
           </div>
 
-          {/* Konfirmasi Status Pengiriman WhatsApp (Khusus paket telaah psikolog, tidak untuk DASS) */}
-          {isCompleted && !isDass && (
+          {/* Konfirmasi Status Pengiriman WhatsApp (Hanya Admin Pusat, disembunyikan di Admin Biro) */}
+          {!isBiroContext && isCompleted && (
             <div
               className={`p-3.5 sm:p-4 rounded-xl border transition-all ${
                 peserta.is_wa_sent || peserta.wa_sent_at

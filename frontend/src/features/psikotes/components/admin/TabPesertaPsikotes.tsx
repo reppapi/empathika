@@ -15,7 +15,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Stethoscope,
   ArrowRight,
 } from "lucide-react";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
@@ -66,6 +65,11 @@ export default function TabPesertaPsikotes({
       const isBerbayar = peserta.jenisAkses === "Berbayar" && peserta.nama !== "Tamu Anonim";
       if (!isBerbayar) return false;
 
+      // Proteksi portal Admin Biro: Hanya tampilkan klien milik biro (bukan Empathika Pusat)
+      if (isBiroContext && (!peserta.is_biro || peserta.namaBiro === "Empathika (Pusat)")) {
+        return false;
+      }
+
       // Filter berdasarkan paket psikotes
       if (selectedPaket && selectedPaket !== "ALL") {
         const pNama = (peserta.paket || "").toLowerCase().trim();
@@ -111,7 +115,12 @@ export default function TabPesertaPsikotes({
           p.paket?.toLowerCase().includes("dass") ||
           p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
         );
-        return !isDass && Boolean(p.perlu_review_psikolog || p.paket?.toLowerCase().includes("mcmi"));
+        return !isDass && Boolean(
+          p.perlu_review_psikolog ||
+          p.paket?.toLowerCase().includes("mcmi") ||
+          p.paket?.toLowerCase().includes("pola klinis") ||
+          p.paket?.toLowerCase().includes("multiaxial")
+        );
       });
     }
     const lower = selectedPaket.toLowerCase();
@@ -123,9 +132,14 @@ export default function TabPesertaPsikotes({
       (p) => (p.paket || "").toLowerCase().includes(lower) || lower.includes((p.paket || "").toLowerCase())
     );
     if (match) {
-      return Boolean(match.perlu_review_psikolog || match.paket?.toLowerCase().includes("mcmi"));
+      return Boolean(
+        match.perlu_review_psikolog ||
+        match.paket?.toLowerCase().includes("mcmi") ||
+        match.paket?.toLowerCase().includes("pola klinis") ||
+        match.paket?.toLowerCase().includes("multiaxial")
+      );
     }
-    return lower.includes("mcmi");
+    return lower.includes("mcmi") || lower.includes("pola klinis") || lower.includes("multiaxial");
   }, [selectedPaket, scopedPesertaList]);
 
   // Reset status filter ke ALL jika paket yang dipilih tidak memerlukan review klinis
@@ -150,7 +164,9 @@ export default function TabPesertaPsikotes({
       );
       const isNeedReview = !isDass && Boolean(
         p.perlu_review_psikolog ||
-        p.paket?.toLowerCase().includes("mcmi")
+        p.paket?.toLowerCase().includes("mcmi") ||
+        p.paket?.toLowerCase().includes("pola klinis") ||
+        p.paket?.toLowerCase().includes("multiaxial")
       );
 
       const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
@@ -192,10 +208,34 @@ export default function TabPesertaPsikotes({
       );
       const isNeedReview = !isDass && Boolean(
         p.perlu_review_psikolog ||
-        p.paket?.toLowerCase().includes("mcmi")
+        p.paket?.toLowerCase().includes("mcmi") ||
+        p.paket?.toLowerCase().includes("pola klinis") ||
+        p.paket?.toLowerCase().includes("multiaxial")
       );
       const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
       if (!isMenunggu || !p.psikolog) return false;
+      const sla = calculateReviewSla(p.rawTanggal || p.tanggal);
+      const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
+      return sla.isOverdue || diffHours <= 24;
+    });
+  }, [scopedPesertaList]);
+
+  // List tiket kolam terbuka (belum ada psikolog yang ambil) yang sudah H-1 mendekati deadline SLA (<= 24 jam / overdue)
+  const unclaimedUrgentTickets = useMemo(() => {
+    const nowMs = Date.now();
+    return scopedPesertaList.filter((p) => {
+      const isDass = Boolean(
+        p.paket?.toLowerCase().includes("dass") ||
+        p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
+      );
+      const isNeedReview = !isDass && Boolean(
+        p.perlu_review_psikolog ||
+        p.paket?.toLowerCase().includes("mcmi") ||
+        p.paket?.toLowerCase().includes("pola klinis") ||
+        p.paket?.toLowerCase().includes("multiaxial")
+      );
+      const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
+      if (!isMenunggu || p.psikolog || p.id_psikolog) return false;
       const sla = calculateReviewSla(p.rawTanggal || p.tanggal);
       const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
       return sla.isOverdue || diffHours <= 24;
@@ -249,7 +289,9 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
       );
       const isNeedReview = !isDass && Boolean(
         peserta.perlu_review_psikolog ||
-        peserta.paket?.toLowerCase().includes("mcmi")
+        peserta.paket?.toLowerCase().includes("mcmi") ||
+        peserta.paket?.toLowerCase().includes("pola klinis") ||
+        peserta.paket?.toLowerCase().includes("multiaxial")
       );
       const isMenungguReview = isNeedReview && (peserta.status === "Menunggu Review" || peserta.status_pengerjaan === "MENUNGGU_REVIEW");
       const isSelesaiStatus = !isMenungguReview && (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI" || Boolean(peserta.hasil));
@@ -367,8 +409,9 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
           const pengerjaanTime = new Date(peserta.rawTanggal || peserta.tanggal).getTime();
           const hoursSincePengerjaan = !isNaN(pengerjaanTime) ? (nowMs - pengerjaanTime) / (1000 * 60 * 60) : 0;
 
-          // 1. Indikator Belum Ada yang Ambil: Kolam antrean > 24 jam belum diklaim
+          // 1. Indikator Belum Ada yang Ambil: Kolam antrean > 24 jam belum diklaim atau mendekati batas SLA
           const isBelumAdaYangAmbil = !isSedangDitinjau && hoursSincePengerjaan >= 24;
+          const isUnclaimedUrgent = !isSedangDitinjau && (sla.isOverdue || diffHours <= 24);
 
           // 2. Indikator Hampir Habis Batas: Sudah di-keep tapi mendekati batas SLA (<= 24 jam) atau telat
           const isHampirHabisBatas = isSedangDitinjau && (sla.isOverdue || diffHours <= 24);
@@ -379,20 +422,31 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
                 {badgeText}
               </AdminStatusBadge>
 
-              {isBelumAdaYangAmbil && (
+              {isUnclaimedUrgent ? (
                 <span className="text-[11px] font-bold text-amber-700 mt-0.5 flex items-center gap-1.5 animate-pulse">
                   <span className="relative flex h-2 w-2 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
                   </span>
-                  <span>⚠️ Belum Ada yang Ambil</span>
+                  <span>{sla.isOverdue ? "Lewat Batas SLA (Belum Diambil)" : "Belum Diambil (Sisa ≤ 24 Jam)"}</span>
                 </span>
-              )}
+              ) : isBelumAdaYangAmbil ? (
+                <span className="text-[11px] font-bold text-amber-700 mt-0.5 flex items-center gap-1.5 animate-pulse">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                  </span>
+                  <span>Belum Ada yang Ambil</span>
+                </span>
+              ) : null}
 
               {isHampirHabisBatas && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-300 animate-pulse shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                  {sla.isOverdue ? "🚨 Lewat Batas SLA" : "🔥 Hampir Habis Batas"}
+                <span className="text-[11px] font-bold text-rose-600 mt-0.5 flex items-center gap-1.5 animate-pulse">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                  </span>
+                  <span>{sla.isOverdue ? "Lewat Batas SLA" : "Hampir Habis Batas"}</span>
                 </span>
               )}
             </div>
@@ -411,7 +465,7 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         );
       },
     },
-    ...(statusFilter !== "SEDANG_DITINJAU" && statusFilter !== "MENUNGGU_TINJAU" && isSelectedPaketNeedReview
+    ...(!isBiroContext && statusFilter !== "SEDANG_DITINJAU" && statusFilter !== "MENUNGGU_TINJAU" && isSelectedPaketNeedReview
       ? [
           {
             key: "status_wa",
@@ -532,29 +586,14 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               )}
             </div>
 
-            {isMenungguReview ? (() => {
-              const nowMs = Date.now();
-              const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
-              const isKritis = sla.isOverdue || diffHours <= 24;
-
-              return (
-                <div className="flex flex-col gap-1 items-start">
-                  {isKritis && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
-                        🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
-                      </span>
-                    </div>
-                  )}
-                  <span
-                    className="text-[10px] text-gray-500 font-medium"
-                    title={`Deadline: ${sla.deadlineFormatted}`}
-                  >
-                    Batas: {sla.deadlineFormatted}
-                  </span>
-                </div>
-              );
-            })() : isSelesai ? (
+            {isMenungguReview ? (
+              <span
+                className="text-[10px] text-gray-500 font-medium"
+                title={`Deadline: ${sla.deadlineFormatted}`}
+              >
+                Batas: {sla.deadlineFormatted}
+              </span>
+            ) : isSelesai ? (
               <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />
                 Tepat Waktu (Selesai)
@@ -585,21 +624,23 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
     <AdminTableContainer>
       {/* 1. Reminder Otomatis Admin: Peringatan SLA Kritis (H-1 / <= 24 Jam) - Hanya untuk Admin Utama Empathika */}
       {!isBiroContext && urgentTickets.length > 0 && (
-        <div className="mb-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-50 via-rose-50/80 to-amber-50 border border-rose-200/90 shadow-2xs space-y-3 animate-in fade-in duration-300">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-100 pb-2.5">
+        <div className="mb-5 p-3.5 sm:p-4 rounded-xl bg-rose-50/40 border border-rose-200/70 shadow-2xs space-y-3 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2.5 border-b border-rose-100">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-              <span className="text-xs font-bold text-rose-950 uppercase tracking-wide flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                Peringatan SLA ({urgentTickets.length} Asesmen Kritis)
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
               </span>
+              <h4 className="text-xs font-bold text-rose-900 tracking-tight">
+                Peringatan SLA ({urgentTickets.length} Asesmen Kritis)
+              </h4>
             </div>
-            <span className="text-[11px] text-rose-700 font-semibold">
+            <p className="text-[11px] text-gray-500">
               Tiket sudah di-keep tetapi belum selesai dalam H-1 deadline
-            </span>
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {urgentTickets.slice(0, 4).map((ticket) => {
               const sla = calculateReviewSla(ticket.rawTanggal || ticket.tanggal);
               const nowMs = Date.now();
@@ -610,27 +651,33 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               return (
                 <div
                   key={ticket.id}
-                  className="p-3 bg-white rounded-xl border border-rose-200 shadow-2xs flex items-center justify-between gap-3"
+                  className="p-3 bg-white rounded-xl border border-gray-200/80 hover:border-rose-200 shadow-2xs flex items-center justify-between gap-3 transition-colors"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 space-y-0.5">
                     <p className="text-xs font-bold text-gray-900 truncate">
                       {namaPsi}
                     </p>
                     <p className="text-[11px] text-gray-500 truncate">
-                      {ticket.paket} • <span className="font-mono text-gray-700 font-medium">{ticket.peserta?.nama_lengkap || ticket.nama}</span>
+                      {ticket.paket} • <span className="text-gray-700 font-medium">{ticket.peserta?.nama_lengkap || ticket.nama}</span>
                     </p>
-                    <p className="text-[10px] text-rose-600 font-bold mt-0.5">
-                      {sla.isOverdue ? "🚨 Lewat Batas Waktu SLA" : `🔥 Sisa ~${diffHours} Jam`} (Deadline: {sla.deadlineFormatted.split(",")[0]})
-                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                      <span className="text-rose-600">
+                        {sla.isOverdue ? "Lewat batas SLA" : `Sisa ~${diffHours} Jam`}
+                      </span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-gray-500 text-[10px]">
+                        Deadline: {sla.deadlineFormatted.split(",")[0]}
+                      </span>
+                    </div>
                   </div>
                   <a
                     href={waUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-2xs shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200/80 hover:border-emerald-600 text-xs font-semibold transition-all shadow-2xs shrink-0 cursor-pointer"
                     title="Kirim pesan pengingat WhatsApp ke psikolog pemeriksa"
                   >
-                    <MessageCircle className="w-3.5 h-3.5" />
+                    <MessageCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>Ingatkan via WA</span>
                   </a>
                 </div>
@@ -640,8 +687,75 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         </div>
       )}
 
-      {/* 2. Banner Pemberitahuan Asesmen Menunggu Tinjauan Psikolog (Clean & Profesional) */}
-      {isSelectedPaketNeedReview && statusStats.menungguTinjau > 0 && (
+      {/* 1b. Reminder Otomatis Admin: Kolam Antrean Belum Diambil & Mendekati Batas SLA (H-1) */}
+      {!isBiroContext && unclaimedUrgentTickets.length > 0 && (
+        <div className="mb-5 p-3.5 sm:p-4 rounded-xl bg-amber-50/40 border border-amber-200/70 shadow-2xs space-y-3 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2.5 border-b border-amber-100">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+              </span>
+              <h4 className="text-xs font-bold text-amber-900 tracking-tight">
+                Kolam Antrean: {unclaimedUrgentTickets.length} Asesmen Belum Diambil & Mendekati Batas SLA
+              </h4>
+            </div>
+            <p className="text-[11px] text-gray-500">
+              Asesmen ini belum diklaim oleh psikolog mana pun dalam H-1 deadline
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {unclaimedUrgentTickets.slice(0, 4).map((ticket) => {
+              const sla = calculateReviewSla(ticket.rawTanggal || ticket.tanggal);
+              const nowMs = Date.now();
+              const diffHours = Math.round((sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60));
+
+              return (
+                <div
+                  key={ticket.id}
+                  className="p-3 bg-white rounded-xl border border-gray-200/80 hover:border-amber-200 shadow-2xs flex items-center justify-between gap-3 transition-colors"
+                >
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">
+                        Belum Diklaim
+                      </span>
+                      <p className="text-xs font-bold text-gray-900 truncate">
+                        {ticket.peserta?.nama_lengkap || ticket.nama}
+                      </p>
+                    </div>
+                    <p className="text-[11px] text-gray-500 truncate">
+                      {ticket.paket} • <span className="font-mono text-gray-500 text-[10px]">{ticket.kodeAkses || "Tiket Empathika"}</span>
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                      <span className="text-amber-700">
+                        {sla.isOverdue ? "Lewat batas SLA" : `Sisa ~${diffHours} Jam`}
+                      </span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-gray-500 text-[10px]">
+                        Deadline: {sla.deadlineFormatted.split(",")[0]}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onSelectPeserta(ticket)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-600 hover:text-white border border-amber-200/80 hover:border-amber-600 text-xs font-semibold transition-all shadow-2xs shrink-0 cursor-pointer"
+                    title="Buka detail peserta untuk memeriksa tiket"
+                  >
+                    <span>Lihat Detail</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 2. Banner Pemberitahuan Asesmen Menunggu Tinjauan Psikolog (Hanya Admin Utama Empathika) */}
+      {!isBiroContext && isSelectedPaketNeedReview && statusStats.menungguTinjau > 0 && (
         <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50/90 via-fuchsia-50/30 to-white border border-purple-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-300">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
@@ -781,7 +895,6 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
                   : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
-              <Stethoscope className="w-3.5 h-3.5" />
               Sedang Ditinjau ({statusStats.sedangDitinjau})
             </button>
 
@@ -795,7 +908,6 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
                   : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
               Selesai ({statusStats.selesai})
             </button>
           </div>
