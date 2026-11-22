@@ -8,6 +8,7 @@ import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { psikologService } from "@/services/psikolog.service";
 import { biroAdminService, biroPublicService } from "@/services/biro.service";
+import { adminService } from "@/services/admin.service";
 import { useTenantContext } from "@/context/TenantContext";
 
 declare global {
@@ -25,6 +26,37 @@ export function LoginForm() {
   const [biroTheme, setBiroTheme] = useState<string | null>(null);
   const [biroName, setBiroName] = useState<string | null>(null);
   const [biroLogo, setBiroLogo] = useState<string | null>(null);
+  const [empathikaLogo, setEmpathikaLogo] = useState<string | null>(null);
+
+  // Ambil profil resmi Empathika (foto/logo) dari database / cache untuk portal login pusat
+  useEffect(() => {
+    const loadEmpathikaProfile = () => {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.foto !== undefined) setEmpathikaLogo(parsed.foto);
+        }
+      } catch {}
+
+      adminService
+        .getPublicProfile()
+        .then((res: any) => {
+          if (res?.data?.foto !== undefined) {
+            setEmpathikaLogo(res.data.foto);
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadEmpathikaProfile();
+    window.addEventListener("storage", loadEmpathikaProfile);
+    window.addEventListener("empathika_admin_profile_updated", loadEmpathikaProfile);
+    return () => {
+      window.removeEventListener("storage", loadEmpathikaProfile);
+      window.removeEventListener("empathika_admin_profile_updated", loadEmpathikaProfile);
+    };
+  }, []);
 
   const [emailOrName, setEmailOrName] = useState("");
   const [password, setPassword] = useState("");
@@ -94,6 +126,9 @@ export function LoginForm() {
   const effectiveThemeColor = biroProfile?.warna_tema || biroTheme || null;
   const effectiveBiroName = biroProfile?.nama_biro || biroName || null;
   const effectiveBiroLogo = biroProfile?.logoURI || biroLogo || null;
+
+  const activePortalName = effectiveBiroName || "Empathika";
+  const activePortalLogo = effectiveBiroLogo || empathikaLogo;
 
   // Sinkronisasi variabel tema biro ke CSS browser saat berada di halaman login biro
   useEffect(() => {
@@ -481,15 +516,15 @@ export function LoginForm() {
             className="w-20 h-20 rounded-full shadow-md flex items-center justify-center mb-6 overflow-hidden transition-all duration-300"
             style={{ backgroundColor: effectiveThemeColor || "#561269" }}
           >
-            {effectiveBiroLogo ? (
+            {activePortalLogo ? (
               <img
-                src={effectiveBiroLogo}
-                alt={effectiveBiroName || "Logo Biro"}
+                src={activePortalLogo}
+                alt={activePortalName}
                 className="w-full h-full object-cover"
               />
             ) : (
               <span className="text-3xl font-bold text-white">
-                {effectiveBiroName ? effectiveBiroName.charAt(0).toUpperCase() : "E"}
+                {activePortalName ? activePortalName.charAt(0).toUpperCase() : "E"}
               </span>
             )}
           </div>
@@ -501,7 +536,7 @@ export function LoginForm() {
               style={{ color: effectiveThemeColor || "#561269" }}
             >
               Selamat Datang di<br />
-              {effectiveBiroName || "Empathika"}
+              {activePortalName}
             </h1>
             <p className="text-gray-500 text-sm leading-relaxed px-4">
               Silakan masuk menggunakan akun Anda<br />untuk melanjutkan ke dashboard.
