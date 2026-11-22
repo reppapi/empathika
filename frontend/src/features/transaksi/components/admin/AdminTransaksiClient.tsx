@@ -1143,9 +1143,9 @@ export default function AdminTransaksiClient() {
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2.5 text-sm">
+                          <div className="flex items-center gap-1.5 text-sm">
                             <span
-                              className="font-bold text-gray-900 truncate w-28 sm:w-36 md:w-44 shrink-0"
+                              className="font-bold text-gray-900 truncate w-20 sm:w-24 shrink-0"
                               title={item.clientName}
                             >
                               {item.clientName}
