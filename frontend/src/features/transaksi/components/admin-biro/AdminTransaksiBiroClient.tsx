@@ -205,9 +205,7 @@ function normalizeTransaksi(raw: any) {
 export default function AdminTransaksiBiroClient() {
   const dateInputRef = useRef<HTMLInputElement>(null)
   const filterBtnRef = useRef<HTMLButtonElement>(null)
-  const [filterDropdownPos, setFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
   const statusFilterBtnRef = useRef<HTMLButtonElement>(null)
-  const [statusFilterDropdownPos, setStatusFilterDropdownPos] = useState<{ top: number; right: number } | null>(null)
   const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false)
 
   // Data state
@@ -546,19 +544,12 @@ export default function AdminTransaksiBiroClient() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daftar Transaksi</h2>
 
-          {/* Filter Status Dropdown */}
+          {/* Filter Status: Dropdown opsi pilihan dalam satu kotak rapi */}
           <div className="relative">
             <button
               type="button"
               ref={statusFilterBtnRef}
-              onClick={() => {
-                if (!isStatusFilterOpen && statusFilterBtnRef.current) {
-                  const rect = statusFilterBtnRef.current.getBoundingClientRect()
-                  const rightOffset = Math.max(16, window.innerWidth - rect.right)
-                  setStatusFilterDropdownPos({ top: rect.bottom + 8, right: rightOffset })
-                }
-                setIsStatusFilterOpen(!isStatusFilterOpen)
-              }}
+              onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
               className="flex items-center gap-2 rounded-full border border-gray-200/90 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 ease-in-out cursor-pointer active:scale-95"
             >
               <span className="text-gray-400 font-medium text-xs">Status:</span>
@@ -575,16 +566,11 @@ export default function AdminTransaksiBiroClient() {
             {isStatusFilterOpen && (
               <>
                 <div
-                  className="fixed inset-0 z-40"
+                  className="fixed inset-0 z-10"
                   onClick={() => setIsStatusFilterOpen(false)}
                 />
                 <div
-                  className="fixed z-[9999] w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold"
-                  style={
-                    statusFilterDropdownPos
-                      ? { top: statusFilterDropdownPos.top, right: statusFilterDropdownPos.right }
-                      : {}
-                  }
+                  className="absolute right-0 top-full mt-2 z-20 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150"
                 >
                   <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400">
                     Pilih Status
@@ -700,13 +686,7 @@ export default function AdminTransaksiBiroClient() {
                   <button
                     type="button"
                     ref={filterBtnRef}
-                    onClick={() => {
-                      if (!isFilterOpen && filterBtnRef.current) {
-                        const rect = filterBtnRef.current.getBoundingClientRect()
-                        setFilterDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
-                      }
-                      setIsFilterOpen(!isFilterOpen)
-                    }}
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
                     className="flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:bg-gray-50 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4 text-[#561269]">
@@ -717,10 +697,9 @@ export default function AdminTransaksiBiroClient() {
 
                   {isFilterOpen && (
                     <>
-                      <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
+                      <div className="fixed inset-0 z-10" onClick={() => setIsFilterOpen(false)} />
                       <div
-                        className="fixed z-[9999] w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold"
-                        style={filterDropdownPos ? { top: filterDropdownPos.top, right: filterDropdownPos.right } : {}}
+                        className="absolute right-0 top-full mt-2 z-20 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150"
                       >
                         <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400">Filter Layanan</p>
                         {LAYANAN_OPTIONS.map((opt) => (
