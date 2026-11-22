@@ -90,8 +90,10 @@ export function TenantProvider({
           if (typeof window !== "undefined") {
             try {
               localStorage.setItem(`biro_profile_${slug}`, JSON.stringify(res.data))
+              localStorage.setItem("last_active_biro_slug", slug)
               if (res.data.warna_tema) {
                 localStorage.setItem(`biro_theme_${slug}`, res.data.warna_tema)
+                localStorage.setItem("active_biro_theme", res.data.warna_tema)
                 document.cookie = `biro_theme_${slug}=${encodeURIComponent(res.data.warna_tema)}; path=/; max-age=2592000; SameSite=Lax`
               }
             } catch (e) {}
@@ -135,8 +137,11 @@ export function TenantProvider({
   // Sinkronisasi variabel warna tema biro ke CSS root browser
   useEffect(() => {
     if (typeof document !== "undefined") {
-      // Jangan timpa / hapus tema jika pengguna berada di portal admin biro (/admin-biro)
-      if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin-biro")) {
+      // Jangan timpa / hapus tema jika pengguna berada di portal admin biro (/admin-biro) atau halaman login (/login)
+      if (
+        typeof window !== "undefined" &&
+        (window.location.pathname.startsWith("/admin-biro") || window.location.pathname.startsWith("/login"))
+      ) {
         return
       }
 

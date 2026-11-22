@@ -594,14 +594,14 @@ export function EventListClient() {
                     {selectedCategoryTab === "WORKSHOP" && selectedWorkshopPill !== "Semua" ? (
                       <button
                         onClick={() => setSelectedWorkshopPill("Semua")}
-                        className="inline-flex items-center gap-2 bg-[#561269] text-white hover:bg-[#430e52] font-bold text-sm py-2.5 px-6 rounded-full transition-all cursor-pointer"
+                        className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm py-2.5 px-6 rounded-full shadow-sm hover:shadow transition-all cursor-pointer active:scale-95"
                       >
                         Tampilkan Semua Workshop
                       </button>
                     ) : (
                       <button
                         onClick={() => setActiveTab("UPCOMING")}
-                        className="inline-flex items-center gap-2 bg-[#561269] text-white hover:bg-[#430e52] font-bold text-sm py-2.5 px-6 rounded-full transition-all cursor-pointer"
+                        className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm py-2.5 px-6 rounded-full shadow-sm hover:shadow transition-all cursor-pointer active:scale-95"
                       >
                         Lihat Event yang Akan Datang
                       </button>

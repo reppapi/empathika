@@ -7,7 +7,8 @@ import { setAuthCookie, removeAuthCookie } from "@/lib/cookie";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { psikologService } from "@/services/psikolog.service";
-import { biroAdminService } from "@/services/biro.service";
+import { biroAdminService, biroPublicService } from "@/services/biro.service";
+import { useTenantContext } from "@/context/TenantContext";
 
 declare global {
   interface Window {
@@ -19,6 +20,12 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
+  const { isBiro, slug, biroProfile } = useTenantContext();
+
+  const [biroTheme, setBiroTheme] = useState<string | null>(null);
+  const [biroName, setBiroName] = useState<string | null>(null);
+  const [biroLogo, setBiroLogo] = useState<string | null>(null);
+
   const [emailOrName, setEmailOrName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +33,81 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
+
+  // Deteksi tema biro secara reaktif (dari TenantContext, query param ?biro=, atau cache lokal)
+  useEffect(() => {
+    let resolvedTheme: string | null = biroProfile?.warna_tema || null;
+    let resolvedName: string | null = biroProfile?.nama_biro || null;
+    let resolvedLogo: string | null = biroProfile?.logoURI || null;
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const querySlug = params.get("biro") || params.get("tenant") || slug;
+
+      if (querySlug) {
+        try {
+          const cachedProfile = localStorage.getItem(`biro_profile_${querySlug}`);
+          if (cachedProfile) {
+            const parsed = JSON.parse(cachedProfile);
+            if (!resolvedTheme && parsed.warna_tema) resolvedTheme = parsed.warna_tema;
+            if (!resolvedName && parsed.nama_biro) resolvedName = parsed.nama_biro;
+            if (!resolvedLogo && parsed.logoURI) resolvedLogo = parsed.logoURI;
+          }
+          if (!resolvedTheme) {
+            const cachedTheme = localStorage.getItem(`biro_theme_${querySlug}`);
+            if (cachedTheme) resolvedTheme = cachedTheme;
+          }
+        } catch {}
+
+        if (!resolvedTheme || !resolvedName) {
+          biroPublicService
+            .getProfile(querySlug)
+            .then((res) => {
+              if (res.success && res.data) {
+                if (res.data.warna_tema) setBiroTheme(res.data.warna_tema);
+                if (res.data.nama_biro) setBiroName(res.data.nama_biro);
+                if (res.data.logoURI) setBiroLogo(res.data.logoURI);
+              }
+            })
+            .catch(() => {});
+        }
+      } else {
+        const lastSlug = localStorage.getItem("last_active_biro_slug");
+        if (lastSlug) {
+          try {
+            const cachedProfile = localStorage.getItem(`biro_profile_${lastSlug}`);
+            if (cachedProfile) {
+              const parsed = JSON.parse(cachedProfile);
+              if (!resolvedTheme && parsed.warna_tema) resolvedTheme = parsed.warna_tema;
+              if (!resolvedName && parsed.nama_biro) resolvedName = parsed.nama_biro;
+              if (!resolvedLogo && parsed.logoURI) resolvedLogo = parsed.logoURI;
+            }
+          } catch {}
+        }
+        if (!resolvedTheme) {
+          const adminColor =
+            localStorage.getItem("biro_theme_color") || localStorage.getItem("active_biro_theme");
+          if (adminColor) resolvedTheme = adminColor;
+        }
+      }
+    }
+
+    if (resolvedTheme) setBiroTheme(resolvedTheme);
+    if (resolvedName) setBiroName(resolvedName);
+    if (resolvedLogo) setBiroLogo(resolvedLogo);
+  }, [isBiro, slug, biroProfile]);
+
+  const effectiveThemeColor = biroProfile?.warna_tema || biroTheme || null;
+  const effectiveBiroName = biroProfile?.nama_biro || biroName || null;
+  const effectiveBiroLogo = biroProfile?.logoURI || biroLogo || null;
+
+  // Sinkronisasi variabel tema biro ke CSS browser saat berada di halaman login biro
+  useEffect(() => {
+    if (effectiveThemeColor && typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--biro-theme-color", effectiveThemeColor);
+      document.documentElement.setAttribute("data-biro-theme", "true");
+    }
+  }, [effectiveThemeColor]);
 
   useEffect(() => {
     const status = searchParams.get("status");
@@ -381,21 +463,48 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex font-poppins selection:bg-[#561269]/20 selection:text-[#561269]">
+    <div
+      className="min-h-screen flex font-poppins selection:bg-[#561269]/20 selection:text-[#561269]"
+      style={
+        effectiveThemeColor
+          ? ({
+              "--tw-selection-bg": `color-mix(in srgb, ${effectiveThemeColor} 20%, transparent)`,
+              "--tw-selection-text": effectiveThemeColor,
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
 
       {/* ── Kiri: Form Login Bersih (Tanpa Tombol Pilih) ── */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-12 bg-white">
         <div className="w-full max-w-md flex flex-col items-center">
 
           {/* Logo */}
-          <div className="w-20 h-20 rounded-full bg-[#561269] shadow-md flex items-center justify-center mb-6">
-            <span className="text-3xl font-bold text-white">E</span>
+          <div
+            className="w-20 h-20 rounded-full shadow-md flex items-center justify-center mb-6 overflow-hidden transition-all duration-300"
+            style={{ backgroundColor: effectiveThemeColor || "#561269" }}
+          >
+            {effectiveBiroLogo ? (
+              <img
+                src={effectiveBiroLogo}
+                alt={effectiveBiroName || "Logo Biro"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-3xl font-bold text-white">
+                {effectiveBiroName ? effectiveBiroName.charAt(0).toUpperCase() : "E"}
+              </span>
+            )}
           </div>
 
           {/* Heading */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#561269] mb-3">
-              Selamat Datang di<br />Empathika
+            <h1
+              className="text-2xl sm:text-3xl font-extrabold mb-3 transition-colors duration-300"
+              style={{ color: effectiveThemeColor || "#561269" }}
+            >
+              Selamat Datang di<br />
+              {effectiveBiroName || "Empathika"}
             </h1>
             <p className="text-gray-500 text-sm leading-relaxed px-4">
               Silakan masuk menggunakan akun Anda<br />untuk melanjutkan ke dashboard.
@@ -451,7 +560,11 @@ export function LoginForm() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-bold text-gray-800">Kata Sandi</label>
-                <button type="button" className="text-xs font-bold text-[#561269] hover:text-[#360842] transition-colors">
+                <button
+                  type="button"
+                  className="text-xs font-bold transition-colors hover:opacity-80"
+                  style={{ color: effectiveThemeColor || "#561269" }}
+                >
                   Lupa Sandi?
                 </button>
               </div>
@@ -484,7 +597,8 @@ export function LoginForm() {
                 id="remember"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-[#561269] bg-gray-100 border-gray-300 rounded focus:ring-[#561269] cursor-pointer"
+                className="w-4 h-4 bg-gray-100 border-gray-300 rounded cursor-pointer"
+                style={{ accentColor: effectiveThemeColor || "#561269" }}
               />
               <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer select-none">
                 Ingat saya di perangkat ini
@@ -541,14 +655,52 @@ export function LoginForm() {
         </div>
       </div>
 
-      {/* ── Kanan: Visual Empathika (Fluid Mesh Gradient) ── */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#1c0524] flex-col justify-end p-16 overflow-hidden rounded-l-[3rem] shadow-[-20px_0_50px_-15px_rgba(86,18,105,0.15)]">
+      {/* ── Kanan: Visual Banner (Fluid Mesh Gradient dinamis sesuai tema biro / Empathika) ── */}
+      <div
+        className="hidden lg:flex lg:w-1/2 relative flex-col justify-end p-16 overflow-hidden rounded-l-[3rem] transition-all duration-500"
+        style={{
+          backgroundColor: effectiveThemeColor
+            ? `color-mix(in srgb, ${effectiveThemeColor} 22%, #0a030d)`
+            : "#1c0524",
+          boxShadow: effectiveThemeColor
+            ? `-20px 0 50px -15px color-mix(in srgb, ${effectiveThemeColor} 25%, transparent)`
+            : "-20px 0 50px -15px rgba(86,18,105,0.15)",
+        }}
+      >
 
         {/* --- Organic Mesh Gradient Blobs --- */}
-        <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] rounded-[100%] bg-[#701a8a] opacity-70 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] rounded-[100%] bg-[#360842] opacity-90 blur-[100px] pointer-events-none" />
-        <div className="absolute top-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-[#a347c7] opacity-40 blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-[10%] left-[-20%] w-[70%] h-[70%] rounded-full bg-[#20042b] opacity-80 blur-[100px] pointer-events-none" />
+        <div
+          className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] rounded-[100%] opacity-70 blur-[120px] pointer-events-none transition-all duration-500"
+          style={{
+            backgroundColor: effectiveThemeColor
+              ? `color-mix(in srgb, ${effectiveThemeColor} 85%, white)`
+              : "#701a8a",
+          }}
+        />
+        <div
+          className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] rounded-[100%] opacity-90 blur-[100px] pointer-events-none transition-all duration-500"
+          style={{
+            backgroundColor: effectiveThemeColor
+              ? `color-mix(in srgb, ${effectiveThemeColor} 65%, black)`
+              : "#360842",
+          }}
+        />
+        <div
+          className="absolute top-[20%] left-[20%] w-[60%] h-[60%] rounded-full opacity-40 blur-[140px] pointer-events-none transition-all duration-500"
+          style={{
+            backgroundColor: effectiveThemeColor
+              ? `color-mix(in srgb, ${effectiveThemeColor} 75%, white)`
+              : "#a347c7",
+          }}
+        />
+        <div
+          className="absolute bottom-[10%] left-[-20%] w-[70%] h-[70%] rounded-full opacity-80 blur-[100px] pointer-events-none transition-all duration-500"
+          style={{
+            backgroundColor: effectiveThemeColor
+              ? `color-mix(in srgb, ${effectiveThemeColor} 40%, black)`
+              : "#20042b",
+          }}
+        />
 
         <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-[#0a000d]/90 pointer-events-none mix-blend-multiply" />
 
@@ -560,7 +712,9 @@ export function LoginForm() {
           </p>
           <div className="flex items-center gap-3">
             <div className="w-8 h-px bg-white/40" />
-            <span className="text-white/80 text-xs font-bold tracking-widest uppercase">Empathika Care</span>
+            <span className="text-white/80 text-xs font-bold tracking-widest uppercase">
+              {effectiveBiroName || "Empathika Care"}
+            </span>
           </div>
         </div>
 
