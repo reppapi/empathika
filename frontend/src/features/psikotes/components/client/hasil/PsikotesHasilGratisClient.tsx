@@ -385,11 +385,11 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         {isProfileOnlyWithoutTotal ? (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 shadow-sm space-y-6">
             <div className="text-center space-y-2 border-b border-gray-100 pb-5">
-              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#561269] bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
-                {isCHOCI
-                  ? "CHOCI-R • Profil Gejala & Keparahan OCD"
-                  : "PBQ • Profil Skor 9 Skala Kepribadian"}
-              </span>
+              {isCHOCI && (
+                <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#561269] bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
+                  CHOCI-R • Profil Gejala & Keparahan OCD
+                </span>
+              )}
               <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
                 {dbPackage?.judul || (isCHOCI ? "Children’s Obsessive-Compulsive Inventory – Revised (CHOCI-R)" : "Personality Belief Questionnaire (PBQ)")}
               </h1>
