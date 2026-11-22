@@ -91,56 +91,7 @@ export class AdminRepository {
         }
       : {}
 
-    const paidTransactionsThisMonth = await this.prisma.transaksi.findMany({
-      where: {
-        status_pembayaran: 'PAID',
-        ...validBookingFilter,
-        ...biroFilter,
-        AND: [
-          {
-            OR: [
-              { tanggal_bayar: { gte: monthStart, lte: monthEnd } },
-              {
-                tanggal_bayar: null,
-                createdAt: { gte: monthStart, lte: monthEnd },
-              },
-            ],
-          },
-        ],
-      },
-      select: { total: true },
-    })
-
-    const paidTransactionsLastMonth = await this.prisma.transaksi.findMany({
-      where: {
-        status_pembayaran: 'PAID',
-        ...validBookingFilter,
-        ...biroFilter,
-        AND: [
-          {
-            OR: [
-              { tanggal_bayar: { gte: lastMonthStart, lte: lastMonthEnd } },
-              {
-                tanggal_bayar: null,
-                createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
-              },
-            ],
-          },
-        ],
-      },
-      select: { total: true },
-    })
-
-    const totalIncomeThisMonth = paidTransactionsThisMonth.reduce(
-      (acc, t) => acc + Number(t.total ?? 0),
-      0
-    )
-    const totalIncomeLastMonth = paidTransactionsLastMonth.reduce(
-      (acc, t) => acc + Number(t.total ?? 0),
-      0
-    )
-
-    // 2. Total Klien Aktif (Klien yang bertransaksi lewat web biro atau terdaftar di bawah biro jika biroId tersedia)
+    // 2. Total Klien Aktif
     const activeClientWhere: Prisma.ClientWhereInput = {
       ...(biroId
         ? {
@@ -166,88 +117,129 @@ export class AdminRepository {
           }),
     }
 
-    const totalClients = await this.prisma.client.count({
-      where: activeClientWhere,
-    })
-    const clientsBeforeYesterday = await this.prisma.client.count({
-      where: {
-        ...activeClientWhere,
-        createdAt: { lte: yesterdayEnd },
-      },
-    })
-    const newClientsSinceYesterday = totalClients - clientsBeforeYesterday
-
-    // 3. Sesi Konseling Selesai (Akumulasi Bulan Ini)
-    const completedSessionsThisMonth = await this.prisma.bookingKonsultasi.count({
-      where: {
-        status: 'COMPLETED',
-        NOT: { status: 'CANCELLED' },
-        ...(biroId
-          ? {
+    // Jalankan semua query secara paralel untuk menghindari timeout
+    const [
+      aggThisMonth,
+      aggLastMonth,
+      totalClients,
+      clientsBeforeYesterday,
+      completedSessionsThisMonth,
+      bookingEventsAgg,
+      activeEventsCountRaw,
+      pendingPaymentCount,
+    ] = await Promise.all([
+      // 1a. Pendapatan bulan ini — aggregate sum lebih cepat dari findMany+reduce
+      this.prisma.transaksi.aggregate({
+        _sum: { total: true },
+        where: {
+          status_pembayaran: 'PAID',
+          ...validBookingFilter,
+          ...biroFilter,
+          AND: [
+            {
               OR: [
-                { transaksi: { id_biro_tenant: biroId } },
-                { client: { id_biro: biroId } },
+                { tanggal_bayar: { gte: monthStart, lte: monthEnd } },
+                {
+                  tanggal_bayar: null,
+                  createdAt: { gte: monthStart, lte: monthEnd },
+                },
               ],
-            }
-          : {}),
-        AND: [
-          {
-            OR: [
-              { jadwal: { tanggal: { gte: monthStart, lte: monthEnd } } },
-              { updatedAt: { gte: monthStart, lte: monthEnd } },
-            ],
-          },
-        ],
-      },
-    })
-
-    // 4. Pendaftar Workshop & Event Aktif
-    const bookingEvents = await this.prisma.bookingEvent.findMany({
-      where: {
-        event: {
-          status: { in: ['UPCOMING', 'ONGOING'] },
+            },
+          ],
         },
-        NOT: { status: 'CANCELLED' },
-        ...(biroId
-          ? {
+      }),
+      // 1b. Pendapatan bulan lalu
+      this.prisma.transaksi.aggregate({
+        _sum: { total: true },
+        where: {
+          status_pembayaran: 'PAID',
+          ...validBookingFilter,
+          ...biroFilter,
+          AND: [
+            {
               OR: [
-                { transaksi: { id_biro_tenant: biroId } },
-                { client: { id_biro: biroId } },
+                { tanggal_bayar: { gte: lastMonthStart, lte: lastMonthEnd } },
+                {
+                  tanggal_bayar: null,
+                  createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+                },
               ],
-            }
-          : {}),
-      },
-      select: { jumlah_peserta: true },
-    })
-    const totalEventParticipants = bookingEvents.reduce(
-      (acc, b) => acc + (b.jumlah_peserta ?? 0),
-      0
-    )
+            },
+          ],
+        },
+      }),
+      // 2a. Total klien aktif
+      this.prisma.client.count({ where: activeClientWhere }),
+      // 2b. Klien aktif sebelum kemarin (untuk hitung new clients)
+      this.prisma.client.count({
+        where: { ...activeClientWhere, createdAt: { lte: yesterdayEnd } },
+      }),
+      // 3. Sesi konseling selesai bulan ini
+      this.prisma.bookingKonsultasi.count({
+        where: {
+          status: 'COMPLETED',
+          NOT: { status: 'CANCELLED' },
+          ...(biroId
+            ? {
+                OR: [
+                  { transaksi: { id_biro_tenant: biroId } },
+                  { client: { id_biro: biroId } },
+                ],
+              }
+            : {}),
+          AND: [
+            {
+              OR: [
+                { jadwal: { tanggal: { gte: monthStart, lte: monthEnd } } },
+                { updatedAt: { gte: monthStart, lte: monthEnd } },
+              ],
+            },
+          ],
+        },
+      }),
+      // 4a. Peserta event aktif — aggregate sum lebih cepat dari findMany+reduce
+      this.prisma.bookingEvent.aggregate({
+        _sum: { jumlah_peserta: true },
+        where: {
+          event: { status: { in: ['UPCOMING', 'ONGOING'] } },
+          NOT: { status: 'CANCELLED' },
+          ...(biroId
+            ? {
+                OR: [
+                  { transaksi: { id_biro_tenant: biroId } },
+                  { client: { id_biro: biroId } },
+                ],
+              }
+            : {}),
+        },
+      }),
+      // 4b. Jumlah event aktif (hanya jika bukan biro-scoped)
+      biroId
+        ? Promise.resolve(0 as number)
+        : this.prisma.event.count({
+            where: { status: { in: ['UPCOMING', 'ONGOING'] } },
+          }),
+      // 5. Transaksi menunggu pembayaran
+      this.prisma.transaksi.count({
+        where: {
+          status_pembayaran: 'PENDING',
+          ...(biroId ? { id_biro_tenant: biroId } : {}),
+          OR: [
+            { booking_konsultasi: { isNot: null } },
+            { booking_psikotes: { isNot: null } },
+            { booking_event: { isNot: null } },
+          ],
+        },
+      }),
+    ])
 
+    const totalIncomeThisMonth = Number(aggThisMonth._sum.total ?? 0)
+    const totalIncomeLastMonth = Number(aggLastMonth._sum.total ?? 0)
+    const totalEventParticipants = Number(bookingEventsAgg._sum.jumlah_peserta ?? 0)
     const activeEventsCount = biroId
       ? (totalEventParticipants > 0 ? 1 : 0)
-      : await this.prisma.event.count({
-          where: {
-            status: { in: ['UPCOMING', 'ONGOING'] },
-          },
-        })
-
-    // 5. Menunggu Pembayaran (hanya hitung transaksi aktif yang terhubung ke booking valid)
-    const pendingPaymentCount = await this.prisma.transaksi.count({
-      where: {
-        status_pembayaran: 'PENDING',
-        ...(biroId
-          ? {
-              id_biro_tenant: biroId,
-            }
-          : {}),
-        OR: [
-          { booking_konsultasi: { isNot: null } },
-          { booking_psikotes: { isNot: null } },
-          { booking_event: { isNot: null } },
-        ],
-      },
-    })
+      : (activeEventsCountRaw as number)
+    const newClientsSinceYesterday = totalClients - clientsBeforeYesterday
 
     return {
       totalIncomeThisMonth,

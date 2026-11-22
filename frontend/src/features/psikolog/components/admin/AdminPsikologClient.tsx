@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, StatusAkses, KategoriTenaga } from "../../types"
-import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import {
   ActionButtonDetail,
@@ -40,15 +39,7 @@ export default function AdminPsikologClient() {
     try {
       const dbList = await psikologService.getList({ status: "ALL" })
       if (Array.isArray(dbList)) {
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-        const localList: TenagaAhli[] = saved ? JSON.parse(saved) : []
-
         const mapped: TenagaAhli[] = dbList.map((p: any) => {
-          const matchedLocal = localList.find(
-            (loc) =>
-              loc.id === p.id ||
-              (loc.email && p.account?.email && loc.email.toLowerCase() === p.account.email.toLowerCase())
-          )
           const katStr = (p.kategori || "").toLowerCase()
           const kategori: KategoriTenaga = katStr.includes("peer")
             ? "peer-konselor"
@@ -93,9 +84,9 @@ export default function AdminPsikologClient() {
               : typeof p.keahlian === "string" && p.keahlian.trim()
               ? p.keahlian.split(",").map((s: string) => s.trim()).filter(Boolean)
               : [],
-            tanggalBergabung: matchedLocal?.tanggalBergabung || "Terdaftar di DB",
+            tanggalBergabung: p.createdAt ? new Date(p.createdAt).toLocaleDateString("id-ID") : "Terdaftar di DB",
             isReviewerPsikotes: Boolean(
-              p.is_reviewer_psikotes ?? p.isReviewerPsikotes ?? matchedLocal?.isReviewerPsikotes ?? false
+              p.is_reviewer_psikotes ?? p.isReviewerPsikotes ?? false
             ),
             accountId,
             accountAktif,
@@ -105,25 +96,10 @@ export default function AdminPsikologClient() {
         })
 
         setDataList(mapped)
-        localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(mapped))
         return mapped
       }
     } catch {
-      // Offline fallback
-    }
-
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        const cleaned = Array.isArray(parsed)
-          ? parsed.filter((p: any) => !['0', '1', '2', '3', '4'].includes(p.id) && !p.email?.endsWith('@empathika.test'))
-          : []
-        setDataList(cleaned)
-        return cleaned
-      } catch {
-        setDataList([])
-      }
+      setDataList([])
     }
     return []
   }
@@ -134,10 +110,6 @@ export default function AdminPsikologClient() {
 
   const persistData = (newList: TenagaAhli[], notifMsg?: string) => {
     setDataList(newList)
-    localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(newList))
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("storage"))
-    }
     if (notifMsg) {
       setNotification(notifMsg)
       setTimeout(() => setNotification(null), 3000)

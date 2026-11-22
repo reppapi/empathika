@@ -107,21 +107,9 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
         return
       }
     } catch (err) {
-      console.warn("Gagal mengambil data dari BE, mencoba fallback lokal:", err)
+      console.warn("Gagal mengambil data dari BE:", err)
     }
 
-    const saved = typeof window !== "undefined" ? localStorage.getItem("empathika_tenaga_ahli_data") : null
-    if (saved) {
-      try {
-        const localList: TenagaAhli[] = JSON.parse(saved)
-        const found = localList.find((p) => p.id === id)
-        if (found) {
-          setForm(found)
-          if (found.tokenAktivasi) setActivationToken(found.tokenAktivasi)
-          if (found.tokenExpiredAt) setTokenExpiredAt(found.tokenExpiredAt)
-        }
-      } catch {}
-    }
     setLoading(false)
   }
 

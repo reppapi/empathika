@@ -316,7 +316,7 @@ export default function PsikologJadwalClient() {
     const dateSet = new Set<string>()
     bookedSessions.forEach((s) => {
       if ((s as any).tipe_jadwal === "ASESMEN" || (s.layanan || "").toLowerCase().includes("asesmen")) return
-      if (!matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName, resolvedAccountId)) return
+      // slots sudah di-scope ke psikolog yang login oleh backend (getJadwalSaya), skip filter duplikat
 
       if (s.date && s.date >= todayKey && !s.isCancelled && s.status !== "Dibatalkan") {
         dateSet.add(s.date)
@@ -2033,8 +2033,8 @@ export default function PsikologJadwalClient() {
                     (s) =>
                       s.date === wd.dateKey &&
                       (s as any).tipe_jadwal !== "ASESMEN" &&
-                      !(s.layanan || "").toLowerCase().includes("asesmen") &&
-                      matchPsikologSession(s, resolvedPsikologId, resolvedPsikologName, resolvedAccountId)
+                      !(s.layanan || "").toLowerCase().includes("asesmen")
+                    // slots sudah di-scope ke psikolog login oleh backend, tidak perlu filter ulang
                   )
                   .sort((a, b) => a.waktu.localeCompare(b.waktu))
 
