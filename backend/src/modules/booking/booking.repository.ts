@@ -271,7 +271,7 @@ export class BookingRepository {
             data: { jumlah_sesi: { decrement: 1 } },
           }).catch(() => { })
         }
-      }).catch(() => { })
+      }, { timeout: 30000, maxWait: 10000 }).catch(() => { })
       expiredIds.push(booking.id)
     }
 
@@ -759,7 +759,7 @@ export class BookingRepository {
       }).catch(() => { })
 
       return booking
-    })
+    }, { timeout: 30000, maxWait: 10000 })
   }
 
   async createClientBooking(data: {
@@ -1256,7 +1256,7 @@ export class BookingRepository {
       }
 
       return booking
-    })
+    }, { timeout: 30000, maxWait: 10000 })
   }
 
   async confirmBookingPayment(bookingId: string) {
@@ -1326,7 +1326,7 @@ export class BookingRepository {
         booking: updatedBooking,
         transaksi: updatedTransaksi,
       }
-    })
+    }, { timeout: 30000, maxWait: 10000 })
   }
 
   async updateBookingStatus(id: string, status: StatusBooking) {
@@ -1478,7 +1478,7 @@ export class BookingRepository {
       }
 
       return updated
-    })
+    }, { timeout: 30000, maxWait: 10000 })
   }
 
   async findBookingById(id: string) {
@@ -1619,7 +1619,7 @@ export class BookingRepository {
         transaksi: updatedTransaksi,
         nominalRefund: refundAmount,
       }
-    })
+    }, { timeout: 30000, maxWait: 10000 })
   }
 
   async findAllBookings(params?: { id_biro?: string; status?: string }) {
@@ -1941,7 +1941,7 @@ export class BookingRepository {
         newDate: input.newDate,
         newWaktu: cleanTime,
       }
-    })
+    }, { timeout: 30000, maxWait: 10000 })
   }
 }
 

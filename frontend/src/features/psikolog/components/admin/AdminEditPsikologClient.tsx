@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
-import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
@@ -108,20 +107,6 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       const cleanId = (effectiveId || "").trim()
       const decodedId = decodeURIComponent(cleanId)
 
-      // 1. Cek dulu di localStorage
-      let localData: any = null
-      try {
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-        const list: any[] = saved ? JSON.parse(saved) : []
-        localData = list.find(
-          (d) =>
-            String(d.id).trim() === cleanId ||
-            String(d.id).trim() === decodedId ||
-            (d.account?.id && String(d.account.id).trim() === cleanId)
-        )
-      } catch {}
-
-      // 2. Coba fetch dari backend DB
       let backendData: any = null
       if (cleanId) {
         try {
@@ -134,8 +119,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
                 (p) =>
                   String(p.id).trim() === cleanId ||
                   String(p.id).trim() === decodedId ||
-                  (p.account?.id && String(p.account.id).trim() === cleanId) ||
-                  (localData?.email && p.account?.email?.toLowerCase() === localData.email.toLowerCase())
+                  (p.account?.id && String(p.account.id).trim() === cleanId)
               )
             }
           } catch {}
@@ -144,9 +128,7 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
 
       if (!isMounted) return
 
-      const candidate = backendData || localData
-
-      if (!candidate) {
+      if (!backendData) {
         setNotFound(true)
         setLoading(false)
         return
@@ -204,8 +186,8 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         const nomorRekeningVal = backendData.nomor_rekening || backendData.nomorRekening || ""
         const namaPemilikRekeningVal = backendData.nama_pemilik_rek || backendData.namaPemilikRekening || ""
 
-        const passwordVal = localData?.password || "Psikolog123!"
-        const tanggalBergabungVal = localData?.tanggalBergabung || "Terdaftar di DB"
+        const passwordVal = "Psikolog123!"
+        const tanggalBergabungVal = backendData.createdAt ? new Date(backendData.createdAt).toLocaleDateString("id-ID") : "Terdaftar di DB"
 
         setNama(namaVal)
         setEmail(emailVal)
@@ -232,7 +214,6 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
           Boolean(
             backendData?.is_reviewer_psikotes ??
             backendData?.isReviewerPsikotes ??
-            localData?.isReviewerPsikotes ??
             false
           )
         )
@@ -241,7 +222,6 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
           backendData.account?.id ||
           backendData.id_account ||
           backendData.accountId ||
-          localData?.accountId ||
           ""
         if (accId) setRealAccountId(accId)
 
@@ -255,139 +235,8 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
         setAccountAktif(isAktif)
         if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
         if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
-
-        // Sinkronisasi data terbaru dari DB ke localStorage agar cache lokal selalu up-to-date
-        try {
-          const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-          if (saved) {
-            const list: any[] = JSON.parse(saved)
-            const idx = list.findIndex(
-              (item) =>
-                item.id === cleanId ||
-                item.id === decodedId ||
-                (item.email && item.email.toLowerCase() === emailVal.toLowerCase())
-            )
-            const syncedItem = {
-              ...(idx !== -1 ? list[idx] : {}),
-              id: cleanId,
-              nama: namaVal,
-              email: emailVal,
-              noTelepon: teleponVal,
-              kategori: kategoriVal,
-              statusAkses: statusAksesVal,
-              isReviewerPsikotes: Boolean(
-                backendData?.is_reviewer_psikotes ??
-                backendData?.isReviewerPsikotes ??
-                localData?.isReviewerPsikotes ??
-                false
-              ),
-              spesialisasi: spesialisasiVal,
-              noStr: noStrVal || undefined,
-              noSipp: noSippVal || undefined,
-              noSilp: noSilpVal || undefined,
-              pendidikanText: pendidikanVal,
-              jumlahSesi: jumlahSesiVal,
-              bio: bioVal,
-              quote: quoteVal,
-              instagram: instagramVal,
-              foto: fotoVal,
-              keahlian: keahlianArr,
-              tanggalBergabung: tanggalBergabungVal,
-              tokenAktivasi: tokenAktivasiVal || undefined,
-              tokenExpiredAt: tokenExpiredVal || undefined,
-              accountId: accId || undefined,
-              accountAktif: isAktif,
-            }
-            if (idx !== -1) {
-              list[idx] = syncedItem
-            } else {
-              list.push(syncedItem)
-            }
-            localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(list))
-          }
-        } catch {}
       } else {
-        // Fallback offline menggunakan localData jika backend offline
-        const pick = (...vals: any[]) => {
-          for (const v of vals) {
-            if (v !== undefined && v !== null && String(v).trim() !== "") {
-              return v
-            }
-          }
-          return ""
-        }
-
-        const namaVal = pick(localData?.nama, localData?.nama_gelar)
-        const emailVal = pick(localData?.email, localData?.account?.email)
-        const teleponVal = pick(localData?.noTelepon, localData?.account?.no_telepon)
-        const spesialisasiVal = pick(localData?.spesialisasi)
-        const noStrVal = pick(localData?.noStr, localData?.no_str)
-        const noSippVal = pick(localData?.noSipp, localData?.no_sipp)
-        const noSilpVal = pick(localData?.noSilp, localData?.no_silp)
-        const pendidikanVal = pick(localData?.pendidikanText, localData?.pendidikan)
-        const bioVal = pick(localData?.bio)
-        const quoteVal = pick(localData?.quote)
-        const instagramVal = pick(localData?.instagram)
-        const fotoVal = pick(localData?.foto)
-
-        const katRaw = pick(localData?.kategori).toLowerCase()
-        const kategoriVal: KategoriTenaga = katRaw.includes("peer")
-          ? "peer-konselor"
-          : katRaw.includes("konselor")
-          ? "konselor"
-          : "psikolog"
-
-        const statusRaw = pick(localData?.statusAkses, "AKTIF")
-        const statusAksesVal: StatusAkses = statusRaw === "NONAKTIF" ? "NONAKTIF" : "AKTIF"
-
-        let keahlianArr: string[] = []
-        const keahlianRaw = localData?.keahlian
-        if (Array.isArray(keahlianRaw)) {
-          keahlianArr = keahlianRaw
-        } else if (typeof keahlianRaw === "string" && keahlianRaw.trim()) {
-          keahlianArr = keahlianRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
-        }
-
-        const jumlahSesiVal = typeof localData?.jumlahSesi === "number" ? localData.jumlahSesi : 0
-        const tokenAktivasiVal = pick(localData?.tokenAktivasi)
-        const tokenExpiredVal = pick(localData?.tokenExpiredAt)
-        const passwordVal = pick(localData?.password, "Psikolog123!")
-        const tanggalBergabungVal = pick(localData?.tanggalBergabung, "Terdaftar di DB")
-
-        setNama(namaVal)
-        setEmail(emailVal)
-        setNoTelepon(teleponVal)
-        setPassword(passwordVal)
-        setKategori(kategoriVal)
-        setStatusAkses(statusAksesVal)
-        setSpesialisasi(spesialisasiVal)
-        setNoStr(noStrVal)
-        setNoSipp(noSippVal)
-        setNoSilp(noSilpVal)
-        setPendidikanText(pendidikanVal)
-        setBio(bioVal)
-        setQuote(quoteVal)
-        setInstagram(instagramVal)
-        setFoto(fotoVal || null)
-        setKeahlian(keahlianArr)
-        setJumlahSesi(jumlahSesiVal)
-        setTanggalBergabung(tanggalBergabungVal)
-        setIsReviewerPsikotes(
-          Boolean(
-            backendData?.is_reviewer_psikotes ??
-            backendData?.isReviewerPsikotes ??
-            localData?.isReviewerPsikotes ??
-            false
-          )
-        )
-        const accId = localData?.accountId || ""
-        if (accId) setRealAccountId(accId)
-        const isAktif = Boolean(
-          statusAksesVal === "AKTIF" && passwordVal && passwordVal !== "Psikolog123!"
-        )
-        setAccountAktif(isAktif)
-        if (tokenAktivasiVal) setActivationToken(tokenAktivasiVal)
-        if (tokenExpiredVal) setTokenExpiredAt(tokenExpiredVal)
+        setNotFound(true)
       }
 
       setLoading(false)
@@ -539,24 +388,6 @@ export default function AdminEditPsikologClient({ psikologId }: Props) {
       }
     } catch (err) {
       console.warn("Gagal update ke backend database:", err)
-    }
-
-    try {
-      // 2. Simpan juga ke cache lokal
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-      const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
-      const targetId = effectiveId || psikologId
-      const updatedList = list.map((item) =>
-        item.id === targetId || (item.email && item.email.toLowerCase() === updatedTenaga.email.toLowerCase())
-          ? updatedTenaga
-          : item
-      )
-      localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updatedList))
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("storage"))
-      }
-    } catch {
-      // fallback
     } finally {
       setIsSubmitting(false)
     }

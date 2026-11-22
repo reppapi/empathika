@@ -68,11 +68,12 @@ export class TransaksiService {
 
   /**
    * Universal Checkout: Konseling, Event, dan Psikotes
-   * Membuat entri Client -> Transaksi -> Booking -> Xendit Invoice
+   * Membuat entri Client -> Transaksi -> Booking -> Midtrans Snap Transaction
    */
   async createUniversalCheckout(input: CreateCheckoutTransaksiInput, loggedInClientId?: string) {
-    return this.prisma.$transaction(async (tx: any) => {
-      // 1. Dapatkan atau buat data Client (kombinasi nomor telepon DAN nama case-insensitive)
+    // 1. Jalankan operasi database dalam satu transaksi Prisma (tanpa external HTTP call agar tidak timeout)
+    const dbResult = await this.prisma.$transaction(async (tx: any) => {
+      // 1a. Dapatkan atau buat data Client (kombinasi nomor telepon DAN nama case-insensitive)
       const inputName = (input.nama || '').trim()
       const rawPhone = (input.no_telepon || '').trim()
       const standardizedPhone = normalizePhoneNumber(rawPhone) || rawPhone
@@ -212,39 +213,15 @@ export class TransaksiService {
           },
         })
 
-        const invoice = await paymentService.createInvoice({
-          externalId: kodeTransaksi,
-          amount: rincian.total,
-          payerEmail: input.email || undefined,
-          description: deskripsiTagihan,
-          customer: {
-            given_names: input.nama,
-            email: input.email || undefined,
-            mobile_number: input.no_telepon,
-          },
-          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/konseling/success?orderId=${kodePesanan}&status=success`,
-          failureRedirectUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/konseling/bayar?orderId=${kodePesanan}&status=failed`,
-        })
-
-        await tx.transaksi.update({
-          where: { id: transaksi.id },
-          data: {
-            data_pembayaran: JSON.stringify({
-              nama_pemesan: input.nama ? input.nama.trim() : undefined,
-              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
-              email_pemesan: input.email ? input.email.trim() : undefined,
-              xendit_invoice_id: invoice.id,
-              xendit_invoice_url: invoice.invoice_url,
-              expiry_date: invoice.expiry_date,
-            }),
-          },
-        })
-
         return {
           transaksi,
           booking: bookingKonsul,
-          invoiceUrl: invoice.invoice_url,
-          invoiceId: invoice.id,
+          kodeTransaksi,
+          nominal: rincian.total,
+          deskripsiTagihan,
+          kodePesanan,
+          successUrl: input.success_redirect_url || `${env.FRONTEND_URL}/konseling/success?orderId=${kodePesanan}&status=success`,
+          failureUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/konseling/bayar?orderId=${kodePesanan}&status=failed`,
         }
       }
 
@@ -337,39 +314,15 @@ export class TransaksiService {
           },
         })
 
-        const invoice = await paymentService.createInvoice({
-          externalId: kodeTransaksi,
-          amount: nominal,
-          payerEmail: input.email || undefined,
-          description: deskripsiTagihan,
-          customer: {
-            given_names: input.nama,
-            email: input.email || undefined,
-            mobile_number: input.no_telepon,
-          },
-          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/event/success?orderId=${kodePesanan}&status=success`,
-          failureRedirectUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/event/checkout?orderId=${kodePesanan}&status=failed`,
-        })
-
-        await tx.transaksi.update({
-          where: { id: transaksi.id },
-          data: {
-            data_pembayaran: JSON.stringify({
-              nama_pemesan: input.nama ? input.nama.trim() : undefined,
-              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
-              email_pemesan: input.email ? input.email.trim() : undefined,
-              xendit_invoice_id: invoice.id,
-              xendit_invoice_url: invoice.invoice_url,
-              expiry_date: invoice.expiry_date,
-            }),
-          },
-        })
-
         return {
           transaksi,
           booking: bookingEvent,
-          invoiceUrl: invoice.invoice_url,
-          invoiceId: invoice.id,
+          kodeTransaksi,
+          nominal,
+          deskripsiTagihan,
+          kodePesanan,
+          successUrl: input.success_redirect_url || `${env.FRONTEND_URL}/event/success?orderId=${kodePesanan}&status=success`,
+          failureUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/event/checkout?orderId=${kodePesanan}&status=failed`,
         }
       }
 
@@ -431,44 +384,60 @@ export class TransaksiService {
           },
         })
 
-        const invoice = await paymentService.createInvoice({
-          externalId: kodeTransaksi,
-          amount: nominal,
-          payerEmail: input.email || undefined,
-          description: deskripsiTagihan,
-          customer: {
-            given_names: input.nama,
-            email: input.email || undefined,
-            mobile_number: input.no_telepon,
-          },
-          successRedirectUrl: input.success_redirect_url || `${env.FRONTEND_URL}/psikotes/success?orderId=${kodePesanan}&bookingId=${bookingPsikotes.id}&testId=${paket.id}&status=success`,
-          failureRedirectUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/psikotes/checkout?orderId=${kodePesanan}&testId=${paket.id}&status=failed`,
-        })
-
-        await tx.transaksi.update({
-          where: { id: transaksi.id },
-          data: {
-            data_pembayaran: JSON.stringify({
-              nama_pemesan: input.nama ? input.nama.trim() : undefined,
-              no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
-              email_pemesan: input.email ? input.email.trim() : undefined,
-              xendit_invoice_id: invoice.id,
-              xendit_invoice_url: invoice.invoice_url,
-              expiry_date: invoice.expiry_date,
-            }),
-          },
-        })
-
         return {
           transaksi,
           booking: bookingPsikotes,
-          invoiceUrl: invoice.invoice_url,
-          invoiceId: invoice.id,
+          kodeTransaksi,
+          nominal,
+          deskripsiTagihan,
+          kodePesanan,
+          successUrl: input.success_redirect_url || `${env.FRONTEND_URL}/psikotes/success?orderId=${kodePesanan}&bookingId=${bookingPsikotes.id}&testId=${paket.id}&status=success`,
+          failureUrl: input.failure_redirect_url || `${env.FRONTEND_URL}/psikotes/checkout?orderId=${kodePesanan}&testId=${paket.id}&status=failed`,
         }
       }
 
       throw Object.assign(new Error('Tipe transaksi tidak valid'), { statusCode: 400 })
     })
+
+    // 2. Buat transaksi ke Payment Gateway (Midtrans) di LUAR transaksi Prisma
+    const invoice = await paymentService.createInvoice({
+      externalId: dbResult.kodeTransaksi,
+      amount: dbResult.nominal,
+      payerEmail: input.email || undefined,
+      description: dbResult.deskripsiTagihan,
+      customer: {
+        given_names: input.nama,
+        email: input.email || undefined,
+        mobile_number: input.no_telepon,
+      },
+      successRedirectUrl: dbResult.successUrl,
+      failureRedirectUrl: dbResult.failureUrl,
+    })
+
+    // 3. Simpan data Midtrans ke transaksi secara terpisah
+    const updatedTransaksi = await this.prisma.transaksi.update({
+      where: { id: dbResult.transaksi.id },
+      data: {
+        data_pembayaran: JSON.stringify({
+          nama_pemesan: input.nama ? input.nama.trim() : undefined,
+          no_telepon_pemesan: input.no_telepon ? input.no_telepon.trim() : undefined,
+          email_pemesan: input.email ? input.email.trim() : undefined,
+          midtrans_token: invoice.snap_token || invoice.id,
+          midtrans_redirect_url: invoice.invoice_url,
+          invoice_url: invoice.invoice_url,
+          snap_token: invoice.snap_token,
+          expiry_date: invoice.expiry_date,
+        }),
+      },
+    })
+
+    return {
+      transaksi: updatedTransaksi,
+      booking: dbResult.booking,
+      invoiceUrl: invoice.invoice_url,
+      invoiceId: invoice.id,
+      snapToken: invoice.snap_token,
+    }
   }
 
   /**

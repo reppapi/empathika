@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { TenagaAhli, KategoriTenaga, StatusAkses } from "../../types"
-import { LOCAL_STORAGE_KEY_TENAGA } from "../../data/initialData"
 import { psikologService } from "@/services/psikolog.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import ActivationWarningModal from "@/components/common/ActivationWarningModal"
@@ -280,19 +279,6 @@ export default function AdminTambahPsikologClient() {
       setIsSubmitting(false)
       window.scrollTo({ top: 0, behavior: "smooth" })
       return
-    }
-
-    try {
-      // 2. Simpan juga ke cache lokal
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TENAGA)
-      const list: TenagaAhli[] = saved ? JSON.parse(saved) : []
-      const updated = [newTenaga, ...list]
-      localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify(updated))
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("storage"))
-      }
-    } catch {
-      localStorage.setItem(LOCAL_STORAGE_KEY_TENAGA, JSON.stringify([newTenaga]))
     } finally {
       setIsSubmitting(false)
     }
