@@ -282,7 +282,6 @@ export default function FormulirKerjaSamaClient({
                 className="w-full sm:w-auto px-6 py-3 rounded-full text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow transition-colors inline-flex items-center justify-center gap-2"
               >
                 <span>Hubungi via WhatsApp Sekarang</span>
-                <span className="text-sm">↗</span>
               </a>
 
               <Link
