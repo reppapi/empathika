@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-export function LoginForm() {
+export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: string | null } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
@@ -78,7 +78,20 @@ export function LoginForm() {
     return null;
   });
 
-  const [empathikaLogo, setEmpathikaLogo] = useState<string | null>(null);
+  // Inisialisasi awal logo resmi Empathika dari SSR / cache lokal agar langsung muncul di frame 0
+  const [empathikaLogo, setEmpathikaLogo] = useState<string | null>(() => {
+    if (initialEmpathikaFoto) return initialEmpathikaFoto;
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.foto) return parsed.foto;
+        }
+      } catch {}
+    }
+    return null;
+  });
 
   // Ambil profil resmi Empathika (foto/logo) HANYA jika berada di portal pusat Empathika
   useEffect(() => {
@@ -98,6 +111,14 @@ export function LoginForm() {
         .then((res: any) => {
           if (res?.data?.foto !== undefined) {
             setEmpathikaLogo(res.data.foto);
+            try {
+              const currentSaved = localStorage.getItem("empathika_admin_profile");
+              const currentParsed = currentSaved ? JSON.parse(currentSaved) : {};
+              localStorage.setItem(
+                "empathika_admin_profile",
+                JSON.stringify({ ...currentParsed, foto: res.data.foto })
+              );
+            } catch {}
           }
         })
         .catch(() => {});
