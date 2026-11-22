@@ -240,7 +240,7 @@ function getListIndentInfo(lineText: string): { isList: boolean; level: number }
   return { isList: true, level };
 }
 
-// Menerapkan styling Hanging Indent pada baris list agar baris kedua dan seterusnya sejajar dengan awal teks
+// Menerapkan styling Hanging Indent pada baris list dan Left Indent pada paragraf berindentasi
 function applyHangingIndentToLine(lineEl: HTMLElement) {
   if (!lineEl || lineEl.nodeType !== Node.ELEMENT_NODE) return;
   const text = (lineEl.textContent || "").replace(/\u00a0/g, " ");
@@ -253,21 +253,50 @@ function applyHangingIndentToLine(lineEl: HTMLElement) {
     if (level > 0) {
       lineEl.classList.add(`editor-list-item-${level}`);
     }
+    lineEl.removeAttribute("data-indent");
+    lineEl.classList.remove(
+      "editor-paragraph-indent",
+      "editor-indent-1",
+      "editor-indent-2",
+      "editor-indent-3"
+    );
   } else {
     lineEl.style.textIndent = "";
-    const leadingMatch = text.match(/^ +/);
-    if (leadingMatch && leadingMatch[0].length >= 4) {
-      const normalLevel = Math.floor(leadingMatch[0].length / 4);
-      lineEl.style.paddingLeft = `${normalLevel * 28}px`;
-    } else {
-      lineEl.style.paddingLeft = "";
-    }
     lineEl.classList.remove(
       "editor-list-item",
       "editor-list-item-1",
       "editor-list-item-2",
       "editor-list-item-3"
     );
+
+    // Cek apakah ada data-indent, class editor-indent-X, atau leading spaces
+    const dataIndent = lineEl.getAttribute("data-indent");
+    const classMatch = lineEl.className.match(/editor-indent-(\d+)/);
+    const leadingMatch = text.match(/^ +/);
+
+    let indentLevel = 0;
+    if (dataIndent && parseInt(dataIndent, 10) > 0) {
+      indentLevel = parseInt(dataIndent, 10);
+    } else if (classMatch && parseInt(classMatch[1], 10) > 0) {
+      indentLevel = parseInt(classMatch[1], 10);
+    } else if (leadingMatch && leadingMatch[0].length >= 4) {
+      indentLevel = Math.floor(leadingMatch[0].length / 4);
+    }
+
+    if (indentLevel > 0) {
+      lineEl.style.paddingLeft = `${indentLevel * 28}px`;
+      lineEl.setAttribute("data-indent", String(indentLevel));
+      lineEl.classList.add("editor-paragraph-indent", `editor-indent-${indentLevel}`);
+    } else {
+      lineEl.style.paddingLeft = "";
+      lineEl.removeAttribute("data-indent");
+      lineEl.classList.remove(
+        "editor-paragraph-indent",
+        "editor-indent-1",
+        "editor-indent-2",
+        "editor-indent-3"
+      );
+    }
   }
 }
 
@@ -310,6 +339,11 @@ function convertRawToHtml(raw: string): string {
         if (isList) {
           const pad = (level + 1) * 28;
           return `<div class="editor-list-item editor-list-item-${level}" style="padding-left: ${pad}px; text-indent: -28px;">${content}</div>`;
+        }
+        if (leadingSpaces && leadingSpaces[0].length >= 4) {
+          const indentLevel = Math.floor(leadingSpaces[0].length / 4);
+          const pad = indentLevel * 28;
+          return `<div class="editor-paragraph-indent editor-indent-${indentLevel}" data-indent="${indentLevel}" style="padding-left: ${pad}px;">${content}</div>`;
         }
         return `<div>${content}</div>`;
       })
@@ -900,13 +934,43 @@ export default function ModalReviewPsikotes({
 
     if (type === "indent") {
       if (editor) {
-        insertListPrefixAtCaret(editor, "\u00a0\u00a0\u00a0\u00a0");
-        handleContentChange(curIdx);
+        const lineInfo = getLineElementAndText(editor);
+        if (lineInfo && lineInfo.lineEl) {
+          const curIndent = parseInt(lineInfo.lineEl.getAttribute("data-indent") || "0", 10);
+          const nextIndent = curIndent + 1;
+          lineInfo.lineEl.setAttribute("data-indent", String(nextIndent));
+          lineInfo.lineEl.style.paddingLeft = `${nextIndent * 28}px`;
+          lineInfo.lineEl.className = `editor-paragraph-indent editor-indent-${nextIndent}`;
+          applyHangingIndentToLine(lineInfo.lineEl);
+          handleContentChange(curIdx);
+          return;
+        }
       }
       return;
     }
 
     if (type === "outdent") {
+      if (editor) {
+        const lineInfo = getLineElementAndText(editor);
+        if (lineInfo && lineInfo.lineEl) {
+          const curIndent = parseInt(lineInfo.lineEl.getAttribute("data-indent") || "0", 10);
+          if (curIndent > 0) {
+            const nextIndent = curIndent - 1;
+            if (nextIndent > 0) {
+              lineInfo.lineEl.setAttribute("data-indent", String(nextIndent));
+              lineInfo.lineEl.style.paddingLeft = `${nextIndent * 28}px`;
+              lineInfo.lineEl.className = `editor-paragraph-indent editor-indent-${nextIndent}`;
+            } else {
+              lineInfo.lineEl.removeAttribute("data-indent");
+              lineInfo.lineEl.style.paddingLeft = "";
+              lineInfo.lineEl.className = "";
+            }
+            applyHangingIndentToLine(lineInfo.lineEl);
+            handleContentChange(curIdx);
+            return;
+          }
+        }
+      }
       document.execCommand("outdent", false);
       handleContentChange(curIdx);
       return;
@@ -961,7 +1025,25 @@ export default function ModalReviewPsikotes({
 
       if (e.shiftKey) {
         // Shift + Tab: outdent
-        if (lineInfo) {
+        if (lineInfo && lineInfo.lineEl) {
+          const curIndent = parseInt(lineInfo.lineEl.getAttribute("data-indent") || "0", 10);
+          if (curIndent > 0) {
+            const nextIndent = curIndent - 1;
+            if (nextIndent > 0) {
+              lineInfo.lineEl.setAttribute("data-indent", String(nextIndent));
+              lineInfo.lineEl.style.paddingLeft = `${nextIndent * 28}px`;
+              lineInfo.lineEl.className = `editor-paragraph-indent editor-indent-${nextIndent}`;
+            } else {
+              lineInfo.lineEl.removeAttribute("data-indent");
+              lineInfo.lineEl.style.paddingLeft = "";
+              lineInfo.lineEl.className = "";
+            }
+            applyHangingIndentToLine(lineInfo.lineEl);
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          }
+
           const romanMatch = lineText.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s+)(.*)$/);
           const letterMatch = lineText.match(/^(\s*)([a-zA-Z])\.(\s+)(.*)$/);
           const bulletMatch = lineText.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
@@ -991,7 +1073,7 @@ export default function ModalReviewPsikotes({
         return;
       } else {
         // Tab: indent / convert to sublist
-        if (lineInfo) {
+        if (lineInfo && lineInfo.lineEl) {
           const numMatch = lineText.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
           const letterMatch = lineText.match(/^(\s*)([a-zA-Z])\.(\s+)(.*)$/);
           const bulletMatch = lineText.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
@@ -1015,6 +1097,17 @@ export default function ModalReviewPsikotes({
             handleContentChange(pageIdx);
             return;
           }
+
+          // Jika baris paragraf biasa / baris kosong: tambah level indentasi
+          const curIndent = parseInt(lineInfo.lineEl.getAttribute("data-indent") || "0", 10);
+          const nextIndent = curIndent + 1;
+          lineInfo.lineEl.setAttribute("data-indent", String(nextIndent));
+          lineInfo.lineEl.style.paddingLeft = `${nextIndent * 28}px`;
+          lineInfo.lineEl.className = `editor-paragraph-indent editor-indent-${nextIndent}`;
+          applyHangingIndentToLine(lineInfo.lineEl);
+          setCaretToEnd(lineInfo.lineEl);
+          handleContentChange(pageIdx);
+          return;
         }
         insertListPrefixAtCaret(editor, "\u00a0\u00a0\u00a0\u00a0");
         handleContentChange(pageIdx);
@@ -1031,33 +1124,142 @@ export default function ModalReviewPsikotes({
       }
     }
 
-    // 5. BACKSPACE: PENGHAPUSAN NOMOR KOSONG & OUTDENT SECARA BERSIH
+    // 5. BACKSPACE: PENGHAPUSAN NOMOR KOSONG & NORMALISASI INDENTASI PARAGRAF (GAYA WORD & DOCS)
     if (e.key === "Backspace") {
       const lineInfo = getLineElementAndText(editor);
-      if (lineInfo) {
-        const text = lineInfo.lineText;
-        const emptyNum = text.match(/^(\s*)(\d+)\.\s*$/);
-        const emptyRoman = text.match(/^(\s*)([IVXLCDMivxlcdm]+)\.\s*$/);
-        const emptyLetter = text.match(/^(\s*)([a-zA-Z])\.\s*$/);
-        const emptyBullet = text.match(/^(\s*)([•\-\*])\s*$/);
+      if (lineInfo && lineInfo.lineEl) {
+        const fullClean = (lineInfo.lineEl.textContent || "").replace(/\u00a0/g, " ");
+        const trimmed = fullClean.trim();
+
+        // A. Cek apakah baris HANYA berisi penanda list (nomor, romawi, huruf, atau bullet) tanpa teks
+        const emptyNum = /^(\d+)\.$/.test(trimmed);
+        const emptyRoman = /^([IVXLCDMivxlcdm]+)\.$/i.test(trimmed) && isRomanValid(trimmed.slice(0, -1));
+        const emptyLetter = /^([a-zA-Z])\.$/.test(trimmed);
+        const emptyBullet = /^[•\-\*]$/.test(trimmed);
 
         const isEmptyList = emptyNum || emptyRoman || emptyLetter || emptyBullet;
+
         if (isEmptyList) {
           e.preventDefault();
-          const indent = (isEmptyList[1] || "").length;
-          if (indent >= 4) {
-            const newIndentSpaces = "\u00a0".repeat(indent - 4);
-            const marker = text.trim();
-            lineInfo.lineEl.innerHTML = `${newIndentSpaces}${marker}\u00a0\u00a0\u00a0\u00a0`;
-            applyHangingIndentToLine(lineInfo.lineEl);
-            setCaretToEnd(lineInfo.lineEl);
-          } else {
-            lineInfo.lineEl.innerHTML = "<br>";
-            applyHangingIndentToLine(lineInfo.lineEl);
-            setCaretToEnd(lineInfo.lineEl);
+
+          // Cek level indentasi list saat ini
+          const leadingSpaces = fullClean.match(/^ +/);
+          const indentLength = leadingSpaces ? leadingSpaces[0].length : 0;
+          const listLevel = Math.floor(indentLength / 4);
+
+          // PERILAKU GOOGLE DOCS / WORD:
+          // 1. Hapus marker nomor/bullet dan format list
+          // 2. Pertahankan posisi indentasi paragraf sesuai dengan awal teks setelah nomor pada item sebelumnya
+          //    (misal nomor 1. di margin kiri -> awal teks berjarak 28px / level 1 -> paragraf baru tetap di 28px)
+          const targetIndentLevel = listLevel + 1;
+          const targetPad = targetIndentLevel * 28;
+
+          lineInfo.lineEl.innerHTML = "<br>";
+          lineInfo.lineEl.style.paddingLeft = `${targetPad}px`;
+          lineInfo.lineEl.style.textIndent = "";
+          lineInfo.lineEl.setAttribute("data-indent", String(targetIndentLevel));
+          lineInfo.lineEl.className = `editor-paragraph-indent editor-indent-${targetIndentLevel}`;
+          applyHangingIndentToLine(lineInfo.lineEl);
+
+          // 3. Letakkan kursor tepat di baris ini
+          const sel = window.getSelection();
+          if (sel) {
+            const range = document.createRange();
+            range.setStart(lineInfo.lineEl, 0);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
           }
+
           handleContentChange(pageIdx);
           return;
+        }
+
+        // B. Jika pengguna berada di baris paragraf berindentasi (data-indent > 0) dan menekan Backspace di awal baris:
+        //    Kurangi indentasi (outdent) 1 tingkat, jika sampai level 0 maka kembali ke margin kiri
+        const curIndent = parseInt(lineInfo.lineEl.getAttribute("data-indent") || "0", 10);
+        if (curIndent > 0) {
+          const sel = window.getSelection();
+          const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+          const isAtStart =
+            !trimmed ||
+            (range && range.startContainer === lineInfo.lineEl && range.startOffset === 0) ||
+            (range &&
+              range.startContainer.nodeType === Node.TEXT_NODE &&
+              range.startOffset === 0 &&
+              range.startContainer === lineInfo.lineEl.firstChild);
+
+          if (isAtStart) {
+            e.preventDefault();
+            const nextIndent = curIndent - 1;
+            if (nextIndent > 0) {
+              lineInfo.lineEl.setAttribute("data-indent", String(nextIndent));
+              lineInfo.lineEl.style.paddingLeft = `${nextIndent * 28}px`;
+              lineInfo.lineEl.className = `editor-paragraph-indent editor-indent-${nextIndent}`;
+            } else {
+              lineInfo.lineEl.removeAttribute("data-indent");
+              lineInfo.lineEl.style.paddingLeft = "";
+              lineInfo.lineEl.className = "";
+            }
+            applyHangingIndentToLine(lineInfo.lineEl);
+            if (sel) {
+              const newRange = document.createRange();
+              newRange.setStart(lineInfo.lineEl, 0);
+              newRange.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(newRange);
+            }
+            handleContentChange(pageIdx);
+            return;
+          }
+        }
+
+        // C. Jika pengguna menekan Backspace persis di antara marker list dan awal teks teks item list:
+        //    Hapus marker nomor dan jadikan teks tersebut paragraf berindentasi
+        const listPrefixMatch = fullClean.match(
+          /^(\s*(?:(?:\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])\s+)(.*)$/
+        );
+        if (listPrefixMatch) {
+          const prefixStr = listPrefixMatch[1];
+          const remainingText = listPrefixMatch[2];
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+
+            let offsetInLine = 0;
+            if (range.startContainer === lineInfo.lineEl) {
+              offsetInLine = range.startOffset;
+            } else {
+              const walker = document.createTreeWalker(lineInfo.lineEl, NodeFilter.SHOW_TEXT, null);
+              let curr = walker.nextNode();
+              while (curr && curr !== range.startContainer) {
+                offsetInLine += curr.textContent?.length || 0;
+                curr = walker.nextNode();
+              }
+              if (curr === range.startContainer) {
+                offsetInLine += range.startOffset;
+              }
+            }
+
+            if (offsetInLine <= prefixStr.length) {
+              e.preventDefault();
+              lineInfo.lineEl.innerHTML = remainingText || "<br>";
+              lineInfo.lineEl.setAttribute("data-indent", "1");
+              lineInfo.lineEl.style.paddingLeft = "28px";
+              lineInfo.lineEl.style.textIndent = "";
+              lineInfo.lineEl.className = "editor-paragraph-indent editor-indent-1";
+              applyHangingIndentToLine(lineInfo.lineEl);
+
+              const newRange = document.createRange();
+              newRange.setStart(lineInfo.lineEl, 0);
+              newRange.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(newRange);
+
+              handleContentChange(pageIdx);
+              return;
+            }
+          }
         }
       }
     }
@@ -1065,8 +1267,24 @@ export default function ModalReviewPsikotes({
     // 6. ENTER (REGULER): AUTO NUMBERING / BULLET & ENTER 2X UNTUK BERHENTI
     if (e.key === "Enter" && !e.shiftKey) {
       const lineInfo = getLineElementAndText(editor);
-      if (lineInfo) {
+      if (lineInfo && lineInfo.lineEl) {
         const text = lineInfo.lineText;
+        const curIndent = parseInt(lineInfo.lineEl.getAttribute("data-indent") || "0", 10);
+
+        // Jika menekan Enter pada baris paragraf berindentasi KOSONG: keluar dari indentasi (kembali ke margin kiri)
+        if (curIndent > 0 && !text.trim()) {
+          e.preventDefault();
+          lineInfo.lineEl.removeAttribute("data-indent");
+          lineInfo.lineEl.style.paddingLeft = "";
+          lineInfo.lineEl.style.textIndent = "";
+          lineInfo.lineEl.className = "";
+          lineInfo.lineEl.innerHTML = "<br>";
+          applyHangingIndentToLine(lineInfo.lineEl);
+          setCaretToEnd(lineInfo.lineEl);
+          handleContentChange(pageIdx);
+          return;
+        }
+
         const numMatch = text.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
         const romanMatch = text.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s+)(.*)$/);
         const bulletMatch = text.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
@@ -1077,8 +1295,19 @@ export default function ModalReviewPsikotes({
           if (!numMatch[4].trim()) {
             e.preventDefault();
             lineInfo.lineEl.innerHTML = "<br>";
+            lineInfo.lineEl.style.paddingLeft = "";
+            lineInfo.lineEl.style.textIndent = "";
+            lineInfo.lineEl.removeAttribute("data-indent");
+            lineInfo.lineEl.className = "";
             applyHangingIndentToLine(lineInfo.lineEl);
-            setCaretToEnd(lineInfo.lineEl);
+            const sel = window.getSelection();
+            if (sel) {
+              const range = document.createRange();
+              range.setStart(lineInfo.lineEl, 0);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
             handleContentChange(pageIdx);
             return;
           }
@@ -1099,8 +1328,19 @@ export default function ModalReviewPsikotes({
           if (!romanMatch[4].trim()) {
             e.preventDefault();
             lineInfo.lineEl.innerHTML = "<br>";
+            lineInfo.lineEl.style.paddingLeft = "";
+            lineInfo.lineEl.style.textIndent = "";
+            lineInfo.lineEl.removeAttribute("data-indent");
+            lineInfo.lineEl.className = "";
             applyHangingIndentToLine(lineInfo.lineEl);
-            setCaretToEnd(lineInfo.lineEl);
+            const sel = window.getSelection();
+            if (sel) {
+              const range = document.createRange();
+              range.setStart(lineInfo.lineEl, 0);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
             handleContentChange(pageIdx);
             return;
           }
@@ -1122,8 +1362,19 @@ export default function ModalReviewPsikotes({
           if (!bulletMatch[4].trim()) {
             e.preventDefault();
             lineInfo.lineEl.innerHTML = "<br>";
+            lineInfo.lineEl.style.paddingLeft = "";
+            lineInfo.lineEl.style.textIndent = "";
+            lineInfo.lineEl.removeAttribute("data-indent");
+            lineInfo.lineEl.className = "";
             applyHangingIndentToLine(lineInfo.lineEl);
-            setCaretToEnd(lineInfo.lineEl);
+            const sel = window.getSelection();
+            if (sel) {
+              const range = document.createRange();
+              range.setStart(lineInfo.lineEl, 0);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
             handleContentChange(pageIdx);
             return;
           }
@@ -1143,8 +1394,19 @@ export default function ModalReviewPsikotes({
           if (!letterMatch[4].trim()) {
             e.preventDefault();
             lineInfo.lineEl.innerHTML = "<br>";
+            lineInfo.lineEl.style.paddingLeft = "";
+            lineInfo.lineEl.style.textIndent = "";
+            lineInfo.lineEl.removeAttribute("data-indent");
+            lineInfo.lineEl.className = "";
             applyHangingIndentToLine(lineInfo.lineEl);
-            setCaretToEnd(lineInfo.lineEl);
+            const sel = window.getSelection();
+            if (sel) {
+              const range = document.createRange();
+              range.setStart(lineInfo.lineEl, 0);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
             handleContentChange(pageIdx);
             return;
           }
@@ -1153,6 +1415,21 @@ export default function ModalReviewPsikotes({
           const nextChar = String.fromCharCode(letterMatch[2].charCodeAt(0) + 1);
           const newDiv = document.createElement("div");
           newDiv.innerHTML = `${indent}${nextChar}.\u00a0\u00a0\u00a0\u00a0`;
+          applyHangingIndentToLine(newDiv);
+          lineInfo.lineEl.after(newDiv);
+          setCaretToEnd(newDiv);
+          handleContentChange(pageIdx);
+          return;
+        }
+
+        // E. Jika di baris berindentasi dengan teks: lanjutkan baris berikutnya dengan indentasi yang sama
+        if (curIndent > 0 && text.trim()) {
+          e.preventDefault();
+          const newDiv = document.createElement("div");
+          newDiv.setAttribute("data-indent", String(curIndent));
+          newDiv.style.paddingLeft = `${curIndent * 28}px`;
+          newDiv.className = `editor-paragraph-indent editor-indent-${curIndent}`;
+          newDiv.innerHTML = "<br>";
           applyHangingIndentToLine(newDiv);
           lineInfo.lineEl.after(newDiv);
           setCaretToEnd(newDiv);

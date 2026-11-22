@@ -790,6 +790,28 @@ function extractPdfLinesFromContent(rawPageText: string): string[] {
   if (!rawPageText || !rawPageText.trim()) return [""];
   let text = rawPageText;
   if (/<[a-z][\s\S]*>/i.test(text)) {
+    // 1. Ekstrak indentasi dari tag div/p (data-indent, class editor-indent-X, atau style padding-left)
+    text = text.replace(/<(?:div|p)([^>]*)>([\s\S]*?)<\/(?:div|p)>/gi, (_, attrs, inner) => {
+      let indentLevel = 0;
+      const dataIndentMatch = attrs.match(/data-indent="(\d+)"/i);
+      const classIndentMatch = attrs.match(/editor-indent-(\d+)/i);
+      const padMatch = attrs.match(/padding-left:\s*(\d+)px/i);
+
+      if (dataIndentMatch) {
+        indentLevel = parseInt(dataIndentMatch[1], 10);
+      } else if (classIndentMatch) {
+        indentLevel = parseInt(classIndentMatch[1], 10);
+      } else if (padMatch && !attrs.includes("editor-list-item")) {
+        const px = parseInt(padMatch[1], 10);
+        if (px >= 28) {
+          indentLevel = Math.floor(px / 28);
+        }
+      }
+
+      const indentPrefix = indentLevel > 0 ? " ".repeat(indentLevel * 4) : "";
+      return `\n${indentPrefix}${inner}\n`;
+    });
+
     text = text.replace(/<br\s*\/?>/gi, "\n");
     text = text.replace(/<\/(?:p|div|li|h[1-6])>/gi, "\n");
     text = text.replace(/&nbsp;/gi, " ");
@@ -801,7 +823,13 @@ function extractPdfLinesFromContent(rawPageText: string): string[] {
       .replace(/&#39;/gi, "'");
     text = text.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
   }
-  return text.split("\n");
+  return text
+    .split("\n")
+    .map((l) => l.replace(/\r/g, ""))
+    .filter((line, idx, arr) => {
+      if (line.trim() === "" && idx > 0 && arr[idx - 1].trim() === "") return false;
+      return true;
+    });
 }
 
 /** Memecah teks dokumen klinis menjadi lembaran A4 multi-halaman */
@@ -1010,7 +1038,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                     return <View key={lineIdx} style={{ height: 5 }} />;
                   }
 
-                  // Deteksi format list (angka, romawi, huruf, atau bullet) untuk Hanging Indent
+                  // 1. Deteksi format list (angka, romawi, huruf, atau bullet) untuk Hanging Indent
                   const listMatch = line.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(\s+)(.*)$/);
 
                   if (listMatch) {
@@ -1052,9 +1080,12 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                     );
                   }
 
+                  // 2. Paragraf biasa / paragraf berindentasi (misal hasil keluar dari list via Backspace)
                   const leadingSpaces = line.match(/^ +/);
                   const indentCount = leadingSpaces ? leadingSpaces[0].length : 0;
-                  const indentPt = indentCount > 0 ? Math.min(indentCount * 3.5, 36) : 0;
+                  const indentLevel = Math.floor(indentCount / 4);
+                  // 16pt per level indentasi, sejajar dengan awal teks setelah marker list (markerWidth 16pt)
+                  const indentPt = indentLevel * 16;
 
                   return (
                     <View

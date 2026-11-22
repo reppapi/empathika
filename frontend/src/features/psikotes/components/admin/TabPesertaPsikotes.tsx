@@ -389,9 +389,12 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               )}
 
               {isHampirHabisBatas && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-300 animate-pulse shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                  {sla.isOverdue ? "🚨 Lewat Batas SLA" : "🔥 Hampir Habis Batas"}
+                <span className="text-[11px] font-bold text-rose-600 mt-0.5 flex items-center gap-1.5 animate-pulse">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                  </span>
+                  <span>{sla.isOverdue ? "Lewat Batas SLA" : "Hampir Habis Batas"}</span>
                 </span>
               )}
             </div>
@@ -531,29 +534,14 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               )}
             </div>
 
-            {isMenungguReview ? (() => {
-              const nowMs = Date.now();
-              const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
-              const isKritis = sla.isOverdue || diffHours <= 24;
-
-              return (
-                <div className="flex flex-col gap-1 items-start">
-                  {isKritis && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
-                        🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
-                      </span>
-                    </div>
-                  )}
-                  <span
-                    className="text-[10px] text-gray-500 font-medium"
-                    title={`Deadline: ${sla.deadlineFormatted}`}
-                  >
-                    Batas: {sla.deadlineFormatted}
-                  </span>
-                </div>
-              );
-            })() : isSelesai ? (
+            {isMenungguReview ? (
+              <span
+                className="text-[10px] text-gray-500 font-medium"
+                title={`Deadline: ${sla.deadlineFormatted}`}
+              >
+                Batas: {sla.deadlineFormatted}
+              </span>
+            ) : isSelesai ? (
               <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />
                 Tepat Waktu (Selesai)
@@ -584,21 +572,23 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
     <AdminTableContainer>
       {/* 1. Reminder Otomatis Admin: Peringatan SLA Kritis (H-1 / <= 24 Jam) - Hanya untuk Admin Utama Empathika */}
       {!isBiroContext && urgentTickets.length > 0 && (
-        <div className="mb-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-50 via-rose-50/80 to-amber-50 border border-rose-200/90 shadow-2xs space-y-3 animate-in fade-in duration-300">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-100 pb-2.5">
+        <div className="mb-5 p-3.5 sm:p-4 rounded-xl bg-rose-50/40 border border-rose-200/70 shadow-2xs space-y-3 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2.5 border-b border-rose-100">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-              <span className="text-xs font-bold text-rose-950 uppercase tracking-wide flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                Peringatan SLA ({urgentTickets.length} Asesmen Kritis)
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
               </span>
+              <h4 className="text-xs font-bold text-rose-900 tracking-tight">
+                Peringatan SLA ({urgentTickets.length} Asesmen Kritis)
+              </h4>
             </div>
-            <span className="text-[11px] text-rose-700 font-semibold">
+            <p className="text-[11px] text-gray-500">
               Tiket sudah di-keep tetapi belum selesai dalam H-1 deadline
-            </span>
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {urgentTickets.slice(0, 4).map((ticket) => {
               const sla = calculateReviewSla(ticket.rawTanggal || ticket.tanggal);
               const nowMs = Date.now();
@@ -609,27 +599,33 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               return (
                 <div
                   key={ticket.id}
-                  className="p-3 bg-white rounded-xl border border-rose-200 shadow-2xs flex items-center justify-between gap-3"
+                  className="p-3 bg-white rounded-xl border border-gray-200/80 hover:border-rose-200 shadow-2xs flex items-center justify-between gap-3 transition-colors"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 space-y-0.5">
                     <p className="text-xs font-bold text-gray-900 truncate">
                       {namaPsi}
                     </p>
                     <p className="text-[11px] text-gray-500 truncate">
-                      {ticket.paket} • <span className="font-mono text-gray-700 font-medium">{ticket.peserta?.nama_lengkap || ticket.nama}</span>
+                      {ticket.paket} • <span className="text-gray-700 font-medium">{ticket.peserta?.nama_lengkap || ticket.nama}</span>
                     </p>
-                    <p className="text-[10px] text-rose-600 font-bold mt-0.5">
-                      {sla.isOverdue ? "🚨 Lewat Batas Waktu SLA" : `🔥 Sisa ~${diffHours} Jam`} (Deadline: {sla.deadlineFormatted.split(",")[0]})
-                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                      <span className="text-rose-600">
+                        {sla.isOverdue ? "Lewat batas SLA" : `Sisa ~${diffHours} Jam`}
+                      </span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-gray-500 text-[10px]">
+                        Deadline: {sla.deadlineFormatted.split(",")[0]}
+                      </span>
+                    </div>
                   </div>
                   <a
                     href={waUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-2xs shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200/80 hover:border-emerald-600 text-xs font-semibold transition-all shadow-2xs shrink-0 cursor-pointer"
                     title="Kirim pesan pengingat WhatsApp ke psikolog pemeriksa"
                   >
-                    <MessageCircle className="w-3.5 h-3.5" />
+                    <MessageCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>Ingatkan via WA</span>
                   </a>
                 </div>

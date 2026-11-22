@@ -184,29 +184,51 @@ Silakan buka https://empathika.id untuk menyelesaikan asesmen Kakak ya. Terima k
 
   // Template Pesan WA Hasil PDF
   const targetOrangTuaPhone = waOrangTuaDigits || (isAnak ? waPesertaDigits || waPembeliDigits : "");
-  const waResultUrlOrangTua =
-    isAnak && targetOrangTuaPhone
-      ? `https://wa.me/${targetOrangTuaPhone}?text=${encodeURIComponent(
-`Halo Bapak/Ibu ${namaOrangTua || `Wali dari ${namaPeserta}`},
+  const templateDassOrangTua = `Halo Bapak/Ibu ${namaOrangTua || `Wali dari ${namaPeserta}`},
+
+Terima kasih telah mempercayakan proses asesmen di Empathika.
+Melalui pesan ini, kami sampaikan dokumen hasil tes ${peserta.paket || "Skrining Kesehatan Mental (DASS)"} ananda ${namaPeserta}.
+
+Lampiran: Dokumen Hasil Asesmen (${peserta.paket || "DASS"})
+
+Apabila ingin mendiskusikan hasil asesmen atau memerlukan sesi konsultasi/konseling psikologis lebih lanjut, silakan hubungi tim Empathika kembali ya. Terima kasih! 😊🙏`;
+
+  const templateNonDassOrangTua = `Halo Bapak/Ibu ${namaOrangTua || `Wali dari ${namaPeserta}`},
 
 Terima kasih telah mempercayakan proses asesmen psikologis ananda ${namaPeserta} kepada Empathika.
 Melalui pesan ini, kami sampaikan dokumen resmi hasil asesmen psikologis ananda.
 
-Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`
+Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`;
+
+  const waResultUrlOrangTua =
+    isAnak && targetOrangTuaPhone
+      ? `https://wa.me/${targetOrangTuaPhone}?text=${encodeURIComponent(
+          isDass ? templateDassOrangTua : templateNonDassOrangTua
         )}`
       : null;
 
   const targetPesertaPhone = waPesertaDigits || waPembeliDigits;
-  const waResultUrlPeserta = targetPesertaPhone
-    ? `https://wa.me/${targetPesertaPhone}?text=${encodeURIComponent(
-`Halo Kak ${namaPeserta},
+  const templateDassPeserta = `Halo Kak ${namaPeserta},
+
+Terima kasih telah mengikuti asesmen di Empathika.
+Melalui pesan ini, kami sampaikan dokumen hasil tes ${peserta.paket || "Skrining Kesehatan Mental (DASS)"} Kakak.
+
+Lampiran: Dokumen Hasil Asesmen (${peserta.paket || "DASS"})
+
+Apabila Kakak memerlukan informasi lebih lanjut atau ingin mendiskusikan hasil tes bersama psikolog kami, silakan hubungi tim Empathika kembali ya. Semoga harimu menyenangkan! 😊🙏`;
+
+  const templateNonDassPeserta = `Halo Kak ${namaPeserta},
 
 Terima kasih telah mempercayakan proses asesmen psikologis kepada Empathika.
 Melalui pesan ini, kami sampaikan dokumen resmi hasil asesmen psikologis Kakak.
 
-Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`
-        )}`
-      : null;
+Apabila ingin mendiskusikan hasil asesmen bersama psikolog kami, silakan hubungi tim Empathika kembali. Terima kasih! 🙏`;
+
+  const waResultUrlPeserta = targetPesertaPhone
+    ? `https://wa.me/${targetPesertaPhone}?text=${encodeURIComponent(
+        isDass ? templateDassPeserta : templateNonDassPeserta
+      )}`
+    : null;
 
   // Status Telaah & Psikolog
   const namaPsikolog = peserta.psikolog?.nama_gelar || peserta.psikolog?.nama || null;
@@ -571,7 +593,7 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
               <p className="text-[11px] text-gray-500">
                 {isCompleted
                   ? isDass
-                    ? "Hasil dan analisis tes langsung tampil di layar peserta saat tes diselesaikan."
+                    ? "Laporan hasil tes DASS siap diunduh atau dikirimkan ke nomor WhatsApp peserta."
                     : "Laporan resmi PDF sudah diverifikasi dan siap diunduh atau dikirimkan ke peserta."
                   : isMenungguReview
                   ? "Laporan PDF akan otomatis aktif setelah psikolog menuntaskan telaah."
@@ -601,32 +623,30 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     )}
                   </button>
 
-                  {/* Tombol Kirim WA Hasil (Hanya jika bukan tes otomatis DASS) */}
-                  {!isDass && (
-                    isAnak ? (
-                      waResultUrlOrangTua && (
-                        <a
-                          href={waResultUrlOrangTua}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          Kirim ke Orang Tua
-                        </a>
-                      )
-                    ) : (
-                      waResultUrlPeserta && (
-                        <a
-                          href={waResultUrlPeserta}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          Kirim ke Peserta
-                        </a>
-                      )
+                  {/* Tombol Kirim WA Hasil */}
+                  {isAnak ? (
+                    waResultUrlOrangTua && (
+                      <a
+                        href={waResultUrlOrangTua}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Kirim ke Orang Tua
+                      </a>
+                    )
+                  ) : (
+                    waResultUrlPeserta && (
+                      <a
+                        href={waResultUrlPeserta}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Kirim ke Peserta
+                      </a>
                     )
                   )}
                 </>
@@ -660,8 +680,8 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
             </div>
           </div>
 
-          {/* Konfirmasi Status Pengiriman WhatsApp (Khusus paket telaah psikolog, tidak untuk DASS) */}
-          {isCompleted && !isDass && (
+          {/* Konfirmasi Status Pengiriman WhatsApp */}
+          {isCompleted && (
             <div
               className={`p-3.5 sm:p-4 rounded-xl border transition-all ${
                 peserta.is_wa_sent || peserta.wa_sent_at

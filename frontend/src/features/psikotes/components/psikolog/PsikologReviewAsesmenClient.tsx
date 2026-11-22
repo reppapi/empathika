@@ -820,26 +820,14 @@ export default function PsikologReviewAsesmenClient() {
                                 </span>
                               </div>
 
-                              {isMenunggu ? (() => {
-                                const nowMs = Date.now();
-                                const diffHours = (sla.deadlineDate.getTime() - nowMs) / (1000 * 60 * 60);
-                                const isKritis = sla.isOverdue || diffHours <= 24;
-
-                                return (
-                                  <div className="flex flex-col gap-1 items-start">
-                                    {isKritis && (
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 animate-pulse">
-                                          🔴 {sla.isOverdue ? "Kritis (Lewat Batas)" : "Kritis (≤ 24 Jam)"}
-                                        </span>
-                                      </div>
-                                    )}
-                                    <span className="text-[10px] text-gray-500 font-medium" title={`Deadline: ${sla.deadlineFormatted}`}>
-                                      Batas: {sla.deadlineFormatted}
-                                    </span>
-                                  </div>
-                                );
-                              })() : (
+                              {isMenunggu ? (
+                                <span
+                                  className="text-[10px] text-gray-500 font-medium"
+                                  title={`Deadline: ${sla.deadlineFormatted}`}
+                                >
+                                  Batas: {sla.deadlineFormatted}
+                                </span>
+                              ) : (
                                 <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
                                   <CheckCircle2 className="w-3 h-3" />
                                   Tepat Waktu (Selesai)
