@@ -266,7 +266,7 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
                 >
                   <span>Affiliate: (Langsung Hubungi Kontak WhatsApp)</span>
                   <span className="text-emerald-700 font-semibold underline inline-flex items-center gap-0.5">
-                    Chat WhatsApp ↗
+                    Chat WhatsApp
                   </span>
                 </a>
               </li>

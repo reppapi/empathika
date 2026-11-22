@@ -8,7 +8,9 @@ import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { psikologService } from "@/services/psikolog.service";
 import { biroAdminService, biroPublicService } from "@/services/biro.service";
+import { adminService } from "@/services/admin.service";
 import { useTenantContext } from "@/context/TenantContext";
+import { getSubdomainSlug } from "@/hooks/useTenant";
 
 declare global {
   interface Window {
@@ -16,15 +18,120 @@ declare global {
   }
 }
 
-export function LoginForm() {
+export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: string | null } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
   const { isBiro, slug, biroProfile } = useTenantContext();
 
-  const [biroTheme, setBiroTheme] = useState<string | null>(null);
-  const [biroName, setBiroName] = useState<string | null>(null);
-  const [biroLogo, setBiroLogo] = useState<string | null>(null);
+  const currentSlug =
+    slug ||
+    (typeof window !== "undefined"
+      ? getSubdomainSlug() ||
+        new URLSearchParams(window.location.search).get("biro") ||
+        new URLSearchParams(window.location.search).get("tenant")
+      : null);
+  const isBiroContext = Boolean(isBiro || currentSlug);
+
+  // Inisialisasi awal tema, nama, dan logo biro secara sinkron agar 0% jeda (langsung render tema biro di first render)
+  const [biroTheme, setBiroTheme] = useState<string | null>(() => {
+    if (biroProfile?.warna_tema) return biroProfile.warna_tema;
+    if (typeof window !== "undefined" && currentSlug) {
+      try {
+        const cached = localStorage.getItem(`biro_profile_${currentSlug}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.warna_tema) return parsed.warna_tema;
+        }
+        const cTheme = localStorage.getItem(`biro_theme_${currentSlug}`);
+        if (cTheme) return cTheme;
+      } catch {}
+    }
+    return null;
+  });
+
+  const [biroName, setBiroName] = useState<string | null>(() => {
+    if (biroProfile?.nama_biro) return biroProfile.nama_biro;
+    if (typeof window !== "undefined" && currentSlug) {
+      try {
+        const cached = localStorage.getItem(`biro_profile_${currentSlug}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.nama_biro) return parsed.nama_biro;
+        }
+      } catch {}
+    }
+    return null;
+  });
+
+  const [biroLogo, setBiroLogo] = useState<string | null>(() => {
+    if (biroProfile?.logoURI) return biroProfile.logoURI;
+    if (typeof window !== "undefined" && currentSlug) {
+      try {
+        const cached = localStorage.getItem(`biro_profile_${currentSlug}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.logoURI) return parsed.logoURI;
+        }
+      } catch {}
+    }
+    return null;
+  });
+
+  // Inisialisasi awal logo resmi Empathika dari SSR / cache lokal agar langsung muncul di frame 0
+  const [empathikaLogo, setEmpathikaLogo] = useState<string | null>(() => {
+    if (initialEmpathikaFoto) return initialEmpathikaFoto;
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.foto) return parsed.foto;
+        }
+      } catch {}
+    }
+    return null;
+  });
+
+  // Ambil profil resmi Empathika (foto/logo) HANYA jika berada di portal pusat Empathika
+  useEffect(() => {
+    if (isBiroContext) return;
+
+    const loadEmpathikaProfile = () => {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.foto !== undefined) setEmpathikaLogo(parsed.foto);
+        }
+      } catch {}
+
+      adminService
+        .getPublicProfile()
+        .then((res: any) => {
+          if (res?.data?.foto !== undefined) {
+            setEmpathikaLogo(res.data.foto);
+            try {
+              const currentSaved = localStorage.getItem("empathika_admin_profile");
+              const currentParsed = currentSaved ? JSON.parse(currentSaved) : {};
+              localStorage.setItem(
+                "empathika_admin_profile",
+                JSON.stringify({ ...currentParsed, foto: res.data.foto })
+              );
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadEmpathikaProfile();
+    window.addEventListener("storage", loadEmpathikaProfile);
+    window.addEventListener("empathika_admin_profile_updated", loadEmpathikaProfile);
+    return () => {
+      window.removeEventListener("storage", loadEmpathikaProfile);
+      window.removeEventListener("empathika_admin_profile_updated", loadEmpathikaProfile);
+    };
+  }, [isBiroContext]);
 
   const [emailOrName, setEmailOrName] = useState("");
   const [password, setPassword] = useState("");
@@ -34,62 +141,65 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
 
-  // Deteksi tema biro secara reaktif (dari TenantContext, query param ?biro=, atau cache lokal)
+  // Deteksi tema biro secara reaktif HANYA jika diakses dari website biro (subdomain atau query param ?biro=)
   useEffect(() => {
+    let querySlug: string | null = null;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      querySlug = params.get("biro") || params.get("tenant") || slug || getSubdomainSlug() || null;
+    }
+
+    // Jika TIDAK ada subdomain biro dan TIDAK ada query ?biro= (portal login pusat Empathika)
+    if (!querySlug) {
+      setBiroTheme(null);
+      setBiroName(null);
+      setBiroLogo(null);
+      if (typeof document !== "undefined") {
+        document.documentElement.style.removeProperty("--biro-theme-color");
+        document.documentElement.removeAttribute("data-biro-theme");
+      }
+      return;
+    }
+
+    // Jika diakses dari website biro (ada slug subdomain atau query parameter ?biro=)
     let resolvedTheme: string | null = biroProfile?.warna_tema || null;
     let resolvedName: string | null = biroProfile?.nama_biro || null;
     let resolvedLogo: string | null = biroProfile?.logoURI || null;
 
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const querySlug = params.get("biro") || params.get("tenant") || slug;
-
-      if (querySlug) {
-        try {
-          const cachedProfile = localStorage.getItem(`biro_profile_${querySlug}`);
-          if (cachedProfile) {
-            const parsed = JSON.parse(cachedProfile);
-            if (!resolvedTheme && parsed.warna_tema) resolvedTheme = parsed.warna_tema;
-            if (!resolvedName && parsed.nama_biro) resolvedName = parsed.nama_biro;
-            if (!resolvedLogo && parsed.logoURI) resolvedLogo = parsed.logoURI;
-          }
-          if (!resolvedTheme) {
-            const cachedTheme = localStorage.getItem(`biro_theme_${querySlug}`);
-            if (cachedTheme) resolvedTheme = cachedTheme;
-          }
-        } catch {}
-
-        if (!resolvedTheme || !resolvedName) {
-          biroPublicService
-            .getProfile(querySlug)
-            .then((res) => {
-              if (res.success && res.data) {
-                if (res.data.warna_tema) setBiroTheme(res.data.warna_tema);
-                if (res.data.nama_biro) setBiroName(res.data.nama_biro);
-                if (res.data.logoURI) setBiroLogo(res.data.logoURI);
-              }
-            })
-            .catch(() => {});
-        }
-      } else {
-        const lastSlug = localStorage.getItem("last_active_biro_slug");
-        if (lastSlug) {
-          try {
-            const cachedProfile = localStorage.getItem(`biro_profile_${lastSlug}`);
-            if (cachedProfile) {
-              const parsed = JSON.parse(cachedProfile);
-              if (!resolvedTheme && parsed.warna_tema) resolvedTheme = parsed.warna_tema;
-              if (!resolvedName && parsed.nama_biro) resolvedName = parsed.nama_biro;
-              if (!resolvedLogo && parsed.logoURI) resolvedLogo = parsed.logoURI;
-            }
-          } catch {}
-        }
-        if (!resolvedTheme) {
-          const adminColor =
-            localStorage.getItem("biro_theme_color") || localStorage.getItem("active_biro_theme");
-          if (adminColor) resolvedTheme = adminColor;
-        }
+    try {
+      const cachedProfile = localStorage.getItem(`biro_profile_${querySlug}`);
+      if (cachedProfile) {
+        const parsed = JSON.parse(cachedProfile);
+        if (!resolvedTheme && parsed.warna_tema) resolvedTheme = parsed.warna_tema;
+        if (!resolvedName && parsed.nama_biro) resolvedName = parsed.nama_biro;
+        if (!resolvedLogo && parsed.logoURI) resolvedLogo = parsed.logoURI;
       }
+      if (!resolvedTheme) {
+        const cachedTheme = localStorage.getItem(`biro_theme_${querySlug}`);
+        if (cachedTheme) resolvedTheme = cachedTheme;
+      }
+    } catch {}
+
+    if (!resolvedTheme || !resolvedName) {
+      biroPublicService
+        .getProfile(querySlug)
+        .then((res) => {
+          if (res.success && res.data) {
+            if (res.data.warna_tema) {
+              setBiroTheme(res.data.warna_tema);
+              try {
+                localStorage.setItem(`biro_theme_${querySlug}`, res.data.warna_tema);
+                document.cookie = `biro_theme_${querySlug}=${encodeURIComponent(res.data.warna_tema)}; path=/; max-age=2592000; SameSite=Lax`;
+              } catch {}
+            }
+            if (res.data.nama_biro) setBiroName(res.data.nama_biro);
+            if (res.data.logoURI) setBiroLogo(res.data.logoURI);
+            try {
+              localStorage.setItem(`biro_profile_${querySlug}`, JSON.stringify(res.data));
+            } catch {}
+          }
+        })
+        .catch(() => {});
     }
 
     if (resolvedTheme) setBiroTheme(resolvedTheme);
@@ -101,11 +211,23 @@ export function LoginForm() {
   const effectiveBiroName = biroProfile?.nama_biro || biroName || null;
   const effectiveBiroLogo = biroProfile?.logoURI || biroLogo || null;
 
+  // Jika di portal biro, JANGAN PERNAH jatuh ke Empathika
+  const activePortalName = isBiroContext
+    ? (effectiveBiroName || "")
+    : "Empathika";
+
+  const activePortalLogo = isBiroContext
+    ? effectiveBiroLogo
+    : empathikaLogo;
+
   // Sinkronisasi variabel tema biro ke CSS browser saat berada di halaman login biro
   useEffect(() => {
     if (effectiveThemeColor && typeof document !== "undefined") {
       document.documentElement.style.setProperty("--biro-theme-color", effectiveThemeColor);
       document.documentElement.setAttribute("data-biro-theme", "true");
+    } else if (!effectiveThemeColor && typeof document !== "undefined") {
+      document.documentElement.style.removeProperty("--biro-theme-color");
+      document.documentElement.removeAttribute("data-biro-theme");
     }
   }, [effectiveThemeColor]);
 
@@ -482,17 +604,21 @@ export function LoginForm() {
           {/* Logo */}
           <div
             className="w-20 h-20 rounded-full shadow-md flex items-center justify-center mb-6 overflow-hidden transition-all duration-300"
-            style={{ backgroundColor: effectiveThemeColor || "#561269" }}
+            style={{
+              backgroundColor:
+                effectiveThemeColor ||
+                (isBiroContext ? "var(--biro-theme-color, #27142b)" : "#561269"),
+            }}
           >
-            {effectiveBiroLogo ? (
+            {activePortalLogo ? (
               <img
-                src={effectiveBiroLogo}
-                alt={effectiveBiroName || "Logo Biro"}
+                src={activePortalLogo}
+                alt={activePortalName || "Logo"}
                 className="w-full h-full object-cover"
               />
             ) : (
               <span className="text-3xl font-bold text-white">
-                {effectiveBiroName ? effectiveBiroName.charAt(0).toUpperCase() : "E"}
+                {activePortalName ? activePortalName.charAt(0).toUpperCase() : (isBiroContext ? "" : "E")}
               </span>
             )}
           </div>
@@ -501,10 +627,14 @@ export function LoginForm() {
           <div className="text-center mb-8">
             <h1
               className="text-2xl sm:text-3xl font-extrabold mb-3 transition-colors duration-300"
-              style={{ color: effectiveThemeColor || "#561269" }}
+              style={{
+                color:
+                  effectiveThemeColor ||
+                  (isBiroContext ? "var(--biro-theme-color, #27142b)" : "#561269"),
+              }}
             >
               Selamat Datang di<br />
-              {effectiveBiroName || "Empathika"}
+              {activePortalName || (isBiroContext ? "Portal Biro" : "Empathika")}
             </h1>
             <p className="text-gray-500 text-sm leading-relaxed px-4">
               Silakan masuk menggunakan akun Anda<br />untuk melanjutkan ke dashboard.
@@ -661,9 +791,13 @@ export function LoginForm() {
         style={{
           backgroundColor: effectiveThemeColor
             ? `color-mix(in srgb, ${effectiveThemeColor} 22%, #0a030d)`
+            : isBiroContext
+            ? "color-mix(in srgb, var(--biro-theme-color, #1a101f) 22%, #0a030d)"
             : "#1c0524",
           boxShadow: effectiveThemeColor
             ? `-20px 0 50px -15px color-mix(in srgb, ${effectiveThemeColor} 25%, transparent)`
+            : isBiroContext
+            ? "-20px 0 50px -15px rgba(0,0,0,0.25)"
             : "-20px 0 50px -15px rgba(86,18,105,0.15)",
         }}
       >
@@ -674,6 +808,8 @@ export function LoginForm() {
           style={{
             backgroundColor: effectiveThemeColor
               ? `color-mix(in srgb, ${effectiveThemeColor} 85%, white)`
+              : isBiroContext
+              ? "var(--biro-theme-color, #3b1847)"
               : "#701a8a",
           }}
         />
@@ -682,6 +818,8 @@ export function LoginForm() {
           style={{
             backgroundColor: effectiveThemeColor
               ? `color-mix(in srgb, ${effectiveThemeColor} 65%, black)`
+              : isBiroContext
+              ? "var(--biro-theme-color, #1c0824)"
               : "#360842",
           }}
         />
@@ -690,6 +828,8 @@ export function LoginForm() {
           style={{
             backgroundColor: effectiveThemeColor
               ? `color-mix(in srgb, ${effectiveThemeColor} 75%, white)`
+              : isBiroContext
+              ? "var(--biro-theme-color, #4a1f59)"
               : "#a347c7",
           }}
         />
@@ -698,6 +838,8 @@ export function LoginForm() {
           style={{
             backgroundColor: effectiveThemeColor
               ? `color-mix(in srgb, ${effectiveThemeColor} 40%, black)`
+              : isBiroContext
+              ? "#120317"
               : "#20042b",
           }}
         />
@@ -713,7 +855,7 @@ export function LoginForm() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-px bg-white/40" />
             <span className="text-white/80 text-xs font-bold tracking-widest uppercase">
-              {effectiveBiroName || "Empathika Care"}
+              {effectiveBiroName || (isBiroContext ? "Biro Mitra" : "Empathika Care")}
             </span>
           </div>
         </div>

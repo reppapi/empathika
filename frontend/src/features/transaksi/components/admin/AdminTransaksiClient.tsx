@@ -1143,10 +1143,20 @@ export default function AdminTransaksiClient() {
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="font-bold text-gray-900 truncate">{item.clientName}</span>
-                            <span className="text-gray-300">|</span>
-                            <span className="text-gray-600 font-medium text-xs sm:text-sm truncate">{item.namaLayanan}</span>
+                          <div className="flex items-center gap-1.5 text-sm">
+                            <span
+                              className="font-bold text-gray-900 truncate w-20 sm:w-24 shrink-0"
+                              title={item.clientName}
+                            >
+                              {item.clientName}
+                            </span>
+                            <span className="text-gray-300 shrink-0 select-none">|</span>
+                            <span
+                              className="text-gray-600 font-medium text-xs sm:text-sm truncate"
+                              title={item.namaLayanan}
+                            >
+                              {item.namaLayanan}
+                            </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor" className="h-3.5 w-3.5 shrink-0">
