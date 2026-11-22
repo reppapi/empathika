@@ -9,6 +9,7 @@ import {
   hasPsikotesDetailOrigin,
   markPsikotesDetailOrigin,
 } from "@/features/psikotes/utils/navigationHistory";
+import { isDASS, isMCMI } from "@/features/psikotes/utils/instrumentDetector";
 
 export { PsikotesHasilGratisClient, PsikotesHasilBerbayarClient };
 
@@ -43,18 +44,21 @@ export default function PsikotesHasilClient({ params }: { params: { testId: stri
   }, [params.testId]);
 
   // Evaluasi jenis akses psikotes: gratis atau berbayar
-  const hasBooking = Boolean(searchParams.get("bookingId")) || Boolean(searchParams.get("orderId"));
-  const isExplicitPaid =
-    searchParams.get("paket") === "berbayar" ||
-    searchParams.get("plan") === "berbayar" ||
-    searchParams.get("tipe") === "berbayar";
-  const isKlinisOrPaidTest =
+  // Catatan: Hanya DASS dan MCMI yang dapat memiliki tampilan laporan resmi berbayar.
+  // Seluruh instrumen lainnya (PHQ-9, GAD-7, CATS, CDI, CHOCI-R, IGDS9-SF, RCMAS, PBQ) adalah psikotes gratis.
+  const isPaidInstrument =
+    params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" || // MCMI-IV UUID
+    params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa" || // DASS-42 UUID
+    isDASS(null, params.testId) ||
+    isMCMI(null, params.testId) ||
     params.testId.toLowerCase().includes("dass") ||
+    params.testId.toLowerCase().includes("depresi-kecemasan-dan-stres") ||
     params.testId.toLowerCase().includes("mcmi") ||
-    params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" ||
-    params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa";
+    params.testId.toLowerCase().includes("pola-klinis");
 
-  const isPaid = isExplicitPaid || hasBooking || isKlinisOrPaidTest;
+  const isExplicitFree = searchParams.get("paket") === "gratis";
+
+  const isPaid = isPaidInstrument && !isExplicitFree;
 
   if (isPaid) {
     return <PsikotesHasilBerbayarClient params={params} />;

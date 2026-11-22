@@ -590,7 +590,7 @@ const TipTapSheetEditor: React.FC<TipTapSheetEditorProps> = ({
     >
       <EditorContent
         editor={editor}
-        className={`w-full flex-1 h-full min-h-0 flex flex-col bg-transparent border-0 focus:ring-0 focus:outline-none font-serif text-sm sm:text-base leading-relaxed text-gray-900 ${
+        className={`w-full flex-1 h-full min-h-0 flex flex-col bg-transparent border-0 focus:ring-0 focus:outline-none font-sans text-xs sm:text-[13px] leading-relaxed text-gray-800 ${
           isReadOnly ? "cursor-default select-text" : ""
         }`}
       />
@@ -1917,17 +1917,17 @@ export default function ModalReviewPsikotes({
                 display: flex !important;
                 flex-direction: column !important;
                 outline: none !important;
-                font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-                font-size: 14px;
+                font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+                font-size: 12px;
                 line-height: 1.625;
-                color: #111827;
+                color: #1f2937;
                 overflow-wrap: break-word !important;
                 word-break: normal !important;
                 white-space: pre-wrap !important;
               }
               @media (min-width: 640px) {
                 .tiptap {
-                  font-size: 15px;
+                  font-size: 13px;
                 }
               }
               .tiptap:focus, .ProseMirror:focus {

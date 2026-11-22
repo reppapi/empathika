@@ -598,22 +598,22 @@ const officialStyles = StyleSheet.create({
     color: "#6B7280",
   },
 
-  // 4. ISI TELAAH KLINIS (SERIF TIMES-ROMAN)
+  // 4. ISI TELAAH KLINIS (HELVETICA - DISESUAIKAN DENGAN IDENTITAS)
   bodyContainer: {
     flex: 1,
     minHeight: 0,
   },
   bodyText: {
-    fontFamily: "Times-Roman",
-    fontSize: 10,
+    fontFamily: "Helvetica",
+    fontSize: 8.5,
     lineHeight: 1.45,
     color: "#111827",
   },
   bodyBold: {
-    fontFamily: "Times-Bold",
+    fontFamily: "Helvetica-Bold",
   },
   bodyItalic: {
-    fontFamily: "Times-Italic",
+    fontFamily: "Helvetica-Oblique",
   },
   bodyUnderline: {
     textDecoration: "underline",
