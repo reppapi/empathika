@@ -447,7 +447,7 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
         );
       },
     },
-    ...(statusFilter !== "SEDANG_DITINJAU" && statusFilter !== "MENUNGGU_TINJAU" && isSelectedPaketNeedReview
+    ...(!isBiroContext && statusFilter !== "SEDANG_DITINJAU" && statusFilter !== "MENUNGGU_TINJAU" && isSelectedPaketNeedReview
       ? [
           {
             key: "status_wa",

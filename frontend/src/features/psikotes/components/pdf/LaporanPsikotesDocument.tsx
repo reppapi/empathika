@@ -785,13 +785,103 @@ function parseFormattedText(text: string): React.ReactNode[] {
   return parts;
 }
 
-/** Mengekstrak baris teks telaah baik dari format HTML WYSIWYG maupun plain/markdown */
-function extractPdfLinesFromContent(rawPageText: string): string[] {
-  if (!rawPageText || !rawPageText.trim()) return [""];
+export interface PdfBlock {
+  type: "list" | "first-line-indent" | "hanging-indent" | "paragraph" | "empty";
+  marker?: string;
+  markerWidth?: number;
+  content: string;
+  indentLevel: number;
+}
+
+/** Mengekstrak blok-blok konten terstruktur (List, First Line Indent, Hanging Indent, Paragraph, Soft Breaks) */
+export function extractPdfBlocksFromContent(rawPageText: string): PdfBlock[] {
+  if (!rawPageText || !rawPageText.trim()) return [{ type: "empty", content: "", indentLevel: 0 }];
   let text = rawPageText;
+  const blocks: PdfBlock[] = [];
+
   if (/<[a-z][\s\S]*>/i.test(text)) {
-    // 1. Ekstrak indentasi dari tag div/p (data-indent, class editor-indent-X, atau style padding-left)
-    text = text.replace(/<(?:div|p)([^>]*)>([\s\S]*?)<\/(?:div|p)>/gi, (_, attrs, inner) => {
+    // 1. Tangkap setiap blok pembungkus <div> atau <p>
+    const blockRegex = /<(?:div|p)([^>]*)>([\s\S]*?)<\/(?:div|p)>/gi;
+    let match: RegExpExecArray | null;
+    let matchedAny = false;
+
+    while ((match = blockRegex.exec(text)) !== null) {
+      matchedAny = true;
+      const attrs = match[1] || "";
+      let inner = match[2] || "";
+
+      // Bersihkan & konversi <br> menjadi newline '\n' (SOFT LINE BREAK DALAM PARAGRAF YANG SAMA)
+      inner = inner.replace(/<br\s*\/?>/gi, "\n");
+      inner = inner.replace(/&nbsp;|\u00a0/gi, " ");
+      inner = inner
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'");
+      inner = inner.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
+
+      const cleanText = inner.replace(/<[^>]+>/g, "").trim();
+      if (!cleanText) {
+        blocks.push({ type: "empty", content: "", indentLevel: 0 });
+        continue;
+      }
+
+      // A. First Line Indent (Hanya baris pertama yang menjorok)
+      const isFirstLineIndent =
+        attrs.includes("data-first-line-indent") ||
+        attrs.includes("editor-first-line-indent");
+      if (isFirstLineIndent) {
+        blocks.push({
+          type: "first-line-indent",
+          content: inner.trim(),
+          indentLevel: 0,
+        });
+        continue;
+      }
+
+      // B. List Item (Numbered, Roman, Letter, Bullet dengan Hanging Indent)
+      const isListItem = attrs.includes("editor-list-item");
+      const listMatch = inner.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(?:\t|\s+)([\s\S]*)$/);
+      if (isListItem || listMatch) {
+        const markerRaw = listMatch ? listMatch[2] : "";
+        const content = listMatch ? listMatch[4] : inner;
+        let indentLevel = 0;
+
+        const classLevelMatch = attrs.match(/editor-list-item-(\d+)/i);
+        if (classLevelMatch) {
+          indentLevel = parseInt(classLevelMatch[1], 10);
+        } else if (listMatch && listMatch[1]) {
+          indentLevel = Math.floor(listMatch[1].length / 4);
+        }
+
+        const markerText = markerRaw === "-" || markerRaw === "*" ? "•" : markerRaw;
+        const markerWidth = Math.max(16, (markerText ? markerText.length : 2) * 7);
+
+        blocks.push({
+          type: "list",
+          marker: markerText,
+          markerWidth,
+          content: content.trim(),
+          indentLevel,
+        });
+        continue;
+      }
+
+      // C. Hanging Indent (Non-list)
+      const isHangingIndent =
+        attrs.includes("data-hanging-indent") ||
+        attrs.includes("editor-hanging-indent");
+      if (isHangingIndent) {
+        blocks.push({
+          type: "hanging-indent",
+          content: inner.trim(),
+          indentLevel: 0,
+        });
+        continue;
+      }
+
+      // D. Paragraf Biasa atau Tab Indent
       let indentLevel = 0;
       const dataIndentMatch = attrs.match(/data-indent="(\d+)"/i);
       const classIndentMatch = attrs.match(/editor-indent-(\d+)/i);
@@ -801,35 +891,81 @@ function extractPdfLinesFromContent(rawPageText: string): string[] {
         indentLevel = parseInt(dataIndentMatch[1], 10);
       } else if (classIndentMatch) {
         indentLevel = parseInt(classIndentMatch[1], 10);
-      } else if (padMatch && !attrs.includes("editor-list-item")) {
+      } else if (padMatch) {
         const px = parseInt(padMatch[1], 10);
         if (px >= 28) {
           indentLevel = Math.floor(px / 28);
         }
       }
 
-      const indentPrefix = indentLevel > 0 ? " ".repeat(indentLevel * 4) : "";
-      return `\n${indentPrefix}${inner}\n`;
-    });
+      blocks.push({
+        type: "paragraph",
+        content: inner.trim(),
+        indentLevel,
+      });
+    }
 
-    text = text.replace(/<br\s*\/?>/gi, "\n");
-    text = text.replace(/<\/(?:p|div|li|h[1-6])>/gi, "\n");
-    text = text.replace(/&nbsp;/gi, " ");
-    text = text
-      .replace(/&amp;/gi, "&")
-      .replace(/&lt;/gi, "<")
-      .replace(/&gt;/gi, ">")
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;/gi, "'");
-    text = text.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
+    if (!matchedAny) {
+      let plain = text.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
+      return extractPdfBlocksFromContent(plain);
+    }
+  } else {
+    // Plain text input
+    const lines = text.split("\n");
+    for (const rawLine of lines) {
+      const line = rawLine.replace(/\r/g, "");
+      const clean = line.trim();
+      if (!clean) {
+        blocks.push({ type: "empty", content: "", indentLevel: 0 });
+        continue;
+      }
+
+      const listMatch = line.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(?:\t|\s+)([\s\S]*)$/);
+      if (listMatch) {
+        const leadingSpaces = listMatch[1] || "";
+        const markerRaw = listMatch[2];
+        const content = listMatch[4];
+        const indentLevel = Math.floor(leadingSpaces.length / 4);
+        const markerText = markerRaw === "-" || markerRaw === "*" ? "•" : markerRaw;
+        const markerWidth = Math.max(16, markerText.length * 7);
+
+        blocks.push({
+          type: "list",
+          marker: markerText,
+          markerWidth,
+          content: content.trim(),
+          indentLevel,
+        });
+        continue;
+      }
+
+      const leadingSpaces = line.match(/^ +/);
+      const indentCount = leadingSpaces ? leadingSpaces[0].length : 0;
+      const indentLevel = Math.floor(indentCount / 4);
+
+      blocks.push({
+        type: "paragraph",
+        content: line.trim(),
+        indentLevel,
+      });
+    }
   }
-  return text
-    .split("\n")
-    .map((l) => l.replace(/\r/g, ""))
-    .filter((line, idx, arr) => {
-      if (line.trim() === "" && idx > 0 && arr[idx - 1].trim() === "") return false;
-      return true;
-    });
+
+  return blocks.filter((b, idx, arr) => {
+    if (b.type === "empty" && idx > 0 && arr[idx - 1].type === "empty") return false;
+    return true;
+  });
+}
+
+/** Mengekstrak baris teks telaah baik dari format HTML WYSIWYG maupun plain/markdown */
+function extractPdfLinesFromContent(rawPageText: string): string[] {
+  const blocks = extractPdfBlocksFromContent(rawPageText);
+  return blocks.map((b) => {
+    if (b.type === "empty") return "";
+    const prefix = b.indentLevel > 0 ? " ".repeat(b.indentLevel * 4) : "";
+    if (b.type === "list") return `${prefix}${b.marker} ${b.content}`;
+    return `${prefix}${b.content}`;
+  });
 }
 
 /** Memecah teks dokumen klinis menjadi lembaran A4 multi-halaman */
@@ -936,7 +1072,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
         {pages.map((pageText, pageIdx) => {
           const isFirstPage = pageIdx === 0;
           const isLastPage = pageIdx === pages.length - 1;
-          const lines = extractPdfLinesFromContent(pageText);
+          const blocks = extractPdfBlocksFromContent(pageText);
 
           return (
             <Page
@@ -1022,7 +1158,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                   /* Running Header Halaman Lanjutan */
                   <View style={officialStyles.runningHeader}>
                     <Text style={officialStyles.runningHeaderTitle}>
-                      EMPATHIKA PSYCHOLOGICAL SERVICES
+                       EMPATHIKA PSYCHOLOGICAL SERVICES
                     </Text>
                     <Text style={officialStyles.runningHeaderDocNo}>
                       {sanitizePdfText(data.noDokumen || "")}
@@ -1031,29 +1167,20 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                 )}
               </View>
 
-              {/* BAGIAN TENGAH: ISI TELAAH KLINIS */}
+              {/* BAGIAN TENGAH: ISI TELAAH KLINIS (KEEP LINES TOGETHER & TYPOGRAPHY) */}
               <View style={officialStyles.bodyContainer}>
-                {lines.map((line, lineIdx) => {
-                  if (line.trim() === "") {
-                    return <View key={lineIdx} style={{ height: 5 }} />;
+                {blocks.map((block, blockIdx) => {
+                  if (block.type === "empty") {
+                    return <View key={blockIdx} style={{ height: 5 }} />;
                   }
 
                   // 1. Deteksi format list (angka, romawi, huruf, atau bullet) untuk Hanging Indent
-                  const listMatch = line.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(\s+)(.*)$/);
-
-                  if (listMatch) {
-                    const leadingSpaces = listMatch[1] || "";
-                    const markerRaw = listMatch[2];
-                    const content = listMatch[5];
-                    const indentLevel = Math.floor(leadingSpaces.length / 4);
-                    const indentPt = indentLevel * 16;
-                    const markerText =
-                      markerRaw === "-" || markerRaw === "*" ? "•" : markerRaw;
-                    const markerWidth = Math.max(16, (markerText.length + 1) * 5.5);
-
+                  if (block.type === "list") {
+                    const indentPt = block.indentLevel * 16;
                     return (
                       <View
-                        key={lineIdx}
+                        key={blockIdx}
+                        wrap={false}
                         style={{
                           flexDirection: "row",
                           alignItems: "flex-start",
@@ -1061,42 +1188,84 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                           marginBottom: 2.5,
                         }}
                       >
-                        <View style={{ width: markerWidth }}>
+                        <View style={{ width: block.markerWidth || 16 }}>
                           <Text
                             style={[
                               officialStyles.bodyText,
                               { fontFamily: "Helvetica-Bold" },
                             ]}
                           >
-                            {markerText}
+                            {block.marker}
                           </Text>
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={officialStyles.bodyText}>
-                            {parseFormattedText(content)}
+                            {parseFormattedText(block.content)}
                           </Text>
                         </View>
                       </View>
                     );
                   }
 
-                  // 2. Paragraf biasa / paragraf berindentasi (misal hasil keluar dari list via Backspace)
-                  const leadingSpaces = line.match(/^ +/);
-                  const indentCount = leadingSpaces ? leadingSpaces[0].length : 0;
-                  const indentLevel = Math.floor(indentCount / 4);
-                  // 16pt per level indentasi, sejajar dengan awal teks setelah marker list (markerWidth 16pt)
-                  const indentPt = indentLevel * 16;
+                  // 2. First Line Indent: Hanya baris pertama yang menjorok
+                  if (block.type === "first-line-indent") {
+                    const indentPt = block.indentLevel * 16;
+                    return (
+                      <View
+                        key={blockIdx}
+                        wrap={false}
+                        style={{
+                          paddingLeft: indentPt,
+                          marginBottom: 2.5,
+                        }}
+                      >
+                        <Text style={officialStyles.bodyText}>
+                          {"\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0"}
+                          {parseFormattedText(block.content)}
+                        </Text>
+                      </View>
+                    );
+                  }
 
+                  // 3. Hanging Indent (non-list): Baris pertama di margin, baris lanjutan menjorok
+                  if (block.type === "hanging-indent") {
+                    const indentPt = block.indentLevel * 16;
+                    return (
+                      <View
+                        key={blockIdx}
+                        wrap={false}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          paddingLeft: indentPt,
+                          marginBottom: 2.5,
+                        }}
+                      >
+                        <View style={{ width: 16 }}>
+                          <Text style={officialStyles.bodyText}>{"\u00a0"}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={officialStyles.bodyText}>
+                            {parseFormattedText(block.content)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  // 4. Paragraf biasa / paragraf berindentasi (Tab Indent)
+                  const indentPt = block.indentLevel * 16;
                   return (
                     <View
-                      key={lineIdx}
+                      key={blockIdx}
+                      wrap={false}
                       style={{
                         paddingLeft: indentPt,
                         marginBottom: 2.5,
                       }}
                     >
                       <Text style={officialStyles.bodyText}>
-                        {parseFormattedText(line.trimStart())}
+                        {parseFormattedText(block.content)}
                       </Text>
                     </View>
                   );

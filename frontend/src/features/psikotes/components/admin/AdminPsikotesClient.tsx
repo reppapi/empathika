@@ -585,7 +585,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
             ).filter(Boolean)}
             isLoading={isLoadingPeserta}
             onSelectPeserta={setSelectedPeserta}
-            onToggleWaStatus={handleToggleWaStatus}
+            onToggleWaStatus={isBiroContext ? undefined : handleToggleWaStatus}
             isBiroContext={isBiroContext}
           />
         </div>
@@ -618,7 +618,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         judulList={judulList}
         onClose={() => setSelectedPeserta(null)}
         onDownloadPdf={(peserta) => printLaporanPsikotes(peserta, judulList)}
-        onToggleWaStatus={handleToggleWaStatus}
+        onToggleWaStatus={isBiroContext ? undefined : handleToggleWaStatus}
         onReleaseTicket={handleReleaseTicket}
         isBiroContext={isBiroContext}
       />

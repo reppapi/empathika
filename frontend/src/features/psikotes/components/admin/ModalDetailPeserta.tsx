@@ -680,8 +680,8 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
             </div>
           </div>
 
-          {/* Konfirmasi Status Pengiriman WhatsApp */}
-          {isCompleted && (
+          {/* Konfirmasi Status Pengiriman WhatsApp (Hanya Admin Pusat, disembunyikan di Admin Biro) */}
+          {!isBiroContext && isCompleted && (
             <div
               className={`p-3.5 sm:p-4 rounded-xl border transition-all ${
                 peserta.is_wa_sent || peserta.wa_sent_at
