@@ -29,5 +29,24 @@ export const authService = {
         validateStatus: (status) => status < 500,
       })
       .then((r) => r.data),
+
+  lookupTenant: (identifier: string) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: {
+          isBiro: boolean
+          biro: {
+            id: string
+            nama_biro: string
+            slug: string
+            warna_tema: string | null
+            logoURI: string | null
+          } | null
+        }
+      }>("/auth/lookup-tenant", {
+        params: { identifier },
+      })
+      .then((r) => r.data),
 }
 

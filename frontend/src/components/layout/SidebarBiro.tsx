@@ -121,6 +121,7 @@ export function SidebarBiro({
             <button
               type="button"
               onClick={() => {
+                const lastBiroSlug = typeof window !== "undefined" ? localStorage.getItem("last_active_biro_slug") : null
                 removeAuthCookie("access_token")
                 removeAuthCookie("remember_me")
                 localStorage.removeItem("access_token")
@@ -135,7 +136,7 @@ export function SidebarBiro({
                   document.documentElement.removeAttribute("data-biro-theme")
                   document.documentElement.style.removeProperty("--biro-theme-color")
                 }
-                window.location.href = "/login"
+                window.location.href = lastBiroSlug ? `/login?biro=${encodeURIComponent(lastBiroSlug)}` : "/login"
               }}
               className="inline-block w-full text-left font-normal text-white/80 transition-colors hover:text-white py-3 text-[15px]"
             >

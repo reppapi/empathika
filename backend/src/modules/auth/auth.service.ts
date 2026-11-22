@@ -31,6 +31,35 @@ export class AuthService {
     this.repo = new AuthRepository(fastify.prisma)
   }
 
+  async lookupTenant(identifier: string) {
+    if (!identifier || typeof identifier !== "string") {
+      return { isBiro: false, biro: null }
+    }
+    const clean = identifier.trim().toLowerCase()
+    if (clean.length < 3) {
+      return { isBiro: false, biro: null }
+    }
+
+    try {
+      const account = await this.repo.findByEmailOrName(clean)
+      if (!account) {
+        return { isBiro: false, biro: null }
+      }
+
+      const biroData = extractBiroData(account)
+      if (!biroData) {
+        return { isBiro: false, biro: null }
+      }
+
+      return {
+        isBiro: true,
+        biro: biroData,
+      }
+    } catch {
+      return { isBiro: false, biro: null }
+    }
+  }
+
   async loginWithGoogle(credential: string, rememberMe?: boolean) {
     if (!credential || typeof credential !== "string") {
       throw Object.assign(new Error("Token credential Google tidak valid"), {

@@ -40,6 +40,15 @@ export default async function authRoutes(fastify: FastifyInstance) {
     handler: controller.loginGoogle,
   })
 
+  // GET /auth/lookup-tenant - Cek apakah email/username terdaftar di Biro untuk tema login dinamis
+  fastify.get("/lookup-tenant", {
+    schema: {
+      tags: ["Auth"],
+      summary: "Lookup biro tenant info by email or username for dynamic login theme",
+    },
+    handler: controller.lookupTenant,
+  })
+
   // GET /auth/me - Cek status profil yang sedang login
   fastify.get("/me", {
     preHandler: [authGuard],

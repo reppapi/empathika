@@ -101,11 +101,50 @@ export function LoginForm() {
   const effectiveBiroName = biroProfile?.nama_biro || biroName || null;
   const effectiveBiroLogo = biroProfile?.logoURI || biroLogo || null;
 
+  // Auto-detect tema biro saat pengguna mengetik email atau nama akun di domain utama
+  useEffect(() => {
+    // Jika sudah di dalam konteks biro (subdomain atau query param), biarkan konteks tersebut memimpin
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    if (slug || params.get("biro") || params.get("tenant")) {
+      return;
+    }
+
+    const trimmed = emailOrName.trim();
+    if (trimmed.length < 3) {
+      setBiroTheme(null);
+      setBiroName(null);
+      setBiroLogo(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await authService.lookupTenant(trimmed);
+        if (res.success && res.data?.isBiro && res.data.biro) {
+          setBiroTheme(res.data.biro.warna_tema || null);
+          setBiroName(res.data.biro.nama_biro || null);
+          setBiroLogo(res.data.biro.logoURI || null);
+        } else {
+          setBiroTheme(null);
+          setBiroName(null);
+          setBiroLogo(null);
+        }
+      } catch {
+        // Jangan ganggu form jika terjadi kendala jaringan lookup
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [emailOrName, slug]);
+
   // Sinkronisasi variabel tema biro ke CSS browser saat berada di halaman login biro
   useEffect(() => {
     if (effectiveThemeColor && typeof document !== "undefined") {
       document.documentElement.style.setProperty("--biro-theme-color", effectiveThemeColor);
       document.documentElement.setAttribute("data-biro-theme", "true");
+    } else if (!effectiveThemeColor && typeof document !== "undefined") {
+      document.documentElement.style.removeProperty("--biro-theme-color");
+      document.documentElement.removeAttribute("data-biro-theme");
     }
   }, [effectiveThemeColor]);
 

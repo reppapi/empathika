@@ -45,6 +45,18 @@ export class AuthController {
     }
   }
 
+  lookupTenant = async (
+    request: FastifyRequest<{ Querystring: { identifier?: string; email?: string } }>,
+    reply: FastifyReply
+  ) => {
+    const identifier = request.query.identifier || request.query.email || ""
+    const result = await this.service.lookupTenant(identifier)
+    return reply.code(200).send({
+      success: true,
+      data: result,
+    })
+  }
+
   me = async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as { id: string }
     const result = await this.service.getProfile(user.id)

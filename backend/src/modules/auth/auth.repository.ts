@@ -20,6 +20,24 @@ export class AuthRepository {
     })
   }
 
+  async findByEmailOrName(identifier: string) {
+    const clean = identifier.trim().toLowerCase()
+    return this.prisma.account.findFirst({
+      where: {
+        OR: [
+          { email: { equals: clean, mode: "insensitive" } },
+          { nama: { equals: clean, mode: "insensitive" } },
+          { email: clean },
+          { nama: clean },
+        ],
+      },
+      include: {
+        biro: true,
+        owned_biro: true,
+      },
+    })
+  }
+
   async findById(id: string) {
     return this.prisma.account.findUnique({
       where: { id },
