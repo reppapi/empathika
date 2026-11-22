@@ -458,35 +458,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
                 )}
               </p>
             </div>
-
-            {/* Catatan Isian Kualitatif Khusus CHOCI-R */}
-            {isCHOCI && (bookingDetailSkor?.kualitatif?.kebiasaanKompulsi?.length > 0 || bookingDetailSkor?.kualitatif?.pikiranObsesi?.length > 0) && (
-              <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100/80 space-y-3">
-                <p className="text-xs font-bold text-[#561269] uppercase tracking-wider">
-                  Catatan Kualitatif Refleksi Gejala
-                </p>
-                {bookingDetailSkor.kualitatif.kebiasaanKompulsi?.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold text-gray-700">Kebiasaan paling menjengkelkan:</p>
-                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
-                      {bookingDetailSkor.kualitatif.kebiasaanKompulsi.map((k: string, idx: number) => (
-                        <li key={idx} className="italic">&ldquo;{k}&rdquo;</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {bookingDetailSkor.kualitatif.pikiranObsesi?.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold text-gray-700">Pikiran/kekhawatiran paling mengganggu:</p>
-                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
-                      {bookingDetailSkor.kualitatif.pikiranObsesi.map((p: string, idx: number) => (
-                        <li key={idx} className="italic">&ldquo;{p}&rdquo;</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         ) : (
           <InterpretasiCard
