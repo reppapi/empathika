@@ -655,7 +655,6 @@ export default function PsikologReviewAsesmenClient() {
                   : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
-              <Stethoscope className="w-3.5 h-3.5" />
               Sedang Ditinjau ({myCounts.sedang_ditinjau})
             </button>
 
@@ -669,7 +668,6 @@ export default function PsikologReviewAsesmenClient() {
                   : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
               Selesai ({myCounts.selesai})
             </button>
           </div>

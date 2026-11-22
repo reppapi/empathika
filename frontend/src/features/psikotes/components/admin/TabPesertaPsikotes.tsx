@@ -15,7 +15,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Stethoscope,
   ArrowRight,
 } from "lucide-react";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
@@ -777,7 +776,6 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
                   : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
-              <Stethoscope className="w-3.5 h-3.5" />
               Sedang Ditinjau ({statusStats.sedangDitinjau})
             </button>
 
@@ -791,7 +789,6 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
                   : "text-gray-700 hover:bg-gray-200/70"
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
               Selesai ({statusStats.selesai})
             </button>
           </div>

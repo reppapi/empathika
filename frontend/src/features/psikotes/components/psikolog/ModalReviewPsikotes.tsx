@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   X,
   FileCheck2,
@@ -14,6 +14,7 @@ import {
   PanelLeft,
   Bold,
   Italic,
+  Underline,
   ListOrdered,
   Indent,
   Outdent,
@@ -229,141 +230,269 @@ const SUBSEQUENT_MAX_WITH_SIG = 700; // Batas Halaman 2+ jika sekaligus menampun
 const PAGE1_MAX_LINES = 30; // Halaman 1 isi sampai batas aman
 const SUBSEQUENT_PAGE_MAX_LINES = 35; // Halaman 2+ isi sampai batas aman
 
-// Pengukur tinggi teks presisi pixel menggunakan mirror div offscreen
-function measureTextHeight(text: string, textarea: HTMLTextAreaElement): number {
-  if (typeof document === "undefined") return 0;
-  let mirror = document.getElementById("textarea-mirror-measurer") as HTMLDivElement;
-  if (!mirror) {
-    mirror = document.createElement("div");
-    mirror.id = "textarea-mirror-measurer";
-    mirror.style.position = "fixed";
-    mirror.style.left = "-99999px";
-    mirror.style.top = "-99999px";
-    mirror.style.visibility = "hidden";
-    mirror.style.pointerEvents = "none";
-    mirror.style.whiteSpace = "pre-wrap";
-    mirror.style.wordBreak = "break-word";
-    mirror.style.overflowWrap = "break-word";
-    document.body.appendChild(mirror);
-  }
-  const style = window.getComputedStyle(textarea);
-  mirror.style.width = `${textarea.clientWidth || 680}px`;
-  mirror.style.fontFamily = style.fontFamily;
-  mirror.style.fontSize = style.fontSize;
-  mirror.style.lineHeight = style.lineHeight;
-  mirror.style.padding = style.padding;
-  mirror.style.boxSizing = style.boxSizing;
-  mirror.textContent = text;
-  return mirror.clientHeight;
+// Helper informasi indentasi dan deteksi list item
+function getListIndentInfo(lineText: string): { isList: boolean; level: number } {
+  const clean = lineText.replace(/\u00a0/g, " ");
+  const match = clean.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(\s+)/);
+  if (!match) return { isList: false, level: 0 };
+  const leadingSpaces = match[1] || "";
+  const level = Math.floor(leadingSpaces.length / 4);
+  return { isList: true, level };
 }
 
-// Memisahkan teks yang muat di lembar A4 saat ini dan teks yang meluap ke lembar berikutnya
-function splitFittingText(
-  fullText: string,
-  textarea: HTMLTextAreaElement,
-  maxHeight: number
-): { fittingText: string; overflowText: string } {
-  const lines = fullText.split("\n");
-
-  if (lines.length > 1) {
-    let low = 1;
-    let high = lines.length - 1;
-    let best = 1;
-
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      const candidate = lines.slice(0, mid).join("\n");
-      const h = measureTextHeight(candidate, textarea);
-      if (h <= maxHeight) {
-        best = mid;
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
+// Menerapkan styling Hanging Indent pada baris list agar baris kedua dan seterusnya sejajar dengan awal teks
+function applyHangingIndentToLine(lineEl: HTMLElement) {
+  if (!lineEl || lineEl.nodeType !== Node.ELEMENT_NODE) return;
+  const text = (lineEl.textContent || "").replace(/\u00a0/g, " ");
+  const { isList, level } = getListIndentInfo(text);
+  if (isList) {
+    const pad = (level + 1) * 28;
+    lineEl.style.paddingLeft = `${pad}px`;
+    lineEl.style.textIndent = "-28px";
+    lineEl.classList.add("editor-list-item");
+    if (level > 0) {
+      lineEl.classList.add(`editor-list-item-${level}`);
     }
-
-    const fittingText = lines.slice(0, best).join("\n");
-    const overflowText = lines.slice(best).join("\n");
-    return { fittingText, overflowText };
-  }
-
-  // Jika teks terdiri dari 1 paragraf panjang tanpa enter yang wrap secara visual
-  const words = fullText.split(" ");
-  if (words.length > 1) {
-    let low = 1;
-    let high = words.length - 1;
-    let best = 1;
-
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      const candidate = words.slice(0, mid).join(" ");
-      const h = measureTextHeight(candidate, textarea);
-      if (h <= maxHeight) {
-        best = mid;
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-
-    const fittingText = words.slice(0, best).join(" ");
-    const overflowText = words.slice(best).join(" ");
-    return { fittingText, overflowText };
-  }
-
-  // Fallback jika satu kata tanpa spasi
-  const half = Math.max(1, Math.floor(fullText.length / 2));
-  return {
-    fittingText: fullText.slice(0, half),
-    overflowText: fullText.slice(half),
-  };
-}
-
-// Algoritma kaskade pagination multi-halaman jika teks meluap
-function paginateAndSpillover(
-  pagesArray: string[],
-  startIdx: number,
-  getTextarea: (idx: number) => HTMLTextAreaElement | null,
-  cursorInfo?: { pageIdx: number; pos: number }
-): { nextPages: string[]; newActivePage?: number; newCursorPos?: number } {
-  const nextPages = [...pagesArray];
-  let currentIdx = startIdx;
-  let newActivePage = cursorInfo?.pageIdx;
-  let newCursorPos = cursorInfo?.pos;
-
-  while (currentIdx < nextPages.length) {
-    const text = nextPages[currentIdx] || "";
-    const textarea = getTextarea(currentIdx);
-    if (!textarea) break;
-
-    const isPage1 = currentIdx === 0;
-    // Saat spillover, lembar selalu diisi sampai kapasitas PENUH mendekati batas bawah kertas
-    const effectiveHeight = isPage1 ? PAGE1_FULL_HEIGHT : SUBSEQUENT_FULL_HEIGHT;
-    const currentHeight = measureTextHeight(text, textarea);
-
-    if (currentHeight > effectiveHeight) {
-      const { fittingText, overflowText } = splitFittingText(text, textarea, effectiveHeight);
-      nextPages[currentIdx] = fittingText;
-
-      if (currentIdx + 1 < nextPages.length) {
-        nextPages[currentIdx + 1] =
-          overflowText + (nextPages[currentIdx + 1] ? "\n" + nextPages[currentIdx + 1] : "");
-      } else {
-        nextPages.push(overflowText);
-      }
-
-      if (cursorInfo && cursorInfo.pageIdx === currentIdx && cursorInfo.pos > fittingText.length) {
-        newActivePage = currentIdx + 1;
-        newCursorPos = Math.max(0, cursorInfo.pos - fittingText.length);
-      }
-
-      currentIdx++;
+  } else {
+    lineEl.style.textIndent = "";
+    const leadingMatch = text.match(/^ +/);
+    if (leadingMatch && leadingMatch[0].length >= 4) {
+      const normalLevel = Math.floor(leadingMatch[0].length / 4);
+      lineEl.style.paddingLeft = `${normalLevel * 28}px`;
     } else {
-      break;
+      lineEl.style.paddingLeft = "";
+    }
+    lineEl.classList.remove(
+      "editor-list-item",
+      "editor-list-item-1",
+      "editor-list-item-2",
+      "editor-list-item-3"
+    );
+  }
+}
+
+// Memperbarui seluruh baris di editor agar hanging indent selalu aktif & sinkron
+function updateAllHangingIndents(editorEl: HTMLElement) {
+  if (!editorEl) return;
+  const children = editorEl.children;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child instanceof HTMLElement) {
+      applyHangingIndentToLine(child);
+    }
+  }
+}
+
+// Helper untuk mengonversi raw text / markdown menjadi visual HTML WYSIWYG
+function convertRawToHtml(raw: string): string {
+  if (!raw || !raw.trim()) return "";
+  let html = raw;
+
+  // Konversi sintaks markdown jika ada dari data lama
+  html = html
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<i>$1</i>")
+    .replace(/__([^_]+)__/g, "<u>$1</u>");
+
+  // Jika teks belum dibungkus tag blok (div/p/br), ubah baris menjadi <div>
+  if (!/<(?:p|div|br)[^>]*>/i.test(html)) {
+    const lines = html.split("\n");
+    html = lines
+      .map((line) => {
+        const leadingSpaces = line.match(/^ +/);
+        let content = line;
+        if (leadingSpaces) {
+          const nbsps = "&nbsp;".repeat(leadingSpaces[0].length);
+          content = nbsps + content.slice(leadingSpaces[0].length);
+        }
+        if (!content) return "<div><br></div>";
+        const { isList, level } = getListIndentInfo(line);
+        if (isList) {
+          const pad = (level + 1) * 28;
+          return `<div class="editor-list-item editor-list-item-${level}" style="padding-left: ${pad}px; text-indent: -28px;">${content}</div>`;
+        }
+        return `<div>${content}</div>`;
+      })
+      .join("");
+  }
+
+  return html;
+}
+
+// Menyisipkan teks penomoran / bullet di posisi kursor dan meletakkan kursor persis di akhir spasi
+function insertListPrefixAtCaret(editorEl: HTMLElement, prefixText: string) {
+  editorEl.focus();
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+
+  // Jika editor masih kosong atau hanya whitespace / <br>
+  const textContent = (editorEl.textContent || "").trim();
+  if (!textContent) {
+    editorEl.innerHTML = "";
+    const lineDiv = document.createElement("div");
+    const textNode = document.createTextNode(prefixText);
+    lineDiv.appendChild(textNode);
+    applyHangingIndentToLine(lineDiv);
+    editorEl.appendChild(lineDiv);
+
+    const newRange = document.createRange();
+    newRange.setStart(textNode, textNode.length);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    return;
+  }
+
+  // Cari baris saat ini (direct child dari editorEl)
+  let directChild: Node | null = range.startContainer;
+  while (directChild && directChild.parentNode !== editorEl) {
+    directChild = directChild.parentNode;
+  }
+
+  // Jika baris saat ini adalah element kosong (misal div kosong hasil Enter)
+  if (directChild && directChild.nodeType === Node.ELEMENT_NODE) {
+    const el = directChild as HTMLElement;
+    if (!el.textContent?.trim()) {
+      el.innerHTML = "";
+      const textNode = document.createTextNode(prefixText);
+      el.appendChild(textNode);
+      applyHangingIndentToLine(el);
+
+      const newRange = document.createRange();
+      newRange.setStart(textNode, textNode.length);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      return;
     }
   }
 
-  return { nextPages, newActivePage, newCursorPos };
+  // Jika berada di baris yang sudah ada teks, sisipkan di posisi kursor saat ini
+  const textNode = document.createTextNode(prefixText);
+  range.deleteContents();
+  range.insertNode(textNode);
+  if (directChild && directChild instanceof HTMLElement) {
+    applyHangingIndentToLine(directChild);
+  }
+
+  const newRange = document.createRange();
+  newRange.setStart(textNode, textNode.length);
+  newRange.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(newRange);
+}
+
+// Mendapatkan elemen baris saat ini dan teks barisnya
+function getLineElementAndText(editorEl: HTMLElement) {
+  if (typeof window === "undefined") return null;
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+
+  let directChild: Node | null = range.startContainer;
+  while (directChild && directChild.parentNode !== editorEl) {
+    directChild = directChild.parentNode;
+  }
+
+  if (!directChild || directChild === editorEl) {
+    if (editorEl.childNodes.length === 0) {
+      const lineDiv = document.createElement("div");
+      lineDiv.innerHTML = "<br>";
+      editorEl.appendChild(lineDiv);
+      directChild = lineDiv;
+    } else {
+      directChild = editorEl.firstChild;
+    }
+  }
+
+  if (!directChild) return null;
+
+  let lineEl: HTMLElement;
+  if (directChild.nodeType === Node.TEXT_NODE) {
+    const wrapper = document.createElement("div");
+    editorEl.insertBefore(wrapper, directChild);
+    wrapper.appendChild(directChild);
+    lineEl = wrapper;
+  } else {
+    lineEl = directChild as HTMLElement;
+  }
+
+  const lineText = (lineEl.textContent || "").replace(/\u00a0/g, " ");
+  return { lineEl, lineText, range, sel };
+}
+
+// Auto deteksi pengetikan "1." + spasi, "I." + spasi, "-" / "*" + spasi, "a." + spasi
+function handleSpaceAutoList(editorEl: HTMLElement): boolean {
+  if (typeof window === "undefined") return false;
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return false;
+  const range = sel.getRangeAt(0);
+
+  let textNode: Text | null = null;
+  let caretOffset = 0;
+
+  if (range.startContainer.nodeType === Node.TEXT_NODE) {
+    textNode = range.startContainer as Text;
+    caretOffset = range.startOffset;
+  } else if (range.startContainer.childNodes.length > 0) {
+    const child = range.startContainer.childNodes[Math.max(0, range.startOffset - 1)];
+    if (child && child.nodeType === Node.TEXT_NODE) {
+      textNode = child as Text;
+      caretOffset = textNode.textContent?.length || 0;
+    }
+  }
+
+  if (!textNode) return false;
+
+  const fullText = textNode.textContent || "";
+  const textBefore = fullText.slice(0, caretOffset);
+  const textAfter = fullText.slice(caretOffset);
+
+  const numMatch = textBefore.match(/^(\s*)(\d+)\.$/);
+  const romanMatch = textBefore.match(/^(\s*)([IVXLCDMivxlcdm]+)\.$/);
+  const bulletMatch = textBefore.match(/^(\s*)([\-\*])$/);
+  const letterMatch = textBefore.match(/^(\s*)([a-zA-Z])\.$/);
+
+  let replacement = "";
+  if (numMatch) {
+    replacement = `${numMatch[1]}${numMatch[2]}.\u00a0\u00a0\u00a0\u00a0`;
+  } else if (romanMatch && isRomanValid(romanMatch[2])) {
+    replacement = `${romanMatch[1]}${romanMatch[2].toUpperCase()}.\u00a0\u00a0\u00a0\u00a0`;
+  } else if (bulletMatch) {
+    replacement = `${bulletMatch[1]}•\u00a0\u00a0\u00a0\u00a0`;
+  } else if (letterMatch) {
+    replacement = `${letterMatch[1]}${letterMatch[2]}.\u00a0\u00a0\u00a0\u00a0`;
+  }
+
+  if (replacement) {
+    textNode.textContent = replacement + textAfter;
+    const lineInfo = getLineElementAndText(editorEl);
+    if (lineInfo?.lineEl) {
+      applyHangingIndentToLine(lineInfo.lineEl);
+    }
+    const newRange = document.createRange();
+    newRange.setStart(textNode, replacement.length);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    return true;
+  }
+
+  return false;
+}
+
+// Memindahkan caret (kursor) ke akhir elemen node
+function setCaretToEnd(el: Node) {
+  if (typeof window === "undefined") return;
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  if (sel) {
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
 }
 
 // Memecah teks tunggal menjadi lembaran halaman A4 terpisah
@@ -380,41 +509,10 @@ function parseTextToPages(rawText: string): string[] {
     return parts.length > 0 ? parts : [""];
   }
 
-  const lines = rawText.split("\n");
-  const pages: string[] = [];
-  let currentLines: string[] = [];
-  let currentVisualLines = 0;
-  let isFirst = true;
-
-  for (const line of lines) {
-    const visualWeight = Math.max(1, Math.ceil(line.length / 75));
-    const maxCapacity = isFirst ? PAGE1_MAX_LINES : SUBSEQUENT_PAGE_MAX_LINES;
-
-    if (currentVisualLines + visualWeight > maxCapacity && currentLines.length > 0) {
-      pages.push(currentLines.join("\n"));
-      currentLines = [line];
-      currentVisualLines = visualWeight;
-      isFirst = false;
-    } else {
-      currentLines.push(line);
-      currentVisualLines += visualWeight;
-    }
-  }
-
-  if (currentLines.length > 0) {
-    pages.push(currentLines.join("\n"));
-  }
-
-  // Jika hasil hanya 1 halaman dan teksnya lebih dari 24 baris (tidak muat bersama tanda tangan):
-  // Tambahkan halaman ke-2 untuk menampung tanda tangan resmi psikolog
-  if (pages.length === 1 && currentVisualLines > 24) {
-    pages.push("");
-  }
-
-  return pages.length > 0 ? pages : [""];
+  return [rawText];
 }
 
-// Menggabungkan seluruh isi teks halaman menjadi satu teks utuh dengan pemisah PAGE_BREAK
+// Menggabungkan seluruh isi HTML halaman menjadi satu teks utuh dengan pemisah PAGE_BREAK
 function combinePages(pagesList: string[]): string {
   return (pagesList || []).join("\n\n<!-- PAGE_BREAK -->\n\n");
 }
@@ -455,11 +553,31 @@ export default function ModalReviewPsikotes({
 
   // Tab Sidebar: Profil Skor vs Rekap Jawaban Pasien
   const [sidebarTab, setSidebarTab] = useState<"skor" | "jawaban">("skor");
-  const [sidebarWidthMode, setSidebarWidthMode] = useState<"normal" | "wide">("normal");
   const [isFullscreenJawaban, setIsFullscreenJawaban] = useState(false);
 
-  // Ref Textarea per Halaman A4
-  const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  // Ref Editor contentEditable per Halaman A4
+  const editorRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // State indikator aktif toolbar format WYSIWYG
+  const [isBoldActive, setIsBoldActive] = useState(false);
+  const [isItalicActive, setIsItalicActive] = useState(false);
+  const [isUnderlineActive, setIsUnderlineActive] = useState(false);
+
+  const updateToolbarState = useCallback(() => {
+    if (typeof document === "undefined") return;
+    try {
+      setIsBoldActive(document.queryCommandState("bold"));
+      setIsItalicActive(document.queryCommandState("italic"));
+      setIsUnderlineActive(document.queryCommandState("underline"));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("selectionchange", updateToolbarState);
+    return () => {
+      document.removeEventListener("selectionchange", updateToolbarState);
+    };
+  }, [updateToolbarState]);
 
   // Full detail dari API jika diperlukan
   const [fullDetail, setFullDetail] = useState<any>(initialDetail);
@@ -482,7 +600,11 @@ export default function ModalReviewPsikotes({
 
   // Gabungkan seluruh isi teks halaman untuk disimpan ke DB / localStorage
   const getCombinedCatatan = (pagesList: string[] = pages): string => {
-    return combinePages(pagesList);
+    const currentPages = pagesList.map((p, idx) => {
+      const el = editorRefs.current[idx];
+      return el ? el.innerHTML : p;
+    });
+    return combinePages(currentPages);
   };
 
   useEffect(() => {
@@ -495,7 +617,7 @@ export default function ModalReviewPsikotes({
         : item.catatan_psikolog
       : "";
 
-    setPages(parseTextToPages(initialText));
+    setPages(parseTextToPages(initialText).map(convertRawToHtml));
     initialContentRef.current = initialText.trim();
     setSubmitError(null);
     setDraftMessage(null);
@@ -511,7 +633,7 @@ export default function ModalReviewPsikotes({
           !dbText.includes(initialDetail.hasil.rekomendasi_psikolog)
             ? `${dbText}\n\nREKOMENDASI:\n${initialDetail.hasil.rekomendasi_psikolog}`
             : dbText;
-        setPages(parseTextToPages(apiText));
+        setPages(parseTextToPages(apiText).map(convertRawToHtml));
         initialContentRef.current = apiText.trim();
       } else {
         // Jika di DB kosong (draft di-reset saat tiket dilepas), bersihkan cache browser
@@ -542,7 +664,7 @@ export default function ModalReviewPsikotes({
               const curCombined = combinePages(curPages).trim();
               if (!curCombined || curCombined === initialContentRef.current) {
                 initialContentRef.current = apiText.trim();
-                return parseTextToPages(apiText);
+                return parseTextToPages(apiText).map(convertRawToHtml);
               }
               return curPages;
             });
@@ -672,13 +794,13 @@ export default function ModalReviewPsikotes({
     const newActiveIdx = typeof insertIndex === "number" ? insertIndex : pages.length;
     setActivePageIndex(newActiveIdx);
     setTimeout(() => {
-      textareaRefs.current[newActiveIdx]?.focus();
+      editorRefs.current[newActiveIdx]?.focus();
     }, 50);
   };
 
   const handleRemovePage = (pageIdx: number) => {
     if (pages.length <= 1) return;
-    const pageContent = pages[pageIdx]?.trim() || "";
+    const pageContent = (pages[pageIdx] || "").replace(/<[^>]+>/g, "").trim();
     if (pageContent.length > 0) {
       if (!window.confirm(`Hapus Halaman ${pageIdx + 1}? Tulisan pada halaman ini akan ikut terhapus.`)) {
         return;
@@ -688,240 +810,116 @@ export default function ModalReviewPsikotes({
     const newActiveIdx = Math.max(0, pageIdx - 1);
     setActivePageIndex(newActiveIdx);
     setTimeout(() => {
-      textareaRefs.current[newActiveIdx]?.focus();
+      editorRefs.current[newActiveIdx]?.focus();
     }, 50);
   };
 
   // =========================================================================
-  // GAYA GOOGLE DOCS: SMART FORMATTING, AUTO-PAGINATION & KEYBOARD EVENTS
+  // GAYA GOOGLE DOCS / WORD: WYSIWYG FORMATTING, LISTS & KEYBOARD EVENTS
   // =========================================================================
 
-  // Memindahkan prefiks daftar / kursor ke lembar halaman berikutnya secara otomatis
-  const moveNextPrefixToNextPage = (fromPageIdx: number, nextPrefix: string) => {
-    const targetIdx = fromPageIdx + 1;
+  const handleContentChange = (pageIdx: number) => {
+    const editor = editorRefs.current[pageIdx];
+    if (!editor) return;
+    updateAllHangingIndents(editor);
+    const html = editor.innerHTML;
     setPages((prev) => {
       const next = [...prev];
-      if (targetIdx < next.length) {
-        next[targetIdx] = nextPrefix + (next[targetIdx] ? "\n" + next[targetIdx] : "");
-      } else {
-        next.push(nextPrefix);
-      }
+      next[pageIdx] = html;
       return next;
     });
 
-    setActivePageIndex(targetIdx);
-    setTimeout(() => {
-      const nextTa = textareaRefs.current[targetIdx];
-      if (nextTa) {
-        nextTa.focus();
-        nextTa.selectionStart = nextPrefix.length;
-        nextTa.selectionEnd = nextPrefix.length;
-      }
-      const sheetEl = document.getElementById(`page-sheet-${targetIdx}`);
-      sheetEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 50);
-  };
-
-  // Handler perubahan teks per halaman dengan deteksi auto-spillover jika melebihi tinggi lembar A4
-  const handlePageChange = (pageIdx: number, newVal: string, cursorPos?: number) => {
-    const textarea = textareaRefs.current[pageIdx];
-    if (!textarea) {
-      setPages((prev) => {
-        const next = [...prev];
-        next[pageIdx] = newVal;
-        return next;
-      });
-      return;
-    }
-
-    const isPage1 = pageIdx === 0;
-    const fullCapacity = isPage1 ? PAGE1_FULL_HEIGHT : SUBSEQUENT_FULL_HEIGHT;
-    const sigCapacity = isPage1 ? PAGE1_MAX_WITH_SIG : SUBSEQUENT_MAX_WITH_SIG;
-    const textHeight = measureTextHeight(newVal, textarea);
-
-    // 1. JIKA TEKS MELEBIHI KAPASITAS PENUH LEMBAR A4 (nyampe batas paling bawah A4):
-    // Alirkan sisa teks ke lembar halaman berikutnya secara otomatis
-    if (textHeight > fullCapacity) {
-      const tempPages = [...pages];
-      tempPages[pageIdx] = newVal;
-      const { nextPages, newActivePage, newCursorPos } = paginateAndSpillover(
-        tempPages,
-        pageIdx,
-        (idx) => textareaRefs.current[idx],
-        typeof cursorPos === "number" ? { pageIdx, pos: cursorPos } : undefined
-      );
-
-      setPages(nextPages);
-
-      if (typeof newActivePage === "number" && newActivePage !== pageIdx) {
-        setActivePageIndex(newActivePage);
-        setTimeout(() => {
-          const targetTa = textareaRefs.current[newActivePage];
-          if (targetTa) {
-            targetTa.focus();
-            if (typeof newCursorPos === "number") {
-              targetTa.selectionStart = newCursorPos;
-              targetTa.selectionEnd = newCursorPos;
-            }
-            const sheetEl = document.getElementById(`page-sheet-${newActivePage}`);
-            sheetEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }
-        }, 50);
-      }
-      return;
-    }
-
-    // 2. JIKA TEKS MASIH MUAT DI LEMBAR INI:
     // Cek kebutuhan pemindahan tanda tangan jika halaman ini adalah halaman terakhir
+    const isPage1 = pageIdx === 0;
+    const realClientHeight = editor.clientHeight > 100 ? editor.clientHeight - 8 : 0;
+    const sigCapacity = Math.max(isPage1 ? PAGE1_MAX_WITH_SIG : SUBSEQUENT_MAX_WITH_SIG, realClientHeight ? realClientHeight - 160 : 0);
     const isLast = pageIdx === pages.length - 1;
 
-    if (isLast) {
-      // Jika teks melebihi kapasitas bersama tanda tangan, buat lembar baru di bawahnya khusus untuk tanda tangan,
-      // TETAPI pengguna tetap fokus dan bebas mengetik di halaman ini sampai penuh (PAGE1_FULL_HEIGHT / SUBSEQUENT_FULL_HEIGHT)
-      if (textHeight > sigCapacity) {
-        setPages((prev) => {
-          const next = [...prev];
-          next[pageIdx] = newVal;
-          next.push("");
-          return next;
-        });
-        return;
-      }
-    } else if (pageIdx === pages.length - 2) {
-      // Jika halaman berikutnya kosong dan teks di halaman ini menyusut kembali sehingga muat bersama tanda tangan
-      const nextSheetText = pages[pages.length - 1] || "";
-      if (nextSheetText.trim() === "" && textHeight <= sigCapacity) {
-        setPages((prev) => {
-          const next = [...prev];
-          next[pageIdx] = newVal;
-          next.pop(); // Tarik tanda tangan kembali ke halaman ini
-          return next;
-        });
-        return;
-      }
+    if (isLast && editor.scrollHeight > sigCapacity) {
+      setPages((prev) => {
+        const next = [...prev];
+        next.push("");
+        return next;
+      });
     }
-
-    // Pembaruan teks standar jika masih muat normal
-    setPages((prev) => {
-      const next = [...prev];
-      next[pageIdx] = newVal;
-      return next;
-    });
   };
 
   const applyFormat = (
-    type: "bold" | "italic" | "number" | "roman" | "bullet" | "indent" | "outdent"
+    type: "bold" | "italic" | "underline" | "number" | "roman" | "bullet" | "indent" | "outdent"
   ) => {
     const curIdx = activePageIndex;
-    const textarea = textareaRefs.current[curIdx] || textareaRefs.current[0];
-    if (!textarea) return;
-
-    const { selectionStart, selectionEnd, value } = textarea;
-    const selectedText = value.slice(selectionStart, selectionEnd);
-
-    const updateCurrentPage = (newValue: string, newStart: number, newEnd: number) => {
-      handlePageChange(curIdx, newValue, newStart);
-      setTimeout(() => {
-        const ta = textareaRefs.current[curIdx] || textarea;
-        ta.focus();
-        ta.selectionStart = newStart;
-        ta.selectionEnd = newEnd;
-      }, 0);
-    };
+    const editor = editorRefs.current[curIdx] || editorRefs.current[0];
+    if (editor) {
+      editor.focus();
+    }
 
     if (type === "bold") {
-      const wrapped = `**${selectedText || "teks tebal"}**`;
-      const newValue = value.slice(0, selectionStart) + wrapped + value.slice(selectionEnd);
-      updateCurrentPage(newValue, selectionStart + 2, selectionStart + 2 + (selectedText.length || 10));
+      document.execCommand("bold", false);
+      updateToolbarState();
       return;
     }
 
     if (type === "italic") {
-      const wrapped = `*${selectedText || "teks miring"}*`;
-      const newValue = value.slice(0, selectionStart) + wrapped + value.slice(selectionEnd);
-      updateCurrentPage(newValue, selectionStart + 1, selectionStart + 1 + (selectedText.length || 11));
+      document.execCommand("italic", false);
+      updateToolbarState();
+      return;
+    }
+
+    if (type === "underline") {
+      document.execCommand("underline", false);
+      updateToolbarState();
       return;
     }
 
     if (type === "number") {
-      let lastNum = findLastNumberBeforeCursor(value, selectionStart);
-      if (lastNum === 0 && curIdx > 0) {
-        lastNum = findLastNumberInAllPages(pages, curIdx - 1);
+      if (editor) {
+        insertListPrefixAtCaret(editor, "1.\u00a0\u00a0\u00a0\u00a0");
+        handleContentChange(curIdx);
       }
-      const nextNum = lastNum > 0 ? lastNum + 1 : 1;
-      const needsNewline = selectionStart > 0 && value[selectionStart - 1] !== "\n";
-      const prefix = needsNewline ? `\n${nextNum}.${TAB_STR}` : `${nextNum}.${TAB_STR}`;
-      const newValue = value.slice(0, selectionStart) + prefix + value.slice(selectionEnd);
-      updateCurrentPage(newValue, selectionStart + prefix.length, selectionStart + prefix.length);
+      updateToolbarState();
       return;
     }
 
     if (type === "roman") {
-      let lastRoman = findLastRomanBeforeCursor(value, selectionStart);
-      if (lastRoman === 0 && curIdx > 0) {
-        lastRoman = findLastRomanInAllPages(pages, curIdx - 1);
+      if (editor) {
+        insertListPrefixAtCaret(editor, "I.\u00a0\u00a0\u00a0\u00a0");
+        handleContentChange(curIdx);
       }
-      const nextRomanVal = lastRoman > 0 ? lastRoman + 1 : 1;
-      const nextRomanStr = toRoman(nextRomanVal);
-      const needsNewline = selectionStart > 0 && value[selectionStart - 1] !== "\n";
-      const prefix = needsNewline ? `\n${nextRomanStr}.${TAB_STR}` : `${nextRomanStr}.${TAB_STR}`;
-      const newValue = value.slice(0, selectionStart) + prefix + value.slice(selectionEnd);
-      updateCurrentPage(newValue, selectionStart + prefix.length, selectionStart + prefix.length);
+      updateToolbarState();
       return;
     }
 
     if (type === "bullet") {
-      const needsNewline = selectionStart > 0 && value[selectionStart - 1] !== "\n";
-      const prefix = needsNewline ? `\n•${TAB_STR}` : `•${TAB_STR}`;
-      const newValue = value.slice(0, selectionStart) + prefix + value.slice(selectionEnd);
-      updateCurrentPage(newValue, selectionStart + prefix.length, selectionStart + prefix.length);
+      if (editor) {
+        insertListPrefixAtCaret(editor, "•\u00a0\u00a0\u00a0\u00a0");
+        handleContentChange(curIdx);
+      }
+      updateToolbarState();
       return;
     }
 
     if (type === "indent") {
-      const newValue = value.slice(0, selectionStart) + TAB_STR + value.slice(selectionEnd);
-      updateCurrentPage(newValue, selectionStart + TAB_STR.length, selectionStart + TAB_STR.length);
+      if (editor) {
+        insertListPrefixAtCaret(editor, "\u00a0\u00a0\u00a0\u00a0");
+        handleContentChange(curIdx);
+      }
       return;
     }
 
     if (type === "outdent") {
-      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-      const currentLine = value.slice(lineStart);
-      const matchSpaces = currentLine.match(/^ {1,4}/);
-      if (matchSpaces) {
-        const removeCount = matchSpaces[0].length;
-        const newValue = value.slice(0, lineStart) + currentLine.slice(removeCount);
-        updateCurrentPage(
-          newValue,
-          Math.max(lineStart, selectionStart - removeCount),
-          Math.max(lineStart, selectionStart - removeCount)
-        );
-      }
+      document.execCommand("outdent", false);
+      handleContentChange(curIdx);
       return;
     }
   };
 
   const handleKeyDownOnPage = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    e: React.KeyboardEvent<HTMLDivElement>,
     pageIdx: number
   ) => {
     setActivePageIndex(pageIdx);
-    const textarea = textareaRefs.current[pageIdx];
-    if (!textarea) return;
-
-    const { selectionStart, selectionEnd, value } = textarea;
-
-    const setPageText = (newVal: string, newStart?: number, newEnd?: number) => {
-      handlePageChange(pageIdx, newVal, newStart);
-      if (typeof newStart === "number") {
-        setTimeout(() => {
-          const ta = textareaRefs.current[pageIdx] || textarea;
-          ta.focus();
-          ta.selectionStart = newStart;
-          ta.selectionEnd = typeof newEnd === "number" ? newEnd : newStart;
-        }, 0);
-      }
-    };
+    const editor = editorRefs.current[pageIdx];
+    if (!editor) return;
 
     // 0. SHORTCUT CTRL+ENTER: TAMBAH LEMBAR HALAMAN BARU DI BAWAHNYA
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -930,7 +928,7 @@ export default function ModalReviewPsikotes({
       return;
     }
 
-    // 1. SHORTCUTS CTRL+B & CTRL+I
+    // 1. SHORTCUTS CTRL+B, CTRL+I & CTRL+U
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
       e.preventDefault();
       applyFormat("bold");
@@ -941,397 +939,226 @@ export default function ModalReviewPsikotes({
       applyFormat("italic");
       return;
     }
-
-    // 2. SMART BACKSPACE GAYA GOOGLE DOCS (UNTUK LIST ITEM & INDENTASI SEJAJAR)
-    if (e.key === "Backspace" && selectionStart === selectionEnd && selectionStart > 0) {
-      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-      const endLineIdx = value.indexOf("\n", selectionStart);
-      const lineEnd = endLineIdx === -1 ? value.length : endLineIdx;
-      const lineText = value.slice(lineStart, lineEnd);
-      const textAfterCursor = value.slice(selectionStart, lineEnd);
-
-      // Cek apakah kursor berada di akhir prefix atau spasi indentasi (belum ada teks isi yang diketik di kanan kursor)
-      if (textAfterCursor.trim() === "") {
-        const numMatch = lineText.match(/^(\s*)(\d+)\.(\s*)$/);
-        const romanMatch = lineText.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s*)$/);
-        const letterMatch = lineText.match(/^(\s*)([a-zA-Z])\.(\s*)$/);
-        const bulletMatch = lineText.match(/^(\s*)([•\-\*])(\s*)$/);
-
-        const isListPrefix =
-          numMatch ||
-          (romanMatch && isRomanValid(romanMatch[2])) ||
-          letterMatch ||
-          bulletMatch;
-
-        if (isListPrefix) {
-          e.preventDefault();
-          const precedingItem = findPrecedingListItem(value, lineStart, pages, pageIdx);
-
-          // Jika ada item list di atasnya (misal "1.    Hasil" di atas "2.    "),
-          // ubah "2.    " menjadi spasi dengan panjang yang sama persis ("      ")
-          // sehingga kursor TIDAK MUNDUR, langsung sejajar dengan judul di atasnya tanpa perlu tekan Tab!
-          if (precedingItem) {
-            const replacementSpaces = " ".repeat(lineText.length);
-            const newValue = value.slice(0, lineStart) + replacementSpaces + value.slice(lineEnd);
-            setPageText(newValue, lineStart + replacementSpaces.length);
-            return;
-          }
-
-          // Jika ini nomor pertama (misal baru ketik "1.    " dan belum ada list di atasnya):
-          // Hapus prefix langsung ke kolom 0
-          const newValue = value.slice(0, lineStart) + value.slice(lineEnd);
-          setPageText(newValue, lineStart);
-          return;
-        }
-
-        // Jika baris ini HANYA berisi spasi indentasi (misal setelah backspace pertama dari "2.    "):
-        // Klikan backspace berikutnya akan menghapus seluruh spasi indentasi tersebut kembali ke kolom 0
-        if (/^\s+$/.test(lineText) && selectionStart >= lineStart + lineText.length) {
-          e.preventDefault();
-          const newValue = value.slice(0, lineStart) + value.slice(lineEnd);
-          setPageText(newValue, lineStart);
-          return;
-        }
-      }
-    }
-
-    // 3. BACKSPACE PADA AWAL LEMBAR HALAMAN (JIKA BUKAN HALAMAN 1)
-    if (e.key === "Backspace" && selectionStart === 0 && selectionEnd === 0 && pageIdx > 0) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "u") {
       e.preventDefault();
-      if (value.trim() === "") {
-        handleRemovePage(pageIdx);
-      } else {
-        // Lompat ke akhir lembar halaman sebelumnya
-        const prevIdx = pageIdx - 1;
-        setActivePageIndex(prevIdx);
-        setTimeout(() => {
-          const prevTa = textareaRefs.current[prevIdx];
-          if (prevTa) {
-            prevTa.focus();
-            prevTa.selectionStart = prevTa.value.length;
-            prevTa.selectionEnd = prevTa.value.length;
-            const prevSheet = document.getElementById(`page-sheet-${prevIdx}`);
-            prevSheet?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }
-        }, 30);
-      }
+      applyFormat("underline");
       return;
     }
 
-    // 3. TOMBOL TAB (INDENTASI 4 SPASI SERAGAM) & SHIFT+TAB (OUTDENT)
+    // 2. SHIFT + ENTER: MEMBUAT BARIS BARU (<br>) DALAM PARAGRAF YANG SAMA
+    if (e.key === "Enter" && e.shiftKey) {
+      e.preventDefault();
+      document.execCommand("insertLineBreak");
+      handleContentChange(pageIdx);
+      return;
+    }
+
+    // 3. TAB (INDENTASI) & SHIFT+TAB (OUTDENT)
     if (e.key === "Tab") {
       e.preventDefault();
+      const lineInfo = getLineElementAndText(editor);
+      const lineText = lineInfo ? lineInfo.lineText : "";
 
-      if (selectionStart === selectionEnd) {
-        try {
-          if (!document.execCommand("insertText", false, TAB_STR)) {
-            throw new Error();
-          }
-        } catch {
-          const newValue = value.slice(0, selectionStart) + TAB_STR + value.slice(selectionEnd);
-          setPageText(newValue, selectionStart + TAB_STR.length);
-        }
-      } else {
-        const startLine = value.lastIndexOf("\n", selectionStart - 1) + 1;
-        const endLine = value.indexOf("\n", selectionEnd);
-        const effectiveEnd = endLine === -1 ? value.length : endLine;
-        const selectedText = value.slice(startLine, effectiveEnd);
-        const lines = selectedText.split("\n");
+      if (e.shiftKey) {
+        // Shift + Tab: outdent
+        if (lineInfo) {
+          const romanMatch = lineText.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s+)(.*)$/);
+          const letterMatch = lineText.match(/^(\s*)([a-zA-Z])\.(\s+)(.*)$/);
+          const bulletMatch = lineText.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
 
-        if (e.shiftKey) {
-          const unindentedLines = lines.map((l) =>
-            l.startsWith(TAB_STR) ? l.slice(TAB_STR.length) : l.replace(/^\s{1,3}/, "")
-          );
-          const newBlock = unindentedLines.join("\n");
-          const diff = selectedText.length - newBlock.length;
-          const newValue = value.slice(0, startLine) + newBlock + value.slice(effectiveEnd);
-          setPageText(newValue, startLine, Math.max(startLine, selectionEnd - diff));
-        } else {
-          const indentedLines = lines.map((l) => TAB_STR + l);
-          const newBlock = indentedLines.join("\n");
-          const diff = newBlock.length - selectedText.length;
-          const newValue = value.slice(0, startLine) + newBlock + value.slice(effectiveEnd);
-          setPageText(newValue, startLine, selectionEnd + diff);
-        }
-      }
-      return;
-    }
-
-    // 4. SMART AUTO-CONVERT SAAT MENEKAN TOMBOL SPASI (Spacebar)
-    if (e.key === " " && selectionStart === selectionEnd) {
-      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-      const currentLine = value.slice(lineStart, selectionStart);
-
-      // Angka Romawi: misal "I." atau "II."
-      const romanMatch = currentLine.match(/^(\s*)([IVXLCDMivxlcdm]+)\.$/);
-      if (romanMatch && isRomanValid(romanMatch[2])) {
-        e.preventDefault();
-        const indent = romanMatch[1];
-        const romanUpper = romanMatch[2].toUpperCase();
-        const replaceText = `${indent}${romanUpper}.${TAB_STR}`;
-        const newValue = value.slice(0, lineStart) + replaceText + value.slice(selectionEnd);
-        setPageText(newValue, lineStart + replaceText.length);
-        return;
-      }
-
-      // Angka Desimal: misal "1.", "2."
-      const numPattern = currentLine.match(/^(\s*)(\d+)\.$/);
-      if (numPattern) {
-        e.preventDefault();
-        const indent = numPattern[1];
-        const num = numPattern[2];
-        const replaceText = `${indent}${num}.${TAB_STR}`;
-        const newValue = value.slice(0, lineStart) + replaceText + value.slice(selectionEnd);
-        setPageText(newValue, lineStart + replaceText.length);
-        return;
-      }
-
-      // Bullet: "-" atau "*"
-      const bulletPattern = currentLine.match(/^(\s*)([\-\*])$/);
-      if (bulletPattern) {
-        e.preventDefault();
-        const indent = bulletPattern[1];
-        const replaceText = `${indent}•${TAB_STR}`;
-        const newValue = value.slice(0, lineStart) + replaceText + value.slice(selectionEnd);
-        setPageText(newValue, lineStart + replaceText.length);
-        return;
-      }
-
-      // Abjad: "a.", "b."
-      const letterPattern = currentLine.match(/^(\s*)([a-zA-Z])\.$/);
-      if (letterPattern) {
-        e.preventDefault();
-        const indent = letterPattern[1];
-        const letter = letterPattern[2];
-        const replaceText = `${indent}${letter}.${TAB_STR}`;
-        const newValue = value.slice(0, lineStart) + replaceText + value.slice(selectionEnd);
-        setPageText(newValue, lineStart + replaceText.length);
-        return;
-      }
-    }
-
-    // 5. SMART AUTO NUMBERING / BULLET / ROMAWI PADA TOMBOL ENTER & AUTO-PAGE OVERFLOW
-    if (e.key === "Enter" && !e.shiftKey) {
-      const isCursorNearEnd = selectionStart >= value.length - 1;
-      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-      const currentLine = value.slice(lineStart, selectionStart);
-
-      // Helper untuk memprediksi apakah penambahan baris baru ini akan benar-benar meluap melebihi batas A4
-      const willOverflow = (insertPrefix: string): boolean => {
-        const isPage1 = pageIdx === 0;
-        const maxCapacity = isPage1 ? PAGE1_FULL_HEIGHT : SUBSEQUENT_FULL_HEIGHT;
-        const predictedText = value.slice(0, selectionStart) + "\n" + insertPrefix + value.slice(selectionEnd);
-        const predictedHeight = measureTextHeight(predictedText, textarea);
-        return predictedHeight > maxCapacity;
-      };
-
-      // A. Cek list Romawi aktif ("I.    ", "II.    ")
-      const romanListMatch = currentLine.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s+)(.*)$/);
-      if (romanListMatch && isRomanValid(romanListMatch[2])) {
-        if (!romanListMatch[4].trim()) {
-          e.preventDefault();
-          const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
-          setPageText(newValue, lineStart);
-          return;
-        }
-
-        const indent = romanListMatch[1];
-        const curVal = fromRoman(romanListMatch[2]);
-        const nextRomanStr = toRoman(curVal + 1);
-        const nextPrefix = `${indent}${nextRomanStr}.${TAB_STR}`;
-
-        if (isCursorNearEnd && willOverflow(nextPrefix)) {
-          e.preventDefault();
-          moveNextPrefixToNextPage(pageIdx, nextPrefix);
-          return;
-        }
-
-        e.preventDefault();
-        const insertText = `\n${nextPrefix}`;
-        try {
-          if (!document.execCommand("insertText", false, insertText)) {
-            throw new Error();
-          }
-        } catch {
-          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
-          setPageText(newValue, selectionStart + insertText.length);
-        }
-        return;
-      }
-
-      // B. Cek list Angka biasa ("1.    ", "2.    ")
-      const numberMatch = currentLine.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
-      if (numberMatch) {
-        if (!numberMatch[4].trim()) {
-          e.preventDefault();
-          const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
-          setPageText(newValue, lineStart);
-          return;
-        }
-
-        const indent = numberMatch[1];
-        const nextNum = parseInt(numberMatch[2], 10) + 1;
-        const nextPrefix = `${indent}${nextNum}.${TAB_STR}`;
-
-        if (isCursorNearEnd && willOverflow(nextPrefix)) {
-          e.preventDefault();
-          moveNextPrefixToNextPage(pageIdx, nextPrefix);
-          return;
-        }
-
-        e.preventDefault();
-        const insertText = `\n${nextPrefix}`;
-        try {
-          if (!document.execCommand("insertText", false, insertText)) {
-            throw new Error();
-          }
-        } catch {
-          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
-          setPageText(newValue, selectionStart + insertText.length);
-        }
-        return;
-      }
-
-      // C. Cek list Bullet ("•    ")
-      const bulletMatch = currentLine.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
-      if (bulletMatch) {
-        if (!bulletMatch[4].trim()) {
-          e.preventDefault();
-          const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
-          setPageText(newValue, lineStart);
-          return;
-        }
-
-        const indent = bulletMatch[1];
-        const nextPrefix = `${indent}•${TAB_STR}`;
-
-        if (isCursorNearEnd && willOverflow(nextPrefix)) {
-          e.preventDefault();
-          moveNextPrefixToNextPage(pageIdx, nextPrefix);
-          return;
-        }
-
-        e.preventDefault();
-        const insertText = `\n${nextPrefix}`;
-        try {
-          if (!document.execCommand("insertText", false, insertText)) {
-            throw new Error();
-          }
-        } catch {
-          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
-          setPageText(newValue, selectionStart + insertText.length);
-        }
-        return;
-      }
-
-      // D. Cek list Abjad ("a.    ")
-      const letterMatch = currentLine.match(/^(\s*)([a-zA-Z])\.(\s+)(.*)$/);
-      if (letterMatch) {
-        if (!letterMatch[4].trim()) {
-          e.preventDefault();
-          const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
-          setPageText(newValue, lineStart);
-          return;
-        }
-
-        const indent = letterMatch[1];
-        const nextChar = String.fromCharCode(letterMatch[2].charCodeAt(0) + 1);
-        const nextPrefix = `${indent}${nextChar}.${TAB_STR}`;
-
-        if (isCursorNearEnd && willOverflow(nextPrefix)) {
-          e.preventDefault();
-          moveNextPrefixToNextPage(pageIdx, nextPrefix);
-          return;
-        }
-
-        e.preventDefault();
-        const insertText = `\n${nextPrefix}`;
-        try {
-          if (!document.execCommand("insertText", false, insertText)) {
-            throw new Error();
-          }
-        } catch {
-          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
-          setPageText(newValue, selectionStart + insertText.length);
-        }
-        return;
-      }
-
-      // E. Kelanjutan paragraf ke list berikutnya (Gaya Google Docs)
-      // Jika baris saat ini berisi teks (misal paragraf di bawah nomor list), dan kursor berada di akhir baris:
-      // Cari list item di atasnya, lalu otomatis lanjutkan ke nomor/romawi/abjad berikutnya!
-      const endLineIdx = value.indexOf("\n", selectionStart);
-      const lineEnd = endLineIdx === -1 ? value.length : endLineIdx;
-      const isCursorAtEndOfLine = value.slice(selectionStart, lineEnd).trim() === "";
-
-      if (currentLine.trim().length > 0 && isCursorAtEndOfLine) {
-        const precedingItem = findPrecedingListItem(value, lineStart, pages, pageIdx);
-        if (precedingItem) {
-          let nextPrefix = "";
-          if (precedingItem.type === "number") {
-            const nextNum = (precedingItem.val ?? 0) + 1;
-            nextPrefix = `${precedingItem.indent}${nextNum}.${precedingItem.spacing || TAB_STR}`;
-          } else if (precedingItem.type === "roman") {
-            const nextRomanStr = toRoman((precedingItem.val ?? 0) + 1);
-            nextPrefix = `${precedingItem.indent}${nextRomanStr}.${precedingItem.spacing || TAB_STR}`;
-          } else if (precedingItem.type === "letter") {
-            const charCode = (precedingItem.char || "a").charCodeAt(0) + 1;
-            const nextChar = String.fromCharCode(charCode);
-            nextPrefix = `${precedingItem.indent}${nextChar}.${precedingItem.spacing || TAB_STR}`;
-          } else if (precedingItem.type === "bullet") {
-            nextPrefix = `${precedingItem.indent}${precedingItem.bullet || "•"}${precedingItem.spacing || TAB_STR}`;
-          }
-
-          if (nextPrefix) {
-            if (isCursorNearEnd && willOverflow(nextPrefix)) {
-              e.preventDefault();
-              moveNextPrefixToNextPage(pageIdx, nextPrefix);
-              return;
-            }
-
-            e.preventDefault();
-            const insertText = `\n${nextPrefix}`;
-            try {
-              if (!document.execCommand("insertText", false, insertText)) {
-                throw new Error();
-              }
-            } catch {
-              const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
-              setPageText(newValue, selectionStart + insertText.length);
-            }
+          if (romanMatch && romanMatch[1].length >= 4) {
+            const newIndent = "\u00a0".repeat(romanMatch[1].length - 4);
+            lineInfo.lineEl.innerHTML = `${newIndent}a.\u00a0\u00a0\u00a0\u00a0${romanMatch[4] || "<br>"}`;
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          } else if (letterMatch && letterMatch[1].length >= 4) {
+            const newIndent = "\u00a0".repeat(letterMatch[1].length - 4);
+            lineInfo.lineEl.innerHTML = `${newIndent}1.\u00a0\u00a0\u00a0\u00a0${letterMatch[4] || "<br>"}`;
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          } else if (bulletMatch && bulletMatch[1].length >= 4) {
+            const newIndent = "\u00a0".repeat(bulletMatch[1].length - 4);
+            lineInfo.lineEl.innerHTML = `${newIndent}•\u00a0\u00a0\u00a0\u00a0${bulletMatch[4] || "<br>"}`;
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
             return;
           }
         }
-      }
+        document.execCommand("outdent", false);
+        handleContentChange(pageIdx);
+        return;
+      } else {
+        // Tab: indent / convert to sublist
+        if (lineInfo) {
+          const numMatch = lineText.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
+          const letterMatch = lineText.match(/^(\s*)([a-zA-Z])\.(\s+)(.*)$/);
+          const bulletMatch = lineText.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
 
-      // Jika kursor ditekan Enter di tengah-tengah paragraf berindentasi, pertahankan indentasi baris tersebut
-      const leadingIndentMatch = currentLine.match(/^(\s+)/);
-      if (leadingIndentMatch && !isCursorAtEndOfLine) {
-        const indentStr = leadingIndentMatch[1];
-        if (isCursorNearEnd && willOverflow(indentStr)) {
+          if (numMatch) {
+            const newIndent = "\u00a0".repeat((numMatch[1] || "").length + 4);
+            lineInfo.lineEl.innerHTML = `${newIndent}a.\u00a0\u00a0\u00a0\u00a0${numMatch[4] || "<br>"}`;
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          } else if (letterMatch) {
+            const newIndent = "\u00a0".repeat((letterMatch[1] || "").length + 4);
+            lineInfo.lineEl.innerHTML = `${newIndent}i.\u00a0\u00a0\u00a0\u00a0${letterMatch[4] || "<br>"}`;
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          } else if (bulletMatch) {
+            const newIndent = "\u00a0".repeat((bulletMatch[1] || "").length + 4);
+            lineInfo.lineEl.innerHTML = `${newIndent}•\u00a0\u00a0\u00a0\u00a0${bulletMatch[4] || "<br>"}`;
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          }
+        }
+        insertListPrefixAtCaret(editor, "\u00a0\u00a0\u00a0\u00a0");
+        handleContentChange(pageIdx);
+        return;
+      }
+    }
+
+    // 4. SPACE: AUTO CONVERT LIST MARKER (1. , I. , - , * , a. )
+    if (e.key === " ") {
+      if (handleSpaceAutoList(editor)) {
+        e.preventDefault();
+        handleContentChange(pageIdx);
+        return;
+      }
+    }
+
+    // 5. BACKSPACE: PENGHAPUSAN NOMOR KOSONG & OUTDENT SECARA BERSIH
+    if (e.key === "Backspace") {
+      const lineInfo = getLineElementAndText(editor);
+      if (lineInfo) {
+        const text = lineInfo.lineText;
+        const emptyNum = text.match(/^(\s*)(\d+)\.\s*$/);
+        const emptyRoman = text.match(/^(\s*)([IVXLCDMivxlcdm]+)\.\s*$/);
+        const emptyLetter = text.match(/^(\s*)([a-zA-Z])\.\s*$/);
+        const emptyBullet = text.match(/^(\s*)([•\-\*])\s*$/);
+
+        const isEmptyList = emptyNum || emptyRoman || emptyLetter || emptyBullet;
+        if (isEmptyList) {
           e.preventDefault();
-          moveNextPrefixToNextPage(pageIdx, indentStr);
+          const indent = (isEmptyList[1] || "").length;
+          if (indent >= 4) {
+            const newIndentSpaces = "\u00a0".repeat(indent - 4);
+            const marker = text.trim();
+            lineInfo.lineEl.innerHTML = `${newIndentSpaces}${marker}\u00a0\u00a0\u00a0\u00a0`;
+            applyHangingIndentToLine(lineInfo.lineEl);
+            setCaretToEnd(lineInfo.lineEl);
+          } else {
+            lineInfo.lineEl.innerHTML = "<br>";
+            applyHangingIndentToLine(lineInfo.lineEl);
+            setCaretToEnd(lineInfo.lineEl);
+          }
+          handleContentChange(pageIdx);
+          return;
+        }
+      }
+    }
+
+    // 6. ENTER (REGULER): AUTO NUMBERING / BULLET & ENTER 2X UNTUK BERHENTI
+    if (e.key === "Enter" && !e.shiftKey) {
+      const lineInfo = getLineElementAndText(editor);
+      if (lineInfo) {
+        const text = lineInfo.lineText;
+        const numMatch = text.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
+        const romanMatch = text.match(/^(\s*)([IVXLCDMivxlcdm]+)\.(\s+)(.*)$/);
+        const bulletMatch = text.match(/^(\s*)([•\-\*])(\s+)(.*)$/);
+        const letterMatch = text.match(/^(\s*)([a-zA-Z])\.(\s+)(.*)$/);
+
+        // A. Number
+        if (numMatch) {
+          if (!numMatch[4].trim()) {
+            e.preventDefault();
+            lineInfo.lineEl.innerHTML = "<br>";
+            applyHangingIndentToLine(lineInfo.lineEl);
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          }
+          e.preventDefault();
+          const indent = numMatch[1] ? "\u00a0".repeat(numMatch[1].length) : "";
+          const nextNum = parseInt(numMatch[2], 10) + 1;
+          const newDiv = document.createElement("div");
+          newDiv.innerHTML = `${indent}${nextNum}.\u00a0\u00a0\u00a0\u00a0`;
+          applyHangingIndentToLine(newDiv);
+          lineInfo.lineEl.after(newDiv);
+          setCaretToEnd(newDiv);
+          handleContentChange(pageIdx);
           return;
         }
 
-        e.preventDefault();
-        const insertText = `\n${indentStr}`;
-        try {
-          if (!document.execCommand("insertText", false, insertText)) {
-            throw new Error();
+        // B. Roman
+        if (romanMatch && isRomanValid(romanMatch[2])) {
+          if (!romanMatch[4].trim()) {
+            e.preventDefault();
+            lineInfo.lineEl.innerHTML = "<br>";
+            applyHangingIndentToLine(lineInfo.lineEl);
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
           }
-        } catch {
-          const newValue = value.slice(0, selectionStart) + insertText + value.slice(selectionEnd);
-          setPageText(newValue, selectionStart + insertText.length);
+          e.preventDefault();
+          const indent = romanMatch[1] ? "\u00a0".repeat(romanMatch[1].length) : "";
+          const curVal = fromRoman(romanMatch[2]);
+          const nextRomanStr = toRoman(curVal + 1);
+          const newDiv = document.createElement("div");
+          newDiv.innerHTML = `${indent}${nextRomanStr}.\u00a0\u00a0\u00a0\u00a0`;
+          applyHangingIndentToLine(newDiv);
+          lineInfo.lineEl.after(newDiv);
+          setCaretToEnd(newDiv);
+          handleContentChange(pageIdx);
+          return;
         }
-        return;
-      }
 
-      // F. Enter biasa saat lembar halaman sudah penuh di ujung bawah
-      if (isCursorNearEnd && willOverflow("")) {
-        e.preventDefault();
-        moveNextPrefixToNextPage(pageIdx, "");
-        return;
+        // C. Bullet
+        if (bulletMatch) {
+          if (!bulletMatch[4].trim()) {
+            e.preventDefault();
+            lineInfo.lineEl.innerHTML = "<br>";
+            applyHangingIndentToLine(lineInfo.lineEl);
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          }
+          e.preventDefault();
+          const indent = bulletMatch[1] ? "\u00a0".repeat(bulletMatch[1].length) : "";
+          const newDiv = document.createElement("div");
+          newDiv.innerHTML = `${indent}•\u00a0\u00a0\u00a0\u00a0`;
+          applyHangingIndentToLine(newDiv);
+          lineInfo.lineEl.after(newDiv);
+          setCaretToEnd(newDiv);
+          handleContentChange(pageIdx);
+          return;
+        }
+
+        // D. Letter
+        if (letterMatch) {
+          if (!letterMatch[4].trim()) {
+            e.preventDefault();
+            lineInfo.lineEl.innerHTML = "<br>";
+            applyHangingIndentToLine(lineInfo.lineEl);
+            setCaretToEnd(lineInfo.lineEl);
+            handleContentChange(pageIdx);
+            return;
+          }
+          e.preventDefault();
+          const indent = letterMatch[1] ? "\u00a0".repeat(letterMatch[1].length) : "";
+          const nextChar = String.fromCharCode(letterMatch[2].charCodeAt(0) + 1);
+          const newDiv = document.createElement("div");
+          newDiv.innerHTML = `${indent}${nextChar}.\u00a0\u00a0\u00a0\u00a0`;
+          applyHangingIndentToLine(newDiv);
+          lineInfo.lineEl.after(newDiv);
+          setCaretToEnd(newDiv);
+          handleContentChange(pageIdx);
+          return;
+        }
       }
     }
   };
@@ -1609,15 +1436,7 @@ export default function ModalReviewPsikotes({
           {/* A. SIDEBAR REFERENSI SKOR & REKAP JAWABAN (KIRI) - Bisa di-collapse      */}
           {/* ======================================================================= */}
           {showScoreSidebar && (
-            <aside
-              className={`${
-                sidebarWidthMode === "wide" || (sidebarTab === "jawaban" && sidebarWidthMode !== "normal")
-                  ? "w-96 lg:w-[480px] xl:w-[540px]"
-                  : sidebarTab === "jawaban"
-                  ? "w-80 lg:w-[420px]"
-                  : "w-80 lg:w-96"
-              } shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-left duration-200 transition-all`}
-            >
+            <aside className="w-80 lg:w-[420px] shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-left duration-200 transition-all">
               <div className="px-3 pt-3 pb-2 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between gap-1">
                 {/* Segmented Control Tab */}
                 <div className="inline-flex p-0.5 rounded-xl bg-gray-200/80 text-gray-600 gap-0.5">
@@ -1656,31 +1475,14 @@ export default function ModalReviewPsikotes({
                   {isLoadingDetail && <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600 mr-0.5" />}
 
                   {sidebarTab === "jawaban" && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSidebarWidthMode((prev) => (prev === "normal" ? "wide" : "normal"))
-                        }
-                        className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
-                        title={sidebarWidthMode === "wide" ? "Persempit Sidebar" : "Perlebar Sidebar"}
-                      >
-                        {sidebarWidthMode === "wide" ? (
-                          <Minimize2 className="w-3.5 h-3.5" />
-                        ) : (
-                          <Maximize2 className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsFullscreenJawaban(true)}
-                        className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
-                        title="Buka Lembar Jawaban Layar Penuh"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => setIsFullscreenJawaban(true)}
+                      className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
+                      title="Buka Lembar Jawaban Layar Penuh"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
                   )}
 
                   <button
@@ -1968,23 +1770,46 @@ export default function ModalReviewPsikotes({
                 </div>
               ) : (
                 <div className="bg-white rounded-xl border border-gray-300 shadow-md px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-sans sticky top-0 z-20">
-                  {/* Kontrol Format Teks */}
+                  {/* Kontrol Format Teks WYSIWYG */}
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => applyFormat("bold")}
-                      className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        isBoldActive
+                          ? "bg-purple-100 text-[#561269] font-bold ring-1 ring-purple-300"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      }`}
                       title="Tebal (Ctrl+B)"
                     >
                       <Bold className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => applyFormat("italic")}
-                      className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        isItalicActive
+                          ? "bg-purple-100 text-[#561269] font-bold ring-1 ring-purple-300"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      }`}
                       title="Miring (Ctrl+I)"
                     >
                       <Italic className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => applyFormat("underline")}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        isUnderlineActive
+                          ? "bg-purple-100 text-[#561269] font-bold ring-1 ring-purple-300"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      }`}
+                      title="Garis Bawah (Ctrl+U)"
+                    >
+                      <Underline className="w-4 h-4" />
                     </button>
 
                     <div className="h-4 w-px bg-gray-200 mx-1" />
@@ -1993,6 +1818,7 @@ export default function ModalReviewPsikotes({
                     <div className="relative" ref={listDropdownRef}>
                       <button
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => setIsListDropdownOpen((prev) => !prev)}
                         className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 font-medium border text-xs ${
                           isListDropdownOpen
@@ -2010,6 +1836,7 @@ export default function ModalReviewPsikotes({
                         <div className="absolute left-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150 font-sans">
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               applyFormat("number");
                               setIsListDropdownOpen(false);
@@ -2022,6 +1849,7 @@ export default function ModalReviewPsikotes({
 
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               applyFormat("roman");
                               setIsListDropdownOpen(false);
@@ -2034,6 +1862,7 @@ export default function ModalReviewPsikotes({
 
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               applyFormat("bullet");
                               setIsListDropdownOpen(false);
@@ -2052,6 +1881,7 @@ export default function ModalReviewPsikotes({
                     {/* Indent / Outdent (Tab) */}
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => applyFormat("outdent")}
                       className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
                       title="Kurangi Indentasi (Shift+Tab)"
@@ -2060,6 +1890,7 @@ export default function ModalReviewPsikotes({
                     </button>
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => applyFormat("indent")}
                       className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
                       title="Tambah Indentasi (Tab)"
@@ -2069,6 +1900,32 @@ export default function ModalReviewPsikotes({
                   </div>
                 </div>
               )}
+
+              {/* Global Style Placeholder & Hanging Indent untuk Editor WYSIWYG */}
+              <style dangerouslySetInnerHTML={{ __html: `
+                [contenteditable]:empty::before {
+                  content: attr(data-placeholder);
+                  color: #9ca3af;
+                  pointer-events: none;
+                  font-family: ui-sans-serif, system-ui, sans-serif;
+                }
+                .editor-list-item {
+                  padding-left: 28px !important;
+                  text-indent: -28px !important;
+                }
+                .editor-list-item-1 {
+                  padding-left: 56px !important;
+                  text-indent: -28px !important;
+                }
+                .editor-list-item-2 {
+                  padding-left: 84px !important;
+                  text-indent: -28px !important;
+                }
+                .editor-list-item-3 {
+                  padding-left: 112px !important;
+                  text-indent: -28px !important;
+                }
+              ` }} />
 
               {/* =================================================================== */}
               {/* LOOP LEMBARAN KERTAS A4 TERPISAH (SEPARATE PHYSICAL A4 SHEETS)       */}
@@ -2183,31 +2040,35 @@ export default function ModalReviewPsikotes({
                       )}
                     </div>
 
-                    {/* AREA KETIK LEMBAR A4 DOKUMEN (GAYA GOOGLE DOCS): FLEX-1 MENGISI PENUH SISA RUANG TANPA SCROLL INTERNAL */}
+                    {/* AREA KETIK LEMBAR A4 DOKUMEN WYSIWYG (GAYA GOOGLE DOCS): FLEX-1 MENGISI PENUH SISA RUANG */}
                     <div className="flex-1 flex flex-col min-h-0 pt-2 pb-3.5 overflow-hidden">
-                      <textarea
+                      <div
                         ref={(el) => {
-                          textareaRefs.current[pageIdx] = el;
+                          editorRefs.current[pageIdx] = el;
+                          if (el && el.innerHTML !== pageText && document.activeElement !== el) {
+                            el.innerHTML = pageText;
+                            updateAllHangingIndents(el);
+                          }
                         }}
-                        value={pageText}
-                        readOnly={isReadOnly}
-                        onFocus={() => setActivePageIndex(pageIdx)}
-                        onChange={(e) => !isReadOnly && handlePageChange(pageIdx, e.target.value, e.target.selectionStart)}
+                        contentEditable={!isReadOnly}
+                        suppressContentEditableWarning
+                        onFocus={() => {
+                          setActivePageIndex(pageIdx);
+                          updateToolbarState();
+                        }}
+                        onKeyUp={updateToolbarState}
+                        onMouseUp={updateToolbarState}
+                        onInput={() => handleContentChange(pageIdx)}
                         onKeyDown={(e) => !isReadOnly && handleKeyDownOnPage(e, pageIdx)}
-                        onScroll={(e) => {
-                          // Mencegah teks kesekrol ke atas di dalam lembar A4
-                          (e.target as HTMLTextAreaElement).scrollTop = 0;
-                        }}
-                        placeholder={
+                        data-placeholder={
                           isFirstPage
                             ? "Mulai ketik telaah klinis, interpretasi, dan rekomendasi secara leluasa di sini... (Ketik 1. atau I. lalu Spasi untuk auto-list, tekan Enter di batas halaman untuk lanjut ke halaman berikutnya)"
                             : `Lanjutkan penulisan telaah pada Halaman ${pageIdx + 1}...`
                         }
-                        className={`w-full flex-1 h-full min-h-0 bg-transparent border-0 focus:ring-0 focus:outline-none font-serif text-sm sm:text-base leading-relaxed text-gray-900 placeholder:text-gray-400 placeholder:font-sans resize-none p-0 overflow-hidden ${
+                        className={`w-full flex-1 h-full min-h-0 bg-transparent border-0 focus:ring-0 focus:outline-none font-serif text-sm sm:text-base leading-relaxed text-gray-900 resize-none p-0 overflow-hidden whitespace-pre-wrap break-words ${
                           isReadOnly ? "cursor-default select-text" : ""
                         }`}
                         style={{ tabSize: 4 }}
-                        required={isFirstPage}
                       />
                     </div>
 

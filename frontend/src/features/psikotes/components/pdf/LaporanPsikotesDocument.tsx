@@ -615,6 +615,9 @@ const officialStyles = StyleSheet.create({
   bodyItalic: {
     fontFamily: "Times-Italic",
   },
+  bodyUnderline: {
+    textDecoration: "underline",
+  },
 
   // 5. TANDA TANGAN PSIKOLOG RESMI
   signatureContainer: {
@@ -718,10 +721,10 @@ function formatIdDate(val?: string | null, fallbackToNow = false): string {
   return val || "-";
 }
 
-/** Parser inline formatting markdown (tebal & miring) untuk teks telaah */
+/** Parser inline formatting WYSIWYG & markdown (tebal, miring, garis bawah) untuk teks telaah */
 function parseFormattedText(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  const regex = /(<b>[\s\S]*?<\/b>|<strong>[\s\S]*?<\/strong>|<i>[\s\S]*?<\/i>|<em>[\s\S]*?<\/em>|<u>[\s\S]*?<\/u>|\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__)/gi;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -730,16 +733,45 @@ function parseFormattedText(text: string): React.ReactNode[] {
       parts.push(text.slice(lastIndex, match.index));
     }
     const token = match[0];
-    if (token.startsWith("**") && token.endsWith("**")) {
+    if (
+      (/^<b>/i.test(token) && /<\/b>$/i.test(token)) ||
+      (/^<strong>/i.test(token) && /<\/strong>$/i.test(token)) ||
+      (token.startsWith("**") && token.endsWith("**"))
+    ) {
+      const inner = token
+        .replace(/^<(?:b|strong)>/i, "")
+        .replace(/<\/(?:b|strong)>$/i, "")
+        .replace(/^\*\*|\*\*$/g, "");
       parts.push(
         <Text key={match.index} style={officialStyles.bodyBold}>
-          {token.slice(2, -2)}
+          {inner}
         </Text>
       );
-    } else if (token.startsWith("*") && token.endsWith("*")) {
+    } else if (
+      (/^<i>/i.test(token) && /<\/i>$/i.test(token)) ||
+      (/^<em>/i.test(token) && /<\/em>$/i.test(token)) ||
+      (token.startsWith("*") && token.endsWith("*"))
+    ) {
+      const inner = token
+        .replace(/^<(?:i|em)>/i, "")
+        .replace(/<\/(?:i|em)>$/i, "")
+        .replace(/^\*|\*$/g, "");
       parts.push(
         <Text key={match.index} style={officialStyles.bodyItalic}>
-          {token.slice(1, -1)}
+          {inner}
+        </Text>
+      );
+    } else if (
+      (/^<u>/i.test(token) && /<\/u>$/i.test(token)) ||
+      (token.startsWith("__") && token.endsWith("__"))
+    ) {
+      const inner = token
+        .replace(/^<u>/i, "")
+        .replace(/<\/u>$/i, "")
+        .replace(/^__|^__$/g, "");
+      parts.push(
+        <Text key={match.index} style={officialStyles.bodyUnderline}>
+          {inner}
         </Text>
       );
     }
@@ -751,6 +783,25 @@ function parseFormattedText(text: string): React.ReactNode[] {
   }
 
   return parts;
+}
+
+/** Mengekstrak baris teks telaah baik dari format HTML WYSIWYG maupun plain/markdown */
+function extractPdfLinesFromContent(rawPageText: string): string[] {
+  if (!rawPageText || !rawPageText.trim()) return [""];
+  let text = rawPageText;
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    text = text.replace(/<br\s*\/?>/gi, "\n");
+    text = text.replace(/<\/(?:p|div|li|h[1-6])>/gi, "\n");
+    text = text.replace(/&nbsp;/gi, " ");
+    text = text
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'");
+    text = text.replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b)[a-z0-9_-]+(?:\s+[^>]*)?>/gi, "");
+  }
+  return text.split("\n");
 }
 
 /** Memecah teks dokumen klinis menjadi lembaran A4 multi-halaman */
@@ -793,7 +844,7 @@ function parseTextToPages(rawText: string): string[] {
   // Pastikan halaman terakhir muat bersama tanda tangan
   const lastIdx = initialPages.length - 1;
   const lastPageText = initialPages[lastIdx];
-  const lastLines = lastPageText.split("\n");
+  const lastLines = extractPdfLinesFromContent(lastPageText);
   let lastVisualWeight = 0;
   for (const l of lastLines) {
     lastVisualWeight += Math.max(1, Math.ceil(l.length / 75));
@@ -857,8 +908,7 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
         {pages.map((pageText, pageIdx) => {
           const isFirstPage = pageIdx === 0;
           const isLastPage = pageIdx === pages.length - 1;
-          const cleanPageText = sanitizePdfText(pageText);
-          const lines = cleanPageText.split("\n");
+          const lines = extractPdfLinesFromContent(pageText);
 
           return (
             <Page
@@ -958,6 +1008,48 @@ export const LaporanPsikotesDocument: React.FC<{ data: LaporanPsikotesPdfData }>
                 {lines.map((line, lineIdx) => {
                   if (line.trim() === "") {
                     return <View key={lineIdx} style={{ height: 5 }} />;
+                  }
+
+                  // Deteksi format list (angka, romawi, huruf, atau bullet) untuk Hanging Indent
+                  const listMatch = line.match(/^(\s*)((\d+|[IVXLCDMivxlcdm]+|[a-zA-Z])\.|[•\-\*])(\s+)(.*)$/);
+
+                  if (listMatch) {
+                    const leadingSpaces = listMatch[1] || "";
+                    const markerRaw = listMatch[2];
+                    const content = listMatch[5];
+                    const indentLevel = Math.floor(leadingSpaces.length / 4);
+                    const indentPt = indentLevel * 16;
+                    const markerText =
+                      markerRaw === "-" || markerRaw === "*" ? "•" : markerRaw;
+                    const markerWidth = Math.max(16, (markerText.length + 1) * 5.5);
+
+                    return (
+                      <View
+                        key={lineIdx}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          paddingLeft: indentPt,
+                          marginBottom: 2.5,
+                        }}
+                      >
+                        <View style={{ width: markerWidth }}>
+                          <Text
+                            style={[
+                              officialStyles.bodyText,
+                              { fontFamily: "Helvetica-Bold" },
+                            ]}
+                          >
+                            {markerText}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={officialStyles.bodyText}>
+                            {parseFormattedText(content)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
                   }
 
                   const leadingSpaces = line.match(/^ +/);
