@@ -51,7 +51,7 @@ export interface FormulirPertanyaan {
   id: string
   label: string
   key: string
-  type: "radio" | "text" | "textarea"
+  type: "radio" | "text" | "textarea" | "select"
   options?: string[]
   placeholder?: string
   required?: boolean

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
+import { ChevronDown, Check } from "lucide-react"
 import {
   getPengajuanKerjaSama,
   savePengajuanKerjaSama,
@@ -14,6 +15,93 @@ import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
 import { kerjaSamaService } from "@/services/kerja-sama.service"
 import { adminService } from "@/services/admin.service"
 import PhoneInputField from "@/components/shared/PhoneInputField"
+
+interface FormSelectDropdownProps {
+  value: string
+  onChange: (val: string) => void
+  options: string[]
+  placeholder?: string
+}
+
+function FormSelectDropdown({
+  value,
+  onChange,
+  options,
+  placeholder = "Pilih opsi...",
+}: FormSelectDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isOpen])
+
+  const selectedOption = value || options[0] || ""
+
+  return (
+    <div ref={dropdownRef} className="relative w-full">
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 bg-white transition-all flex items-center justify-between text-left cursor-pointer ${
+          isOpen
+            ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
+            : "border border-gray-300 hover:border-gray-400 focus:outline-none"
+        }`}
+      >
+        <span className={selectedOption ? "text-gray-900 font-medium" : "text-gray-400"}>
+          {selectedOption || placeholder}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 text-gray-500 transition-transform duration-200 shrink-0 ml-2 ${
+            isOpen ? "rotate-180 text-[#0099ff]" : ""
+          }`}
+        />
+      </button>
+
+      {/* Dropdown Menu Panel (Sesuai Referensi Gambar) */}
+      {isOpen && (
+        <div className="absolute z-30 left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-150">
+          <div className="max-h-64 overflow-y-auto">
+            {options.map((opt) => {
+              const isSelected = selectedOption === opt
+              return (
+                <div
+                  key={opt}
+                  onClick={() => {
+                    onChange(opt)
+                    setIsOpen(false)
+                  }}
+                  className={`px-4 py-2.5 text-sm md:text-base flex items-center justify-between cursor-pointer transition-colors ${
+                    isSelected
+                      ? "bg-blue-50/70 text-gray-900 font-medium"
+                      : "text-gray-800 hover:bg-gray-50"
+                  }`}
+                >
+                  <span>{opt}</span>
+                  {isSelected && (
+                    <Check className="w-4 h-4 text-gray-800 shrink-0 ml-2" />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface FormulirKerjaSamaClientProps {
   formType?: string
@@ -473,57 +561,85 @@ export default function FormulirKerjaSamaClient({
             </div>
 
             {/* Bagian 3: Pertanyaan Khusus Sesuai Jenis Formulir Ini */}
-            {formConfig.pertanyaanKhusus.map((q, idx) => (
-              <div key={q.key} className="mt-2">
-                <h2 className="text-lg md:text-xl font-bold text-[#561269] mb-3">
-                  {q.label}
-                </h2>
+            {formConfig.pertanyaanKhusus.map((q, idx) => {
+              const isBudgetOrSelect =
+                q.type === "select" ||
+                (q as any).type === "dropdown" ||
+                (q.options && q.label.toLowerCase().includes("budget")) ||
+                q.key.toLowerCase().includes("budget");
 
-                {q.type === "radio" && q.options && (
-                  <div className="space-y-2.5">
-                    {q.options.map((opt) => {
-                      const isSelected = (jawabanKhusus[q.key] || q.options![0]) === opt
-                      return (
-                        <label
-                          key={opt}
-                          onClick={() => handleKhususChange(q.key, opt)}
-                          className={`flex items-start gap-3 p-3.5 rounded-xl border text-sm cursor-pointer transition-all ${
-                            isSelected
-                              ? "border-[#561269] bg-purple-50/50 text-[#561269] font-semibold"
-                              : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={q.key}
-                            value={opt}
-                            checked={isSelected}
-                            onChange={() => handleKhususChange(q.key, opt)}
-                            className="mt-0.5 text-[#561269] focus:ring-[#561269]"
-                          />
-                          <span>{opt}</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                )}
+              const budgetFallbackOptions = [
+                "< Rp 5 juta",
+                "Rp 5–10 juta",
+                "Rp 10–25 juta",
+                "Rp 25–50 juta",
+                "> Rp 50 juta",
+              ];
+              const effectiveOptions =
+                q.options && q.options.length > 0
+                  ? q.options
+                  : isBudgetOrSelect
+                  ? budgetFallbackOptions
+                  : [];
 
-                {q.type === "text" && (
-                  <input
-                    type="text"
-                    value={jawabanKhusus[q.key] || ""}
-                    onFocus={() => setActiveInput(q.key)}
-                    onChange={(e) => handleKhususChange(q.key, e.target.value)}
-                    placeholder={q.placeholder || "Tuliskan jawaban..."}
-                    className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
-                      activeInput === q.key
-                        ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
-                        : "border border-gray-300 hover:border-gray-400 focus:outline-none"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
+              return (
+                <div key={q.key} className="mt-2">
+                  <h2 className="text-lg md:text-xl font-bold text-[#561269] mb-3">
+                    {q.label}
+                  </h2>
+
+                  {isBudgetOrSelect ? (
+                    <FormSelectDropdown
+                      value={jawabanKhusus[q.key] || effectiveOptions[0] || ""}
+                      onChange={(val) => handleKhususChange(q.key, val)}
+                      options={effectiveOptions}
+                      placeholder="Pilih rentang estimasi budget..."
+                    />
+                  ) : q.type === "radio" && q.options ? (
+                    <div className="space-y-2.5">
+                      {q.options.map((opt) => {
+                        const isSelected = (jawabanKhusus[q.key] || q.options![0]) === opt
+                        return (
+                          <label
+                            key={opt}
+                            onClick={() => handleKhususChange(q.key, opt)}
+                            className={`flex items-start gap-3 p-3.5 rounded-xl border text-sm cursor-pointer transition-all ${
+                              isSelected
+                                ? "border-[#561269] bg-purple-50/50 text-[#561269] font-semibold"
+                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name={q.key}
+                              value={opt}
+                              checked={isSelected}
+                              onChange={() => handleKhususChange(q.key, opt)}
+                              className="mt-0.5 text-[#561269] focus:ring-[#561269]"
+                            />
+                            <span>{opt}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={jawabanKhusus[q.key] || ""}
+                      onFocus={() => setActiveInput(q.key)}
+                      onBlur={() => setActiveInput("")}
+                      onChange={(e) => handleKhususChange(q.key, e.target.value)}
+                      placeholder={q.placeholder || "Tuliskan jawaban..."}
+                      className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
+                        activeInput === q.key
+                          ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
+                          : "border border-gray-300 hover:border-gray-400 focus:outline-none"
+                      }`}
+                    />
+                  )}
+                </div>
+              );
+            })}
 
             {/* Bagian 4: Catatan / Kebutuhan Tambahan (Opsional) */}
             <div className="mt-2">
