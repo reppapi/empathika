@@ -18,80 +18,57 @@ declare global {
   }
 }
 
-export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: string | null } = {}) {
+export function LoginForm({
+  initialBiroProfile,
+  initialEmpathikaFoto,
+  initialSlug,
+}: {
+  initialBiroProfile?: {
+    nama_biro?: string;
+    warna_tema?: string;
+    logoURI?: string | null;
+  } | null;
+  initialEmpathikaFoto?: string | null;
+  initialSlug?: string | null;
+} = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
   const { isBiro, slug, biroProfile } = useTenantContext();
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const currentSlug =
     slug ||
+    initialSlug ||
     (typeof window !== "undefined"
       ? getSubdomainSlug() ||
         new URLSearchParams(window.location.search).get("biro") ||
         new URLSearchParams(window.location.search).get("tenant")
       : null);
-  const isBiroContext = Boolean(isBiro || currentSlug);
+  const isBiroContext = Boolean(isBiro || currentSlug || initialBiroProfile);
 
-  // Inisialisasi awal tema, nama, dan logo biro secara sinkron agar 0% jeda (langsung render tema biro di first render)
-  const [biroTheme, setBiroTheme] = useState<string | null>(() => {
-    if (biroProfile?.warna_tema) return biroProfile.warna_tema;
-    if (typeof window !== "undefined" && currentSlug) {
-      try {
-        const cached = localStorage.getItem(`biro_profile_${currentSlug}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed.warna_tema) return parsed.warna_tema;
-        }
-        const cTheme = localStorage.getItem(`biro_theme_${currentSlug}`);
-        if (cTheme) return cTheme;
-      } catch {}
-    }
-    return null;
-  });
+  // Inisialisasi awal tema, nama, dan logo biro secara sinkron dari SSR/props agar 0% jeda
+  const [biroTheme, setBiroTheme] = useState<string | null>(
+    initialBiroProfile?.warna_tema || biroProfile?.warna_tema || null
+  );
 
-  const [biroName, setBiroName] = useState<string | null>(() => {
-    if (biroProfile?.nama_biro) return biroProfile.nama_biro;
-    if (typeof window !== "undefined" && currentSlug) {
-      try {
-        const cached = localStorage.getItem(`biro_profile_${currentSlug}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed.nama_biro) return parsed.nama_biro;
-        }
-      } catch {}
-    }
-    return null;
-  });
+  const [biroName, setBiroName] = useState<string | null>(
+    initialBiroProfile?.nama_biro || biroProfile?.nama_biro || null
+  );
 
-  const [biroLogo, setBiroLogo] = useState<string | null>(() => {
-    if (biroProfile?.logoURI) return biroProfile.logoURI;
-    if (typeof window !== "undefined" && currentSlug) {
-      try {
-        const cached = localStorage.getItem(`biro_profile_${currentSlug}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed.logoURI) return parsed.logoURI;
-        }
-      } catch {}
-    }
-    return null;
-  });
+  const [biroLogo, setBiroLogo] = useState<string | null>(
+    initialBiroProfile?.logoURI || biroProfile?.logoURI || null
+  );
 
-  // Inisialisasi awal logo resmi Empathika dari SSR / cache lokal agar langsung muncul di frame 0
-  const [empathikaLogo, setEmpathikaLogo] = useState<string | null>(() => {
-    if (initialEmpathikaFoto) return initialEmpathikaFoto;
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("empathika_admin_profile");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.foto) return parsed.foto;
-        }
-      } catch {}
-    }
-    return null;
-  });
+  // Inisialisasi awal logo resmi Empathika dari SSR agar langsung muncul di frame 0 tanpa hydration mismatch
+  const [empathikaLogo, setEmpathikaLogo] = useState<string | null>(
+    initialEmpathikaFoto || null
+  );
 
   // Ambil profil resmi Empathika (foto/logo) HANYA jika berada di portal pusat Empathika
   useEffect(() => {
@@ -102,14 +79,16 @@ export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: str
         const saved = localStorage.getItem("empathika_admin_profile");
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed.foto !== undefined) setEmpathikaLogo(parsed.foto);
+          if (parsed.foto !== undefined && parsed.foto !== null) {
+            setEmpathikaLogo(parsed.foto);
+          }
         }
       } catch {}
 
       adminService
         .getPublicProfile()
         .then((res: any) => {
-          if (res?.data?.foto !== undefined) {
+          if (res?.data?.foto !== undefined && res?.data?.foto !== null) {
             setEmpathikaLogo(res.data.foto);
             try {
               const currentSaved = localStorage.getItem("empathika_admin_profile");
@@ -146,11 +125,11 @@ export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: str
     let querySlug: string | null = null;
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      querySlug = params.get("biro") || params.get("tenant") || slug || getSubdomainSlug() || null;
+      querySlug = params.get("biro") || params.get("tenant") || slug || initialSlug || getSubdomainSlug() || null;
     }
 
     // Jika TIDAK ada subdomain biro dan TIDAK ada query ?biro= (portal login pusat Empathika)
-    if (!querySlug) {
+    if (!querySlug && !initialBiroProfile) {
       setBiroTheme(null);
       setBiroName(null);
       setBiroLogo(null);
@@ -161,13 +140,16 @@ export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: str
       return;
     }
 
+    const activeSlug = querySlug || initialSlug;
+    if (!activeSlug) return;
+
     // Jika diakses dari website biro (ada slug subdomain atau query parameter ?biro=)
-    let resolvedTheme: string | null = biroProfile?.warna_tema || null;
-    let resolvedName: string | null = biroProfile?.nama_biro || null;
-    let resolvedLogo: string | null = biroProfile?.logoURI || null;
+    let resolvedTheme: string | null = initialBiroProfile?.warna_tema || biroProfile?.warna_tema || null;
+    let resolvedName: string | null = initialBiroProfile?.nama_biro || biroProfile?.nama_biro || null;
+    let resolvedLogo: string | null = initialBiroProfile?.logoURI || biroProfile?.logoURI || null;
 
     try {
-      const cachedProfile = localStorage.getItem(`biro_profile_${querySlug}`);
+      const cachedProfile = localStorage.getItem(`biro_profile_${activeSlug}`);
       if (cachedProfile) {
         const parsed = JSON.parse(cachedProfile);
         if (!resolvedTheme && parsed.warna_tema) resolvedTheme = parsed.warna_tema;
@@ -175,27 +157,27 @@ export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: str
         if (!resolvedLogo && parsed.logoURI) resolvedLogo = parsed.logoURI;
       }
       if (!resolvedTheme) {
-        const cachedTheme = localStorage.getItem(`biro_theme_${querySlug}`);
+        const cachedTheme = localStorage.getItem(`biro_theme_${activeSlug}`);
         if (cachedTheme) resolvedTheme = cachedTheme;
       }
     } catch {}
 
-    if (!resolvedTheme || !resolvedName) {
+    if (!resolvedTheme || !resolvedName || !resolvedLogo) {
       biroPublicService
-        .getProfile(querySlug)
-        .then((res) => {
-          if (res.success && res.data) {
+        .getProfile(activeSlug)
+        .then((res: any) => {
+          if (res && res.data) {
             if (res.data.warna_tema) {
               setBiroTheme(res.data.warna_tema);
               try {
-                localStorage.setItem(`biro_theme_${querySlug}`, res.data.warna_tema);
-                document.cookie = `biro_theme_${querySlug}=${encodeURIComponent(res.data.warna_tema)}; path=/; max-age=2592000; SameSite=Lax`;
+                localStorage.setItem(`biro_theme_${activeSlug}`, res.data.warna_tema);
+                document.cookie = `biro_theme_${activeSlug}=${encodeURIComponent(res.data.warna_tema)}; path=/; max-age=2592000; SameSite=Lax`;
               } catch {}
             }
             if (res.data.nama_biro) setBiroName(res.data.nama_biro);
             if (res.data.logoURI) setBiroLogo(res.data.logoURI);
             try {
-              localStorage.setItem(`biro_profile_${querySlug}`, JSON.stringify(res.data));
+              localStorage.setItem(`biro_profile_${activeSlug}`, JSON.stringify(res.data));
             } catch {}
           }
         })
@@ -205,7 +187,7 @@ export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: str
     if (resolvedTheme) setBiroTheme(resolvedTheme);
     if (resolvedName) setBiroName(resolvedName);
     if (resolvedLogo) setBiroLogo(resolvedLogo);
-  }, [isBiro, slug, biroProfile]);
+  }, [isBiro, slug, biroProfile, initialSlug, initialBiroProfile]);
 
   const effectiveThemeColor = biroProfile?.warna_tema || biroTheme || null;
   const effectiveBiroName = biroProfile?.nama_biro || biroName || null;
@@ -603,6 +585,7 @@ export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: str
 
           {/* Logo */}
           <div
+            suppressHydrationWarning
             className="w-20 h-20 rounded-full shadow-md flex items-center justify-center mb-6 overflow-hidden transition-all duration-300"
             style={{
               backgroundColor:
@@ -614,12 +597,14 @@ export function LoginForm({ initialEmpathikaFoto }: { initialEmpathikaFoto?: str
               <img
                 src={activePortalLogo}
                 alt={activePortalName || "Logo"}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover animate-in fade-in duration-200"
               />
-            ) : (
+            ) : mounted ? (
               <span className="text-3xl font-bold text-white">
                 {activePortalName ? activePortalName.charAt(0).toUpperCase() : (isBiroContext ? "" : "E")}
               </span>
+            ) : (
+              <div className="w-full h-full bg-white/10" />
             )}
           </div>
 
