@@ -133,15 +133,32 @@ export function Footer() {
                   (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()
                 )}
               </div>
-              <span
-                className="text-[22px] font-extrabold tracking-widest uppercase truncate"
-                style={{ color: themeColor }}
-              >
-                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : (isBiro && slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "EMPATHIKA")}
-              </span>
+              {isBiro ? (
+                <div className="flex flex-col min-w-0">
+                  <span
+                    className="text-[18px] sm:text-[20px] font-extrabold tracking-wide uppercase truncate leading-tight"
+                    style={{ color: themeColor }}
+                  >
+                    {biroProfile?.nama_biro || (slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "BIRO MITRA")}
+                  </span>
+                  <span className="text-[11px] font-medium tracking-normal text-gray-500 flex items-center gap-1 leading-none mt-1">
+                    <span>powered by</span>
+                    <strong className="font-bold text-[#561269]">Empathika</strong>
+                  </span>
+                </div>
+              ) : (
+                <span
+                  className="text-[22px] font-extrabold tracking-widest uppercase truncate"
+                  style={{ color: themeColor }}
+                >
+                  EMPATHIKA
+                </span>
+              )}
             </Link>
             <p className="text-gray-600 leading-relaxed font-medium min-h-[44px]">
-              Platform psikologi dan kesehatan mental.
+              {isBiro
+                ? `Layanan psikologi dan kesehatan mental resmi ${biroProfile?.nama_biro || "Biro"} yang didukung oleh platform Empathika.`
+                : "Platform psikologi dan kesehatan mental."}
             </p>
             <p className="text-[#3B074B] font-semibold text-lg max-w-sm leading-snug min-h-[56px]">
               &quot;Menemani setiap langkahmu untuk memahami diri, bertumbuh, dan menjadi lebih baik.&quot;
