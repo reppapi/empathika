@@ -349,6 +349,11 @@ html[data-biro-theme="true"] .bg-\[\#BFA3C5\],
   background-color: color-mix(in srgb, var(--biro-theme-color, #561269) 35%, transparent) !important;
 }
 
+.curved-hero-banner {
+  position: relative;
+  overflow: hidden;
+}
+
 /* 11. Gradients */
 /* Curved Hero Banners (Halaman Konseling, Booking, Psikolog, Detail Psikolog) */
 html[data-biro-theme="true"] .curved-hero-banner,

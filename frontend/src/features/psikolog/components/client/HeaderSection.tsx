@@ -1,4 +1,5 @@
 import { useTenantContext } from "@/context/TenantContext"
+import HeroStarryOverlay from "@/components/shared/HeroStarryOverlay"
 
 interface HeaderSectionProps {
   kategoriAktif?: string
@@ -19,7 +20,7 @@ export function HeaderSection({ kategoriAktif = "semua" }: HeaderSectionProps) {
     <div className="w-full overflow-hidden">
       {/* Curved Purple Hero Banner (Menyatu dari tepi atas 0px ke bawah arch) */}
       <div 
-        className="curved-hero-banner w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px]"
+        className="curved-hero-banner relative w-full pt-28 sm:pt-32 pb-16 sm:pb-20 bg-gradient-to-b from-[#8B3A9C] via-[#651877] to-[#400B4D] shadow-md text-center px-4 sm:px-6 lg:px-8 transition-all duration-300 [border-bottom-left-radius:50%_60px] [border-bottom-right-radius:50%_60px] sm:[border-bottom-left-radius:50%_80px] sm:[border-bottom-right-radius:50%_80px] lg:[border-bottom-left-radius:50%_120px] lg:[border-bottom-right-radius:50%_120px] overflow-hidden"
         style={
           isBiro
             ? {
@@ -28,7 +29,8 @@ export function HeaderSection({ kategoriAktif = "semua" }: HeaderSectionProps) {
             : undefined
         }
       >
-        <div className="max-w-4xl mx-auto overflow-hidden">
+        <HeroStarryOverlay />
+        <div className="relative z-10 max-w-4xl mx-auto overflow-hidden">
           <h1 
             key={title}
             className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-wide drop-shadow-sm leading-tight transition-all duration-500 ease-out animate-fade-in"

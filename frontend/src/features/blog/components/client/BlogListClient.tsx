@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Search, ChevronLeft, ChevronRight, X, ArrowRight } from 'lucide-react';
 import { useTenantContext } from '@/context/TenantContext';
+import HeroStarryOverlay from '@/components/shared/HeroStarryOverlay';
 import { blogService } from '@/services/blog.service';
 import { BackendBlogItem } from '@/features/blog/types';
 import { BLOG_CONSTANTS } from '@/features/blog/constants/blogConstants';
@@ -70,6 +71,7 @@ export default function BlogListClient() {
             : undefined
         }
       >
+        <HeroStarryOverlay />
         <div className={styles.heroInner}>
           <h1 className={styles.heroTitle}>Sudut Refleksi</h1>
           <p className={styles.heroSub}>
