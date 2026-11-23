@@ -424,10 +424,10 @@ export default function FormulirKerjaSamaClient({
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             
             {/* Title & Description Header Section */}
-            <div className="flex flex-col items-center justify-center text-center mb-4 mt-2">
+            <div className="flex flex-col items-center justify-center text-center mb-1 mt-1">
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.2] max-w-xl">
                 {formConfig.title.startsWith("Formulir ") ? (
                   <>
@@ -451,7 +451,7 @@ export default function FormulirKerjaSamaClient({
             </div>
 
             {/* Bagian 1: Biodata (Sesuai Mockup Gambar) */}
-            <div className="mt-4">
+            <div>
               <h2 className="text-base sm:text-lg font-bold text-[#561269] mb-3">
                 Biodata
               </h2>
@@ -527,7 +527,7 @@ export default function FormulirKerjaSamaClient({
             </div>
 
             {/* Bagian 2: Tipe Institusi (Sesuai Mockup Gambar) */}
-            <div className="mt-5">
+            <div>
               <h2 className="text-base sm:text-lg font-bold text-[#561269] mb-3">
                 Tipe Institusi
               </h2>
@@ -561,88 +561,92 @@ export default function FormulirKerjaSamaClient({
             </div>
 
             {/* Bagian 3: Pertanyaan Khusus Sesuai Jenis Formulir Ini */}
-            {formConfig.pertanyaanKhusus.map((q, idx) => {
-              const isBudgetOrSelect =
-                q.type === "select" ||
-                (q as any).type === "dropdown" ||
-                (q.options && q.label.toLowerCase().includes("budget")) ||
-                q.key.toLowerCase().includes("budget");
+            {formConfig.pertanyaanKhusus && formConfig.pertanyaanKhusus.length > 0 && (
+              <div className="space-y-3 sm:space-y-3.5">
+                {formConfig.pertanyaanKhusus.map((q) => {
+                  const isBudgetOrSelect =
+                    q.type === "select" ||
+                    (q as any).type === "dropdown" ||
+                    (q.options && q.label.toLowerCase().includes("budget")) ||
+                    q.key.toLowerCase().includes("budget");
 
-              const budgetFallbackOptions = [
-                "< Rp 5 juta",
-                "Rp 5–10 juta",
-                "Rp 10–25 juta",
-                "Rp 25–50 juta",
-                "> Rp 50 juta",
-              ];
-              const effectiveOptions =
-                q.options && q.options.length > 0
-                  ? q.options
-                  : isBudgetOrSelect
-                  ? budgetFallbackOptions
-                  : [];
+                  const budgetFallbackOptions = [
+                    "< Rp 5 juta",
+                    "Rp 5–10 juta",
+                    "Rp 10–25 juta",
+                    "Rp 25–50 juta",
+                    "> Rp 50 juta",
+                  ];
+                  const effectiveOptions =
+                    q.options && q.options.length > 0
+                      ? q.options
+                      : isBudgetOrSelect
+                      ? budgetFallbackOptions
+                      : [];
 
-              return (
-                <div key={q.key} className="mt-4">
-                  <label className="block text-sm sm:text-[15px] font-bold text-[#561269] mb-1.5">
-                    {q.label}
-                  </label>
+                  return (
+                    <div key={q.key}>
+                      <label className="block text-sm sm:text-[15px] font-bold text-[#561269] mb-1.5">
+                        {q.label}
+                      </label>
 
-                  {isBudgetOrSelect ? (
-                    <FormSelectDropdown
-                      value={jawabanKhusus[q.key] || effectiveOptions[0] || ""}
-                      onChange={(val) => handleKhususChange(q.key, val)}
-                      options={effectiveOptions}
-                      placeholder="Pilih rentang estimasi budget..."
-                    />
-                  ) : q.type === "radio" && q.options ? (
-                    <div className="space-y-2.5">
-                      {q.options.map((opt) => {
-                        const isSelected = (jawabanKhusus[q.key] || q.options![0]) === opt
-                        return (
-                          <label
-                            key={opt}
-                            onClick={() => handleKhususChange(q.key, opt)}
-                            className={`flex items-start gap-3 p-3.5 rounded-xl border text-sm cursor-pointer transition-all ${
-                              isSelected
-                                ? "border-[#561269] bg-purple-50/50 text-[#561269] font-semibold"
-                                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name={q.key}
-                              value={opt}
-                              checked={isSelected}
-                              onChange={() => handleKhususChange(q.key, opt)}
-                              className="mt-0.5 text-[#561269] focus:ring-[#561269]"
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        )
-                      })}
+                      {isBudgetOrSelect ? (
+                        <FormSelectDropdown
+                          value={jawabanKhusus[q.key] || effectiveOptions[0] || ""}
+                          onChange={(val) => handleKhususChange(q.key, val)}
+                          options={effectiveOptions}
+                          placeholder="Pilih rentang estimasi budget..."
+                        />
+                      ) : q.type === "radio" && q.options ? (
+                        <div className="space-y-2.5">
+                          {q.options.map((opt) => {
+                            const isSelected = (jawabanKhusus[q.key] || q.options![0]) === opt
+                            return (
+                              <label
+                                key={opt}
+                                onClick={() => handleKhususChange(q.key, opt)}
+                                className={`flex items-start gap-3 p-3.5 rounded-xl border text-sm cursor-pointer transition-all ${
+                                  isSelected
+                                    ? "border-[#561269] bg-purple-50/50 text-[#561269] font-semibold"
+                                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={q.key}
+                                  value={opt}
+                                  checked={isSelected}
+                                  onChange={() => handleKhususChange(q.key, opt)}
+                                  className="mt-0.5 text-[#561269] focus:ring-[#561269]"
+                                />
+                                <span>{opt}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          value={jawabanKhusus[q.key] || ""}
+                          onFocus={() => setActiveInput(q.key)}
+                          onBlur={() => setActiveInput("")}
+                          onChange={(e) => handleKhususChange(q.key, e.target.value)}
+                          placeholder={q.placeholder || "Tuliskan jawaban..."}
+                          className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
+                            activeInput === q.key
+                              ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
+                              : "border border-gray-300 hover:border-gray-400 focus:outline-none"
+                          }`}
+                        />
+                      )}
                     </div>
-                  ) : (
-                    <input
-                      type="text"
-                      value={jawabanKhusus[q.key] || ""}
-                      onFocus={() => setActiveInput(q.key)}
-                      onBlur={() => setActiveInput("")}
-                      onChange={(e) => handleKhususChange(q.key, e.target.value)}
-                      placeholder={q.placeholder || "Tuliskan jawaban..."}
-                      className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
-                        activeInput === q.key
-                          ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
-                          : "border border-gray-300 hover:border-gray-400 focus:outline-none"
-                      }`}
-                    />
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
 
             {/* Bagian 4: Catatan / Kebutuhan Tambahan (Opsional) */}
-            <div className="mt-4">
+            <div>
               <label className="block text-sm sm:text-[15px] font-bold text-[#561269] mb-1.5">
                 Catatan Tambahan / Gambaran Kegiatan (Opsional)
               </label>
@@ -662,7 +666,7 @@ export default function FormulirKerjaSamaClient({
             </div>
 
             {/* Submit Button (Warna oren/kuning emas kode E8C32A) */}
-            <div className="mt-4 pt-2">
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isSubmitting || isSubmitted}
