@@ -141,9 +141,11 @@ export function Footer() {
                   >
                     {biroProfile?.nama_biro || (slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "BIRO MITRA")}
                   </span>
-                  <span className="text-[11px] font-medium tracking-normal text-gray-500 flex items-center gap-1 leading-none mt-1">
+                  <span className="text-[11px] font-medium tracking-normal text-gray-500 flex items-center gap-1.5 leading-none mt-1">
                     <span>powered by</span>
-                    <strong className="font-bold text-[#561269]">Empathika</strong>
+                    <span className="font-bold text-[12px]" style={{ color: "#561269" }}>
+                      Empathika
+                    </span>
                   </span>
                 </div>
               ) : (
