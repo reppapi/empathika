@@ -385,11 +385,11 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
         {isProfileOnlyWithoutTotal ? (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 shadow-sm space-y-6">
             <div className="text-center space-y-2 border-b border-gray-100 pb-5">
-              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#561269] bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
-                {isCHOCI
-                  ? "CHOCI-R • Profil Gejala & Keparahan OCD"
-                  : "PBQ • Profil Skor 9 Skala Kepribadian"}
-              </span>
+              {isCHOCI && (
+                <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#561269] bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
+                  CHOCI-R • Profil Gejala & Keparahan OCD
+                </span>
+              )}
               <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
                 {dbPackage?.judul || (isCHOCI ? "Children’s Obsessive-Compulsive Inventory – Revised (CHOCI-R)" : "Personality Belief Questionnaire (PBQ)")}
               </h1>
@@ -458,35 +458,6 @@ export default function PsikotesHasilGratisClient({ params }: { params: { testId
                 )}
               </p>
             </div>
-
-            {/* Catatan Isian Kualitatif Khusus CHOCI-R */}
-            {isCHOCI && (bookingDetailSkor?.kualitatif?.kebiasaanKompulsi?.length > 0 || bookingDetailSkor?.kualitatif?.pikiranObsesi?.length > 0) && (
-              <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100/80 space-y-3">
-                <p className="text-xs font-bold text-[#561269] uppercase tracking-wider">
-                  Catatan Kualitatif Refleksi Gejala
-                </p>
-                {bookingDetailSkor.kualitatif.kebiasaanKompulsi?.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold text-gray-700">Kebiasaan paling menjengkelkan:</p>
-                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
-                      {bookingDetailSkor.kualitatif.kebiasaanKompulsi.map((k: string, idx: number) => (
-                        <li key={idx} className="italic">&ldquo;{k}&rdquo;</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {bookingDetailSkor.kualitatif.pikiranObsesi?.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold text-gray-700">Pikiran/kekhawatiran paling mengganggu:</p>
-                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
-                      {bookingDetailSkor.kualitatif.pikiranObsesi.map((p: string, idx: number) => (
-                        <li key={idx} className="italic">&ldquo;{p}&rdquo;</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         ) : (
           <InterpretasiCard

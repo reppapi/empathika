@@ -169,11 +169,22 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     try {
       const completedId = localStorage.getItem(`empathika_psikotes_done_${rawBooking}`);
       if (completedId) {
+        const isPaidTest = Boolean(
+          params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" ||
+          params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa" ||
+          checkDASS(null, params.testId) ||
+          checkMCMI(null, params.testId) ||
+          params.testId.toLowerCase().includes("dass") ||
+          params.testId.toLowerCase().includes("depresi-kecemasan-dan-stres") ||
+          params.testId.toLowerCase().includes("mcmi") ||
+          params.testId.toLowerCase().includes("pola-klinis")
+        );
+        const paketParam = isPaidTest ? "paket=berbayar" : "paket=gratis";
         const tokenParam = savedToken ? `&token=${encodeURIComponent(savedToken)}` : "";
         navigateToPsikotesHasil(
           router,
           params.testId,
-          `/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(completedId)}${tokenParam}`
+          `/psikotes/${params.testId}/hasil?${paketParam}&bookingId=${encodeURIComponent(completedId)}${tokenParam}`
         );
         return;
       }
@@ -187,12 +198,23 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           const status = res.data.status_pengerjaan;
           const hasHasil = Boolean(res.data.hasil || (res.data as any).hasil_tes);
           if (status === "SELESAI" || status === "MENUNGGU_REVIEW" || hasHasil) {
+            const isPaidTest = Boolean(
+              params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" ||
+              params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa" ||
+              checkDASS(null, params.testId) ||
+              checkMCMI(null, params.testId) ||
+              params.testId.toLowerCase().includes("dass") ||
+              params.testId.toLowerCase().includes("depresi-kecemasan-dan-stres") ||
+              params.testId.toLowerCase().includes("mcmi") ||
+              params.testId.toLowerCase().includes("pola-klinis")
+            );
+            const paketParam = isPaidTest ? "paket=berbayar" : "paket=gratis";
             const canonicalId = res.data.id_booking || rawBooking;
             const tokenParam = savedToken ? `&token=${encodeURIComponent(savedToken)}` : "";
             navigateToPsikotesHasil(
               router,
               params.testId,
-              `/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(canonicalId)}${tokenParam}`
+              `/psikotes/${params.testId}/hasil?${paketParam}&bookingId=${encodeURIComponent(canonicalId)}${tokenParam}`
             );
           }
         }
@@ -257,14 +279,23 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const isCHOCI = checkCHOCI(dbData, params.testId);
   const isMCMI = checkMCMI(dbData, params.testId);
 
-  const isPaidFlow = Boolean(
-    (dbData
-      ? isPackagePaid(dbData)
-      : isDASS) ||
-    searchParams.get("paket") === "berbayar" ||
-    searchParams.get("plan") === "berbayar" ||
-    Boolean(searchParams.get("bookingId")) ||
-    Boolean(searchParams.get("orderId"))
+  const isPaidInstrument = Boolean(
+    isDASS ||
+    isMCMI ||
+    (dbData ? isPackagePaid(dbData) : false) ||
+    params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" ||
+    params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa"
+  );
+
+  const isPaidFlow = isPaidInstrument && Boolean(
+    searchParams.get("paket") !== "gratis" &&
+    (
+      (dbData ? isPackagePaid(dbData) : true) ||
+      searchParams.get("paket") === "berbayar" ||
+      searchParams.get("plan") === "berbayar" ||
+      Boolean(searchParams.get("bookingId")) ||
+      Boolean(searchParams.get("orderId"))
+    )
   );
 
   // 0. Prefill Data Diri Peserta dari localStorage
@@ -1045,10 +1076,21 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           } catch {}
         }
         const tokenParam = existingToken ? `&token=${encodeURIComponent(existingToken)}` : "";
+        const isPaidTest = Boolean(
+          params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" ||
+          params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa" ||
+          checkDASS(null, params.testId) ||
+          checkMCMI(null, params.testId) ||
+          params.testId.toLowerCase().includes("dass") ||
+          params.testId.toLowerCase().includes("depresi-kecemasan-dan-stres") ||
+          params.testId.toLowerCase().includes("mcmi") ||
+          params.testId.toLowerCase().includes("pola-klinis")
+        );
+        const paketParam = isPaidTest ? "paket=berbayar" : "paket=gratis";
         navigateToPsikotesHasil(
           router,
           params.testId,
-          `/psikotes/${params.testId}/hasil?paket=berbayar&bookingId=${encodeURIComponent(existingBooking)}${tokenParam}`
+          `/psikotes/${params.testId}/hasil?${paketParam}&bookingId=${encodeURIComponent(existingBooking)}${tokenParam}`
         );
         return;
       }
