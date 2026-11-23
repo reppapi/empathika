@@ -95,7 +95,7 @@ export default function FormulirKerjaSamaClient({
   const [nomorWhatsapp, setNomorWhatsapp] = useState("")
   const [emailPIC, setEmailPIC] = useState("")
   const [tipeInstitusi, setTipeInstitusi] = useState("Sekolah / Universitas")
-  const [activeInput, setActiveInput] = useState<string>("whatsapp")
+  const [activeInput, setActiveInput] = useState<string>("")
 
   // State Jawaban Dinamis Khusus Tiap Form
   const [jawabanKhusus, setJawabanKhusus] = useState<Record<string, string>>({})
@@ -375,6 +375,7 @@ export default function FormulirKerjaSamaClient({
                     required
                     value={namaLengkap}
                     onFocus={() => setActiveInput("nama")}
+                    onBlur={() => setActiveInput("")}
                     onChange={(e) => setNamaLengkap(e.target.value)}
                     placeholder="Masukkan nama lengkap"
                     className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
@@ -391,6 +392,7 @@ export default function FormulirKerjaSamaClient({
                     required
                     value={namaInstitusi}
                     onFocus={() => setActiveInput("institusi")}
+                    onBlur={() => setActiveInput("")}
                     onChange={(e) => setNamaInstitusi(e.target.value)}
                     placeholder="Nama Institusi"
                     className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
@@ -403,11 +405,18 @@ export default function FormulirKerjaSamaClient({
 
                 <div>
                   <PhoneInputField
+                    label=""
                     required
                     value={nomorWhatsapp}
                     onChange={(val) => setNomorWhatsapp(val)}
-                    placeholder="+62 821-7373-9213"
-                    inputClassName="py-3 text-sm md:text-base"
+                    onFocus={() => setActiveInput("whatsapp")}
+                    onBlur={() => setActiveInput("")}
+                    placeholder="Nomor WhatsApp"
+                    inputClassName={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
+                      activeInput === "whatsapp"
+                        ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
+                        : "border border-gray-300 hover:border-gray-400 focus:outline-none"
+                    }`}
                   />
                 </div>
 
@@ -416,6 +425,7 @@ export default function FormulirKerjaSamaClient({
                     type="email"
                     value={emailPIC}
                     onFocus={() => setActiveInput("email")}
+                    onBlur={() => setActiveInput("")}
                     onChange={(e) => setEmailPIC(e.target.value)}
                     placeholder="Alamat Email (Opsional)"
                     className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
