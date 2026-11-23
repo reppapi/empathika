@@ -17,6 +17,18 @@ export default async function kerjaSamaRoutes(fastify: FastifyInstance) {
 
   // ── 1. Pengajuan Kerja Sama (Leads) ─────────────────────────────────────────
 
+  // Publik / Klien: Upload Dokumen Proposal Kerja Sama (PDF, Word, Gambar)
+  fastify.post('/upload-proposal', {
+    schema: {
+      tags: ['Kerja Sama - Leads'],
+      summary: 'Upload dokumen proposal kerja sama (PDF, DOC, DOCX, maks 15MB)',
+      consumes: ['multipart/form-data'],
+    },
+    validatorCompiler: () => () => true,
+    serializerCompiler: () => (data) => JSON.stringify(data),
+    handler: controller.uploadProposal,
+  })
+
   // Publik / Klien: Submit Pengajuan Kerja Sama (dengan proteksi IP Rate Limit)
   fastify.post('/pengajuan', {
     preHandler: [

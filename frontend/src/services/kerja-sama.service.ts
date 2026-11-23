@@ -92,4 +92,14 @@ export const kerjaSamaService = {
 
   updateFormulir: (slug: string, data: FormulirConfigDto) =>
     apiClient.put(`/kerja-sama/formulir/${slug}`, data).then((r) => r.data),
+
+  uploadProposal: (file: File) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    return apiClient
+      .post("/kerja-sama/upload-proposal", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data)
+  },
 }

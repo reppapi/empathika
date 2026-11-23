@@ -284,6 +284,14 @@ export const INITIAL_FORMULIR_CONFIGS: FormulirConfigItem[] = [
         type: "text",
         placeholder: "Contoh: Bulan depan / Q1 2027",
       },
+      {
+        id: "q_proposal",
+        label: "Upload Proposal Kerja Sama (Opsional)",
+        key: "proposalKerjaSama",
+        type: "file",
+        placeholder: "Pilih file proposal (PDF, DOC, DOCX, maks 15MB)",
+        required: false,
+      },
     ],
   },
 ]
@@ -319,6 +327,26 @@ export function getFormulirConfigs(): FormulirConfigItem[] {
           key: "estimasiBudget",
           type: "select",
           options: budgetOptions,
+        })
+      }
+    }
+
+    // Pastikan formulir Kerjasama Lainnya menyertakan pertanyaan upload proposal
+    const lainnya = filtered.find((f) => f.slug === "lainnya" || f.id === "f_lainnya")
+    if (lainnya) {
+      const proposalQ = lainnya.pertanyaanKhusus.find(
+        (q) => q.key === "proposalKerjaSama" || q.label.toLowerCase().includes("proposal")
+      )
+      if (proposalQ) {
+        proposalQ.type = "file"
+      } else {
+        lainnya.pertanyaanKhusus.push({
+          id: "q_proposal",
+          label: "Upload Proposal Kerja Sama (Opsional)",
+          key: "proposalKerjaSama",
+          type: "file",
+          placeholder: "Pilih file proposal (PDF, DOC, DOCX, maks 15MB)",
+          required: false,
         })
       }
     }

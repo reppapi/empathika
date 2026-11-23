@@ -107,7 +107,7 @@ export function useAdminKerjaSama() {
   // State Tambah Pertanyaan Baru Formulir
   const [isAddingQuestion, setIsAddingQuestion] = useState(false)
   const [newQuestionLabel, setNewQuestionLabel] = useState("")
-  const [newQuestionType, setNewQuestionType] = useState<"radio" | "select" | "text">("radio")
+  const [newQuestionType, setNewQuestionType] = useState<"radio" | "select" | "text" | "file">("radio")
   const [newQuestionOptions, setNewQuestionOptions] = useState<string>("Opsi 1, Opsi 2, Opsi 3")
 
   // Filter Leads

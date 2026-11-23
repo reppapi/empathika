@@ -14,8 +14,8 @@ interface TabKelolaFormulirProps {
   setIsAddingQuestion: (val: boolean) => void
   newQuestionLabel: string
   setNewQuestionLabel: (val: string) => void
-  newQuestionType: "radio" | "select" | "text"
-  setNewQuestionType: (val: "radio" | "select" | "text") => void
+  newQuestionType: "radio" | "select" | "text" | "file"
+  setNewQuestionType: (val: "radio" | "select" | "text" | "file") => void
   newQuestionOptions: string
   setNewQuestionOptions: (val: string) => void
   handleAddNewQuestion: (e: React.FormEvent) => void
@@ -45,13 +45,13 @@ export default function TabKelolaFormulir({
   // State Edit Butir Pertanyaan
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null)
   const [editLabel, setEditLabel] = useState("")
-  const [editType, setEditType] = useState<"radio" | "select" | "text">("radio")
+  const [editType, setEditType] = useState<"radio" | "select" | "text" | "file">("radio")
   const [editOptions, setEditOptions] = useState("")
 
   const startEditQuestion = (q: FormulirPertanyaan) => {
     setEditingQuestionId(q.id)
     setEditLabel(q.label)
-    setEditType((q.type as "radio" | "select" | "text") || "text")
+    setEditType((q.type as "radio" | "select" | "text" | "file") || "text")
     setEditOptions(q.options ? q.options.join(", ") : "")
     setIsAddingQuestion(false)
   }
@@ -251,12 +251,13 @@ export default function TabKelolaFormulir({
                     </label>
                     <select
                       value={newQuestionType}
-                      onChange={(e) => setNewQuestionType(e.target.value as "radio" | "select" | "text")}
+                      onChange={(e) => setNewQuestionType(e.target.value as "radio" | "select" | "text" | "file")}
                       className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs bg-white"
                     >
                       <option value="radio">Pilihan Ganda (Radio Button)</option>
                       <option value="select">Dropdown Menu (Pilihan Dropdown)</option>
                       <option value="text">Teks Bebas / Isian Singkat</option>
+                      <option value="file">Upload File / Dokumen (Proposal/Lampiran)</option>
                     </select>
                   </div>
                   {(newQuestionType === "radio" || newQuestionType === "select") && (
@@ -336,12 +337,13 @@ export default function TabKelolaFormulir({
                           </label>
                           <select
                             value={editType}
-                            onChange={(e) => setEditType(e.target.value as "radio" | "select" | "text")}
+                            onChange={(e) => setEditType(e.target.value as "radio" | "select" | "text" | "file")}
                             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#561269]"
                           >
                             <option value="radio">Pilihan Ganda (Radio Button)</option>
                             <option value="select">Dropdown Menu (Pilihan Dropdown)</option>
                             <option value="text">Teks Bebas / Isian Singkat</option>
+                            <option value="file">Upload File / Dokumen (Proposal/Lampiran)</option>
                           </select>
                         </div>
 
@@ -394,6 +396,8 @@ export default function TabKelolaFormulir({
                               ? "Pilihan Ganda"
                               : q.type === "select"
                               ? "Dropdown Menu"
+                              : q.type === "file"
+                              ? "Upload File"
                               : "Isian Teks"}
                           </span>
                         </div>

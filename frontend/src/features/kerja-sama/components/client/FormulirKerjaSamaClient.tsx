@@ -103,6 +103,184 @@ function FormSelectDropdown({
   )
 }
 
+interface FormProposalUploadProps {
+  value: string
+  onChange: (val: string) => void
+  label: string
+}
+
+function FormProposalUpload({ value, onChange, label }: FormProposalUploadProps) {
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  let parsedFile: { url: string; filename: string; size?: number } | null = null
+  if (value) {
+    try {
+      if (value.startsWith("{")) {
+        parsedFile = JSON.parse(value)
+      } else {
+        parsedFile = { url: value, filename: "Proposal_Kerjasama.pdf" }
+      }
+    } catch {
+      parsedFile = { url: value, filename: "Proposal_Kerjasama.pdf" }
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadError(null)
+
+    // Validasi ukuran maksimal 15MB
+    if (file.size > 15 * 1024 * 1024) {
+      setUploadError("Ukuran file terlalu besar. Maksimal 15MB.")
+      e.target.value = ""
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      // 1. Coba upload ke backend
+      const res = await kerjaSamaService.uploadProposal(file)
+      if (res?.data?.url) {
+        const filePayload = {
+          url: res.data.url,
+          filename: res.data.originalName || file.name,
+          size: res.data.size || file.size,
+        }
+        onChange(JSON.stringify(filePayload))
+        setIsUploading(false)
+        return
+      }
+    } catch (err: any) {
+      console.warn("Upload proposal to backend failed, falling back to local reader:", err?.message || err)
+    }
+
+    // 2. Fallback jika backend offline: konversi ke Data URL
+    try {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const filePayload = {
+          url: reader.result as string,
+          filename: file.name,
+          size: file.size,
+        }
+        onChange(JSON.stringify(filePayload))
+        setIsUploading(false)
+      }
+      reader.onerror = () => {
+        setUploadError("Gagal membaca file proposal.")
+        setIsUploading(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (fallbackErr) {
+      setUploadError("Terjadi kesalahan saat memproses file.")
+      setIsUploading(false)
+    } finally {
+      e.target.value = ""
+    }
+  }
+
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onChange("")
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  return (
+    <div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {parsedFile ? (
+        <div className="p-3.5 sm:p-4 rounded-xl border border-purple-200 bg-purple-50/50 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#561269] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+              PDF
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs sm:text-sm font-bold text-gray-900 block truncate">
+                {parsedFile.filename || "Proposal_Kerjasama.pdf"}
+              </span>
+              <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                ✓ File berhasil dilampirkan
+                {parsedFile.size && (
+                  <span className="text-gray-500 font-normal">
+                    • {(parsedFile.size / (1024 * 1024)).toFixed(2)} MB
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3 py-1.5 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold transition cursor-pointer"
+            >
+              Ganti
+            </button>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="px-2.5 py-1.5 rounded-full text-red-600 hover:bg-red-50 text-xs font-semibold transition cursor-pointer"
+              title="Hapus file"
+            >
+              Hapus
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => !isUploading && fileInputRef.current?.click()}
+          className={`border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all ${
+            isUploading
+              ? "border-purple-300 bg-purple-50/40 cursor-wait"
+              : "border-gray-300 hover:border-[#561269] bg-white hover:bg-purple-50/20"
+          }`}
+        >
+          {isUploading ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-2">
+              <div className="w-6 h-6 border-2 border-[#561269] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs font-bold text-[#561269]">Mengunggah dokumen proposal...</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              <div className="w-9 h-9 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center mb-0.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <p className="text-xs sm:text-sm font-bold text-gray-800">
+                Pilih file proposal atau klik di sini
+              </p>
+              <p className="text-[11px] text-gray-500">
+                Mendukung PDF, Word (DOC/DOCX), atau Gambar (Maks. 15MB)
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {uploadError && (
+        <p className="text-[11px] text-red-600 font-semibold mt-1.5">
+          ⚠️ {uploadError}
+        </p>
+      )}
+    </div>
+  )
+}
+
 interface FormulirKerjaSamaClientProps {
   formType?: string
 }
@@ -564,11 +742,19 @@ export default function FormulirKerjaSamaClient({
             {formConfig.pertanyaanKhusus && formConfig.pertanyaanKhusus.length > 0 && (
               <div className="space-y-3 sm:space-y-3.5">
                 {formConfig.pertanyaanKhusus.map((q) => {
+                  const isProposalOrFile =
+                    q.type === "file" ||
+                    (q as any).type === "upload" ||
+                    q.label.toLowerCase().includes("proposal") ||
+                    q.label.toLowerCase().includes("upload") ||
+                    q.key.toLowerCase().includes("proposal");
+
                   const isBudgetOrSelect =
-                    q.type === "select" ||
-                    (q as any).type === "dropdown" ||
-                    (q.options && q.label.toLowerCase().includes("budget")) ||
-                    q.key.toLowerCase().includes("budget");
+                    !isProposalOrFile &&
+                    (q.type === "select" ||
+                      (q as any).type === "dropdown" ||
+                      (q.options && q.label.toLowerCase().includes("budget")) ||
+                      q.key.toLowerCase().includes("budget"));
 
                   const budgetFallbackOptions = [
                     "< Rp 5 juta",
@@ -590,7 +776,13 @@ export default function FormulirKerjaSamaClient({
                         {q.label}
                       </label>
 
-                      {isBudgetOrSelect ? (
+                      {isProposalOrFile ? (
+                        <FormProposalUpload
+                          value={jawabanKhusus[q.key] || ""}
+                          onChange={(val) => handleKhususChange(q.key, val)}
+                          label={q.label}
+                        />
+                      ) : isBudgetOrSelect ? (
                         <FormSelectDropdown
                           value={jawabanKhusus[q.key] || effectiveOptions[0] || ""}
                           onChange={(val) => handleKhususChange(q.key, val)}

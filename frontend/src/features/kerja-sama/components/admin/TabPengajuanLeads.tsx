@@ -74,9 +74,22 @@ export default function TabPengajuanLeads({
                     <span className="font-semibold text-gray-800 block text-xs">
                       {lead.formTitle || `Formulir ${lead.kategori}`}
                     </span>
-                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-purple-50 text-[#561269] font-medium text-[10px]">
-                      {lead.kategori}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="inline-block px-2 py-0.5 rounded-full bg-purple-50 text-[#561269] font-medium text-[10px]">
+                        {lead.kategori}
+                      </span>
+                      {lead.jawabanDetail &&
+                        Object.entries(lead.jawabanDetail).some(
+                          ([k, v]) =>
+                            (k.toLowerCase().includes("proposal") || k.toLowerCase().includes("upload")) &&
+                            v &&
+                            v !== "-"
+                        ) && (
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                            📎 Ada Proposal
+                          </span>
+                        )}
+                    </div>
                   </td>
                   <td className="py-3.5 px-4">
                     <p className="font-semibold text-gray-800">{lead.namaPIC}</p>
