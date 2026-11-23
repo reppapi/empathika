@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Search, ChevronLeft, ChevronRight, X, ArrowRight } from 'lucide-react';
+import { useTenantContext } from '@/context/TenantContext';
 import { blogService } from '@/services/blog.service';
 import { BackendBlogItem } from '@/features/blog/types';
 import { BLOG_CONSTANTS } from '@/features/blog/constants/blogConstants';
@@ -11,6 +12,9 @@ import { formatBlogDate, createExcerpt } from '@/features/blog/utils/blogUtils';
 import styles from './BlogList.module.css';
 
 export default function BlogListClient() {
+  const { isBiro, biroProfile } = useTenantContext();
+  const themeColor = biroProfile?.warna_tema || "var(--biro-theme-color, #561269)";
+
   const [page, setPage] = useState(1);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,7 +60,16 @@ export default function BlogListClient() {
   return (
     <div className="w-full">
       {/* ── Hero (full width, clear of fixed navbar) ── */}
-      <section className={styles.blogHero}>
+      <section
+        className={styles.blogHero}
+        style={
+          isBiro
+            ? {
+                background: `linear-gradient(180deg, color-mix(in srgb, ${themeColor} 82%, white) 0%, ${themeColor} 50%, color-mix(in srgb, ${themeColor} 55%, black) 100%)`,
+              }
+            : undefined
+        }
+      >
         <div className={styles.heroInner}>
           <h1 className={styles.heroTitle}>Sudut Refleksi</h1>
           <p className={styles.heroSub}>
@@ -72,8 +85,17 @@ export default function BlogListClient() {
         <div className={styles.searchRow}>
           {searchOpen ? (
             <>
-              <div className={styles.searchInputWrap}>
-                <Search size={16} color="#a78bfa" />
+              <div
+                className={styles.searchInputWrap}
+                style={
+                  isBiro
+                    ? {
+                        borderColor: `color-mix(in srgb, ${themeColor} 30%, #e9e0ff)`,
+                      }
+                    : undefined
+                }
+              >
+                <Search size={16} color={isBiro ? themeColor : "#a78bfa"} />
                 <input
                   autoFocus
                   type="text"
@@ -87,6 +109,7 @@ export default function BlogListClient() {
               </div>
               <button
                 className={styles.searchBtn}
+                style={isBiro ? { color: themeColor } : undefined}
                 onClick={() => {
                   setSearchOpen(false);
                   setSearchQuery('');
@@ -100,6 +123,7 @@ export default function BlogListClient() {
           ) : (
             <button
               className={styles.searchBtn}
+              style={isBiro ? { color: themeColor } : undefined}
               onClick={() => setSearchOpen(true)}
               aria-label="Cari artikel"
             >
@@ -110,7 +134,10 @@ export default function BlogListClient() {
 
         {/* Loading State */}
         {loading ? (
-          <div className="py-20 text-center text-purple-700 font-medium">
+          <div
+            className="py-20 text-center font-medium"
+            style={{ color: isBiro ? themeColor : '#7e22ce' }}
+          >
             Memuat artikel...
           </div>
         ) : blogs.length > 0 ? (
@@ -148,7 +175,10 @@ export default function BlogListClient() {
 
                       <div className={styles.cardFooter}>
                         <div className={styles.cardFooterRight}>
-                          <span className={styles.readMoreLink}>
+                          <span
+                            className={styles.readMoreLink}
+                            style={isBiro ? { color: themeColor } : undefined}
+                          >
                             Lihat Selengkapnya
                             <ArrowRight size={14} className={styles.readMoreArrow} />
                           </span>
@@ -176,6 +206,7 @@ export default function BlogListClient() {
             <button
               className={styles.pgBtn}
               disabled={page === 1}
+              style={isBiro ? { color: themeColor } : undefined}
               onClick={() => {
                 setPage((p) => Math.max(1, p - 1));
                 window.scrollTo({ top: 300, behavior: 'smooth' });
@@ -189,6 +220,20 @@ export default function BlogListClient() {
               <button
                 key={i + 1}
                 className={`${styles.pgBtn}${page === i + 1 ? ` ${styles.active}` : ''}`}
+                style={
+                  isBiro
+                    ? page === i + 1
+                      ? {
+                          backgroundColor: themeColor,
+                          borderColor: themeColor,
+                          boxShadow: `0 3px 12px color-mix(in srgb, ${themeColor} 30%, transparent)`,
+                          color: '#ffffff',
+                        }
+                      : {
+                          color: themeColor,
+                        }
+                    : undefined
+                }
                 onClick={() => {
                   setPage(i + 1);
                   window.scrollTo({ top: 300, behavior: 'smooth' });
@@ -201,6 +246,7 @@ export default function BlogListClient() {
             <button
               className={styles.pgBtn}
               disabled={page === totalPages}
+              style={isBiro ? { color: themeColor } : undefined}
               onClick={() => {
                 setPage((p) => Math.min(totalPages, p + 1));
                 window.scrollTo({ top: 300, behavior: 'smooth' });

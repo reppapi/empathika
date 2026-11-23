@@ -740,3 +740,125 @@ html[data-biro-theme="true"] .group:hover .group-hover\:text-\[\#b385c0\],
 [data-biro-theme="true"] .group:hover .group-hover\:text-\[\#b385c0\] {
   color: color-mix(in srgb, var(--biro-theme-color, #561269) 80%, white) !important;
 }
+
+/* ============================================================== */
+/* 13. Blog Section Adaptations for Tenant Biro                    */
+/* ============================================================== */
+html[data-biro-theme="true"] [class*="blogHero"],
+[data-biro-theme="true"] [class*="blogHero"] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 82%, white) 0%,
+    var(--biro-theme-color, #561269) 50%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 55%, black) 100%
+  ) !important;
+}
+
+html[data-biro-theme="true"] [class*="blogBody"],
+[data-biro-theme="true"] [class*="blogBody"],
+html[data-biro-theme="true"] [class*="detailPage"],
+[data-biro-theme="true"] [class*="detailPage"] {
+  background: color-mix(in srgb, var(--biro-theme-color, #561269) 3%, #fbfbfc) !important;
+}
+
+html[data-biro-theme="true"] [class*="blogCard"],
+[data-biro-theme="true"] [class*="blogCard"] {
+  border-left-color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] [class*="blogCard"]:hover,
+[data-biro-theme="true"] [class*="blogCard"]:hover {
+  border-left-color: color-mix(in srgb, var(--biro-theme-color, #561269) 82%, white) !important;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--biro-theme-color, #561269) 15%, transparent) !important;
+}
+
+html[data-biro-theme="true"] [class*="categoryBadge"],
+[data-biro-theme="true"] [class*="categoryBadge"] {
+  color: var(--biro-theme-color, #561269) !important;
+  background: color-mix(in srgb, var(--biro-theme-color, #561269) 8%, white) !important;
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 25%, transparent) !important;
+}
+
+html[data-biro-theme="true"] [class*="authorAv"],
+[data-biro-theme="true"] [class*="authorAv"],
+html[data-biro-theme="true"] [class*="authorAvD"],
+[data-biro-theme="true"] [class*="authorAvD"] {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 82%, white),
+    var(--biro-theme-color, #561269)
+  ) !important;
+}
+
+html[data-biro-theme="true"] [class*="readMoreLink"],
+[data-biro-theme="true"] [class*="readMoreLink"] {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] [class*="blogCard"]:hover [class*="readMoreLink"],
+[data-biro-theme="true"] [class*="blogCard"]:hover [class*="readMoreLink"] {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 75%, black) !important;
+}
+
+html[data-biro-theme="true"] [class*="searchBtn"],
+[data-biro-theme="true"] [class*="searchBtn"] {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] [class*="searchBtn"]:hover,
+[data-biro-theme="true"] [class*="searchBtn"]:hover {
+  background: color-mix(in srgb, var(--biro-theme-color, #561269) 10%, transparent) !important;
+}
+
+html[data-biro-theme="true"] [class*="pgBtn"].active,
+[data-biro-theme="true"] [class*="pgBtn"].active,
+html[data-biro-theme="true"] [class*="pgBtn"][class*="active"],
+[data-biro-theme="true"] [class*="pgBtn"][class*="active"] {
+  background: var(--biro-theme-color, #561269) !important;
+  border-color: var(--biro-theme-color, #561269) !important;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--biro-theme-color, #561269) 25%, transparent) !important;
+}
+
+html[data-biro-theme="true"] [class*="pgBtn"]:hover:not(:disabled):not([class*="active"]),
+[data-biro-theme="true"] [class*="pgBtn"]:hover:not(:disabled):not([class*="active"]) {
+  background: color-mix(in srgb, var(--biro-theme-color, #561269) 6%, white) !important;
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 40%, transparent) !important;
+}
+
+html[data-biro-theme="true"] [class*="pgBtn"],
+[data-biro-theme="true"] [class*="pgBtn"] {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] [class*="backLink"]:hover,
+[data-biro-theme="true"] [class*="backLink"]:hover {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] [class*="copyBtn"]:hover:not([class*="copied"]),
+[data-biro-theme="true"] [class*="copyBtn"]:hover:not([class*="copied"]) {
+  border-color: var(--biro-theme-color, #561269) !important;
+  color: var(--biro-theme-color, #561269) !important;
+  background: color-mix(in srgb, var(--biro-theme-color, #561269) 8%, transparent) !important;
+}
+
+html[data-biro-theme="true"] [class*="recentHeader"] a,
+[data-biro-theme="true"] [class*="recentHeader"] a {
+  color: var(--biro-theme-color, #561269) !important;
+}
+
+html[data-biro-theme="true"] [class*="articleCard"],
+[data-biro-theme="true"] [class*="articleCard"] {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 15%, #ede9fe) !important;
+  box-shadow: 0 4px 28px color-mix(in srgb, var(--biro-theme-color, #561269) 8%, transparent) !important;
+}
+
+html[data-biro-theme="true"] [class*="recentCard"],
+[data-biro-theme="true"] [class*="recentCard"] {
+  border-color: color-mix(in srgb, var(--biro-theme-color, #561269) 15%, #ede9fe) !important;
+}
+
+html[data-biro-theme="true"] [class*="recentCard"]:hover,
+[data-biro-theme="true"] [class*="recentCard"]:hover {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--biro-theme-color, #561269) 12%, transparent) !important;
+}
