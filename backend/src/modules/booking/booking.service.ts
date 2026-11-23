@@ -17,6 +17,7 @@ import {
   formatDateToString,
   formatTimeToString,
   calculateRefundDeadline,
+  evaluateRefundEligibility,
 } from '../../utils/date-time'
 
 export class BookingService {
@@ -83,8 +84,8 @@ export class BookingService {
       const cleanWa = s.client.no_telepon ? s.client.no_telepon.replace(/\D/g, '') : ''
       const waNumber = cleanWa.startsWith('0') ? '62' + cleanWa.slice(1) : cleanWa
 
-      // Hitung batas refund (H-1 = 24 jam sebelum jadwal sesi) via helper terpusat
-      const { refundDeadline, isPastH1 } = calculateRefundDeadline(
+      // Evaluasi kelayakan refund sesuai aturan baru (> H-3: 100%, H-3 s.d 3 jam: 70%, <= 3 jam: ditolak)
+      const evaluasi = evaluateRefundEligibility(
         s.jadwal.tanggal,
         s.jadwal.jam_mulai
       )
@@ -92,9 +93,11 @@ export class BookingService {
       const isPaid = (s as any).transaksi?.status_pembayaran === 'PAID' || s.status === 'CONFIRMED'
       const isRefunded = (s as any).transaksi?.status_pembayaran === 'REFUNDED' || s.status === 'CANCELLED'
       const isCompleted = s.status === 'COMPLETED'
-      const canRefund = isPaid && !isRefunded && !isCompleted && !isPastH1
+      const isHangus = (s as any).transaksi?.status_pembayaran === 'HANGUS'
+      const canRefund = isPaid && !isRefunded && !isCompleted && !isHangus && evaluasi.kategori !== 'DITOLAK'
 
-      const nominalRefund = (s as any).transaksi ? Number((s as any).transaksi.total) : (s.layanan?.harga_weekday ? Number(s.layanan.harga_weekday) : 200000)
+      const totalNominal = (s as any).transaksi ? Number((s as any).transaksi.total) : (s.layanan?.harga_weekday ? Number(s.layanan.harga_weekday) : 200000)
+      const nominalRefund = Math.floor((totalNominal * evaluasi.persenRefund) / 100)
 
       const isAsesmen =
         s.jadwal?.tipe_jadwal === 'ASESMEN' ||
@@ -119,12 +122,16 @@ export class BookingService {
         rawStatus: s.status,
         deskripsiTrauma: s.deskripsi_trauma,
         tanggal: formatDateToString(s.jadwal.tanggal),
-        // Rincian Refund H-1
+        // Rincian Refund Aturan Baru
         canRefund,
-        isPastH1,
+        isPastH1: evaluasi.kategori === 'DITOLAK',
         isRefunded,
         isPaid,
-        refundDeadline: refundDeadline.toISOString(),
+        kategoriRefund: evaluasi.kategori,
+        persenRefund: evaluasi.persenRefund,
+        persenPotongan: evaluasi.persenPotongan,
+        refundDeadline: evaluasi.refundDeadline3Jam.toISOString(),
+        refundDeadlineH3: evaluasi.refundDeadlineH3.toISOString(),
         nominalRefund,
         idTransaksi: (s as any).transaksi?.id || null,
         kodeTransaksi: (s as any).transaksi?.kode_transaksi || null,

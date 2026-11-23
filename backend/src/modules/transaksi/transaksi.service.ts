@@ -43,14 +43,16 @@ export class TransaksiService {
     const result = await this.repo.refundTransaksi(params)
     return {
       success: true,
-      message: `Refund transaksi berhasil diproses. Rp${result.nominalDitahan?.toLocaleString('id-ID') ?? '150.000'} ditahan (DP hangus); Rp${result.nominalRefund?.toLocaleString('id-ID') ?? '0'} dikembalikan ke klien.`,
+      message: `Refund transaksi berhasil diproses (${result.persenRefund}% kembali ke klien, potongan ${result.persenPotongan}%). Rp${result.nominalRefund?.toLocaleString('id-ID')} dikembalikan ke klien; Rp${result.nominalDitahan?.toLocaleString('id-ID')} dipotong/ditahan.`,
       transaksiId: result.transaksi.id,
       kodeTransaksi: result.transaksi.kode_transaksi,
       totalTransaksi: result.totalTransaksi,
-      nominalDitahan: result.nominalDitahan,     // Rp150.000 yang ditahan
-      nominalRefund: result.nominalRefund,        // Sisa yang dikembalikan ke client
-      porsiPsikologDP: result.porsiPsikologDP,   // Bagian psikolog dari nominal ditahan
-      porsiEmpathikaDP: result.porsiEmpathikaDP, // Bagian Empathika dari nominal ditahan
+      nominalDitahan: result.nominalDitahan,
+      nominalRefund: result.nominalRefund,
+      persenRefund: result.persenRefund,
+      persenPotongan: result.persenPotongan,
+      porsiPsikologPotongan: result.porsiPsikologPotongan,
+      porsiEmpathikaPotongan: result.porsiEmpathikaPotongan,
       tipeSesi: result.tipeSesi,
       statusPembayaran: result.transaksi.status_pembayaran,
       refundAt: result.transaksi.refund_at,
@@ -64,6 +66,26 @@ export class TransaksiService {
           }
         : null,
     }
+  }
+
+  async getRekapPembagianPsikolog(params: {
+    id_psikolog?: string
+    status?: 'BELUM_DICAIRKAN' | 'BERHASIL' | 'ALL'
+    search?: string
+    bulan?: number
+    tahun?: number
+  }) {
+    return this.repo.getRekapPembagianPsikolog(params)
+  }
+
+  async markPembagianDibayarkan(params: {
+    idPembagian?: string
+    idPsikolog?: string
+    tanggalDibayarkan?: Date
+    dibayarkanOleh?: string
+    catatan?: string
+  }) {
+    return this.repo.markPembagianDibayarkan(params)
   }
 
   /**

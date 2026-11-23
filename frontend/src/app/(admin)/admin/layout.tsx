@@ -24,6 +24,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   } else if (pathname?.startsWith("/admin/event")) {
     pageTitle = "Manajemen Event"
     pageDescription = "Kelola informasi event, jadwal pelaksanaan, pendaftaran peserta, dan publikasi kegiatan."
+  } else if (pathname?.startsWith("/admin/pembagian")) {
+    pageTitle = "Rekap Pembagian Pendapatan Psikolog"
+    pageDescription = "Kelola dan tandai status pembayaran honor sesi konseling psikolog oleh Direktur."
   } else if (pathname?.startsWith("/admin/transaksi")) {
     pageTitle = "Manajemen Transaksi"
     pageDescription = "Pantau transaksi pembayaran dan status pembayaran dari berbagai layanan Empathika."

@@ -139,4 +139,57 @@ export class TransaksiController {
       })
     }
   }
+
+  getRekapPembagian = async (
+    request: FastifyRequest<{
+      Querystring: {
+        id_psikolog?: string
+        status?: 'BELUM_DICAIRKAN' | 'BERHASIL' | 'ALL'
+        search?: string
+      }
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getRekapPembagianPsikolog(request.query)
+      reply.send({ success: true, data })
+    } catch (err: any) {
+      reply.code(500).send({ error: 'Internal Server Error', message: err.message })
+    }
+  }
+
+  markPembagianDibayarkan = async (
+    request: FastifyRequest<{
+      Body: {
+        idPembagian?: string
+        idPsikolog?: string
+        tanggalDibayarkan?: string
+        dibayarkanOleh?: string
+        catatan?: string
+      }
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = (request as any).user
+      const dibayarkanOleh = request.body.dibayarkanOleh || user?.nama || 'Direktur'
+      const tanggal = request.body.tanggalDibayarkan ? new Date(request.body.tanggalDibayarkan) : new Date()
+
+      const result = await this.service.markPembagianDibayarkan({
+        idPembagian: request.body.idPembagian,
+        idPsikolog: request.body.idPsikolog,
+        tanggalDibayarkan: tanggal,
+        dibayarkanOleh,
+        catatan: request.body.catatan,
+      })
+
+      reply.send({
+        success: true,
+        message: 'Pembagian berhasil ditandai telah dibayarkan.',
+        data: result,
+      })
+    } catch (err: any) {
+      reply.code(err.statusCode || 400).send({ error: 'Bad Request', message: err.message })
+    }
+  }
 }

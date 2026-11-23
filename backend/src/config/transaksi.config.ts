@@ -12,9 +12,9 @@ export const PERSEN_PSIKOLOG: Record<'OFFLINE' | 'ONLINE', number> = {
   ONLINE: 50,
 }
 
-// ── DP / Nominal yang ditahan saat pembatalan/klien tidak hadir ──
-// Nominal tetap Rp150.000, berlaku berapa pun harga sesi.
-export const DP_NOMINAL = 150_000
+// ── DP / Aturan Lama Ditiadakan ──
+// Aturan lama nominal tetap Rp150.000 ditiadakan. Nilai dipertahankan sebagai 0 / deprecated alias.
+export const DP_NOMINAL = 0
 
 // ── Komisi Biro ──
 // TODO: Isi setelah ada keputusan bisnis. Saat ini 0 (tidak ada komisi).

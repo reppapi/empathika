@@ -35,17 +35,16 @@ export function formatDateToString(date: Date | string): string {
 }
 
 /**
- * Menghitung batas waktu refund sesi (H-1 = 24 jam sebelum jadwal sesi).
- * Jam di database disimpan dalam representasi WIB, sehingga dikurangi 7 jam untuk UTC absolut.
+ * Mengonversi tanggal dan jam sesi menjadi UTC Date absolut (disesuaikan dari WIB / UTC+7).
  */
-export function calculateRefundDeadline(
+export function getSessionDateTime(
   tanggal: Date | string,
   jamMulai: Date | string
-): { sessionDateTime: Date; refundDeadline: Date; isPastH1: boolean } {
+): Date {
   const sessionDate = typeof tanggal === 'string' ? parseDateString(tanggal) : new Date(tanggal)
   const sessionTime = typeof jamMulai === 'string' ? timeStringToDate(jamMulai) : new Date(jamMulai)
 
-  const sessionDateTime = new Date(
+  return new Date(
     Date.UTC(
       sessionDate.getUTCFullYear(),
       sessionDate.getUTCMonth(),
@@ -56,8 +55,90 @@ export function calculateRefundDeadline(
       0
     )
   )
+}
 
-  const refundDeadline = new Date(sessionDateTime.getTime() - 24 * 60 * 60 * 1000)
+export type StatusKelayakanRefund = 'FULL_REFUND' | 'POTONGAN_30' | 'DITOLAK'
+
+export interface HasilEvaluasiRefund {
+  sessionDateTime: Date
+  refundDeadlineH3: Date
+  refundDeadline3Jam: Date
+  hoursUntilSession: number
+  kategori: StatusKelayakanRefund
+  persenRefund: number
+  persenPotongan: number
+  alasanPenolakan?: string
+}
+
+/**
+ * Menghitung kelayakan dan kalkulasi aturan refund baru:
+ * - > H-3 (72 jam sebelum sesi): Refund 100% (potongan 0%)
+ * - Antara H-3 sampai > 3 jam sebelum sesi: Refund 70% (potongan 30%)
+ * - <= 3 jam sebelum sesi: Ditolak (0% refund)
+ */
+export function evaluateRefundEligibility(
+  tanggal: Date | string,
+  jamMulai: Date | string,
+  now: number = Date.now()
+): HasilEvaluasiRefund {
+  const sessionDateTime = getSessionDateTime(tanggal, jamMulai)
+  const diffMs = sessionDateTime.getTime() - now
+  const hoursUntilSession = diffMs / (1000 * 60 * 60)
+
+  const refundDeadlineH3 = new Date(sessionDateTime.getTime() - 72 * 60 * 60 * 1000)
+  const refundDeadline3Jam = new Date(sessionDateTime.getTime() - 3 * 60 * 60 * 1000)
+
+  if (hoursUntilSession > 72) {
+    return {
+      sessionDateTime,
+      refundDeadlineH3,
+      refundDeadline3Jam,
+      hoursUntilSession,
+      kategori: 'FULL_REFUND',
+      persenRefund: 100,
+      persenPotongan: 0,
+    }
+  }
+
+  if (hoursUntilSession > 3) {
+    return {
+      sessionDateTime,
+      refundDeadlineH3,
+      refundDeadline3Jam,
+      hoursUntilSession,
+      kategori: 'POTONGAN_30',
+      persenRefund: 70,
+      persenPotongan: 30,
+    }
+  }
+
+  const deadline3JamStr = refundDeadline3Jam.toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+
+  return {
+    sessionDateTime,
+    refundDeadlineH3,
+    refundDeadline3Jam,
+    hoursUntilSession,
+    kategori: 'DITOLAK',
+    persenRefund: 0,
+    persenPotongan: 100,
+    alasanPenolakan: `Refund tidak dapat diajukan karena batas waktu pengajuan (maksimal 3 jam sebelum sesi) telah terlewati pada ${deadline3JamStr} WIB`,
+  }
+}
+
+/**
+ * Fungsi kompatibilitas mundur
+ */
+export function calculateRefundDeadline(
+  tanggal: Date | string,
+  jamMulai: Date | string
+): { sessionDateTime: Date; refundDeadline: Date; isPastH1: boolean } {
+  const sessionDateTime = getSessionDateTime(tanggal, jamMulai)
+  const refundDeadline = new Date(sessionDateTime.getTime() - 3 * 60 * 60 * 1000)
   const isPastH1 = Date.now() > refundDeadline.getTime()
 
   return { sessionDateTime, refundDeadline, isPastH1 }
