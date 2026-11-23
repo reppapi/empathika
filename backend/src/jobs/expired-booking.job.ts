@@ -24,6 +24,13 @@ export function startExpiredBookingCleanupJob(
           `[Job] Pembersihan otomatis: ${result.count} booking pending kedaluwarsa dibatalkan dan slot berhasil dikembalikan.`
         )
       }
+      // Proses transaksi sesi konseling yang hangus jika jadwal sudah terlewat
+      const hangusResult = await repo.processHangusBookings()
+      if (hangusResult.count > 0) {
+        fastify.log.info(
+          `[Job] Deteksi sesi hangus: ${hangusResult.count} transaksi ditandai hangus karena jadwal terlewat tanpa kehadiran/refund.`
+        )
+      }
     } catch (err: any) {
       fastify.log.error(`[Job] Gagal membersihkan booking pending kedaluwarsa: ${err.message}`)
     }

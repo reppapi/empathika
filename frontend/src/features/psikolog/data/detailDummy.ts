@@ -42,11 +42,6 @@ export function getDetailPsikolog(id: string): DetailPsikologUI | null {
       'Quarter Life Crisis'
     ],
     pendidikan: basePsikolog.pendidikanText ? [basePsikolog.pendidikanText] : ['Pendidikan Profesi Psikologi / Konseling'],
-    testimoni: [
-      {
-        kutipan: `Sesi konseling bersama ${basePsikolog.nama_gelar} sangat nyaman, terarah, dan memberikan solusi yang nyata.`,
-        pemberi: 'Klien Empathika'
-      }
-    ]
+    testimoni: []
   };
 }

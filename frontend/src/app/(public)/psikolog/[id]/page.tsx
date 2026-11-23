@@ -248,12 +248,7 @@ export default function DetailPsikologPage({ params }: PageProps) {
             videoDuration: data.video_duration || "",
             jadwalTersedia,
             jadwalAssociate: scheduleList,
-            testimoni: [
-              {
-                kutipan: "Sesi konseling sangat membantu saya dalam mengurai benang kusut kecemasan yang selama ini saya rasakan.",
-                pemberi: "Klien Anonim, 24 Thn",
-              },
-            ],
+            testimoni: [],
           }
 
           setPsikolog(mapped)

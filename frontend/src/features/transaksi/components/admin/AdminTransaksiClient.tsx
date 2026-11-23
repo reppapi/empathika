@@ -51,14 +51,54 @@ function ModalRefundTransaksi({
     0
   )
 
-  // Aturan baru: DP Hangus / Biaya reservasi tetap Rp 150.000
-  const DP_NOMINAL = 150_000
-  const ditahan = Math.min(DP_NOMINAL, totalNominal)
-  const isOffline = (transaksi.booking_konsultasi?.metode || "").toUpperCase() === "OFFLINE"
+  // Evaluasi aturan refund baru berdasarkan selisih waktu terhadap jadwal sesi:
+  // - > H-3 (> 72 jam): 100% penuh (potongan 0%)
+  // - H-3 s.d > 3 jam: 70% dikembalikan (potongan 30%)
+  // - <= 3 jam: Refund tidak berlaku lagi (tombol konfirmasi disabled abu-abu)
+  const booking = transaksi.booking_konsultasi || transaksi.booking || {}
+  const jadwal = booking.jadwal || {}
+  const client = transaksi.client || transaksi.user || transaksi.klien || {}
+  const layanan = booking.layanan || {}
+
+  let hoursUntilSession = 999
+  let isPast3Jam = false
+  let isFullRefund = true
+  let persenRefund = 100
+  let persenPotongan = 0
+
+  if (jadwal.tanggal && jadwal.jam_mulai) {
+    try {
+      const d = new Date(jadwal.tanggal)
+      const t = new Date(jadwal.jam_mulai)
+      // Representasi waktu sesi WIB
+      const sessionDate = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), t.getUTCHours() - 7, t.getUTCMinutes(), 0, 0))
+      hoursUntilSession = (sessionDate.getTime() - Date.now()) / (1000 * 60 * 60)
+    } catch {
+      hoursUntilSession = 999
+    }
+  }
+
+  if (hoursUntilSession <= 3) {
+    isPast3Jam = true
+    persenRefund = 0
+    persenPotongan = 100
+  } else if (hoursUntilSession <= 72) {
+    isFullRefund = false
+    persenRefund = 70
+    persenPotongan = 30
+  } else {
+    isFullRefund = true
+    persenRefund = 100
+    persenPotongan = 0
+  }
+
+  const refundKlien = Math.floor((totalNominal * persenRefund) / 100)
+  const nominalPotongan = totalNominal - refundKlien
+
+  const isOffline = (booking.metode || "").toUpperCase() === "OFFLINE"
   const persenPsikolog = isOffline ? 60 : 50
-  const potPsikolog = Math.floor((ditahan * persenPsikolog) / 100)
-  const potEmpathika = ditahan - potPsikolog
-  const refundKlien = Math.max(0, totalNominal - ditahan)
+  const potPsikolog = Math.floor((nominalPotongan * persenPsikolog) / 100)
+  const potEmpathika = nominalPotongan - potPsikolog
 
   const formatRupiah = (val: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -70,12 +110,16 @@ function ModalRefundTransaksi({
 
   const totalStr = formatRupiah(totalNominal)
   const refundKlienStr = formatRupiah(refundKlien)
-  const ditahanStr = formatRupiah(ditahan)
+  const nominalPotonganStr = formatRupiah(nominalPotongan)
   const potEmpathikaStr = formatRupiah(potEmpathika)
   const potPsikologStr = formatRupiah(potPsikolog)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isPast3Jam) {
+      setErrorMsg("Refund tidak dapat dilakukan karena waktu sesi tersisa kurang dari 3 jam.")
+      return
+    }
     if (!alasan.trim()) {
       setErrorMsg("Alasan refund wajib diisi oleh Admin")
       return
@@ -91,10 +135,6 @@ function ModalRefundTransaksi({
       setIsSubmitting(false)
     }
   }
-
-  const booking = transaksi.booking_konsultasi || transaksi.booking || {}
-  const client = transaksi.client || transaksi.user || transaksi.klien || {}
-  const layanan = booking.layanan || {}
 
   const klienName =
     client.nama ||
@@ -116,7 +156,7 @@ function ModalRefundTransaksi({
         {/* Header */}
         <div className="flex items-start justify-between border-b border-gray-100 pb-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${isPast3Jam ? "bg-gray-100 text-gray-500" : isFullRefund ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
               <RotateCcw className="w-5 h-5" />
             </div>
             <div>
@@ -124,7 +164,11 @@ function ModalRefundTransaksi({
                 Konfirmasi Refund Transaksi
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Biaya Reservasi Rp 150.000 Ditahan (DP) • Sisa Dikembalikan ke Klien (Maksimal H-1)
+                {isPast3Jam
+                  ? "Batas refund terlewati (≤ 3 jam sebelum sesi)"
+                  : isFullRefund
+                  ? "Refund Penuh 100% (> H-3 / > 72 jam sebelum sesi)"
+                  : "Potongan 30% • 70% Dikembalikan (H-3 s.d 3 jam)"}
               </p>
             </div>
           </div>
@@ -157,38 +201,58 @@ function ModalRefundTransaksi({
               <span className="font-mono text-xs font-semibold text-gray-700">{transaksi.kode_transaksi || transaksi.order_id || "-"}</span>
             </div>
             <div className="flex justify-between items-center text-gray-600">
-              <span className="font-medium">Total Tagihan Awal</span>
+              <span className="font-medium">Total Pembayaran</span>
               <span className="font-bold text-gray-800">{totalStr}</span>
             </div>
+
             <div className="border-t border-gray-200/80 pt-2 space-y-1.5">
               <div className="flex justify-between items-center text-emerald-700 font-semibold">
                 <span className="flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Dikembalikan ke Klien
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Dikembalikan ke Klien ({persenRefund}%)
                 </span>
                 <span className="font-extrabold text-sm text-emerald-700">{refundKlienStr}</span>
               </div>
               <div className="flex justify-between items-center text-[11px] text-amber-700 font-medium">
-                <span>Total Ditahan (Biaya Reservasi)</span>
-                <span className="font-semibold">{ditahanStr}</span>
+                <span>Potongan yang Ditahan ({persenPotongan}%)</span>
+                <span className="font-semibold">{nominalPotonganStr}</span>
               </div>
-              <div className="flex justify-between items-center text-[11px] text-gray-500 pl-3">
-                <span>↳ Hak Psikolog ({persenPsikolog}%)</span>
-                <span className="font-semibold text-gray-700">{potPsikologStr}</span>
-              </div>
-              <div className="flex justify-between items-center text-[11px] text-gray-500 pl-3">
-                <span>↳ Operasional Empathika ({100 - persenPsikolog}%)</span>
-                <span className="font-semibold text-gray-700">{potEmpathikaStr}</span>
-              </div>
+              {nominalPotongan > 0 && (
+                <>
+                  <div className="flex justify-between items-center text-[11px] text-gray-500 pl-3">
+                    <span>↳ Hak Psikolog ({persenPsikolog}%)</span>
+                    <span className="font-semibold text-gray-700">{potPsikologStr}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] text-gray-500 pl-3">
+                    <span>↳ Operasional Empathika ({100 - persenPsikolog}%)</span>
+                    <span className="font-semibold text-gray-700">{potEmpathikaStr}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="bg-amber-50/70 border border-amber-200/70 rounded-xl p-3 flex items-start gap-2.5 text-amber-900">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="font-semibold text-[11px] leading-snug">
-              Refund hanya dapat dilakukan maksimal H-1 sebelum jadwal sesi.
-              Pastikan permintaan klien memenuhi syarat sebelum mengkonfirmasi.
-            </p>
-          </div>
+          {isPast3Jam ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2.5 text-red-900">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <p className="font-semibold text-[11px] leading-snug">
+                Refund tidak dapat diajukan karena sesi konseling dimulai kurang dari 3 jam lagi atau sudah lewat.
+              </p>
+            </div>
+          ) : isFullRefund ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-2.5 text-emerald-900">
+              <AlertCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="font-semibold text-[11px] leading-snug">
+                Pengajuan diajukan lebih dari 3 hari (H-3 / 72 jam) sebelum sesi: Dana dikembalikan 100% penuh kepada klien.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-3 flex items-start gap-2.5 text-amber-900">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="font-semibold text-[11px] leading-snug">
+                Pengajuan berada di rentang H-3 s.d 3 jam sebelum sesi: Dikenakan potongan 30% dan 70% dikembalikan ke klien.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Form */}
@@ -203,9 +267,10 @@ function ModalRefundTransaksi({
                 setAlasan(e.target.value)
                 if (errorMsg) setErrorMsg(null)
               }}
+              disabled={isPast3Jam}
               rows={3}
-              placeholder="Contoh: Klien berhalangan karena urusan mendadak dan mengajukan sebelum batas H-1"
-              className="w-full text-xs rounded-xl border border-gray-300 p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition"
+              placeholder="Contoh: Klien berhalangan hadir dan mengajukan pembatalan sesuai ketentuan waktu"
+              className="w-full text-xs rounded-xl border border-gray-300 p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition disabled:bg-gray-100 disabled:text-gray-400"
               required
             />
             {errorMsg && (
@@ -224,14 +289,20 @@ function ModalRefundTransaksi({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="flex-1 py-2.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+              disabled={isSubmitting || isPast3Jam}
+              className={`flex-1 py-2.5 rounded-full text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 ${
+                isPast3Jam
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+              }`}
             >
               {isSubmitting ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Memproses...</span>
                 </>
+              ) : isPast3Jam ? (
+                "Batas Refund Lewat (≤ 3 Jam)"
               ) : (
                 "Konfirmasi Refund"
               )}
@@ -1336,10 +1407,10 @@ export default function AdminTransaksiClient() {
                     <div className="pt-3 pb-1 border-t border-gray-100 flex flex-col gap-2 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-red-600 uppercase tracking-wide">
-                          Status: Transaksi Di-Refund (DP Ditahan)
+                          Status: Transaksi Di-Refund
                         </span>
                         <span className="font-bold text-red-600">
-                          Rp. {(activeDetailItem.refundAmount ?? Math.max(0, activeDetailItem.totalBayar - 150000)).toLocaleString("id-ID")}
+                          Rp. {(activeDetailItem.refundAmount ?? activeDetailItem.nominalDikembalikan ?? 0).toLocaleString("id-ID")}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-gray-500 text-[11px]">
@@ -1388,7 +1459,7 @@ export default function AdminTransaksiClient() {
                         className="w-full rounded-full border-2 border-amber-400 bg-transparent hover:bg-amber-50 px-4 py-3 text-xs sm:text-sm font-bold text-amber-600 transition-all flex items-center justify-center gap-2 active:scale-98"
                       >
                         <RotateCcw className="w-4 h-4" />
-                        Proses Refund (DP Hangus)
+                        Proses Refund Transaksi
                       </button>
                     )}
                   </div>

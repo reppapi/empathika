@@ -118,19 +118,50 @@ export function hitungTransaksi(
   }
 }
 
-// ── Fungsi 3: Hitung pembagian DP hangus ─────────────────────────────
-// Nominal yang ditahan selalu Rp150.000, apapun harga sesinya.
-// Kecuali jika jumlah yang sudah dibayar client < 150.000 (edge case).
+export interface HasilRefundBaru {
+  totalDibayar: number
+  persenRefund: number
+  persenPotongan: number
+  nominalRefund: number
+  nominalPotongan: number
+  porsiPsikologPotongan: number
+  porsiEmpathikaPotongan: number
+}
+
+// ── Fungsi 3: Hitung refund sesuai aturan baru (100% atau Potongan 30%) ──
+export function hitungRefundBaru(
+  tipeSesi: TipeSesi,
+  totalDibayar: number,
+  persenRefund: number // 100 atau 70
+): HasilRefundBaru {
+  const persenPotongan = 100 - persenRefund
+  const nominalRefund = Math.floor((totalDibayar * persenRefund) / 100)
+  const nominalPotongan = totalDibayar - nominalRefund
+
+  const persenPsik = PERSEN_PSIKOLOG[tipeSesi]
+  const porsiPsikologPotongan = Math.floor((nominalPotongan * persenPsik) / 100)
+  const porsiEmpathikaPotongan = nominalPotongan - porsiPsikologPotongan
+
+  return {
+    totalDibayar,
+    persenRefund,
+    persenPotongan,
+    nominalRefund,
+    nominalPotongan,
+    porsiPsikologPotongan,
+    porsiEmpathikaPotongan,
+  }
+}
+
+// Kompatibilitas mundur
 export function hitungPembagianDPHangus(
   tipeSesi: TipeSesi,
   jumlahDibayar: number
 ): HasilDPHangus {
   const ditahan = Math.min(DP_NOMINAL, jumlahDibayar)
-
   const persenPsik = PERSEN_PSIKOLOG[tipeSesi]
   const porsiPsikologDP = Math.floor(ditahan * persenPsik / 100)
-  const porsiEmpathikaDP = ditahan - porsiPsikologDP // sisa (menghindari selisih)
-
+  const porsiEmpathikaDP = ditahan - porsiPsikologDP
   const dikembalikanKeClient = jumlahDibayar - ditahan
 
   return {

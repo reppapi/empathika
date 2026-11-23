@@ -14,6 +14,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { name: "Ringkasan Operasional", path: "/admin" },
   { name: "Transaksi", path: "/admin/transaksi" },
+  { name: "Pembagian Komisi", path: "/admin/pembagian" },
   { name: "Jadwal & Sesi", path: "/admin/jadwal" },
   { name: "Event", path: "/admin/event" },
   { name: "Psikotes", path: "/admin/psikotes" },

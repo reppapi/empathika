@@ -963,10 +963,10 @@ export default function AdminTransaksiBiroClient() {
                     <div className="pt-3 pb-1 border-t border-gray-100 flex flex-col gap-2 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-red-600 uppercase tracking-wide">
-                          Status: Transaksi Di-Refund (DP Ditahan)
+                          Status: Transaksi Di-Refund
                         </span>
                         <span className="font-bold text-red-600">
-                          Rp. {(activeDetailItem.refundAmount ?? Math.max(0, activeDetailItem.totalBayar - 150000)).toLocaleString("id-ID")}
+                          Rp. {(activeDetailItem.refundAmount ?? 0).toLocaleString("id-ID")}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-gray-500 text-[11px]">
