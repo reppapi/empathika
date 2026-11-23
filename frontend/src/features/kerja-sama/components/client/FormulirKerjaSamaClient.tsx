@@ -452,7 +452,7 @@ export default function FormulirKerjaSamaClient({
 
             {/* Bagian 1: Biodata (Sesuai Mockup Gambar) */}
             <div className="mt-4">
-              <h2 className="text-lg md:text-xl font-bold text-[#561269] mb-4">
+              <h2 className="text-base sm:text-lg font-bold text-[#561269] mb-3">
                 Biodata
               </h2>
 
@@ -527,8 +527,8 @@ export default function FormulirKerjaSamaClient({
             </div>
 
             {/* Bagian 2: Tipe Institusi (Sesuai Mockup Gambar) */}
-            <div className="mt-2">
-              <h2 className="text-lg md:text-xl font-bold text-[#561269] mb-4">
+            <div className="mt-5">
+              <h2 className="text-base sm:text-lg font-bold text-[#561269] mb-3">
                 Tipe Institusi
               </h2>
 
@@ -583,10 +583,10 @@ export default function FormulirKerjaSamaClient({
                   : [];
 
               return (
-                <div key={q.key} className="mt-2">
-                  <h2 className="text-lg md:text-xl font-bold text-[#561269] mb-3">
+                <div key={q.key} className="mt-4">
+                  <label className="block text-sm sm:text-[15px] font-bold text-[#561269] mb-1.5">
                     {q.label}
-                  </h2>
+                  </label>
 
                   {isBudgetOrSelect ? (
                     <FormSelectDropdown
@@ -642,14 +642,15 @@ export default function FormulirKerjaSamaClient({
             })}
 
             {/* Bagian 4: Catatan / Kebutuhan Tambahan (Opsional) */}
-            <div className="mt-2">
-              <label className="text-xs font-semibold text-gray-700 block mb-1.5">
+            <div className="mt-4">
+              <label className="block text-sm sm:text-[15px] font-bold text-[#561269] mb-1.5">
                 Catatan Tambahan / Gambaran Kegiatan (Opsional)
               </label>
               <textarea
                 rows={3}
                 value={catatanKebutuhan}
                 onFocus={() => setActiveInput("catatan")}
+                onBlur={() => setActiveInput("")}
                 onChange={(e) => setCatatanKebutuhan(e.target.value)}
                 placeholder="Tuliskan jika ada permintaan khusus, topik bahasan, atau detail lainnya..."
                 className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
