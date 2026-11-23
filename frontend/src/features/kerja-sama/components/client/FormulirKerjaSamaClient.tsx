@@ -503,19 +503,6 @@ export default function FormulirKerjaSamaClient({
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* Breadcrumb Back Link */}
-        <div className="mb-6">
-          <Link
-            href="/kerja-sama"
-            className="inline-flex items-center gap-1.5 text-xs text-[#561269] hover:text-[#7f1d8f] font-medium transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-            </svg>
-            Kembali ke Kerja Sama
-          </Link>
-        </div>
-
         {/* Khusus Program Affiliate: Langsung Arahkan ke WhatsApp Tanpa Formulir */}
         {formType === "affiliate" ? (
           <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-100 text-center space-y-6 animate-fadeIn">
