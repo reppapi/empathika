@@ -91,22 +91,32 @@ function isRomanValid(str: string): boolean {
 function parseTextToPages(rawText: string): string[] {
   if (!rawText || !rawText.trim()) return ["<p></p>"];
 
+  let parts: string[] = [rawText];
   if (rawText.includes("<!-- PAGE_BREAK -->")) {
-    const parts = rawText.split("<!-- PAGE_BREAK -->").map((p) => p.trim());
-    return parts.length > 0 ? parts : ["<p></p>"];
+    parts = rawText.split("<!-- PAGE_BREAK -->").map((p) => p.trim());
+  } else if (rawText.includes("--- HALAMAN BARU ---")) {
+    parts = rawText.split("--- HALAMAN BARU ---").map((p) => p.trim());
   }
 
-  if (rawText.includes("--- HALAMAN BARU ---")) {
-    const parts = rawText.split("--- HALAMAN BARU ---").map((p) => p.trim());
-    return parts.length > 0 ? parts : ["<p></p>"];
-  }
+  // Filter: hanya simpan halaman yang benar-benar ada isinya (kecuali halaman 1 jika dokumen kosong)
+  const cleanParts = parts.filter((part, idx) => {
+    if (idx === 0) return true;
+    const stripped = part.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
+    return stripped.length > 0;
+  });
 
-  return [rawText];
+  return cleanParts.length > 0 ? cleanParts : ["<p></p>"];
 }
 
 // Menggabungkan seluruh isi HTML halaman menjadi satu teks utuh dengan pemisah PAGE_BREAK
 function combinePages(pagesList: string[]): string {
-  return (pagesList || []).join("\n\n<!-- PAGE_BREAK -->\n\n");
+  // Hanya simpan lembaran yang memiliki konten bermakna (selain lembar pertama)
+  const validPages = (pagesList || []).filter((p, idx) => {
+    if (idx === 0) return true;
+    const stripped = p.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
+    return stripped.length > 0;
+  });
+  return (validPages.length > 0 ? validPages : ["<p></p>"]).join("\n\n<!-- PAGE_BREAK -->\n\n");
 }
 
 // Konversi teks mentah / markdown / format lama ke format HTML standar TipTap (<p>, <ol><li>, <ul><li>)
@@ -334,7 +344,11 @@ const CustomGlobalAttributesExtension = Extension.create({
 });
 
 // Extension TipTap kustom untuk keyboard shortcut (Tab, Shift+Tab, Backspace, Ctrl+Enter) & auto input rules
-const createKeyboardShortcutsExtension = (onAddPageAfter: () => void) =>
+const createKeyboardShortcutsExtension = (
+  onAddPageAfter: (initialHtml?: string) => void,
+  onRemovePageIfEmpty?: () => void,
+  pageIdx?: number
+) =>
   Extension.create({
     name: "customKeyboardShortcuts",
     addKeyboardShortcuts() {
@@ -441,6 +455,15 @@ const createKeyboardShortcutsExtension = (onAddPageAfter: () => void) =>
         Backspace: () => {
           const { selection } = this.editor.state;
 
+          // 0. Jika di lembar ke-2 dst, dan halaman kosong atau kursor di posisi paling awal: hapus lembar ini dan fokus ke sebelumnya
+          if ((pageIdx || 0) > 0 && selection.empty && selection.$from.pos <= 1) {
+            const stripped = this.editor.getText().trim();
+            if (!stripped && onRemovePageIfEmpty) {
+              onRemovePageIfEmpty();
+              return true;
+            }
+          }
+
           // 1. Jika di dalam list item kosong: hapus nomor dan posisikan kursor sejajar dengan teks nomor (indent: 1)
           if (this.editor.isActive("listItem")) {
             const parent = selection.$from.parent;
@@ -500,7 +523,8 @@ interface TipTapSheetEditorProps {
   onUpdateContent: (html: string) => void;
   onFocus: (editor: Editor) => void;
   onTransaction: () => void;
-  onAddPageAfter: () => void;
+  onAddPageAfter: (initialHtml?: string) => void;
+  onRemovePageIfEmpty?: () => void;
   registerEditor: (pageIdx: number, editor: Editor | null) => void;
 }
 
@@ -513,11 +537,15 @@ const TipTapSheetEditor: React.FC<TipTapSheetEditorProps> = ({
   onFocus,
   onTransaction,
   onAddPageAfter,
+  onRemovePageIfEmpty,
   registerEditor,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const overflowDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+
   const keyboardExtension = useMemo(
-    () => createKeyboardShortcutsExtension(onAddPageAfter),
-    [onAddPageAfter]
+    () => createKeyboardShortcutsExtension(onAddPageAfter, onRemovePageIfEmpty, pageIdx),
+    [onAddPageAfter, onRemovePageIfEmpty, pageIdx]
   );
 
   const editor = useEditor({
@@ -548,6 +576,12 @@ const TipTapSheetEditor: React.FC<TipTapSheetEditorProps> = ({
     ],
     onUpdate: ({ editor: ed }) => {
       onUpdateContent(ed.getHTML());
+      if (overflowDebounceTimer.current) {
+        clearTimeout(overflowDebounceTimer.current);
+      }
+      overflowDebounceTimer.current = setTimeout(() => {
+        checkOverflowAndSplit();
+      }, 150);
     },
     onFocus: ({ editor: ed }) => {
       onFocus(ed);
@@ -559,6 +593,73 @@ const TipTapSheetEditor: React.FC<TipTapSheetEditorProps> = ({
       onTransaction();
     },
   });
+
+  const checkOverflowAndSplit = useCallback(() => {
+    if (isReadOnly || !editor) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const pmEl = container.querySelector(".ProseMirror") as HTMLElement | null;
+    if (!pmEl) return;
+
+    const containerRect = container.getBoundingClientRect();
+    if (containerRect.height <= 150) return; // Belum selesai layout awal
+
+    // Cek apakah scrollHeight melebihi tinggi container
+    if (pmEl.scrollHeight > container.clientHeight + 4) {
+      const children = Array.from(pmEl.children) as HTMLElement[];
+      if (children.length <= 1) return; // Jangan potong jika hanya 1 elemen blok
+
+      let overflowStartIndex = -1;
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        const childRect = child.getBoundingClientRect();
+        if (childRect.bottom > containerRect.bottom - 4) {
+          overflowStartIndex = i;
+          break;
+        }
+      }
+
+      if (overflowStartIndex > 0) {
+        const overflowChildren = children.slice(overflowStartIndex);
+        const overflowHtml = overflowChildren.map((el) => el.outerHTML).join("");
+
+        const { state, dispatch } = editor.view;
+        const { doc } = state;
+
+        let cutPos = -1;
+        let blockCount = 0;
+        doc.forEach((node, pos) => {
+          if (blockCount === overflowStartIndex && cutPos === -1) {
+            cutPos = pos;
+          }
+          blockCount++;
+        });
+
+        if (cutPos >= 0) {
+          const tr = state.tr.delete(cutPos, doc.content.size);
+          dispatch(tr);
+          onUpdateContent(editor.getHTML());
+          onAddPageAfter(overflowHtml);
+        }
+      }
+    }
+  }, [editor, isReadOnly, onUpdateContent, onAddPageAfter]);
+
+  useEffect(() => {
+    return () => {
+      if (overflowDebounceTimer.current) {
+        clearTimeout(overflowDebounceTimer.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkOverflowAndSplit();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [checkOverflowAndSplit]);
 
   useEffect(() => {
     if (editor) {
@@ -581,7 +682,8 @@ const TipTapSheetEditor: React.FC<TipTapSheetEditorProps> = ({
 
   return (
     <div
-      className="w-full flex-1 h-full min-h-0 flex flex-col cursor-text"
+      ref={containerRef}
+      className="w-full flex-1 h-full min-h-0 flex flex-col cursor-text overflow-hidden"
       onClick={() => {
         if (editor && !editor.isFocused) {
           editor.commands.focus("end");
@@ -590,7 +692,7 @@ const TipTapSheetEditor: React.FC<TipTapSheetEditorProps> = ({
     >
       <EditorContent
         editor={editor}
-        className={`w-full flex-1 h-full min-h-0 flex flex-col bg-transparent border-0 focus:ring-0 focus:outline-none font-serif text-sm sm:text-base leading-relaxed text-gray-900 ${
+        className={`w-full flex-1 h-full min-h-0 flex flex-col bg-transparent border-0 focus:ring-0 focus:outline-none font-sans text-xs sm:text-[13px] leading-relaxed text-gray-800 ${
           isReadOnly ? "cursor-default select-text" : ""
         }`}
       />
@@ -863,11 +965,17 @@ export default function ModalReviewPsikotes({
     fullDetail?.paket?.alat_ukur?.kode?.toUpperCase().includes("MCMI")
   );
 
-  const handleAddPage = (insertIndex?: number) => {
+  const handleAddPage = (insertIndex?: number, initialHtml?: string) => {
+    const content = initialHtml && initialHtml.trim() ? initialHtml : "<p></p>";
     setPages((prev) => {
       const targetIdx = typeof insertIndex === "number" ? insertIndex : prev.length;
+      if (typeof insertIndex === "number" && insertIndex < prev.length && initialHtml) {
+        const next = [...prev];
+        next[insertIndex] = (next[insertIndex] || "") + initialHtml;
+        return next;
+      }
       const next = [...prev];
-      next.splice(targetIdx, 0, "<p></p>");
+      next.splice(targetIdx, 0, content);
       return next;
     });
     const newActiveIdx = typeof insertIndex === "number" ? insertIndex : pages.length;
@@ -875,16 +983,16 @@ export default function ModalReviewPsikotes({
     setTimeout(() => {
       const ed = editorsMapRef.current.get(newActiveIdx);
       if (ed) {
-        ed.commands.focus();
+        ed.commands.focus("end");
         setActiveEditor(ed);
       }
-    }, 50);
+    }, 60);
   };
 
-  const handleRemovePage = (pageIdx: number) => {
+  const handleRemovePage = (pageIdx: number, silent = false) => {
     if (pages.length <= 1) return;
     const pageContent = (pages[pageIdx] || "").replace(/<[^>]+>/g, "").trim();
-    if (pageContent.length > 0) {
+    if (pageContent.length > 0 && !silent) {
       if (!window.confirm(`Hapus Halaman ${pageIdx + 1}? Tulisan pada halaman ini akan ikut terhapus.`)) {
         return;
       }
@@ -896,7 +1004,7 @@ export default function ModalReviewPsikotes({
     setTimeout(() => {
       const ed = editorsMapRef.current.get(newActiveIdx);
       if (ed) {
-        ed.commands.focus();
+        ed.commands.focus("end");
         setActiveEditor(ed);
       }
     }, 50);
@@ -1917,17 +2025,17 @@ export default function ModalReviewPsikotes({
                 display: flex !important;
                 flex-direction: column !important;
                 outline: none !important;
-                font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-                font-size: 14px;
+                font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+                font-size: 12px;
                 line-height: 1.625;
-                color: #111827;
+                color: #1f2937;
                 overflow-wrap: break-word !important;
                 word-break: normal !important;
                 white-space: pre-wrap !important;
               }
               @media (min-width: 640px) {
                 .tiptap {
-                  font-size: 15px;
+                  font-size: 13px;
                 }
               }
               .tiptap:focus, .ProseMirror:focus {
@@ -2171,7 +2279,8 @@ export default function ModalReviewPsikotes({
                       onTransaction={() => {
                         setEditorTick((t) => t + 1);
                       }}
-                      onAddPageAfter={() => handleAddPage(pageIdx + 1)}
+                      onAddPageAfter={(initialHtml) => handleAddPage(pageIdx + 1, initialHtml)}
+                      onRemovePageIfEmpty={() => handleRemovePage(pageIdx, true)}
                       registerEditor={registerEditor}
                     />
                   </div>
