@@ -340,6 +340,25 @@ export function useAdminKerjaSama() {
     showToast("Pertanyaan berhasil dihapus!")
   }
 
+  const handleUpdateQuestion = (qId: string, updatedFields: Partial<FormulirPertanyaan>) => {
+    if (!currentFormConfig) return
+    const updatedQuestions = currentFormConfig.pertanyaanKhusus.map((q) => {
+      if (q.id === qId) {
+        return {
+          ...q,
+          ...updatedFields,
+        }
+      }
+      return q
+    })
+    const updated = formConfigs.map((f, idx) =>
+      idx === selectedFormIndex ? { ...f, pertanyaanKhusus: updatedQuestions } : f
+    )
+    setFormConfigs(updated)
+    saveFormulirConfigs(updated)
+    showToast("Pertanyaan berhasil diperbarui!")
+  }
+
   const handleAddNewQuestion = (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentFormConfig || !newQuestionLabel.trim()) return
@@ -446,6 +465,7 @@ export function useAdminKerjaSama() {
     handleUpdateCurrentForm,
     handleSaveAllFormConfigs,
     handleDeleteQuestion,
+    handleUpdateQuestion,
     handleAddNewQuestion,
     handleUpdateLeadStatus,
     handleDeleteLead,
