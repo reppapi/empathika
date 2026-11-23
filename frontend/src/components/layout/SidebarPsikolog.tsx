@@ -1,8 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { removeAuthCookie } from "@/lib/cookie"
+import { adminService } from "@/services/admin.service"
 
 interface SidebarPsikologProps {
   isOpen?: boolean
@@ -13,6 +15,61 @@ interface SidebarPsikologProps {
 
 export function SidebarPsikolog({ isOpen, onClose, isReviewer = false, reviewBadgeCount = 0 }: SidebarPsikologProps) {
   const pathname = usePathname()
+
+  // Ambil foto/logo resmi Empathika dari cache lokal & database publik
+  const [empathikaLogo, setEmpathikaLogo] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed.foto) return parsed.foto
+        }
+      } catch {}
+    }
+    return null
+  })
+
+  useEffect(() => {
+    const loadEmpathikaLogo = () => {
+      try {
+        const saved = localStorage.getItem("empathika_admin_profile")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed.foto !== undefined && parsed.foto !== null) {
+            setEmpathikaLogo(parsed.foto)
+          }
+        }
+      } catch {}
+
+      adminService
+        .getPublicProfile()
+        .then((res: any) => {
+          if (res?.data?.foto !== undefined && res?.data?.foto !== null) {
+            setEmpathikaLogo(res.data.foto)
+            try {
+              const currentSaved = localStorage.getItem("empathika_admin_profile")
+              const currentParsed = currentSaved ? JSON.parse(currentSaved) : {}
+              localStorage.setItem(
+                "empathika_admin_profile",
+                JSON.stringify({ ...currentParsed, foto: res.data.foto })
+              )
+            } catch {}
+          }
+        })
+        .catch(() => {})
+    }
+
+    loadEmpathikaLogo()
+    window.addEventListener("storage", loadEmpathikaLogo)
+    window.addEventListener("focus", loadEmpathikaLogo)
+    window.addEventListener("empathika_admin_profile_updated", loadEmpathikaLogo)
+    return () => {
+      window.removeEventListener("storage", loadEmpathikaLogo)
+      window.removeEventListener("focus", loadEmpathikaLogo)
+      window.removeEventListener("empathika_admin_profile_updated", loadEmpathikaLogo)
+    }
+  }, [])
 
   const isActive = (path: string) => {
     if (path === "/psikolog-web/beranda") return pathname === "/psikolog-web/beranda" || pathname === "/beranda" || pathname === "/admin/psikolog-web"
@@ -48,7 +105,17 @@ export function SidebarPsikolog({ isOpen, onClose, isReviewer = false, reviewBad
             onClick={onClose}
             className="flex items-center gap-3 transition-transform hover:scale-105"
           >
-            <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm" />
+            <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm overflow-hidden flex items-center justify-center text-[#561269] font-extrabold text-lg">
+              {empathikaLogo ? (
+                <img
+                  src={empathikaLogo}
+                  alt="Empathika"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                "E"
+              )}
+            </div>
             <span className="text-[25px] font-extrabold tracking-wide text-white uppercase truncate">
               EMPATHIKA
             </span>

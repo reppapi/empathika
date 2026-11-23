@@ -51,14 +51,25 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
             setAdminFoto(res.data.foto)
           }
         })
-        .catch(() => {})
+        .catch(() => {
+          adminService
+            .getPublicProfile()
+            .then((res: any) => {
+              if (res?.data?.foto !== undefined) {
+                setAdminFoto(res.data.foto)
+              }
+            })
+            .catch(() => {})
+        })
     }
 
     loadProfile()
     window.addEventListener("storage", loadProfile)
+    window.addEventListener("focus", loadProfile)
     window.addEventListener("empathika_admin_profile_updated", loadProfile)
     return () => {
       window.removeEventListener("storage", loadProfile)
+      window.removeEventListener("focus", loadProfile)
       window.removeEventListener("empathika_admin_profile_updated", loadProfile)
     }
   }, [])
