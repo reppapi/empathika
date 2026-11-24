@@ -197,10 +197,10 @@ export class TransaksiService {
           data: { status: 'SUDAH_DIBOOKING' },
         })
 
-        // Tentukan apakah transaksi terafiliasi biro (dari input eksplisit atau dari data klien yang sudah terafiliasi)
+        // Tentukan apakah transaksi terafiliasi biro (murni dari input checkout saat transaksi dilakukan)
         const metodeBayar = (input.metode_pembayaran || 'QRIS').toUpperCase()
         const tipeSesi = (input.metode_layanan || 'ONLINE').toUpperCase() as 'ONLINE' | 'OFFLINE'
-        const effectiveBiroId = input.id_biro || client.id_biro || null
+        const effectiveBiroId = input.id_biro || null
         const dariBiro = Boolean(effectiveBiroId)
         const rincian = hitungTransaksi(hargaDasar, tipeSesi, metodeBayar, dariBiro)
 
@@ -308,7 +308,7 @@ export class TransaksiService {
         kodePesanan = generateOrderId('EVT')
         deskripsiTagihan = `Pendaftaran Event: ${event.judul} - ${kodePesanan}`
 
-        const effectiveBiroId = input.id_biro || client.id_biro || null
+        const effectiveBiroId = input.id_biro || null
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
@@ -380,7 +380,7 @@ export class TransaksiService {
         kodePesanan = generateOrderId('PSI')
         deskripsiTagihan = `Tes Psikotes Premium: ${paket.judul} - ${kodePesanan}`
 
-        const effectiveBiroId = input.id_biro || client.id_biro || null
+        const effectiveBiroId = input.id_biro || null
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,

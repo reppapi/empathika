@@ -592,9 +592,11 @@ export default function AdminPembagianClient() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Kolom Kiri: Tabel Ringkasan Per Psikolog (Holder Awal) */}
         <div className="lg:col-span-7 bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm sm:text-base font-bold text-gray-900">Daftar Rekap Per Psikolog</h2>
-            <span className="text-xs text-gray-400">{displayedPsikologList.length} Psikolog</span>
+          <div className="bg-[#EFE8F3] px-5 py-3.5 border-b border-purple-100 flex items-center justify-between">
+            <h2 className="text-sm sm:text-base font-bold text-[#561269]">Daftar Rekap Per Psikolog</h2>
+            <span className="text-[11px] font-bold text-[#561269] bg-white/80 px-2.5 py-0.5 rounded-full border border-purple-200">
+              {displayedPsikologList.length} Psikolog
+            </span>
           </div>
 
           {isLoading ? (
@@ -629,9 +631,8 @@ export default function AdminPembagianClient() {
                         <h3 className="text-xs sm:text-sm font-bold text-gray-900 truncate">
                           {p.namaPsikolog}
                         </h3>
-                        <p className="text-[11px] text-gray-500 mt-0.5 truncate flex items-center gap-1">
-                          <CreditCard className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <span>{p.rekeningBank}</span>
+                        <p className="text-[11px] text-gray-500 mt-0.5 truncate">
+                          {p.rekeningBank}
                         </p>
                         <p className="text-[11px] text-gray-400 mt-0.5">
                           {p.jumlahSesi} sesi konseling
@@ -662,12 +663,26 @@ export default function AdminPembagianClient() {
 
         {/* Kolom Kanan: Rincian Transaksi Sesi (Holder Awal dengan Header Ungu) */}
         <div className="lg:col-span-5 bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-6">
-          <div className="bg-[#EFE8F3] px-5 py-3.5 border-b border-purple-100 flex items-center justify-between">
-            <h3 className="text-sm sm:text-base font-bold text-[#561269]">Rincian Transaksi Sesi</h3>
-            {selectedPsikolog && (
-              <span className="text-[11px] font-bold text-[#561269] bg-white/80 px-2.5 py-0.5 rounded-full border border-purple-200">
-                {selectedPsikolog.items.length} Sesi
-              </span>
+          <div className="bg-[#EFE8F3] px-5 py-3 border-b border-purple-100 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm sm:text-base font-bold text-[#561269]">Rincian Transaksi Sesi</h3>
+              {selectedPsikolog && (
+                <span className="text-[11px] font-bold text-[#561269] bg-white/80 px-2.5 py-0.5 rounded-full border border-purple-200">
+                  {selectedPsikolog.items.length} Sesi
+                </span>
+              )}
+            </div>
+
+            {/* Tombol Tandai Semua Selesai di Header Paling Atas */}
+            {selectedPsikolog && selectedPsikolog.totalBelumDibayarkan > 0 && (
+              <button
+                type="button"
+                onClick={() => handleMarkAllDone(selectedPsikolog.idPsikolog)}
+                className="px-3.5 py-1.5 rounded-full bg-[#561269] hover:bg-[#6b1a81] text-white text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1 active:scale-95 shrink-0"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Tandai Semua Selesai</span>
+              </button>
             )}
           </div>
 
@@ -681,9 +696,8 @@ export default function AdminPembagianClient() {
                     Total Bulan Ini: {formatRupiah(selectedPsikolog.totalBagianPsikolog)}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span>{selectedPsikolog.rekeningBank}</span>
+                <p className="text-xs text-gray-500">
+                  {selectedPsikolog.rekeningBank}
                 </p>
                 <div className="flex items-center justify-between text-xs pt-1">
                   <span className="text-gray-500">
@@ -695,122 +709,56 @@ export default function AdminPembagianClient() {
                 </div>
               </div>
 
-              {/* Baris Tombol Aksi Cepat (ala SMS HP) */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={handleSelectAllUnpaid}
-                  className="text-xs font-semibold text-gray-600 hover:text-[#561269] flex items-center gap-1 cursor-pointer"
-                >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Pilih Sesi Belum Dibayar</span>
-                </button>
-
-                <div className="flex items-center gap-2">
-                  {selectedItemIds.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleMarkSelectedDone}
-                      className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1 active:scale-95"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Tandai ({selectedItemIds.length}) Selesai</span>
-                    </button>
-                  )}
-
-                  {selectedPsikolog.totalBelumDibayarkan > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => handleMarkAllDone(selectedPsikolog.idPsikolog)}
-                      className="px-3 py-1.5 rounded-full bg-[#561269] hover:bg-[#6b1a81] text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1 active:scale-95"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Tandai Semua Selesai</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* List Sesi Simpel Berupa Baris Garis (Divide-y, Bukan Kotak Dalam Kotak) */}
-              <div className="divide-y divide-gray-100 max-h-[460px] overflow-y-auto pr-1">
+              {/* List Sesi Bersih (Tanpa Kotak Checkbox, Cukup Tombol Hijau) */}
+              <div className="divide-y divide-gray-100 max-h-[490px] overflow-y-auto pr-1">
                 {selectedPsikolog.items.length === 0 ? (
                   <p className="text-center py-8 text-xs text-gray-400">
                     Tidak ada rincian sesi pada periode ini.
                   </p>
                 ) : (
-                  selectedPsikolog.items.map((it) => {
-                    const isChecked = selectedItemIds.includes(it.id)
-                    const isUnpaid = it.status === "BELUM_DICAIRKAN"
-
-                    return (
-                      <div
-                        key={it.id}
-                        onClick={() => {
-                          if (isUnpaid) toggleSelectItem(it.id)
-                        }}
-                        className={`py-3.5 px-2 flex items-center justify-between gap-3 transition text-xs ${
-                          isUnpaid ? "cursor-pointer hover:bg-gray-50/70" : "cursor-default"
-                        } ${isChecked ? "bg-purple-50/60" : ""}`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          {/* Checkbox ala SMS HP */}
-                          {isUnpaid ? (
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleSelectItem(it.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-4 h-4 rounded text-[#561269] focus:ring-[#561269] cursor-pointer shrink-0"
-                            />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                              <Check className="w-2.5 h-2.5" />
-                            </div>
-                          )}
-
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-900 truncate">{it.namaKlien}</span>
-                              <span className="text-[10px] text-gray-300">•</span>
-                              <span className="text-[11px] text-gray-500 truncate">{it.layanan}</span>
-                            </div>
-                            <p className="text-[11px] text-gray-400 mt-0.5">
-                              {new Date(it.tanggal).toLocaleDateString("id-ID", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </p>
-                          </div>
+                  selectedPsikolog.items.map((it) => (
+                    <div
+                      key={it.id}
+                      className="py-3 px-1 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gray-900 truncate">{it.namaKlien}</span>
+                          <span className="text-[10px] text-gray-300">•</span>
+                          <span className="text-[11px] text-gray-500 truncate">{it.layanan}</span>
                         </div>
-
-                        {/* Nominal & Tombol Sudah Dibayar 1-Klik */}
-                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                          <span className="font-extrabold text-[#561269] text-xs">
-                            {formatRupiah(it.bagianPsikolog)}
-                          </span>
-
-                          {it.status === "BERHASIL" ? (
-                            <span className="font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px]">
-                              <CheckCircle className="w-3 h-3" /> Selesai Dibayar
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleMarkOneItemDone(selectedPsikolog.idPsikolog, it.id)
-                              }}
-                              className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition shadow-xs cursor-pointer flex items-center gap-1 active:scale-95"
-                            >
-                              <Check className="w-3 h-3" />
-                              <span>Tandai Selesai</span>
-                            </button>
-                          )}
-                        </div>
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          {new Date(it.tanggal).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
                       </div>
-                    )
-                  })
+
+                      {/* Nominal & Tombol Sudah Dibayar 1-Klik */}
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                        <span className="font-extrabold text-[#561269] text-xs">
+                          {formatRupiah(it.bagianPsikolog)}
+                        </span>
+
+                        {it.status === "BERHASIL" ? (
+                          <span className="font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px]">
+                            <CheckCircle className="w-3 h-3" /> Selesai Dibayar
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkOneItemDone(selectedPsikolog.idPsikolog, it.id)}
+                            className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition shadow-xs cursor-pointer flex items-center gap-1 active:scale-95"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>Tandai Selesai</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
