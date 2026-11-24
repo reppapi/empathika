@@ -25,6 +25,7 @@ import {
   Check,
   Phone,
 } from "lucide-react"
+import { formatIndoPhoneWithPrefix } from "@/lib/utils"
 
 function CopyableTicket({ code }: { code: string }) {
   const [copied, setCopied] = useState(false)
@@ -47,31 +48,7 @@ function CopyableTicket({ code }: { code: string }) {
 }
 
 function formatDisplayPhone(phone: string | null | undefined): string {
-  if (!phone) return "-"
-  // Bersihkan karakter non-digit
-  const digits = phone.replace(/\D/g, "")
-  if (!digits) return phone
-
-  // Normalisasi prefix: jika diawali 08..., ubah jadi 628...
-  let normalized = digits
-  if (normalized.startsWith("0")) {
-    normalized = "62" + normalized.slice(1)
-  } else if (!normalized.startsWith("62")) {
-    normalized = "62" + normalized
-  }
-
-  // Format: +62 xxx-xxxx-xxxx
-  // Contoh: 6289999999999 -> prefix '62', lalu '899', '9999', '9999'
-  const rest = normalized.slice(2)
-  if (rest.length <= 3) {
-    return `+62 ${rest}`
-  } else if (rest.length <= 7) {
-    return `+62 ${rest.slice(0, 3)}-${rest.slice(3)}`
-  } else if (rest.length <= 11) {
-    return `+62 ${rest.slice(0, 3)}-${rest.slice(3, 7)}-${rest.slice(7)}`
-  } else {
-    return `+62 ${rest.slice(0, 3)}-${rest.slice(3, 7)}-${rest.slice(7, 11)}${rest.slice(11) ? `-${rest.slice(11)}` : ""}`
-  }
+  return formatIndoPhoneWithPrefix(phone)
 }
 
 interface AdminEventDetailModalProps {
@@ -406,7 +383,7 @@ export default function AdminEventDetailModal({
               >
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#561269]" />
-                  <span>Daftar Peserta Terdaftar ({currentEvent.tiketTerjual} Peserta)</span>
+                  <span>Daftar Peserta Terdaftar ({hasLoadedBookings ? totalPesertaLunas : currentEvent.tiketTerjual} Peserta)</span>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] font-semibold text-[#561269]/80">
                   <span>{showPeserta ? "Sembunyikan" : "Tampilkan"}</span>

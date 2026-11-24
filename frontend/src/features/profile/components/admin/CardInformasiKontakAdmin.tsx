@@ -42,18 +42,28 @@ export function CardInformasiKontakAdmin({
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            Alamat Email <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={form.email || ""}
-            onChange={onChange}
-            required
-            placeholder="nama@empathika.com"
-            className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
-          />
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-bold text-gray-700">
+              Alamat Email <span className="text-red-500">*</span>
+            </label>
+            <span className="text-[11px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+              Hanya Baca
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              type="email"
+              name="email"
+              value={form.email || ""}
+              readOnly
+              disabled
+              placeholder="nama@empathika.com"
+              className="w-full rounded-2xl border border-gray-200 bg-gray-50/80 px-4 py-3 text-sm text-gray-500 cursor-not-allowed select-none focus:outline-none"
+            />
+          </div>
+          <p className="text-[11px] text-gray-400 mt-1">
+            Untuk mengubah email login, gunakan formulir <strong>Ganti Alamat Email</strong> di bagian Keamanan Akun di bawah.
+          </p>
         </div>
 
         <div>

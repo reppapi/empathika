@@ -21,6 +21,7 @@ import {
   ClipboardCheck,
 } from "lucide-react"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
+import { formatIndoPhoneWithPrefix } from "@/lib/utils"
 
 interface PsikologDetailModalProps {
   isOpen: boolean
@@ -330,7 +331,7 @@ export default function PsikologDetailModal({
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="font-medium text-gray-900">{psikolog.noTelepon || "-"}</span>
+                  <span className="font-medium text-gray-900">{formatIndoPhoneWithPrefix(psikolog.noTelepon)}</span>
                 </div>
                 {psikolog.instagram && (
                   <div className="flex items-center gap-2.5">
