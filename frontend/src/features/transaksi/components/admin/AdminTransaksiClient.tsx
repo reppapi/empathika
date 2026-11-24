@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import { transaksiService } from "@/services/transaksi.service"
 import { invoiceService } from "@/services/invoice.service"
-import { formatOrderId } from "@/lib/utils"
+import { formatOrderId, formatIndoPhoneWithPrefix } from "@/lib/utils"
 import { AlertCircle, RotateCcw, X, DollarSign, Clock, CheckCircle2, ChevronDown } from "lucide-react"
 
 type JenisLayanan = "semua" | "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
@@ -544,7 +544,7 @@ function normalizeTransaksi(raw: any) {
     raw.email ||
     "–"
 
-  const clientPhone =
+  const rawClientPhone =
     parsedDataPembayaran?.no_telepon_pemesan ||
     parsedDataPembayaran?.no_telepon ||
     parsedDataPembayaran?.phone ||
@@ -553,7 +553,9 @@ function normalizeTransaksi(raw: any) {
     bookingEvent.client?.no_telepon ||
     client.no_hp ||
     client.phone ||
-    "–"
+    null
+
+  const clientPhone = rawClientPhone ? formatIndoPhoneWithPrefix(rawClientPhone, rawClientPhone) : "–"
 
   const biroNama =
     raw.biro_tenant?.nama_biro ||

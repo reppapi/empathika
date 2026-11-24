@@ -22,6 +22,7 @@ import {
 } from "@/components/shared/AdminDataTable"
 import PsikologDetailModal from "./PsikologDetailModal"
 import { AdminDeleteModal } from "@/components/shared/AdminDeleteModal"
+import { formatIndoPhoneWithPrefix } from "@/lib/utils"
 
 export default function AdminPsikologClient() {
   const router = useRouter()
@@ -269,7 +270,11 @@ export default function AdminPsikologClient() {
     {
       key: "telepon",
       header: "No. Telepon",
-      render: (item: TenagaAhli) => <p className="text-gray-800 font-medium">{item.noTelepon}</p>,
+      render: (item: TenagaAhli) => (
+        <p className="text-gray-800 font-medium">
+          {formatIndoPhoneWithPrefix(item.noTelepon)}
+        </p>
+      ),
     },
     {
       key: "statusAkses",

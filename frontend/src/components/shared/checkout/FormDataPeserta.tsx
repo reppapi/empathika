@@ -2,34 +2,11 @@
 
 import React from "react"
 import PhoneInputField from "@/components/shared/PhoneInputField"
+import { formatIndoPhoneWithPrefix } from "@/lib/utils"
 
 export function formatToIndonesianPhone(val: string): string {
   if (!val || val === "—") return val || ""
-  let digits = val.replace(/\D/g, "")
-  if (!digits) return ""
-
-  // Jika diawali 620, buang 620
-  if (digits.startsWith("620")) {
-    digits = digits.slice(3)
-  } else if (digits.startsWith("62")) {
-    // Jika diawali 62, buang 62
-    digits = digits.slice(2)
-  } else if (digits.startsWith("0")) {
-    // Jika diawali 0, buang 0
-    digits = digits.slice(1)
-  }
-
-  if (!digits) return "+62 "
-
-  if (digits.length <= 3) {
-    return `+62 ${digits}`
-  } else if (digits.length <= 7) {
-    return `+62 ${digits.slice(0, 3)}-${digits.slice(3)}`
-  } else if (digits.length <= 11) {
-    return `+62 ${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
-  } else {
-    return `+62 ${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 13)}`
-  }
+  return formatIndoPhoneWithPrefix(val, "")
 }
 
 export interface FormDataPesertaProps {

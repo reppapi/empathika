@@ -54,3 +54,48 @@ export function formatOrderId(id?: string | null): string {
     .replace(/^W-EMP-EMP-/, "W-EMP-")
     .replace(/^EMP-EMP-/, "EMP-")
 }
+
+/**
+ * Format digit angka nomor Indonesia menjadi kelompok chunks yang rapi (3-4-4-2)
+ * Contoh: 81234567890 -> 812-3456-7890
+ */
+export function formatIndoPhoneChunks(digits: string): string {
+  if (!digits) return ""
+  const chunks: string[] = []
+  if (digits.length > 0) chunks.push(digits.slice(0, 3))
+  if (digits.length > 3) chunks.push(digits.slice(3, 7))
+  if (digits.length > 7) chunks.push(digits.slice(7, 11))
+  if (digits.length > 11) chunks.push(digits.slice(11, 14))
+  return chunks.join("-")
+}
+
+/**
+ * Ekstrak digit angka nomor ponsel Indonesia murni (tanpa awalan 620, 62, atau 0)
+ * Contoh:
+ * - "081271351421" -> "81271351421"
+ * - "+62 812-3456-7890" -> "81234567890"
+ */
+export function extractIndoPhoneDigits(val?: string | null): string {
+  if (!val) return ""
+  let digits = String(val).replace(/\D/g, "")
+  if (digits.startsWith("620")) {
+    digits = digits.slice(3)
+  } else if (digits.startsWith("62")) {
+    digits = digits.slice(2)
+  } else if (digits.startsWith("0")) {
+    digits = digits.slice(1)
+  }
+  return digits.slice(0, 13)
+}
+
+/**
+ * Standard format tampilan nomor telepon Indonesia: "+62 812-3456-7890"
+ * Dipisahkan strip tiap 4 digit setelah awalan 3 digit kode operator.
+ * Jika nomor kosong, mengembalikan fallback (default: "-")
+ */
+export function formatIndoPhoneWithPrefix(val?: string | null, fallback = "-"): string {
+  if (!val || val === "—") return fallback
+  const digits = extractIndoPhoneDigits(val)
+  if (!digits) return fallback
+  return `+62 ${formatIndoPhoneChunks(digits)}`
+}

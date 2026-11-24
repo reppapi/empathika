@@ -20,6 +20,7 @@ import ActivationWarningModal from "@/components/common/ActivationWarningModal"
 import GenerateActivationLinkButton from "./GenerateActivationLinkButton"
 import { psikologService } from "@/services/psikolog.service"
 import { pickActivationFromPayload } from "@/lib/activation"
+import { formatIndoPhoneWithPrefix } from "@/lib/utils"
 
 interface Props {
   psikologId?: string
@@ -422,7 +423,7 @@ export default function AdminDetailPsikologClient({ psikologId }: Props = {}) {
               </div>
               <div className="flex items-center gap-2 text-slate-600">
                 <Phone className="w-4 h-4 text-slate-400" />
-                <span>{form.noTelepon || "-"}</span>
+                <span>{formatIndoPhoneWithPrefix(form.noTelepon)}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-600">
                 <Award className="w-4 h-4 text-slate-400" />
