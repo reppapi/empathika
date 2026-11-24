@@ -22,14 +22,15 @@ describe("Audit Kelayakan & Integritas Alat Ukur CHOCI-R", () => {
     expect(alias?.config.kode).toBe("CHOCI-R");
   });
 
-  it("B. Verifikasi Seeder Soal (Tepat 38 Butir Pertanyaan)", () => {
-    expect(CHOCI_SOAL).toHaveLength(38);
+  it("B. Verifikasi Seeder Soal (Tepat 76 Butir: 38 Anak + 38 Orang Tua)", () => {
+    expect(CHOCI_SOAL).toHaveLength(76);
 
-    // Periksa urutan nomor 1 s/d 38
-    for (let i = 0; i < 38; i++) {
+    // Periksa urutan nomor 1 s/d 76
+    for (let i = 0; i < 76; i++) {
       expect(CHOCI_SOAL[i].no).toBe(i + 1);
     }
 
+    // --- Versi Anak (1..38) ---
     // Butir 1..10 adalah Gejala Kompulsi
     const kompGejala = CHOCI_SOAL.slice(0, 10);
     expect(kompGejala.every((q) => q.kategori === "KOMPULSI_GEJALA")).toBe(true);
@@ -53,6 +54,31 @@ describe("Audit Kelayakan & Integritas Alat Ukur CHOCI-R", () => {
     // Butir 33..38 adalah Keparahan Obsesi (6 butir)
     const obsKeparahan = CHOCI_SOAL.slice(32, 38);
     expect(obsKeparahan.every((q) => q.kategori === "OBSESI_KEPARAHAN")).toBe(true);
+
+    // --- Versi Orang Tua (39..76) ---
+    // Butir 39..48 adalah Gejala Kompulsi Ortu
+    const kompGejalaOrtu = CHOCI_SOAL.slice(38, 48);
+    expect(kompGejalaOrtu.every((q) => q.kategori === "KOMPULSI_GEJALA")).toBe(true);
+
+    // Butir 49..51 adalah Isian Kompulsi Ortu
+    const kompIsianOrtu = CHOCI_SOAL.slice(48, 51);
+    expect(kompIsianOrtu.every((q) => q.kategori === "KOMPULSI_ISIAN")).toBe(true);
+
+    // Butir 52..57 adalah Keparahan Kompulsi Ortu (6 butir)
+    const kompKeparahanOrtu = CHOCI_SOAL.slice(51, 57);
+    expect(kompKeparahanOrtu.every((q) => q.kategori === "KOMPULSI_KEPARAHAN")).toBe(true);
+
+    // Butir 58..67 adalah Gejala Obsesi Ortu (10 butir)
+    const obsGejalaOrtu = CHOCI_SOAL.slice(57, 67);
+    expect(obsGejalaOrtu.every((q) => q.kategori === "OBSESI_GEJALA")).toBe(true);
+
+    // Butir 68..70 adalah Isian Obsesi Ortu (3 butir)
+    const obsIsianOrtu = CHOCI_SOAL.slice(67, 70);
+    expect(obsIsianOrtu.every((q) => q.kategori === "OBSESI_ISIAN")).toBe(true);
+
+    // Butir 71..76 adalah Keparahan Obsesi Ortu (6 butir)
+    const obsKeparahanOrtu = CHOCI_SOAL.slice(70, 76);
+    expect(obsKeparahanOrtu.every((q) => q.kategori === "OBSESI_KEPARAHAN")).toBe(true);
   });
 
   it("C. Verifikasi Opsi Pilihan Jawaban", () => {
