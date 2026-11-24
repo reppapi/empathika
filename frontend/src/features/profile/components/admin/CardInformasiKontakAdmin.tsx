@@ -42,14 +42,9 @@ export function CardInformasiKontakAdmin({
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-bold text-gray-700">
-              Alamat Email <span className="text-red-500">*</span>
-            </label>
-            <span className="text-[11px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
-              Hanya Baca
-            </span>
-          </div>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">
+            Alamat Email <span className="text-red-500">*</span>
+          </label>
           <div className="relative">
             <input
               type="email"

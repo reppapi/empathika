@@ -1,0 +1,29 @@
+{
+  "promoBanners": [
+    {
+      "id": "banner-1795540552661",
+      "judul": "",
+      "gambar": "http://localhost:3001/uploads/29db8778-8164-44e1-bead-2d9b759fd3a1.webp",
+      "linkTujuan": "/blog",
+      "aktif": false,
+      "tanggalMulai": "2026-11-23",
+      "tanggalBerakhir": "2026-11-24",
+      "createdAt": "2026-11-24T17:15:52.662Z"
+    },
+    {
+      "id": "banner-1795539484580",
+      "judul": "",
+      "gambar": "http://localhost:3001/uploads/0bfad3e3-04da-474e-be9c-36cc516e5ce5.webp",
+      "linkTujuan": "/psikotes",
+      "aktif": true,
+      "tanggalMulai": "2026-11-25",
+      "tanggalBerakhir": "2026-11-26",
+      "createdAt": "2026-11-24T16:58:04.580Z"
+    }
+  ],
+  "defaultSlide": {
+    "title": "Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya",
+    "subtitle": "Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.",
+    "link": "/konseling"
+  }
+}

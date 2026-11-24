@@ -8,6 +8,7 @@ import { useProfileAdminForm } from "../../hooks/useProfileAdminForm"
 import { CardFotoAdmin } from "./CardFotoAdmin"
 import { CardInformasiKontakAdmin } from "./CardInformasiKontakAdmin"
 import { CardKhususPsikologAdmin } from "./CardKhususPsikologAdmin"
+import { CardBannerPromoAdmin } from "./CardBannerPromoAdmin"
 import { AdminCredentialSection } from "./AdminCredentialSection"
 import { ModalPreviewClientAdmin } from "./ModalPreviewClientAdmin"
 
@@ -139,7 +140,7 @@ export default function ProfileAdminClient({
           onChange={handleInputChange}
         />
 
-        {/* KARTU 3: KHUSUS PSIKOLOG (Kredensial, Video Intro, Keahlian & Paragraf Profil) */}
+        {/* KARTU KHUSUS PSIKOLOG (Kredensial, Video Intro, Keahlian & Paragraf Profil) */}
         {role === "psikolog" && (
           <CardKhususPsikologAdmin
             form={form}
@@ -155,6 +156,11 @@ export default function ProfileAdminClient({
           />
         )}
       </form>
+
+      {/* ── KARTU BANNER PROMOSI BERANDA HERO (Khusus Admin Utama - Di luar form profil agar tidak bentrok) ── */}
+      {role === "admin" && (
+        <CardBannerPromoAdmin />
+      )}
 
       {/* ── 4. SEKSI KEAMANAN AKUN: Ganti Email & Ganti Password (Khusus Admin Utama) ── */}
       {role === "admin" && (

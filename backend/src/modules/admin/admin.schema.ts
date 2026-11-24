@@ -118,3 +118,42 @@ export const updateTentangKamiSchema = z.object({
 })
 
 export type UpdateTentangKamiInput = z.infer<typeof updateTentangKamiSchema>
+
+// ── Schema Banner Promosi Hero Beranda ──────────────────────────
+
+export const bannerPromoItemSchema = z.object({
+  id: z.string(),
+  judul: z.string().nullable().optional().default(''),
+  gambar: z.string().min(1, 'Gambar banner wajib ada'),
+  linkTujuan: z.string().nullable().optional().default(''),
+  aktif: z.boolean().optional().default(true),
+  tanggalMulai: z.string().nullable().optional(),
+  tanggalBerakhir: z.string().nullable().optional(),
+  createdAt: z.string().nullable().optional(),
+})
+
+export const defaultSlideConfigSchema = z.object({
+  title: z
+    .string()
+    .nullable()
+    .optional()
+    .default('Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya'),
+  subtitle: z
+    .string()
+    .nullable()
+    .optional()
+    .default(
+      'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.'
+    ),
+  link: z.string().nullable().optional().default('/konseling'),
+})
+
+export const updateHeroBannersSchema = z.object({
+  promoBanners: z.array(bannerPromoItemSchema).default([]),
+  defaultSlide: defaultSlideConfigSchema.optional(),
+})
+
+export type BannerPromoItemInput = z.infer<typeof bannerPromoItemSchema>
+export type DefaultSlideConfigInput = z.infer<typeof defaultSlideConfigSchema>
+export type UpdateHeroBannersInput = z.infer<typeof updateHeroBannersSchema>
+

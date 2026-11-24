@@ -8,6 +8,9 @@ import type {
   RescheduleBookingInput,
   UpdateAdminProfileInput,
   UpdateTentangKamiInput,
+  UpdateHeroBannersInput,
+  BannerPromoItemInput,
+  DefaultSlideConfigInput,
 } from './admin.schema'
 import bcrypt from 'bcrypt'
 import type { StatusBooking } from '@prisma/client'
@@ -879,6 +882,141 @@ export class AdminService {
     }
 
     return input
+  }
+
+  // ── Manajemen Banner Hero Promosi & Slide Utama ──────────────────────
+
+  async getHeroBanners(): Promise<UpdateHeroBannersInput> {
+    const fallbackSlide: DefaultSlideConfigInput = {
+      title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
+      subtitle:
+        'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
+      link: '/konseling',
+    }
+
+    let bannersFromDb: BannerPromoItemInput[] | null = null
+    let slideFromDb: DefaultSlideConfigInput | null = null
+
+    // 1. Coba baca dari Database (tabel SiteSetting dengan key 'hero_banners')
+    try {
+      const setting = await this.repo.getSiteSetting('hero_banners')
+      if (setting && setting.value) {
+        const val = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value
+        if (Array.isArray(val.promoBanners)) {
+          bannersFromDb = val.promoBanners
+        }
+        if (val.defaultSlide) {
+          slideFromDb = val.defaultSlide
+        }
+      }
+    } catch {
+      // Abaikan error jika database belum terhubung
+    }
+
+    // 2. Baca file JSON lokal
+    let bannersFromFile: BannerPromoItemInput[] | null = null
+    let slideFromFile: DefaultSlideConfigInput | null = null
+
+    const dataDir = join(process.cwd(), 'data')
+    const filePath = join(dataDir, 'hero-banners.json')
+    try {
+      if (existsSync(filePath)) {
+        const raw = readFileSync(filePath, 'utf-8')
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed.promoBanners)) {
+          bannersFromFile = parsed.promoBanners
+        }
+        if (parsed.defaultSlide) {
+          slideFromFile = parsed.defaultSlide
+        }
+      }
+    } catch {
+      // Abaikan jika berkas belum ada
+    }
+
+    // Prioritaskan DB jika ada, jika DB kosong/belum ada maka pakai file lokal
+    const promoBanners = bannersFromDb !== null ? bannersFromDb : (bannersFromFile ?? [])
+    const chosenSlide = slideFromDb ?? slideFromFile
+    const defaultSlide: DefaultSlideConfigInput = {
+      title: chosenSlide?.title ?? fallbackSlide.title,
+      subtitle: chosenSlide?.subtitle ?? fallbackSlide.subtitle,
+      link: chosenSlide?.link ?? fallbackSlide.link,
+    }
+
+    return {
+      promoBanners,
+      defaultSlide,
+    }
+  }
+
+  async getHeroBannersPublic(): Promise<{
+    activeBanners: BannerPromoItemInput[]
+    defaultSlide: DefaultSlideConfigInput
+  }> {
+    const data = await this.getHeroBanners()
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const todayStr = `${year}-${month}-${day}`
+
+    const activeBanners = (data.promoBanners || []).filter((b) => {
+      if (!b.aktif) return false
+      if (b.tanggalMulai) {
+        const startStr = b.tanggalMulai.split('T')[0]
+        if (todayStr < startStr) return false
+      }
+      if (b.tanggalBerakhir) {
+        const endStr = b.tanggalBerakhir.split('T')[0]
+        if (todayStr > endStr) return false
+      }
+      return true
+    })
+
+    return {
+      activeBanners,
+      defaultSlide: data.defaultSlide || {
+        title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
+        subtitle:
+          'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
+        link: '/konseling',
+      },
+    }
+  }
+
+  async updateHeroBanners(input: UpdateHeroBannersInput): Promise<UpdateHeroBannersInput> {
+    const dataToSave: UpdateHeroBannersInput = {
+      promoBanners: input.promoBanners || [],
+      defaultSlide: input.defaultSlide || {
+        title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
+        subtitle:
+          'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
+        link: '/konseling',
+      },
+    }
+
+    // 1. Simpan ke Database (tabel SiteSetting dengan key 'hero_banners')
+    try {
+      await this.repo.upsertSiteSetting('hero_banners', dataToSave)
+    } catch (err: any) {
+      console.warn('Gagal menyimpan Hero Banners ke database, fallback ke berkas JSON:', err.message)
+    }
+
+    // 2. Dual-write ke JSON lokal
+    try {
+      const dataDir = join(process.cwd(), 'data')
+      const filePath = join(dataDir, 'hero-banners.json')
+      const tempPath = join(dataDir, `hero-banners.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`)
+      if (!existsSync(dataDir)) {
+        mkdirSync(dataDir, { recursive: true })
+      }
+      writeFileSync(tempPath, JSON.stringify(dataToSave, null, 2), 'utf-8')
+      renameSync(tempPath, filePath)
+    } catch {
+      // Abaikan jika read-only
+    }
+
+    return dataToSave
   }
 }
 
