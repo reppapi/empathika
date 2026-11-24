@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { removeAuthCookie } from "@/lib/cookie"
@@ -33,6 +34,11 @@ export function SidebarBiro({
   biroLogo,
 }: SidebarBiroProps) {
   const pathname = usePathname()
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const isActive = (path: string) => {
     if (path === "/admin-biro") return pathname === "/admin-biro"
@@ -66,7 +72,7 @@ export function SidebarBiro({
               className="h-11 w-11 shrink-0 rounded-full bg-white shadow-sm flex items-center justify-center font-bold text-base overflow-hidden"
               style={{ color: biroColor || "#561269" }}
             >
-              {biroLogo ? (
+              {isMounted && biroLogo ? (
                 <img src={biroLogo} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 (biroName?.[0] || "B").toUpperCase()
