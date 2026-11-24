@@ -243,14 +243,16 @@ export function useBayarClient() {
     const qNama = searchParams.get("nama")
     const qWa = searchParams.get("whatsapp")
     const qDeskripsi = searchParams.get("deskripsi")
-    const qMetode = searchParams.get("metode")
+    const qMetodeBayar = searchParams.get("metodeBayar") || searchParams.get("paymentMethod")
     const qBank = searchParams.get("bank")
     const qEwallet = searchParams.get("ewallet")
 
     if (qNama) setNama(qNama)
     if (qWa) setWhatsapp(qWa)
     if (qDeskripsi) setDeskripsi(qDeskripsi)
-    if (qMetode) setMetodePembayaran(qMetode)
+    if (qMetodeBayar && ["qris", "bank", "ewallet"].includes(qMetodeBayar.toLowerCase())) {
+      setMetodePembayaran(qMetodeBayar)
+    }
     if (qBank) setSelectedBank(qBank)
     if (qEwallet) setSelectedEwallet(qEwallet)
   }, [searchParams])

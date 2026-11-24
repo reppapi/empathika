@@ -72,7 +72,7 @@ export const transaksiService = {
   processRefund: (transaksiId: string, payload: { alasan: string }) =>
     apiClient.post(`/transaksi/${transaksiId}/refund`, payload).then((r) => r.data),
 
-  getRekapPembagian: (params?: { id_psikolog?: string; status?: string; search?: string; bulan?: number; tahun?: number }) =>
+  getRekapPembagian: (params?: { id_psikolog?: string; status?: string; search?: string; bulan?: number; tahun?: number; tanggal?: string }) =>
     apiClient.get<{ success: boolean; data: any[] }>("/transaksi/admin/pembagian-rekap", { params }).then((r) => r.data),
 
   markPembagianDibayarkan: (payload: {

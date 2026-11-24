@@ -60,120 +60,17 @@ function getMonthLabel(ym: string) {
   return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${currentYear}`
 }
 
-// Data Dummy Preview (Fallback)
-const DUMMY_PEMBAGIAN_DATA: PsikologRekap[] = [
-  {
-    idPsikolog: "psi-1",
-    namaPsikolog: "Dra. Kiswahyuni, M.Psi., Psikolog",
-    rekeningBank: "Bank Mandiri - 1300012490887 (a.n Kiswahyuni)",
-    jumlahSesi: 4,
-    totalPendapatan: 1050000,
-    totalBagianPsikolog: 585000,
-    totalBelumDibayarkan: 405000,
-    totalSudahDibayarkan: 180000,
-    status: "BELUM_DICAIRKAN",
-    items: [
-      {
-        id: "pem-101",
-        idTransaksi: "trx-01",
-        kodeTransaksi: "TRX-20261122-01",
-        tanggal: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        layanan: "Konseling Individu (Offline)",
-        namaKlien: "Ananda Putri",
-        totalTransaksi: 300000,
-        bagianPsikolog: 180000,
-        alasan: "SESI_NORMAL",
-        status: "BERHASIL",
-        tanggalDibayarkan: new Date().toISOString(),
-      },
-      {
-        id: "pem-102",
-        idTransaksi: "trx-02",
-        kodeTransaksi: "TRX-20261123-02",
-        tanggal: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        layanan: "Konseling Online",
-        namaKlien: "Dimas Arya",
-        totalTransaksi: 250000,
-        bagianPsikolog: 125000,
-        alasan: "SESI_NORMAL",
-        status: "BELUM_DICAIRKAN",
-      },
-      {
-        id: "pem-103",
-        idTransaksi: "trx-03",
-        kodeTransaksi: "TRX-20261123-03",
-        tanggal: new Date().toISOString(),
-        layanan: "Konseling Pasangan (Offline)",
-        namaKlien: "Rizky & Maya",
-        totalTransaksi: 350000,
-        bagianPsikolog: 210000,
-        alasan: "SESI_HANGUS",
-        status: "BELUM_DICAIRKAN",
-      },
-      {
-        id: "pem-104",
-        idTransaksi: "trx-04",
-        kodeTransaksi: "TRX-20261121-04",
-        tanggal: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        layanan: "Konseling Online",
-        namaKlien: "Sarah Aulia",
-        totalTransaksi: 150000,
-        bagianPsikolog: 70000,
-        alasan: "REFUND_POTONGAN_30",
-        status: "BELUM_DICAIRKAN",
-      },
-    ],
-  },
-  {
-    idPsikolog: "psi-2",
-    namaPsikolog: "Rahmat Hidayat, S.Psi., M.Psi.",
-    rekeningBank: "BCA - 8450192810 (a.n Rahmat Hidayat)",
-    jumlahSesi: 2,
-    totalPendapatan: 500000,
-    totalBagianPsikolog: 250000,
-    totalBelumDibayarkan: 0,
-    totalSudahDibayarkan: 250000,
-    status: "BERHASIL",
-    items: [
-      {
-        id: "pem-201",
-        idTransaksi: "trx-05",
-        kodeTransaksi: "TRX-20261120-05",
-        tanggal: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-        layanan: "Konseling Remaja Online",
-        namaKlien: "Fajar Maulana",
-        totalTransaksi: 250000,
-        bagianPsikolog: 125000,
-        alasan: "SESI_NORMAL",
-        status: "BERHASIL",
-      },
-      {
-        id: "pem-202",
-        idTransaksi: "trx-06",
-        kodeTransaksi: "TRX-20261121-06",
-        tanggal: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        layanan: "Konseling Online",
-        namaKlien: "Citra Lestari",
-        totalTransaksi: 250000,
-        bagianPsikolog: 125000,
-        alasan: "SESI_NORMAL",
-        status: "BERHASIL",
-      },
-    ],
-  },
-]
-
 export default function AdminPembagianClient() {
   const now = new Date()
   const defaultYm = `${currentYear}-${String(now.getMonth() + 1).padStart(2, "0")}`
 
-  const [data, setData] = useState<PsikologRekap[]>(DUMMY_PEMBAGIAN_DATA)
-  const [isLoading, setIsLoading] = useState(false)
+  const [data, setData] = useState<PsikologRekap[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selectedMonth, setSelectedMonth] = useState(defaultYm)
   const [selectedDate, setSelectedDate] = useState("")
   const [statusCardFilter, setStatusCardFilter] = useState<"semua" | "belum" | "sudah">("semua")
-  const [selectedPsikologId, setSelectedPsikologId] = useState<string>(DUMMY_PEMBAGIAN_DATA[0].idPsikolog)
+  const [selectedPsikologId, setSelectedPsikologId] = useState<string>("")
 
   // Selection ala SMS HP
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
@@ -189,63 +86,36 @@ export default function AdminPembagianClient() {
   const loadData = async () => {
     try {
       setIsLoading(true)
-      const parsedMonth = selectedMonth ? parseInt(selectedMonth.split("-")[1], 10) : undefined
-      const parsedYear = selectedMonth ? parseInt(selectedMonth.split("-")[0], 10) : currentYear
+      const parsedMonth = selectedMonth && !selectedDate ? parseInt(selectedMonth.split("-")[1], 10) : undefined
+      const parsedYear = selectedMonth && !selectedDate ? parseInt(selectedMonth.split("-")[0], 10) : !selectedDate ? currentYear : undefined
 
       const res = await transaksiService.getRekapPembagian({
         search: search.trim() || undefined,
         bulan: parsedMonth,
         tahun: parsedYear,
+        tanggal: selectedDate || undefined,
       })
 
-      if (res?.data && res.data.length > 0) {
+      if (res?.data) {
         setData(res.data)
-        if (!res.data.some((p: any) => p.idPsikolog === selectedPsikologId)) {
-          setSelectedPsikologId(res.data[0].idPsikolog)
+        if (res.data.length > 0) {
+          if (!res.data.some((p: any) => p.idPsikolog === selectedPsikologId)) {
+            setSelectedPsikologId(res.data[0].idPsikolog)
+          }
+        } else {
+          setSelectedPsikologId("")
         }
       } else {
-        applyDummyFilter(parsedMonth, parsedYear, selectedDate, search)
+        setData([])
+        setSelectedPsikologId("")
       }
-    } catch {
-      const parsedMonth = selectedMonth ? parseInt(selectedMonth.split("-")[1], 10) : undefined
-      const parsedYear = selectedMonth ? parseInt(selectedMonth.split("-")[0], 10) : currentYear
-      applyDummyFilter(parsedMonth, parsedYear, selectedDate, search)
+    } catch (err: any) {
+      console.error("Gagal memuat data rekap pembagian:", err)
+      setData([])
+      setSelectedPsikologId("")
+      showToast(err?.response?.data?.message || "Gagal memuat data dari server", "danger")
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const applyDummyFilter = (bulan?: number, tahun?: number, date?: string, searchQuery?: string) => {
-    const filtered = DUMMY_PEMBAGIAN_DATA.map((p) => {
-      const filteredItems = p.items.filter((it) => {
-        const d = new Date(it.tanggal)
-        if (date) {
-          const itemDate = d.toISOString().split("T")[0]
-          return itemDate === date
-        }
-        const matchBulan = bulan ? d.getMonth() + 1 === bulan : true
-        const matchTahun = tahun ? d.getFullYear() === tahun : true
-        return matchBulan && matchTahun
-      })
-
-      const totalBelum = filteredItems.filter((i) => i.status === "BELUM_DICAIRKAN").reduce((a, b) => a + b.bagianPsikolog, 0)
-      const totalSudah = filteredItems.filter((i) => i.status === "BERHASIL").reduce((a, b) => a + b.bagianPsikolog, 0)
-
-      return {
-        ...p,
-        items: filteredItems,
-        jumlahSesi: filteredItems.length,
-        totalBelumDibayarkan: totalBelum,
-        totalSudahDibayarkan: totalSudah,
-        totalBagianPsikolog: totalBelum + totalSudah,
-      }
-    }).filter((p) =>
-      searchQuery ? p.namaPsikolog.toLowerCase().includes(searchQuery.toLowerCase()) : true
-    )
-
-    setData(filtered)
-    if (filtered.length > 0 && !filtered.some((p) => p.idPsikolog === selectedPsikologId)) {
-      setSelectedPsikologId(filtered[0].idPsikolog)
     }
   }
 
@@ -326,70 +196,32 @@ export default function AdminPembagianClient() {
         dibayarkanOleh: "Direktur",
         tanggalDibayarkan: new Date().toISOString(),
       })
-    } catch {
-      // offline fallback
+      showToast("Sesi berhasil ditandai selesai dibayar!", "success")
+      await loadData()
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || "Gagal menandai pembayaran", "danger")
     }
-
-    setData((prev) =>
-      prev.map((p) => {
-        if (p.idPsikolog !== psikologId) return p
-        const newItems = p.items.map((it) =>
-          it.id === itemId
-            ? { ...it, status: "BERHASIL" as const, tanggalDibayarkan: new Date().toISOString() }
-            : it
-        )
-        const belum = newItems.filter((i) => i.status === "BELUM_DICAIRKAN").reduce((a, b) => a + b.bagianPsikolog, 0)
-        const sudah = newItems.filter((i) => i.status === "BERHASIL").reduce((a, b) => a + b.bagianPsikolog, 0)
-        return {
-          ...p,
-          items: newItems,
-          totalBelumDibayarkan: belum,
-          totalSudahDibayarkan: sudah,
-          status: belum === 0 ? ("BERHASIL" as const) : ("BELUM_DICAIRKAN" as const),
-        }
-      })
-    )
     setSelectedItemIds((prev) => prev.filter((id) => id !== itemId))
-    showToast("Sesi berhasil ditandai selesai dibayar!", "success")
   }
 
   // 1-klik: Tandai yang dicentang selesai (ala SMS HP)
   const handleMarkSelectedDone = async () => {
     if (selectedItemIds.length === 0 || !selectedPsikolog) return
 
-    for (const itemId of selectedItemIds) {
-      try {
+    try {
+      for (const itemId of selectedItemIds) {
         await transaksiService.markPembagianDibayarkan({
           idPembagian: itemId,
           dibayarkanOleh: "Direktur",
           tanggalDibayarkan: new Date().toISOString(),
         })
-      } catch {
-        // continue
       }
+      showToast(`${selectedItemIds.length} sesi terpilih selesai dibayar!`, "success")
+      await loadData()
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || "Gagal memproses beberapa pembayaran", "danger")
     }
-
-    setData((prev) =>
-      prev.map((p) => {
-        if (p.idPsikolog !== selectedPsikolog.idPsikolog) return p
-        const newItems = p.items.map((it) =>
-          selectedItemIds.includes(it.id)
-            ? { ...it, status: "BERHASIL" as const, tanggalDibayarkan: new Date().toISOString() }
-            : it
-        )
-        const belum = newItems.filter((i) => i.status === "BELUM_DICAIRKAN").reduce((a, b) => a + b.bagianPsikolog, 0)
-        const sudah = newItems.filter((i) => i.status === "BERHASIL").reduce((a, b) => a + b.bagianPsikolog, 0)
-        return {
-          ...p,
-          items: newItems,
-          totalBelumDibayarkan: belum,
-          totalSudahDibayarkan: sudah,
-          status: belum === 0 ? ("BERHASIL" as const) : ("BELUM_DICAIRKAN" as const),
-        }
-      })
-    )
     setSelectedItemIds([])
-    showToast(`${selectedItemIds.length} sesi terpilih selesai dibayar!`, "success")
   }
 
   // 1-klik: Tandai semua sesi psikolog ini selesai
@@ -400,29 +232,12 @@ export default function AdminPembagianClient() {
         dibayarkanOleh: "Direktur",
         tanggalDibayarkan: new Date().toISOString(),
       })
-    } catch {
-      // offline fallback
+      showToast("Semua sesi psikolog ini telah selesai dibayar!", "success")
+      await loadData()
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || "Gagal memproses pembayaran seluruh sesi", "danger")
     }
-
-    setData((prev) =>
-      prev.map((p) => {
-        if (p.idPsikolog !== psikologId) return p
-        const newItems = p.items.map((it) => ({
-          ...it,
-          status: "BERHASIL" as const,
-          tanggalDibayarkan: new Date().toISOString(),
-        }))
-        return {
-          ...p,
-          items: newItems,
-          status: "BERHASIL" as const,
-          totalBelumDibayarkan: 0,
-          totalSudahDibayarkan: p.totalBagianPsikolog,
-        }
-      })
-    )
     setSelectedItemIds([])
-    showToast("Semua sesi psikolog ini telah selesai dibayar!", "success")
   }
 
   return (

@@ -589,6 +589,7 @@ export class TransaksiRepository {
     search?: string
     bulan?: number
     tahun?: number
+    tanggal?: string
   }) {
     const where: any = {
       penerima_tipe: 'PSIKOLOG',
@@ -602,8 +603,13 @@ export class TransaksiRepository {
       where.status = params.status
     }
 
-    // Filter berdasarkan bulan & tahun (createdAt)
-    if (params.bulan && params.tahun) {
+    // Filter berdasarkan tanggal spesifik atau bulan & tahun (createdAt)
+    if (params.tanggal) {
+      const targetDate = new Date(params.tanggal)
+      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0)
+      const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999)
+      where.createdAt = { gte: startOfDay, lte: endOfDay }
+    } else if (params.bulan && params.tahun) {
       const startOfMonth = new Date(params.tahun, params.bulan - 1, 1, 0, 0, 0, 0)
       const endOfMonth = new Date(params.tahun, params.bulan, 0, 23, 59, 59, 999)
       where.createdAt = { gte: startOfMonth, lte: endOfMonth }
@@ -639,11 +645,29 @@ export class TransaksiRepository {
       orderBy: { createdAt: 'desc' },
     })
 
+    // Fetch fallback data psikolog jika item.transaksi?.booking_konsultasi?.jadwal?.psikolog null
+    const missingPsikologIds = Array.from(
+      new Set(
+        pembagianList
+          .filter((it: any) => !it.transaksi?.booking_konsultasi?.jadwal?.psikolog && it.penerima_id)
+          .map((it: any) => it.penerima_id as string)
+      )
+    )
+    const fallbackPsikologMap = new Map<string, any>()
+    if (missingPsikologIds.length > 0) {
+      const listFallback = await this.prisma.psikolog.findMany({
+        where: { id: { in: missingPsikologIds } },
+        include: { account: true },
+      })
+      listFallback.forEach((p: any) => fallbackPsikologMap.set(p.id, p))
+    }
+
     // Kelompokkan per psikolog
     const mapPsikolog = new Map<string, any>()
 
     for (const item of pembagianList) {
-      const psikolog = item.transaksi?.booking_konsultasi?.jadwal?.psikolog
+      const psikologFromBooking = item.transaksi?.booking_konsultasi?.jadwal?.psikolog
+      const psikolog = psikologFromBooking || (item.penerima_id ? fallbackPsikologMap.get(item.penerima_id) : null)
       const account = psikolog?.account
       const idPsikolog = item.penerima_id || psikolog?.id || 'unknown'
       const namaPsikolog = account?.nama || psikolog?.nama_gelar || 'Psikolog'
