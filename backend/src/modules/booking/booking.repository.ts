@@ -1259,7 +1259,12 @@ export class BookingRepository {
       const kode_pesanan = generateOrderId(prefix)
       const kode_transaksi = generateTrxId()
       const effectiveBiroId = resolvedBiroId || (data as any).id_biro || client.id_biro || null
-      const metodeBayar = (data.metode_pembayaran || 'QRIS').toUpperCase()
+      let metodeBayar = (data.metode_pembayaran || 'QRIS').toUpperCase()
+      if (!['TRANSFER_BANK', 'E_WALLET', 'QRIS'].includes(metodeBayar)) {
+        if (metodeBayar === 'BANK') metodeBayar = 'TRANSFER_BANK'
+        else if (metodeBayar === 'EWALLET') metodeBayar = 'E_WALLET'
+        else metodeBayar = 'QRIS'
+      }
       const tipeSesi = (data.metode || 'ONLINE').toUpperCase() as 'ONLINE' | 'OFFLINE'
       const dariBiro = Boolean(effectiveBiroId)
       const rincian = hitungTransaksi(nominal, tipeSesi, metodeBayar, dariBiro)
@@ -1276,7 +1281,7 @@ export class BookingRepository {
           subtotal: rincian.subtotalKlien,
           biaya_admin: rincian.biayaLayanan,
           total: rincian.total,
-          metode_pembayaran: metodeBayar,
+          metode_pembayaran: metodeBayar as any,
           channel_pembayaran: data.channel_pembayaran || null,
           status_pembayaran: paymentStatus,
         } as any,
@@ -1385,6 +1390,62 @@ export class BookingRepository {
           where: { id: booking.jadwal.id_psikolog },
           data: { jumlah_sesi: { increment: 1 } },
         }).catch(() => {})
+      }
+
+      // 5. Catat pembagian transaksi jika belum tercatat
+      if (updatedTransaksi && booking.id_transaksi) {
+        try {
+          const existingPembagian = await tx.pembagianTransaksi.count({
+            where: { id_transaksi: updatedTransaksi.id },
+          })
+          if (existingPembagian === 0) {
+            const hargaDasar = updatedTransaksi.harga_dasar
+              ? Number(updatedTransaksi.harga_dasar)
+              : Number(updatedTransaksi.subtotal)
+            const metode = (updatedTransaksi.metode_pembayaran as string) || 'QRIS'
+            const tipeSesi = (booking.metode || 'ONLINE').toUpperCase() as 'OFFLINE' | 'ONLINE'
+            const dariBiro = Boolean(updatedTransaksi.id_biro_tenant)
+            const hasil = hitungTransaksi(hargaDasar, tipeSesi, metode, dariBiro)
+            const idPsikolog = booking.jadwal?.id_psikolog ?? null
+
+            await tx.pembagianTransaksi.create({
+              data: {
+                id_transaksi: updatedTransaksi.id,
+                penerima_tipe: 'PSIKOLOG',
+                penerima_id: idPsikolog,
+                jumlah: hasil.porsiPsikolog,
+                alasan: 'SESI_NORMAL',
+                status: 'BELUM_DICAIRKAN',
+              },
+            })
+
+            await tx.pembagianTransaksi.create({
+              data: {
+                id_transaksi: updatedTransaksi.id,
+                penerima_tipe: 'EMPATHIKA',
+                penerima_id: null,
+                jumlah: hasil.porsiEmpathika,
+                alasan: 'SESI_NORMAL',
+                status: 'BERHASIL',
+              },
+            })
+
+            if (dariBiro && hasil.komisiBiro > 0) {
+              await tx.pembagianTransaksi.create({
+                data: {
+                  id_transaksi: updatedTransaksi.id,
+                  penerima_tipe: 'BIRO',
+                  penerima_id: updatedTransaksi.id_biro_tenant,
+                  jumlah: hasil.komisiBiro,
+                  alasan: 'SESI_NORMAL',
+                  status: 'BELUM_DICAIRKAN',
+                },
+              })
+            }
+          }
+        } catch (err: any) {
+          console.error('[Booking] Gagal mencatat ledger pembagian:', err?.message)
+        }
       }
 
       return {

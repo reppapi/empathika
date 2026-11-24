@@ -146,12 +146,22 @@ export class TransaksiController {
         id_psikolog?: string
         status?: 'BELUM_DICAIRKAN' | 'BERHASIL' | 'ALL'
         search?: string
+        bulan?: string | number
+        tahun?: string | number
+        tanggal?: string
       }
     }>,
     reply: FastifyReply
   ) => {
     try {
-      const data = await this.service.getRekapPembagianPsikolog(request.query)
+      const q = request.query
+      const bulan = q.bulan !== undefined && q.bulan !== '' ? Number(q.bulan) : undefined
+      const tahun = q.tahun !== undefined && q.tahun !== '' ? Number(q.tahun) : undefined
+      const data = await this.service.getRekapPembagianPsikolog({
+        ...q,
+        bulan,
+        tahun,
+      })
       reply.send({ success: true, data })
     } catch (err: any) {
       reply.code(500).send({ error: 'Internal Server Error', message: err.message })
