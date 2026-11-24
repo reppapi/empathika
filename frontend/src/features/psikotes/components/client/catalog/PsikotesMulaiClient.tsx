@@ -8,7 +8,21 @@ import { useTenantContext } from "@/context/TenantContext";
 import { usePsikotesTest } from "@/features/psikotes/hooks/usePsikotesTest";
 import { psikotesService, type PaketPsikotesApiResponse } from "@/services/psikotes.service";
 import { useAuthStore } from "@/store/authStore";
-import { Loader2, AlertCircle, WifiOff, RefreshCw } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  WifiOff,
+  RefreshCw,
+  CheckCircle2,
+  Lock,
+  ArrowRight,
+  ArrowLeft,
+  User,
+  Users,
+  ShieldCheck,
+  Clock,
+  FileText,
+} from "lucide-react";
 import PsikotesFormIdentitas, { type IdentityData } from "./PsikotesFormIdentitas";
 import { navigateToPsikotesHasil } from "@/features/psikotes/utils/navigationHistory";
 import {
@@ -121,6 +135,11 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const [catsShowZeroPTEComplete, setCatsShowZeroPTEComplete] = useState<boolean>(false);
   // State Khusus Instrumen CHOCI-R (Isian Kualitatif Kebiasaan & Pikiran)
   const [chociIsian, setChociIsian] = useState<Record<number, string>>({});
+  // State Khusus Multi-Informant CHOCI-R (Hub, Anak & Orang Tua)
+  const [chociAnakSubmitted, setChociAnakSubmitted] = useState<boolean>(false);
+  const [chociOrtuSubmitted, setChociOrtuSubmitted] = useState<boolean>(false);
+  const [activeDualSection, setActiveDualSection] = useState<"hub" | "anak" | "ortu">("hub");
+  const [sectionSubmitToast, setSectionSubmitToast] = useState<string | null>(null);
   const advanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const submitLockRef = useRef(false);
 
@@ -398,6 +417,8 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             if (isCHOCI) {
               if (idx === 11 || idx === 12) idx = 10;
               if (idx === 30 || idx === 31) idx = 29;
+              if (idx === 49 || idx === 50) idx = 48;
+              if (idx === 68 || idx === 69) idx = 67;
             }
             setCurrentIndex(idx);
           }
@@ -418,6 +439,19 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           }
           if (saved.chociIsian && typeof saved.chociIsian === "object") {
             setChociIsian(saved.chociIsian);
+          }
+          if (typeof saved.chociAnakSubmitted === "boolean") {
+            setChociAnakSubmitted(saved.chociAnakSubmitted);
+          }
+          if (typeof saved.chociOrtuSubmitted === "boolean") {
+            setChociOrtuSubmitted(saved.chociOrtuSubmitted);
+          }
+          if (
+            saved.activeDualSection === "hub" ||
+            saved.activeDualSection === "anak" ||
+            saved.activeDualSection === "ortu"
+          ) {
+            setActiveDualSection(saved.activeDualSection);
           }
           if (typeof saved.identityCompleted === "boolean" && isCompleted) {
             setIsIdentityCompleted(saved.identityCompleted);
@@ -444,6 +478,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           catsPeristiwaPalingMengganggu,
           catsShowDistressPrompt,
           chociIsian,
+          chociAnakSubmitted,
+          chociOrtuSubmitted,
+          activeDualSection,
           identityCompleted: isIdentityCompleted,
         })
       );
@@ -458,6 +495,9 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     catsPeristiwaPalingMengganggu,
     catsShowDistressPrompt,
     chociIsian,
+    chociAnakSubmitted,
+    chociOrtuSubmitted,
+    activeDualSection,
     params.testId,
     questions.length,
     searchParams,
@@ -472,10 +512,12 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     pilihanList: [],
   };
   const currentUrutan = currentQuestion.urutan ?? (currentIndex + 1);
-  const isCHOCIKebiasaanStep = Boolean(isCHOCI && currentIndex === 10);
-  const isCHOCIPikiranStep = Boolean(isCHOCI && currentIndex === 29);
+  const isCHOCIDual = Boolean(isCHOCI && totalQuestions >= 76);
+  const isCHOCIParentSection = Boolean(isCHOCIDual && currentIndex >= 38);
+  const isCHOCIKebiasaanStep = Boolean(isCHOCI && (currentIndex === 10 || (isCHOCIDual && currentIndex === 48)));
+  const isCHOCIPikiranStep = Boolean(isCHOCI && (currentIndex === 29 || (isCHOCIDual && currentIndex === 67)));
 
-  // Deteksi apakah ada gejala kompulsi (butir 1–10, index 0–9) pada CHOCI
+  // Deteksi apakah ada gejala kompulsi anak (butir 1–10, index 0–9) pada CHOCI
   const chociHasCompulsionSymptoms = useMemo(() => {
     if (!isCHOCI) return false;
     for (let i = 0; i < 10; i++) {
@@ -488,7 +530,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     return false;
   }, [isCHOCI, questions, answers]);
 
-  // Deteksi apakah ada gejala obsesi (butir 20–29, index 19–28) pada CHOCI
+  // Deteksi apakah ada gejala obsesi anak (butir 20–29, index 19–28) pada CHOCI
   const chociHasObsessionSymptoms = useMemo(() => {
     if (!isCHOCI) return false;
     for (let i = 19; i < 29; i++) {
@@ -500,7 +542,163 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     }
     return false;
   }, [isCHOCI, questions, answers]);
-  const progressPercentage = totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
+
+  // Deteksi apakah ada gejala kompulsi orang tua (butir 39–48, index 38–47) pada CHOCI
+  const chociParentHasCompulsionSymptoms = useMemo(() => {
+    if (!isCHOCIDual) return false;
+    for (let i = 38; i < 48; i++) {
+      const a = answers[i] ?? (answers as Record<string, number>)[String(i)];
+      const q = questions[i];
+      if (a !== undefined && Number(q?.weights?.[Number(a)] ?? 0) > 0) {
+        return true;
+      }
+    }
+    return false;
+  }, [isCHOCIDual, questions, answers]);
+
+  // Deteksi apakah ada gejala obsesi orang tua (butir 58–67, index 57–66) pada CHOCI
+  const chociParentHasObsessionSymptoms = useMemo(() => {
+    if (!isCHOCIDual) return false;
+    for (let i = 57; i < 67; i++) {
+      const a = answers[i] ?? (answers as Record<string, number>)[String(i)];
+      const q = questions[i];
+      if (a !== undefined && Number(q?.weights?.[Number(a)] ?? 0) > 0) {
+        return true;
+      }
+    }
+    return false;
+  }, [isCHOCIDual, questions, answers]);
+
+  // Cek kelengkapan Kuesioner Anak (Butir 0..37)
+  const isCHOCIAnakCompleted = useMemo(() => {
+    if (!isCHOCIDual) return false;
+    for (let i = 0; i < 38; i++) {
+      if (i === 10 || i === 11 || i === 12) {
+        if (chociHasCompulsionSymptoms && !chociIsian[10]?.trim() && !chociIsian[11]?.trim() && !chociIsian[12]?.trim()) return false;
+        continue;
+      }
+      if (i === 29 || i === 30 || i === 31) {
+        if (chociHasObsessionSymptoms && !chociIsian[29]?.trim() && !chociIsian[30]?.trim() && !chociIsian[31]?.trim()) return false;
+        continue;
+      }
+      if (answers[i] === undefined) return false;
+    }
+    return true;
+  }, [isCHOCIDual, answers, chociHasCompulsionSymptoms, chociHasObsessionSymptoms, chociIsian]);
+
+  // Cek kelengkapan Kuesioner Orang Tua (Butir 38..75)
+  const isCHOCIOrtuCompleted = useMemo(() => {
+    if (!isCHOCIDual) return false;
+    for (let i = 38; i < 76; i++) {
+      if (i === 48 || i === 49 || i === 50) {
+        if (chociParentHasCompulsionSymptoms && !chociIsian[48]?.trim() && !chociIsian[49]?.trim() && !chociIsian[50]?.trim()) return false;
+        continue;
+      }
+      if (i === 67 || i === 68 || i === 69) {
+        if (chociParentHasObsessionSymptoms && !chociIsian[67]?.trim() && !chociIsian[68]?.trim() && !chociIsian[69]?.trim()) return false;
+        continue;
+      }
+      if (answers[i] === undefined) return false;
+    }
+    return true;
+  }, [isCHOCIDual, answers, chociParentHasCompulsionSymptoms, chociParentHasObsessionSymptoms, chociIsian]);
+
+  // Hitung jumlah butir terjawab untuk indikator section hub
+  const answeredAnakCount = useMemo(() => {
+    if (!isCHOCIDual) return 0;
+    let count = 0;
+    for (let i = 0; i < 38; i++) {
+      if (i === 10 || i === 11 || i === 12) {
+        if (chociIsian[10]?.trim() || chociIsian[11]?.trim() || chociIsian[12]?.trim()) count++;
+      } else if (i === 29 || i === 30 || i === 31) {
+        if (chociIsian[29]?.trim() || chociIsian[30]?.trim() || chociIsian[31]?.trim()) count++;
+      } else if (answers[i] !== undefined) {
+        count++;
+      }
+    }
+    return count;
+  }, [isCHOCIDual, answers, chociIsian]);
+
+  const answeredOrtuCount = useMemo(() => {
+    if (!isCHOCIDual) return 0;
+    let count = 0;
+    for (let i = 38; i < 76; i++) {
+      if (i === 48 || i === 49 || i === 50) {
+        if (chociIsian[48]?.trim() || chociIsian[49]?.trim() || chociIsian[50]?.trim()) count++;
+      } else if (i === 67 || i === 68 || i === 69) {
+        if (chociIsian[67]?.trim() || chociIsian[68]?.trim() || chociIsian[69]?.trim()) count++;
+      } else if (answers[i] !== undefined) {
+        count++;
+      }
+    }
+    return count;
+  }, [isCHOCIDual, answers, chociIsian]);
+
+  const progressPercentage = isCHOCIDual
+    ? (activeDualSection === "anak"
+        ? ((Math.min(currentIndex, 37) + 1) / 38) * 100
+        : (((Math.max(currentIndex - 38, 0)) + 1) / 38) * 100)
+    : totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
+
+  const handleStartAnakSection = () => {
+    if (chociAnakSubmitted) return;
+    setLocalError(false);
+    setSubmitError(null);
+    setSectionSubmitToast(null);
+    let targetIdx = 0;
+    for (let i = 0; i < 38; i++) {
+      if (i === 10 || i === 11 || i === 12) {
+        if (!chociIsian[10]?.trim() && !chociIsian[11]?.trim() && !chociIsian[12]?.trim()) {
+          targetIdx = 10;
+          break;
+        }
+        continue;
+      }
+      if (i === 29 || i === 30 || i === 31) {
+        if (!chociIsian[29]?.trim() && !chociIsian[30]?.trim() && !chociIsian[31]?.trim()) {
+          targetIdx = 29;
+          break;
+        }
+        continue;
+      }
+      if (answers[i] === undefined) {
+        targetIdx = i;
+        break;
+      }
+    }
+    setCurrentIndex(targetIdx);
+    setActiveDualSection("anak");
+  };
+
+  const handleStartOrtuSection = () => {
+    if (chociOrtuSubmitted) return;
+    setLocalError(false);
+    setSubmitError(null);
+    setSectionSubmitToast(null);
+    let targetIdx = 38;
+    for (let i = 38; i < 76; i++) {
+      if (i === 48 || i === 49 || i === 50) {
+        if (!chociIsian[48]?.trim() && !chociIsian[49]?.trim() && !chociIsian[50]?.trim()) {
+          targetIdx = 48;
+          break;
+        }
+        continue;
+      }
+      if (i === 67 || i === 68 || i === 69) {
+        if (!chociIsian[67]?.trim() && !chociIsian[68]?.trim() && !chociIsian[69]?.trim()) {
+          targetIdx = 67;
+          break;
+        }
+        continue;
+      }
+      if (answers[i] === undefined) {
+        targetIdx = i;
+        break;
+      }
+    }
+    setCurrentIndex(targetIdx);
+    setActiveDualSection("ortu");
+  };
 
   // Instruksi / Timeframe dinamis per instrumen psikotes:
   // 1. Prioritaskan instruksiSingkat dari metadata alat ukur backend
@@ -537,9 +735,21 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       : "Pilih Ya atau Tidak untuk menunjukkan apakah masalah yang dialami anak mengganggu aspek-aspek berikut:"
     : isCHOCI
     ? isCHOCIKebiasaanStep
-      ? "Bagian A: Kompulsi — Isian Refleksi Kebiasaan"
+      ? (isCHOCIParentSection
+          ? "Bagian A: Kompulsi (Orang Tua) — Isian Kebiasaan yang Diamati"
+          : "Bagian A: Kompulsi — Isian Refleksi Kebiasaan")
       : isCHOCIPikiranStep
-      ? "Bagian B: Obsesi — Isian Refleksi Pikiran"
+      ? (isCHOCIParentSection
+          ? "Bagian B: Obsesi (Orang Tua) — Isian Pikiran yang Diamati"
+          : "Bagian B: Obsesi — Isian Refleksi Pikiran")
+      : isCHOCIParentSection
+      ? (currentIndex < 48
+          ? "Pilihlah seberapa banyak anak Anda merasakan atau melakukan hal berikut (pengamatan orang tua):"
+          : currentIndex < 57
+          ? "Jawab pertanyaan berikut terkait kebiasaan anak yang Anda sebutkan:"
+          : currentIndex < 67
+          ? "Pilihlah seberapa banyak anak Anda memikirkan hal-hal berikut (pengamatan orang tua):"
+          : "Jawab pertanyaan berikut terkait pikiran anak yang Anda sebutkan:")
       : currentUrutan <= 10
       ? "Pilihlah seberapa banyak kamu merasakan atau melakukan hal berikut:"
       : currentUrutan <= 19
@@ -570,6 +780,16 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     // Khusus CATS butir 15 (index 14) jika memilih "Ya", jangan langsung auto-advance agar peserta dapat mengisi teks peristiwa lainnya
     if (isCATS && currentIndex === 14 && optionIdx === 1) {
       return;
+    }
+
+    // Khusus CHOCI Dual: Jangan auto-advance jika berada di butir terakhir pada bagian masing-masing
+    if (isCHOCIDual) {
+      if (activeDualSection === "anak" && currentIndex === 37) {
+        return;
+      }
+      if (activeDualSection === "ortu" && currentIndex === 75) {
+        return;
+      }
     }
 
     // Di butir terakhir:
@@ -623,6 +843,16 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     setIsAdvancing(false);
     setLocalError(false);
 
+    // Khusus CHOCI Dual: Jangan mundur melewati batas awal kuesioner bagian aktif
+    if (isCHOCIDual) {
+      if (activeDualSection === "anak" && currentIndex === 0) {
+        return;
+      }
+      if (activeDualSection === "ortu" && currentIndex === 38) {
+        return;
+      }
+    }
+
     if (isAtFunctionalStep) {
       setIsAtFunctionalStep(false);
       setCurrentIndex(totalQuestions - 1);
@@ -665,6 +895,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       return;
     }
 
+    // Khusus CHOCI (Orang Tua): kembali dari nomor 52 langsung ke layar gabungan 49–51 (index 48)
+    if (isCHOCI && currentIndex === 51) {
+      setCurrentIndex(48);
+      return;
+    }
+
+    // Khusus CHOCI (Orang Tua): kembali dari nomor 71 langsung ke layar gabungan 68–70 (index 67)
+    if (isCHOCI && currentIndex === 70) {
+      setCurrentIndex(67);
+      return;
+    }
+
     handlePrev();
   };
 
@@ -687,7 +929,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     }
 
     // Khusus CHOCI saat di layar gabungan Kebiasaan (11–13, index 10)
-    if (isCHOCIKebiasaanStep) {
+    if (isCHOCIKebiasaanStep && currentIndex === 10) {
       const hasFilledCompulsion = Boolean(
         chociIsian[10]?.trim() || chociIsian[11]?.trim() || chociIsian[12]?.trim()
       );
@@ -709,8 +951,30 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       return;
     }
 
+    // Khusus CHOCI saat di layar gabungan Kebiasaan Orang Tua (49–51, index 48)
+    if (isCHOCIKebiasaanStep && currentIndex === 48) {
+      const hasFilledCompulsion = Boolean(
+        chociIsian[48]?.trim() || chociIsian[49]?.trim() || chociIsian[50]?.trim()
+      );
+
+      if (chociParentHasCompulsionSymptoms && !hasFilledCompulsion) {
+        setLocalError(true);
+        return;
+      }
+
+      setAnswers((prev) => ({
+        ...prev,
+        [48]: chociIsian[48]?.trim() ? 1 : 0,
+        [49]: chociIsian[49]?.trim() ? 1 : 0,
+        [50]: chociIsian[50]?.trim() ? 1 : 0,
+      }));
+      setLocalError(false);
+      setCurrentIndex(51); // Lompat ke nomor 52 (skala keparahan kompulsi ortu)
+      return;
+    }
+
     // Khusus CHOCI saat di layar gabungan Pikiran (30–32, index 29)
-    if (isCHOCIPikiranStep) {
+    if (isCHOCIPikiranStep && currentIndex === 29) {
       const hasFilledObsession = Boolean(
         chociIsian[29]?.trim() || chociIsian[30]?.trim() || chociIsian[31]?.trim()
       );
@@ -729,6 +993,28 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       }));
       setLocalError(false);
       setCurrentIndex(32); // Lompat ke nomor 33 (skala keparahan obsesi)
+      return;
+    }
+
+    // Khusus CHOCI saat di layar gabungan Pikiran Orang Tua (68–70, index 67)
+    if (isCHOCIPikiranStep && currentIndex === 67) {
+      const hasFilledObsession = Boolean(
+        chociIsian[67]?.trim() || chociIsian[68]?.trim() || chociIsian[69]?.trim()
+      );
+
+      if (chociParentHasObsessionSymptoms && !hasFilledObsession) {
+        setLocalError(true);
+        return;
+      }
+
+      setAnswers((prev) => ({
+        ...prev,
+        [67]: chociIsian[67]?.trim() ? 1 : 0,
+        [68]: chociIsian[68]?.trim() ? 1 : 0,
+        [69]: chociIsian[69]?.trim() ? 1 : 0,
+      }));
+      setLocalError(false);
+      setCurrentIndex(70); // Lompat ke nomor 71 (skala keparahan obsesi ortu)
       return;
     }
 
@@ -755,6 +1041,18 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       }
     }
 
+    // Khusus CHOCI Dual: Tangani tombol selesai/kirim pada butir akhir masing-masing bagian
+    if (isCHOCIDual) {
+      if (activeDualSection === "anak" && currentIndex === 37) {
+        handleFinishAnakSection();
+        return;
+      }
+      if (activeDualSection === "ortu" && currentIndex === 75) {
+        handleFinishOrtuSection();
+        return;
+      }
+    }
+
     if (isLastQuestion) {
       if (isFunctionalInstrument && hasSymptomScoreGreaterThanZero()) {
         setIsAtFunctionalStep(true);
@@ -771,6 +1069,24 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     if (submitLockRef.current || isSubmitting) return;
     if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
     setIsAdvancing(false);
+
+    // Validasi kelengkapan kedua kuesioner CHOCI (Anak & Orang Tua)
+    if (isCHOCIDual) {
+      if (!isCHOCIAnakCompleted) {
+        setSubmitError("Kuesioner Anak belum lengkap. Silakan lengkapi bagian Anak terlebih dahulu.");
+        setLocalError(true);
+        setActiveDualSection("anak");
+        setCurrentIndex(0);
+        return;
+      }
+      if (!isCHOCIOrtuCompleted) {
+        setSubmitError("Kuesioner Orang Tua belum lengkap. Silakan lengkapi bagian Orang Tua terlebih dahulu.");
+        setLocalError(true);
+        setActiveDualSection("ortu");
+        setCurrentIndex(38);
+        return;
+      }
+    }
 
     // Jika belum berada di functional step tapi instrumen ini memenuhi syarat pemicu:
     if (!isAtFunctionalStep && isFunctionalInstrument && hasSymptomScoreGreaterThanZero()) {
@@ -1106,10 +1422,153 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     }
   };
 
-  const isSelesaiButton =
-    isAtFunctionalStep ||
-    catsShowZeroPTEComplete ||
-    (!catsShowDistressPrompt && isLastQuestion && (!isFunctionalInstrument || !hasSymptomScoreGreaterThanZero()));
+  const handleFinishAnakSection = () => {
+    if (isSubmitting) return;
+
+    // Pastikan butir 38 (index 37) terisi
+    if (answers[37] === undefined) {
+      setLocalError(true);
+      return;
+    }
+
+    // Validasi kelengkapan semua butir bagian anak (0..37)
+    for (let i = 0; i < 38; i++) {
+      if (i === 10 || i === 11 || i === 12) {
+        if (
+          chociHasCompulsionSymptoms &&
+          !chociIsian[10]?.trim() &&
+          !chociIsian[11]?.trim() &&
+          !chociIsian[12]?.trim()
+        ) {
+          setCurrentIndex(10);
+          setLocalError(true);
+          setSubmitError("Mohon lengkapi isian kebiasaan anak terlebih dahulu.");
+          return;
+        }
+        continue;
+      }
+      if (i === 29 || i === 30 || i === 31) {
+        if (
+          chociHasObsessionSymptoms &&
+          !chociIsian[29]?.trim() &&
+          !chociIsian[30]?.trim() &&
+          !chociIsian[31]?.trim()
+        ) {
+          setCurrentIndex(29);
+          setLocalError(true);
+          setSubmitError("Mohon lengkapi isian pikiran anak terlebih dahulu.");
+          return;
+        }
+        continue;
+      }
+      if (answers[i] === undefined) {
+        setCurrentIndex(i);
+        setLocalError(true);
+        setSubmitError(`Pertanyaan Bagian Anak nomor ${i + 1} belum dijawab.`);
+        return;
+      }
+    }
+
+    setChociAnakSubmitted(true);
+    setLocalError(false);
+    setSubmitError(null);
+
+    // Jika bagian orang tua juga SUDAH selesai dikirim:
+    if (chociOrtuSubmitted) {
+      handleFinish();
+    } else {
+      setActiveDualSection("hub");
+      setSectionSubmitToast("Kuesioner Bagian Anak berhasil disimpan! Silakan lanjutkan dengan mengisi Kuesioner Bagian Orang Tua.");
+    }
+  };
+
+  const handleFinishOrtuSection = () => {
+    if (isSubmitting) return;
+
+    // Pastikan butir 76 (index 75) terisi
+    if (answers[75] === undefined) {
+      setLocalError(true);
+      return;
+    }
+
+    // Validasi kelengkapan semua butir bagian orang tua (38..75)
+    for (let i = 38; i < 76; i++) {
+      if (i === 48 || i === 49 || i === 50) {
+        if (
+          chociParentHasCompulsionSymptoms &&
+          !chociIsian[48]?.trim() &&
+          !chociIsian[49]?.trim() &&
+          !chociIsian[50]?.trim()
+        ) {
+          setCurrentIndex(48);
+          setLocalError(true);
+          setSubmitError("Mohon lengkapi isian kebiasaan anak menurut orang tua terlebih dahulu.");
+          return;
+        }
+        continue;
+      }
+      if (i === 67 || i === 68 || i === 69) {
+        if (
+          chociParentHasObsessionSymptoms &&
+          !chociIsian[67]?.trim() &&
+          !chociIsian[68]?.trim() &&
+          !chociIsian[69]?.trim()
+        ) {
+          setCurrentIndex(67);
+          setLocalError(true);
+          setSubmitError("Mohon lengkapi isian pikiran anak menurut orang tua terlebih dahulu.");
+          return;
+        }
+        continue;
+      }
+      if (answers[i] === undefined) {
+        setCurrentIndex(i);
+        setLocalError(true);
+        setSubmitError(`Pertanyaan Bagian Orang Tua nomor ${i - 38 + 1} belum dijawab.`);
+        return;
+      }
+    }
+
+    setChociOrtuSubmitted(true);
+    setLocalError(false);
+    setSubmitError(null);
+
+    // Jika bagian anak juga SUDAH selesai dikirim:
+    if (chociAnakSubmitted) {
+      handleFinish();
+    } else {
+      setActiveDualSection("hub");
+      setSectionSubmitToast("Kuesioner Bagian Orang Tua berhasil disimpan! Silakan lanjutkan dengan mengisi Kuesioner Bagian Anak.");
+    }
+  };
+
+  const isSelesaiButton = isCHOCIDual
+    ? (activeDualSection === "anak" && currentIndex === 37) ||
+      (activeDualSection === "ortu" && currentIndex === 75)
+    : isAtFunctionalStep ||
+      catsShowZeroPTEComplete ||
+      (!catsShowDistressPrompt &&
+        isLastQuestion &&
+        (!isFunctionalInstrument || !hasSymptomScoreGreaterThanZero()));
+
+  const handlePrimaryButtonClick = () => {
+    if (isSubmitting || isAdvancing) return;
+    if (isCHOCIDual) {
+      if (activeDualSection === "anak" && currentIndex === 37) {
+        handleFinishAnakSection();
+        return;
+      }
+      if (activeDualSection === "ortu" && currentIndex === 75) {
+        handleFinishOrtuSection();
+        return;
+      }
+    }
+    if (isSelesaiButton) {
+      handleFinish();
+    } else {
+      handleSafeNext();
+    }
+  };
 
   const effectiveProgressPercentage =
     isAtFunctionalStep || catsShowZeroPTEComplete
@@ -1122,6 +1581,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (shouldShowIdentityForm) return;
+      if (isCHOCIDual && activeDualSection === "hub") return;
       if (isLoading || !dbData || questions.length === 0 || hasInvalidOptions) return;
       const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (targetTag === "input" || targetTag === "textarea" || targetTag === "select") return;
@@ -1164,11 +1624,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
       // Panah Kanan atau Enter: Lanjut / Selesai
       if (e.key === "ArrowRight" || e.key === "Enter") {
         e.preventDefault();
-        if (isSelesaiButton) {
-          handleFinish();
-        } else {
-          handleSafeNext();
-        }
+        handlePrimaryButtonClick();
       }
     };
 
@@ -1187,6 +1643,8 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     isSelesaiButton,
     answers,
     functionalAnswer,
+    isCHOCIDual,
+    activeDualSection,
   ]);
 
   // Layar Loading
@@ -1269,6 +1727,182 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
     );
   }
 
+  // Layar Menu Pemilihan Bagian Asesmen Khusus Multi-Informan CHOCI-R
+  if (isCHOCIDual && activeDualSection === "hub") {
+    return (
+      <div className="min-h-screen bg-[#fbfbfb] pt-28 sm:pt-32 lg:pt-36 pb-16 px-4 sm:px-6 lg:px-8 font-sans selection:bg-[#561269] selection:text-white flex flex-col justify-between">
+        <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col">
+          {/* Section Submit Notification Toast */}
+          {sectionSubmitToast && (
+            <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm flex items-start gap-3 shadow-xs animate-fadeIn">
+              <div className="flex-1">
+                <p className="font-semibold text-emerald-900 leading-relaxed">{sectionSubmitToast}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSectionSubmitToast(null)}
+                className="text-emerald-500 hover:text-emerald-800 text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Header Asesmen */}
+          <div className="text-center mb-8 sm:mb-10">
+            <p className="text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Asesmen ini mengintegrasikan dua sudut pandang terpisah untuk memberikan evaluasi klinis yang menyeluruh dan akurat. Silakan pilih bagian di bawah untuk memulai atau melanjutkan pengisian.
+            </p>
+          </div>
+
+          {/* Daftar Bagian Kuesioner (Persegi Panjang Atas-Bawah) */}
+          <div className="flex flex-col gap-5 mb-8">
+            {/* Kartu 1: Kuesioner Anak */}
+            <div
+              className={`rounded-3xl p-6 sm:p-7 border-2 transition-all duration-300 ${
+                chociAnakSubmitted
+                  ? "bg-white border-gray-200 shadow-2xs"
+                  : "bg-white border-purple-100 hover:border-[#561269]/40 hover:shadow-md"
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                {/* Informasi Kuesioner (Kiri) */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <span className="text-[11px] font-bold text-[#561269] tracking-wider uppercase">
+                      Bagian 1 • Self-Report
+                    </span>
+                    {!chociAnakSubmitted && answeredAnakCount > 0 ? (
+                      <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        Dalam Proses ({answeredAnakCount}/38)
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Kuesioner Anak
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-2xl">
+                    Diisi secara langsung dan mandiri oleh anak/remaja mengenai kebiasaan berulang, dorongan perilaku, dan pikiran yang dirasakan mengganggu dalam aktivitas sehari-hari.
+                  </p>
+
+                  <p className="mt-3 text-xs font-medium text-gray-500">
+                    38 Butir Pertanyaan
+                  </p>
+                </div>
+
+                {/* Tombol Aksi (Kanan) */}
+                <div className="sm:w-56 sm:shrink-0 sm:pl-6 sm:border-l sm:border-gray-100 flex sm:flex-col justify-center">
+                  {chociAnakSubmitted ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3.5 px-4 rounded-xl bg-gray-100 border border-gray-200 text-gray-400 font-bold text-xs sm:text-sm flex items-center justify-center cursor-not-allowed select-none text-center"
+                    >
+                      Bagian ini sudah selesai
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleStartAnakSection}
+                      className="w-full py-3.5 px-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-xs sm:text-sm flex items-center justify-center shadow-sm hover:shadow-md transition cursor-pointer text-center"
+                    >
+                      Mulai
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Kartu 2: Kuesioner Orang Tua */}
+            <div
+              className={`rounded-3xl p-6 sm:p-7 border-2 transition-all duration-300 ${
+                chociOrtuSubmitted
+                  ? "bg-white border-gray-200 shadow-2xs"
+                  : "bg-white border-purple-100 hover:border-[#561269]/40 hover:shadow-md"
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                {/* Informasi Kuesioner (Kiri) */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <span className="text-[11px] font-bold text-[#561269] tracking-wider uppercase">
+                      Bagian 2 • Parent-Report
+                    </span>
+                    {!chociOrtuSubmitted && answeredOrtuCount > 0 ? (
+                      <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        Dalam Proses ({answeredOrtuCount}/38)
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Kuesioner Orang Tua / Wali
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-2xl">
+                    Diisi oleh orang tua atau pengasuh utama mengenai pengamatan objektif terhadap rutinitas berulang, kebiasaan, dan kecemasan yang teramati pada anak.
+                  </p>
+
+                  <p className="mt-3 text-xs font-medium text-gray-500">
+                    38 Butir Pertanyaan
+                  </p>
+                </div>
+
+                {/* Tombol Aksi (Kanan) */}
+                <div className="sm:w-56 sm:shrink-0 sm:pl-6 sm:border-l sm:border-gray-100 flex sm:flex-col justify-center">
+                  {chociOrtuSubmitted ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3.5 px-4 rounded-xl bg-gray-100 border border-gray-200 text-gray-400 font-bold text-xs sm:text-sm flex items-center justify-center cursor-not-allowed select-none text-center"
+                    >
+                      Bagian ini sudah selesai
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleStartOrtuSection}
+                      className="w-full py-3.5 px-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-xs sm:text-sm flex items-center justify-center shadow-sm hover:shadow-md transition cursor-pointer text-center"
+                    >
+                      Mulai
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Banner Keduanya Selesai */}
+          {chociAnakSubmitted && chociOrtuSubmitted && (
+            <div className="p-6 bg-emerald-50 border-2 border-emerald-300 rounded-3xl text-center shadow-xs">
+              <h3 className="text-lg font-bold text-gray-900 mb-1">
+                Kedua Bagian Kuesioner Telah Selesai!
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-lg mx-auto mb-5 leading-relaxed">
+                Seluruh data kuesioner anak dan orang tua telah berhasil dikumpulkan. Klik tombol di bawah untuk menyelesaikan asesmen dan melihat laporan hasil.
+              </p>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleFinish}
+                className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-extrabold text-sm shadow-sm hover:shadow-md transition cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-950 mr-2" />
+                    <span>Mengirim Jawaban ke Server...</span>
+                  </>
+                ) : (
+                  <span>Kirim &amp; Terbitkan Hasil Asesmen</span>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#fbfbfb] pt-28 sm:pt-32 lg:pt-36 pb-12 px-4 sm:px-6 lg:px-8 font-sans selection:bg-[#561269] selection:text-white flex flex-col justify-between">
       <div className="max-w-3xl w-full mx-auto flex-1 flex flex-col">
@@ -1287,6 +1921,24 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wide">
                 {isCATS && catsShowDistressPrompt ? (
                   <span className="text-[#561269] font-bold">Peristiwa Paling Mengganggu</span>
+                ) : isCHOCIDual ? (
+                  currentIndex < 38 ? (
+                    isCHOCIKebiasaanStep ? (
+                      <>Kuesioner Anak • Pertanyaan <span className="font-bold text-gray-800">11–13</span> dari 38</>
+                    ) : isCHOCIPikiranStep ? (
+                      <>Kuesioner Anak • Pertanyaan <span className="font-bold text-gray-800">30–32</span> dari 38</>
+                    ) : (
+                      <>Kuesioner Anak • Pertanyaan <span className="font-bold text-gray-800">{currentIndex + 1}</span> dari 38</>
+                    )
+                  ) : (
+                    isCHOCIKebiasaanStep ? (
+                      <>Kuesioner Orang Tua • Pertanyaan <span className="font-bold text-gray-800">11–13</span> dari 38</>
+                    ) : isCHOCIPikiranStep ? (
+                      <>Kuesioner Orang Tua • Pertanyaan <span className="font-bold text-gray-800">30–32</span> dari 38</>
+                    ) : (
+                      <>Kuesioner Orang Tua • Pertanyaan <span className="font-bold text-gray-800">{currentIndex - 38 + 1}</span> dari 38</>
+                    )
+                  )
                 ) : isCHOCIKebiasaanStep ? (
                   <>
                     Pertanyaan <span className="font-bold text-gray-800">11–13</span> dari {totalQuestions}
@@ -1416,167 +2068,193 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
                 </div>
               </div>
             ) : isCHOCIKebiasaanStep ? (
-              <div className="space-y-6 animate-fadeIn">
-                <div className="text-center space-y-2">
-                  <p className="text-xs sm:text-sm text-gray-400 font-medium">
-                    {timeframeText}
-                  </p>
-                  <p className="text-sm sm:text-base text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium">
-                    Sebutkan hingga 3 kebiasaan atau tindakan berulang yang paling mengganggu dan kamu merasa sulit untuk menghentikannya. Misalnya, merasa harus sering mencuci tangan, mengulangi suatu tindakan, atau memeriksa pintu dan jendela berkali-kali untuk memastikan semuanya sudah tertutup.
-                  </p>
-                </div>
+              (() => {
+                const isParent = isCHOCIParentSection;
+                const k1 = isParent ? 48 : 10;
+                const k2 = isParent ? 49 : 11;
+                const k3 = isParent ? 50 : 12;
+                const isRequired = isParent ? chociParentHasCompulsionSymptoms : chociHasCompulsionSymptoms;
+                const hasFilled = Boolean(chociIsian[k1]?.trim() || chociIsian[k2]?.trim() || chociIsian[k3]?.trim());
 
-                <div className="space-y-5 pt-1">
-                  {/* Kebiasaan 1 */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
-                      Kebiasaan 1 (paling mengganggu):
-                      {chociHasCompulsionSymptoms && (
-                        <span className="text-red-500 font-bold ml-1" title="Wajib diisi">*</span>
-                      )}
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={chociIsian[10] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setChociIsian((prev) => ({ ...prev, 10: val }));
-                        setLocalError(false);
-                        setSubmitError(null);
-                      }}
-                      placeholder="Tuliskan kebiasaan 1 di sini..."
-                      className={`w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 transition shadow-xs ${
-                        localError && chociHasCompulsionSymptoms && !chociIsian[10]?.trim() && !chociIsian[11]?.trim() && !chociIsian[12]?.trim()
-                          ? "border-red-400 bg-red-50/20 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                          : "border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20"
-                      }`}
-                    />
+                return (
+                  <div className="space-y-6 animate-fadeIn">
+                    <div className="text-center space-y-2">
+                      <p className="text-xs sm:text-sm text-gray-400 font-medium">
+                        {timeframeText}
+                      </p>
+                      <p className="text-sm sm:text-base text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium">
+                        {isParent
+                          ? "Coba sebutkan 3 (tiga) kebiasaan paling menjengkelkan yang menurut Anda harus dilakukan anak Anda dan tidak bisa dihentikan. Misalnya, merasa harus sering mencuci tangan, mengulangi tindakan yang sama berulang-ulang, atau terus-menerus memeriksa pintu dan jendela."
+                          : "Sebutkan hingga 3 kebiasaan atau tindakan berulang yang paling mengganggu dan kamu merasa sulit untuk menghentikannya. Misalnya, merasa harus sering mencuci tangan, mengulangi suatu tindakan, atau memeriksa pintu dan jendela berkali-kali untuk memastikan semuanya sudah tertutup."}
+                      </p>
+                    </div>
+
+                    <div className="space-y-5 pt-1">
+                      {/* Kebiasaan 1 */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                          Kebiasaan 1 (paling mengganggu/menjengkelkan):
+                          {isRequired && (
+                            <span className="text-red-500 font-bold ml-1" title="Wajib diisi">*</span>
+                          )}
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={chociIsian[k1] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setChociIsian((prev) => ({ ...prev, [k1]: val }));
+                            setLocalError(false);
+                            setSubmitError(null);
+                          }}
+                          placeholder={isParent ? "Tuliskan kebiasaan anak 1 di sini..." : "Tuliskan kebiasaan 1 di sini..."}
+                          className={`w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 transition shadow-xs ${
+                            localError && isRequired && !hasFilled
+                              ? "border-red-400 bg-red-50/20 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                              : "border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20"
+                          }`}
+                        />
+                      </div>
+
+                      {/* Kebiasaan 2 */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                          Kebiasaan 2:
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={chociIsian[k2] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setChociIsian((prev) => ({ ...prev, [k2]: val }));
+                            setLocalError(false);
+                            setSubmitError(null);
+                          }}
+                          placeholder={isParent ? "Tuliskan kebiasaan anak 2 di sini..." : "Tuliskan kebiasaan 2 di sini..."}
+                          className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                        />
+                      </div>
+
+                      {/* Kebiasaan 3 */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                          Kebiasaan 3:
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={chociIsian[k3] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setChociIsian((prev) => ({ ...prev, [k3]: val }));
+                            setLocalError(false);
+                            setSubmitError(null);
+                          }}
+                          placeholder={isParent ? "Tuliskan kebiasaan anak 3 di sini..." : "Tuliskan kebiasaan 3 di sini..."}
+                          className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-400 italic text-center pt-1">
+                      *Tidak perlu mengisi semua kolom jika tidak ada kebiasaan lain untuk disebutkan. Kolom yang tidak relevan boleh dilewati.*
+                    </p>
                   </div>
-
-                  {/* Kebiasaan 2 */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
-                      Kebiasaan 2:
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={chociIsian[11] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setChociIsian((prev) => ({ ...prev, 11: val }));
-                        setLocalError(false);
-                        setSubmitError(null);
-                      }}
-                      placeholder="Tuliskan kebiasaan 2 di sini..."
-                      className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
-                    />
-                  </div>
-
-                  {/* Kebiasaan 3 */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
-                      Kebiasaan 3:
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={chociIsian[12] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setChociIsian((prev) => ({ ...prev, 12: val }));
-                        setLocalError(false);
-                        setSubmitError(null);
-                      }}
-                      placeholder="Tuliskan kebiasaan 3 di sini..."
-                      className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
-                    />
-                  </div>
-                </div>
-
-                <p className="text-xs text-gray-400 italic text-center pt-1">
-                  *Tidak perlu mengisi semua kolom jika kamu tidak memiliki kebiasaan lain untuk disebutkan. Kamu boleh melewati kolom yang tidak ingin atau tidak dapat diisi.*
-                </p>
-              </div>
+                );
+              })()
             ) : isCHOCIPikiranStep ? (
-              <div className="space-y-6 animate-fadeIn">
-                <div className="text-center space-y-2">
-                  <p className="text-xs sm:text-sm text-gray-400 font-medium">
-                    {timeframeText}
-                  </p>
-                  <p className="text-sm sm:text-base text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium">
-                    Sebutkan hingga 3 pikiran atau kekhawatiran paling mengganggu yang terus muncul di kepala kamu dan sulit untuk dihentikan. Misalnya, takut kotor atau kuman, takut terjadi hal buruk pada keluarga, atau perasaan bahwa segala sesuatu harus dilakukan dengan sempurna.
-                  </p>
-                </div>
+              (() => {
+                const isParent = isCHOCIParentSection;
+                const p1 = isParent ? 67 : 29;
+                const p2 = isParent ? 68 : 30;
+                const p3 = isParent ? 69 : 31;
+                const isRequired = isParent ? chociParentHasObsessionSymptoms : chociHasObsessionSymptoms;
+                const hasFilled = Boolean(chociIsian[p1]?.trim() || chociIsian[p2]?.trim() || chociIsian[p3]?.trim());
 
-                <div className="space-y-5 pt-1">
-                  {/* Pikiran 1 */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
-                      Pikiran 1 (paling mengganggu):
-                      {chociHasObsessionSymptoms && (
-                        <span className="text-red-500 font-bold ml-1" title="Wajib diisi">*</span>
-                      )}
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={chociIsian[29] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setChociIsian((prev) => ({ ...prev, 29: val }));
-                        setLocalError(false);
-                        setSubmitError(null);
-                      }}
-                      placeholder="Tuliskan pikiran 1 di sini..."
-                      className={`w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 transition shadow-xs ${
-                        localError && chociHasObsessionSymptoms && !chociIsian[29]?.trim() && !chociIsian[30]?.trim() && !chociIsian[31]?.trim()
-                          ? "border-red-400 bg-red-50/20 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                          : "border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20"
-                      }`}
-                    />
+                return (
+                  <div className="space-y-6 animate-fadeIn">
+                    <div className="text-center space-y-2">
+                      <p className="text-xs sm:text-sm text-gray-400 font-medium">
+                        {timeframeText}
+                      </p>
+                      <p className="text-sm sm:text-base text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium">
+                        {isParent
+                          ? "Coba sebutkan 3 (tiga) pikiran paling mengganggu yang sering dimiliki anak Anda dan tidak bisa dihentikan. Misalnya, berpikir tentang menyakiti seseorang, atau memikirkan hal-hal buruk tentang Tuhan."
+                          : "Sebutkan hingga 3 pikiran atau kekhawatiran paling mengganggu yang terus muncul di kepala kamu dan sulit untuk dihentikan. Misalnya, takut kotor atau kuman, takut terjadi hal buruk pada keluarga, atau perasaan bahwa segala sesuatu harus dilakukan dengan sempurna."}
+                      </p>
+                    </div>
+
+                    <div className="space-y-5 pt-1">
+                      {/* Pikiran 1 */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                          Pikiran 1 (paling mengganggu):
+                          {isRequired && (
+                            <span className="text-red-500 font-bold ml-1" title="Wajib diisi">*</span>
+                          )}
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={chociIsian[p1] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setChociIsian((prev) => ({ ...prev, [p1]: val }));
+                            setLocalError(false);
+                            setSubmitError(null);
+                          }}
+                          placeholder={isParent ? "Tuliskan pikiran anak 1 di sini..." : "Tuliskan pikiran 1 di sini..."}
+                          className={`w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 transition shadow-xs ${
+                            localError && isRequired && !hasFilled
+                              ? "border-red-400 bg-red-50/20 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                              : "border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20"
+                          }`}
+                        />
+                      </div>
+
+                      {/* Pikiran 2 */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                          Pikiran 2:
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={chociIsian[p2] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setChociIsian((prev) => ({ ...prev, [p2]: val }));
+                            setLocalError(false);
+                            setSubmitError(null);
+                          }}
+                          placeholder={isParent ? "Tuliskan pikiran anak 2 di sini..." : "Tuliskan pikiran 2 di sini..."}
+                          className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                        />
+                      </div>
+
+                      {/* Pikiran 3 */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs sm:text-sm font-bold text-gray-900">
+                          Pikiran 3:
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={chociIsian[p3] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setChociIsian((prev) => ({ ...prev, [p3]: val }));
+                            setLocalError(false);
+                            setSubmitError(null);
+                          }}
+                          placeholder={isParent ? "Tuliskan pikiran anak 3 di sini..." : "Tuliskan pikiran 3 di sini..."}
+                          className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-400 italic text-center pt-1">
+                      *Tidak perlu mengisi semua kolom jika tidak ada pikiran lain untuk disebutkan. Kolom yang tidak relevan boleh dilewati.*
+                    </p>
                   </div>
-
-                  {/* Pikiran 2 */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
-                      Pikiran 2:
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={chociIsian[30] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setChociIsian((prev) => ({ ...prev, 30: val }));
-                        setLocalError(false);
-                        setSubmitError(null);
-                      }}
-                      placeholder="Tuliskan pikiran 2 di sini..."
-                      className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
-                    />
-                  </div>
-
-                  {/* Pikiran 3 */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-900">
-                      Pikiran 3:
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={chociIsian[31] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setChociIsian((prev) => ({ ...prev, 31: val }));
-                        setLocalError(false);
-                        setSubmitError(null);
-                      }}
-                      placeholder="Tuliskan pikiran 3 di sini..."
-                      className="w-full text-xs sm:text-sm p-3.5 sm:p-4 rounded-2xl border-2 border-purple-100 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition shadow-xs"
-                    />
-                  </div>
-                </div>
-
-                <p className="text-xs text-gray-400 italic text-center pt-1">
-                  *Tidak perlu mengisi semua kolom jika kamu tidak memiliki pikiran lain untuk disebutkan. Kamu boleh melewati kolom yang tidak ingin atau tidak dapat diisi.*
-                </p>
-              </div>
+                );
+              })()
             ) : (
               <>
                 <p className="text-xs sm:text-sm text-gray-400 font-medium text-center mb-2">
@@ -1638,9 +2316,13 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             {(showError || localError) && (
               <p className="text-red-500 text-xs sm:text-sm font-medium text-center mt-5 animate-pulse">
                 {isCHOCIKebiasaanStep
-                  ? "Mohon tuliskan minimal 1 kebiasaan yang paling mengganggu kamu."
+                  ? (isCHOCIParentSection
+                      ? "Mohon tuliskan minimal 1 kebiasaan anak yang paling mengganggu/menjengkelkan."
+                      : "Mohon tuliskan minimal 1 kebiasaan yang paling mengganggu kamu.")
                   : isCHOCIPikiranStep
-                  ? "Mohon tuliskan minimal 1 pikiran yang paling mengganggu kamu."
+                  ? (isCHOCIParentSection
+                      ? "Mohon tuliskan minimal 1 pikiran anak yang paling mengganggu."
+                      : "Mohon tuliskan minimal 1 pikiran yang paling mengganggu kamu.")
                   : "Silakan pilih jawaban terlebih dahulu."}
               </p>
             )}
@@ -1662,15 +2344,30 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           {/* Navigation Controls */}
           <div className="flex items-center justify-between gap-3 mt-auto pt-1">
             <button
+              type="button"
               onClick={handleSafePrev}
               disabled={
-                (currentIndex === 0 && !isAtFunctionalStep && !catsShowDistressPrompt && !catsShowZeroPTEComplete) ||
+                (isCHOCIDual &&
+                  ((activeDualSection === "anak" && currentIndex === 0) ||
+                    (activeDualSection === "ortu" && currentIndex === 38))) ||
+                (!isCHOCIDual &&
+                  currentIndex === 0 &&
+                  !isAtFunctionalStep &&
+                  !catsShowDistressPrompt &&
+                  !catsShowZeroPTEComplete) ||
                 isSubmitting ||
                 isAdvancing
               }
               className={`px-5 py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-200 text-xs sm:text-sm cursor-pointer ${
-                currentIndex === 0 && !isAtFunctionalStep && !catsShowDistressPrompt && !catsShowZeroPTEComplete
-                  ? "opacity-0 pointer-events-none" 
+                (isCHOCIDual &&
+                  ((activeDualSection === "anak" && currentIndex === 0) ||
+                    (activeDualSection === "ortu" && currentIndex === 38))) ||
+                (!isCHOCIDual &&
+                  currentIndex === 0 &&
+                  !isAtFunctionalStep &&
+                  !catsShowDistressPrompt &&
+                  !catsShowZeroPTEComplete)
+                  ? "opacity-0 pointer-events-none"
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 shadow-xs"
               }`}
             >
@@ -1678,7 +2375,8 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
             </button>
 
             <button
-              onClick={isSelesaiButton ? handleFinish : handleSafeNext}
+              type="button"
+              onClick={handlePrimaryButtonClick}
               disabled={isSubmitting || isAdvancing}
               className={`px-6 py-2.5 sm:py-3 rounded-xl font-extrabold transition-all duration-200 text-xs sm:text-sm flex items-center gap-2 bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 shadow-sm hover:shadow-md cursor-pointer ${
                 isSubmitting || isAdvancing ? "opacity-80 cursor-not-allowed" : ""
@@ -1687,8 +2385,19 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-gray-950" />
-                  <span>Selesai</span>
+                  <span>Memproses...</span>
                 </>
+              ) : isCHOCIDual ? (
+                activeDualSection === "anak" && currentIndex === 37 ? (
+                  <span>Kirim Bagian Anak</span>
+                ) : activeDualSection === "ortu" && currentIndex === 75 ? (
+                  <span>Kirim Bagian Orang Tua</span>
+                ) : (
+                  <>
+                    <span>Berikutnya</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+                  </>
+                )
               ) : isSelesaiButton ? (
                 <span>Selesai</span>
               ) : catsShowDistressPrompt ? (

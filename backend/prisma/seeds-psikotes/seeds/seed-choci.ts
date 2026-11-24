@@ -386,6 +386,361 @@ export const CHOCI_SOAL: CHOCISoalItem[] = [
       { label: '4', text: 'Hampir selalu', bobot: 4 },
     ],
   },
+
+  // ==========================================================================
+  // KUESIONER VERSI ORANG TUA / CAREGIVER (BUTIR 39–76)
+  // ==========================================================================
+  // --- BAGIAN A: KOMPULSI (ORANG TUA) (39–57) ---
+  // Gejala Kompulsi Orang Tua (39–48, Butir 1–10 versi Ortu)
+  {
+    no: 39,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Dia menghabiskan terlalu banyak waktu untuk mencuci tangan berulang kali.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 40,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Dia merasa harus melakukan hal-hal biasa / sehari-hari dengan cara yang persis sama, setiap kali dia melakukannya.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 41,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Dia menghabiskan banyak waktu setiap hari untuk memeriksa sesuatu berulang-ulang.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 42,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Dia sering mengalami kesulitan menyelesaikan sesuatu, karena dia harus memastikan bahwa semuanya benar.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 43,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Dia menghabiskan terlalu banyak waktu untuk mengatur barang-barangnya.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 44,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Dia butuh seseorang untuk memberitahunya berulang kali bahwa semuanya baik-baik saja.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 45,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Jika dia menyentuh sesuatu dengan satu tangan, dia merasa harus menyentuh hal yang sama dengan tangan yang lain, untuk membuat semuanya merata dan setara.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 46,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Dia selalu menghitung, bahkan ketika melakukan hal-hal biasa.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 47,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Jika dia memiliki "pikiran buruk", dia harus selalu memastikan bahwa dirinya segera memiliki "pikiran baik" untuk melawannya.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 48,
+    kategori: 'KOMPULSI_GEJALA',
+    klaster: 'Compulsion Symptoms (Parent)',
+    text: 'Dia sering sangat terlambat, karena dia terus mengulangi tindakan yang sama, lagi dan lagi.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+
+  // Isian Kualitatif 3 Kebiasaan Kompulsi Orang Tua (49–51, Butir 11–13 versi Ortu)
+  {
+    no: 49,
+    kategori: 'KOMPULSI_ISIAN',
+    klaster: 'Compulsion Notes (Parent)',
+    text: 'Kebiasaan 1 paling menjengkelkan yang menurut dia (anak anda) harus dilakukan dan tidak bisa dihentikan (misalnya: sering mencuci tangan, mengulangi tindakan, atau memeriksa pintu/jendela).',
+    opsi: CHOCI_OPSI_ISIAN,
+  },
+  {
+    no: 50,
+    kategori: 'KOMPULSI_ISIAN',
+    klaster: 'Compulsion Notes (Parent)',
+    text: 'Kebiasaan 2 paling menjengkelkan yang menurut dia (anak anda) harus dilakukan dan tidak bisa dihentikan.',
+    opsi: CHOCI_OPSI_ISIAN,
+  },
+  {
+    no: 51,
+    kategori: 'KOMPULSI_ISIAN',
+    klaster: 'Compulsion Notes (Parent)',
+    text: 'Kebiasaan 3 paling menjengkelkan yang menurut dia (anak anda) harus dilakukan dan tidak bisa dihentikan.',
+    opsi: CHOCI_OPSI_ISIAN,
+  },
+
+  // Keparahan Kompulsi Orang Tua (52–57, Butir 14–19 versi Ortu)
+  {
+    no: 52,
+    kategori: 'KOMPULSI_KEPARAHAN',
+    klaster: 'Compulsion Severity (Parent)',
+    text: 'Berapa banyak waktu yang dia habiskan untuk melakukan kebiasaan ini?',
+    opsi: [
+      { label: '0', text: 'Tidak ada', bobot: 0 },
+      { label: '1', text: 'Kurang dari 1 jam sehari (kadang-kadang)', bobot: 1 },
+      { label: '2', text: '1-3 jam sehari (sekitar pagi atau sore hari)', bobot: 2 },
+      { label: '3', text: '3-8 jam sehari (sekitar separuh waktu dia dalam kondisi bangun)', bobot: 3 },
+      { label: '4', text: 'Lebih dari 8 jam sehari (hampir sepanjang waktu dia dalam kondisi bangun)', bobot: 4 },
+    ],
+  },
+  {
+    no: 53,
+    kategori: 'KOMPULSI_KEPARAHAN',
+    klaster: 'Compulsion Severity (Parent)',
+    text: 'Seberapa besar kebiasaan ini menghalangi dia bersekolah atau melakukan sesuatu dengan teman-temannya?',
+    opsi: [
+      { label: '0', text: 'Tidak sama sekali', bobot: 0 },
+      { label: '1', text: 'Sedikit', bobot: 1 },
+      { label: '2', text: 'Agak', bobot: 2 },
+      { label: '3', text: 'Banyak', bobot: 3 },
+      { label: '4', text: 'Hampir selalu', bobot: 4 },
+    ],
+  },
+  {
+    no: 54,
+    kategori: 'KOMPULSI_KEPARAHAN',
+    klaster: 'Compulsion Severity (Parent)',
+    text: 'Bagaimana perasaan dia jika dicegah dari melakukan kebiasaan ini? Seberapa kesal dia nantinya?',
+    opsi: [
+      { label: '0', text: 'Tidak sama sekali', bobot: 0 },
+      { label: '1', text: 'Sedikit', bobot: 1 },
+      { label: '2', text: 'Agak', bobot: 2 },
+      { label: '3', text: 'Banyak', bobot: 3 },
+      { label: '4', text: 'Benar-benar', bobot: 4 },
+    ],
+  },
+  {
+    no: 55,
+    kategori: 'KOMPULSI_KEPARAHAN',
+    klaster: 'Compulsion Severity (Parent)',
+    text: 'Seberapa banyak dia mencoba melawan kebiasaan yang menjengkelkan ini?',
+    opsi: [
+      { label: '0', text: 'Dia selalu berusaha melawan', bobot: 0 },
+      { label: '1', text: 'Dia mencoba melawan di sebagian besar waktu', bobot: 1 },
+      { label: '2', text: 'Dia melakukan beberapa usaha untuk melawan', bobot: 2 },
+      { label: '3', text: 'Meskipun dia ingin, dia tidak mencoba untuk melawan', bobot: 3 },
+      { label: '4', text: 'Dia tidak melawan sama sekali', bobot: 4 },
+    ],
+  },
+  {
+    no: 56,
+    kategori: 'KOMPULSI_KEPARAHAN',
+    klaster: 'Compulsion Severity (Parent)',
+    text: 'Seberapa kuat perasaan bahwa dia harus menjalankan kebiasaan ini?',
+    opsi: [
+      { label: '0', text: 'Tidak kuat', bobot: 0 },
+      { label: '1', text: 'Desakan yang ringan untuk melakukan kebiasaan', bobot: 1 },
+      { label: '2', text: 'Desakan yang kuat untuk melakukan kebiasaan, sulit dikendalikan', bobot: 2 },
+      { label: '3', text: 'Desakan yang sangat kuat untuk melakukan kebiasaan, sangat sulit dikendalikan', bobot: 3 },
+      { label: '4', text: 'Desakan yang ekstrim untuk melakukan kebiasaan, tidak mungkin dikendalikan', bobot: 4 },
+    ],
+  },
+  {
+    no: 57,
+    kategori: 'KOMPULSI_KEPARAHAN',
+    klaster: 'Compulsion Severity (Parent)',
+    text: 'Seberapa sering dia menghindari melakukan sesuatu, pergi ke suatu tempat atau bersama siapapun karena kebiasaan menjengkelkannya ini?',
+    opsi: [
+      { label: '0', text: 'Tidak sama sekali', bobot: 0 },
+      { label: '1', text: 'Sedikit', bobot: 1 },
+      { label: '2', text: 'Agak', bobot: 2 },
+      { label: '3', text: 'Banyak', bobot: 3 },
+      { label: '4', text: 'Hampir selalu', bobot: 4 },
+    ],
+  },
+
+  // --- BAGIAN B: OBSESI (ORANG TUA) (58–76) ---
+  // Gejala Obsesi Orang Tua (58–67, Butir 20–29 versi Ortu)
+  {
+    no: 58,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia tidak bisa memberhentikan pikiran menjengkelkan tentang kecelakaan.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 59,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia sering memiliki pikiran buruk yang membuatnya merasa seperti orang yang buruk.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 60,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Pikiran menjengkelkan tentang keluarga yang terluka berputar-putar di kepalanya dan menghentikan dia untuk berkonsentrasi.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 61,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia selalu memiliki keraguan besar tentang apakah dirinya telah membuat keputusan yang tepat, bahkan tentang hal-hal kecil yang bodoh.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 62,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia tidak bisa memberhentikan pikiran menjengkelkan tentang kematian yang terus berputar di kepalanya, lagi dan lagi.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 63,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia sering memiliki pikiran jahat tentang orang lain yang dia rasa buruk, lagi dan lagi.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 64,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia sering memiliki pikiran buruk tentang menjadi gila.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 65,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia terus memiliki pikiran menakutkan, bahwa sesuatu yang buruk akan terjadi, dan itu akan menjadi kesalahannya.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 66,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia sangat takut, bahwa dirinya akan memikirkan sesuatu (atau melakukan sesuatu) yang akan membuat Tuhan marah.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+  {
+    no: 67,
+    kategori: 'OBSESI_GEJALA',
+    klaster: 'Obsession Symptoms (Parent)',
+    text: 'Dia selalu khawatir bahwa pikiran jahatnya tentang orang lain sama jahatnya dengan melakukan hal-hal jahat.',
+    opsi: CHOCI_OPSI_GEJALA,
+  },
+
+  // Isian Kualitatif 3 Pikiran Obsesi Orang Tua (68–70, Butir 30–32 versi Ortu)
+  {
+    no: 68,
+    kategori: 'OBSESI_ISIAN',
+    klaster: 'Obsession Notes (Parent)',
+    text: 'Pikiran 1 paling mengganggu yang sering dia (anak anda) miliki dan tidak bisa dihentikan (misalnya: berpikir tentang menyakiti seseorang, atau memikirkan hal-hal buruk tentang Tuhan).',
+    opsi: CHOCI_OPSI_ISIAN,
+  },
+  {
+    no: 69,
+    kategori: 'OBSESI_ISIAN',
+    klaster: 'Obsession Notes (Parent)',
+    text: 'Pikiran 2 paling mengganggu yang sering dia (anak anda) miliki dan tidak bisa dihentikan.',
+    opsi: CHOCI_OPSI_ISIAN,
+  },
+  {
+    no: 70,
+    kategori: 'OBSESI_ISIAN',
+    klaster: 'Obsession Notes (Parent)',
+    text: 'Pikiran 3 paling mengganggu yang sering dia (anak anda) miliki dan tidak bisa dihentikan.',
+    opsi: CHOCI_OPSI_ISIAN,
+  },
+
+  // Keparahan Obsesi Orang Tua (71–76, Butir 33–38 versi Ortu)
+  {
+    no: 71,
+    kategori: 'OBSESI_KEPARAHAN',
+    klaster: 'Obsession Severity (Parent)',
+    text: 'Berapa banyak waktu yang dia habiskan untuk memikirkan hal-hal ini?',
+    opsi: [
+      { label: '0', text: 'Tidak ada', bobot: 0 },
+      { label: '1', text: 'Kurang dari 1 jam sehari (kadang-kadang)', bobot: 1 },
+      { label: '2', text: '1-3 jam sehari (sekitar pagi atau sore hari)', bobot: 2 },
+      { label: '3', text: '3-8 jam sehari (sekitar separuh waktu dia dalam kondisi bangun)', bobot: 3 },
+      { label: '4', text: 'Lebih dari 8 jam sehari (hampir sepanjang waktu dia dalam kondisi bangun)', bobot: 4 },
+    ],
+  },
+  {
+    no: 72,
+    kategori: 'OBSESI_KEPARAHAN',
+    klaster: 'Obsession Severity (Parent)',
+    text: 'Seberapa banyak pikiran ini menghalangi dia bersekolah atau melakukan sesuatu dengan teman-temannya?',
+    opsi: [
+      { label: '0', text: 'Tidak sama sekali', bobot: 0 },
+      { label: '1', text: 'Sedikit', bobot: 1 },
+      { label: '2', text: 'Agak', bobot: 2 },
+      { label: '3', text: 'Banyak', bobot: 3 },
+      { label: '4', text: 'Banyak sekali', bobot: 4 },
+    ],
+  },
+  {
+    no: 73,
+    kategori: 'OBSESI_KEPARAHAN',
+    klaster: 'Obsession Severity (Parent)',
+    text: 'Seberapa besar pikiran ini mengganggu atau membuat dia kesal?',
+    opsi: [
+      { label: '0', text: 'Tidak sama sekali', bobot: 0 },
+      { label: '1', text: 'Sedikit', bobot: 1 },
+      { label: '2', text: 'Agak', bobot: 2 },
+      { label: '3', text: 'Banyak', bobot: 3 },
+      { label: '4', text: 'Banyak sekali', bobot: 4 },
+    ],
+  },
+  {
+    no: 74,
+    kategori: 'OBSESI_KEPARAHAN',
+    klaster: 'Obsession Severity (Parent)',
+    text: 'Seberapa keras dia mencoba untuk menghentikan pikiran ini atau mengabaikannya?',
+    opsi: [
+      { label: '0', text: 'Dia selalu berusaha melawan', bobot: 0 },
+      { label: '1', text: 'Dia mencoba melawan di sebagian besar waktu', bobot: 1 },
+      { label: '2', text: 'Dia melakukan beberapa usaha untuk melawan', bobot: 2 },
+      { label: '3', text: 'Meskipun dia ingin, dia tidak mencoba untuk melawan', bobot: 3 },
+      { label: '4', text: 'Dia tidak melawan sama sekali', bobot: 4 },
+    ],
+  },
+  {
+    no: 75,
+    kategori: 'OBSESI_KEPARAHAN',
+    klaster: 'Obsession Severity (Parent)',
+    text: 'Ketika dia mencoba melawan pikiran ini, dapatkah dia mengalahkannya? Berapa banyak kendali yang dia miliki atas pikiran ini?',
+    opsi: [
+      { label: '0', text: 'Kendali penuh', bobot: 0 },
+      { label: '1', text: 'Banyak kendali', bobot: 1 },
+      { label: '2', text: 'Kendali sedang', bobot: 2 },
+      { label: '3', text: 'Sedikit kendali', bobot: 3 },
+      { label: '4', text: 'Tidak ada kendali', bobot: 4 },
+    ],
+  },
+  {
+    no: 76,
+    kategori: 'OBSESI_KEPARAHAN',
+    klaster: 'Obsession Severity (Parent)',
+    text: 'Seberapa sering dia menghindari melakukan sesuatu, pergi ke mana pun, atau bersama siapapun karena pikirannya ini?',
+    opsi: [
+      { label: '0', text: 'Tidak sama sekali', bobot: 0 },
+      { label: '1', text: 'Sedikit', bobot: 1 },
+      { label: '2', text: 'Agak', bobot: 2 },
+      { label: '3', text: 'Banyak', bobot: 3 },
+      { label: '4', text: 'Hampir selalu', bobot: 4 },
+    ],
+  },
 ]
 
 // Tabel Interpretasi Master CHOCI-R Sesuai Handout (Tanpa Kategori Buatan)
@@ -418,9 +773,9 @@ export async function seedCHOCI(prisma: PrismaClient) {
   })
   console.log(`    ✓ AlatUkur: ${alatUkur.nama} (${alatUkur.kode})`)
 
-  // 2. Produk Paket CHOCI-R (Gratis - Rp 0)
-  console.log('\n--- Menyemai Produk Paket CHOCI-R (Gratis) ---')
-  const judulPaket = 'Tes Gejala OCD Anak dan Remaja'
+  // 2. Produk Paket CHOCI-R (Berbayar)
+  console.log('\n--- Menyemai Produk Paket CHOCI-R (Berbayar) ---')
+  const judulPaket = 'Tes Gejala OCD Anak dan Remaja (CHOCI-R)'
   let paket = await prisma.paketPsikotes.findFirst({
     where: {
       OR: [
@@ -436,12 +791,13 @@ export async function seedCHOCI(prisma: PrismaClient) {
   const paketPayload = {
     judul: judulPaket,
     id_alat_ukur: alatUkur.id,
-    jenis_akses: JenisAksesPsikotes.GRATIS,
-    harga: 0,
+    jenis_akses: JenisAksesPsikotes.BERBAYAR,
+    harga: 75000,
     banner_url: '/images/psikotes/banner-default.jpg',
     tentang_tes:
-      'Pernah merasa memiliki pikiran yang muncul berulang kali dan sulit dihilangkan, atau terdorong untuk melakukan sesuatu secara berulang agar merasa lebih tenang? Terkadang, pikiran dan kebiasaan tersebut dapat memengaruhi aktivitas sehari-hari. Tes ini membantu mengenali gejala yang berkaitan dengan obsesif-kompulsif (OCD) pada anak dan remaja, baik berupa pikiran yang muncul berulang kali (obsesi) maupun dorongan untuk melakukan tindakan tertentu secara berulang (kompulsi). Selain itu, tes ini juga melihat tingkat keparahan gejala serta dampaknya terhadap kehidupan sehari-hari.',
+      'Pernah merasa memiliki pikiran yang muncul berulang kali dan sulit dihilangkan, atau terdorong untuk melakukan sesuatu secara berulang agar merasa lebih tenang? Tes ini membantu mengenali gejala yang berkaitan dengan obsesif-kompulsif (OCD) pada anak dan remaja, baik berupa pikiran yang muncul berulang kali (obsesi) maupun dorongan untuk melakukan tindakan tertentu secara berulang (kompulsi). Asesmen ini memadukan dua perspektif kuesioner (anak dan orang tua) serta dianalisis langsung oleh psikolog profesional.',
     status: 'PUBLISHED',
+    perlu_review_psikolog: true,
   }
 
   if (paket) {
@@ -454,9 +810,9 @@ export async function seedCHOCI(prisma: PrismaClient) {
       data: paketPayload,
     })
   }
-  console.log(`    ✓ Paket: ${paket.judul} (Gratis)`)
+  console.log(`    ✓ Paket: ${paket.judul} (Berbayar - Perlu Review Psikolog)`)
 
-  // 3. 38 Butir Soal & Pilihan Jawaban
+  // 3. 76 Butir Soal & Pilihan Jawaban (38 Anak + 38 Orang Tua)
   for (const q of CHOCI_SOAL) {
     let soal = await prisma.soalPsikotes.findFirst({
       where: { id_paket: paket.id, urutan: q.no },
@@ -502,7 +858,7 @@ export async function seedCHOCI(prisma: PrismaClient) {
       }
     }
   }
-  console.log(`    ✓ 38 Butir Soal & Opsi Jawaban CHOCI-R berhasil disemai`)
+  console.log(`    ✓ 76 Butir Soal & Opsi Jawaban CHOCI-R (38 Anak + 38 Ortu) berhasil disemai`)
 
   // 4. Interpretasi Profil Skor Master CHOCI-R
   for (const interp of CHOCI_INTERPRETASI) {

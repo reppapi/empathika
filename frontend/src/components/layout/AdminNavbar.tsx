@@ -87,6 +87,11 @@ export function AdminNavbar({
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [currentAdminName, setCurrentAdminName] = useState(adminName)
   const [adminFoto, setAdminFoto] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     if (adminName) {
@@ -195,7 +200,7 @@ export function AdminNavbar({
 
           {/* Avatar Bulat Inisial / Foto */}
           <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-[#E8D4F0] text-sm font-bold text-[#561269] overflow-hidden shadow-xs ring-1 ring-purple-200/50">
-            {adminFoto ? (
+            {isMounted && adminFoto ? (
               <img src={adminFoto} alt={currentAdminName} className="h-full w-full object-cover" />
             ) : (
               initials
