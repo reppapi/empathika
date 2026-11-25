@@ -112,6 +112,16 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.getInternshipPublic,
   })
 
+  // 1b. Publik: Klien mengambil detail satu posisi internship yang dibuka untuk form pendaftaran
+  fastify.get('/internship/public/:id', {
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mendapatkan detail satu posisi internship untuk publik / apply dari database',
+      params: internshipIdParamsSchema,
+    },
+    handler: controller.getInternshipById,
+  })
+
   // 2. Terproteksi: Admin mengambil seluruh daftar posisi internship dari database
   fastify.get('/internship', {
     preHandler: [adminGuard],

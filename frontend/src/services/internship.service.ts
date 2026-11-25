@@ -130,19 +130,42 @@ export const internshipService = {
    * Mengambil detail satu posisi internship berdasarkan ID
    */
   getPositionById: async (id: string): Promise<InternshipPosition | null> => {
+    // 1. Coba ambil dari endpoint publik (tanpa butuh login admin)
     try {
       const res = await apiClient.get<{ success: boolean; data: InternshipPosition }>(
-        `/admin/internship/${id}`
+        `/admin/internship/public/${id}`
       )
       if (res.data?.success && res.data.data) {
         return res.data.data
       }
     } catch {
-      // Fallback: cari dari seluruh data jika endpoint single belum tersedia
+      // Lanjut ke fallback publik
     }
 
-    const all = await internshipService.getAllPositions()
-    return all.find((p) => p.id === id) || null
+    // 2. Fallback: cari dari daftar posisi publik
+    try {
+      const publicPositions = await internshipService.getPublicPositions()
+      const found = publicPositions.find((p) => p.id === id)
+      if (found) return found
+    } catch {
+      // Lanjut ke cache
+    }
+
+    // 3. Fallback: cari dari cache localStorage
+    if (typeof window !== "undefined") {
+      try {
+        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP)
+        if (local) {
+          const parsed = JSON.parse(local)
+          if (Array.isArray(parsed)) {
+            const f = parsed.find((p: any) => p.id === id)
+            if (f) return f
+          }
+        }
+      } catch {}
+    }
+
+    return null
   },
 
   /**
