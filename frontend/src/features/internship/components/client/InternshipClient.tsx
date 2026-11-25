@@ -257,18 +257,6 @@ export default function InternshipClient() {
                     {/* Header Kartu Posisi */}
                     <div className="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-white via-white to-purple-50/40">
                       <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2.5">
-                          {pos.divisi && (
-                            <span className="px-3 py-1 text-xs font-bold bg-purple-100 text-[#561269] rounded-full">
-                              {pos.divisi}
-                            </span>
-                          )}
-                          <span className="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            Dibuka
-                          </span>
-                        </div>
-
                         <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-950 tracking-tight">
                           {pos.judul}
                         </h3>
